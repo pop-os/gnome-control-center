@@ -1,0 +1,11 @@
+--- capplets/common/gconf-property-editor.c.orig	2004-10-08 11:43:40.000000000 +0200
++++ capplets/common/gconf-property-editor.c	2004-10-08 11:44:28.000000000 +0200
+@@ -594,7 +594,7 @@
+ 	if (value != NULL) {
+ 		value_wid = peditor->p->conv_to_widget_cb (peditor, value);
+ 		entry_current_text = gtk_entry_get_text (GTK_ENTRY (peditor->p->ui_control));
+-		if (strcmp (entry_current_text, gconf_value_get_string (value)) != 0) {
++		if ((value->type == GCONF_VALUE_STRING) && strcmp (entry_current_text, gconf_value_get_string (value)) != 0) {
+ 		  gtk_entry_set_text (GTK_ENTRY (peditor->p->ui_control), gconf_value_get_string (value_wid));
+ 		}
+ 		gconf_value_free (value_wid);

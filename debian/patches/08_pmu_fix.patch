@@ -1,6 +1,6 @@
 diff -ur gnome-settings-daemon.orig/actions/acme-fb-level.c gnome-settings-daemon/actions/acme-fb-level.c
---- gnome-settings-daemon.orig/actions/acme-fb-level.c	2004-07-03 12:22:43.000000000 +0200
-+++ gnome-settings-daemon/actions/acme-fb-level.c	2004-07-03 12:32:45.000000000 +0200
+--- gnome-settings-daemon.orig/actions/acme-fb-level.c	2004-10-08 11:50:42.000000000 +0200
++++ gnome-settings-daemon/actions/acme-fb-level.c	2004-10-08 11:57:44.000000000 +0200
 @@ -31,6 +31,7 @@
  #include <linux/fb.h>
  #include <linux/pmu.h>
@@ -27,7 +27,7 @@ diff -ur gnome-settings-daemon.orig/actions/acme-fb-level.c gnome-settings-daemo
  int
  acme_fblevel_get_level (AcmeFblevel *self)
  {
-@@ -146,16 +158,26 @@
+@@ -146,16 +158,23 @@
  }
  
  AcmeFblevel *
@@ -38,26 +38,23 @@ diff -ur gnome-settings-daemon.orig/actions/acme-fb-level.c gnome-settings-daemo
  	int fd, foo;
  
 -	if (g_file_test ("/dev/pmu", G_FILE_TEST_EXISTS) == FALSE)
++	if (acme_fblevel_is_powerbook () == FALSE) {
+ 		return NULL;
++	}
 +
-+
+ 
+-	if (acme_fblevel_is_powerbook () == FALSE)
 +	if (g_file_test ("/dev/pmu", G_FILE_TEST_EXISTS) == FALSE) {
 +		*error = g_error_new_literal (ACME_FBLEVEL_ERROR,
 +					      ACME_FBLEVEL_ERROR_NO_PMU_DEVICE,
 +					      _("No '/dev/pmu' device found"));
  		return NULL;
 +	}
- 
--	if (acme_fblevel_is_powerbook () == FALSE)
-+	if (acme_fblevel_is_powerbook () == FALSE) {
-+		*error = g_error_new_literal (ACME_FBLEVEL_ERROR,
-+					      ACME_FBLEVEL_ERROR_NO_POWERBOOK,
-+					      _("Not a powerbook"));
- 		return NULL;
-+	}
++
  
  	self = ACME_FBLEVEL (g_object_new (ACME_TYPE_FBLEVEL, NULL));
  	/* This function switches the kernel backlight control off.
-@@ -167,8 +189,12 @@
+@@ -167,8 +186,12 @@
  	 * Notice nicked from pbbuttons*/
  	fd  = open ("/dev/pmu", O_RDWR);
  	/* We can't emit the signal yet, the signal isn't connected! */
@@ -71,9 +68,18 @@ diff -ur gnome-settings-daemon.orig/actions/acme-fb-level.c gnome-settings-daemo
  
  	foo = ioctl(fd, PMU_IOC_GRAB_BACKLIGHT, 0);
  	self->_priv->pmu_fd = fd;
+@@ -186,7 +209,7 @@
+ 	while (!feof (fd) && found == FALSE)
+ 	{
+ 		fread (str, 1, 2048, fd);
+-		if (strstr (str, "PowerBook") != NULL)
++		if (strstr (str, "NewWorld") != NULL)
+ 			found = TRUE;
+ 	}
+ 
 diff -ur gnome-settings-daemon.orig/actions/acme-fb-level.h gnome-settings-daemon/actions/acme-fb-level.h
---- gnome-settings-daemon.orig/actions/acme-fb-level.h	2004-07-03 12:22:43.000000000 +0200
-+++ gnome-settings-daemon/actions/acme-fb-level.h	2004-07-03 12:32:45.000000000 +0200
+--- gnome-settings-daemon.orig/actions/acme-fb-level.h	2004-10-08 11:50:42.000000000 +0200
++++ gnome-settings-daemon/actions/acme-fb-level.h	2004-10-08 11:51:11.000000000 +0200
 @@ -29,9 +29,12 @@
  #define ACME_IS_FBLEVEL(obj)		(G_TYPE_CHECK_INSTANCE_TYPE ((obj), ACME_TYPE_FBLEVEL))
  #define ACME_FBLEVEL_GET_CLASS(obj)	(G_TYPE_INSTANCE_GET_CLASS ((obj), ACME_TYPE_FBLEVEL, AcmeFblevelClass))
@@ -109,8 +115,8 @@ diff -ur gnome-settings-daemon.orig/actions/acme-fb-level.h gnome-settings-daemo
  gboolean acme_fblevel_is_powerbook		(void);
  
 diff -ur gnome-settings-daemon.orig/gnome-settings-multimedia-keys.c gnome-settings-daemon/gnome-settings-multimedia-keys.c
---- gnome-settings-daemon.orig/gnome-settings-multimedia-keys.c	2004-07-03 12:22:43.000000000 +0200
-+++ gnome-settings-daemon/gnome-settings-multimedia-keys.c	2004-07-03 12:35:19.000000000 +0200
+--- gnome-settings-daemon.orig/gnome-settings-multimedia-keys.c	2004-10-08 11:50:42.000000000 +0200
++++ gnome-settings-daemon/gnome-settings-multimedia-keys.c	2004-10-08 11:51:11.000000000 +0200
 @@ -133,26 +133,6 @@
  	}
  }
