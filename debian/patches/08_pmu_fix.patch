@@ -62,7 +62,7 @@ diff -ur gnome-settings-daemon.orig/actions/acme-fb-level.c gnome-settings-daemo
 +	if (fd < 0) {
 +		*error = g_error_new_literal (ACME_FBLEVEL_ERROR,
 +					      ACME_FBLEVEL_ERROR_WRONG_PERMS,
-+					      _("Wrong permission for '/dev/pmu' device"));
++					      _("No permission to open '/dev/pmu' device"));
  		return NULL;
 +	}
  
@@ -152,7 +152,7 @@ diff -ur gnome-settings-daemon.orig/gnome-settings-multimedia-keys.c gnome-setti
  
  	acme = g_new0 (Acme, 1);
  	acme->xml = NULL;
-@@ -934,11 +915,12 @@
+@@ -934,11 +915,10 @@
  
  #ifdef USE_FBLEVEL
  	/* initialise Frame Buffer level handler */
@@ -163,9 +163,7 @@ diff -ur gnome-settings-daemon.orig/gnome-settings-multimedia-keys.c gnome-setti
 -			fblevel_problem_cb ();
 +	acme->levobj = acme_fblevel_new (&err);
 +	if (acme->levobj == NULL && err != NULL) {
-+		if (!g_error_matches (err, ACME_FBLEVEL_ERROR,
-+				      ACME_FBLEVEL_ERROR_NO_POWERBOOK))
-+			acme_error (err->message);
++		g_critical(err->message);
 +		g_error_free (err);
  	}
  #endif
