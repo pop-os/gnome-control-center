@@ -1,0 +1,49 @@
+Source: control-center
+Section: gnome
+Priority: optional
+Maintainer: Arnaud Patard <arnaud.patard@rtp-net.org>
+Uploaders: Marc Dequènes (Duck) <Duck@DuckCorp.org>, Debian GNOME Maintainers <pkg-gnome-maintainers@lists.alioth.debian.org>, Akira TAGOH <tagoh@debian.org>, Andreas Rottmann <rotty@debian.org>, Andrew Lau <netsnipe@users.sourceforge.net>, Carlos Perelló Marín <carlos@pemas.net>, Edd Dumbill <ejad@debian.org>, Emil Soleyman-Zomalan <emil@nishra.com>, Gustavo Noronha Silva <kov@debian.org>, J.H.M. Dassen (Ray) <jdassen@debian.org>, Joe Drew <drew@debian.org>, Johannes Rohr <j.rohr@comlink.org>, Jordi Mallach <jordi@debian.org>, Jose Carlos Garcia Sogo <jsogo@debian.org>, Josselin Mouette <joss@debian.org>, Marc 'HE' Brockschmidt <he@debian.org>, Ondřej Surý <ondrej@debian.org>, Rob Bradford <rob@debianplanet.org>, Robert McQueen <robot101@debian.org>, Ross Burton <ross@debian.org>, Sebastien Bacher <seb128@debian.org>, Takuo KITAME <kitame@debian.org>
+Standards-Version: 3.6.1
+Build-Depends: cdbs, gnome-pkg-tools, debhelper (>= 4.0.2), libgnomeui-dev (>= 2.8.0-1), intltool, libglade2-dev (>= 2.4.0-1), libgnome-desktop-dev (>= 2.7.92-1), zlib1g-dev, flex,liborbit2-dev (>= 2.10.2-1.1), libmetacity-dev (>= 1:2.8.1-3), libxcursor-dev, libbonobo2-dev (>= 2.6.2-6), libnautilus2-dev (>= 2.7.4-1), libgtk2.0-dev (>=2.4.9-1), libxklavier-dev (>= 1.03), libxrandr-dev, xlibs-static-dev, docbook-to-man, libgstreamer-plugins0.8-dev, libasound2-dev (>= 1.0.5-1), autotools-dev
+
+Package: capplets
+Architecture: any
+Section: gnome
+Depends: ${shlibs:Depends}, gnome-session (>= 2.7.1-1), gnome-desktop-data, gnome-control-center (>= 2.8.0) | nautilus (>= 2.7.4-1) | gnome-panel (>= 2.8.0), gnome-icon-theme (>= 1.2.3-1), capplets-data (= ${Source-Version}), xlibs
+Replaces: gnome-desktop-data (<= 2.2.2-1), gnome-control-center (<= 1:2.4.0-6)
+Conflicts: gnome-control-center2, metacity-properties, drwright, fontilus, acme
+Suggests: xscreensaver (>= 4.0), xbase-clients, gstreamer0.8-alsa, gstreamer0.8-oss, gstreamer0.8-esd
+Description: configuration applets for GNOME 2 - binaries files
+ This package contains utilities to configure your GNOME desktop.
+ .
+ This package contains these capplets: Assistive technology support,
+ background, file management, file types and programs, font, keyboard,
+ keyboard accessibility, keyboard shortcuts, menus
+ & toolbars, mouse, network proxy, panel, preferred applications, screen
+ & resolution, sessions, sound, theme, windows
+ .
+ This package can only configure the GNOME 2 desktop.
+
+Package: gnome-control-center
+Architecture: any
+Section: gnome
+Depends: ${shlibs:Depends}, capplets (= ${Source-Version})
+Recommends: gnome2-user-guide
+Replaces: gnome-desktop-data (<= 2.2.2-1)
+Conflicts: gnome-control-center2, metacity-properties, drwright, fontilus
+Suggests: esound-clients, xscreensaver (>= 4.0), xbase-clients
+Description: The GNOME Control Center for GNOME 2
+ This package contains a front end to capplets (configuration applet), to
+ configure your desktop.
+ .
+ This package can only configure the GNOME 2 desktop.
+
+Package: capplets-data
+Architecture: all
+Section: gnome
+Depends: scrollkeeper (>= 0.3.14-5), ${misc:Depends}
+Replaces: gnome-desktop-data (<= 2.2.2-1), gnome-control-center (<= 1:2.4.0-6)
+Description: configuration applets for GNOME 2 - data files
+ This package contains data files (icons, pixmaps, locales files) needed by
+ the capplets package.
+

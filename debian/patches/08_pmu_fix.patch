@@ -1,0 +1,166 @@
+diff -ur gnome-settings-daemon.orig/actions/acme-fb-level.c gnome-settings-daemon/actions/acme-fb-level.c
+--- gnome-settings-daemon.orig/actions/acme-fb-level.c	2004-07-03 12:22:43.000000000 +0200
++++ gnome-settings-daemon/actions/acme-fb-level.c	2004-07-03 12:32:45.000000000 +0200
+@@ -31,6 +31,7 @@
+ #include <linux/fb.h>
+ #include <linux/pmu.h>
+ #include <errno.h>
++#include <libgnome/gnome-i18n.h>
+ 
+ #ifndef FBIOBLANK
+ #define FBIOBLANK      0x4611          /* 0 or vesa-level+1 */
+@@ -104,6 +105,17 @@
+ 	return type;
+ }
+ 
++GQuark
++acme_fblevel_error_quark (void)
++{
++	static GQuark quark = 0;
++
++	if (quark == 0)
++		quark = g_quark_from_string ("acme-fblevel-quark");
++
++	return quark;
++}
++
+ int
+ acme_fblevel_get_level (AcmeFblevel *self)
+ {
+@@ -146,16 +158,26 @@
+ }
+ 
+ AcmeFblevel *
+-acme_fblevel_new (void)
++acme_fblevel_new (GError **error)
+ {
+ 	AcmeFblevel *self;
+ 	int fd, foo;
+ 
+-	if (g_file_test ("/dev/pmu", G_FILE_TEST_EXISTS) == FALSE)
++
++
++	if (g_file_test ("/dev/pmu", G_FILE_TEST_EXISTS) == FALSE) {
++		*error = g_error_new_literal (ACME_FBLEVEL_ERROR,
++					      ACME_FBLEVEL_ERROR_NO_PMU_DEVICE,
++					      _("No '/dev/pmu' device found"));
+ 		return NULL;
++	}
+ 
+-	if (acme_fblevel_is_powerbook () == FALSE)
++	if (acme_fblevel_is_powerbook () == FALSE) {
++		*error = g_error_new_literal (ACME_FBLEVEL_ERROR,
++					      ACME_FBLEVEL_ERROR_NO_POWERBOOK,
++					      _("Not a powerbook"));
+ 		return NULL;
++	}
+ 
+ 	self = ACME_FBLEVEL (g_object_new (ACME_TYPE_FBLEVEL, NULL));
+ 	/* This function switches the kernel backlight control off.
+@@ -167,8 +189,12 @@
+ 	 * Notice nicked from pbbuttons*/
+ 	fd  = open ("/dev/pmu", O_RDWR);
+ 	/* We can't emit the signal yet, the signal isn't connected! */
+-	if (fd < 0)
++	if (fd < 0) {
++		*error = g_error_new_literal (ACME_FBLEVEL_ERROR,
++					      ACME_FBLEVEL_ERROR_WRONG_PERMS,
++					      _("Wrong permission for '/dev/pmu' device"));
+ 		return NULL;
++	}
+ 
+ 	foo = ioctl(fd, PMU_IOC_GRAB_BACKLIGHT, 0);
+ 	self->_priv->pmu_fd = fd;
+diff -ur gnome-settings-daemon.orig/actions/acme-fb-level.h gnome-settings-daemon/actions/acme-fb-level.h
+--- gnome-settings-daemon.orig/actions/acme-fb-level.h	2004-07-03 12:22:43.000000000 +0200
++++ gnome-settings-daemon/actions/acme-fb-level.h	2004-07-03 12:32:45.000000000 +0200
+@@ -29,9 +29,12 @@
+ #define ACME_IS_FBLEVEL(obj)		(G_TYPE_CHECK_INSTANCE_TYPE ((obj), ACME_TYPE_FBLEVEL))
+ #define ACME_FBLEVEL_GET_CLASS(obj)	(G_TYPE_INSTANCE_GET_CLASS ((obj), ACME_TYPE_FBLEVEL, AcmeFblevelClass))
+ 
++#define ACME_FBLEVEL_ERROR		(acme_fblevel_error_quark ())
++
+ typedef struct AcmeFblevelPrivate AcmeFblevelPrivate;
+ typedef struct AcmeFblevel AcmeFblevel;
+ typedef struct AcmeFblevelClass AcmeFblevelClass;
++typedef enum   AcmeFblevelError	AcmeFblevelError;
+ 
+ struct AcmeFblevel {
+ 	GObject parent;
+@@ -44,12 +47,19 @@
+ 	GObjectClass parent;
+ };
+ 
++enum AcmeFblevelError {
++	ACME_FBLEVEL_ERROR_NO_PMU_DEVICE,
++	ACME_FBLEVEL_ERROR_NO_POWERBOOK,
++	ACME_FBLEVEL_ERROR_WRONG_PERMS
++};
++
+ GType acme_fblevel_get_type			(void);
++GQuark acme_fblevel_error_quark			(void);
+ int acme_fblevel_get_level			(AcmeFblevel *self);
+ void acme_fblevel_set_level			(AcmeFblevel *self, int val);
+ gboolean acme_fblevel_get_dim			(AcmeFblevel *self);
+ void acme_fblevel_set_dim			(AcmeFblevel *self,
+ 						 gboolean val);
+-AcmeFblevel *acme_fblevel_new			(void);
++AcmeFblevel *acme_fblevel_new			(GError **error);
+ gboolean acme_fblevel_is_powerbook		(void);
+ 
+diff -ur gnome-settings-daemon.orig/gnome-settings-multimedia-keys.c gnome-settings-daemon/gnome-settings-multimedia-keys.c
+--- gnome-settings-daemon.orig/gnome-settings-multimedia-keys.c	2004-07-03 12:22:43.000000000 +0200
++++ gnome-settings-daemon/gnome-settings-multimedia-keys.c	2004-07-03 12:35:19.000000000 +0200
+@@ -133,26 +133,6 @@
+ 	}
+ }
+ 
+-#ifdef USE_FBLEVEL
+-static char*
+-permission_problem_string (const char *file)
+-{
+-	return g_strdup_printf (_("Permissions on the file %s are broken\n"), file);
+-}
+-
+-static void
+-fblevel_problem_cb (void)
+-{
+-	char *msg;
+-
+-	msg = permission_problem_string ("/dev/pmu");
+-	acme_error (msg);
+-	g_free (msg);
+-
+-	return;
+-}
+-#endif
+-
+ static char *images[] = {
+ 	PIXMAPSDIR "/gnome-speakernotes-muted.png",
+ 	PIXMAPSDIR "/gnome-speakernotes.png",
+@@ -915,6 +895,7 @@
+ {
+ 	GSList *l;
+ 	Acme   *acme;
++	GError *err = NULL;
+ 
+ 	acme = g_new0 (Acme, 1);
+ 	acme->xml = NULL;
+@@ -934,11 +915,12 @@
+ 
+ #ifdef USE_FBLEVEL
+ 	/* initialise Frame Buffer level handler */
+-	if (acme_fblevel_is_powerbook () != FALSE)
+-	{
+-		acme->levobj = acme_fblevel_new();
+-		if (acme->levobj == NULL)
+-			fblevel_problem_cb ();
++	acme->levobj = acme_fblevel_new (&err);
++	if (acme->levobj == NULL && err != NULL) {
++		if (!g_error_matches (err, ACME_FBLEVEL_ERROR,
++				      ACME_FBLEVEL_ERROR_NO_POWERBOOK))
++			acme_error (err->message);
++		g_error_free (err);
+ 	}
+ #endif
+ 
