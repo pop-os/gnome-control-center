@@ -12,7 +12,7 @@
  {
  	GSList *pl;
  
-+	if (!(xkbConfig->model && xkbConfig->layouts && xkbConfig->options))
++	if (!(xkbConfig->model && xkbConfig->layouts))
 +	  {
 +	    g_warning ("Error getting xkb configuration.\n");
 +	    return 1;
@@ -37,8 +37,8 @@
 -	_GSwitchItXkbConfigSaveParams (xkbConfig, cs,
 -				       GSWITCHIT_CONFIG_XKB_SYSBACKUP);
 +	/* If 1 is returned no xkb configuration was found, do nothing. */
-+	if (!_GSwitchItXkbConfigSaveParams (xkbConfig, cs,
-+					    GSWITCHIT_CONFIG_XKB_SYSBACKUP))
++	if (_GSwitchItXkbConfigSaveParams (xkbConfig, cs,
++					   GSWITCHIT_CONFIG_XKB_SYSBACKUP))
 +	  return;
  
  	gconf_client_commit_change_set (xkbConfig->confClient, cs, TRUE,
