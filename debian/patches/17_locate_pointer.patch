@@ -1,0 +1,39 @@
+Index: gnome-settings-mouse.c
+===================================================================
+RCS file: /cvs/gnome/gnome-control-center/gnome-settings-daemon/gnome-settings-mouse.c,v
+retrieving revision 1.13
+diff -u -r1.13 gnome-settings-mouse.c
+--- gnome-settings-mouse.c	1 Aug 2003 18:59:43 -0000	1.13
++++ gnome-settings-daemon/gnome-settings-mouse.c	7 Jan 2005 13:24:38 -0000
+@@ -199,9 +199,31 @@
+ 			    False,
+ 			    GrabModeAsync,
+ 			    GrabModeSync);
++	          XGrabKey (GDK_DISPLAY_XDISPLAY (display),
++			    keys[i].keycode,
++			    Mod2Mask,
++			    xroot,
++			    False,
++			    GrabModeAsync,
++			    GrabModeSync);
++	          XGrabKey (GDK_DISPLAY_XDISPLAY (display),
++			    keys[i].keycode,
++			    Mod4Mask,
++			    xroot,
++			    False,
++			    GrabModeAsync,
++			    GrabModeSync);
+ 	        }
+ 	      else 
+ 	        {
++	          XUngrabKey (GDK_DISPLAY_XDISPLAY (display),
++			      keys[i].keycode,
++			      Mod4Mask,
++			      xroot);
++	          XUngrabKey (GDK_DISPLAY_XDISPLAY (display),
++			      keys[i].keycode,
++			      Mod2Mask,
++			      xroot);
+ 	          XUngrabKey (GDK_DISPLAY_XDISPLAY (display),
+ 			      keys[i].keycode,
+ 			      LockMask,
