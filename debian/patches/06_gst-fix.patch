@@ -1,112 +1,11 @@
-diff -u gnome-settings-daemon/actions.orig/acme-volume.c gnome-settings-daemon/actions/acme-volume.c
---- gnome-settings-daemon/actions.orig/acme-volume.c	2004-07-03 17:26:19.000000000 +0200
-+++ gnome-settings-daemon/actions/acme-volume.c	2004-07-03 17:26:51.000000000 +0200
-@@ -124,7 +124,9 @@
- 
- #ifdef HAVE_GSTREAMER
- 	vol = ACME_VOLUME (g_object_new (acme_volume_gstreamer_get_type (), NULL));
--	return vol;
-+  if (vol != NULL && ACME_VOLUME_GSTREAMER(vol)->_priv != NULL)
-+	  return vol;
-+  g_object_unref(vol);
- #endif
- #ifdef HAVE_ALSA
- 	vol = ACME_VOLUME  (g_object_new (acme_volume_alsa_get_type (), NULL));
-diff -u gnome-settings-daemon/actions.orig/acme-volume-gstreamer.c gnome-settings-daemon/actions/acme-volume-gstreamer.c
---- gnome-settings-daemon/actions.orig/acme-volume-gstreamer.c	2004-07-03 17:26:19.000000000 +0200
-+++ gnome-settings-daemon/actions/acme-volume-gstreamer.c	2004-07-03 17:27:46.000000000 +0200
-@@ -52,14 +52,13 @@
- 
- 	self = ACME_VOLUME_GSTREAMER (object);
- 
--	g_return_if_fail (self->_priv != NULL);
--
--	if (self->_priv->mixer != NULL) {
--		g_object_unref (self->_priv->mixer);
--		g_object_unref (self->_priv->track);
--	}
--
--	g_free (self->_priv);
-+  if (self->_priv != NULL) {
-+	  if (self->_priv->mixer != NULL) {
-+	  	g_object_unref (self->_priv->mixer);
-+  		g_object_unref (self->_priv->track);
-+  	}
-+	  g_free (self->_priv);
-+  }
- 
- 	G_OBJECT_CLASS (parent_class)->finalize (object);
- }
-@@ -69,7 +68,7 @@
- {
- 	AcmeVolumeGStreamer *self = (AcmeVolumeGStreamer *) vol;
- 
--	if (self->_priv->mixer == NULL)
-+	if (self->_priv == NULL)
- 		return;
- 
- 	gst_mixer_set_mute (self->_priv->mixer,
-@@ -82,7 +81,7 @@
- {
- 	AcmeVolumeGStreamer *self = (AcmeVolumeGStreamer *) vol;
- 
--	if (self->_priv->mixer == NULL)
-+	if (self->_priv == NULL)
- 		return FALSE;
- 
- 	return GST_MIXER_TRACK_HAS_FLAG (self->_priv->track,
-@@ -97,7 +96,7 @@
- 	AcmeVolumeGStreamer *self = (AcmeVolumeGStreamer *) vol;
- 	GstMixerTrack *track;
- 	
--	if (self->_priv->mixer == NULL)
-+	if (self->_priv == NULL)
- 		return 0;
- 
- 	track = self->_priv->track;
-@@ -122,11 +121,12 @@
- 	gint i, *volumes;
- 	double volume;
- 	AcmeVolumeGStreamer *self = (AcmeVolumeGStreamer *) vol;
--	GstMixerTrack *track = self->_priv->track;
-+	GstMixerTrack *track;
- 
--	if (self->_priv->mixer == NULL)
-+	if (self->_priv == NULL)
- 		return;
--
-+  track = self->_priv->track;
-+  
- 	val = CLAMP (val, 0, 100);
- 
- 	/* Rescale the volume from [0, 100] to [track min, track max]. */
-@@ -147,8 +147,6 @@
- 	const GList *elements;
- 	gint num = 0, channel_count = 0;
- 
--	self->_priv = g_new0 (AcmeVolumeGStreamerPrivate, 1);
--
- 	/* Go through all elements of a certain class and check whether
- 	 * they implement a mixer. If so, walk through the tracks and look
- 	 * for first one named "volume".
-@@ -158,7 +156,7 @@
- 	 * just becomes a no-op.
- 	 */
- 	elements = gst_registry_pool_feature_list (GST_TYPE_ELEMENT_FACTORY);
--	for ( ; elements != NULL && self->_priv->mixer == NULL; elements = elements->next) {
-+	for ( ; elements != NULL && self->_priv == NULL ; elements = elements->next) {
- 		GstElementFactory *factory = GST_ELEMENT_FACTORY (elements->data);
- 		gchar *title = NULL;
- 		const gchar *klass;
-@@ -211,14 +209,17 @@
+--- gnome-settings-daemon/actions/acme-volume-gstreamer.c.orig	2004-08-13 11:39:24.000000000 +0200
++++ gnome-settings-daemon/actions/acme-volume-gstreamer.c	2004-08-13 11:57:48.000000000 +0200
+@@ -211,14 +258,14 @@
  			for (; tracks != NULL; tracks = tracks->next) {
  				GstMixerTrack *track = tracks->data;
  				
 -				if (! g_strcasecmp (track->label, "volume")) {
-+				if (! g_strcasecmp (track->label, "volume") ||
-+            ! g_strcasecmp (track->label, "master")) {
-+	        self->_priv = g_new0 (AcmeVolumeGStreamerPrivate, 1);
-+
++				if (! g_strcasecmp (track->label, "volume") || ! g_strcasecmp (track->label, "master")) {
  					self->_priv->mixer = GST_MIXER (element);
  					self->_priv->track = track;
  
@@ -114,7 +13,7 @@ diff -u gnome-settings-daemon/actions.orig/acme-volume-gstreamer.c gnome-setting
  					g_object_ref (self->_priv->track);
  
 -					break;
-+					return;
++					return TRUE;
  				}
  			}
  			
