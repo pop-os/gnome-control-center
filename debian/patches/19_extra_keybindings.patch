@@ -1,0 +1,94 @@
+diff -aur control-center-2.8.1/capplets/keybindings/gnome-keybinding-properties.c control-center-2.8.1.patched/capplets/keybindings/gnome-keybinding-properties.c
+--- control-center-2.8.1/capplets/keybindings/gnome-keybinding-properties.c	2004-09-10 04:34:56.000000000 +0200
++++ control-center-2.8.1.patched/capplets/keybindings/gnome-keybinding-properties.c	2005-01-11 12:07:32.000000000 +0100
+@@ -48,6 +48,7 @@
+   { "/apps/gnome_settings_daemon/keybindings/search", ALWAYS_VISIBLE, 0 },
+   { "/apps/gnome_settings_daemon/keybindings/email", ALWAYS_VISIBLE, 0 },
+   { "/apps/gnome_settings_daemon/keybindings/www", ALWAYS_VISIBLE, 0 },
++  { "/apps/gnome_settings_daemon/keybindings/calculator", ALWAYS_VISIBLE, 0 },
+   { "/apps/metacity/global_keybindings/panel_run_dialog", ALWAYS_VISIBLE, 0 },
+   { "/apps/metacity/global_keybindings/panel_main_menu", ALWAYS_VISIBLE, 0 },
+   { "/apps/metacity/global_keybindings/run_command_screenshot", ALWAYS_VISIBLE, 0 },
+@@ -60,6 +61,7 @@
+ };
+ const KeyListEntry sounds_key_list[] =
+ {
++  { "/apps/gnome_settings_daemon/keybindings/music", ALWAYS_VISIBLE, 0 },
+   { "/apps/gnome_settings_daemon/keybindings/volume_mute", ALWAYS_VISIBLE, 0 },
+   { "/apps/gnome_settings_daemon/keybindings/volume_down", ALWAYS_VISIBLE, 0 },
+   { "/apps/gnome_settings_daemon/keybindings/volume_up", ALWAYS_VISIBLE, 0 },
+diff -aur control-center-2.8.1/gnome-settings-daemon/actions/acme.h control-center-2.8.1.patched/gnome-settings-daemon/actions/acme.h
+--- control-center-2.8.1/gnome-settings-daemon/actions/acme.h	2004-03-24 03:54:33.000000000 +0100
++++ control-center-2.8.1.patched/gnome-settings-daemon/actions/acme.h	2005-01-11 12:05:30.000000000 +0100
+@@ -38,6 +38,8 @@
+ 	SCREENSAVER_KEY,
+ 	HELP_KEY,
+ 	WWW_KEY,
++       MUSIC_KEY,
++       CALCULATOR_KEY,
+ #ifdef USE_FBLEVEL
+ 	BRIGHT_DOWN_KEY,
+ 	BRIGHT_UP_KEY,
+@@ -73,6 +75,8 @@
+ 	{ SCREENSAVER_KEY, GCONF_BINDING_DIR "/screensaver", NULL },
+ 	{ HELP_KEY, GCONF_BINDING_DIR "/help", NULL },
+ 	{ WWW_KEY, GCONF_BINDING_DIR "/www", NULL },
++	{ MUSIC_KEY, GCONF_BINDING_DIR "/music", NULL },
++	{ CALCULATOR_KEY, GCONF_BINDING_DIR "/calculator", NULL },
+ #ifdef USE_FBLEVEL
+ 	{ BRIGHT_DOWN_KEY, GCONF_BINDING_DIR "/brightness_down", NULL },
+ 	{ BRIGHT_UP_KEY, GCONF_BINDING_DIR "/brightness_up", NULL },
+diff -aur control-center-2.8.1/gnome-settings-daemon/gnome-settings-multimedia-keys.c control-center-2.8.1.patched/gnome-settings-daemon/gnome-settings-multimedia-keys.c
+--- control-center-2.8.1/gnome-settings-daemon/gnome-settings-multimedia-keys.c	2004-10-09 03:52:01.000000000 +0200
++++ control-center-2.8.1.patched/gnome-settings-daemon/gnome-settings-multimedia-keys.c	2005-01-11 18:26:46.000000000 +0100
+@@ -818,6 +818,12 @@
+ 	case SCREENSAVER_KEY:
+ 		execute ("xscreensaver-command -lock", FALSE);
+ 		break;
++  case MUSIC_KEY:
++    execute ("rhythmbox", FALSE);
++    break;
++  case CALCULATOR_KEY:
++    execute ("gcalctool", FALSE);
++    break;
+ 	case HELP_KEY:
+ 		do_help_action (acme);
+ 		break;
+diff -aur control-center-2.8.1/schemas/apps_gnome_settings_daemon_keybindings.schemas.in control-center-2.8.1.patched/schemas/apps_gnome_settings_daemon_keybindings.schemas.in
+--- control-center-2.8.1/schemas/apps_gnome_settings_daemon_keybindings.schemas.in	2004-05-17 19:03:38.000000000 +0200
++++ control-center-2.8.1.patched/schemas/apps_gnome_settings_daemon_keybindings.schemas.in	2005-01-11 12:17:13.000000000 +0100
+@@ -14,6 +14,16 @@
+ 	</schema>
+ 
+         <schema>
++            <key>/schemas/apps/gnome_settings_daemon/keybindings/music</key>
++            <applyto>/apps/gnome_settings_daemon/keybindings/music</applyto>
++            <type>string</type>
++            <default></default>
++            <locale name="C">
++                <short>Launch music player</short>
++                <long>Launch music players's shortcut</long>
++            </locale>
++        </schema>
++        <schema>
+             <key>/schemas/apps/gnome_settings_daemon/keybindings/volume_mute</key>
+             <applyto>/apps/gnome_settings_daemon/keybindings/volume_mute</applyto>
+             <type>string</type>
+@@ -156,6 +166,17 @@
+             </locale>
+         </schema>
+ 
++        <schema>
++            <key>/schemas/apps/gnome_settings_daemon/keybindings/calculator</key>
++            <applyto>/apps/gnome_settings_daemon/keybindings/calculator</applyto>
++            <type>string</type>
++            <default></default>
++            <locale name="C">
++                <short>Launch calculator</short>
++                <long>Launch calculator's shortcut</long>
++            </locale>
++        </schema>
++
+ 
+         <schema>
+             <key>/schemas/apps/gnome_settings_daemon/keybindings/brightness_down</key>
