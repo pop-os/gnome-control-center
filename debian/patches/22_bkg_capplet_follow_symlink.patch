@@ -1,0 +1,97 @@
+--- capplets/background/gnome-wp-info.c.orig	2005-02-07 01:46:37.000000000 +0100
++++ capplets/background/gnome-wp-info.c	2005-02-07 02:01:00.000000000 +0100
+@@ -57,13 +57,36 @@
+ 
+     new->uri = g_strdup (uri);
+ 
++    /* If one have a symlink, resolv it */
++    if (info->flags & GNOME_VFS_FILE_FLAGS_SYMLINK) {
++	do {
++		if (new->symlink_name)
++			g_free(new->symlink_name);
++		new->symlink_name = g_strdup (info->symlink_name);
++		gnome_vfs_file_info_unref (info);
++		info = gnome_vfs_file_info_new ();
++
++		result = gnome_vfs_get_file_info (gnome_vfs_escape_path_string (new->symlink_name), info,
++				    GNOME_VFS_FILE_INFO_DEFAULT |
++				    GNOME_VFS_FILE_INFO_GET_MIME_TYPE |
++				    GNOME_VFS_FILE_INFO_FOLLOW_LINKS);
++		
++		if (info == NULL || info->mime_type == NULL || result != GNOME_VFS_OK) {
++			if (info)
++				gnome_vfs_file_info_unref (info);
++			return NULL;
++		}		
++	} while (info->flags & GNOME_VFS_FILE_FLAGS_SYMLINK);
++    }
++
+     new->thumburi = gnome_thumbnail_factory_lookup (thumbs,
+-						    gnome_vfs_escape_path_string (new->uri),
++						    gnome_vfs_escape_path_string (new->symlink_name ? new->symlink_name : new->uri),
+ 						    info->mtime);
++
+     if (new->thumburi == NULL) {
+       new->thumburi = g_strconcat (g_get_home_dir (),
+ 				   "/.thumbnails/normal/",
+-				   gnome_thumbnail_md5 (gnome_vfs_escape_path_string (uri)),
++				   gnome_thumbnail_md5 (gnome_vfs_escape_path_string (new->symlink_name ? new->symlink_name : new->uri)),
+ 				   ".png",
+ 				   NULL);
+     }
+@@ -84,6 +107,7 @@
+   new = g_new0 (GnomeWPInfo, 1);
+ 
+   new->uri = g_strdup (info->uri);
++  new->symlink_name = g_strdup(info->symlink_name);
+   new->thumburi = g_strdup (info->uri);
+ 
+   new->name = g_strdup (info->name);
+@@ -101,6 +125,7 @@
+   }
+ 
+   g_free (info->uri);
++  g_free (info->symlink_name);
+   g_free (info->thumburi);
+   g_free (info->name);
+   g_free (info->mime_type);
+--- capplets/background/gnome-wp-item.c.orig	2005-02-07 01:50:24.000000000 +0100
++++ capplets/background/gnome-wp-item.c	2005-02-07 01:54:34.000000000 +0100
+@@ -203,12 +203,25 @@
+   } else if (!strcmp (item->filename, "(none)")) {
+     return bgpixbuf;
+   } else {
+-    pixbuf = gnome_thumbnail_factory_generate_thumbnail (thumbs,
++    if (item->fileinfo->symlink_name) {
++        pixbuf = gnome_thumbnail_factory_generate_thumbnail (thumbs,
++							 gnome_vfs_escape_path_string (item->fileinfo->symlink_name),
++							 item->fileinfo->mime_type);
++
++        gnome_thumbnail_factory_save_thumbnail (thumbs, pixbuf,
++					    gnome_vfs_escape_path_string (item->fileinfo->symlink_name),
++					    item->fileinfo->mtime);
++
++    }
++    else {
++       pixbuf = gnome_thumbnail_factory_generate_thumbnail (thumbs,
+ 							 gnome_vfs_escape_path_string (item->filename),
+ 							 item->fileinfo->mime_type);
+-    gnome_thumbnail_factory_save_thumbnail (thumbs, pixbuf,
++
++        gnome_thumbnail_factory_save_thumbnail (thumbs, pixbuf,
+ 					    gnome_vfs_escape_path_string (item->filename),
+ 					    item->fileinfo->mtime);
++    }
+     g_object_unref (pixbuf);
+     pixbuf = gdk_pixbuf_new_from_file (item->fileinfo->thumburi, NULL);
+   }
+--- capplets/background/gnome-wp-info.h.orig	2005-02-07 02:06:23.000000000 +0100
++++ capplets/background/gnome-wp-info.h	2005-02-07 01:56:48.000000000 +0100
+@@ -29,6 +29,7 @@
+ 
+ struct _GnomeWPInfo {
+   gchar * uri;
++  gchar * symlink_name;
+   gchar * thumburi;
+   gchar * name;
+   gchar * mime_type;

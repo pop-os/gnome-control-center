@@ -1,0 +1,44 @@
+--- gnome-settings-daemon/gnome-settings-keyboard-xkb.c.orig	2005-02-06 18:53:05.000000000 +0100
++++ gnome-settings-daemon/gnome-settings-keyboard-xkb.c	2005-02-06 19:02:31.000000000 +0100
+@@ -51,6 +51,9 @@
+ static const char DISABLE_XMM_WARNING_KEY[] =
+     "/desktop/gnome/peripherals/keyboard/disable_xmm_and_xkb_warning";
+ 
++static void gnome_settings_keyboard_xkb_chk_lcl_xmm_response (GtkDialog * dlg, \
++		gint response);
++
+ typedef enum {
+ 	RESPONSE_USE_X,
+ 	RESPONSE_USE_GNOME
+@@ -85,14 +88,14 @@
+ 							      "Try using simpler configuration or taking more fresh version of XFree software.")
+ 							     : "");
+ 	g_signal_connect (msg, "response",
+-			  G_CALLBACK (gtk_widget_destroy), NULL);
++			  G_CALLBACK (gnome_settings_keyboard_xkb_chk_lcl_xmm_response), NULL);
+ 	gtk_widget_show (msg);
+ }
+ 
+ static void
+ apply_settings (void)
+ {
+-	GConfClient *confClient;
++	GConfClient *confClient, *gcc;
+ 
+ 	if (!initedOk)
+ 		return;
+@@ -113,6 +116,14 @@
+ 				(*paCallback) (paCallbackUserData);
+ 			}
+ 		} else {
++			gcc = gconf_client_get_default ();
++			if (gconf_client_get_bool (gcc,\
++						DISABLE_XMM_WARNING_KEY, NULL)) {
++				g_object_unref (G_OBJECT (gcc));
++				return;
++			}
++			g_object_unref (G_OBJECT (gcc));
++			
+ 			g_warning
+ 			    ("Could not activate the XKB configuration");
+ 			activation_error ();

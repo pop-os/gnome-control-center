@@ -1,0 +1,45 @@
+--- libgswitchit/gswitchit_config.c~	2004-10-14 15:44:52.000000000 -0300
++++ libgswitchit/gswitchit_config.c	2005-02-04 12:07:50.000000000 -0200
+@@ -500,13 +500,19 @@
+ 	}
+ }
+ 
+-static void
++static gboolean
+ _GSwitchItXkbConfigSaveParams (GSwitchItXkbConfig * xkbConfig,
+ 			       GConfChangeSet * cs,
+ 			       const char *paramNames[])
+ {
+ 	GSList *pl;
+ 
++	if (!(xkbConfig->model && xkbConfig->layouts && xkbConfig->options))
++	  {
++	    g_warning ("Error getting xkb configuration.\n");
++	    return 1;
++	  }
++
+ 	gconf_change_set_set_string (cs, paramNames[0], xkbConfig->model);
+ 	XklDebug (150, "Saved XKB model: [%s]\n", xkbConfig->model);
+ 
+@@ -526,6 +532,8 @@
+ 	gconf_change_set_set_list (cs,
+ 				   paramNames[2],
+ 				   GCONF_VALUE_STRING, xkbConfig->options);
++
++	return 0;
+ }
+ 
+ /**
+@@ -670,8 +678,10 @@
+ 
+ 	cs = gconf_change_set_new ();
+ 
+-	_GSwitchItXkbConfigSaveParams (xkbConfig, cs,
+-				       GSWITCHIT_CONFIG_XKB_SYSBACKUP);
++	/* If 1 is returned no xkb configuration was found, do nothing. */
++	if (!_GSwitchItXkbConfigSaveParams (xkbConfig, cs,
++					    GSWITCHIT_CONFIG_XKB_SYSBACKUP))
++	  return;
+ 
+ 	gconf_client_commit_change_set (xkbConfig->confClient, cs, TRUE,
+ 					&gerror);
