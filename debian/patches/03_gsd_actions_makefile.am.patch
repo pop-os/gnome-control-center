@@ -1,0 +1,20 @@
+--- gnome-settings-daemon/actions/Makefile.am.orig	2004-03-31 17:31:35.000000000 +0200
++++ gnome-settings-daemon/actions/Makefile.am	2004-05-28 00:48:34.000000000 +0200
+@@ -2,7 +2,7 @@
+ noinst_LTLIBRARIES = libacme.la
+ 
+ if HAVE_ALSA
+-ALSA_CFLAGS = -DHAVE_ALSA
++HAVE_ALSA_CFLAGS = -DHAVE_ALSA
+ ALSA_files = acme-volume-alsa.c acme-volume-alsa.h
+ endif
+ 
+@@ -21,7 +21,7 @@
+ GST_files = acme-volume-gstreamer.c acme-volume-gstreamer.h
+ endif
+ 
+-INCLUDES = $(GNOME_CFLAGS) -I$(top_srcdir) $(ALSA_CFLAGS) $(OSS_CFLAGS) $(FB_CFLAGS) $(HAVE_GST_CFLAGS) $(GST_CFLAGS)
++INCLUDES = $(GNOME_CFLAGS) -I$(top_srcdir) $(HAVE_ALSA_CFLAGS) $(ALSA_CFLAGS) $(OSS_CFLAGS) $(FB_CFLAGS) $(HAVE_GST_CFLAGS) $(GST_CFLAGS)
+ 
+ libacme_la_SOURCES = \
+ 	$(FB_files) $(OSS_files) $(ALSA_files)	\
