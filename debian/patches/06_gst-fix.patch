@@ -1,5 +1,6 @@
---- gnome-settings-daemon/actions/acme-volume.c.orig	2004-06-03 21:41:35.000000000 +0200
-+++ gnome-settings-daemon/actions/acme-volume.c	2004-06-03 21:33:06.000000000 +0200
+diff -u gnome-settings-daemon/actions.orig/acme-volume.c gnome-settings-daemon/actions/acme-volume.c
+--- gnome-settings-daemon/actions.orig/acme-volume.c	2004-07-03 17:26:19.000000000 +0200
++++ gnome-settings-daemon/actions/acme-volume.c	2004-07-03 17:26:51.000000000 +0200
 @@ -124,7 +124,9 @@
  
  #ifdef HAVE_GSTREAMER
@@ -11,8 +12,9 @@
  #endif
  #ifdef HAVE_ALSA
  	vol = ACME_VOLUME  (g_object_new (acme_volume_alsa_get_type (), NULL));
---- gnome-settings-daemon/actions/acme-volume-gstreamer.c.orig	2004-06-03 21:41:25.000000000 +0200
-+++ gnome-settings-daemon/actions/acme-volume-gstreamer.c	2004-06-03 21:35:51.000000000 +0200
+diff -u gnome-settings-daemon/actions.orig/acme-volume-gstreamer.c gnome-settings-daemon/actions/acme-volume-gstreamer.c
+--- gnome-settings-daemon/actions.orig/acme-volume-gstreamer.c	2004-07-03 17:26:19.000000000 +0200
++++ gnome-settings-daemon/actions/acme-volume-gstreamer.c	2004-07-03 17:27:46.000000000 +0200
 @@ -52,14 +52,13 @@
  
  	self = ACME_VOLUME_GSTREAMER (object);
@@ -92,11 +94,11 @@
  	 */
  	elements = gst_registry_pool_feature_list (GST_TYPE_ELEMENT_FACTORY);
 -	for ( ; elements != NULL && self->_priv->mixer == NULL; elements = elements->next) {
-+	for ( ; elements != NULL && self->_priv == NULL; elements = elements->next) {
++	for ( ; elements != NULL && self->_priv == NULL ; elements = elements->next) {
  		GstElementFactory *factory = GST_ELEMENT_FACTORY (elements->data);
  		gchar *title = NULL;
  		const gchar *klass;
-@@ -211,7 +209,10 @@
+@@ -211,14 +209,17 @@
  			for (; tracks != NULL; tracks = tracks->next) {
  				GstMixerTrack *track = tracks->data;
  				
@@ -108,3 +110,11 @@
  					self->_priv->mixer = GST_MIXER (element);
  					self->_priv->track = track;
  
+ 					g_object_ref (self->_priv->mixer);
+ 					g_object_ref (self->_priv->track);
+ 
+-					break;
++					return;
+ 				}
+ 			}
+ 			
