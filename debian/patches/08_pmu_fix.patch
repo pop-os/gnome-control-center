@@ -1,6 +1,6 @@
-diff -ur control-center-2.8.1-orig/gnome-settings-daemon/actions/acme-fb-level.c control-center-2.8.1-patched/gnome-settings-daemon/actions/acme-fb-level.c
---- control-center-2.8.1-orig/gnome-settings-daemon/actions/acme-fb-level.c	2004-09-10 04:34:57.000000000 +0200
-+++ control-center-2.8.1-patched/gnome-settings-daemon/actions/acme-fb-level.c	2005-01-18 19:44:48.055828096 +0100
+diff -aur control-center-2.8.1.vanilla/gnome-settings-daemon/actions/acme-fb-level.c control-center-2.8.1/gnome-settings-daemon/actions/acme-fb-level.c
+--- control-center-2.8.1.vanilla/gnome-settings-daemon/actions/acme-fb-level.c	2005-01-25 22:04:12.000000000 +0100
++++ control-center-2.8.1/gnome-settings-daemon/actions/acme-fb-level.c	2005-01-25 22:17:30.000000000 +0100
 @@ -31,6 +31,7 @@
  #include <linux/fb.h>
  #include <linux/pmu.h>
@@ -27,7 +27,7 @@ diff -ur control-center-2.8.1-orig/gnome-settings-daemon/actions/acme-fb-level.c
  int
  acme_fblevel_get_level (AcmeFblevel *self)
  {
-@@ -126,16 +138,23 @@
+@@ -126,17 +138,48 @@
  }
  
  AcmeFblevel *
@@ -36,25 +36,50 @@ diff -ur control-center-2.8.1-orig/gnome-settings-daemon/actions/acme-fb-level.c
  {
  	AcmeFblevel *self;
  	int fd, foo;
++  gchar *macio, *backlight;
++	/* if there is no /proc/device-tree/aliases/via-pmu, we quit */
++	if (!g_file_test ("/proc/device-tree/aliases/via-pmu", G_FILE_TEST_EXISTS)) {
++		return NULL;
++	}
  
 -	if (g_file_test ("/dev/pmu", G_FILE_TEST_EXISTS) == FALSE)
-+	if (g_file_test ("/proc/device-tree/aliases/via-pmu", G_FILE_TEST_EXISTS) == FALSE) {
++	/* if there is no /proc/device-tree/aliases/mac-io, we quit too */
++	if (!g_file_test ("/proc/device-tree/aliases/mac-io", G_FILE_TEST_EXISTS)) {
  		return NULL;
 +	}
 +
++	/* if there is no /proc/device-tree/`cat /proc/device-tree/aliases/mac-io`/backlight
++	 * we quit too */
++  if (!g_file_get_contents("/proc/device-tree/aliases/mac-io", &macio, 
++                           NULL, NULL)) {
++    return NULL;
++  }
++  /* just to be sure */
++  g_strstrip(macio);
++  backlight = g_strdup_printf("/proc/device-tree/%s/backlight", macio);
++  g_free(macio);
  
 -	if (acme_fblevel_is_powerbook () == FALSE)
++	if (g_file_test(backlight, G_FILE_TEST_EXISTS) == FALSE ) {
++		g_free(backlight);
+ 		return NULL;
++	}
++	g_free(backlight);
++	
++	/* if there is no /dev/pmu, we warn the user silently and quit. */
 +	if (g_file_test ("/dev/pmu", G_FILE_TEST_EXISTS) == FALSE) {
 +		*error = g_error_new_literal (ACME_FBLEVEL_ERROR,
 +					      ACME_FBLEVEL_ERROR_NO_PMU_DEVICE,
 +					      _("No '/dev/pmu' device found"));
- 		return NULL;
++		return NULL;
 +	}
-+
  
++	/* if /dev/pmu is not writable, we warn the user silently, and quit. */
++	
  	self = ACME_FBLEVEL (g_object_new (ACME_TYPE_FBLEVEL, NULL));
  	/* This function switches the kernel backlight control off.
-@@ -147,31 +166,14 @@
+ 	 * This is part of the PPC kernel branch since version
+@@ -147,31 +190,14 @@
  	 * Notice nicked from pbbuttons*/
  	fd  = open ("/dev/pmu", O_RDWR);
  	/* We can't emit the signal yet, the signal isn't connected! */
@@ -91,10 +116,9 @@ diff -ur control-center-2.8.1-orig/gnome-settings-daemon/actions/acme-fb-level.c
 -	return found;
 -}
 -
-Seulement dans control-center-2.8.1-patched/gnome-settings-daemon/actions: acme-fb-level.c.orig
-diff -ur control-center-2.8.1-orig/gnome-settings-daemon/actions/acme-fb-level.h control-center-2.8.1-patched/gnome-settings-daemon/actions/acme-fb-level.h
---- control-center-2.8.1-orig/gnome-settings-daemon/actions/acme-fb-level.h	2004-01-13 16:57:36.000000000 +0100
-+++ control-center-2.8.1-patched/gnome-settings-daemon/actions/acme-fb-level.h	2005-01-18 19:43:30.080682120 +0100
+diff -aur control-center-2.8.1.vanilla/gnome-settings-daemon/actions/acme-fb-level.h control-center-2.8.1/gnome-settings-daemon/actions/acme-fb-level.h
+--- control-center-2.8.1.vanilla/gnome-settings-daemon/actions/acme-fb-level.h	2005-01-25 22:04:12.000000000 +0100
++++ control-center-2.8.1/gnome-settings-daemon/actions/acme-fb-level.h	2005-01-25 22:05:04.000000000 +0100
 @@ -29,9 +29,12 @@
  #define ACME_IS_FBLEVEL(obj)		(G_TYPE_CHECK_INSTANCE_TYPE ((obj), ACME_TYPE_FBLEVEL))
  #define ACME_FBLEVEL_GET_CLASS(obj)	(G_TYPE_INSTANCE_GET_CLASS ((obj), ACME_TYPE_FBLEVEL, AcmeFblevelClass))
@@ -129,9 +153,9 @@ diff -ur control-center-2.8.1-orig/gnome-settings-daemon/actions/acme-fb-level.h
 +AcmeFblevel *acme_fblevel_new			(GError **error);
  gboolean acme_fblevel_is_powerbook		(void);
  
-diff -ur control-center-2.8.1-orig/gnome-settings-daemon/gnome-settings-multimedia-keys.c control-center-2.8.1-patched/gnome-settings-daemon/gnome-settings-multimedia-keys.c
---- control-center-2.8.1-orig/gnome-settings-daemon/gnome-settings-multimedia-keys.c	2004-10-09 03:52:01.000000000 +0200
-+++ control-center-2.8.1-patched/gnome-settings-daemon/gnome-settings-multimedia-keys.c	2005-01-18 19:43:30.151671328 +0100
+diff -aur control-center-2.8.1.vanilla/gnome-settings-daemon/gnome-settings-multimedia-keys.c control-center-2.8.1/gnome-settings-daemon/gnome-settings-multimedia-keys.c
+--- control-center-2.8.1.vanilla/gnome-settings-daemon/gnome-settings-multimedia-keys.c	2005-01-25 22:04:12.000000000 +0100
++++ control-center-2.8.1/gnome-settings-daemon/gnome-settings-multimedia-keys.c	2005-01-25 22:05:04.000000000 +0100
 @@ -133,26 +133,6 @@
  	}
  }
@@ -183,4 +207,3 @@ diff -ur control-center-2.8.1-orig/gnome-settings-daemon/gnome-settings-multimed
  	}
  #endif
  
-Seulement dans control-center-2.8.1-patched/gnome-settings-daemon: gnome-settings-multimedia-keys.c.orig
