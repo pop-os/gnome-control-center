@@ -1,5 +1,6 @@
---- gnome-settings-daemon/actions/acme-volume-gstreamer.c.orig	2004-08-13 11:39:24.000000000 +0200
-+++ gnome-settings-daemon/actions/acme-volume-gstreamer.c	2004-08-13 11:57:48.000000000 +0200
+diff -ur gnome-settings-daemon.orig/actions/acme-volume-gstreamer.c gnome-settings-daemon/actions/acme-volume-gstreamer.c
+--- gnome-settings-daemon.orig/actions/acme-volume-gstreamer.c	2004-10-08 14:00:05.000000000 +0200
++++ gnome-settings-daemon/actions/acme-volume-gstreamer.c	2004-10-08 14:03:33.000000000 +0200
 @@ -31,16 +31,23 @@
  #include <gst/mixer/mixer.h>
  #include <gst/propertyprobe/propertyprobe.h>
@@ -109,7 +110,7 @@
  		return;
  
  	val = CLAMP (val, 0, 100);
-@@ -137,18 +155,47 @@
+@@ -137,18 +155,50 @@
  		volumes[i] = (gint) volume;
  	gst_mixer_set_volume (self->_priv->mixer, track, volumes);
  	g_free (volumes);
@@ -151,6 +152,9 @@
  
 -	self->_priv = g_new0 (AcmeVolumeGStreamerPrivate, 1);
 -
++	if (self->_priv == NULL)
++		return FALSE;
++	
 +	if (self->_priv->timer_id != 0)
 +	{
 +		g_source_remove (self->_priv->timer_id);
@@ -161,13 +165,11 @@
  	/* Go through all elements of a certain class and check whether
  	 * they implement a mixer. If so, walk through the tracks and look
  	 * for first one named "volume".
-@@ -236,8 +283,38 @@
+@@ -236,8 +286,36 @@
  			g_value_array_free (array);
  		g_free (title);
  	}
-+	if (self->_priv->mixer == NULL)
-+		return FALSE;
-+	return TRUE;
++	return FALSE;
 +}
 +
 +static void
