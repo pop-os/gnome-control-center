@@ -1,0 +1,56 @@
+diff -u gnome-settings-daemon.orig/gnome-settings-multimedia-keys.c gnome-settings-daemon/gnome-settings-multimedia-keys.c
+--- gnome-settings-daemon.orig/gnome-settings-multimedia-keys.c	2004-07-02 02:35:25.000000000 +0200
++++ gnome-settings-daemon/gnome-settings-multimedia-keys.c	2004-07-02 02:36:09.000000000 +0200
+@@ -133,26 +133,6 @@
+ 	}
+ }
+ 
+-#ifdef USE_FBLEVEL
+-static char*
+-permission_problem_string (const char *file)
+-{
+-	return g_strdup_printf (_("Permissions on the file %s are broken\n"), file);
+-}
+-
+-static void
+-fblevel_problem_cb (void)
+-{
+-	char *msg;
+-
+-	msg = permission_problem_string ("/dev/pmu");
+-	acme_error (msg);
+-	g_free (msg);
+-
+-	return;
+-}
+-#endif
+-
+ static char *images[] = {
+ 	PIXMAPSDIR "/gnome-speakernotes-muted.png",
+ 	PIXMAPSDIR "/gnome-speakernotes.png",
+@@ -914,6 +894,7 @@
+ gnome_settings_multimedia_keys_load (GConfClient *client)
+ {
+ 	GSList *l;
++	GError *err = NULL;
+ 	Acme   *acme;
+ 
+ 	acme = g_new0 (Acme, 1);
+@@ -934,11 +915,12 @@
+ 
+ #ifdef USE_FBLEVEL
+ 	/* initialise Frame Buffer level handler */
+-	if (acme_fblevel_is_powerbook () != FALSE)
+-	{
+-		acme->levobj = acme_fblevel_new();
+-		if (acme->levobj == NULL)
+-			fblevel_problem_cb ();
++	acme->levobj = acme_fblevel_new (&err);
++	if (acme->levobj == NULL && err != NULL) {
++		if (!g_error_matches (err, ACME_FBLEVEL_ERROR,
++				      ACME_FBLEVEL_ERROR_NO_POWERBOOK))
++			acme_error (err->message);
++		g_error_free (err);
+ 	}
+ #endif
+ 
