@@ -1,6 +1,6 @@
-diff -ur gnome-settings-daemon.orig/actions/acme-fb-level.c gnome-settings-daemon/actions/acme-fb-level.c
---- gnome-settings-daemon.orig/actions/acme-fb-level.c	2004-10-08 11:50:42.000000000 +0200
-+++ gnome-settings-daemon/actions/acme-fb-level.c	2004-10-08 11:57:44.000000000 +0200
+diff -ur control-center-2.8.1-orig/gnome-settings-daemon/actions/acme-fb-level.c control-center-2.8.1-patched/gnome-settings-daemon/actions/acme-fb-level.c
+--- control-center-2.8.1-orig/gnome-settings-daemon/actions/acme-fb-level.c	2004-09-10 04:34:57.000000000 +0200
++++ control-center-2.8.1-patched/gnome-settings-daemon/actions/acme-fb-level.c	2005-01-18 19:44:48.055828096 +0100
 @@ -31,6 +31,7 @@
  #include <linux/fb.h>
  #include <linux/pmu.h>
@@ -9,8 +9,8 @@ diff -ur gnome-settings-daemon.orig/actions/acme-fb-level.c gnome-settings-daemo
  
  #ifndef FBIOBLANK
  #define FBIOBLANK      0x4611          /* 0 or vesa-level+1 */
-@@ -104,6 +105,17 @@
- 	return type;
+@@ -84,6 +85,17 @@
+ 	return;
  }
  
 +GQuark
@@ -27,7 +27,7 @@ diff -ur gnome-settings-daemon.orig/actions/acme-fb-level.c gnome-settings-daemo
  int
  acme_fblevel_get_level (AcmeFblevel *self)
  {
-@@ -146,16 +158,23 @@
+@@ -126,16 +138,23 @@
  }
  
  AcmeFblevel *
@@ -38,7 +38,7 @@ diff -ur gnome-settings-daemon.orig/actions/acme-fb-level.c gnome-settings-daemo
  	int fd, foo;
  
 -	if (g_file_test ("/dev/pmu", G_FILE_TEST_EXISTS) == FALSE)
-+	if (acme_fblevel_is_powerbook () == FALSE) {
++	if (g_file_test ("/proc/device-tree/aliases/via-pmu", G_FILE_TEST_EXISTS) == FALSE) {
  		return NULL;
 +	}
 +
@@ -54,7 +54,7 @@ diff -ur gnome-settings-daemon.orig/actions/acme-fb-level.c gnome-settings-daemo
  
  	self = ACME_FBLEVEL (g_object_new (ACME_TYPE_FBLEVEL, NULL));
  	/* This function switches the kernel backlight control off.
-@@ -167,8 +186,12 @@
+@@ -147,31 +166,14 @@
  	 * Notice nicked from pbbuttons*/
  	fd  = open ("/dev/pmu", O_RDWR);
  	/* We can't emit the signal yet, the signal isn't connected! */
@@ -68,18 +68,33 @@ diff -ur gnome-settings-daemon.orig/actions/acme-fb-level.c gnome-settings-daemo
  
  	foo = ioctl(fd, PMU_IOC_GRAB_BACKLIGHT, 0);
  	self->_priv->pmu_fd = fd;
-@@ -186,7 +209,7 @@
- 	while (!feof (fd) && found == FALSE)
- 	{
- 		fread (str, 1, 2048, fd);
+ 	return self;
+ }
+-
+-gboolean
+-acme_fblevel_is_powerbook (void)
+-{
+-	FILE *fd;
+-	char str[2048];
+-	gboolean found = FALSE;
+-
+-	fd = fopen ("/proc/cpuinfo", "r");
+-	while (!feof (fd) && found == FALSE)
+-	{
+-		fread (str, 1, 2048, fd);
 -		if (strstr (str, "PowerBook") != NULL)
-+		if (strstr (str, "NewWorld") != NULL)
- 			found = TRUE;
- 	}
- 
-diff -ur gnome-settings-daemon.orig/actions/acme-fb-level.h gnome-settings-daemon/actions/acme-fb-level.h
---- gnome-settings-daemon.orig/actions/acme-fb-level.h	2004-10-08 11:50:42.000000000 +0200
-+++ gnome-settings-daemon/actions/acme-fb-level.h	2004-10-08 11:51:11.000000000 +0200
+-			found = TRUE;
+-	}
+-
+-	fclose (fd);
+-
+-	return found;
+-}
+-
+Seulement dans control-center-2.8.1-patched/gnome-settings-daemon/actions: acme-fb-level.c.orig
+diff -ur control-center-2.8.1-orig/gnome-settings-daemon/actions/acme-fb-level.h control-center-2.8.1-patched/gnome-settings-daemon/actions/acme-fb-level.h
+--- control-center-2.8.1-orig/gnome-settings-daemon/actions/acme-fb-level.h	2004-01-13 16:57:36.000000000 +0100
++++ control-center-2.8.1-patched/gnome-settings-daemon/actions/acme-fb-level.h	2005-01-18 19:43:30.080682120 +0100
 @@ -29,9 +29,12 @@
  #define ACME_IS_FBLEVEL(obj)		(G_TYPE_CHECK_INSTANCE_TYPE ((obj), ACME_TYPE_FBLEVEL))
  #define ACME_FBLEVEL_GET_CLASS(obj)	(G_TYPE_INSTANCE_GET_CLASS ((obj), ACME_TYPE_FBLEVEL, AcmeFblevelClass))
@@ -114,9 +129,9 @@ diff -ur gnome-settings-daemon.orig/actions/acme-fb-level.h gnome-settings-daemo
 +AcmeFblevel *acme_fblevel_new			(GError **error);
  gboolean acme_fblevel_is_powerbook		(void);
  
-diff -ur gnome-settings-daemon.orig/gnome-settings-multimedia-keys.c gnome-settings-daemon/gnome-settings-multimedia-keys.c
---- gnome-settings-daemon.orig/gnome-settings-multimedia-keys.c	2004-10-08 11:50:42.000000000 +0200
-+++ gnome-settings-daemon/gnome-settings-multimedia-keys.c	2004-10-08 11:51:11.000000000 +0200
+diff -ur control-center-2.8.1-orig/gnome-settings-daemon/gnome-settings-multimedia-keys.c control-center-2.8.1-patched/gnome-settings-daemon/gnome-settings-multimedia-keys.c
+--- control-center-2.8.1-orig/gnome-settings-daemon/gnome-settings-multimedia-keys.c	2004-10-09 03:52:01.000000000 +0200
++++ control-center-2.8.1-patched/gnome-settings-daemon/gnome-settings-multimedia-keys.c	2005-01-18 19:43:30.151671328 +0100
 @@ -133,26 +133,6 @@
  	}
  }
@@ -144,7 +159,7 @@ diff -ur gnome-settings-daemon.orig/gnome-settings-multimedia-keys.c gnome-setti
  static char *images[] = {
  	PIXMAPSDIR "/gnome-speakernotes-muted.png",
  	PIXMAPSDIR "/gnome-speakernotes.png",
-@@ -915,6 +895,7 @@
+@@ -913,6 +893,7 @@
  {
  	GSList *l;
  	Acme   *acme;
@@ -152,7 +167,7 @@ diff -ur gnome-settings-daemon.orig/gnome-settings-multimedia-keys.c gnome-setti
  
  	acme = g_new0 (Acme, 1);
  	acme->xml = NULL;
-@@ -934,11 +915,10 @@
+@@ -932,11 +913,10 @@
  
  #ifdef USE_FBLEVEL
  	/* initialise Frame Buffer level handler */
@@ -168,3 +183,4 @@ diff -ur gnome-settings-daemon.orig/gnome-settings-multimedia-keys.c gnome-setti
  	}
  #endif
  
+Seulement dans control-center-2.8.1-patched/gnome-settings-daemon: gnome-settings-multimedia-keys.c.orig
