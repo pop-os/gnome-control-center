@@ -1,14 +1,6 @@
 --- gnome-settings-daemon/actions/acme-volume-gstreamer.c.orig	2004-08-13 11:39:24.000000000 +0200
 +++ gnome-settings-daemon/actions/acme-volume-gstreamer.c	2004-08-13 11:57:48.000000000 +0200
-@@ -211,14 +258,14 @@
- 			for (; tracks != NULL; tracks = tracks->next) {
- 				GstMixerTrack *track = tracks->data;
- 				
--				if (! g_strcasecmp (track->label, "volume")) {
-+				if (GST_MIXER_TRACK_HAS_FLAG (track, GST_MIXER_TRACK_MASTER))  {
- 					self->_priv->mixer = GST_MIXER (element);
- 					self->_priv->track = track;
- 
+@@ -218,7 +266,7 @@
  					g_object_ref (self->_priv->mixer);
  					g_object_ref (self->_priv->track);
  

@@ -1,30 +1,32 @@
---- gnome-settings-daemon/actions/acme-volume-gstreamer.c.orig	2004-10-19 20:56:52.000000000 +0200
-+++ gnome-settings-daemon/actions/acme-volume-gstreamer.c	2004-10-19 20:59:36.000000000 +0200
-@@ -31,16 +31,23 @@
- #include <gst/mixer/mixer.h>
- #include <gst/propertyprobe/propertyprobe.h>
+--- gnome-settings-daemon/actions/acme-volume-gstreamer.c.orig	2004-10-25 00:08:01.000000000 +0200
++++ gnome-settings-daemon/actions/acme-volume-gstreamer.c	2004-10-25 00:13:25.000000000 +0200
+@@ -33,10 +33,13 @@
+ 
+ #include <string.h>
  
 +#define TIMEOUT	4000
-+
++ 
  struct AcmeVolumeGStreamerPrivate
  {
- 	GstMixer      *mixer;
- 	GstMixerTrack *track;
-+	guint timer_id;
+-	GstMixer      *mixer;
+-	GstMixerTrack *track;
++  	GstMixer      *mixer;
++  	GstMixerTrack *track;
++ 	guint timer_id;
  };
  
  static GObjectClass *parent_class = NULL;
+@@ -45,6 +48,9 @@
  
  static int acme_volume_gstreamer_get_volume (AcmeVolume *self);
  static void acme_volume_gstreamer_set_volume (AcmeVolume *self, int val);
 +static gboolean acme_volume_gstreamer_open (AcmeVolumeGStreamer *self);
 +static void acme_volume_gstreamer_close (AcmeVolumeGStreamer *self);
 +static gboolean acme_volume_gstreamer_close_real (AcmeVolumeGStreamer *self);
-+
  
  static void
  acme_volume_gstreamer_finalize (GObject *object)
-@@ -53,12 +60,14 @@
+@@ -57,12 +63,14 @@
  	self = ACME_VOLUME_GSTREAMER (object);
  
  	g_return_if_fail (self->_priv != NULL);
@@ -44,7 +46,7 @@
  	g_free (self->_priv);
  
  	G_OBJECT_CLASS (parent_class)->finalize (object);
-@@ -68,25 +77,32 @@
+@@ -72,25 +80,32 @@
  acme_volume_gstreamer_set_mute (AcmeVolume *vol, gboolean val)
  {
  	AcmeVolumeGStreamer *self = (AcmeVolumeGStreamer *) vol;
@@ -82,7 +84,7 @@
  }
  
  static int
-@@ -97,7 +113,7 @@
+@@ -101,7 +116,7 @@
  	AcmeVolumeGStreamer *self = (AcmeVolumeGStreamer *) vol;
  	GstMixerTrack *track;
  	
@@ -91,7 +93,7 @@
  		return 0;
  
  	track = self->_priv->track;
-@@ -108,6 +124,8 @@
+@@ -112,6 +127,8 @@
  		vol_total += volumes[i];
  	g_free (volumes);
  
@@ -100,7 +102,7 @@
  	volume = vol_total / (double)track->num_channels;
  
  	/* Normalize the volume to the [0, 100] scale that acme expects. */
-@@ -122,11 +140,12 @@
+@@ -126,11 +143,12 @@
  	gint i, *volumes;
  	double volume;
  	AcmeVolumeGStreamer *self = (AcmeVolumeGStreamer *) vol;
@@ -115,14 +117,14 @@
  	val = CLAMP (val, 0, 100);
  
  	/* Rescale the volume from [0, 100] to [track min, track max]. */
-@@ -137,18 +156,50 @@
+@@ -141,17 +159,49 @@
  		volumes[i] = (gint) volume;
  	gst_mixer_set_volume (self->_priv->mixer, track, volumes);
  	g_free (volumes);
-+	
-+	acme_volume_gstreamer_close (self);
++ 	
++ 	acme_volume_gstreamer_close (self);
 +}
-+
++ 
 +static gboolean
 +acme_volume_gstreamer_close_real (AcmeVolumeGStreamer *self)
 +{
@@ -144,19 +146,21 @@
 +	return FALSE;
  }
  
-+
  /* This is a modified version of code from gnome-media's gst-mixer */
 -static void
--acme_volume_gstreamer_init (AcmeVolume *vol)
+-acme_volume_gstreamer_init (AcmeVolumeGStreamer *self)
 +static gboolean
 +acme_volume_gstreamer_open (AcmeVolumeGStreamer *vol)
  {
- 	AcmeVolumeGStreamer *self = (AcmeVolumeGStreamer *) vol;
- 	const GList *elements;
- 	gint num = 0, channel_count = 0;
- 
+-	const GList *elements;
+-	gint num = 0;
+-
 -	self->_priv = g_new0 (AcmeVolumeGStreamerPrivate, 1);
 -
++  	AcmeVolumeGStreamer *self = (AcmeVolumeGStreamer *) vol;
++  	const GList *elements;
++  	gint num = 0;
++  
 +	if (self->_priv == NULL)
 +		return FALSE;
 +	
@@ -170,14 +174,14 @@
  	/* Go through all elements of a certain class and check whether
  	 * they implement a mixer. If so, walk through the tracks and look
  	 * for first one named "volume".
-@@ -236,9 +287,37 @@
+@@ -239,8 +289,36 @@
  			g_value_array_free (array);
  		g_free (title);
  	}
 +	return FALSE;
- }
- 
- static void
++}
++
++static void
 +acme_volume_gstreamer_close (AcmeVolumeGStreamer *self)
 +{
 +	self->_priv->timer_id = g_timeout_add (TIMEOUT,
@@ -201,10 +205,9 @@
 +		acme_volume_gstreamer_close_real (self);
 +		return;
 +	}
-+}
+ }
+ 
 +
-+
-+static void
+ static void
  acme_volume_gstreamer_class_init (AcmeVolumeGStreamerClass *klass)
  {
- 	AcmeVolumeClass *volume_class = ACME_VOLUME_CLASS (klass);
