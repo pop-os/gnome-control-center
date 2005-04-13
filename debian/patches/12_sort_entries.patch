@@ -1,0 +1,26 @@
+--- control-center-2.10.1/control-center/control-center-categories.c.orig	2005-04-11 21:47:48.000000000 +0000
++++ control-center-2.10.1/control-center/control-center-categories.c	2005-04-11 21:49:37.000000000 +0000
+@@ -123,6 +123,14 @@ control_center_entry_free (ControlCenter
+ 	g_free (entry);
+ }
+ 
++static int
++compare_entries (ControlCenterEntry *a,
++		    ControlCenterEntry *b)
++{
++	return strcmp (a->title, b->title);
++}
++
++
+ static void
+ populate_category (ControlCenterCategory *category,
+ 		   MenuTreeDirectory     *menu_directory)
+@@ -143,6 +151,8 @@ populate_category (ControlCenterCategory
+ 		menu_tree_entry_unref (menu_entry);
+ 	}
+ 
++	entries = g_slist_sort (entries, (GCompareFunc) compare_entries);
++
+ 	g_slist_free (menu_entries);
+ 
+ 	if (entries != NULL) {

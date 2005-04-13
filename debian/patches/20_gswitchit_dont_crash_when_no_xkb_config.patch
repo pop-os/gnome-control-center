@@ -1,45 +1,44 @@
---- libgswitchit/gswitchit_config.c~	2004-10-14 15:44:52.000000000 -0300
-+++ libgswitchit/gswitchit_config.c	2005-02-04 12:07:50.000000000 -0200
-@@ -500,13 +500,19 @@
- 	}
+--- control-center-2.10.1/libgswitchit/gswitchit_config.c	2005-03-17 01:25:23.000000000 +0100
++++ control-center-2.10.1-new/libgswitchit/gswitchit_config.c	2005-04-10 16:54:16.000000000 +0200
+@@ -472,13 +472,18 @@ _GSwitchItKbdConfigLoadParams (GSwitchIt
+ 	_GSwitchItConfigStringListReset(&pl);
  }
  
 -static void
 +static gboolean
- _GSwitchItXkbConfigSaveParams (GSwitchItXkbConfig * xkbConfig,
+ _GSwitchItKbdConfigSaveParams (GSwitchItKbdConfig * kbdConfig,
  			       GConfChangeSet * cs,
  			       const char *paramNames[])
  {
  	GSList *pl;
  
-+	if (!(xkbConfig->model && xkbConfig->layouts))
-+	  {
-+	    g_warning ("Error getting xkb configuration.\n");
-+	    return 1;
-+	  }
++	if (!(kbdConfig->model && kbdConfig->layouts)) {
++		g_warning ("Error getting xkb configuration.\n");
++	    	return 1;
++	}
 +
- 	gconf_change_set_set_string (cs, paramNames[0], xkbConfig->model);
- 	XklDebug (150, "Saved XKB model: [%s]\n", xkbConfig->model);
+ 	gconf_change_set_set_string (cs, paramNames[0], kbdConfig->model);
+ 	XklDebug (150, "Saved Kbd model: [%s]\n", kbdConfig->model);
  
-@@ -526,6 +532,8 @@
+@@ -498,6 +503,8 @@ _GSwitchItKbdConfigSaveParams (GSwitchIt
  	gconf_change_set_set_list (cs,
  				   paramNames[2],
- 				   GCONF_VALUE_STRING, xkbConfig->options);
+ 				   GCONF_VALUE_STRING, kbdConfig->options);
 +
 +	return 0;
  }
  
  /**
-@@ -670,8 +678,10 @@
+@@ -815,8 +822,10 @@ GSwitchItKbdConfigSaveToGConfBackup (GSw
  
  	cs = gconf_change_set_new ();
  
--	_GSwitchItXkbConfigSaveParams (xkbConfig, cs,
--				       GSWITCHIT_CONFIG_XKB_SYSBACKUP);
+-	_GSwitchItKbdConfigSaveParams (kbdConfig, cs,
+-				       GSWITCHIT_KBD_CONFIG_SYSBACKUP);
 +	/* If 1 is returned no xkb configuration was found, do nothing. */
-+	if (_GSwitchItXkbConfigSaveParams (xkbConfig, cs,
-+					   GSWITCHIT_CONFIG_XKB_SYSBACKUP))
-+	  return;
++	if (_GSwitchItKbdConfigSaveParams (kbdConfig, cs,
++				       GSWITCHIT_KBD_CONFIG_SYSBACKUP))
++		return;
  
- 	gconf_client_commit_change_set (xkbConfig->confClient, cs, TRUE,
+ 	gconf_client_commit_change_set (kbdConfig->confClient, cs, TRUE,
  					&gerror);
