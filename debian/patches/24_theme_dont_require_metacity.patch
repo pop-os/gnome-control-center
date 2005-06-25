@@ -1,0 +1,15 @@
+--- capplets/theme-switcher/gnome-theme-manager.c.old	2005-06-25 16:26:41.000000000 +0200
++++ capplets/theme-switcher/gnome-theme-manager.c	2005-06-25 17:10:47.000000000 +0200
+@@ -1453,8 +1453,11 @@
+   window_theme_default_name = get_default_string_from_key (METACITY_THEME_KEY);
+   icon_theme_default_name = get_default_string_from_key (ICON_THEME_KEY);
+ 
++  if (window_theme_default_name == NULL)
++  {
++    window_theme_default_name = g_strdup ("null");
++  }
+   if (gtk_theme_default_name == NULL ||
+-      window_theme_default_name == NULL ||
+       icon_theme_default_name == NULL)
+     {
+       GtkWidget *msg_dialog;
