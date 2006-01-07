@@ -22,6 +22,9 @@ build/gnome-control-center:: $(DEB_INSTALL_MANPAGES_gnome-control-center)
 %.1: %.sgml
 	/usr/bin/docbook-to-man $< > $@
 
+binary-post-install/capplets-data::
+	rm -rf debian/capplets-data/usr/share/applications/mimeinfo.cache
+
 clean::
 	rm -f $(DEB_INSTALL_MANPAGES_gnome-control-center)
 	rm -rf $(DEB_BUILDDIR)
