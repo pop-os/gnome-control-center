@@ -1,3 +1,53 @@
+control-center (1:2.12.1-2) UNRELEASED; urgency=low
+
+  * Only install /usr/share/applications/*.desktop, not
+    /usr/share/applications in capplets-data, and rm -rf
+    /usr/share/applications/mimeinfo.cache in
+    binary-post-install/capplets-data:: to be completely safe (the
+    update-desktop-database can't be deactivated via configure).
+    (Closes: #346375)
+    [debian/capplets-data.install, debian/rules]
+
+ -- Loic Minier <lool@dooz.org>  Sat,  7 Jan 2006 15:30:16 +0100
+
+control-center (1:2.12.1-1) experimental; urgency=low
+
+  [ Loic Minier ]
+  * New upstream releases.
+    - Update watch file. [debian/watch]
+    - Don't run scrollkeeper. [debian/rules]
+    - Bump libgtk2.0-dev build-dep to >= 2.6.0.
+      [debian/control, debian/control.in]
+    - Add a libxft-dev build-dep on >= 2.1.2.
+      [debian/control, debian/control.in]
+    - Version libgnome-menu-dev build-dep on >= 2.10.1.
+      [debian/control, debian/control.in]
+    - Enable about-me capplet.
+      . Update configure flags. [debian/rules]
+      . Add libebook1.2-dev build-dep. [debian/control, debian/control.in]
+    - Suggest gnome-screensaver. [debian/control, debian/control.in]
+  * Add CDBS' utils. [debian/rules]
+  * Don't overwrite DEB_CONFIGURE_EXTRA_FLAGS and
+    DEB_INSTALL_MANPAGES_gnome-control-center. [debian/rules]
+
+  [ Sjoerd Simons ]
+  * debian/patches/12_sort_entries.patch
+    - Updated for new upstream
+  * debian/patches/20_gswitchit_dont_crash_when_no_xkb_config.patch
+    - Removed. fixed upstream
+  * debian/patches/22_bkg_capplet_follow_symlink.patch
+    - Updated for new upstream (from the ubuntu package)
+  * debian/patches/23_menu_files_conflict.patch
+    - Update for new upstream
+  * debian/patches/99_reautogenization.patch
+    - Removed
+  * Updated build-depends
+  * Install gnome-about-me and the nautilus extensions
+  * Use upstream versions of gnome-font-viewer.desktop and
+    themus-theme-applier.desktop
+
+ -- Sjoerd Simons <sjoerd@debian.org>  Mon, 21 Nov 2005 18:21:32 +0000
+
 control-center (1:2.10.2-1) unstable; urgency=low
 
   [ Josselin Mouette ]
