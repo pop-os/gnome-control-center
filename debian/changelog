@@ -3,13 +3,20 @@ control-center (1:2.14.1-1) UNRELEASED; urgency=low
   [ Marco Cabizza ]
   * New upstream release.
     - Various upstream fixes (Closes: #348809, #349399, #351798, #362107, 
-    #362563)
+    #362563, #347796)
+  * debian/control, debian/control.in:
+    - dropped the dependency on xlibs due to its deprecation (Closes: #365977)
+    - standards version is 3.7.2
+    - Build-depend on libgtk2.0-dev (>= 2.8.12) and
+      libgstreamer-plugins-base0.10-dev
+  * debian/rules:
+    - append --enable-gstreamer=0.10 to configure
   * debian/capplets-data.install:
     - added usr/share/desktop-directories to the list
-  * debian/patches/25_unusal_buttons_mappings.patch:
+  * debian/patches/02_xrdb.patch:
+    - updated to fit upstream
+  * debian/patches/08_pmu_fix.patch:
     - dropped; already merged upstream
-  * debian/control:
-    - dropped the dependency on xlibs due to its deprecation
   * New packages:
     - Move libgnome-window-settings.so.1 in the newly created
       libgnome-window-settings1 and add libgnome-window-settings1.shlibs
@@ -25,30 +32,6 @@ control-center (1:2.14.1-1) UNRELEASED; urgency=low
     + Use ${source:Version}.
 
  -- Marco Cabizza <marco87@gmail.com>  Sat,  6 May 2006 17:01:39 +0200
-
-control-center (1:2.14.0-1) UNRELEASED; urgency=low
-
-  * New upstream release
-  
-  * debian/control, debian/control.in:
-    - Build-depend on libgtk2.0-dev (>= 2.8.12) and
-      libgstreamer-plugins-base0.10-dev
-  * debian/rules:
-    - append --enable-gstreamer=0.10 to configure
-  * 02_xrdb.patch:
-    - updated to fit upstream
-  * 08_pmu_fix.patch:
-    - dropped; already merged upstream
-  
- -- Marco Cabizza <marco87@gmail.com>  Sun,  2 Apr 2006 22:04:25 +0200
-
-control-center (1:2.12.3-3) UNRELEASED; urgency=low
-
-  * Take preliminary patch from upstream BTS to fix gnome-settings-daemon
-    crashes in some cases, thanks Damyan Ivanov. (Closes: #347796)
-    [debian/patches/25_unusal_buttons_mappings.patch]
-
- -- Loic Minier <lool@dooz.org>  Mon, 27 Feb 2006 12:26:28 +0100
 
 control-center (1:2.12.3-2) unstable; urgency=medium
 
