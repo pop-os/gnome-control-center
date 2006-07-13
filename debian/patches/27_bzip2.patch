@@ -5,7 +5,7 @@
  	filename = g_shell_quote(theme_props->filename);
  	/* this should be something more clever and nonblocking */
 -	command = g_strdup_printf ("sh -c 'cd \"%s\"; /usr/bin/bzip2 -d -c < \"%s\" | /bin/tar xf - '",
-+	command = g_strdup_printf ("sh -c 'cd \"%s\"; /bin/bzip2 -d -c < \"%s\" | /bin/tar xf - '",
++	command = g_strdup_printf ("sh -c 'cd \"%s\"; bzip2 -d -c < \"%s\" | tar xf - '",
  				   theme_props->target_tmp_dir, filename);
  	g_free (filename);
  	if (g_spawn_command_line_sync (command, NULL, NULL, &status, NULL) && status == 0) {
@@ -14,7 +14,7 @@
  	} else if (path && len > 8 && !strcmp (path + len - 8, ".tar.bz2")) {
  		filename = g_shell_quote (path);
 -		command = g_strdup_printf ("sh -c '/usr/bin/bzip2 -d -c < \"%s\" | /bin/tar ft - | head -n 1'",
-+		command = g_strdup_printf ("sh -c '/bin/bzip2 -d -c < \"%s\" | /bin/tar ft - | head -n 1'",
++		command = g_strdup_printf ("sh -c 'bzip2 -d -c < \"%s\" | tar ft - | head -n 1'",
  					    filename);
  		theme_props->filetype=TARBZ;
  		g_free (filename);
@@ -23,7 +23,7 @@
  	
  	if (theme_props->filetype == TARBZ ) {
 -		if (!g_file_test ("/usr/bin/bzip2", G_FILE_TEST_EXISTS)) {
-+		if (!g_file_test ("/bin/bzip2", G_FILE_TEST_EXISTS)) {
++		if (g_find_program_in_path ("bzip2") == NULL) {
  			dialog = gtk_message_dialog_new (NULL,
  						GTK_DIALOG_MODAL,
  						GTK_MESSAGE_ERROR,
