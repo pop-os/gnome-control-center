@@ -1,0 +1,16 @@
+diff -Naur control-center-2.6.1/gnome-settings-daemon/eggaccelerators.c control-center-2.6.1-vesuri/gnome-settings-daemon/eggaccelerators.c
+--- control-center-2.6.1/gnome-settings-daemon/eggaccelerators.c	2004-04-01 08:45:16.000000000 +0300
++++ control-center-2.6.1-vesuri/gnome-settings-daemon/eggaccelerators.c	2004-07-01 23:59:49.000000000 +0300
+@@ -352,8 +352,11 @@
+ 			bad_keyval = TRUE;
+ 		    }
+ 		}
+-	    } else if (keycode != NULL)
++	    } else if (keycode != NULL) {
+ 		*keycode = XKeysymToKeycode (GDK_DISPLAY(), keyval);
++		if (*keycode == 0)
++		  bad_keyval = TRUE;
++	    }
+ 
+           accelerator += len;
+           len -= len;
