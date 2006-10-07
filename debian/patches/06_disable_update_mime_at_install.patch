@@ -1,0 +1,64 @@
+diff -puNr control-center-2.10.1.orig/configure.in control-center-2.10.1/configure.in
+--- control-center-2.10.1.orig/configure.in	2005-04-10 20:25:10.000000000 +0000
++++ control-center-2.10.1/configure.in	2005-04-10 20:26:10.000000000 +0000
+@@ -401,6 +401,20 @@ AC_MSG_RESULT($have_fb)
+ AM_CONDITIONAL(HAVE_FB, test x"$have_fb" = "xyes")
+ 
+ dnl ==============================================
++dnl Tell if we should or not update mime database
++dnl at install stage
++dnl ==============================================
++AC_ARG_ENABLE(mime-cache,
++AC_HELP_STRING([--disable-mime-cache],[update or not mime datas during install]),
++[case "${enableval}" in
++ yes) update_cache=true ;;
++ no)  update_cache=false ;;
++ *) AC_MSG_ERROR(bad value ${enableval} for --disable-mime-cache) ;;
++esac],
++[update_cache=true]) dnl Default value
++AM_CONDITIONAL(UPDATE_MIME_CACHE, test x$update_cache = xtrue)
++
++dnl ==============================================
+ dnl Define the main variables
+ dnl ==============================================
+ COMMON_CFLAGS="-I\$(top_srcdir)/capplets/common"
+diff -puNr control-center-2.10.1.orig/vfs-methods/fontilus/Makefile.am control-center-2.10.1/vfs-methods/fontilus/Makefile.am
+--- control-center-2.10.1.orig/vfs-methods/fontilus/Makefile.am	2005-04-10 20:25:10.000000000 +0000
++++ control-center-2.10.1/vfs-methods/fontilus/Makefile.am	2005-04-10 20:24:59.000000000 +0000
+@@ -49,11 +49,16 @@ else
+ install-gconf-schemas:
+ endif
+ 
++if UPDATE_MIME_CACHE
+ install-desktop-database: install-desktopDATA
+ 	update-desktop-database $(DESTDIR)$(desktopdir)
+ 
+ uninstall-local:
+ 	rm -f $(DESTDIR)$(desktopdir)/mimeinfo.cache
++else
++install-desktop-database: install-desktopDATA
++uninstall-local:
++endif
+ 
+ @INTLTOOL_DESKTOP_RULE@
+ @INTLTOOL_DIRECTORY_RULE@
+diff -puNr control-center-2.10.1.orig/vfs-methods/themus/Makefile.am control-center-2.10.1/vfs-methods/themus/Makefile.am
+--- control-center-2.10.1.orig/vfs-methods/themus/Makefile.am	2005-04-10 20:25:10.000000000 +0000
++++ control-center-2.10.1/vfs-methods/themus/Makefile.am	2005-04-10 20:24:59.000000000 +0000
+@@ -70,11 +70,16 @@ else
+ install-gconf-schemas:
+ endif
+ 
++if UPDATE_MIME_CACHE
+ install-desktop-database: install-desktopDATA
+ 	update-desktop-database $(DESTDIR)$(desktopdir)
+ 
+ distclean-local:
+ 	rm -f $(DESTDIR)$(desktopdir)/mimeinfo.cache
++else
++install-desktop-database: install-desktopDATA
++distclean-local:
++endif
+ 
+ @INTLTOOL_DESKTOP_RULE@
+ @INTLTOOL_SCHEMAS_RULE@
