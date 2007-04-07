@@ -12,12 +12,13 @@ include /usr/share/gnome-pkg-tools/1/rules/clean-la.mk
 include /usr/share/gnome-pkg-tools/1/rules/check-dist.mk
 -include /usr/share/gnome-pkg-tools/1/rules/gnome-get-source.mk
 
-DEB_BUILDDIR = $(CURDIR)/debian/build
+#DEB_BUILDDIR = $(CURDIR)/debian/build
 DEB_CONFIGURE_SCRIPT_ENV += LDFLAGS="-Wl,-O1 -Wl,--as-needed"
 DEB_CONFIGURE_EXTRA_FLAGS += --disable-mime-cache \
                              --disable-scrollkeeper \
                              --enable-aboutme \
-                             --enable-gstreamer=0.10
+                             --enable-gstreamer=0.10 \
+			     --disable-update-mimedb 
 
 DEB_CONFIGURE_LOCALSTATEDIR := /var/lib
 
@@ -36,4 +37,4 @@ binary-post-install/capplets-data::
 
 clean::
 	rm -f $(DEB_INSTALL_MANPAGES_gnome-control-center)
-	rm -rf $(DEB_BUILDDIR)
+#	rm -rf $(DEB_BUILDDIR)
