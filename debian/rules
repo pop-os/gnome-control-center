@@ -1,6 +1,4 @@
 #!/usr/bin/make -f
-# -*- mode: makefile; coding: utf-8 -*-
-#
 
 include /usr/share/cdbs/1/rules/debhelper.mk
 include /usr/share/cdbs/1/rules/simple-patchsys.mk
@@ -12,13 +10,12 @@ include /usr/share/gnome-pkg-tools/1/rules/clean-la.mk
 include /usr/share/gnome-pkg-tools/1/rules/check-dist.mk
 -include /usr/share/gnome-pkg-tools/1/rules/gnome-get-source.mk
 
-#DEB_BUILDDIR = $(CURDIR)/debian/build
-DEB_CONFIGURE_SCRIPT_ENV += LDFLAGS="-Wl,-O1 -Wl,--as-needed"
+DEB_CONFIGURE_SCRIPT_ENV += LDFLAGS="-Wl,-z,defs -Wl,-O1 -Wl,--as-needed"
 DEB_CONFIGURE_EXTRA_FLAGS += --disable-mime-cache \
                              --disable-scrollkeeper \
                              --enable-aboutme \
                              --enable-gstreamer=0.10 \
-			     --disable-update-mimedb 
+                             --disable-update-mimedb
 
 DEB_CONFIGURE_LOCALSTATEDIR := /var/lib
 
@@ -29,12 +26,12 @@ build/gnome-control-center:: $(DEB_INSTALL_MANPAGES_gnome-control-center)
 %.1: %.sgml
 	/usr/bin/docbook-to-man $< > $@
 
+clean::
+	rm -f $(DEB_INSTALL_MANPAGES_gnome-control-center)
+
 install/capplets-data::
 	rm -rf debian/tmp/etc/gconf/schemas/control-center.schemas
 
 binary-post-install/capplets-data::
 	rm -rf debian/capplets-data/usr/share/applications/mimeinfo.cache
 
-clean::
-	rm -f $(DEB_INSTALL_MANPAGES_gnome-control-center)
-#	rm -rf $(DEB_BUILDDIR)
