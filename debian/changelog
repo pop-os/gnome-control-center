@@ -1,3 +1,116 @@
+control-center (1:2.18.1-1) UNRELEASED; urgency=low
+
+  [ Marco Cabizza ]
+  * New upstream release:
+    - gswitchit should be working as most of the keyboard-releated stuff
+      has been moved to libgnomekbd ( therefore depending on it ).
+    - dropping 12_sort_entries.patch, 22_bkg_capplet_follow_symlink.patch,
+      and 23_menu_files_conflict.patch due to code reorganisation.
+    - dropping 28_thunderbird-no-compose-flag.patch and
+      29_iceweasel-icedove-preferred-apps.patch as they're merged upstream.
+    - fixing 02_xrdb.patch for the new upstream.
+    - don't create the libslab* packages, depend on gnome-main-menu's
+      libslab-dev.
+    - don't install the control-center schema as it's provided by slab.
+  * Fixing the .install files.
+
+  [ Riccardo Setti ]
+  * Built with the libslab-dev package provided by gnome-main-menu
+    instead of the libslab shipped in the source
+    - 01_fix_libslab_build.patch
+  * Removed 06_disable_update_mime_at_install.patch. Use
+    --disable-update-mimedb directly from the configure switch.
+  * Updated 04_path_xtra.patch, 02_xrdb.patch
+  * Added 05_autotools.patch
+  * Dropped 30_pulseaudio.patch, merged upstream.
+  * Added 07_default_keys.patch (patch taken from the ubuntu package)
+  * Added 91_from_svn_fix_gstreamer_warning.patch:
+    patch from SVN, "Initialise threads early, and fix option context
+    translation". (patch taken from the ubuntu package)
+
+  [ Loic Minier ]
+  * Drop commented out DEB_BUILDDIR completely; seems useless; cleanups.
+  * Set LDFLAGS directly instead of via DEB_CONFIGURE_SCRIPT_ENV; build-dep on
+    cdbs >= 0.4.41.
+  * New upstream release has API additions in gnome-settings-client.h, bump up
+    shlibs to >= 2.17.5.
+  * Suggest xrdb.
+  * Bump up intltool build-dep to 0.35.5.
+  * Build-depend on libpango1.0-dev, libgnomekbdui-dev.
+  * Drop build-dep on liborbit2-dev, libxklavier11-dev.
+  * Bump up dep on gnome-menus to >= 2.12.0.
+  * Version the libgnomekbd and libgnomekbdui build-deps to >= 0.1.
+  * New upstream release; no API change in libgnome-window-settings.
+    - Apply update to patch 07_default_keys, found in the Ubuntu package.
+    - Drop patch 91_from_svn_fix_gstreamer_warning, merged upstream.
+    - Rename patch 05_autotools to 70_relibtoolize and update it.
+    - New patch, 90_workaround_gnome_doc_utils_bug, works around a build
+      failure with newer gnome-doc-utils; from the Ubuntu package.
+  * New patch, 36-compiz-keybindings-support, permits configuring keybindings
+    when using compiz as window manager; from the Ubuntu package.
+
+ -- Loic Minier <lool@dooz.org>  Sun, 22 Apr 2007 13:23:44 +0200
+
+control-center (1:2.16.3-1) experimental; urgency=low
+
+  [ Sven Arvidsson ]
+  * New patch, 30_pulseaudio.patch, Polypaudio is now PulseAudio;
+    thanks Mike Hommey.
+
+  [ Loic Minier ]
+  * Merge 1:2.14.2-6 and 1:2.14.2-7; SVN r7995:8671.
+  * New upstream stable release; bug fixes and translations.
+    - Update patch 25_window_manager_settings.
+    - Drop patch 30_null-terminate-font-list, merged upstream.
+    - Update patch 30_pulseaudio.
+    - Build-depend on scrollkeeper.
+
+ -- Loic Minier <lool@dooz.org>  Sat, 17 Mar 2007 15:49:26 +0100
+
+control-center (1:2.16.2-3) experimental; urgency=low
+
+  * Add a get-orig-source target to retrieve the upstream tarball.
+  * Include the new check-dist Makefile to prevent accidental uploads to
+    unstable; bump build-dep on gnome-pkg-tools to >= 0.10.
+  * Build-depend on libgtk2.0-dev >= 2.10 for multihead support and to build
+    typing-break which uses GtkStatusIcon, par of the 2.10 API.
+  * Bump up libgnomeui-dev build-dep to >= 2.16.0-2 to get a Gtk 2.10
+    transitionned version.
+
+ -- Loic Minier <lool@dooz.org>  Sun,  4 Feb 2007 13:22:54 +0100
+
+control-center (1:2.16.2-2) experimental; urgency=low
+
+  * Conflict with gnome-session < 2.16.
+
+ -- Josselin Mouette <joss@debian.org>  Mon, 27 Nov 2006 20:55:48 +0100
+
+control-center (1:2.16.2-1) experimental; urgency=low
+
+  [ Marco Cabizza ]
+  * New upstream release:
+    - gnome-settings-daemon doesn't crash anymore, hooray! (Closes: #372873)
+    - dropping merged patches 26_ignore_pmu_permissions.patch and 27_bzip2.patch
+    - adapting 19_extra_keybindings.patch
+  * Bumping dependencies: libgtk2.0-dev, libxklavier11-dev, libebook-dev
+  * Build-Depends on hal and dbus
+  * Splitting off some stuff (gnome-window-settings.pc and its headers) into
+    libgnome-window-settings-dev, and thus including the dbus .service in
+    capplets-data
+  * Updated the watch file
+
+  [ Loic Minier ]
+  * Fix watch file to track stable releases and use HTTP.
+
+  [ Josselin Mouette ]
+  * Merge 2.14.2-5.
+  * rules: call clean-la.mk.
+  * Build-depend on gnome-pkg-tools 0.7.
+  * 29_iceweasel-icedove-preferred-apps.patch: remove the tons of
+    useless translations of iceweasel and icedove by themselves.
+
+ -- Josselin Mouette <joss@debian.org>  Sun, 26 Nov 2006 21:38:20 +0100
+
 control-center (1:2.14.2-7) unstable; urgency=medium
 
   * Add a get-orig-source target to retrieve the upstream tarball.
@@ -30,9 +143,6 @@ control-center (1:2.14.2-4) unstable; urgency=low
 
 control-center (1:2.14.2-3) unstable; urgency=low
 
-  [ Josselin Mouette ]
-  * Suggest gnome-screensaver first, xscreensaver second.
-
   [ Loic Minier ]
   * New patch, 28_thunderbird-no-compose-flag, to fix the way browsers invoke
     Thunderbird (drop the -compose flag which is added automatically for
@@ -45,6 +155,7 @@ control-center (1:2.14.2-3) unstable; urgency=low
     Recommends: bzip2, (Closes: #378141)
 
   [ Josselin Mouette ]
+  * Suggest gnome-screensaver first, xscreensaver second.
   * Make libgnome-window-settings-dev tolerate binNMUs.
   * Depend on gnome-pkg-tools 0.6.
   * Use ${gnome:Version} and ${gnome:NextVersion}.
@@ -89,7 +200,7 @@ control-center (1:2.14.1-1) unstable; urgency=low
   [ Marco Cabizza ]
   * New upstream release.
     - fixed the xkb releated bugs (Closes: #348809, #349399, #351798)
-    - evdev doesn't crash gnome-settings-daemon any more 
+    - evdev doesn't crash gnome-settings-daemon any more
     (Closes: #362107, #362563)
     - fixed the gnome-settings-daemon crash at startup (Closes: #347796)
   * debian/control, debian/control.in:
@@ -114,7 +225,7 @@ control-center (1:2.14.1-1) unstable; urgency=low
   * debian/patches/25_window_manager_settings.patch:
     - rename /usr/lib/window-manager-settings to
       /usr/lib/libgnome-window-settings1.
-  
+
   [ Josselin Mouette ]
   * Make the package binNMU-safe.
     + Build-depend on dpkg-dev 1.13.19.
@@ -343,7 +454,7 @@ control-center (1:2.8.2-1) unstable; urgency=low
     - 18_logout.patch: Merged
     - 04_path_xtra.patch: Updated to patch only the configure.in file. The
     configure update is now in 05_path_xtra.patch-2.patch
-    - 23_infinite_loop_theme_manager.patch: Forgotten patch in the 2.8.2 
+    - 23_infinite_loop_theme_manager.patch: Forgotten patch in the 2.8.2
     release
   * debian/rules:
     - Pass --as-needed to LDFLAGS to reduce dependencies and removes
@@ -476,7 +587,7 @@ control-center (1:2.6.1-11) unstable; urgency=low
     - Backported a patch from control-center 2.7 for preventing the typing
     break to starts while watching a movie with totem
   * debian/control.in:
-    - Updated the libgnomeui-dev build-depends to get gnutls11 
+    - Updated the libgnomeui-dev build-depends to get gnutls11
     (Closes: #263609)
 
  -- Arnaud Patard <arnaud.patard@rtp-net.org>  Thu,  5 Aug 2004 17:46:37 +0200
@@ -498,9 +609,9 @@ control-center (1:2.6.1-10) unstable; urgency=low
 control-center (1:2.6.1-9) unstable; urgency=low
 
   * debian/patch:
-    - Corrected the patch so that all modified files are in the diff 
+    - Corrected the patch so that all modified files are in the diff
     (Closes: #257352)
-    - Modified 06_gst-fix.patch to ensure the usage of the first soundcard on 
+    - Modified 06_gst-fix.patch to ensure the usage of the first soundcard on
     system with multiple soundcards
 
  -- Arnaud Patard <arnaud.patard@rtp-net.org>  Sat,  3 Jul 2004 12:50:18 +0200
@@ -512,14 +623,14 @@ control-center (1:2.6.1-8) unstable; urgency=low
      (Closes: #252324).
   * debian/control.in:
     - Added libgstreamer-plugins0.8-dev to build-depends
-    - Added some gstreamer sound plugin for the volume keybindings    
+    - Added some gstreamer sound plugin for the volume keybindings
   * debian/patch:
-    - Added a patch from Sjoerd Simons to fix the gstreamer volume code 
+    - Added a patch from Sjoerd Simons to fix the gstreamer volume code
       (Closes: #251831,#253416)
     - Added a patch for setting the position of the volume window after
       showing it (Closes: #254822)
     - Added a patch for cleaning error messages for /dev/pmu from
-      http://bugzilla.gnome.org/show_bug.cgi?id=132655. It will be merged 
+      http://bugzilla.gnome.org/show_bug.cgi?id=132655. It will be merged
       in 2.7 (Closes: #252460)
 
  -- Arnaud Patard <arnaud.patard@rtp-net.org>  Thu,  1 Jul 2004 22:16:30 +0200
@@ -551,7 +662,7 @@ control-center (1:2.6.1-4) unstable; urgency=low
   * Added a link to the gnome-settings-daemon in /usr/bin (Closes: #251953).
   * debian/control.in:
     + Depends on xlibs (Closes: #253287).
-    + Recommends gnome2-user-guide (Closes: #251992).    
+    + Recommends gnome2-user-guide (Closes: #251992).
 
  -- Sebastien Bacher <seb128@debian.org>  Thu, 10 Jun 2004 22:28:02 +0200
 
@@ -591,7 +702,7 @@ control-center (1:2.6.1-1) experimental; urgency=low
     - Updates patch for libtool
   * debian.control:
     - Added a dependency on gconf2 for capplets-data (Closes: #243894).
-    
+
  -- Arnaud Patard <arnaud.patard@rtp-net.org>  Fri, 16 Apr 2004 12:50:54 +0200
 
 control-center (1:2.6.0.3-2) experimental; urgency=low
@@ -630,7 +741,7 @@ control-center (1:2.6.0.2-1) experimental; urgency=low
 control-center (1:2.5.4-1) experimental; urgency=low
 
   * New maintainer (Closes: #238876)
-  * New upstream release 
+  * New upstream release
     - fix implicitly conversion (Closes: #226554).
     - support icon themes now (Closes: #215851).
   * debian/control.in, debian/rules:
