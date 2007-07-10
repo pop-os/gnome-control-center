@@ -10,6 +10,8 @@ include /usr/share/gnome-pkg-tools/1/rules/clean-la.mk
 include /usr/share/gnome-pkg-tools/1/rules/check-dist.mk
 -include /usr/share/gnome-pkg-tools/1/rules/gnome-get-source.mk
 
+GNOME_MODULE := gnome-control-center
+
 LDFLAGS += -Wl,-z,defs -Wl,-O1 -Wl,--as-needed
 
 DEB_CONFIGURE_EXTRA_FLAGS += --disable-mime-cache \
@@ -18,14 +20,12 @@ DEB_CONFIGURE_EXTRA_FLAGS += --disable-mime-cache \
                              --enable-gstreamer=0.10 \
                              --disable-update-mimedb
 
-DEB_CONFIGURE_LOCALSTATEDIR := /var/lib
-
 DEB_INSTALL_MANPAGES_gnome-control-center += debian/gnome-control-center.1
 
 build/gnome-control-center:: $(DEB_INSTALL_MANPAGES_gnome-control-center)
 
 %.1: %.sgml
-	/usr/bin/docbook-to-man $< > $@
+	/usr/bin/docbook-to-man $< >$@
 
 clean::
 	rm -f $(DEB_INSTALL_MANPAGES_gnome-control-center)

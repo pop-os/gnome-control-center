@@ -1,4 +1,53 @@
-control-center (1:2.18.1-1) UNRELEASED; urgency=low
+control-center (1:2.19.5-1) experimental; urgency=low
+
+  [ Josselin Mouette ]
+  * capplets-data.gconf-defaults: set the default keybindings, formerly
+    in patches/07_default_keys.patch.
+  * patches/07_default_keys.patch: removed.
+  * 99_ltmain_as-needed.patch: get --as-needed back to work.
+
+  [ Loic Minier ]
+  * Drop DEB_CONFIGURE_LOCALSTATEDIR which seems to be useless since forever.
+  * Drop Marc Dequènes (Duck) from Uploaders; thanks!
+  * Cleanups.
+  * New upstream release series; these are development releases, the API may
+    still change incompatibly; no API change in this release though.
+    - Target at experimental; include check-dist.
+    - Set GNOME_MODULE and update watch and copyright files as the upstream
+      module was renamed to gnome-control-center; update debian/*.install and
+      *.links files for new pathnames.
+    - Update patch 01_fix_libslab_build.
+    - Update patch 02_xrdb to only patch
+      gnome-settings-daemon/gnome-settings-xrdb.c (same as Ubuntu package).
+    - Update patch 09_locate_pointer (from Ubuntu package).
+    - Drop patch 10_eggaccelerators, merged upstream.
+    - Drop patch 15_gconf_peditor which has no documentation and seems
+      completely obsolete.
+    - Update patch 19_extra_keybindings (from the Ubuntu package).
+    - Drop patch 24_theme_dont_require_metacity, deprecated with the new
+      version (from the Ubuntu package).
+    - Drop patch 36-compiz-keybindings-support, deprecated with the new
+      version (from the Ubuntu package).
+    - Update relibtoolizing patch, 70_relibtoolize.
+    - Drop patch 90_workaround_gnome_doc_utils_bug, workaround not required
+      anymore.
+    - Bump up libglib2.0-dev build-dep to >> 2.13.
+    - Drop private icon dir and png pixmaps from capplets-data.install.
+    - Drop gnome-font-properties, gnome-background-properties,
+      gnome-theme-manager, and gnome-ui-properties from
+      gnome-control-center.install.
+    - Add a (libxklavier11-dev >= 3.2) build-dep.
+    - Update GConf defaults for the music and calculator keybindings and bind
+      the rhythmbox command to the default media player.
+    - Install gnome-keybindings.pc in libgnome-settings-daemon-dev.
+    - Misc updates to *.install files.
+    - New patch, 27_nobashizms, fixes a bashism in gnome-at-commandline; found
+      in the Ubuntu package.
+  * 
+
+ -- Loic Minier <lool@dooz.org>  Tue, 10 Jul 2007 18:35:47 +0200
+
+control-center (1:2.18.1-1) unstable; urgency=low
 
   [ Marco Cabizza ]
   * New upstream release:
@@ -48,8 +97,12 @@ control-center (1:2.18.1-1) UNRELEASED; urgency=low
       failure with newer gnome-doc-utils; from the Ubuntu package.
   * New patch, 36-compiz-keybindings-support, permits configuring keybindings
     when using compiz as window manager; from the Ubuntu package.
+  * Upload to unstable; drop check-dist include.
+  * Wrap build-deps and deps.
+  * Fix URL in copyright.
+  * Build-depend on scrollkeeper.
 
- -- Loic Minier <lool@dooz.org>  Sun, 22 Apr 2007 13:23:44 +0200
+ -- Loic Minier <lool@dooz.org>  Sun, 22 Apr 2007 13:48:12 +0200
 
 control-center (1:2.16.3-1) experimental; urgency=low
 
