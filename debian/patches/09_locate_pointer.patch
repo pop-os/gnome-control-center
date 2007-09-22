@@ -1,17 +1,18 @@
---- gnome-settings-daemon/gnome-settings-mouse.c.orig	2004-10-09 20:26:54.000000000 +0200
-+++ gnome-settings-daemon/gnome-settings-mouse.c	2004-10-09 20:38:38.000000000 +0200
-@@ -144,11 +144,11 @@
- 	  XAllowEvents (gdk_x11_get_default_xdisplay (),
- 			ReplayKeyboard,
- 			xev->xkey.time);
--	  XUngrabKeyboard (gdk_x11_get_default_xdisplay (),
--			   xev->xkey.time);
-+	/*  XUngrabKeyboard (gdk_x11_get_default_xdisplay (),
+diff -Nur gnome-control-center-2.19.4/gnome-settings-daemon/gnome-settings-mouse.c gnome-control-center-2.19.4.new/gnome-settings-daemon/gnome-settings-mouse.c
+--- gnome-control-center-2.19.4/gnome-settings-daemon/gnome-settings-mouse.c	2007-06-06 13:23:59.000000000 +0200
++++ gnome-control-center-2.19.4.new/gnome-settings-daemon/gnome-settings-mouse.c	2007-06-19 14:22:15.000000000 +0200
+@@ -349,11 +349,11 @@
+ 			XAllowEvents (gdk_x11_get_default_xdisplay (),
+ 				      ReplayKeyboard,
+ 				      xev->xkey.time);
+-			XUngrabKeyboard (gdk_x11_get_default_xdisplay (),
+-					 xev->xkey.time);
++			/* XUngrabKeyboard (gdk_x11_get_default_xdisplay (),
 +			   xev->xkey.time); */
- 	}
+ 		}
  
--      return GDK_FILTER_REMOVE;
-+      /* return GDK_FILTER_REMOVE; */
-     }
-   return GDK_FILTER_CONTINUE;
+-		return GDK_FILTER_REMOVE;
++		/* return GDK_FILTER_REMOVE; */
+ 	}
+ 	return GDK_FILTER_CONTINUE;
  }
