@@ -1,10 +1,96 @@
-control-center (1:2.19.6-2) UNRELEASED; urgency=low
+control-center (1:2.20.3-3) unstable; urgency=low
 
+  [ Josselin Mouette ]
+  * Conflict against gnome-session << 2.20.3-2 because earlier versions
+    require the dbus service file.
+
+  [ Sebastian Dröge ]
+  * debian/control.in:
+    + Build depend on libxklavier12-dev | libxklavier-dev and rebuild against
+      the new soname.
+
+ -- Sebastian Dröge <slomo@debian.org>  Thu, 28 Feb 2008 10:03:20 +0100
+
+control-center (1:2.20.3-2) unstable; urgency=low
+
+  * capplets-data.install: don’t install the dbus service file, as g-s-d
+    should not be started through dbus.
+  * gnome-keyboard-properties.1:
+    + Fix missing space.
+    + Fix whatis entry.
+  * gnome-control-center.dirs: removed.
+  * Don’t run dh_makeshlibs for g-c-c.
+  * Update menu entry to the latest menu layout.
+
+ -- Josselin Mouette <joss@debian.org>  Sat, 16 Feb 2008 14:58:03 +0100
+
+control-center (1:2.20.3-1) unstable; urgency=low
+
+  * New upstream bugfix release.
+  * debian/control.in:
+    + Update Standards-Version to 3.7.3, no additional changes needed.
+  * debian/patches/70_relibtoolize.patch:
+    + Updated for the new version.
+
+ -- Sebastian Dröge <slomo@debian.org>  Sat, 12 Jan 2008 07:34:06 +0100
+
+control-center (1:2.20.1-2) unstable; urgency=high
+
+  [ Josselin Mouette ]
+  * 30_pkgconfig-path.patch: provide the path to the
+    gnome-settings-daemon binary in the pkgconfig file.
+
+  [ Loic Minier ]
+  * Upload with urgency high as we need this minor change for next
+    gnome-session.
+
+ -- Loic Minier <lool@dooz.org>  Tue, 27 Nov 2007 13:57:27 +0100
+
+control-center (1:2.20.1-1) unstable; urgency=low
+
+  * New upstream bugfix release:
+    + debian/patches/70_relibtoolize.patch:
+      - Regenerated for the new version.
+
+ -- Sebastian Dröge <slomo@debian.org>  Thu, 25 Oct 2007 19:45:06 +0200
+
+control-center (1:2.20.0.1-1) unstable; urgency=low
+
+  [ Loic Minier ]
+  * gnome-settings-daemon is in /usr/lib/control-center, not
+    gnome-control-center; closes: #443997.
+  * Drop the version of the scrollkeeper dependency.
+
+  [ Josselin Mouette ]
+  * Run dh_installmime for capplets-data, otherwise cdbs runs it before
+    dh_install.
+
+  [ Sven Arvidsson ]
+  * Add man page for gnome-keyboard-properties (Closes: #345818)
+
+  [ Sebastian Dröge ]
+  * New upstream bugfix release:
+    + debian/patches/70_relibtoolize.patch:
+      - Updated for the new version.
+
+ -- Sebastian Dröge <slomo@debian.org>  Fri, 05 Oct 2007 08:45:45 +0200
+
+control-center (1:2.20.0-1) unstable; urgency=low
+
+  [ Loic Minier ]
   * Bump up gnome-icon-theme dep to >= 2.16 for applications-internet etc.
   * Bump up libpango1.0-dev b-dep to >= 1.17 to help experimental's sbuild to
     install libgtk2.0-dev >= 2.11.
 
- -- Loic Minier <lool@dooz.org>  Sat, 04 Aug 2007 16:08:46 +0200
+  [ Sebastian Dröge ]
+  * New upstream release:
+    + debian/patches/27_nobashizms.patch:
+      - Dropped, merged upstream.
+    + 70_relibtoolize.patch:
+      - Updated for the new version.
+  * Upload to unstable, drop check-dist include.
+
+ -- Sebastian Dröge <slomo@debian.org>  Sat, 22 Sep 2007 11:06:14 +0200
 
 control-center (1:2.19.6-1) experimental; urgency=low
 
