@@ -7,7 +7,6 @@ include /usr/share/cdbs/1/class/gnome.mk
 include /usr/share/gnome-pkg-tools/1/rules/uploaders.mk
 include /usr/share/gnome-pkg-tools/1/rules/gnome-version.mk
 include /usr/share/gnome-pkg-tools/1/rules/clean-la.mk
-include /usr/share/gnome-pkg-tools/1/rules/check-dist.mk
 -include /usr/share/gnome-pkg-tools/1/rules/gnome-get-source.mk
 
 GNOME_MODULE := gnome-control-center
@@ -22,6 +21,8 @@ DEB_CONFIGURE_EXTRA_FLAGS += --disable-mime-cache \
 
 DEB_INSTALL_MANPAGES_gnome-control-center += debian/gnome-control-center.1
 
+DEB_DH_MAKESHLIBS_ARGS_gnome-control-center = --no-act
+
 build/gnome-control-center:: $(DEB_INSTALL_MANPAGES_gnome-control-center)
 
 %.1: %.sgml
@@ -35,4 +36,4 @@ install/capplets-data::
 
 binary-post-install/capplets-data::
 	rm -rf debian/capplets-data/usr/share/applications/mimeinfo.cache
-
+	dh_installmime -p$(cdbs_curpkg)
