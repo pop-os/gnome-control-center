@@ -1,47 +1,41 @@
-Build against external libslab.
-
-diff -uprN gnome-control-center-2.19.5.orig/Makefile.am gnome-control-center-2.19.5/Makefile.am
---- gnome-control-center-2.19.5.orig/Makefile.am	2007-06-04 12:47:30.000000000 +0200
-+++ gnome-control-center-2.19.5/Makefile.am	2007-07-10 17:25:29.000000000 +0200
+--- Makefile.am.old	2008-03-16 21:21:10.000000000 +0100
++++ Makefile.am	2008-03-16 21:21:20.000000000 +0100
 @@ -1,4 +1,4 @@
--SUBDIRS = po libsounds libbackground libwindow-settings libslab gnome-settings-daemon capplets shell help vfs-methods schemas $(TYPING_BREAK)
-+SUBDIRS = po libsounds libbackground libwindow-settings gnome-settings-daemon capplets shell help vfs-methods schemas $(TYPING_BREAK)
+-SUBDIRS = po libsounds libbackground libwindow-settings libslab capplets shell help vfs-methods $(TYPING_BREAK)
++SUBDIRS = po libsounds libbackground libwindow-settings capplets shell help vfs-methods $(TYPING_BREAK)
  
  ACLOCAL_AMFLAGS = -I m4
  
-diff -uprN gnome-control-center-2.19.5.orig/configure.in gnome-control-center-2.19.5/configure.in
---- gnome-control-center-2.19.5.orig/configure.in	2007-07-10 00:52:12.000000000 +0200
-+++ gnome-control-center-2.19.5/configure.in	2007-07-10 17:25:09.000000000 +0200
-@@ -86,8 +86,8 @@ dnl ====================================
+--- configure.in.old	2008-03-16 21:21:28.000000000 +0100
++++ configure.in	2008-03-16 21:24:42.000000000 +0100
+@@ -86,9 +86,6 @@
  dnl Check that we meet the  dependencies
  dnl ==============================================
  
 -ENABLE_DYNAMIC_LIBSLAB=0
 -AM_CONDITIONAL(ENABLE_DYNAMIC_LIBSLAB, test "x$ENABLE_DYNAMIC_LIBSLAB" = "x1")
-+dnl ENABLE_DYNAMIC_LIBSLAB=0
-+dnl AM_CONDITIONAL(ENABLE_DYNAMIC_LIBSLAB, test "x$ENABLE_DYNAMIC_LIBSLAB" = "x1")
- 
- COMMON_MODULES="gtk+-2.0 >= 2.3.0 dnl
+-
+ COMMON_MODULES="gtk+-2.0 >= 2.11.6 dnl
+  gio-2.0 dnl
   gconf-2.0 dnl
-@@ -96,7 +96,7 @@ COMMON_MODULES="gtk+-2.0 >= 2.3.0 dnl
+@@ -97,7 +94,6 @@
   libbonobo-2.0 dnl
   libbonoboui-2.0 dnl
-  gnome-desktop-2.0 >= 2.2.0"
--PKG_CHECK_MODULES(LIBSLAB, $COMMON_MODULES gnome-desktop-2.0 librsvg-2.0 libgnome-menu pango)
-+dnl PKG_CHECK_MODULES(LIBSLAB, $COMMON_MODULES gnome-desktop-2.0 librsvg-2.0 libgnome-menu pango)
+  gnome-desktop-2.0 >= 2.21.4"
+-PKG_CHECK_MODULES(LIBSLAB, $COMMON_MODULES gnome-desktop-2.0 librsvg-2.0 libgnome-menu pango eel-2.0)
  PKG_CHECK_MODULES(CAPPLET, $COMMON_MODULES)
  PKG_CHECK_MODULES(GNOMECC, $COMMON_MODULES libgnome-menu >= 2.10.1 libpanelapplet-2.0)
- PKG_CHECK_MODULES(GNOME_SETTINGS_DAEMON,
-@@ -112,6 +112,7 @@ PKG_CHECK_MODULES(SOUND_CAPPLET, esound 
- SOUND_CAPPLET_LIBS="$SOUND_CAPPLET_LIBS -lgstaudio-0.10 -lgstinterfaces-0.10"
- AC_SUBST(SOUND_CAPPLET_LIBS)
- PKG_CHECK_MODULES(METACITY, libmetacity-private)
+ PKG_CHECK_MODULES(GNOME, libgnomeui-2.0)
+@@ -106,6 +102,7 @@
+ PKG_CHECK_MODULES(GNOME_DESKTOP, gnome-desktop-2.0)
+ PKG_CHECK_MODULES(DEFAULT_APPLICATIONS_CAPPLET, libxml-2.0)
+ PKG_CHECK_MODULES(METACITY, libmetacity-private >= 2.21.21)
 +PKG_CHECK_MODULES(SLAB, libslab)
- PKG_CHECK_MODULES(TYPING, glib-2.0 > 2.13 gconf-2.0 gtk+-2.0)
- 
- dnl
-@@ -510,8 +511,6 @@ gnome-settings-daemon/gnome-settings-dae
- gnome-settings-daemon/xrdb/Makefile
+ PKG_CHECK_MODULES(TYPING, glib-2.0 > 2.11 gconf-2.0 gtk+-2.0)
+ PKG_CHECK_MODULES(LIBBACKGROUND, glib-2.0 gobject-2.0 gdk-2.0 gconf-2.0)
+ PKG_CHECK_MODULES(LIBSOUNDS, gio-2.0 libgnome-2.0 libgnomeui-2.0)
+@@ -446,8 +443,6 @@
+ capplets/windows/window-properties.desktop.in
  help/Makefile
  libbackground/Makefile
 -libslab/Makefile
@@ -49,9 +43,8 @@ diff -uprN gnome-control-center-2.19.5.orig/configure.in gnome-control-center-2.
  libsounds/Makefile
  libwindow-settings/Makefile
  libwindow-settings/gnome-window-settings-2.0.pc
-diff -uprN gnome-control-center-2.19.5.orig/shell/Makefile.am gnome-control-center-2.19.5/shell/Makefile.am
---- gnome-control-center-2.19.5.orig/shell/Makefile.am	2007-02-07 13:47:39.000000000 +0100
-+++ gnome-control-center-2.19.5/shell/Makefile.am	2007-07-10 17:26:55.000000000 +0200
+--- shell/Makefile.am.old	2008-03-16 21:24:50.000000000 +0100
++++ shell/Makefile.am	2008-03-16 21:25:16.000000000 +0100
 @@ -1,5 +1,5 @@
  INCLUDES =					\
 -	-I$(top_srcdir)/libslab			\
@@ -59,7 +52,7 @@ diff -uprN gnome-control-center-2.19.5.orig/shell/Makefile.am gnome-control-cent
  	$(GNOMECC_CFLAGS)
  
  bin_PROGRAMS = gnome-control-center 
-@@ -9,7 +9,7 @@ gnome_control_center_SOURCES =		\
+@@ -9,7 +9,7 @@
  
  gnome_control_center_LDADD =						\
  	$(GNOMECC_LIBS)							\
