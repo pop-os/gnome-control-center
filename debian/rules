@@ -28,6 +28,10 @@ build/gnome-control-center:: $(DEB_INSTALL_MANPAGES_gnome-control-center)
 %.1: %.sgml
 	/usr/bin/docbook-to-man $< >$@
 
+pre-build::
+	find . -type f -exec touch '{}' \;
+	find . -type d -exec touch '{}' \;
+
 clean::
 	rm -f $(DEB_INSTALL_MANPAGES_gnome-control-center)
 
