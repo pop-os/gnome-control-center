@@ -1,0 +1,82 @@
+diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.23.90/capplets/display/xrandr-capplet.c gnome-control-center-2.23.90.new/capplets/display/xrandr-capplet.c
+--- gnome-control-center-2.23.90/capplets/display/xrandr-capplet.c	2008-08-27 14:40:29.000000000 -0700
++++ gnome-control-center-2.23.90.new/capplets/display/xrandr-capplet.c	2008-08-27 14:42:40.000000000 -0700
+@@ -514,6 +514,48 @@
+     return i;
+ }
+ 
++static const char *
++generate_mode_text (int width, int height)
++{
++    int ratio;
++    const char *aspect = NULL;
++
++    if (width && height) {
++        if (width > height) ratio = width * 10 / height;
++        else ratio = height * 10 / width;
++
++        switch (ratio) {
++        case 13:
++            aspect = "4:3";
++            break;
++        case 16:
++            aspect = "16:10";
++            break;
++        case 17:
++            aspect = "16:9";
++            break;
++        case 12:
++            aspect = "5:4";
++            break;
++        // This catches 1.5625 as well (1600x1024) when maybe it shouldn't.
++        case 15:
++            aspect = "3:2";
++            break;
++        case 18:
++            aspect = "9:5";
++            break;
++        case 10:
++            aspect = "1:1";
++            break;
++        }
++    }
++
++    if (aspect)
++        return idle_free (g_strdup_printf (_("%d x %d (%s)"), width, height, aspect));
++    else
++        return idle_free (g_strdup_printf (_("%d x %d"), width, height));
++}
++
+ static void
+ rebuild_resolution_combo (App *app)
+ {
+@@ -537,7 +579,7 @@
+ 	height = gnome_rr_mode_get_height (modes[i]);
+ 	
+ 	add_key (app->resolution_combo,
+-		 idle_free (g_strdup_printf (_("%d x %d"), width, height)),
++		 generate_mode_text (width, height),
+ 		 width, height, 0, -1);
+ 
+ 	if (width * height > best_w * best_h)
+@@ -556,17 +598,15 @@
+     }
+     else
+     {
+-	current = idle_free (g_strdup_printf (_("%d x %d"),
+-					      app->current_output->width,
+-					      app->current_output->height));
++	current = generate_mode_text (app->current_output->width,
++			              app->current_output->height);
+     }
+ 	     
+ 
+     if (!combo_select (app->resolution_combo, current))
+     {
+ 	combo_select (app->resolution_combo,
+-		      idle_free (
+-			  g_strdup_printf (_("%d x %d"), best_w, best_h)));
++		      generate_mode_text (best_w, best_h));
+     }
+ }
+ 

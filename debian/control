@@ -1,0 +1,138 @@
+Source: gnome-control-center
+Section: gnome
+Priority: optional
+Maintainer: Ubuntu Desktop Team <ubuntu-desktop@lists.ubuntu.com>
+XSBC-Original-Maintainer: Marco Cabizza <marco87@gmail.com>
+Uploaders: Debian GNOME Maintainers <pkg-gnome-maintainers@lists.alioth.debian.org>
+Standards-Version: 3.7.3
+Build-Depends: cdbs (>= 0.4.41),
+               gnome-pkg-tools (>= 0.10),
+               dpkg-dev (>= 1.13.19),
+               debhelper (>= 5.0.0),
+               libgtk2.0-dev (>= 2.11.6),
+               libgnomeui-dev (>= 2.16.0-2),
+               intltool (>= 0.35.5),
+               libglade2-dev (>= 2.4.0-1),
+               libgnome-desktop-dev (>= 1:2.23.5),
+               zlib1g-dev,
+               flex,
+               libmetacity-dev (>= 1:2.23.1),
+               libxcursor-dev,
+               libbonobo2-dev (>= 2.6.2-6),
+               libnautilus-extension-dev (>= 1:2.21.6),
+               libxrandr-dev,
+               docbook-to-man,
+               libgstreamer0.10-dev (>= 0.10.1.2),
+               libgstreamer-plugins-base0.10-dev (>= 0.10.1.2),
+               autotools-dev,
+               libxss-dev,
+               libxinerama-dev,
+               libxft-dev (>= 2.1.2),
+               libxxf86misc-dev,
+               libxkbfile-dev,
+               libebook1.2-dev (>= 1.7.90),
+               desktop-file-utils,
+               gnome-doc-utils (>= 0.3.2),
+               libgnome-menu-dev (>= 2.12.0),
+               libx11-dev,
+               libxrender-dev,
+               libgconf2-dev,
+               libbonoboui2-dev,
+               libesd0-dev,
+               libgnomevfs2-dev,
+               libfontconfig1-dev,
+               libfreetype6-dev,
+               libglib2.0-dev (>= 2.16.0),
+               libxt-dev,
+               libhal-dev (>= 0.5.6),
+               libdbus-1-dev (>= 0.32),
+               libdbus-glib-1-dev (>= 0.32),
+               librsvg2-dev,
+               libpanel-applet2-dev,
+               libgnomekbd-dev (>= 2.21.4.1),
+               shared-mime-info,
+               libpango1.0-dev (>= 1.17),
+               libgnomekbdui-dev (>= 2.21.4.1),
+               scrollkeeper,
+               libxklavier12-dev (>= 3.6),
+               libeel2-dev,
+               gnome-settings-daemon-dev (>= 2.22.0),
+               libcanberra-gtk-dev
+
+Package: gnome-control-center
+Architecture: any
+Section: gnome
+Depends: ${shlibs:Depends},
+         ${misc:Depends},
+         capplets-data (>= ${gnome:Version}),
+         capplets-data (<< ${gnome:NextVersion}),
+         libgnome-window-settings1 (= ${binary:Version}),
+         gnome-settings-daemon,
+         gnome-menus (>= 2.12.0),
+         gnome-desktop-data,
+         gnome-icon-theme (>= 2.16),
+         desktop-file-utils,
+	 ubuntu-system-service
+Recommends: bzip2,
+            evolution-data-server,
+            gnome-user-guide,
+            mousetweaks,
+            gnome-session,
+            screen-resolution-extra
+Replaces: capplets
+Conflicts: capplets,
+           gnome-session (<< 2.22.0)
+Suggests: esound-clients,
+          gnome-screensaver | xscreensaver,
+          xbase-clients,
+          gstreamer0.10-alsa | gstreamer0.10-audiosink,
+          xrdb
+Description: utilities to configure the GNOME desktop
+ This package contains configuration applets for the GNOME desktop,
+ allowing to set accessibility configuration, desktop fonts, keyboard
+ and mouse properties, sound setup, desktop theme and background, user
+ interface properties, screen resolution, and other GNOME parameters.
+ .
+ It also contains a front end to these applets, which can also be
+ accessed with the GNOME panel or the Nautilus file manager.
+
+Package: capplets-data
+Architecture: all
+Section: gnome
+Depends: scrollkeeper, ${misc:Depends}
+Recommends: gnome-control-center (>= ${source:Version})
+Description: configuration applets for GNOME 2 - data files
+ This package contains data files (icons, pixmaps, locales files) needed by
+ the configuration applets in the gnome-control-center package.
+
+Package: libgnome-window-settings1
+Architecture: any
+Section: libs
+Depends: ${shlibs:Depends},
+         ${misc:Depends}
+Replaces: gnome-control-center (<< 1:2.14.1-1),
+          capplets
+Conflicts: capplets
+Description: Utility library for getting window manager settings
+ This package contains the libwindow-settings library, which is used by
+ the GNOME window managers.
+
+Package: libgnome-window-settings-dev
+Architecture: all
+Section: libdevel
+Depends: ${shlibs:Depends},
+         ${misc:Depends},
+         libgnome-window-settings1 (>= ${source:Version})
+Replaces: gnome-control-center (<< 1:2.14.1-1)
+Description: Utility library for getting window manager settings (headers)
+ This package contains the libwindow-settings library header files.
+
+Package: gnome-control-center-dev
+Architecture: all
+Section: devel
+Conflicts: libgnome-settings-daemon-dev
+Replaces: libgnome-settings-daemon-dev
+Depends: ${misc:Depends}
+Description: utilities to configure the GNOME desktop
+ This package contains the file required to get the keydirs location
+

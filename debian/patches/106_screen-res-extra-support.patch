@@ -1,0 +1,53 @@
+diff -Nurp gnome-control-center-2.23.90-patched/capplets/display/xrandr-capplet.c gnome-control-center-2.23.90-working/capplets/display/xrandr-capplet.c
+--- gnome-control-center-2.23.90-patched/capplets/display/xrandr-capplet.c	2008-08-25 14:42:22.000000000 -0700
++++ gnome-control-center-2.23.90-working/capplets/display/xrandr-capplet.c	2008-08-25 18:09:54.000000000 -0700
+@@ -1594,10 +1594,48 @@ check_required_virtual_size (App *app)
+     if (!(min_width <= req_width && req_width <= max_width
+ 	  && min_height <= req_height && req_height <= max_height))
+     {
+-	/* FIXME: present a useful dialog, maybe even before the user tries to Apply */
+ #if 0
+ 	g_print ("Your X server needs a larger Virtual size!\n");
+ #endif
++
++        char *filename = "/usr/share/screen-resolution-extra/policyui.py";
++
++        if ((g_file_test(filename, G_FILE_TEST_EXISTS)))
++        {
++            /* make use of the Python program to calculate the required size
++             * of the framebuffer and to compare it with the current size.
++             * If the current size is not enough, the Python program will
++             * show a GTK dialog so that users can apply the virtual
++             * resolution (through PolicyKit).
++             *
++             * The Python program uses XKit as a xorg.conf parser, validator
++             * and writer. If no xorg.conf can be found or is usable, a new
++             * one will be created.
++             */
++            gboolean rc;
++            int i, status;
++            gchar *command = g_strconcat ("python ", filename, NULL);
++
++            for (i = 0; app->current_configuration->outputs[i] != NULL; ++i)
++            {
++                GnomeOutputInfo *o = app->current_configuration->outputs[i];
++                gchar *ostr = g_strdup_printf (" %d,%d:%dx%d", o->x, o->y, o->width, o->height);
++                gchar *buf = g_strconcat (command, ostr, NULL);
++                g_free(command);
++                g_free(ostr);
++                command = buf;
++            }
++            rc = (g_spawn_command_line_sync (command, NULL, NULL, &status, NULL) && status == 0);
++            g_free (command);
++
++            if (! rc)
++                g_print("Error:  Failure running %s\n", filename);
++        }
++        else
++        {
++            g_print ("Error:  Cannot setup multi-screen configuration with the current Virtual settings\n");
++            return;
++        }
+     }
+ }
+ 

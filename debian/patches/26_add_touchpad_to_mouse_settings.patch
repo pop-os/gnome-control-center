@@ -1,0 +1,310 @@
+diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.21.90/capplets/mouse/gnome-mouse-properties.c gnome-control-center-2.21.90.new/capplets/mouse/gnome-mouse-properties.c
+--- gnome-control-center-2.21.90/capplets/mouse/gnome-mouse-properties.c	2008-02-14 09:15:50.000000000 +0000
++++ gnome-control-center-2.21.90.new/capplets/mouse/gnome-mouse-properties.c	2008-02-14 09:18:13.000000000 +0000
+@@ -41,6 +41,7 @@
+ #include <sys/types.h>
+ #include <sys/stat.h>
+ #include <dirent.h>
++#include <X11/extensions/XInput.h>
+ 
+ #ifdef HAVE_XCURSOR
+ #include <X11/Xcursor/Xcursor.h>
+@@ -341,6 +342,35 @@
+ 	return new_value;
+ }
+ 
++static gboolean
++find_synaptics()
++{
++        int numdevices, i;      
++        gboolean ret = FALSE;
++        XDeviceInfo *devicelist = XListInputDevices (GDK_DISPLAY(), &numdevices);
++        for (i = 0; i < numdevices; i++) {
++                if (strcmp (devicelist[i].name, "Synaptics Touchpad") == 0)
++                        ret = TRUE;
++        }
++        
++        XFreeDeviceList(devicelist);
++        return ret;
++}
++
++
++static void
++touchpad_enabled_toggle_cb (GtkToggleButton *button, GladeXML *dialog)
++{
++	gboolean active;
++
++	active = gtk_toggle_button_get_active (button);
++
++	gtk_widget_set_sensitive (WID ("tap_to_click_toggle"), active);
++	gtk_widget_set_sensitive (WID ("vert_scroll_toggle"), active);
++	gtk_widget_set_sensitive (WID ("horiz_scroll_toggle"), active);
++	
++}
++
+ /* Set up the property editors in the dialog. */
+ static void
+ setup_dialog (GladeXML *dialog, GConfChangeSet *changeset)
+@@ -387,6 +417,23 @@
+ 		(changeset, "/desktop/gnome/peripherals/mouse/drag_threshold", WID ("drag_threshold_scale"),
+ 		 "conv-to-widget-cb", drag_threshold_from_gconf,
+ 		 NULL);
++
++	/* Trackpad page */
++	if (find_synaptics() == FALSE)
++		gtk_notebook_remove_page (GTK_NOTEBOOK(WID("prefs_widget")),-1);
++	else {
++		g_signal_connect (G_OBJECT (WID ("touchpad_enabled_toggle")), "toggled", (GCallback) touchpad_enabled_toggle_cb, dialog);
++
++		peditor = gconf_peditor_new_boolean
++			(changeset, "/desktop/gnome/peripherals/mouse/touchpad_enabled", WID ("touchpad_enabled_toggle"), NULL);
++		peditor = gconf_peditor_new_boolean
++			(changeset, "/desktop/gnome/peripherals/mouse/tap_to_click", WID ("tap_to_click_toggle"), NULL);
++		peditor = gconf_peditor_new_boolean
++			(changeset, "/desktop/gnome/peripherals/mouse/pad_vert_scroll", WID ("vert_scroll_toggle"), NULL);
++		peditor = gconf_peditor_new_boolean
++			(changeset, "/desktop/gnome/peripherals/mouse/pad_horiz_scroll", WID ("horiz_scroll_toggle"), NULL);
++	}
++
+ }
+ 
+ /* Construct the dialog */
+diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.21.90/capplets/mouse/gnome-mouse-properties.glade gnome-control-center-2.21.90.new/capplets/mouse/gnome-mouse-properties.glade
+--- gnome-control-center-2.21.90/capplets/mouse/gnome-mouse-properties.glade	2008-02-14 09:15:50.000000000 +0000
++++ gnome-control-center-2.21.90.new/capplets/mouse/gnome-mouse-properties.glade	2008-02-14 09:17:39.000000000 +0000
+@@ -1288,6 +1288,235 @@
+                 <property name="tab_fill">False</property>
+               </packing>
+             </child>
++            <child>
++              <widget class="GtkVBox" id="vbox3">
++                <property name="visible">True</property>
++                <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
++                <property name="border_width">12</property>
++                <property name="spacing">18</property>
++                <child>
++                  <widget class="GtkVBox" id="vbox15">
++                    <property name="visible">True</property>
++                    <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
++                    <property name="spacing">6</property>
++                    <child>
++                      <widget class="GtkLabel" id="label18">
++                        <property name="visible">True</property>
++                        <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
++                        <property name="xalign">0</property>
++                        <property name="yalign">0</property>
++                        <property name="label" translatable="yes">&lt;b&gt;General&lt;/b&gt;</property>
++                        <property name="use_markup">True</property>
++                      </widget>
++                      <packing>
++                        <property name="expand">False</property>
++                        <property name="fill">False</property>
++                      </packing>
++                    </child>
++                    <child>
++                      <widget class="GtkHBox" id="hbox3">
++                        <property name="visible">True</property>
++                        <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
++                        <child>
++                          <widget class="GtkLabel" id="label19">
++                            <property name="visible">True</property>
++                            <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
++                            <property name="xalign">0</property>
++                            <property name="yalign">0</property>
++                            <property name="label">    </property>
++                          </widget>
++                          <packing>
++                            <property name="expand">False</property>
++                            <property name="fill">False</property>
++                          </packing>
++                        </child>
++                        <child>
++                          <widget class="GtkCheckButton" id="touchpad_enabled_toggle">
++                            <property name="visible">True</property>
++                            <property name="can_focus">True</property>
++                            <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
++                            <property name="label" translatable="yes">Enable _touchpad</property>
++                            <property name="use_underline">True</property>
++                            <property name="response_id">0</property>
++                            <property name="active">True</property>
++                            <property name="draw_indicator">True</property>
++                          </widget>
++                          <packing>
++                            <property name="position">1</property>
++                          </packing>
++                        </child>
++                      </widget>
++                      <packing>
++                        <property name="expand">False</property>
++                        <property name="fill">False</property>
++                        <property name="position">1</property>
++                      </packing>
++                    </child>
++                    <child>
++                      <widget class="GtkHBox" id="hbox11">
++                        <property name="visible">True</property>
++                        <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
++                        <child>
++                          <widget class="GtkLabel" id="label22">
++                            <property name="visible">True</property>
++                            <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
++                            <property name="xalign">0</property>
++                            <property name="yalign">0</property>
++                            <property name="label">    </property>
++                          </widget>
++                          <packing>
++                            <property name="expand">False</property>
++                            <property name="fill">False</property>
++                          </packing>
++                        </child>
++                        <child>
++                          <widget class="GtkCheckButton" id="tap_to_click_toggle">
++                            <property name="visible">True</property>
++                            <property name="can_focus">True</property>
++                            <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
++                            <property name="label" translatable="yes">Enable mouse _clicks with touchpad</property>
++                            <property name="use_underline">True</property>
++                            <property name="response_id">0</property>
++                            <property name="active">True</property>
++                            <property name="draw_indicator">True</property>
++                          </widget>
++                          <packing>
++                            <property name="position">1</property>
++                          </packing>
++                        </child>
++                      </widget>
++                      <packing>
++                        <property name="expand">False</property>
++                        <property name="fill">False</property>
++                        <property name="position">2</property>
++                      </packing>
++                    </child>
++                  </widget>
++                  <packing>
++                    <property name="expand">False</property>
++                    <property name="fill">False</property>
++                  </packing>
++                </child>
++                <child>
++                  <widget class="GtkVBox" id="vbox19">
++                    <property name="visible">True</property>
++                    <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
++                    <property name="spacing">6</property>
++                    <child>
++                      <widget class="GtkLabel" id="label34">
++                        <property name="visible">True</property>
++                        <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
++                        <property name="xalign">0</property>
++                        <property name="yalign">0</property>
++                        <property name="label" translatable="yes">&lt;b&gt;Scrolling&lt;/b&gt;</property>
++                        <property name="use_markup">True</property>
++                      </widget>
++                      <packing>
++                        <property name="expand">False</property>
++                        <property name="fill">False</property>
++                      </packing>
++                    </child>
++                    <child>
++                      <widget class="GtkHBox" id="hbox15">
++                        <property name="visible">True</property>
++                        <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
++                        <child>
++                          <widget class="GtkLabel" id="label35">
++                            <property name="visible">True</property>
++                            <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
++                            <property name="xalign">0</property>
++                            <property name="yalign">0</property>
++                            <property name="label">    </property>
++                          </widget>
++                          <packing>
++                            <property name="expand">False</property>
++                            <property name="fill">False</property>
++                          </packing>
++                        </child>
++                        <child>
++                          <widget class="GtkCheckButton" id="vert_scroll_toggle">
++                            <property name="visible">True</property>
++                            <property name="can_focus">True</property>
++                            <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
++                            <property name="label" translatable="yes">Enable _vertical scrolling</property>
++                            <property name="use_underline">True</property>
++                            <property name="response_id">0</property>
++                            <property name="active">True</property>
++                            <property name="draw_indicator">True</property>
++                          </widget>
++                          <packing>
++                            <property name="position">1</property>
++                          </packing>
++                        </child>
++                      </widget>
++                      <packing>
++                        <property name="expand">False</property>
++                        <property name="fill">False</property>
++                        <property name="position">1</property>
++                      </packing>
++                    </child>
++                    <child>
++                      <widget class="GtkHBox" id="hbox16">
++                        <property name="visible">True</property>
++                        <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
++                        <child>
++                          <widget class="GtkLabel" id="label36">
++                            <property name="visible">True</property>
++                            <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
++                            <property name="xalign">0</property>
++                            <property name="yalign">0</property>
++                            <property name="label">    </property>
++                          </widget>
++                          <packing>
++                            <property name="expand">False</property>
++                            <property name="fill">False</property>
++                          </packing>
++                        </child>
++                        <child>
++                          <widget class="GtkCheckButton" id="horiz_scroll_toggle">
++                            <property name="visible">True</property>
++                            <property name="can_focus">True</property>
++                            <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
++                            <property name="label" translatable="yes">Enable _horizontal scrolling</property>
++                            <property name="use_underline">True</property>
++                            <property name="response_id">0</property>
++                            <property name="draw_indicator">True</property>
++                          </widget>
++                          <packing>
++                            <property name="position">1</property>
++                          </packing>
++                        </child>
++                      </widget>
++                      <packing>
++                        <property name="expand">False</property>
++                        <property name="fill">False</property>
++                        <property name="position">2</property>
++                      </packing>
++                    </child>
++                  </widget>
++                  <packing>
++                    <property name="expand">False</property>
++                    <property name="fill">False</property>
++                    <property name="position">1</property>
++                  </packing>
++                </child>
++              </widget>
++              <packing>
++                <property name="position">2</property>
++              </packing>
++            </child>
++            <child>
++              <widget class="GtkLabel" id="label4">
++                <property name="visible">True</property>
++                <property name="label" translatable="yes">Touchpad</property>
++                <property name="justify">GTK_JUSTIFY_CENTER</property>
++              </widget>
++              <packing>
++                <property name="type">tab</property>
++                <property name="position">2</property>
++                <property name="tab_fill">False</property>
++              </packing>
++            </child>
+           </widget>
+           <packing>
+             <property name="position">1</property>
