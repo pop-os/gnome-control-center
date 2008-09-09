@@ -1,7 +1,7 @@
-diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.23.90/capplets/display/xrandr-capplet.c gnome-control-center-2.23.90.new/capplets/display/xrandr-capplet.c
---- gnome-control-center-2.23.90/capplets/display/xrandr-capplet.c	2008-08-27 14:40:29.000000000 -0700
-+++ gnome-control-center-2.23.90.new/capplets/display/xrandr-capplet.c	2008-08-27 14:42:40.000000000 -0700
-@@ -514,6 +514,48 @@
+diff -Nur -x '*.orig' -x '*~' ubuntu/capplets/display/xrandr-capplet.c ubuntu.new/capplets/display/xrandr-capplet.c
+--- ubuntu/capplets/display/xrandr-capplet.c	2008-09-09 12:20:05.000000000 +0200
++++ ubuntu.new/capplets/display/xrandr-capplet.c	2008-09-09 12:21:36.000000000 +0200
+@@ -523,6 +523,48 @@
      return i;
  }
  
@@ -50,26 +50,26 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.23.90/capplets/display/xran
  static void
  rebuild_resolution_combo (App *app)
  {
-@@ -537,7 +579,7 @@
+@@ -546,7 +588,7 @@
  	height = gnome_rr_mode_get_height (modes[i]);
- 	
+ 
  	add_key (app->resolution_combo,
 -		 idle_free (g_strdup_printf (_("%d x %d"), width, height)),
 +		 generate_mode_text (width, height),
  		 width, height, 0, -1);
  
  	if (width * height > best_w * best_h)
-@@ -556,17 +598,15 @@
+@@ -565,17 +607,15 @@
      }
      else
      {
 -	current = idle_free (g_strdup_printf (_("%d x %d"),
 -					      app->current_output->width,
 -					      app->current_output->height));
-+	current = generate_mode_text (app->current_output->width,
-+			              app->current_output->height);
++        current = generate_mode_text (app->current_output->width,
++				      app->current_output->height);
      }
- 	     
+ 
  
      if (!combo_select (app->resolution_combo, current))
      {

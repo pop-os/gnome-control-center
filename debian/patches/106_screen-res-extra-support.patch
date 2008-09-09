@@ -1,15 +1,14 @@
-diff -Nurp gnome-control-center-2.23.90-patched/capplets/display/xrandr-capplet.c gnome-control-center-2.23.90-working/capplets/display/xrandr-capplet.c
---- gnome-control-center-2.23.90-patched/capplets/display/xrandr-capplet.c	2008-08-25 14:42:22.000000000 -0700
-+++ gnome-control-center-2.23.90-working/capplets/display/xrandr-capplet.c	2008-08-25 18:09:54.000000000 -0700
-@@ -1594,10 +1594,48 @@ check_required_virtual_size (App *app)
+diff -Nur -x '*.orig' -x '*~' ubuntu/capplets/display/xrandr-capplet.c ubuntu.new/capplets/display/xrandr-capplet.c
+--- ubuntu/capplets/display/xrandr-capplet.c	2008-09-09 12:22:42.000000000 +0200
++++ ubuntu.new/capplets/display/xrandr-capplet.c	2008-09-09 12:23:48.000000000 +0200
+@@ -1655,10 +1655,47 @@
      if (!(min_width <= req_width && req_width <= max_width
  	  && min_height <= req_height && req_height <= max_height))
      {
 -	/* FIXME: present a useful dialog, maybe even before the user tries to Apply */
  #if 0
- 	g_print ("Your X server needs a larger Virtual size!\n");
+ 	g_debug ("Your X server needs a larger Virtual size!");
  #endif
-+
 +        char *filename = "/usr/share/screen-resolution-extra/policyui.py";
 +
 +        if ((g_file_test(filename, G_FILE_TEST_EXISTS)))
