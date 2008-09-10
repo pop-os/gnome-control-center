@@ -1,0 +1,31 @@
+--- trunk/capplets/keyboard/gnome-keyboard-properties-xkblt.c	2008/09/05 19:53:23	8928
++++ trunk/capplets/keyboard/gnome-keyboard-properties-xkblt.c	2008/09/05 23:29:10	8929
+@@ -365,15 +365,10 @@
+ xkb_layout_description_utf8 (const gchar * visible)
+ {
+ 	char *l, *sl, *v, *sv;
+-	char *v1, *utf_visible;
+ 	if (gkbd_keyboard_config_get_descriptions
+ 	    (config_registry, visible, &sl, &l, &sv, &v))
+ 		visible = gkbd_keyboard_config_format_full_layout (l, v);
+-	v1 = g_strdup (visible);
+-	utf_visible =
+-	    g_locale_to_utf8 (g_strstrip (v1), -1, NULL, NULL, NULL);
+-	g_free (v1);
+-	return utf_visible;
++	return g_strstrip (g_strdup (visible));
+ }
+ 
+ void
+--- trunk/capplets/keyboard/gnome-keyboard-properties-xkb.c	2008/09/05 19:53:23	8928
++++ trunk/capplets/keyboard/gnome-keyboard-properties-xkb.c	2008/09/05 23:29:10	8929
+@@ -48,8 +48,7 @@
+ xci_desc_to_utf8 (XklConfigItem * ci)
+ {
+ 	char *sd = g_strstrip (ci->description);
+-	return sd[0] == 0 ? g_strdup (ci->name) :
+-	    g_locale_to_utf8 (sd, -1, NULL, NULL, NULL);
++	return sd[0] == 0 ? g_strdup (ci->name) : g_strdup (sd);
+ }
+ 
+ static void
