@@ -1,6 +1,6 @@
-=== modified file 'capplets/keyboard/gnome-keyboard-properties-xkb.c'
---- capplets/keyboard/gnome-keyboard-properties-xkb.c	2008-09-08 15:24:11 +0000
-+++ capplets/keyboard/gnome-keyboard-properties-xkb.c	2008-09-09 13:57:27 +0000
+diff -Nur -x '*.orig' -x '*~' ubuntu/capplets/keyboard/gnome-keyboard-properties-xkb.c ubuntu.new/capplets/keyboard/gnome-keyboard-properties-xkb.c
+--- ubuntu/capplets/keyboard/gnome-keyboard-properties-xkb.c	2008-09-10 11:09:40.000000000 +0200
++++ ubuntu.new/capplets/keyboard/gnome-keyboard-properties-xkb.c	2008-09-10 11:19:02.000000000 +0200
 @@ -29,6 +29,7 @@
  #include <gdk/gdkx.h>
  #include <gconf/gconf-client.h>
@@ -9,7 +9,7 @@
  
  #include "capplet-util.h"
  #include "gconf-property-editor.h"
-@@ -122,6 +123,138 @@
+@@ -122,6 +123,154 @@
  	xkb_gconf_client = NULL;
  }
  
@@ -23,7 +23,10 @@
 +	DBusGConnection *systembus, *sessionbus;
 +	DBusGProxy *dbus_proxy;
 +	int default_group;
-+	gchar model[128], layout[128], variant[128], options[256];
++	gchar model[128] = {0,};
++	gchar layout[128] = {0,};
++	gchar variant[128] = {0,};
++	gchar options[256] = {0,};
 +
 +	// get current settings
 +	gkbd_keyboard_config_init (&kbd, xkb_gconf_client, engine);
@@ -105,7 +108,6 @@
 +				G_TYPE_INVALID,
 +				G_TYPE_BOOLEAN, &res, G_TYPE_INVALID))
 +	   {
-+	      /* Just do demonstrate remote exceptions versus regular GError */
 +	      if (error->domain == DBUS_GERROR && 
 +		  error->code == DBUS_GERROR_REMOTE_EXCEPTION)
 +		 g_printerr ("Caught remote method exception %s: %s",
@@ -116,6 +118,7 @@
 +	      g_error_free (error);
 +	      return;
 +	   }
++	g_object_unref (dbus_proxy);
 +	g_print("ObtainAuth returned: %i\n", res);
 +	// so we get a "0" here too if the auth is not required ?!?
 +	//   if(!res)
@@ -141,14 +144,27 @@
 +				      G_TYPE_INVALID,
 +				      G_TYPE_BOOLEAN, &res, 
 +				      G_TYPE_INVALID);
++	if (!dbus_ret) {
++	      if (error->domain == DBUS_GERROR && 
++		  error->code == DBUS_GERROR_REMOTE_EXCEPTION)
++		 g_printerr ("Caught remote method exception %s: %s",
++			     dbus_g_error_get_name (error),
++			     error->message);
++	      else
++		 g_printerr ("Error: %s\n", error->message);
++	      g_error_free (error);
++	      return;
++	}
++
 +
 +	//printf("res: %i\n", res);
++	g_object_unref (dbus_proxy);
 +}
 +
  static void
  reset_to_defaults (GtkWidget * button, GladeXML * dialog)
  {
-@@ -182,6 +315,11 @@
+@@ -182,6 +331,11 @@
  			  "clicked", G_CALLBACK (reset_to_defaults),
  			  dialog);
  
@@ -160,10 +176,10 @@
  	g_signal_connect_swapped (G_OBJECT (WID ("xkb_layout_options")),
  				  "clicked",
  				  G_CALLBACK (xkb_options_popup_dialog),
-
-=== modified file 'capplets/keyboard/gnome-keyboard-properties.glade'
---- capplets/keyboard/gnome-keyboard-properties.glade	2008-09-08 15:24:11 +0000
-+++ capplets/keyboard/gnome-keyboard-properties.glade	2008-09-09 13:37:09 +0000
+=== modified file 'capplets/keyboard/gnome-keyboard-properties-xkb.c'
+diff -Nur -x '*.orig' -x '*~' ubuntu/capplets/keyboard/gnome-keyboard-properties.glade ubuntu.new/capplets/keyboard/gnome-keyboard-properties.glade
+--- ubuntu/capplets/keyboard/gnome-keyboard-properties.glade	2008-09-10 11:09:40.000000000 +0200
++++ ubuntu.new/capplets/keyboard/gnome-keyboard-properties.glade	2008-09-10 11:09:45.000000000 +0200
 @@ -366,7 +366,7 @@
                    </widget>
                  </child>
@@ -194,47 +210,38 @@
                          </child>
                          <child>
                            <widget class="GtkHBox" id="hbox2">
-@@ -501,6 +489,19 @@
+@@ -501,25 +489,24 @@
                                    </packing>
                                  </child>
                                  <child>
+-                                  <widget class="GtkButton" id="xkb_layouts_print">
 +                                  <widget class="GtkButton" id="xkb_layouts_add">
-+                                    <property name="visible">True</property>
-+                                    <property name="can_focus">True</property>
-+                                    <property name="label" translatable="yes">_Add...</property>
-+                                    <property name="response_id">0</property>
-+                                  </widget>
-+                                  <packing>
-+                                    <property name="expand">False</property>
-+                                    <property name="fill">False</property>
-+                                    <property name="position">1</property>
-+                                  </packing>
-+                                </child>
-+                                <child>
-                                   <widget class="GtkButton" id="xkb_layouts_print">
                                      <property name="visible">True</property>
                                      <property name="can_focus">True</property>
-@@ -511,20 +512,6 @@
+-                                    <property name="label">gtk-print</property>
+-                                    <property name="use_stock">True</property>
++                                    <property name="label" translatable="yes">_Add...</property>
+                                     <property name="response_id">0</property>
+                                   </widget>
                                    <packing>
                                      <property name="expand">False</property>
                                      <property name="fill">False</property>
 -                                    <property name="position">2</property>
--                                  </packing>
--                                </child>
--                                <child>
--                                  <widget class="GtkButton" id="xkb_layouts_add">
--                                    <property name="visible">True</property>
--                                    <property name="can_focus">True</property>
--                                    <property name="label" translatable="yes">_Add...</property>
--                                    <property name="use_underline">True</property>
--                                    <property name="response_id">0</property>
--                                  </widget>
--                                  <packing>
--                                    <property name="expand">False</property>
--                                    <property name="fill">False</property>
-                                     <property name="position">3</property>
++                                    <property name="position">1</property>
                                    </packing>
                                  </child>
+                                 <child>
+-                                  <widget class="GtkButton" id="xkb_layouts_add">
++                                  <widget class="GtkButton" id="xkb_layouts_print">
+                                     <property name="visible">True</property>
+                                     <property name="can_focus">True</property>
+-                                    <property name="label" translatable="yes">_Add...</property>
+-                                    <property name="use_underline">True</property>
++                                    <property name="label">gtk-print</property>
++                                    <property name="use_stock">True</property>
+                                     <property name="response_id">0</property>
+                                   </widget>
+                                   <packing>
 @@ -534,51 +521,99 @@
                                </packing>
                              </child>
@@ -353,303 +360,247 @@
                        </packing>
                      </child>
                    </widget>
-@@ -1076,68 +1111,113 @@
+@@ -1076,100 +1111,84 @@
                                      <property name="column_spacing">12</property>
                                      <property name="row_spacing">6</property>
                                      <child>
 -                                      <widget class="GtkLabel" id="mousekeys_long_label">
--                                        <property name="visible">True</property>
++                                      <widget class="GtkLabel" id="mousekeys_slow_label2">
+                                         <property name="visible">True</property>
 -                                        <property name="xalign">0</property>
 -                                        <property name="label" translatable="yes">&lt;small&gt;&lt;i&gt;Long&lt;/i&gt;&lt;/small&gt;</property>
--                                        <property name="use_markup">True</property>
--                                        <property name="justify">GTK_JUSTIFY_CENTER</property>
--                                      </widget>
--                                      <packing>
++                                        <property name="xalign">1</property>
++                                        <property name="label" translatable="yes">&lt;small&gt;&lt;i&gt;Slow&lt;/i&gt;&lt;/small&gt;</property>
+                                         <property name="use_markup">True</property>
+                                         <property name="justify">GTK_JUSTIFY_CENTER</property>
+                                       </widget>
+                                       <packing>
 -                                        <property name="left_attach">3</property>
 -                                        <property name="right_attach">4</property>
 -                                        <property name="top_attach">2</property>
 -                                        <property name="bottom_attach">3</property>
--                                        <property name="x_options">GTK_FILL</property>
--                                        <property name="y_options"></property>
--                                      </packing>
--                                    </child>
--                                    <child>
++                                        <property name="left_attach">1</property>
++                                        <property name="right_attach">2</property>
++                                        <property name="top_attach">1</property>
++                                        <property name="bottom_attach">2</property>
+                                         <property name="x_options">GTK_FILL</property>
+                                         <property name="y_options"></property>
+                                       </packing>
+                                     </child>
+                                     <child>
 -                                      <widget class="GtkHScale" id="mousekeys_init_delay_slide">
 -                                        <property name="visible">True</property>
 -                                        <property name="can_focus">True</property>
 -                                        <property name="update_policy">GTK_UPDATE_DISCONTINUOUS</property>
 -                                        <property name="adjustment">300 10 2000 10 10 0</property>
-+                                      <widget class="GtkLabel" id="mousekeys_slow_label2">
-+                                        <property name="visible">True</property>
-+                                        <property name="xalign">1</property>
-+                                        <property name="label" translatable="yes">&lt;small&gt;&lt;i&gt;Slow&lt;/i&gt;&lt;/small&gt;</property>
-+                                        <property name="use_markup">True</property>
-+                                        <property name="justify">GTK_JUSTIFY_CENTER</property>
-+                                      </widget>
-+                                      <packing>
-+                                        <property name="left_attach">1</property>
-+                                        <property name="right_attach">2</property>
-+                                        <property name="top_attach">1</property>
-+                                        <property name="bottom_attach">2</property>
-+                                        <property name="x_options">GTK_FILL</property>
-+                                        <property name="y_options"></property>
-+                                      </packing>
-+                                    </child>
-+                                    <child>
+-                                        <property name="digits">0</property>
+-                                        <property name="draw_value">False</property>
+-                                      </widget>
+-                                      <packing>
+-                                        <property name="left_attach">2</property>
+-                                        <property name="right_attach">3</property>
+-                                        <property name="top_attach">2</property>
+-                                        <property name="bottom_attach">3</property>
+-                                        <property name="y_options">GTK_FILL</property>
+-                                      </packing>
+-                                    </child>
+-                                    <child>
+-                                      <widget class="GtkLabel" id="mousekeys_short_label">
 +                                      <widget class="GtkLabel" id="mousekeys_slow_label">
-+                                        <property name="visible">True</property>
-+                                        <property name="xalign">1</property>
+                                         <property name="visible">True</property>
+                                         <property name="xalign">1</property>
+-                                        <property name="label" translatable="yes">&lt;small&gt;&lt;i&gt;Short&lt;/i&gt;&lt;/small&gt;</property>
 +                                        <property name="label" translatable="yes">&lt;small&gt;&lt;i&gt;Slow&lt;/i&gt;&lt;/small&gt;</property>
-+                                        <property name="use_markup">True</property>
-+                                        <property name="justify">GTK_JUSTIFY_CENTER</property>
-+                                      </widget>
-+                                      <packing>
-+                                        <property name="left_attach">1</property>
-+                                        <property name="right_attach">2</property>
-+                                        <property name="x_options">GTK_FILL</property>
-+                                        <property name="y_options"></property>
-+                                      </packing>
-+                                    </child>
-+                                    <child>
+                                         <property name="use_markup">True</property>
+                                         <property name="justify">GTK_JUSTIFY_CENTER</property>
+                                       </widget>
+                                       <packing>
+                                         <property name="left_attach">1</property>
+                                         <property name="right_attach">2</property>
+-                                        <property name="top_attach">2</property>
+-                                        <property name="bottom_attach">3</property>
+                                         <property name="x_options">GTK_FILL</property>
+                                         <property name="y_options"></property>
+                                       </packing>
+                                     </child>
+                                     <child>
+-                                      <widget class="GtkLabel" id="mousekeys_delay_label">
 +                                      <widget class="GtkHScale" id="mousekeys_accel_time_slide">
-+                                        <property name="visible">True</property>
+                                         <property name="visible">True</property>
+-                                        <property name="xalign">0</property>
+-                                        <property name="label" translatable="yes">_Delay:</property>
+-                                        <property name="use_underline">True</property>
+-                                        <property name="justify">GTK_JUSTIFY_CENTER</property>
+-                                        <property name="mnemonic_widget">mousekeys_init_delay_slide</property>
 +                                        <property name="can_focus">True</property>
 +                                        <property name="update_policy">GTK_UPDATE_DISCONTINUOUS</property>
 +                                        <property name="adjustment">1800 0 3000 10 10 0</property>
 +                                        <property name="draw_value">False</property>
 +                                        <property name="value_pos">GTK_POS_RIGHT</property>
-+                                      </widget>
-+                                      <packing>
-+                                        <property name="left_attach">2</property>
-+                                        <property name="right_attach">3</property>
-+                                        <property name="y_options">GTK_FILL</property>
-+                                      </packing>
-+                                    </child>
-+                                    <child>
-+                                      <widget class="GtkHScale" id="mousekeys_max_speed_slide">
-+                                        <property name="visible">True</property>
-+                                        <property name="can_focus">True</property>
-+                                        <property name="update_policy">GTK_UPDATE_DISCONTINUOUS</property>
-+                                        <property name="adjustment">300 10 1000 10 10 0</property>
-                                         <property name="digits">0</property>
-                                         <property name="draw_value">False</property>
                                        </widget>
                                        <packing>
-                                         <property name="left_attach">2</property>
-                                         <property name="right_attach">3</property>
 -                                        <property name="top_attach">2</property>
 -                                        <property name="bottom_attach">3</property>
-+                                        <property name="top_attach">1</property>
-+                                        <property name="bottom_attach">2</property>
+-                                        <property name="x_options">GTK_FILL</property>
++                                        <property name="left_attach">2</property>
++                                        <property name="right_attach">3</property>
                                          <property name="y_options">GTK_FILL</property>
                                        </packing>
                                      </child>
                                      <child>
--                                      <widget class="GtkLabel" id="mousekeys_short_label">
--                                        <property name="visible">True</property>
--                                        <property name="xalign">1</property>
--                                        <property name="label" translatable="yes">&lt;small&gt;&lt;i&gt;Short&lt;/i&gt;&lt;/small&gt;</property>
--                                        <property name="use_markup">True</property>
--                                        <property name="justify">GTK_JUSTIFY_CENTER</property>
--                                      </widget>
--                                      <packing>
--                                        <property name="left_attach">1</property>
--                                        <property name="right_attach">2</property>
--                                        <property name="top_attach">2</property>
--                                        <property name="bottom_attach">3</property>
--                                        <property name="x_options">GTK_FILL</property>
--                                        <property name="y_options"></property>
--                                      </packing>
--                                    </child>
--                                    <child>
--                                      <widget class="GtkLabel" id="mousekeys_delay_label">
--                                        <property name="visible">True</property>
+-                                      <widget class="GtkLabel" id="mousekeys_acceleration_label">
++                                      <widget class="GtkHScale" id="mousekeys_max_speed_slide">
+                                         <property name="visible">True</property>
 -                                        <property name="xalign">0</property>
--                                        <property name="label" translatable="yes">_Delay:</property>
-+                                      <widget class="GtkLabel" id="mousekeys_fast_label2">
-+                                        <property name="visible">True</property>
-+                                        <property name="xalign">0</property>
-+                                        <property name="label" translatable="yes">&lt;small&gt;&lt;i&gt;Fast&lt;/i&gt;&lt;/small&gt;</property>
-+                                        <property name="use_markup">True</property>
-+                                        <property name="justify">GTK_JUSTIFY_CENTER</property>
-+                                      </widget>
-+                                      <packing>
-+                                        <property name="left_attach">3</property>
-+                                        <property name="right_attach">4</property>
-+                                        <property name="top_attach">1</property>
-+                                        <property name="bottom_attach">2</property>
-+                                        <property name="x_options">GTK_FILL</property>
-+                                        <property name="y_options"></property>
-+                                      </packing>
-+                                    </child>
-+                                    <child>
-+                                      <widget class="GtkLabel" id="mousekeys_fast_label">
-+                                        <property name="visible">True</property>
-+                                        <property name="xalign">0</property>
-+                                        <property name="label" translatable="yes">&lt;small&gt;&lt;i&gt;Fast&lt;/i&gt;&lt;/small&gt;</property>
-+                                        <property name="use_markup">True</property>
-+                                        <property name="justify">GTK_JUSTIFY_CENTER</property>
-+                                      </widget>
-+                                      <packing>
-+                                        <property name="left_attach">3</property>
-+                                        <property name="right_attach">4</property>
-+                                        <property name="x_options">GTK_FILL</property>
-+                                        <property name="y_options"></property>
-+                                      </packing>
-+                                    </child>
-+                                    <child>
-+                                      <widget class="GtkLabel" id="mousekeys_speed_label">
-+                                        <property name="visible">True</property>
-+                                        <property name="xalign">0</property>
-+                                        <property name="label" translatable="yes">_Speed:</property>
-                                         <property name="use_underline">True</property>
-                                         <property name="justify">GTK_JUSTIFY_CENTER</property>
--                                        <property name="mnemonic_widget">mousekeys_init_delay_slide</property>
-+                                        <property name="mnemonic_widget">mousekeys_max_speed_slide</property>
+-                                        <property name="label" translatable="yes">A_cceleration:</property>
+-                                        <property name="use_underline">True</property>
+-                                        <property name="justify">GTK_JUSTIFY_CENTER</property>
+-                                        <property name="mnemonic_widget">mousekeys_accel_time_slide</property>
++                                        <property name="can_focus">True</property>
++                                        <property name="update_policy">GTK_UPDATE_DISCONTINUOUS</property>
++                                        <property name="adjustment">300 10 1000 10 10 0</property>
++                                        <property name="digits">0</property>
++                                        <property name="draw_value">False</property>
                                        </widget>
                                        <packing>
--                                        <property name="top_attach">2</property>
--                                        <property name="bottom_attach">3</property>
+-                                        <property name="x_options">GTK_FILL</property>
++                                        <property name="left_attach">2</property>
++                                        <property name="right_attach">3</property>
 +                                        <property name="top_attach">1</property>
 +                                        <property name="bottom_attach">2</property>
-                                         <property name="x_options">GTK_FILL</property>
                                          <property name="y_options">GTK_FILL</property>
-                                       </packing>
-@@ -1157,113 +1237,68 @@
                                        </packing>
                                      </child>
                                      <child>
 -                                      <widget class="GtkLabel" id="mousekeys_speed_label">
-+                                      <widget class="GtkLabel" id="mousekeys_delay_label">
++                                      <widget class="GtkLabel" id="mousekeys_fast_label2">
                                          <property name="visible">True</property>
                                          <property name="xalign">0</property>
 -                                        <property name="label" translatable="yes">_Speed:</property>
-+                                        <property name="label" translatable="yes">_Delay:</property>
-                                         <property name="use_underline">True</property>
+-                                        <property name="use_underline">True</property>
++                                        <property name="label" translatable="yes">&lt;small&gt;&lt;i&gt;Fast&lt;/i&gt;&lt;/small&gt;</property>
++                                        <property name="use_markup">True</property>
                                          <property name="justify">GTK_JUSTIFY_CENTER</property>
 -                                        <property name="mnemonic_widget">mousekeys_max_speed_slide</property>
-+                                        <property name="mnemonic_widget">mousekeys_init_delay_slide</property>
                                        </widget>
                                        <packing>
++                                        <property name="left_attach">3</property>
++                                        <property name="right_attach">4</property>
+                                         <property name="top_attach">1</property>
+                                         <property name="bottom_attach">2</property>
+                                         <property name="x_options">GTK_FILL</property>
+-                                        <property name="y_options">GTK_FILL</property>
++                                        <property name="y_options"></property>
+                                       </packing>
+                                     </child>
+                                     <child>
+@@ -1188,82 +1207,98 @@
+                                       </packing>
+                                     </child>
+                                     <child>
+-                                      <widget class="GtkLabel" id="mousekeys_fast_label2">
++                                      <widget class="GtkLabel" id="mousekeys_speed_label">
+                                         <property name="visible">True</property>
+                                         <property name="xalign">0</property>
+-                                        <property name="label" translatable="yes">&lt;small&gt;&lt;i&gt;Fast&lt;/i&gt;&lt;/small&gt;</property>
+-                                        <property name="use_markup">True</property>
++                                        <property name="label" translatable="yes">_Speed:</property>
++                                        <property name="use_underline">True</property>
+                                         <property name="justify">GTK_JUSTIFY_CENTER</property>
++                                        <property name="mnemonic_widget">mousekeys_max_speed_slide</property>
+                                       </widget>
+                                       <packing>
+-                                        <property name="left_attach">3</property>
+-                                        <property name="right_attach">4</property>
+                                         <property name="top_attach">1</property>
+                                         <property name="bottom_attach">2</property>
+                                         <property name="x_options">GTK_FILL</property>
+-                                        <property name="y_options"></property>
++                                        <property name="y_options">GTK_FILL</property>
+                                       </packing>
+                                     </child>
+                                     <child>
+-                                      <widget class="GtkHScale" id="mousekeys_max_speed_slide">
++                                      <widget class="GtkLabel" id="mousekeys_acceleration_label">
+                                         <property name="visible">True</property>
+-                                        <property name="can_focus">True</property>
+-                                        <property name="update_policy">GTK_UPDATE_DISCONTINUOUS</property>
+-                                        <property name="adjustment">300 10 1000 10 10 0</property>
+-                                        <property name="digits">0</property>
+-                                        <property name="draw_value">False</property>
++                                        <property name="xalign">0</property>
++                                        <property name="label" translatable="yes">A_cceleration:</property>
++                                        <property name="use_underline">True</property>
++                                        <property name="justify">GTK_JUSTIFY_CENTER</property>
++                                        <property name="mnemonic_widget">mousekeys_accel_time_slide</property>
+                                       </widget>
+                                       <packing>
+-                                        <property name="left_attach">2</property>
+-                                        <property name="right_attach">3</property>
 -                                        <property name="top_attach">1</property>
 -                                        <property name="bottom_attach">2</property>
-+                                        <property name="top_attach">2</property>
-+                                        <property name="bottom_attach">3</property>
-                                         <property name="x_options">GTK_FILL</property>
++                                        <property name="x_options">GTK_FILL</property>
                                          <property name="y_options">GTK_FILL</property>
                                        </packing>
                                      </child>
                                      <child>
--                                      <widget class="GtkLabel" id="mousekeys_fast_label">
--                                        <property name="visible">True</property>
--                                        <property name="xalign">0</property>
--                                        <property name="label" translatable="yes">&lt;small&gt;&lt;i&gt;Fast&lt;/i&gt;&lt;/small&gt;</property>
--                                        <property name="use_markup">True</property>
--                                        <property name="justify">GTK_JUSTIFY_CENTER</property>
--                                      </widget>
--                                      <packing>
--                                        <property name="left_attach">3</property>
--                                        <property name="right_attach">4</property>
--                                        <property name="x_options">GTK_FILL</property>
--                                        <property name="y_options"></property>
--                                      </packing>
--                                    </child>
--                                    <child>
--                                      <widget class="GtkLabel" id="mousekeys_fast_label2">
--                                        <property name="visible">True</property>
--                                        <property name="xalign">0</property>
--                                        <property name="label" translatable="yes">&lt;small&gt;&lt;i&gt;Fast&lt;/i&gt;&lt;/small&gt;</property>
--                                        <property name="use_markup">True</property>
--                                        <property name="justify">GTK_JUSTIFY_CENTER</property>
--                                      </widget>
--                                      <packing>
--                                        <property name="left_attach">3</property>
--                                        <property name="right_attach">4</property>
--                                        <property name="top_attach">1</property>
--                                        <property name="bottom_attach">2</property>
--                                        <property name="x_options">GTK_FILL</property>
--                                        <property name="y_options"></property>
--                                      </packing>
--                                    </child>
--                                    <child>
--                                      <widget class="GtkHScale" id="mousekeys_max_speed_slide">
-+                                      <widget class="GtkLabel" id="mousekeys_short_label">
-+                                        <property name="visible">True</property>
-+                                        <property name="xalign">1</property>
-+                                        <property name="label" translatable="yes">&lt;small&gt;&lt;i&gt;Short&lt;/i&gt;&lt;/small&gt;</property>
-+                                        <property name="use_markup">True</property>
-+                                        <property name="justify">GTK_JUSTIFY_CENTER</property>
-+                                      </widget>
-+                                      <packing>
-+                                        <property name="left_attach">1</property>
-+                                        <property name="right_attach">2</property>
-+                                        <property name="top_attach">2</property>
-+                                        <property name="bottom_attach">3</property>
-+                                        <property name="x_options">GTK_FILL</property>
-+                                        <property name="y_options"></property>
-+                                      </packing>
-+                                    </child>
-+                                    <child>
-+                                      <widget class="GtkHScale" id="mousekeys_init_delay_slide">
-                                         <property name="visible">True</property>
-                                         <property name="can_focus">True</property>
-                                         <property name="update_policy">GTK_UPDATE_DISCONTINUOUS</property>
--                                        <property name="adjustment">300 10 1000 10 10 0</property>
-+                                        <property name="adjustment">300 10 2000 10 10 0</property>
-                                         <property name="digits">0</property>
-                                         <property name="draw_value">False</property>
-                                       </widget>
-                                       <packing>
-                                         <property name="left_attach">2</property>
-                                         <property name="right_attach">3</property>
--                                        <property name="top_attach">1</property>
--                                        <property name="bottom_attach">2</property>
--                                        <property name="y_options">GTK_FILL</property>
--                                      </packing>
--                                    </child>
--                                    <child>
 -                                      <widget class="GtkHScale" id="mousekeys_accel_time_slide">
--                                        <property name="visible">True</property>
++                                      <widget class="GtkLabel" id="mousekeys_delay_label">
+                                         <property name="visible">True</property>
 -                                        <property name="can_focus">True</property>
 -                                        <property name="update_policy">GTK_UPDATE_DISCONTINUOUS</property>
 -                                        <property name="adjustment">1800 0 3000 10 10 0</property>
 -                                        <property name="draw_value">False</property>
 -                                        <property name="value_pos">GTK_POS_RIGHT</property>
--                                      </widget>
--                                      <packing>
++                                        <property name="xalign">0</property>
++                                        <property name="label" translatable="yes">_Delay:</property>
++                                        <property name="use_underline">True</property>
++                                        <property name="justify">GTK_JUSTIFY_CENTER</property>
++                                        <property name="mnemonic_widget">mousekeys_init_delay_slide</property>
+                                       </widget>
+                                       <packing>
 -                                        <property name="left_attach">2</property>
 -                                        <property name="right_attach">3</property>
--                                        <property name="y_options">GTK_FILL</property>
--                                      </packing>
--                                    </child>
--                                    <child>
++                                        <property name="top_attach">2</property>
++                                        <property name="bottom_attach">3</property>
++                                        <property name="x_options">GTK_FILL</property>
+                                         <property name="y_options">GTK_FILL</property>
+                                       </packing>
+                                     </child>
+                                     <child>
 -                                      <widget class="GtkLabel" id="mousekeys_slow_label">
--                                        <property name="visible">True</property>
--                                        <property name="xalign">1</property>
++                                      <widget class="GtkLabel" id="mousekeys_short_label">
+                                         <property name="visible">True</property>
+                                         <property name="xalign">1</property>
 -                                        <property name="label" translatable="yes">&lt;small&gt;&lt;i&gt;Slow&lt;/i&gt;&lt;/small&gt;</property>
--                                        <property name="use_markup">True</property>
--                                        <property name="justify">GTK_JUSTIFY_CENTER</property>
--                                      </widget>
--                                      <packing>
--                                        <property name="left_attach">1</property>
--                                        <property name="right_attach">2</property>
--                                        <property name="x_options">GTK_FILL</property>
--                                        <property name="y_options"></property>
--                                      </packing>
--                                    </child>
--                                    <child>
++                                        <property name="label" translatable="yes">&lt;small&gt;&lt;i&gt;Short&lt;/i&gt;&lt;/small&gt;</property>
+                                         <property name="use_markup">True</property>
+                                         <property name="justify">GTK_JUSTIFY_CENTER</property>
+                                       </widget>
+                                       <packing>
+                                         <property name="left_attach">1</property>
+                                         <property name="right_attach">2</property>
++                                        <property name="top_attach">2</property>
++                                        <property name="bottom_attach">3</property>
+                                         <property name="x_options">GTK_FILL</property>
+                                         <property name="y_options"></property>
+                                       </packing>
+                                     </child>
+                                     <child>
 -                                      <widget class="GtkLabel" id="mousekeys_slow_label2">
--                                        <property name="visible">True</property>
++                                      <widget class="GtkHScale" id="mousekeys_init_delay_slide">
+                                         <property name="visible">True</property>
 -                                        <property name="xalign">1</property>
 -                                        <property name="label" translatable="yes">&lt;small&gt;&lt;i&gt;Slow&lt;/i&gt;&lt;/small&gt;</property>
--                                        <property name="use_markup">True</property>
--                                        <property name="justify">GTK_JUSTIFY_CENTER</property>
--                                      </widget>
--                                      <packing>
--                                        <property name="left_attach">1</property>
--                                        <property name="right_attach">2</property>
--                                        <property name="top_attach">1</property>
--                                        <property name="bottom_attach">2</property>
++                                        <property name="can_focus">True</property>
++                                        <property name="update_policy">GTK_UPDATE_DISCONTINUOUS</property>
++                                        <property name="adjustment">300 10 2000 10 10 0</property>
++                                        <property name="digits">0</property>
++                                        <property name="draw_value">False</property>
++                                      </widget>
++                                      <packing>
++                                        <property name="left_attach">2</property>
++                                        <property name="right_attach">3</property>
 +                                        <property name="top_attach">2</property>
 +                                        <property name="bottom_attach">3</property>
 +                                        <property name="y_options">GTK_FILL</property>
@@ -660,10 +611,14 @@
 +                                        <property name="visible">True</property>
 +                                        <property name="xalign">0</property>
 +                                        <property name="label" translatable="yes">&lt;small&gt;&lt;i&gt;Long&lt;/i&gt;&lt;/small&gt;</property>
-+                                        <property name="use_markup">True</property>
-+                                        <property name="justify">GTK_JUSTIFY_CENTER</property>
-+                                      </widget>
-+                                      <packing>
+                                         <property name="use_markup">True</property>
+                                         <property name="justify">GTK_JUSTIFY_CENTER</property>
+                                       </widget>
+                                       <packing>
+-                                        <property name="left_attach">1</property>
+-                                        <property name="right_attach">2</property>
+-                                        <property name="top_attach">1</property>
+-                                        <property name="bottom_attach">2</property>
 +                                        <property name="left_attach">3</property>
 +                                        <property name="right_attach">4</property>
 +                                        <property name="top_attach">2</property>
@@ -671,190 +626,154 @@
                                          <property name="x_options">GTK_FILL</property>
                                          <property name="y_options"></property>
                                        </packing>
-@@ -1732,6 +1767,45 @@
+@@ -1732,53 +1767,53 @@
                          <property name="column_spacing">12</property>
                          <property name="row_spacing">6</property>
                          <child>
+-                          <widget class="GtkLabel" id="label3">
 +                          <widget class="GtkComboBox" id="xkb_country_variants_available">
-+                            <property name="visible">True</property>
-+                          </widget>
-+                          <packing>
-+                            <property name="left_attach">1</property>
-+                            <property name="right_attach">2</property>
-+                            <property name="top_attach">1</property>
-+                            <property name="bottom_attach">2</property>
-+                            <property name="x_options">GTK_FILL</property>
-+                            <property name="y_options"></property>
-+                          </packing>
-+                        </child>
-+                        <child>
-+                          <widget class="GtkComboBox" id="xkb_countries_available">
-+                            <property name="visible">True</property>
-+                          </widget>
-+                          <packing>
-+                            <property name="left_attach">1</property>
-+                            <property name="right_attach">2</property>
-+                            <property name="x_options">GTK_FILL</property>
-+                            <property name="y_options"></property>
-+                          </packing>
-+                        </child>
-+                        <child>
-+                          <widget class="GtkLabel" id="label4">
-+                            <property name="visible">True</property>
-+                            <property name="xalign">0</property>
-+                            <property name="label" translatable="yes">_Variants:</property>
-+                            <property name="use_underline">True</property>
-+                            <property name="mnemonic_widget">xkb_country_variants_available</property>
-+                          </widget>
-+                          <packing>
-+                            <property name="top_attach">1</property>
-+                            <property name="bottom_attach">2</property>
-+                            <property name="x_options">GTK_FILL</property>
-+                            <property name="y_options"></property>
-+                          </packing>
-+                        </child>
-+                        <child>
-                           <widget class="GtkLabel" id="label3">
                              <property name="visible">True</property>
-                             <property name="xalign">0</property>
-@@ -1744,45 +1818,6 @@
+-                            <property name="xalign">0</property>
+-                            <property name="label" translatable="yes">_Country:</property>
+-                            <property name="use_underline">True</property>
+-                            <property name="mnemonic_widget">xkb_countries_available</property>
+                           </widget>
+                           <packing>
++                            <property name="left_attach">1</property>
++                            <property name="right_attach">2</property>
++                            <property name="top_attach">1</property>
++                            <property name="bottom_attach">2</property>
+                             <property name="x_options">GTK_FILL</property>
                              <property name="y_options"></property>
                            </packing>
                          </child>
--                        <child>
+                         <child>
 -                          <widget class="GtkLabel" id="label4">
--                            <property name="visible">True</property>
++                          <widget class="GtkComboBox" id="xkb_countries_available">
+                             <property name="visible">True</property>
 -                            <property name="xalign">0</property>
 -                            <property name="label" translatable="yes">_Variants:</property>
 -                            <property name="use_underline">True</property>
 -                            <property name="mnemonic_widget">xkb_country_variants_available</property>
--                          </widget>
--                          <packing>
+                           </widget>
+                           <packing>
 -                            <property name="top_attach">1</property>
 -                            <property name="bottom_attach">2</property>
--                            <property name="x_options">GTK_FILL</property>
--                            <property name="y_options"></property>
--                          </packing>
--                        </child>
--                        <child>
++                            <property name="left_attach">1</property>
++                            <property name="right_attach">2</property>
+                             <property name="x_options">GTK_FILL</property>
+                             <property name="y_options"></property>
+                           </packing>
+                         </child>
+                         <child>
 -                          <widget class="GtkComboBox" id="xkb_countries_available">
--                            <property name="visible">True</property>
--                          </widget>
--                          <packing>
++                          <widget class="GtkLabel" id="label4">
+                             <property name="visible">True</property>
++                            <property name="xalign">0</property>
++                            <property name="label" translatable="yes">_Variants:</property>
++                            <property name="use_underline">True</property>
++                            <property name="mnemonic_widget">xkb_country_variants_available</property>
+                           </widget>
+                           <packing>
 -                            <property name="left_attach">1</property>
 -                            <property name="right_attach">2</property>
--                            <property name="x_options">GTK_FILL</property>
--                            <property name="y_options"></property>
--                          </packing>
--                        </child>
--                        <child>
++                            <property name="top_attach">1</property>
++                            <property name="bottom_attach">2</property>
+                             <property name="x_options">GTK_FILL</property>
+                             <property name="y_options"></property>
+                           </packing>
+                         </child>
+                         <child>
 -                          <widget class="GtkComboBox" id="xkb_country_variants_available">
--                            <property name="visible">True</property>
--                          </widget>
--                          <packing>
++                          <widget class="GtkLabel" id="label3">
+                             <property name="visible">True</property>
++                            <property name="xalign">0</property>
++                            <property name="label" translatable="yes">_Country:</property>
++                            <property name="use_underline">True</property>
++                            <property name="mnemonic_widget">xkb_countries_available</property>
+                           </widget>
+                           <packing>
 -                            <property name="left_attach">1</property>
 -                            <property name="right_attach">2</property>
 -                            <property name="top_attach">1</property>
 -                            <property name="bottom_attach">2</property>
--                            <property name="x_options">GTK_FILL</property>
--                            <property name="y_options"></property>
--                          </packing>
--                        </child>
-                       </widget>
-                     </child>
-                   </widget>
-@@ -1813,6 +1848,45 @@
+                             <property name="x_options">GTK_FILL</property>
+                             <property name="y_options"></property>
+                           </packing>
+@@ -1813,53 +1848,53 @@
                          <property name="column_spacing">12</property>
                          <property name="row_spacing">6</property>
                          <child>
+-                          <widget class="GtkLabel" id="label12">
 +                          <widget class="GtkComboBox" id="xkb_language_variants_available">
-+                            <property name="visible">True</property>
-+                          </widget>
-+                          <packing>
-+                            <property name="left_attach">1</property>
-+                            <property name="right_attach">2</property>
-+                            <property name="top_attach">1</property>
-+                            <property name="bottom_attach">2</property>
-+                            <property name="x_options">GTK_FILL</property>
-+                            <property name="y_options"></property>
-+                          </packing>
-+                        </child>
-+                        <child>
-+                          <widget class="GtkComboBox" id="xkb_languages_available">
-+                            <property name="visible">True</property>
-+                          </widget>
-+                          <packing>
-+                            <property name="left_attach">1</property>
-+                            <property name="right_attach">2</property>
-+                            <property name="x_options">GTK_FILL</property>
-+                            <property name="y_options"></property>
-+                          </packing>
-+                        </child>
-+                        <child>
-+                          <widget class="GtkLabel" id="label13">
-+                            <property name="visible">True</property>
-+                            <property name="xalign">0</property>
-+                            <property name="label" translatable="yes">_Variants:</property>
-+                            <property name="use_underline">True</property>
-+                            <property name="mnemonic_widget">xkb_country_variants_available</property>
-+                          </widget>
-+                          <packing>
-+                            <property name="top_attach">1</property>
-+                            <property name="bottom_attach">2</property>
-+                            <property name="x_options">GTK_FILL</property>
-+                            <property name="y_options"></property>
-+                          </packing>
-+                        </child>
-+                        <child>
-                           <widget class="GtkLabel" id="label12">
                              <property name="visible">True</property>
-                             <property name="xalign">0</property>
-@@ -1825,45 +1899,6 @@
+-                            <property name="xalign">0</property>
+-                            <property name="label" translatable="yes">_Language:</property>
+-                            <property name="use_underline">True</property>
+-                            <property name="mnemonic_widget">xkb_countries_available</property>
+                           </widget>
+                           <packing>
++                            <property name="left_attach">1</property>
++                            <property name="right_attach">2</property>
++                            <property name="top_attach">1</property>
++                            <property name="bottom_attach">2</property>
+                             <property name="x_options">GTK_FILL</property>
                              <property name="y_options"></property>
                            </packing>
                          </child>
--                        <child>
+                         <child>
 -                          <widget class="GtkLabel" id="label13">
--                            <property name="visible">True</property>
++                          <widget class="GtkComboBox" id="xkb_languages_available">
+                             <property name="visible">True</property>
 -                            <property name="xalign">0</property>
 -                            <property name="label" translatable="yes">_Variants:</property>
 -                            <property name="use_underline">True</property>
 -                            <property name="mnemonic_widget">xkb_country_variants_available</property>
--                          </widget>
--                          <packing>
+                           </widget>
+                           <packing>
 -                            <property name="top_attach">1</property>
 -                            <property name="bottom_attach">2</property>
--                            <property name="x_options">GTK_FILL</property>
--                            <property name="y_options"></property>
--                          </packing>
--                        </child>
--                        <child>
++                            <property name="left_attach">1</property>
++                            <property name="right_attach">2</property>
+                             <property name="x_options">GTK_FILL</property>
+                             <property name="y_options"></property>
+                           </packing>
+                         </child>
+                         <child>
 -                          <widget class="GtkComboBox" id="xkb_languages_available">
--                            <property name="visible">True</property>
--                          </widget>
--                          <packing>
++                          <widget class="GtkLabel" id="label13">
+                             <property name="visible">True</property>
++                            <property name="xalign">0</property>
++                            <property name="label" translatable="yes">_Variants:</property>
++                            <property name="use_underline">True</property>
++                            <property name="mnemonic_widget">xkb_country_variants_available</property>
+                           </widget>
+                           <packing>
 -                            <property name="left_attach">1</property>
 -                            <property name="right_attach">2</property>
--                            <property name="x_options">GTK_FILL</property>
--                            <property name="y_options"></property>
--                          </packing>
--                        </child>
--                        <child>
++                            <property name="top_attach">1</property>
++                            <property name="bottom_attach">2</property>
+                             <property name="x_options">GTK_FILL</property>
+                             <property name="y_options"></property>
+                           </packing>
+                         </child>
+                         <child>
 -                          <widget class="GtkComboBox" id="xkb_language_variants_available">
--                            <property name="visible">True</property>
--                          </widget>
--                          <packing>
++                          <widget class="GtkLabel" id="label12">
+                             <property name="visible">True</property>
++                            <property name="xalign">0</property>
++                            <property name="label" translatable="yes">_Language:</property>
++                            <property name="use_underline">True</property>
++                            <property name="mnemonic_widget">xkb_countries_available</property>
+                           </widget>
+                           <packing>
 -                            <property name="left_attach">1</property>
 -                            <property name="right_attach">2</property>
 -                            <property name="top_attach">1</property>
 -                            <property name="bottom_attach">2</property>
--                            <property name="x_options">GTK_FILL</property>
--                            <property name="y_options"></property>
--                          </packing>
--                        </child>
-                       </widget>
-                     </child>
-                   </widget>
+                             <property name="x_options">GTK_FILL</property>
+                             <property name="y_options"></property>
+                           </packing>
 @@ -1898,7 +1933,7 @@
                      <property name="visible">True</property>
                      <property name="spacing">6</property>
@@ -873,4 +792,3 @@
                  <property name="visible">True</property>
                  <property name="can_focus">True</property>
                  <property name="can_default">True</property>
-
