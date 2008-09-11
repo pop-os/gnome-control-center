@@ -1,7 +1,7 @@
 === modified file 'capplets/network/gnome-network-preferences.c'
 diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.23.90/capplets/network/gnome-network-preferences.c gnome-control-center-2.23.90.new/capplets/network/gnome-network-preferences.c
---- gnome-control-center-2.23.90/capplets/network/gnome-network-preferences.c	2008-09-11 11:41:43.000000000 +0200
-+++ gnome-control-center-2.23.90.new/capplets/network/gnome-network-preferences.c	2008-09-11 11:46:20.000000000 +0200
+--- gnome-control-center-2.23.90/capplets/network/gnome-network-preferences.c	2008-09-11 19:42:38.000000000 +0200
++++ gnome-control-center-2.23.90.new/capplets/network/gnome-network-preferences.c	2008-09-11 19:44:51.000000000 +0200
 @@ -28,6 +28,7 @@
  #include <libgnome/libgnome.h>
  #include <gconf/gconf-client.h>
@@ -10,42 +10,10 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.23.90/capplets/network/gnom
  
  #include "capplet-util.h"
  #include "gconf-property-editor.h"
-@@ -173,6 +174,314 @@
+@@ -173,6 +174,233 @@
  	}
  }
  
-+static gboolean 
-+dbus_set_to_system_gconf_helper(DBusGProxy *dbus_proxy)
-+{
-+   GError *error = NULL;
-+   gboolean dbus_ret, res;
-+   gchar* include[] = {"/system/proxy","/system/http_proxy", NULL};
-+   gchar* exclude[] = {NULL};
-+
-+   fprintf(stderr, "set_set_to_system_gconf_helper\n");
-+
-+   dbus_ret = dbus_g_proxy_call (dbus_proxy, "SetSystem", &error, 
-+				 G_TYPE_STRV, include,
-+				 G_TYPE_STRV, exclude,
-+				 G_TYPE_INVALID,
-+				 G_TYPE_BOOLEAN, &res, 
-+				 G_TYPE_INVALID);
-+
-+   if(!dbus_ret) {
-+      if (error->domain == DBUS_GERROR && 
-+	  error->code == DBUS_GERROR_REMOTE_EXCEPTION)
-+	 g_printerr ("Caught remote method exception %s: %s",
-+		     dbus_g_error_get_name (error),
-+		     error->message);
-+      else
-+	 g_printerr ("Error: %s\n", error->message);
-+      g_error_free (error);
-+      return FALSE;
-+   }
-+   g_print("SetSystem() returned: %i\n", res);
-+   return TRUE;
-+}
-+
 +static gboolean 
 +dbus_set_proxy_helper(DBusGProxy *dbus_proxy, 
 +		      const char *proxy_type, 
@@ -62,7 +30,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.23.90/capplets/network/gnom
 +      password is available */
 +   proxy_str = g_strdup_printf("%s://%s:%i/", proxy_type, host, port);
 +   g_print("p: %s\n", proxy_str);
-+   
++
 +   dbus_ret = dbus_g_proxy_call (dbus_proxy, "set_proxy", &error, 
 +				 G_TYPE_STRING, proxy_type,
 +				 G_TYPE_STRING, proxy_str,
@@ -117,58 +85,50 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.23.90/capplets/network/gnom
 +}
 +
 +static gboolean
-+update_system_defaults(GladeXML *dialog)
++dbus_set_to_system_gconf_helper(DBusGProxy *dbus_proxy)
 +{
-+   DBusGConnection *systembus, *sessionbus;
-+   DBusGProxy *dbus_proxy;
-+   gchar *proxy_type, *proxy;
-+   gboolean res, dbus_ret;
-+   int i;
-+   char buf[128];
-+   GtkWidget *label;
 +   GError *error = NULL;
-+   const gchar *proxy_types[] = {"http", "https", "ftp", NULL};
++   gboolean dbus_ret;
++   gchar* include[] = {"/system/proxy","/system/http_proxy", NULL};
++   gchar* exclude[] = {NULL};
 +
-+   fprintf(stderr, "update_system_defaults()\n");
++   fprintf(stderr, "set_set_to_system_gconf_helper\n");
 +
-+   systembus = dbus_g_bus_get (DBUS_BUS_SYSTEM, &error);
-+   dbus_proxy = dbus_g_proxy_new_for_name (systembus,
-+					   "com.ubuntu.SystemService",
-+					   "/",
-+					   "com.ubuntu.SystemService");
-+   if (dbus_proxy == NULL) {
-+      g_printerr ("Failed to get proxy: %s\n",
-+                  error->message);
++   // FIXME: the SetSystem is async, deal with that somehow
++   dbus_ret = dbus_g_proxy_call (dbus_proxy, "SetSystem", &error,
++				 G_TYPE_STRV, include,
++				 G_TYPE_STRV, exclude,
++				 G_TYPE_INVALID,
++				 G_TYPE_INVALID);
++
++   if(!dbus_ret) {
++      if (error->domain == DBUS_GERROR &&
++	  error->code == DBUS_GERROR_REMOTE_EXCEPTION)
++        g_printerr ("Caught remote method exception %s: %s",
++                    dbus_g_error_get_name (error),
++                    error->message);
++      else
++        g_printerr ("Error: %s\n", error->message);
 +      g_error_free (error);
 +      return FALSE;
 +   }
-+   
-+   for(i=0;proxy_types[i] != NULL; i++) {
-+      fprintf(stderr, "looking at %s\n", proxy_types[i]);
-+      snprintf(buf, sizeof(buf), "label_system_%s_proxy", proxy_types[i]);
-+      label = WID(buf);
-+      dbus_ret = dbus_g_proxy_call (dbus_proxy, "get_proxy", &error, 
-+				    G_TYPE_STRING, proxy_types[i],
-+				    G_TYPE_INVALID,
-+				    G_TYPE_STRING, &proxy, 
-+				    G_TYPE_INVALID);
-+      if (!dbus_ret) {
-+	 g_printerr ("Failed to call get_proxy: %s\n",
-+		     error->message);
-+	 g_error_free (error);
-+	 gtk_label_set_text(GTK_LABEL(label), _("Unknown"));
-+	 continue;
-+      }
-+      fprintf(stderr, "get_proxy(%s) returned: %s\n", proxy_types[i], proxy);
-+      // set the label
-+      if(proxy == NULL || strlen(proxy) == 0)
-+	 gtk_label_set_text(GTK_LABEL(label), _("Direct connection"));
-+      else
-+	 gtk_label_set_text(GTK_LABEL(label), proxy);
-+   }
-+   
-+
 +   return TRUE;
++}
++
++static void
++cb_reset_system_default (GtkButton *button, gpointer data)
++{
++   GConfClient *client;
++   GError *error;
++   gboolean res;
++
++   client = gconf_client_get_default ();
++   res = gconf_client_recursive_unset (client, "/system/proxy", 0, &error);
++   if(!res)
++      g_printerr("recursive_unset: %s", dbus_g_error_get_name(error), error->message);
++   res = gconf_client_recursive_unset (client, "/system/http_proxy", 0, &error);
++   if(!res)
++      g_printerr("recursive_unset: %s", dbus_g_error_get_name(error), error->message);
 +}
 +
 +static void
@@ -206,7 +166,8 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.23.90/capplets/network/gnom
 +   }
 +
 +   if (!dbus_g_proxy_call (dbus_proxy, "ObtainAuthorization", &error, 
-+			   G_TYPE_STRING, "com.ubuntu.systemservice.setproxy",			   G_TYPE_UINT, 0,
++			   G_TYPE_STRING, "org.gnome.gconf.defaults.set-system",
++			   G_TYPE_UINT, 0,
 +			   G_TYPE_UINT, getpid(),
 +			   G_TYPE_INVALID,
 +			   G_TYPE_BOOLEAN, &res, G_TYPE_INVALID))
@@ -239,9 +200,6 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.23.90/capplets/network/gnom
 +      g_error_free (error);
 +      return;
 +   }
-+
-+   // now do the proxy stuff for http, ftp, https (the others are
-+   // not supported (yet?) by the ubuntu system services stuff
 +   client = gconf_client_get_default ();
 +
 +   http_proxy = gconf_client_get_string (client, HTTP_PROXY_HOST_KEY, NULL);
@@ -266,42 +224,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.23.90/capplets/network/gnom
 +      dbus_set_proxy_helper(dbus_proxy, "https", https_proxy, https_port);
 +   g_object_unref(dbus_proxy);
 +
-+
-+   // meh, this should be done, but currently we get two policykit
-+   // auth prompts then :(
-+#if 0
-+   // write to the gconf system database
-+   dbus_proxy = dbus_g_proxy_new_for_name (sessionbus,
-+				      "org.freedesktop.PolicyKit.AuthenticationAgent",
-+				      "/",
-+				      "org.freedesktop.PolicyKit.AuthenticationAgent");
-+   if (dbus_proxy == NULL) {
-+      g_printerr ("Failed to get proxy: %s\n",
-+                  error->message);
-+      g_error_free (error);
-+      return;
-+   }
-+
-+   if (!dbus_g_proxy_call (dbus_proxy, "ObtainAuthorization", &error, 
-+			   G_TYPE_STRING, "org.gnome.gconf.defaults.set-system",			   G_TYPE_UINT, 0,
-+			   G_TYPE_UINT, getpid(),
-+			   G_TYPE_INVALID,
-+			   G_TYPE_BOOLEAN, &res, 
-+			   G_TYPE_INVALID))
-+      {
-+	 if (error->domain == DBUS_GERROR && 
-+	     error->code == DBUS_GERROR_REMOTE_EXCEPTION)
-+	    g_printerr ("Caught remote method exception %s: %s",
-+			dbus_g_error_get_name (error),
-+			error->message);
-+	 else
-+	    g_printerr ("Error: %s\n", error->message);
-+	 g_error_free (error);
-+	 return;
-+      }
-+   g_object_unref(dbus_proxy);
-+   g_print("ObtainAuth returned: %i\n", res);
-+
++   // set it to gconf as well
 +   dbus_proxy = dbus_g_proxy_new_for_name (systembus,
 +				      "org.gnome.GConf.Defaults",
 +				      "/",
@@ -313,10 +236,6 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.23.90/capplets/network/gnom
 +      return;
 +   }
 +   dbus_set_to_system_gconf_helper(dbus_proxy);
-+#endif
-+
-+   // update the view
-+   update_system_defaults(dialog);
 +
 +   g_object_unref(dbus_proxy);
 +}
@@ -325,7 +244,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.23.90/capplets/network/gnom
  static void
  cb_dialog_response (GtkDialog *dialog, gint response_id)
  {
-@@ -441,7 +750,6 @@
+@@ -441,7 +669,6 @@
  
  	mode_type = g_enum_register_static ("NetworkPreferencesProxyType",
  				            proxytype_values);
@@ -333,7 +252,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.23.90/capplets/network/gnom
  	/* There's a bug in peditors that cause them to not initialize the entry
  	 * correctly. */
  	client = gconf_client_get_default ();
-@@ -515,7 +823,7 @@
+@@ -515,7 +742,7 @@
  	peditor = GCONF_PROPERTY_EDITOR (gconf_peditor_new_integer (
  			NULL, SOCKS_PROXY_PORT_KEY, WID ("socks_port_spinbutton"),
  			NULL));
@@ -342,7 +261,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.23.90/capplets/network/gnom
  	/* Set the proxy entries insensitive if we are using the same proxy for all */
  	if (gconf_client_get_bool (client, USE_SAME_PROXY_KEY, NULL))
  	{
-@@ -550,6 +858,11 @@
+@@ -550,6 +777,12 @@
  						G_CALLBACK (cb_add_url), dialog);
  	g_signal_connect (WID ("button_remove_url"), "clicked",
  						G_CALLBACK (cb_remove_url), dialog);
@@ -350,14 +269,15 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.23.90/capplets/network/gnom
 +	/* System-wide default */
 +	g_signal_connect(WID("button_make_system_default"), "clicked",
 +			 G_CALLBACK(cb_make_system_default), dialog);
-+	update_system_defaults(dialog);
++	g_signal_connect(WID("button_reset_to_defaults"), "clicked",
++			 G_CALLBACK(cb_reset_system_default), dialog);
  }
  
  int
 diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.23.90/capplets/network/gnome-network-preferences.glade gnome-control-center-2.23.90.new/capplets/network/gnome-network-preferences.glade
---- gnome-control-center-2.23.90/capplets/network/gnome-network-preferences.glade	2008-09-11 11:41:43.000000000 +0200
-+++ gnome-control-center-2.23.90.new/capplets/network/gnome-network-preferences.glade	2008-09-11 11:41:48.000000000 +0200
-@@ -1,1313 +1,1011 @@
+--- gnome-control-center-2.23.90/capplets/network/gnome-network-preferences.glade	2008-09-11 19:42:38.000000000 +0200
++++ gnome-control-center-2.23.90.new/capplets/network/gnome-network-preferences.glade	2008-09-11 19:42:42.000000000 +0200
+@@ -1,1313 +1,844 @@
 -<?xml version="1.0" standalone="no"?> <!--*- mode: xml -*-->
 -<!DOCTYPE glade-interface SYSTEM "http://glade.gnome.org/glade-2.0.dtd">
 -
@@ -1694,196 +1614,18 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.23.90/capplets/network/gnom
 +                <property name="border_width">12</property>
 +                <property name="spacing">18</property>
 +                <child>
-+                  <widget class="GtkVBox" id="vbox5">
++                  <widget class="GtkRadioButton" id="none_radiobutton">
 +                    <property name="visible">True</property>
-+                    <child>
-+                      <widget class="GtkRadioButton" id="none_radiobutton">
-+                        <property name="visible">True</property>
-+                        <property name="can_focus">True</property>
-+                        <property name="label" translatable="yes">&lt;b&gt;Use _system default&lt;/b&gt;</property>
-+                        <property name="use_underline">True</property>
-+                        <property name="response_id">0</property>
-+                        <property name="draw_indicator">True</property>
-+                      </widget>
-+                      <packing>
-+                        <property name="expand">False</property>
-+                        <property name="fill">False</property>
-+                      </packing>
-+                    </child>
-+                    <child>
-+                      <widget class="GtkHBox" id="hbox5">
-+                        <property name="visible">True</property>
-+                        <child>
-+                          <widget class="GtkLabel" id="label1">
-+                            <property name="visible">True</property>
-+                            <property name="label" translatable="yes">      </property>
-+                          </widget>
-+                          <packing>
-+                            <property name="expand">False</property>
-+                            <property name="fill">False</property>
-+                          </packing>
-+                        </child>
-+                        <child>
-+                          <widget class="GtkTable" id="table2">
-+                            <property name="visible">True</property>
-+                            <property name="n_rows">3</property>
-+                            <property name="n_columns">2</property>
-+                            <property name="column_spacing">12</property>
-+                            <property name="row_spacing">6</property>
-+                            <child>
-+                              <widget class="GtkFrame" id="frame4">
-+                                <property name="visible">True</property>
-+                                <property name="label_xalign">0</property>
-+                                <property name="shadow_type">GTK_SHADOW_ETCHED_OUT</property>
-+                                <child>
-+                                  <widget class="GtkAlignment" id="alignment5">
-+                                    <property name="visible">True</property>
-+                                    <property name="top_padding">3</property>
-+                                    <property name="bottom_padding">3</property>
-+                                    <property name="left_padding">6</property>
-+                                    <property name="right_padding">6</property>
-+                                    <child>
-+                                      <widget class="GtkLabel" id="label_system_ftp_proxy">
-+                                        <property name="visible">True</property>
-+                                        <property name="label" translatable="yes">Unknown</property>
-+                                      </widget>
-+                                    </child>
-+                                  </widget>
-+                                </child>
-+                                <child>
-+                                  <placeholder/>
-+                                  <packing>
-+                                    <property name="type">label_item</property>
-+                                  </packing>
-+                                </child>
-+                              </widget>
-+                              <packing>
-+                                <property name="left_attach">1</property>
-+                                <property name="right_attach">2</property>
-+                                <property name="top_attach">2</property>
-+                                <property name="bottom_attach">3</property>
-+                              </packing>
-+                            </child>
-+                            <child>
-+                              <widget class="GtkFrame" id="frame3">
-+                                <property name="visible">True</property>
-+                                <property name="label_xalign">0</property>
-+                                <property name="shadow_type">GTK_SHADOW_ETCHED_OUT</property>
-+                                <child>
-+                                  <widget class="GtkAlignment" id="alignment4">
-+                                    <property name="visible">True</property>
-+                                    <property name="top_padding">3</property>
-+                                    <property name="bottom_padding">3</property>
-+                                    <property name="left_padding">6</property>
-+                                    <property name="right_padding">6</property>
-+                                    <child>
-+                                      <widget class="GtkLabel" id="label_system_https_proxy">
-+                                        <property name="visible">True</property>
-+                                        <property name="label" translatable="yes">Unknown</property>
-+                                      </widget>
-+                                    </child>
-+                                  </widget>
-+                                </child>
-+                                <child>
-+                                  <placeholder/>
-+                                  <packing>
-+                                    <property name="type">label_item</property>
-+                                  </packing>
-+                                </child>
-+                              </widget>
-+                              <packing>
-+                                <property name="left_attach">1</property>
-+                                <property name="right_attach">2</property>
-+                                <property name="top_attach">1</property>
-+                                <property name="bottom_attach">2</property>
-+                              </packing>
-+                            </child>
-+                            <child>
-+                              <widget class="GtkFrame" id="frame2">
-+                                <property name="visible">True</property>
-+                                <property name="label_xalign">0</property>
-+                                <property name="shadow_type">GTK_SHADOW_ETCHED_OUT</property>
-+                                <child>
-+                                  <widget class="GtkAlignment" id="alignment3">
-+                                    <property name="visible">True</property>
-+                                    <property name="top_padding">3</property>
-+                                    <property name="bottom_padding">3</property>
-+                                    <property name="left_padding">6</property>
-+                                    <property name="right_padding">6</property>
-+                                    <child>
-+                                      <widget class="GtkLabel" id="label_system_http_proxy">
-+                                        <property name="visible">True</property>
-+                                        <property name="label" translatable="yes">Unknown</property>
-+                                      </widget>
-+                                    </child>
-+                                  </widget>
-+                                </child>
-+                                <child>
-+                                  <placeholder/>
-+                                  <packing>
-+                                    <property name="type">label_item</property>
-+                                  </packing>
-+                                </child>
-+                              </widget>
-+                              <packing>
-+                                <property name="left_attach">1</property>
-+                                <property name="right_attach">2</property>
-+                              </packing>
-+                            </child>
-+                            <child>
-+                              <widget class="GtkLabel" id="label5">
-+                                <property name="visible">True</property>
-+                                <property name="xalign">0</property>
-+                                <property name="label" translatable="yes">_FTP proxy:</property>
-+                                <property name="use_underline">True</property>
-+                                <property name="mnemonic_widget">ftp_host_entry</property>
-+                              </widget>
-+                              <packing>
-+                                <property name="top_attach">2</property>
-+                                <property name="bottom_attach">3</property>
-+                                <property name="x_options">GTK_FILL</property>
-+                                <property name="y_options"></property>
-+                              </packing>
-+                            </child>
-+                            <child>
-+                              <widget class="GtkLabel" id="label4">
-+                                <property name="visible">True</property>
-+                                <property name="xalign">0</property>
-+                                <property name="label" translatable="yes">_Secure HTTP proxy:</property>
-+                                <property name="use_underline">True</property>
-+                                <property name="mnemonic_widget">secure_host_entry</property>
-+                              </widget>
-+                              <packing>
-+                                <property name="top_attach">1</property>
-+                                <property name="bottom_attach">2</property>
-+                                <property name="x_options">GTK_FILL</property>
-+                                <property name="y_options"></property>
-+                              </packing>
-+                            </child>
-+                            <child>
-+                              <widget class="GtkLabel" id="label3">
-+                                <property name="visible">True</property>
-+                                <property name="xalign">0</property>
-+                                <property name="label" translatable="yes">H_TTP proxy:</property>
-+                                <property name="use_underline">True</property>
-+                                <property name="mnemonic_widget">http_host_entry</property>
-+                              </widget>
-+                              <packing>
-+                                <property name="x_options">GTK_FILL</property>
-+                                <property name="y_options"></property>
-+                              </packing>
-+                            </child>
-+                          </widget>
-+                          <packing>
-+                            <property name="position">1</property>
-+                          </packing>
-+                        </child>
-+                      </widget>
-+                      <packing>
-+                        <property name="position">1</property>
-+                      </packing>
-+                    </child>
++                    <property name="can_focus">True</property>
++                    <property name="label" translatable="yes">&lt;b&gt;Di_rect internet connection&lt;/b&gt;</property>
++                    <property name="use_underline">True</property>
++                    <property name="response_id">0</property>
++                    <property name="draw_indicator">True</property>
 +                  </widget>
++                  <packing>
++                    <property name="expand">False</property>
++                    <property name="fill">False</property>
++                  </packing>
 +                </child>
 +                <child>
 +                  <widget class="GtkVBox" id="no_direct_vbox">
@@ -2206,7 +1948,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.23.90/capplets/network/gnom
 +                                  <widget class="GtkButton" id="details_button">
 +                                    <property name="visible">True</property>
 +                                    <property name="can_focus">True</property>
-+                                    <property name="label" translatable="yes">_Details</property>
++                                    <property name="label" translatable="yes">_Authentication</property>
 +                                    <property name="use_underline">True</property>
 +                                    <property name="response_id">0</property>
 +                                  </widget>
@@ -2225,32 +1967,6 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.23.90/capplets/network/gnom
 +                          </widget>
 +                          <packing>
 +                            <property name="position">2</property>
-+                          </packing>
-+                        </child>
-+                        <child>
-+                          <widget class="GtkHBox" id="hbox2">
-+                            <property name="visible">True</property>
-+                            <child>
-+                              <placeholder/>
-+                            </child>
-+                            <child>
-+                              <widget class="GtkButton" id="button_make_system_default">
-+                                <property name="visible">True</property>
-+                                <property name="can_focus">True</property>
-+                                <property name="receives_default">True</property>
-+                                <property name="label" translatable="yes">Make system default</property>
-+                                <property name="response_id">0</property>
-+                              </widget>
-+                              <packing>
-+                                <property name="expand">False</property>
-+                                <property name="fill">False</property>
-+                                <property name="pack_type">GTK_PACK_END</property>
-+                                <property name="position">1</property>
-+                              </packing>
-+                            </child>
-+                          </widget>
-+                          <packing>
-+                            <property name="position">3</property>
 +                          </packing>
 +                        </child>
 +                      </widget>
@@ -2333,6 +2049,43 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.23.90/capplets/network/gnom
 +                  </widget>
 +                  <packing>
 +                    <property name="position">1</property>
++                  </packing>
++                </child>
++                <child>
++                  <widget class="GtkHButtonBox" id="hbuttonbox1">
++                    <property name="visible">True</property>
++                    <property name="spacing">6</property>
++                    <property name="layout_style">GTK_BUTTONBOX_START</property>
++                    <child>
++                      <widget class="GtkButton" id="button_make_system_default">
++                        <property name="visible">True</property>
++                        <property name="can_focus">True</property>
++                        <property name="receives_default">True</property>
++                        <property name="label" translatable="yes">Appy System-Wide...</property>
++                        <property name="response_id">0</property>
++                      </widget>
++                      <packing>
++                        <property name="expand">False</property>
++                        <property name="fill">False</property>
++                      </packing>
++                    </child>
++                    <child>
++                      <widget class="GtkButton" id="button_reset_to_defaults">
++                        <property name="visible">True</property>
++                        <property name="can_focus">True</property>
++                        <property name="receives_default">True</property>
++                        <property name="label" translatable="yes">Reset</property>
++                        <property name="response_id">0</property>
++                      </widget>
++                      <packing>
++                        <property name="expand">False</property>
++                        <property name="fill">False</property>
++                        <property name="position">1</property>
++                      </packing>
++                    </child>
++                  </widget>
++                  <packing>
++                    <property name="position">2</property>
 +                  </packing>
 +                </child>
 +              </widget>
