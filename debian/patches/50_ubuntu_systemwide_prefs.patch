@@ -1,6 +1,7 @@
 === modified file 'capplets/network/gnome-network-preferences.c'
---- capplets/network/gnome-network-preferences.c	2008-08-19 08:10:29 +0000
-+++ capplets/network/gnome-network-preferences.c	2008-08-19 09:27:47 +0000
+diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.23.90/capplets/network/gnome-network-preferences.c gnome-control-center-2.23.90.new/capplets/network/gnome-network-preferences.c
+--- gnome-control-center-2.23.90/capplets/network/gnome-network-preferences.c	2008-09-11 11:41:43.000000000 +0200
++++ gnome-control-center-2.23.90.new/capplets/network/gnome-network-preferences.c	2008-09-11 11:46:20.000000000 +0200
 @@ -28,6 +28,7 @@
  #include <libgnome/libgnome.h>
  #include <gconf/gconf-client.h>
@@ -9,10 +10,42 @@
  
  #include "capplet-util.h"
  #include "gconf-property-editor.h"
-@@ -173,6 +174,230 @@
+@@ -173,6 +174,314 @@
  	}
  }
  
++static gboolean 
++dbus_set_to_system_gconf_helper(DBusGProxy *dbus_proxy)
++{
++   GError *error = NULL;
++   gboolean dbus_ret, res;
++   gchar* include[] = {"/system/proxy","/system/http_proxy", NULL};
++   gchar* exclude[] = {NULL};
++
++   fprintf(stderr, "set_set_to_system_gconf_helper\n");
++
++   dbus_ret = dbus_g_proxy_call (dbus_proxy, "SetSystem", &error, 
++				 G_TYPE_STRV, include,
++				 G_TYPE_STRV, exclude,
++				 G_TYPE_INVALID,
++				 G_TYPE_BOOLEAN, &res, 
++				 G_TYPE_INVALID);
++
++   if(!dbus_ret) {
++      if (error->domain == DBUS_GERROR && 
++	  error->code == DBUS_GERROR_REMOTE_EXCEPTION)
++	 g_printerr ("Caught remote method exception %s: %s",
++		     dbus_g_error_get_name (error),
++		     error->message);
++      else
++	 g_printerr ("Error: %s\n", error->message);
++      g_error_free (error);
++      return FALSE;
++   }
++   g_print("SetSystem() returned: %i\n", res);
++   return TRUE;
++}
++
 +static gboolean 
 +dbus_set_proxy_helper(DBusGProxy *dbus_proxy, 
 +		      const char *proxy_type, 
@@ -178,7 +211,6 @@
 +			   G_TYPE_INVALID,
 +			   G_TYPE_BOOLEAN, &res, G_TYPE_INVALID))
 +      {
-+	 /* Just do demonstrate remote exceptions versus regular GError */
 +	 if (error->domain == DBUS_GERROR && 
 +	     error->code == DBUS_GERROR_REMOTE_EXCEPTION)
 +	    g_printerr ("Caught remote method exception %s: %s",
@@ -189,6 +221,7 @@
 +	 g_error_free (error);
 +	 return;
 +      }
++   g_object_unref(dbus_proxy);
 +   g_print("ObtainAuth returned: %i\n", res);
 +   // so we get a "0" here too if the auth is not required ?!?
 +   //   if(!res)
@@ -231,16 +264,68 @@
 +      dbus_reset_proxy_helper(dbus_proxy, "https");
 +   else
 +      dbus_set_proxy_helper(dbus_proxy, "https", https_proxy, https_port);
++   g_object_unref(dbus_proxy);
++
++
++   // meh, this should be done, but currently we get two policykit
++   // auth prompts then :(
++#if 0
++   // write to the gconf system database
++   dbus_proxy = dbus_g_proxy_new_for_name (sessionbus,
++				      "org.freedesktop.PolicyKit.AuthenticationAgent",
++				      "/",
++				      "org.freedesktop.PolicyKit.AuthenticationAgent");
++   if (dbus_proxy == NULL) {
++      g_printerr ("Failed to get proxy: %s\n",
++                  error->message);
++      g_error_free (error);
++      return;
++   }
++
++   if (!dbus_g_proxy_call (dbus_proxy, "ObtainAuthorization", &error, 
++			   G_TYPE_STRING, "org.gnome.gconf.defaults.set-system",			   G_TYPE_UINT, 0,
++			   G_TYPE_UINT, getpid(),
++			   G_TYPE_INVALID,
++			   G_TYPE_BOOLEAN, &res, 
++			   G_TYPE_INVALID))
++      {
++	 if (error->domain == DBUS_GERROR && 
++	     error->code == DBUS_GERROR_REMOTE_EXCEPTION)
++	    g_printerr ("Caught remote method exception %s: %s",
++			dbus_g_error_get_name (error),
++			error->message);
++	 else
++	    g_printerr ("Error: %s\n", error->message);
++	 g_error_free (error);
++	 return;
++      }
++   g_object_unref(dbus_proxy);
++   g_print("ObtainAuth returned: %i\n", res);
++
++   dbus_proxy = dbus_g_proxy_new_for_name (systembus,
++				      "org.gnome.GConf.Defaults",
++				      "/",
++				      "org.gnome.GConf.Defaults");
++   if (dbus_proxy == NULL) {
++      g_printerr ("Failed to get proxy: %s\n",
++                  error->message);
++      g_error_free (error);
++      return;
++   }
++   dbus_set_to_system_gconf_helper(dbus_proxy);
++#endif
 +
 +   // update the view
 +   update_system_defaults(dialog);
++
++   g_object_unref(dbus_proxy);
 +}
 +
 +
  static void
  cb_dialog_response (GtkDialog *dialog, gint response_id)
  {
-@@ -441,7 +666,6 @@
+@@ -441,7 +750,6 @@
  
  	mode_type = g_enum_register_static ("NetworkPreferencesProxyType",
  				            proxytype_values);
@@ -248,7 +333,7 @@
  	/* There's a bug in peditors that cause them to not initialize the entry
  	 * correctly. */
  	client = gconf_client_get_default ();
-@@ -515,7 +739,7 @@
+@@ -515,7 +823,7 @@
  	peditor = GCONF_PROPERTY_EDITOR (gconf_peditor_new_integer (
  			NULL, SOCKS_PROXY_PORT_KEY, WID ("socks_port_spinbutton"),
  			NULL));
@@ -257,7 +342,7 @@
  	/* Set the proxy entries insensitive if we are using the same proxy for all */
  	if (gconf_client_get_bool (client, USE_SAME_PROXY_KEY, NULL))
  	{
-@@ -550,6 +774,11 @@
+@@ -550,6 +858,11 @@
  						G_CALLBACK (cb_add_url), dialog);
  	g_signal_connect (WID ("button_remove_url"), "clicked",
  						G_CALLBACK (cb_remove_url), dialog);
@@ -269,10 +354,9 @@
  }
  
  int
-
-=== modified file 'capplets/network/gnome-network-preferences.glade'
---- capplets/network/gnome-network-preferences.glade	2008-08-19 08:10:29 +0000
-+++ capplets/network/gnome-network-preferences.glade	2008-08-19 09:25:12 +0000
+diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.23.90/capplets/network/gnome-network-preferences.glade gnome-control-center-2.23.90.new/capplets/network/gnome-network-preferences.glade
+--- gnome-control-center-2.23.90/capplets/network/gnome-network-preferences.glade	2008-09-11 11:41:43.000000000 +0200
++++ gnome-control-center-2.23.90.new/capplets/network/gnome-network-preferences.glade	2008-09-11 11:41:48.000000000 +0200
 @@ -1,1313 +1,1011 @@
 -<?xml version="1.0" standalone="no"?> <!--*- mode: xml -*-->
 -<!DOCTYPE glade-interface SYSTEM "http://glade.gnome.org/glade-2.0.dtd">
@@ -2596,4 +2680,3 @@
 +    </child>
 +  </widget>
  </glade-interface>
-
