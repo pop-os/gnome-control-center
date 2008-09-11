@@ -1,7 +1,7 @@
 === modified file 'capplets/network/gnome-network-preferences.c'
 diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.23.90/capplets/network/gnome-network-preferences.c gnome-control-center-2.23.90.new/capplets/network/gnome-network-preferences.c
---- gnome-control-center-2.23.90/capplets/network/gnome-network-preferences.c	2008-09-11 19:42:38.000000000 +0200
-+++ gnome-control-center-2.23.90.new/capplets/network/gnome-network-preferences.c	2008-09-11 19:44:51.000000000 +0200
+--- gnome-control-center-2.23.90/capplets/network/gnome-network-preferences.c	2008-09-11 21:31:48.000000000 +0200
++++ gnome-control-center-2.23.90.new/capplets/network/gnome-network-preferences.c	2008-09-11 21:33:23.000000000 +0200
 @@ -28,6 +28,7 @@
  #include <libgnome/libgnome.h>
  #include <gconf/gconf-client.h>
@@ -10,7 +10,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.23.90/capplets/network/gnom
  
  #include "capplet-util.h"
  #include "gconf-property-editor.h"
-@@ -173,6 +174,233 @@
+@@ -173,6 +174,235 @@
  	}
  }
  
@@ -87,14 +87,16 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.23.90/capplets/network/gnom
 +static gboolean
 +dbus_set_to_system_gconf_helper(DBusGProxy *dbus_proxy)
 +{
++   GConfClient *client;
 +   GError *error = NULL;
 +   gboolean dbus_ret;
 +   gchar* include[] = {"/system/proxy","/system/http_proxy", NULL};
 +   gchar* exclude[] = {NULL};
 +
 +   fprintf(stderr, "set_set_to_system_gconf_helper\n");
-+
-+   // FIXME: the SetSystem is async, deal with that somehow
++   
++   client = gconf_client_get_default ();
++   gconf_client_suggest_sync (client, &error);
 +   dbus_ret = dbus_g_proxy_call (dbus_proxy, "SetSystem", &error,
 +				 G_TYPE_STRV, include,
 +				 G_TYPE_STRV, exclude,
@@ -244,7 +246,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.23.90/capplets/network/gnom
  static void
  cb_dialog_response (GtkDialog *dialog, gint response_id)
  {
-@@ -441,7 +669,6 @@
+@@ -441,7 +671,6 @@
  
  	mode_type = g_enum_register_static ("NetworkPreferencesProxyType",
  				            proxytype_values);
@@ -252,7 +254,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.23.90/capplets/network/gnom
  	/* There's a bug in peditors that cause them to not initialize the entry
  	 * correctly. */
  	client = gconf_client_get_default ();
-@@ -515,7 +742,7 @@
+@@ -515,7 +744,7 @@
  	peditor = GCONF_PROPERTY_EDITOR (gconf_peditor_new_integer (
  			NULL, SOCKS_PROXY_PORT_KEY, WID ("socks_port_spinbutton"),
  			NULL));
@@ -261,7 +263,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.23.90/capplets/network/gnom
  	/* Set the proxy entries insensitive if we are using the same proxy for all */
  	if (gconf_client_get_bool (client, USE_SAME_PROXY_KEY, NULL))
  	{
-@@ -550,6 +777,12 @@
+@@ -550,6 +779,12 @@
  						G_CALLBACK (cb_add_url), dialog);
  	g_signal_connect (WID ("button_remove_url"), "clicked",
  						G_CALLBACK (cb_remove_url), dialog);
@@ -275,8 +277,8 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.23.90/capplets/network/gnom
  
  int
 diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.23.90/capplets/network/gnome-network-preferences.glade gnome-control-center-2.23.90.new/capplets/network/gnome-network-preferences.glade
---- gnome-control-center-2.23.90/capplets/network/gnome-network-preferences.glade	2008-09-11 19:42:38.000000000 +0200
-+++ gnome-control-center-2.23.90.new/capplets/network/gnome-network-preferences.glade	2008-09-11 19:42:42.000000000 +0200
+--- gnome-control-center-2.23.90/capplets/network/gnome-network-preferences.glade	2008-09-11 21:31:48.000000000 +0200
++++ gnome-control-center-2.23.90.new/capplets/network/gnome-network-preferences.glade	2008-09-11 21:31:52.000000000 +0200
 @@ -1,1313 +1,844 @@
 -<?xml version="1.0" standalone="no"?> <!--*- mode: xml -*-->
 -<!DOCTYPE glade-interface SYSTEM "http://glade.gnome.org/glade-2.0.dtd">
