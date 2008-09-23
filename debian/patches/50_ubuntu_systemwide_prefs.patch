@@ -1,7 +1,7 @@
 === modified file 'capplets/network/gnome-network-preferences.c'
 diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.23.90/capplets/network/gnome-network-preferences.c gnome-control-center-2.23.90.new/capplets/network/gnome-network-preferences.c
---- gnome-control-center-2.23.90/capplets/network/gnome-network-preferences.c	2008-09-11 21:31:48.000000000 +0200
-+++ gnome-control-center-2.23.90.new/capplets/network/gnome-network-preferences.c	2008-09-11 21:33:23.000000000 +0200
+--- gnome-control-center-2.23.90/capplets/network/gnome-network-preferences.c	2008-09-23 09:48:49.000000000 +0200
++++ gnome-control-center-2.23.90.new/capplets/network/gnome-network-preferences.c	2008-09-23 09:49:23.000000000 +0200
 @@ -28,6 +28,7 @@
  #include <libgnome/libgnome.h>
  #include <gconf/gconf-client.h>
@@ -10,7 +10,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.23.90/capplets/network/gnom
  
  #include "capplet-util.h"
  #include "gconf-property-editor.h"
-@@ -173,6 +174,235 @@
+@@ -173,6 +174,246 @@
  	}
  }
  
@@ -142,6 +142,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.23.90/capplets/network/gnom
 +   GConfClient *client;
 +   gchar *http_proxy, *proxy_str, *ftp_proxy, *https_proxy;
 +   gint http_port, ftp_port, https_port;
++   gboolean use_proxy;
 +   gboolean res;
 +
 +   GladeXML *dialog = (GladeXML *) data;
@@ -203,28 +204,38 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.23.90/capplets/network/gnom
 +      return;
 +   }
 +   client = gconf_client_get_default ();
++   use_proxy = gconf_client_get_bool (client, USE_PROXY_KEY, NULL);
++   
++   if (use_proxy) {
++      // read the proxy settings
++      http_proxy = gconf_client_get_string (client, HTTP_PROXY_HOST_KEY, NULL);
++      http_port = gconf_client_get_int (client, HTTP_PROXY_PORT_KEY, NULL);
++      if(http_proxy == NULL || strlen(http_proxy) == 0)
++	 dbus_reset_proxy_helper(dbus_proxy, "http");
++      else
++	 dbus_set_proxy_helper(dbus_proxy, "http", http_proxy, http_port);
++      
++      ftp_proxy = gconf_client_get_string (client, FTP_PROXY_HOST_KEY, NULL);
++      ftp_port = gconf_client_get_int (client, FTP_PROXY_PORT_KEY, NULL);
++      if(ftp_proxy == NULL || strlen(ftp_proxy) == 0)
++	 dbus_reset_proxy_helper(dbus_proxy, "ftp");
++      else
++	 dbus_set_proxy_helper(dbus_proxy, "ftp", ftp_proxy, ftp_port);
 +
-+   http_proxy = gconf_client_get_string (client, HTTP_PROXY_HOST_KEY, NULL);
-+   http_port = gconf_client_get_int (client, HTTP_PROXY_PORT_KEY, NULL);
-+   if(http_proxy == NULL || strlen(http_proxy) == 0)
++      https_proxy = gconf_client_get_string (client, SECURE_PROXY_HOST_KEY, NULL);
++      https_port = gconf_client_get_int (client, SECURE_PROXY_PORT_KEY, NULL);
++      if(https_proxy == NULL || strlen(https_proxy) == 0)
++	 dbus_reset_proxy_helper(dbus_proxy, "https");
++      else
++	 dbus_set_proxy_helper(dbus_proxy, "https", https_proxy, https_port);
++      g_object_unref(dbus_proxy);
++   } else {
++      // we don't use a proxy
 +      dbus_reset_proxy_helper(dbus_proxy, "http");
-+   else
-+      dbus_set_proxy_helper(dbus_proxy, "http", http_proxy, http_port);
-+
-+   ftp_proxy = gconf_client_get_string (client, FTP_PROXY_HOST_KEY, NULL);
-+   ftp_port = gconf_client_get_int (client, FTP_PROXY_PORT_KEY, NULL);
-+   if(ftp_proxy == NULL || strlen(ftp_proxy) == 0)
 +      dbus_reset_proxy_helper(dbus_proxy, "ftp");
-+   else
-+      dbus_set_proxy_helper(dbus_proxy, "ftp", ftp_proxy, ftp_port);
-+
-+   https_proxy = gconf_client_get_string (client, SECURE_PROXY_HOST_KEY, NULL);
-+   https_port = gconf_client_get_int (client, SECURE_PROXY_PORT_KEY, NULL);
-+   if(https_proxy == NULL || strlen(https_proxy) == 0)
 +      dbus_reset_proxy_helper(dbus_proxy, "https");
-+   else
-+      dbus_set_proxy_helper(dbus_proxy, "https", https_proxy, https_port);
-+   g_object_unref(dbus_proxy);
++   }
++
 +
 +   // set it to gconf as well
 +   dbus_proxy = dbus_g_proxy_new_for_name (systembus,
@@ -246,7 +257,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.23.90/capplets/network/gnom
  static void
  cb_dialog_response (GtkDialog *dialog, gint response_id)
  {
-@@ -441,7 +671,6 @@
+@@ -441,7 +682,6 @@
  
  	mode_type = g_enum_register_static ("NetworkPreferencesProxyType",
  				            proxytype_values);
@@ -254,7 +265,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.23.90/capplets/network/gnom
  	/* There's a bug in peditors that cause them to not initialize the entry
  	 * correctly. */
  	client = gconf_client_get_default ();
-@@ -515,7 +744,7 @@
+@@ -515,7 +755,7 @@
  	peditor = GCONF_PROPERTY_EDITOR (gconf_peditor_new_integer (
  			NULL, SOCKS_PROXY_PORT_KEY, WID ("socks_port_spinbutton"),
  			NULL));
@@ -263,7 +274,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.23.90/capplets/network/gnom
  	/* Set the proxy entries insensitive if we are using the same proxy for all */
  	if (gconf_client_get_bool (client, USE_SAME_PROXY_KEY, NULL))
  	{
-@@ -550,6 +779,12 @@
+@@ -550,6 +790,12 @@
  						G_CALLBACK (cb_add_url), dialog);
  	g_signal_connect (WID ("button_remove_url"), "clicked",
  						G_CALLBACK (cb_remove_url), dialog);
@@ -277,8 +288,8 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.23.90/capplets/network/gnom
  
  int
 diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.23.90/capplets/network/gnome-network-preferences.glade gnome-control-center-2.23.90.new/capplets/network/gnome-network-preferences.glade
---- gnome-control-center-2.23.90/capplets/network/gnome-network-preferences.glade	2008-09-11 21:31:48.000000000 +0200
-+++ gnome-control-center-2.23.90.new/capplets/network/gnome-network-preferences.glade	2008-09-11 21:31:52.000000000 +0200
+--- gnome-control-center-2.23.90/capplets/network/gnome-network-preferences.glade	2008-09-23 09:48:49.000000000 +0200
++++ gnome-control-center-2.23.90.new/capplets/network/gnome-network-preferences.glade	2008-09-23 09:48:53.000000000 +0200
 @@ -1,1313 +1,844 @@
 -<?xml version="1.0" standalone="no"?> <!--*- mode: xml -*-->
 -<!DOCTYPE glade-interface SYSTEM "http://glade.gnome.org/glade-2.0.dtd">
