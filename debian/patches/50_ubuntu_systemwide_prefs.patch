@@ -1,8 +1,16 @@
 === modified file 'capplets/network/gnome-network-preferences.c'
 diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.25.2/capplets/network/gnome-network-preferences.c gnome-control-center-2.25.2.new/capplets/network/gnome-network-preferences.c
---- gnome-control-center-2.25.2/capplets/network/gnome-network-preferences.c	2008-12-16 12:03:13.000000000 +0100
-+++ gnome-control-center-2.25.2.new/capplets/network/gnome-network-preferences.c	2008-12-16 12:03:19.000000000 +0100
-@@ -181,6 +181,246 @@
+--- gnome-control-center-2.25.2/capplets/network/gnome-network-preferences.c	2008-12-16 15:15:39.000000000 +0100
++++ gnome-control-center-2.25.2.new/capplets/network/gnome-network-preferences.c	2008-12-16 15:16:47.000000000 +0100
+@@ -28,6 +28,7 @@
+ #include <gconf/gconf-client.h>
+ #include <glade/glade.h>
+ #include <glib/gi18n.h>
++#include <dbus/dbus-glib.h>
+ 
+ #include "capplet-util.h"
+ #include "gconf-property-editor.h"
+@@ -181,6 +182,246 @@
  	}
  }
  
@@ -249,7 +257,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.25.2/capplets/network/gnome
  static void
  cb_dialog_response (GtkDialog *dialog, gint response_id)
  {
-@@ -1072,7 +1312,6 @@
+@@ -1072,7 +1313,6 @@
  
  	mode_type = g_enum_register_static ("NetworkPreferencesProxyType",
  				            proxytype_values);
@@ -257,7 +265,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.25.2/capplets/network/gnome
  	/* There's a bug in peditors that cause them to not initialize the entry
  	 * correctly. */
  	client = gconf_client_get_default ();
-@@ -1168,7 +1407,7 @@
+@@ -1168,7 +1408,7 @@
  	peditor = GCONF_PROPERTY_EDITOR (gconf_peditor_new_integer (
  			NULL, SOCKS_PROXY_PORT_KEY, WID ("socks_port_spinbutton"),
  			NULL));
@@ -266,7 +274,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.25.2/capplets/network/gnome
  	/* Set the proxy entries insensitive if we are using the same proxy for all */
  	if (gconf_client_get_bool (client, USE_SAME_PROXY_KEY, NULL))
  	{
-@@ -1203,6 +1442,12 @@
+@@ -1203,6 +1443,12 @@
  						G_CALLBACK (cb_add_url), dialog);
  	g_signal_connect (WID ("button_remove_url"), "clicked",
  						G_CALLBACK (cb_remove_url), dialog);
@@ -280,8 +288,8 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.25.2/capplets/network/gnome
  
  int
 diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.25.2/capplets/network/gnome-network-preferences.glade gnome-control-center-2.25.2.new/capplets/network/gnome-network-preferences.glade
---- gnome-control-center-2.25.2/capplets/network/gnome-network-preferences.glade	2008-12-16 12:03:13.000000000 +0100
-+++ gnome-control-center-2.25.2.new/capplets/network/gnome-network-preferences.glade	2008-12-16 12:05:08.000000000 +0100
+--- gnome-control-center-2.25.2/capplets/network/gnome-network-preferences.glade	2008-12-16 15:15:39.000000000 +0100
++++ gnome-control-center-2.25.2.new/capplets/network/gnome-network-preferences.glade	2008-12-16 15:15:43.000000000 +0100
 @@ -129,6 +129,45 @@
  	      <property name="homogeneous">False</property>
  	      <property name="spacing">18</property>
