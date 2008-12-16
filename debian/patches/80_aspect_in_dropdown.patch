@@ -1,6 +1,6 @@
 diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.25.2/capplets/display/xrandr-capplet.c gnome-control-center-2.25.2.new/capplets/display/xrandr-capplet.c
---- gnome-control-center-2.25.2/capplets/display/xrandr-capplet.c	2008-12-16 12:10:20.000000000 +0100
-+++ gnome-control-center-2.25.2.new/capplets/display/xrandr-capplet.c	2008-12-16 12:11:46.000000000 +0100
+--- gnome-control-center-2.25.2/capplets/display/xrandr-capplet.c	2008-12-16 16:27:16.000000000 +0100
++++ gnome-control-center-2.25.2.new/capplets/display/xrandr-capplet.c	2008-12-16 16:27:32.000000000 +0100
 @@ -505,7 +505,7 @@
  	height = gnome_rr_mode_get_height (modes[i]);
  
@@ -10,7 +10,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.25.2/capplets/display/xrand
  		 width, height, 0, -1);
  
  	if (width * height > best_w * best_h)
-@@ -524,9 +524,8 @@
+@@ -524,20 +524,60 @@
      }
      else
      {
@@ -22,10 +22,10 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.25.2/capplets/display/xrand
      }
  
  
-@@ -534,10 +533,52 @@
+     if (!combo_select (app->resolution_combo, current))
      {
  	combo_select (app->resolution_combo,
- 		      idle_free (
+-		      idle_free (
 -			  g_strdup_printf (_("%d x %d"), best_w, best_h)));
 + 		      generate_mode_text (best_w, best_h));
      }
