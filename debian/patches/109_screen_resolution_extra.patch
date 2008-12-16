@@ -1,6 +1,6 @@
-diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.24.0.1/capplets/display/xrandr-capplet.c gnome-control-center-2.24.0.1-screen/capplets/display/xrandr-capplet.c
---- gnome-control-center-2.24.0.1/capplets/display/xrandr-capplet.c	2008-09-24 18:36:22.000000000 +0200
-+++ gnome-control-center-2.24.0.1-screen/capplets/display/xrandr-capplet.c	2008-09-29 16:07:45.000000000 +0200
+diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.25.2/capplets/display/xrandr-capplet.c gnome-control-center-2.25.2.new/capplets/display/xrandr-capplet.c
+--- gnome-control-center-2.25.2/capplets/display/xrandr-capplet.c	2008-12-16 10:36:59.000000000 +0100
++++ gnome-control-center-2.25.2.new/capplets/display/xrandr-capplet.c	2008-12-16 10:40:37.000000000 +0100
 @@ -33,6 +33,7 @@
  #include <X11/Xlib.h>
  #include <glib/gi18n.h>
@@ -9,35 +9,9 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.24.0.1/capplets/display/xra
  
  typedef struct App App;
  typedef struct GrabInfo GrabInfo;
-@@ -74,13 +75,70 @@
- 	GTK_DIALOG_DESTROY_WITH_PARENT,
- 	GTK_MESSAGE_WARNING,
- 	GTK_BUTTONS_OK, err->message);
-+    
-+    gtk_window_set_title (GTK_WINDOW (dialog), "");
-+    
-+    gtk_dialog_run (GTK_DIALOG (dialog));
-+    gtk_widget_destroy (dialog);
-+}
-+#endif
- 
-+static void
-+show_error_dialog (gchar *err)
-+{
-+    if (!err)
-+	return;
-+    
-+    GtkWidget *dialog = gtk_message_dialog_new (
-+	NULL,
-+	GTK_DIALOG_DESTROY_WITH_PARENT,
-+	GTK_MESSAGE_WARNING,
-+	GTK_BUTTONS_OK, "%s", err);
-+    
-     gtk_window_set_title (GTK_WINDOW (dialog), "");
-+    
-+    gtk_dialog_run (GTK_DIALOG (dialog));
-+    gtk_widget_destroy (dialog);
-+}
+@@ -76,6 +77,46 @@
+     gtk_widget_destroy (dialog);
+ }
  
 +static void
 +show_info_dialog (gchar *info)
@@ -53,10 +27,9 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.24.0.1/capplets/display/xra
 +    
 +    gtk_window_set_title (GTK_WINDOW (dialog), "");
 +    
-     gtk_dialog_run (GTK_DIALOG (dialog));
-     gtk_widget_destroy (dialog);
- }
--#endif
++    gtk_dialog_run (GTK_DIALOG (dialog));
++    gtk_widget_destroy (dialog);
++}
 +
 +static gint
 +show_question_dialog (gchar *question)
@@ -78,10 +51,12 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.24.0.1/capplets/display/xra
 +    
 +    return response;
 +}
- 
++
++
  static gboolean
  do_free (gpointer data)
-@@ -1579,39 +1637,14 @@
+ {
+@@ -1497,39 +1538,14 @@
      return atom;
  }
  
@@ -123,7 +98,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.24.0.1/capplets/display/xra
  
      gnome_rr_screen_get_ranges (app->screen, &min_width, &max_width, &min_height, &max_height);
  
-@@ -1626,11 +1659,116 @@
+@@ -1544,11 +1560,116 @@
      if (!(min_width <= req_width && req_width <= max_width
  	  && min_height <= req_height && req_height <= max_height))
      {
@@ -186,7 +161,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.24.0.1/capplets/display/xra
 +            if (! rc)
 +            {
 +                /* inform the user with an error dialog */
-+                show_error_dialog (error);
++                show_error (error);
 +                /* g_free(error); */
 +            }
 +            else
@@ -208,7 +183,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.24.0.1/capplets/display/xra
 +            if (reply != -8)
 +            {
 +                /* inform the user with an error dialog */
-+                show_error_dialog (error);
++                show_error (error);
 +            }
 +            else
 +            {
@@ -241,7 +216,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.24.0.1/capplets/display/xra
  }
  
  static void
-@@ -1639,27 +1777,32 @@
+@@ -1557,27 +1678,32 @@
      GError *err = NULL;
  
      gnome_rr_config_sanitize (app->current_configuration);
