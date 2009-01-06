@@ -1,18 +1,36 @@
-diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.25.2/capplets/display/xrandr-capplet.c gnome-control-center-2.25.2.new/capplets/display/xrandr-capplet.c
---- gnome-control-center-2.25.2/capplets/display/xrandr-capplet.c	2008-12-16 10:36:59.000000000 +0100
-+++ gnome-control-center-2.25.2.new/capplets/display/xrandr-capplet.c	2008-12-16 10:40:37.000000000 +0100
-@@ -33,6 +33,7 @@
- #include <X11/Xlib.h>
- #include <glib/gi18n.h>
+diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.25.3/capplets/display/xrandr-capplet.c gnome-control-center-2.25.3.new/capplets/display/xrandr-capplet.c
+--- gnome-control-center-2.25.3/capplets/display/xrandr-capplet.c	2009-01-06 10:55:11.000000000 +0100
++++ gnome-control-center-2.25.3.new/capplets/display/xrandr-capplet.c	2009-01-06 10:56:03.000000000 +0100
+@@ -35,6 +35,7 @@
  #include <gconf/gconf-client.h>
+ #include <dbus/dbus-glib.h>
+ #include <dbus/dbus-glib-bindings.h>
 +#include "screen-package.h"
  
  typedef struct App App;
  typedef struct GrabInfo GrabInfo;
-@@ -76,6 +77,46 @@
+@@ -83,6 +84,64 @@
      gtk_widget_destroy (dialog);
  }
  
++static void
++show_error_dialog (gchar *info)
++{
++    if (!info)
++	return;
++    
++    GtkWidget *dialog = gtk_message_dialog_new (
++	NULL,
++	GTK_DIALOG_DESTROY_WITH_PARENT,
++	GTK_MESSAGE_ERROR,
++	GTK_BUTTONS_OK, "%s", info);
++    
++    gtk_window_set_title (GTK_WINDOW (dialog), "");
++    
++    gtk_dialog_run (GTK_DIALOG (dialog));
++    gtk_widget_destroy (dialog);
++}
++
 +static void
 +show_info_dialog (gchar *info)
 +{
@@ -56,8 +74,8 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.25.2/capplets/display/xrand
  static gboolean
  do_free (gpointer data)
  {
-@@ -1497,39 +1538,14 @@
-     return atom;
+@@ -1552,39 +1611,14 @@
+     }
  }
  
 -static void
@@ -98,7 +116,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.25.2/capplets/display/xrand
  
      gnome_rr_screen_get_ranges (app->screen, &min_width, &max_width, &min_height, &max_height);
  
-@@ -1544,11 +1560,116 @@
+@@ -1599,11 +1633,116 @@
      if (!(min_width <= req_width && req_width <= max_width
  	  && min_height <= req_height && req_height <= max_height))
      {
@@ -161,7 +179,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.25.2/capplets/display/xrand
 +            if (! rc)
 +            {
 +                /* inform the user with an error dialog */
-+                show_error (error);
++                show_error_dialog (error);
 +                /* g_free(error); */
 +            }
 +            else
@@ -183,7 +201,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.25.2/capplets/display/xrand
 +            if (reply != -8)
 +            {
 +                /* inform the user with an error dialog */
-+                show_error (error);
++                show_error_dialog (error);
 +            }
 +            else
 +            {
@@ -216,51 +234,79 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.25.2/capplets/display/xrand
  }
  
  static void
-@@ -1557,27 +1678,32 @@
-     GError *err = NULL;
+@@ -1615,41 +1754,47 @@
  
      gnome_rr_config_sanitize (app->current_configuration);
--
+ 
 -    check_required_virtual_size (app);
 -
 -    foo_scroll_area_invalidate (FOO_SCROLL_AREA (app->area));
--
--    if (gnome_rr_config_save (app->current_configuration, &err))
-+    
 +    /* Don't try to apply the settings unless the framebuffer
 +     * is enough. The user will be notified in 
 +     * check_required_virtual_size()
 +     */
 +    if (app->current_configuration->clone || check_required_virtual_size (app))
+ 
+-    if (!gnome_rr_config_save (app->current_configuration, &error))
      {
--	XEvent message;
--
--	message.xclient.type = ClientMessage;
--	message.xclient.message_type = gnome_randr_atom();
--	message.xclient.format = 8;
+-	error_message (app, _("Could not save the monitor configuration"), error->message);
+-	g_error_free (error);
+-	return;
+-    }
 +    foo_scroll_area_invalidate (FOO_SCROLL_AREA (app->area));
 +    
-+        if (gnome_rr_config_save (app->current_configuration, &err))
++        if (!gnome_rr_config_save (app->current_configuration, &error))
 +        {
-+        XEvent message;
-+
-+        message.xclient.type = ClientMessage;
-+        message.xclient.message_type = gnome_randr_atom();
-+        message.xclient.format = 8;
- 
- #if 0
- 	g_debug ("Sending client message");
- #endif
- 
--	XSendEvent (gdk_x11_get_default_xdisplay(),
--		    gdk_x11_get_default_root_xwindow(),
--		    FALSE,
--		    StructureNotifyMask, &message);
-+        XSendEvent (gdk_x11_get_default_xdisplay(),
-+                gdk_x11_get_default_root_xwindow(),
-+                FALSE,
-+                StructureNotifyMask, &message);
++            error_message (app, _("Could not save the monitor configuration"), error->message);
++            g_error_free (error);
++            return;
 +        }
++
++        connection = dbus_g_bus_get (DBUS_BUS_SESSION, &error);
++        if (connection == NULL) {
++	    error_message (app, _("Could not get session bus while applying display configuration"), error->message);
++	    g_error_free (error);
++	    return;
++        }
+ 
+-    connection = dbus_g_bus_get (DBUS_BUS_SESSION, &error);
+-    if (connection == NULL) {
+-	error_message (app, _("Could not get session bus while applying display configuration"), error->message);
+-	g_error_free (error);
+-	return;
+-    }
++        proxy = dbus_g_proxy_new_for_name (connection,
++    				       "org.gnome.SettingsDaemon",
++    				       "/org/gnome/SettingsDaemon/XRANDR",
++     				       "org.gnome.SettingsDaemon.XRANDR");
++        if (!proxy) {
++	    error_message (app, _("Could not get org.gnome.SettingsDaemon.XRANDR"), NULL);
++	    return;
+ 
+-    proxy = dbus_g_proxy_new_for_name (connection,
+-				       "org.gnome.SettingsDaemon",
+-				       "/org/gnome/SettingsDaemon/XRANDR",
+-				       "org.gnome.SettingsDaemon.XRANDR");
+-    if (!proxy) {
+-	error_message (app, _("Could not get org.gnome.SettingsDaemon.XRANDR"), NULL);
+-	return;
++        }
+ 
+-    }
++        if (!dbus_g_proxy_call (proxy, "ApplyConfiguration", &error, G_TYPE_INVALID, G_TYPE_INVALID)) {
++	    error_message (app, _("Could not apply the selected configuration"), error->message);
++	    g_error_free (error);
++        }
+ 
+-    if (!dbus_g_proxy_call (proxy, "ApplyConfiguration", &error, G_TYPE_INVALID, G_TYPE_INVALID)) {
+-	error_message (app, _("Could not apply the selected configuration"), error->message);
+-	g_error_free (error);
++        g_object_unref (proxy);
++        dbus_g_connection_unref (connection);
      }
+-
+-    g_object_unref (proxy);
+-    dbus_g_connection_unref (connection);
  }
  
+ #if 0
