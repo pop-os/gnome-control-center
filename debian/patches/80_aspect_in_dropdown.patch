@@ -1,9 +1,9 @@
-diff -Nur -x '*.orig' -x '*~' ubuntu/capplets/display/xrandr-capplet.c ubuntu.new/capplets/display/xrandr-capplet.c
---- ubuntu/capplets/display/xrandr-capplet.c	2008-09-09 12:20:05.000000000 +0200
-+++ ubuntu.new/capplets/display/xrandr-capplet.c	2008-09-09 12:21:36.000000000 +0200
-@@ -523,6 +523,48 @@
-     return i;
+diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.25.2/capplets/display/xrandr-capplet.c gnome-control-center-2.25.2-patched/capplets/display/xrandr-capplet.c
+--- gnome-control-center-2.25.2/capplets/display/xrandr-capplet.c	2008-10-09 11:58:09.000000000 +0200
++++ gnome-control-center-2.25.2-patched/capplets/display/xrandr-capplet.c	2008-12-16 22:05:15.000000000 +0100
+@@ -441,6 +441,49 @@
  }
+ #endif
  
 +static const char *
 +generate_mode_text (int width, int height)
@@ -47,10 +47,11 @@ diff -Nur -x '*.orig' -x '*~' ubuntu/capplets/display/xrandr-capplet.c ubuntu.ne
 +        return idle_free (g_strdup_printf (_("%d x %d"), width, height));
 +}
 +
++
  static void
  rebuild_resolution_combo (App *app)
  {
-@@ -546,7 +588,7 @@
+@@ -464,7 +507,7 @@
  	height = gnome_rr_mode_get_height (modes[i]);
  
  	add_key (app->resolution_combo,
@@ -59,15 +60,15 @@ diff -Nur -x '*.orig' -x '*~' ubuntu/capplets/display/xrandr-capplet.c ubuntu.ne
  		 width, height, 0, -1);
  
  	if (width * height > best_w * best_h)
-@@ -565,17 +607,15 @@
+@@ -483,17 +526,15 @@
      }
      else
      {
 -	current = idle_free (g_strdup_printf (_("%d x %d"),
 -					      app->current_output->width,
 -					      app->current_output->height));
-+        current = generate_mode_text (app->current_output->width,
-+				      app->current_output->height);
++	current = generate_mode_text (app->current_output->width,
++					      		app->current_output->height);
      }
  
  
@@ -76,7 +77,7 @@ diff -Nur -x '*.orig' -x '*~' ubuntu/capplets/display/xrandr-capplet.c ubuntu.ne
  	combo_select (app->resolution_combo,
 -		      idle_free (
 -			  g_strdup_printf (_("%d x %d"), best_w, best_h)));
-+		      generate_mode_text (best_w, best_h));
++			  generate_mode_text (best_w, best_h));
      }
  }
  
