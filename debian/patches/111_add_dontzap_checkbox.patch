@@ -1,0 +1,297 @@
+diff -Nur gnome-control-center-2.25.3.orig.alberto/capplets/display/display-capplet.glade gnome-control-center-2.25.3/capplets/display/display-capplet.glade
+--- gnome-control-center-2.25.3.orig.alberto/capplets/display/display-capplet.glade	2008-12-18 10:41:11.000000000 +0100
++++ gnome-control-center-2.25.3/capplets/display/display-capplet.glade	2009-01-28 14:54:29.000000000 +0100
+@@ -476,6 +476,33 @@
+ 	  <property name="fill">True</property>
+ 	</packing>
+       </child>
++    
++        <child>
++        <widget class="GtkHBox" id="hbox2">
++        <property name="visible">True</property>
++        <child>
++            <widget class="GtkCheckButton" id="dontzap_checkbox">
++            <property name="label" translatable="yes">_Ctrl+Alt+Backspace restarts the xserver</property>
++            <property name="visible">True</property>
++            <property name="can_focus">True</property>
++            <property name="receives_default">False</property>
++            <property name="use_underline">True</property>
++            <property name="draw_indicator">True</property>
++            </widget>
++            <packing>
++            <property name="expand">False</property>
++            <property name="fill">False</property>
++            <property name="position">0</property>
++            </packing>
++        </child>
++        </widget>
++        <packing>
++        <property name="expand">False</property>
++        <property name="fill">False</property>
++        <property name="position">7</property>
++        </packing>
++    </child>
++    
+     </widget>
+   </child>
+ </widget>
+diff -Nur gnome-control-center-2.25.3.orig.alberto/capplets/display/dontzap.c gnome-control-center-2.25.3/capplets/display/dontzap.c
+--- gnome-control-center-2.25.3.orig.alberto/capplets/display/dontzap.c	1970-01-01 01:00:00.000000000 +0100
++++ gnome-control-center-2.25.3/capplets/display/dontzap.c	2009-01-28 14:54:29.000000000 +0100
+@@ -0,0 +1,73 @@
++/*
++ *  dontzap.c
++ *  
++ *  Copyright 2008 Alberto Milone <albertomilone@alice.it>
++ *  
++ *  This program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License as published by
++ *  the Free Software Foundation; either version 2 of the License, or
++ *  (at your option) any later version.
++ *  
++ *  This program is distributed in the hope that it will be useful,
++ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ *  GNU General Public License for more details.
++ *  
++ *  You should have received a copy of the GNU General Public License
++ *  along with this program; if not, write to the Free Software
++ *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
++ *  MA 02110-1301, USA.
++ */
++
++#include <glib.h>
++#include "dontzap.h"
++
++gboolean is_dontzap_enabled() {
++	/* See if DontZap is enabled in the
++	 * xorg.conf. It is enabled by default
++	 * since xorg-server 1.6 therefore if
++	 * no xorg.conf or no ServerFlags
++	 * section or no DontZap option are
++	 * available (or if DontZap is set to
++	 * True), DontZap will be enabled and
++	 * Ctrl+Alt+Backspace won't restart X.
++	 * 
++	 * NOTE: here the the meaning of
++	 * enabled is inverted. "True" means
++	 * that DontZap is set to "false" (i.e.
++	 * it will make Ctrl+Alt+Backspace 
++	 * restart X) and vice versa.
++	 */
++	
++    gboolean enabled;
++    int status;
++    gchar *command = g_strconcat (DONTZAP_FILENAME, " --is-enabled", NULL);
++        
++    enabled = (g_spawn_command_line_sync (command, NULL, NULL, &status, NULL) && status == 0);
++    g_free (command);
++    
++    return enabled;
++}
++	
++gboolean set_dontzap(gboolean enable) {
++    /* Try to set the DontZap option to
++	 * a boolean value and return true
++	 * if successful (and update 
++	 * m_enabled), otherwise return
++	 * false
++	 */
++	 
++    gboolean result;
++    int status;
++    
++    gchar *argument = enable ? "--enable" : "--disable";
++    
++    gchar *command = g_strconcat ("python ", DONTZAP_EXEC, " ", argument, NULL);
++        
++    result = (g_spawn_command_line_sync (command, NULL, NULL, &status, NULL) && status == 0);
++    g_free (command);
++	
++	return result;
++	 
++}	
++
+diff -Nur gnome-control-center-2.25.3.orig.alberto/capplets/display/dontzap.h gnome-control-center-2.25.3/capplets/display/dontzap.h
+--- gnome-control-center-2.25.3.orig.alberto/capplets/display/dontzap.h	1970-01-01 01:00:00.000000000 +0100
++++ gnome-control-center-2.25.3/capplets/display/dontzap.h	2009-01-28 14:54:29.000000000 +0100
+@@ -0,0 +1,33 @@
++/*
++ *  dontzap.h
++ *  
++ *  Copyright 2008 Alberto Milone <albertomilone@alice.it>
++ *  
++ *  This program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License as published by
++ *  the Free Software Foundation; either version 2 of the License, or
++ *  (at your option) any later version.
++ *  
++ *  This program is distributed in the hope that it will be useful,
++ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ *  GNU General Public License for more details.
++ *  
++ *  You should have received a copy of the GNU General Public License
++ *  along with this program; if not, write to the Free Software
++ *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
++ *  MA 02110-1301, USA.
++ */
++
++#ifndef __DONTZAP_H__
++#define __DONTZAP_H__
++
++#define DONTZAP_FILENAME "/usr/bin/dontzap"
++#define DONTZAP_EXEC "/usr/share/screen-resolution-extra/policy-dontzap.py"
++
++gboolean is_dontzap_enabled();
++gboolean set_dontzap(gboolean enable);
++
++#endif
++
++
+diff -Nur gnome-control-center-2.25.3.orig.alberto/capplets/display/Makefile.am gnome-control-center-2.25.3/capplets/display/Makefile.am
+--- gnome-control-center-2.25.3.orig.alberto/capplets/display/Makefile.am	2009-01-28 14:06:27.000000000 +0100
++++ gnome-control-center-2.25.3/capplets/display/Makefile.am	2009-01-28 14:54:29.000000000 +0100
+@@ -8,6 +8,8 @@
+ 
+ gnome_display_properties_SOURCES =	\
+ 	xrandr-capplet.c		\
++	dontzap.c               \
++	dontzap.h               \
+ 	scrollarea.c			\
+ 	screen-package.c		\
+ 	foo-marshal.c			\
+diff -Nur gnome-control-center-2.25.3.orig.alberto/capplets/display/Makefile.in gnome-control-center-2.25.3/capplets/display/Makefile.in
+--- gnome-control-center-2.25.3.orig.alberto/capplets/display/Makefile.in	2009-01-28 14:06:27.000000000 +0100
++++ gnome-control-center-2.25.3/capplets/display/Makefile.in	2009-01-28 14:54:29.000000000 +0100
+@@ -55,7 +55,7 @@
+ binPROGRAMS_INSTALL = $(INSTALL_PROGRAM)
+ PROGRAMS = $(bin_PROGRAMS)
+ am_gnome_display_properties_OBJECTS = xrandr-capplet.$(OBJEXT) \
+-	scrollarea.$(OBJEXT) screen-package.$(OBJEXT) foo-marshal.$(OBJEXT)
++	scrollarea.$(OBJEXT) screen-package.$(OBJEXT) foo-marshal.$(OBJEXT) dontzap.$(OBJEXT)
+ gnome_display_properties_OBJECTS =  \
+ 	$(am_gnome_display_properties_OBJECTS)
+ am__DEPENDENCIES_1 =
+@@ -325,6 +325,8 @@
+ dist_glade_DATA = display-capplet.glade
+ gnome_display_properties_SOURCES = \
+ 	xrandr-capplet.c		\
++	dontzap.c               \
++	dontzap.h               \
+ 	scrollarea.c			\
+ 	screen-package.c		\
+ 	foo-marshal.c			\
+@@ -432,6 +434,7 @@
+ 	-rm -f *.tab.c
+ 
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/foo-marshal.Po@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dontzap.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/scrollarea.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/screen-package.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/xrandr-capplet.Po@am__quote@
+diff -Nur gnome-control-center-2.25.3.orig.alberto/capplets/display/xrandr-capplet.c gnome-control-center-2.25.3/capplets/display/xrandr-capplet.c
+--- gnome-control-center-2.25.3.orig.alberto/capplets/display/xrandr-capplet.c	2008-12-18 20:19:11.000000000 +0100
++++ gnome-control-center-2.25.3/capplets/display/xrandr-capplet.c	2009-01-28 14:59:25.000000000 +0100
+@@ -36,6 +36,8 @@
+ #include <dbus/dbus-glib.h>
+ #include <dbus/dbus-glib-bindings.h>
+ 
++#include "dontzap.h"
++
+ typedef struct App App;
+ typedef struct GrabInfo GrabInfo;
+ 
+@@ -60,6 +62,11 @@
+     GtkWidget      *area;
+     gboolean	    ignore_gui_changes;
+     GConfClient	   *client;
++    
++    gboolean        dontzap_status;
++    gboolean        dontzap_status_changed;
++    GtkWidget	   *dontzap_checkbox;
++    
+ };
+ 
+ static void rebuild_gui (App *app);
+@@ -1613,6 +1620,31 @@
+     DBusGConnection *connection;
+     DBusGProxy *proxy;
+ 
++  
++    /* if the dontzap exists and the user changed the status of its checkbox */
++    if (GTK_WIDGET_VISIBLE(app->dontzap_checkbox) && app->dontzap_status_changed) {
++        gboolean enable = gtk_toggle_button_get_active (app->dontzap_checkbox);
++        /* if the selected dontzap settings are different from the current ones */
++        if (enable != app->dontzap_status) {
++            gboolean result = set_dontzap(!enable);
++            
++            /* if a problem occurs when setting dontzap */
++            if (! result) {
++                error_message (app, _("Could not change the effect of Ctrl+Alt+Backspace."), "");
++                /* Set the dontzap checkbox to its previous status */
++                gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (app->dontzap_checkbox),
++				  app->dontzap_status);
++            }
++            else {
++                /* change the status of dontzap in the UI */
++                app->dontzap_status = enable;
++            }
++        }
++        /* reset the status change */
++        app->dontzap_status_changed = FALSE;
++    }
++    
++
+     gnome_rr_config_sanitize (app->current_configuration);
+ 
+     check_required_virtual_size (app);
+@@ -1703,6 +1735,16 @@
+ 			   gtk_toggle_button_get_active (tb), NULL);
+ }
+ 
++static void
++on_dontzap_toggled (GtkWidget *widget, gpointer data)
++{
++    App *app = data;
++    
++    app->dontzap_status_changed = TRUE;
++}
++
++
++
+ static GnomeOutputInfo *
+ get_nearest_output (GnomeRRConfig *configuration, int x, int y)
+ {
+@@ -1935,6 +1977,31 @@
+ 
+     g_assert (app->panel_checkbox);
+ 
++   
++    app->dontzap_checkbox = glade_xml_get_widget (xml, "dontzap_checkbox");
++    /* it is TRUE by default */
++    app->dontzap_status = TRUE;
++    app->dontzap_status_changed = FALSE;
++    
++    if ((g_file_test(DONTZAP_FILENAME, G_FILE_TEST_EXISTS)) && (g_file_test(DONTZAP_EXEC, G_FILE_TEST_EXISTS))) {
++        gtk_widget_show (app->dontzap_checkbox);
++        
++        app->dontzap_status = is_dontzap_enabled();
++        
++        gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (app->dontzap_checkbox),
++				  app->dontzap_status);
++	    
++	    g_signal_connect (app->dontzap_checkbox, "toggled", G_CALLBACK (on_dontzap_toggled), app);
++
++    }
++    else {
++        /* If no dontzap file is available make the checkbox
++         * invisible
++         */
++        gtk_widget_hide (app->dontzap_checkbox);
++    }
++    
++
+     /* Scroll Area */
+     app->area = (GtkWidget *)foo_scroll_area_new ();
+ 
