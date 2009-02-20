@@ -1,0 +1,66 @@
+diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.25.90/capplets/mouse/gnome-mouse-properties.c gnome-control-center-2.25.90.new/capplets/mouse/gnome-mouse-properties.c
+--- gnome-control-center-2.25.90/capplets/mouse/gnome-mouse-properties.c	2009-02-20 19:40:34.000000000 +0100
++++ gnome-control-center-2.25.90.new/capplets/mouse/gnome-mouse-properties.c	2009-02-20 19:40:53.000000000 +0100
+@@ -447,6 +447,62 @@
+ 	if (!dialog)
+ 		return NULL;
+ 
++	if (gdk_screen_get_default() != NULL && gdk_screen_get_height(gdk_screen_get_default()) <= 600) {
++	  GtkWidget *scrolledWindow1024x600_1,*viewport_1;
++	  GtkWidget *scrolledWindow1024x600_2,*viewport_2;
++	  GtkWidget *dialogWindow=NULL;
++	  GtkWidget *child,*mother,*childtablabel,*childmenulabel;
++	  gchar* childlabeltext;
++	  int pagenum;
++
++	  /* add scrolledbar to general_vbox */
++	  child = glade_xml_get_widget(dialog,"general_vbox");
++	  if (child != NULL) {
++	    mother = gtk_widget_get_parent(child);
++	    pagenum = gtk_notebook_page_num(GTK_NOTEBOOK(mother),child);
++	    childtablabel = gtk_notebook_get_tab_label(GTK_NOTEBOOK(mother),child);
++	    childmenulabel = gtk_notebook_get_menu_label(GTK_NOTEBOOK(mother),child);
++	    childlabeltext = g_strdup(gtk_notebook_get_tab_label_text(GTK_NOTEBOOK(mother),GTK_WIDGET(child)));
++	    scrolledWindow1024x600_1 = gtk_scrolled_window_new(NULL,NULL);
++	    if (scrolledWindow1024x600_1 != NULL) {
++	      gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolledWindow1024x600_1),GTK_POLICY_NEVER,GTK_POLICY_AUTOMATIC);
++	    }
++	    viewport_1 = gtk_viewport_new(NULL,NULL);
++	    gtk_container_add(GTK_CONTAINER(scrolledWindow1024x600_1),GTK_WIDGET(viewport_1));
++	    gtk_widget_show(scrolledWindow1024x600_1);
++	    gtk_widget_show(viewport_1);
++	    gtk_widget_reparent(GTK_WIDGET(child),GTK_WIDGET(viewport_1));
++	    gtk_notebook_insert_page_menu(GTK_NOTEBOOK(mother),GTK_WIDGET(scrolledWindow1024x600_1),NULL,childmenulabel,pagenum);
++	    gtk_notebook_set_tab_label_text(GTK_NOTEBOOK(mother),GTK_WIDGET(scrolledWindow1024x600_1),childlabeltext);
++	  }
++
++	  /* add scrolledbar to accessibility_vbox */
++	  child = glade_xml_get_widget(dialog,"accessibility_vbox");
++	  if (child != NULL) {
++	    mother = gtk_widget_get_parent(child);
++	    pagenum = gtk_notebook_page_num(GTK_NOTEBOOK(mother),child);
++	    childtablabel = gtk_notebook_get_tab_label(GTK_NOTEBOOK(mother),child);
++	    childmenulabel = gtk_notebook_get_menu_label(GTK_NOTEBOOK(mother),child);
++	    childlabeltext = g_strdup(gtk_notebook_get_tab_label_text(GTK_NOTEBOOK(mother),GTK_WIDGET(child)));
++	    scrolledWindow1024x600_2 = gtk_scrolled_window_new(NULL,NULL);
++	    if (scrolledWindow1024x600_2 != NULL) {
++	      gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolledWindow1024x600_2),GTK_POLICY_NEVER,GTK_POLICY_AUTOMATIC);
++	    }
++	    viewport_2 = gtk_viewport_new(NULL,NULL);
++	    gtk_container_add(GTK_CONTAINER(scrolledWindow1024x600_2),GTK_WIDGET(viewport_2));
++	    gtk_widget_show(scrolledWindow1024x600_2);
++	    gtk_widget_show(viewport_2);
++	    gtk_widget_reparent(GTK_WIDGET(child),GTK_WIDGET(viewport_2));
++	    gtk_notebook_insert_page_menu(GTK_NOTEBOOK(mother),GTK_WIDGET(scrolledWindow1024x600_2),NULL,childmenulabel,pagenum);
++	    gtk_notebook_set_tab_label_text(GTK_NOTEBOOK(mother),GTK_WIDGET(scrolledWindow1024x600_2),childlabeltext);
++	  }
++
++	  /* set default size of dialog smaller */
++	  dialogWindow = glade_xml_get_widget(dialog,"mouse_properties_dialog");
++	  if (dialogWindow != NULL) {
++	    gtk_window_set_default_size(GTK_WINDOW(dialogWindow),-1,448);
++	  }
++	}
+ 	size_group = gtk_size_group_new (GTK_SIZE_GROUP_HORIZONTAL);
+ 	gtk_size_group_add_widget (size_group, WID ("acceleration_label"));
+ 	gtk_size_group_add_widget (size_group, WID ("sensitivity_label"));
