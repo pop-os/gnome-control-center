@@ -1,0 +1,85 @@
+diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.25.90/capplets/about-me/gnome-about-me.c gnome-control-center-2.25.90.new/capplets/about-me/gnome-about-me.c
+--- gnome-control-center-2.25.90/capplets/about-me/gnome-about-me.c	2009-02-20 19:50:28.000000000 +0100
++++ gnome-control-center-2.25.90.new/capplets/about-me/gnome-about-me.c	2009-02-20 19:50:35.000000000 +0100
+@@ -925,6 +925,81 @@
+ 		return -1;
+ 	}
+ 
++	if (gdk_screen_get_default() != NULL && gdk_screen_get_height(gdk_screen_get_default()) <= 600) {
++	  GtkWidget *scrolledWindow1024x600,*viewport;
++	  GtkWidget *dialogWindow=NULL;
++	  GtkWidget *child,*mother,*childtablabel,*childmenulabel;
++	  gchar* childlabeltext;
++	  int pagenum;
++
++	  /* add scrolledbar to vbox57 */
++	  child = glade_xml_get_widget(dialog,"vbox57");
++	  if (child != NULL) {
++	    mother = gtk_widget_get_parent(child);
++	    pagenum = gtk_notebook_page_num(GTK_NOTEBOOK(mother),child);
++	    childtablabel = gtk_notebook_get_tab_label(GTK_NOTEBOOK(mother),child);
++	    childmenulabel = gtk_notebook_get_menu_label(GTK_NOTEBOOK(mother),child);
++	    childlabeltext = g_strdup(gtk_notebook_get_tab_label_text(GTK_NOTEBOOK(mother),GTK_WIDGET(child)));
++	    scrolledWindow1024x600 = gtk_scrolled_window_new(NULL,NULL);
++	    if (scrolledWindow1024x600 != NULL) {
++	      gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolledWindow1024x600),GTK_POLICY_NEVER,GTK_POLICY_AUTOMATIC);
++	    }
++	    viewport = gtk_viewport_new(NULL,NULL);
++	    gtk_container_add(GTK_CONTAINER(scrolledWindow1024x600),GTK_WIDGET(viewport));
++	    gtk_widget_show(scrolledWindow1024x600);
++	    gtk_widget_show(viewport);
++	    gtk_widget_reparent(GTK_WIDGET(child),GTK_WIDGET(viewport));
++	    gtk_notebook_insert_page_menu(GTK_NOTEBOOK(mother),GTK_WIDGET(scrolledWindow1024x600),NULL,childmenulabel,pagenum);
++	    gtk_notebook_set_tab_label_text(GTK_NOTEBOOK(mother),GTK_WIDGET(scrolledWindow1024x600),childlabeltext);
++	  }
++	  /* add scrolledbar to vbox60 */
++	  child = glade_xml_get_widget(dialog,"vbox60");
++	  if (child != NULL) {
++	    mother = gtk_widget_get_parent(child);
++	    pagenum = gtk_notebook_page_num(GTK_NOTEBOOK(mother),child);
++	    childtablabel = gtk_notebook_get_tab_label(GTK_NOTEBOOK(mother),child);
++	    childmenulabel = gtk_notebook_get_menu_label(GTK_NOTEBOOK(mother),child);
++	    childlabeltext = g_strdup(gtk_notebook_get_tab_label_text(GTK_NOTEBOOK(mother),GTK_WIDGET(child)));
++	    scrolledWindow1024x600 = gtk_scrolled_window_new(NULL,NULL);
++	    if (scrolledWindow1024x600 != NULL) {
++	      gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolledWindow1024x600),GTK_POLICY_NEVER,GTK_POLICY_AUTOMATIC);
++	    }
++	    viewport = gtk_viewport_new(NULL,NULL);
++	    gtk_container_add(GTK_CONTAINER(scrolledWindow1024x600),GTK_WIDGET(viewport));
++	    gtk_widget_show(scrolledWindow1024x600);
++	    gtk_widget_show(viewport);
++	    gtk_widget_reparent(GTK_WIDGET(child),GTK_WIDGET(viewport));
++	    gtk_notebook_insert_page_menu(GTK_NOTEBOOK(mother),GTK_WIDGET(scrolledWindow1024x600),NULL,childmenulabel,pagenum);
++	    gtk_notebook_set_tab_label_text(GTK_NOTEBOOK(mother),GTK_WIDGET(scrolledWindow1024x600),childlabeltext);
++	  }
++	  /* add scrolledbar to vbox59 */
++	  child = glade_xml_get_widget(dialog,"vbox59");
++	  if (child != NULL) {
++	    mother = gtk_widget_get_parent(child);
++	    pagenum = gtk_notebook_page_num(GTK_NOTEBOOK(mother),child);
++	    childtablabel = gtk_notebook_get_tab_label(GTK_NOTEBOOK(mother),child);
++	    childmenulabel = gtk_notebook_get_menu_label(GTK_NOTEBOOK(mother),child);
++	    childlabeltext = g_strdup(gtk_notebook_get_tab_label_text(GTK_NOTEBOOK(mother),GTK_WIDGET(child)));
++	    scrolledWindow1024x600 = gtk_scrolled_window_new(NULL,NULL);
++	    if (scrolledWindow1024x600 != NULL) {
++	      gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolledWindow1024x600),GTK_POLICY_NEVER,GTK_POLICY_AUTOMATIC);
++	    }
++	    viewport = gtk_viewport_new(NULL,NULL);
++	    gtk_container_add(GTK_CONTAINER(scrolledWindow1024x600),GTK_WIDGET(viewport));
++	    gtk_widget_show(scrolledWindow1024x600);
++	    gtk_widget_show(viewport);
++	    gtk_widget_reparent(GTK_WIDGET(child),GTK_WIDGET(viewport));
++	    gtk_notebook_insert_page_menu(GTK_NOTEBOOK(mother),GTK_WIDGET(scrolledWindow1024x600),NULL,childmenulabel,pagenum);
++	    gtk_notebook_set_tab_label_text(GTK_NOTEBOOK(mother),GTK_WIDGET(scrolledWindow1024x600),childlabeltext);
++	    gtk_widget_set_size_request(scrolledWindow1024x600,-1,200);
++	  }
++	  /* set default size of dialog smaller */
++	  dialogWindow = glade_xml_get_widget(dialog,"about-me-dialog");
++	  if (dialogWindow != NULL) {
++	    gtk_window_set_default_size(GTK_WINDOW(dialogWindow),-1,448);
++	  }
++	}
++
+ 	me->dialog = dialog;
+ 
+ 	/* Connect the close button signal */
