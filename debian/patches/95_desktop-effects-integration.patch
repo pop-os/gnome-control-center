@@ -1,6 +1,6 @@
-diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.24.0.1/capplets/appearance/appearance-effects.c gnome-control-center-2.24.0.1.new/capplets/appearance/appearance-effects.c
---- gnome-control-center-2.24.0.1/capplets/appearance/appearance-effects.c	1970-01-01 01:00:00.000000000 +0100
-+++ gnome-control-center-2.24.0.1.new/capplets/appearance/appearance-effects.c	2008-10-13 15:32:26.000000000 +0100
+diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.25.90/capplets/appearance/appearance-effects.c gnome-control-center-2.25.90.new/capplets/appearance/appearance-effects.c
+--- gnome-control-center-2.25.90/capplets/appearance/appearance-effects.c	1970-01-01 01:00:00.000000000 +0100
++++ gnome-control-center-2.25.90.new/capplets/appearance/appearance-effects.c	2009-02-20 18:08:11.000000000 +0100
 @@ -0,0 +1,1120 @@
 +/*
 + * Copyright (C) 2007 Canonical
@@ -999,7 +999,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.24.0.1/capplets/appearance/
 +
 +	if (appdata->desktop_effects_level >= 1)
 +	{		
-+		if (check_graphics_driver())
++		if (old_effects_level == 0 && check_graphics_driver())
 +		{
 +			show_info (_("Please run \"Apperance/Desktop Effects\" again after restarting "
 +				     "the computer, when the new graphics driver is active."));
@@ -1122,9 +1122,9 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.24.0.1/capplets/appearance/
 +		gtk_widget_hide (hbox_custom_effects);
 +}
 +
-diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.24.0.1/capplets/appearance/appearance-effects.h gnome-control-center-2.24.0.1.new/capplets/appearance/appearance-effects.h
---- gnome-control-center-2.24.0.1/capplets/appearance/appearance-effects.h	1970-01-01 01:00:00.000000000 +0100
-+++ gnome-control-center-2.24.0.1.new/capplets/appearance/appearance-effects.h	2008-10-13 15:32:26.000000000 +0100
+diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.25.90/capplets/appearance/appearance-effects.h gnome-control-center-2.25.90.new/capplets/appearance/appearance-effects.h
+--- gnome-control-center-2.25.90/capplets/appearance/appearance-effects.h	1970-01-01 01:00:00.000000000 +0100
++++ gnome-control-center-2.25.90.new/capplets/appearance/appearance-effects.h	2009-02-20 18:06:29.000000000 +0100
 @@ -0,0 +1,21 @@
 +/*
 + * Copyright (C) 2007 Canonical
@@ -1147,9 +1147,9 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.24.0.1/capplets/appearance/
 + */
 +
 +void effects_init (AppearanceData *data);
-diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.24.0.1/capplets/appearance/appearance.h gnome-control-center-2.24.0.1.new/capplets/appearance/appearance.h
---- gnome-control-center-2.24.0.1/capplets/appearance/appearance.h	2008-10-13 15:32:23.000000000 +0100
-+++ gnome-control-center-2.24.0.1.new/capplets/appearance/appearance.h	2008-10-13 15:32:26.000000000 +0100
+diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.25.90/capplets/appearance/appearance.h gnome-control-center-2.25.90.new/capplets/appearance/appearance.h
+--- gnome-control-center-2.25.90/capplets/appearance/appearance.h	2009-02-20 18:06:26.000000000 +0100
++++ gnome-control-center-2.25.90.new/capplets/appearance/appearance.h	2009-02-20 18:06:29.000000000 +0100
 @@ -70,6 +70,12 @@
    gchar *revert_windowtitle_font;
    gchar *revert_monospace_font;
@@ -1163,10 +1163,10 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.24.0.1/capplets/appearance/
    /* style */
    GdkPixbuf *gtk_theme_icon;
    GdkPixbuf *window_theme_icon;
-diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.24.0.1/capplets/appearance/appearance-main.c gnome-control-center-2.24.0.1.new/capplets/appearance/appearance-main.c
---- gnome-control-center-2.24.0.1/capplets/appearance/appearance-main.c	2008-10-13 15:32:23.000000000 +0100
-+++ gnome-control-center-2.24.0.1.new/capplets/appearance/appearance-main.c	2008-10-13 15:36:59.000000000 +0100
-@@ -156,6 +156,7 @@
+diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.25.90/capplets/appearance/appearance-main.c gnome-control-center-2.25.90.new/capplets/appearance/appearance-main.c
+--- gnome-control-center-2.25.90/capplets/appearance/appearance-main.c	2009-02-20 18:06:26.000000000 +0100
++++ gnome-control-center-2.25.90.new/capplets/appearance/appearance-main.c	2009-02-20 18:06:29.000000000 +0100
+@@ -163,6 +163,7 @@
    g_strfreev (wallpaper_files);
    font_init (data);
    ui_init (data);
@@ -1174,9 +1174,9 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.24.0.1/capplets/appearance/
  
    /* prepare the main window */
    w = glade_xml_get_widget (data->xml, "appearance_window");
-@@ -188,6 +189,14 @@
-     g_free (page_name);
-   }
+@@ -197,6 +198,14 @@
+ 
+   g_option_context_free (option_context);
  
 +  /* de-sensitise effects tab if compiz isn't installed */
 +  if (g_find_program_in_path ("compiz") == NULL) {
@@ -1189,9 +1189,9 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.24.0.1/capplets/appearance/
    /* start the mainloop */
    gtk_main ();
  
-diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.24.0.1/capplets/appearance/data/appearance.glade gnome-control-center-2.24.0.1.new/capplets/appearance/data/appearance.glade
---- gnome-control-center-2.24.0.1/capplets/appearance/data/appearance.glade	2008-10-13 15:32:23.000000000 +0100
-+++ gnome-control-center-2.24.0.1.new/capplets/appearance/data/appearance.glade	2008-10-13 15:32:26.000000000 +0100
+diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.25.90/capplets/appearance/data/appearance.glade gnome-control-center-2.25.90.new/capplets/appearance/data/appearance.glade
+--- gnome-control-center-2.25.90/capplets/appearance/data/appearance.glade	2009-02-20 18:06:26.000000000 +0100
++++ gnome-control-center-2.25.90.new/capplets/appearance/data/appearance.glade	2009-02-20 18:06:29.000000000 +0100
 @@ -1815,6 +1815,281 @@
                  <property name="tab_fill">False</property>
                </packing>
@@ -1474,9 +1474,9 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.24.0.1/capplets/appearance/
            </widget>
            <packing>
              <property name="position">1</property>
-diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.24.0.1/capplets/appearance/Makefile.am gnome-control-center-2.24.0.1.new/capplets/appearance/Makefile.am
---- gnome-control-center-2.24.0.1/capplets/appearance/Makefile.am	2008-10-13 15:32:23.000000000 +0100
-+++ gnome-control-center-2.24.0.1.new/capplets/appearance/Makefile.am	2008-10-13 15:32:26.000000000 +0100
+diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.25.90/capplets/appearance/Makefile.am gnome-control-center-2.25.90.new/capplets/appearance/Makefile.am
+--- gnome-control-center-2.25.90/capplets/appearance/Makefile.am	2009-02-20 18:06:26.000000000 +0100
++++ gnome-control-center-2.25.90.new/capplets/appearance/Makefile.am	2009-02-20 18:06:29.000000000 +0100
 @@ -9,6 +9,8 @@
  	appearance.h \
  	appearance-desktop.c \
@@ -1486,10 +1486,10 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.24.0.1/capplets/appearance/
  	appearance-font.c \
  	appearance-font.h \
  	appearance-main.c \
-diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.24.0.1/po/POTFILES.in gnome-control-center-2.24.0.1.new/po/POTFILES.in
---- gnome-control-center-2.24.0.1/po/POTFILES.in	2008-10-13 15:32:23.000000000 +0100
-+++ gnome-control-center-2.24.0.1.new/po/POTFILES.in	2008-10-13 15:32:26.000000000 +0100
-@@ -11,6 +11,7 @@
+diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.25.90/po/POTFILES.in gnome-control-center-2.25.90.new/po/POTFILES.in
+--- gnome-control-center-2.25.90/po/POTFILES.in	2009-02-20 18:06:27.000000000 +0100
++++ gnome-control-center-2.25.90.new/po/POTFILES.in	2009-02-20 18:06:29.000000000 +0100
+@@ -14,6 +14,7 @@
  capplets/accessibility/at-properties/at-properties.desktop.in.in
  capplets/accessibility/at-properties/main.c
  capplets/appearance/appearance-desktop.c
