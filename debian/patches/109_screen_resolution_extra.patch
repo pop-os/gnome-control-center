@@ -1,6 +1,6 @@
-diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.25.3/capplets/display/xrandr-capplet.c gnome-control-center-2.25.3.new/capplets/display/xrandr-capplet.c
---- gnome-control-center-2.25.3/capplets/display/xrandr-capplet.c	2009-01-06 10:55:11.000000000 +0100
-+++ gnome-control-center-2.25.3.new/capplets/display/xrandr-capplet.c	2009-01-06 10:56:03.000000000 +0100
+diff -Nur gnome-control-center-2.25.92.orig/capplets/display/xrandr-capplet.c gnome-control-center-2.25.92/capplets/display/xrandr-capplet.c
+--- gnome-control-center-2.25.92.orig/capplets/display/xrandr-capplet.c	2009-03-04 10:03:32.000000000 +0100
++++ gnome-control-center-2.25.92/capplets/display/xrandr-capplet.c	2009-03-04 10:45:01.000000000 +0100
 @@ -35,6 +35,7 @@
  #include <gconf/gconf-client.h>
  #include <dbus/dbus-glib.h>
@@ -9,7 +9,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.25.3/capplets/display/xrand
  
  typedef struct App App;
  typedef struct GrabInfo GrabInfo;
-@@ -83,6 +84,64 @@
+@@ -92,6 +93,64 @@
      gtk_widget_destroy (dialog);
  }
  
@@ -74,7 +74,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.25.3/capplets/display/xrand
  static gboolean
  do_free (gpointer data)
  {
-@@ -1552,39 +1611,14 @@
+@@ -1656,39 +1715,14 @@
      }
  }
  
@@ -116,7 +116,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.25.3/capplets/display/xrand
  
      gnome_rr_screen_get_ranges (app->screen, &min_width, &max_width, &min_height, &max_height);
  
-@@ -1599,11 +1633,116 @@
+@@ -1703,11 +1737,116 @@
      if (!(min_width <= req_width && req_width <= max_width
  	  && min_height <= req_height && req_height <= max_height))
      {
@@ -233,8 +233,8 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.25.3/capplets/display/xrand
 +        return TRUE;
  }
  
- static void
-@@ -1615,41 +1754,47 @@
+ /* Callback for dbus_g_proxy_begin_call() */
+@@ -1747,45 +1886,52 @@
  
      gnome_rr_config_sanitize (app->current_configuration);
  
@@ -245,7 +245,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.25.3/capplets/display/xrand
 +     * is enough. The user will be notified in 
 +     * check_required_virtual_size()
 +     */
-+    if (app->current_configuration->clone || check_required_virtual_size (app))
++	if (app->current_configuration->clone || check_required_virtual_size (app))
  
 -    if (!gnome_rr_config_save (app->current_configuration, &error))
      {
@@ -253,7 +253,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.25.3/capplets/display/xrand
 -	g_error_free (error);
 -	return;
 -    }
-+    foo_scroll_area_invalidate (FOO_SCROLL_AREA (app->area));
++        foo_scroll_area_invalidate (FOO_SCROLL_AREA (app->area));
 +    
 +        if (!gnome_rr_config_save (app->current_configuration, &error))
 +        {
@@ -262,51 +262,62 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.25.3/capplets/display/xrand
 +            return;
 +        }
 +
-+        connection = dbus_g_bus_get (DBUS_BUS_SESSION, &error);
-+        if (connection == NULL) {
++        g_assert (app->connection == NULL);
++        g_assert (app->proxy == NULL);
++        g_assert (app->proxy_call == NULL);
++
++        app->connection = dbus_g_bus_get (DBUS_BUS_SESSION, &error);
++        if (app->connection == NULL) {
 +	    error_message (app, _("Could not get session bus while applying display configuration"), error->message);
 +	    g_error_free (error);
 +	    return;
 +        }
  
--    connection = dbus_g_bus_get (DBUS_BUS_SESSION, &error);
--    if (connection == NULL) {
+-    g_assert (app->connection == NULL);
+-    g_assert (app->proxy == NULL);
+-    g_assert (app->proxy_call == NULL);
+-
+-    app->connection = dbus_g_bus_get (DBUS_BUS_SESSION, &error);
+-    if (app->connection == NULL) {
 -	error_message (app, _("Could not get session bus while applying display configuration"), error->message);
 -	g_error_free (error);
 -	return;
 -    }
-+        proxy = dbus_g_proxy_new_for_name (connection,
-+    				       "org.gnome.SettingsDaemon",
-+    				       "/org/gnome/SettingsDaemon/XRANDR",
-+     				       "org.gnome.SettingsDaemon.XRANDR");
-+        if (!proxy) {
++        app->proxy = dbus_g_proxy_new_for_name (app->connection,
++	    				    "org.gnome.SettingsDaemon",
++	    				    "/org/gnome/SettingsDaemon/XRANDR",
++		    			    "org.gnome.SettingsDaemon.XRANDR");
++
++        if (!app->proxy) {
 +	    error_message (app, _("Could not get org.gnome.SettingsDaemon.XRANDR"), NULL);
++	    dbus_g_connection_unref (app->connection);
++	    app->connection = NULL;
 +	    return;
++        }
  
--    proxy = dbus_g_proxy_new_for_name (connection,
--				       "org.gnome.SettingsDaemon",
--				       "/org/gnome/SettingsDaemon/XRANDR",
--				       "org.gnome.SettingsDaemon.XRANDR");
--    if (!proxy) {
+-    app->proxy = dbus_g_proxy_new_for_name (app->connection,
+-					    "org.gnome.SettingsDaemon",
+-					    "/org/gnome/SettingsDaemon/XRANDR",
+-					    "org.gnome.SettingsDaemon.XRANDR");
+-    if (!app->proxy) {
 -	error_message (app, _("Could not get org.gnome.SettingsDaemon.XRANDR"), NULL);
+-	dbus_g_connection_unref (app->connection);
+-	app->connection = NULL;
 -	return;
-+        }
- 
--    }
-+        if (!dbus_g_proxy_call (proxy, "ApplyConfiguration", &error, G_TYPE_INVALID, G_TYPE_INVALID)) {
-+	    error_message (app, _("Could not apply the selected configuration"), error->message);
-+	    g_error_free (error);
-+        }
- 
--    if (!dbus_g_proxy_call (proxy, "ApplyConfiguration", &error, G_TYPE_INVALID, G_TYPE_INVALID)) {
--	error_message (app, _("Could not apply the selected configuration"), error->message);
--	g_error_free (error);
-+        g_object_unref (proxy);
-+        dbus_g_connection_unref (connection);
++        gtk_widget_set_sensitive (app->dialog, FALSE);
++        app->proxy_call = dbus_g_proxy_begin_call (app->proxy, "ApplyConfiguration",
++							   apply_configuration_returned_cb, app,
++							   NULL,
++							   G_TYPE_INVALID,
++							   G_TYPE_INVALID);
      }
 -
--    g_object_unref (proxy);
--    dbus_g_connection_unref (connection);
+-    gtk_widget_set_sensitive (app->dialog, FALSE);
+-    app->proxy_call = dbus_g_proxy_begin_call (app->proxy, "ApplyConfiguration",
+-					       apply_configuration_returned_cb, app,
+-					       NULL,
+-					       G_TYPE_INVALID,
+-					       G_TYPE_INVALID);
  }
  
  #if 0
