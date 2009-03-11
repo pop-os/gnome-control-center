@@ -1,6 +1,6 @@
-diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.25.90/capplets/appearance/appearance-effects.c gnome-control-center-2.25.90.new/capplets/appearance/appearance-effects.c
---- gnome-control-center-2.25.90/capplets/appearance/appearance-effects.c	1970-01-01 01:00:00.000000000 +0100
-+++ gnome-control-center-2.25.90.new/capplets/appearance/appearance-effects.c	2009-02-20 18:08:11.000000000 +0100
+diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.25.92/capplets/appearance/appearance-effects.c gnome-control-center-2.25.92.new/capplets/appearance/appearance-effects.c
+--- gnome-control-center-2.25.92/capplets/appearance/appearance-effects.c	1970-01-01 01:00:00.000000000 +0100
++++ gnome-control-center-2.25.92.new/capplets/appearance/appearance-effects.c	2009-03-10 23:03:06.578681556 +0000
 @@ -0,0 +1,1120 @@
 +/*
 + * Copyright (C) 2007 Canonical
@@ -1122,9 +1122,9 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.25.90/capplets/appearance/a
 +		gtk_widget_hide (hbox_custom_effects);
 +}
 +
-diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.25.90/capplets/appearance/appearance-effects.h gnome-control-center-2.25.90.new/capplets/appearance/appearance-effects.h
---- gnome-control-center-2.25.90/capplets/appearance/appearance-effects.h	1970-01-01 01:00:00.000000000 +0100
-+++ gnome-control-center-2.25.90.new/capplets/appearance/appearance-effects.h	2009-02-20 18:06:29.000000000 +0100
+diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.25.92/capplets/appearance/appearance-effects.h gnome-control-center-2.25.92.new/capplets/appearance/appearance-effects.h
+--- gnome-control-center-2.25.92/capplets/appearance/appearance-effects.h	1970-01-01 01:00:00.000000000 +0100
++++ gnome-control-center-2.25.92.new/capplets/appearance/appearance-effects.h	2009-03-10 23:03:06.578681556 +0000
 @@ -0,0 +1,21 @@
 +/*
 + * Copyright (C) 2007 Canonical
@@ -1147,9 +1147,9 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.25.90/capplets/appearance/a
 + */
 +
 +void effects_init (AppearanceData *data);
-diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.25.90/capplets/appearance/appearance.h gnome-control-center-2.25.90.new/capplets/appearance/appearance.h
---- gnome-control-center-2.25.90/capplets/appearance/appearance.h	2009-02-20 18:06:26.000000000 +0100
-+++ gnome-control-center-2.25.90.new/capplets/appearance/appearance.h	2009-02-20 18:06:29.000000000 +0100
+diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.25.92/capplets/appearance/appearance.h gnome-control-center-2.25.92.new/capplets/appearance/appearance.h
+--- gnome-control-center-2.25.92/capplets/appearance/appearance.h	2009-03-10 23:03:02.163678889 +0000
++++ gnome-control-center-2.25.92.new/capplets/appearance/appearance.h	2009-03-10 23:03:06.578681556 +0000
 @@ -70,6 +70,12 @@
    gchar *revert_windowtitle_font;
    gchar *revert_monospace_font;
@@ -1163,10 +1163,30 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.25.90/capplets/appearance/a
    /* style */
    GdkPixbuf *gtk_theme_icon;
    GdkPixbuf *window_theme_icon;
-diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.25.90/capplets/appearance/appearance-main.c gnome-control-center-2.25.90.new/capplets/appearance/appearance-main.c
---- gnome-control-center-2.25.90/capplets/appearance/appearance-main.c	2009-02-20 18:06:26.000000000 +0100
-+++ gnome-control-center-2.25.90.new/capplets/appearance/appearance-main.c	2009-02-20 18:06:29.000000000 +0100
-@@ -163,6 +163,7 @@
+diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.25.92/capplets/appearance/appearance-main.c gnome-control-center-2.25.92.new/capplets/appearance/appearance-main.c
+--- gnome-control-center-2.25.92/capplets/appearance/appearance-main.c	2009-03-10 23:03:02.347679084 +0000
++++ gnome-control-center-2.25.92.new/capplets/appearance/appearance-main.c	2009-03-10 23:06:31.410680658 +0000
+@@ -105,11 +105,19 @@
+   }
+ }
+ 
++static void
++set_sensitivity (GtkWidget *widget, GtkWidget *warning)
++{
++  if (widget != warning)
++    gtk_widget_set_sensitive (widget, FALSE);
++}
++
+ int
+ main (int argc, char **argv)
+ {
+   AppearanceData *data;
+   GtkWidget *w;
++  GtkWidget *warning;
+ 
+   gchar *install_filename = NULL;
+   gchar *start_page = NULL;
+@@ -163,6 +171,7 @@
    g_strfreev (wallpaper_files);
    font_init (data);
    ui_init (data);
@@ -1174,25 +1194,29 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.25.90/capplets/appearance/a
  
    /* prepare the main window */
    w = glade_xml_get_widget (data->xml, "appearance_window");
-@@ -197,6 +198,14 @@
+@@ -197,6 +206,18 @@
  
    g_option_context_free (option_context);
  
-+  /* de-sensitise effects tab if compiz isn't installed */
-+  if (g_find_program_in_path ("compiz") == NULL) {
-+    GtkWidget *w;
++  warning = glade_xml_get_widget (data->xml, "no_compiz_box");
 +
-+    w = glade_xml_get_widget (data->xml, "effects_vbox");
-+    gtk_widget_set_sensitive (w, FALSE);
++  if (g_find_program_in_path ("compiz") != NULL) {
++    GtkWidget *box;
++
++    box = glade_xml_get_widget (data->xml, "effects_vbox");
++    gtk_container_foreach (GTK_CONTAINER (box),
++                           (GtkCallback) set_sensitivity, warning);
 +  }
++  else
++    gtk_widget_hide_all (warning);
 +
    /* start the mainloop */
    gtk_main ();
  
-diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.25.90/capplets/appearance/data/appearance.glade gnome-control-center-2.25.90.new/capplets/appearance/data/appearance.glade
---- gnome-control-center-2.25.90/capplets/appearance/data/appearance.glade	2009-02-20 18:06:26.000000000 +0100
-+++ gnome-control-center-2.25.90.new/capplets/appearance/data/appearance.glade	2009-02-20 18:06:29.000000000 +0100
-@@ -1815,6 +1815,281 @@
+diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.25.92/capplets/appearance/data/appearance.glade gnome-control-center-2.25.92.new/capplets/appearance/data/appearance.glade
+--- gnome-control-center-2.25.92/capplets/appearance/data/appearance.glade	2009-03-10 23:03:02.231706251 +0000
++++ gnome-control-center-2.25.92.new/capplets/appearance/data/appearance.glade	2009-03-10 23:10:59.126678438 +0000
+@@ -1815,6 +1815,319 @@
                  <property name="tab_fill">False</property>
                </packing>
              </child>
@@ -1203,6 +1227,43 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.25.90/capplets/appearance/d
 +                <property name="border_width">6</property>
 +                <property name="spacing">18</property>
 +                <property name="homogeneous">True</property>
++                <child>
++                  <widget class="GtkAlignment" id="no_compiz_box">
++                    <property name="left_padding">26</property>
++                    <property name="visible">True</property>
++                    <child>
++                      <widget class="GtkHBox" id="hbox1">
++                        <property name="visible">True</property>
++                        <property name="spacing">6</property>
++                        <child>
++                          <widget class="GtkImage" id="image3">
++                            <property name="visible">True</property>
++                            <property name="xalign">0</property>
++                            <property name="stock">gtk-dialog-warning</property>
++                            <property name="icon-size">6</property>
++                          </widget>
++                          <packing>
++                            <property name="expand">False</property>
++                            <property name="fill">False</property>
++                            <property name="position">0</property>
++                          </packing>
++                        </child>
++                        <child>
++                          <widget class="GtkLabel" id="label4">
++                            <property name="visible">True</property>
++                            <property name="xalign">0</property>
++                            <property name="xpad">6</property>
++                            <property name="label" translatable="yes">&lt;b&gt;Compiz is not installed&lt;/b&gt;</property>
++                            <property name="use_markup">True</property>
++                          </widget>
++                        </child>
++                      </widget>
++                    </child>
++                  </widget>
++                  <packing>
++                    <property name="position">0</property>
++                  </packing>
++                </child>
 +                <child>
 +                  <widget class="GtkRadioButton" id="no_effects_button">
 +                    <property name="visible">True</property>
@@ -1246,6 +1307,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.25.90/capplets/appearance/d
 +                    <property name="expand">False</property>
 +                    <property name="fill">False</property>
 +                    <property name="padding">6</property>
++                    <property name="position">1</property>
 +                  </packing>
 +                </child>
 +                <child>
@@ -1292,7 +1354,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.25.90/capplets/appearance/d
 +                    <property name="expand">False</property>
 +                    <property name="fill">False</property>
 +                    <property name="padding">6</property>
-+                    <property name="position">1</property>
++                    <property name="position">2</property>
 +                  </packing>
 +                </child>
 +                <child>
@@ -1339,7 +1401,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.25.90/capplets/appearance/d
 +                    <property name="expand">False</property>
 +                    <property name="fill">False</property>
 +                    <property name="padding">6</property>
-+                    <property name="position">2</property>
++                    <property name="position">3</property>
 +                  </packing>
 +                </child>
 +                <child>
@@ -1451,7 +1513,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.25.90/capplets/appearance/d
 +                  <packing>
 +                    <property name="expand">False</property>
 +                    <property name="fill">False</property>
-+                    <property name="position">3</property>
++                    <property name="position">4</property>
 +                  </packing>
 +                </child>
 +              </widget>
@@ -1474,9 +1536,9 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.25.90/capplets/appearance/d
            </widget>
            <packing>
              <property name="position">1</property>
-diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.25.90/capplets/appearance/Makefile.am gnome-control-center-2.25.90.new/capplets/appearance/Makefile.am
---- gnome-control-center-2.25.90/capplets/appearance/Makefile.am	2009-02-20 18:06:26.000000000 +0100
-+++ gnome-control-center-2.25.90.new/capplets/appearance/Makefile.am	2009-02-20 18:06:29.000000000 +0100
+diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.25.92/capplets/appearance/Makefile.am gnome-control-center-2.25.92.new/capplets/appearance/Makefile.am
+--- gnome-control-center-2.25.92/capplets/appearance/Makefile.am	2009-03-10 23:03:02.111678979 +0000
++++ gnome-control-center-2.25.92.new/capplets/appearance/Makefile.am	2009-03-10 23:03:06.586684388 +0000
 @@ -9,6 +9,8 @@
  	appearance.h \
  	appearance-desktop.c \
@@ -1486,9 +1548,9 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.25.90/capplets/appearance/M
  	appearance-font.c \
  	appearance-font.h \
  	appearance-main.c \
-diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.25.90/po/POTFILES.in gnome-control-center-2.25.90.new/po/POTFILES.in
---- gnome-control-center-2.25.90/po/POTFILES.in	2009-02-20 18:06:27.000000000 +0100
-+++ gnome-control-center-2.25.90.new/po/POTFILES.in	2009-02-20 18:06:29.000000000 +0100
+diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.25.92/po/POTFILES.in gnome-control-center-2.25.92.new/po/POTFILES.in
+--- gnome-control-center-2.25.92/po/POTFILES.in	2009-03-10 23:03:01.943708112 +0000
++++ gnome-control-center-2.25.92.new/po/POTFILES.in	2009-03-10 23:03:06.586684388 +0000
 @@ -14,6 +14,7 @@
  capplets/accessibility/at-properties/at-properties.desktop.in.in
  capplets/accessibility/at-properties/main.c
