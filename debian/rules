@@ -1,7 +1,7 @@
 #!/usr/bin/make -f
 
 include /usr/share/cdbs/1/rules/debhelper.mk
-include /usr/share/cdbs/1/rules/simple-patchsys.mk
+include /usr/share/cdbs/1/rules/patchsys-quilt.mk
 include /usr/share/cdbs/1/rules/utils.mk
 include /usr/share/cdbs/1/class/gnome.mk
 include /usr/share/gnome-pkg-tools/1/rules/uploaders.mk
@@ -22,6 +22,7 @@ DEB_CONFIGURE_EXTRA_FLAGS += --disable-mime-cache \
 DEB_INSTALL_MANPAGES_gnome-control-center += debian/gnome-control-center.1
 
 DEB_DH_MAKESHLIBS_ARGS_gnome-control-center = --no-act
+DEB_DH_MAKESHLIBS_ARGS_libgnome-window-settings1 = -V "libgnome-window-settings1 (>= 1:2.17.5)"
 
 build/gnome-control-center:: $(DEB_INSTALL_MANPAGES_gnome-control-center)
 
@@ -35,9 +36,7 @@ pre-build::
 clean::
 	rm -f $(DEB_INSTALL_MANPAGES_gnome-control-center)
 
-install/capplets-data::
-	rm -rf debian/tmp/etc/gconf/schemas/control-center.schemas
-
 binary-post-install/capplets-data::
 	rm -rf debian/capplets-data/usr/share/applications/mimeinfo.cache
+	rm -rf debian/capplets-data/usr/share/pkgconfig
 	dh_installmime -p$(cdbs_curpkg)
