@@ -1,0 +1,172 @@
+--- gnome-control-center-2.25.92.orig/debian/patches/112_screen_resolution_fit_500_vertical.patch
++++ gnome-control-center-2.25.92/debian/patches/112_screen_resolution_fit_500_vertical.patch
+@@ -0,0 +1,168 @@
++#
++# Ubuntu: https://bugs.launchpad.net/bugs/224229
++# Upstream: http://bugzilla.gnome.org/show_bug.cgi?id=545120
++# Patch: http://bugzilla.gnome.org/attachment.cgi?id=130847&action=view
++# Description: Make Display capplet fit in smaller screens
++#
++diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.25.92/capplets/display/display-capplet.glade gnome-control-center-2.25.92.new/capplets/display/display-capplet.glade
++--- gnome-control-center-2.25.92/capplets/display/display-capplet.glade	2009-03-17 15:50:52.000000000 -0400
+++++ gnome-control-center-2.25.92.new/capplets/display/display-capplet.glade	2009-03-17 15:51:30.000000000 -0400
++@@ -218,34 +218,13 @@
++ 	  <child>
++ 	    <widget class="GtkTable" id="table1">
++ 	      <property name="visible">True</property>
++-	      <property name="n_rows">3</property>
+++	      <property name="n_rows">2</property>
++ 	      <property name="n_columns">5</property>
++ 	      <property name="homogeneous">False</property>
++ 	      <property name="row_spacing">6</property>
++ 	      <property name="column_spacing">12</property>
++ 
++ 	      <child>
++-		<widget class="GtkCheckButton" id="panel_checkbox">
++-		  <property name="can_focus">True</property>
++-		  <property name="label" translatable="yes">Include _panel</property>
++-		  <property name="use_underline">True</property>
++-		  <property name="relief">GTK_RELIEF_NORMAL</property>
++-		  <property name="focus_on_click">True</property>
++-		  <property name="active">False</property>
++-		  <property name="inconsistent">False</property>
++-		  <property name="draw_indicator">True</property>
++-		</widget>
++-		<packing>
++-		  <property name="left_attach">3</property>
++-		  <property name="right_attach">5</property>
++-		  <property name="top_attach">1</property>
++-		  <property name="bottom_attach">2</property>
++-		  <property name="x_options">shrink|fill</property>
++-		  <property name="y_options"></property>
++-		</packing>
++-	      </child>
++-
++-	      <child>
++ 		<widget class="GtkLabel" id="label2">
++ 		  <property name="visible">True</property>
++ 		  <property name="label" translatable="yes">_Resolution:</property>
++@@ -292,10 +271,10 @@
++ 		  <property name="angle">0</property>
++ 		</widget>
++ 		<packing>
++-		  <property name="left_attach">1</property>
++-		  <property name="right_attach">2</property>
++-		  <property name="top_attach">2</property>
++-		  <property name="bottom_attach">3</property>
+++		  <property name="left_attach">3</property>
+++		  <property name="right_attach">4</property>
+++		  <property name="top_attach">0</property>
+++		  <property name="bottom_attach">1</property>
++ 		  <property name="x_options">shrink|fill</property>
++ 		  <property name="y_options"></property>
++ 		</packing>
++@@ -322,8 +301,8 @@
++ 		<packing>
++ 		  <property name="left_attach">3</property>
++ 		  <property name="right_attach">4</property>
++-		  <property name="top_attach">2</property>
++-		  <property name="bottom_attach">3</property>
+++		  <property name="top_attach">1</property>
+++		  <property name="bottom_attach">2</property>
++ 		  <property name="x_options">shrink|fill</property>
++ 		  <property name="y_options"></property>
++ 		</packing>
++@@ -352,10 +331,10 @@
++ 		  <property name="focus_on_click">True</property>
++ 		</widget>
++ 		<packing>
++-		  <property name="left_attach">2</property>
++-		  <property name="right_attach">3</property>
++-		  <property name="top_attach">2</property>
++-		  <property name="bottom_attach">3</property>
+++		  <property name="left_attach">4</property>
+++		  <property name="right_attach">5</property>
+++		  <property name="top_attach">0</property>
+++		  <property name="bottom_attach">1</property>
++ 		  <property name="y_options"></property>
++ 		</packing>
++ 	      </child>
++@@ -374,8 +353,8 @@
++ 		<packing>
++ 		  <property name="left_attach">4</property>
++ 		  <property name="right_attach">5</property>
++-		  <property name="top_attach">2</property>
++-		  <property name="bottom_attach">3</property>
+++		  <property name="top_attach">1</property>
+++		  <property name="bottom_attach">2</property>
++ 		  <property name="y_options"></property>
++ 		</packing>
++ 	      </child>
++@@ -400,7 +379,7 @@
++ 		  <property name="left_attach">0</property>
++ 		  <property name="right_attach">1</property>
++ 		  <property name="top_attach">0</property>
++-		  <property name="bottom_attach">3</property>
+++		  <property name="bottom_attach">2</property>
++ 		  <property name="y_options">fill</property>
++ 		</packing>
++ 	      </child>
++@@ -452,7 +431,7 @@
++ 		</widget>
++ 		<packing>
++ 		  <property name="left_attach">1</property>
++-		  <property name="right_attach">5</property>
+++		  <property name="right_attach">3</property>
++ 		  <property name="top_attach">0</property>
++ 		  <property name="bottom_attach">1</property>
++ 		  <property name="x_options">fill</property>
++diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.25.92/capplets/display/xrandr-capplet.c gnome-control-center-2.25.92.new/capplets/display/xrandr-capplet.c
++--- gnome-control-center-2.25.92/capplets/display/xrandr-capplet.c	2009-03-17 15:50:52.000000000 -0400
+++++ gnome-control-center-2.25.92.new/capplets/display/xrandr-capplet.c	2009-03-17 15:51:30.000000000 -0400
++@@ -56,7 +56,6 @@
++     GtkWidget	   *resolution_combo;
++     GtkWidget	   *refresh_combo;
++     GtkWidget	   *rotation_combo;
++-    GtkWidget	   *panel_checkbox;
++     GtkWidget	   *clone_checkbox;
++     GtkWidget	   *show_icon_checkbox;
++ 
++@@ -648,7 +647,6 @@
++ #if 0
++     g_debug ("sensitive: %d, on: %d", sensitive, app->current_output->on);
++ #endif
++-    gtk_widget_set_sensitive (app->panel_checkbox, sensitive);
++ 
++     app->ignore_gui_changes = FALSE;
++ 
++@@ -914,8 +912,8 @@
++     }
++ }
++ 
++-#define SPACE 15
++-#define MARGIN  15
+++#define SPACE 5
+++#define MARGIN 5
++ 
++ static GList *
++ list_connected_outputs (App *app, int *total_w, int *total_h)
++@@ -2214,21 +2212,17 @@
++ 
++     g_signal_connect (app->show_icon_checkbox, "toggled", G_CALLBACK (on_show_icon_toggled), app);
++ 
++-    app->panel_checkbox = glade_xml_get_widget (xml, "panel_checkbox");
++-
++     make_text_combo (app->resolution_combo, 4);
++     make_text_combo (app->refresh_combo, 3);
++     make_text_combo (app->rotation_combo, -1);
++ 
++-    g_assert (app->panel_checkbox);
++-
++     /* Scroll Area */
++     app->area = (GtkWidget *)foo_scroll_area_new ();
++ 
++     g_object_set_data (G_OBJECT (app->area), "app", app);
++ 
++     /* FIXME: this should be computed dynamically */
++-    foo_scroll_area_set_min_size (FOO_SCROLL_AREA (app->area), -1, 200);
+++    foo_scroll_area_set_min_size (FOO_SCROLL_AREA (app->area), -1, 150);
++     gtk_widget_show (app->area);
++     g_signal_connect (app->area, "paint",
++ 		      G_CALLBACK (on_area_paint), app);
+
