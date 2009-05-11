@@ -3,7 +3,7 @@ Section: gnome
 Priority: optional
 Maintainer: Ubuntu Desktop Team <ubuntu-desktop@lists.ubuntu.com>
 XSBC-Original-Maintainer: Marco Cabizza <marco87@gmail.com>
-Uploaders: Debian GNOME Maintainers <pkg-gnome-maintainers@lists.alioth.debian.org>
+Uploaders: Debian GNOME Maintainers <pkg-gnome-maintainers@lists.alioth.debian.org>, Loic Minier <lool@dooz.org>
 Standards-Version: 3.8.0
 Vcs-Bzr: http://code.launchpad.net/~ubuntu-desktop/gnome-control-center/ubuntu
 Build-Depends: cdbs (>= 0.4.41),
@@ -65,7 +65,7 @@ Architecture: any
 Section: gnome
 Depends: ${shlibs:Depends},
          ${misc:Depends},
-         capplets-data (>= ${gnome:Version}),
+         capplets-data (>= ${source:Version}),
          capplets-data (<< ${gnome:NextVersion}),
          libgnome-window-settings1 (= ${binary:Version}),
          gnome-settings-daemon,
@@ -74,7 +74,7 @@ Depends: ${shlibs:Depends},
          gnome-icon-theme (>= 2.16),
          desktop-file-utils,
          gconf2-common (>= 2.23.2-0ubuntu3),
-	 ubuntu-system-service (>= 0.1.10)
+         ubuntu-system-service (>= 0.1.10)
 Recommends: bzip2,
             evolution-data-server,
             gnome-user-guide,
@@ -104,6 +104,7 @@ Architecture: all
 Section: gnome
 Depends: scrollkeeper, ${misc:Depends}
 Recommends: gnome-control-center (>= ${source:Version})
+Breaks: gnome-control-center (<< ${source:Version})
 Description: configuration applets for GNOME 2 - data files
  This package contains data files (icons, pixmaps, locales files) needed by
  the configuration applets in the gnome-control-center package.
