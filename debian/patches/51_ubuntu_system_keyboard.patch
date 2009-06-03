@@ -1,6 +1,6 @@
-diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.25.90/capplets/keyboard/gnome-keyboard-properties.glade gnome-control-center-2.25.90.new/capplets/keyboard/gnome-keyboard-properties.glade
---- gnome-control-center-2.25.90/capplets/keyboard/gnome-keyboard-properties.glade	2009-02-11 15:26:48.000000000 +0100
-+++ gnome-control-center-2.25.90.new/capplets/keyboard/gnome-keyboard-properties.glade	2009-02-11 15:26:53.000000000 +0100
+diff -Naur old/capplets/keyboard/gnome-keyboard-properties.glade new/capplets/keyboard/gnome-keyboard-properties.glade
+--- old/capplets/keyboard/gnome-keyboard-properties.glade	2009-03-16 18:14:59.000000000 +0300
++++ new/capplets/keyboard/gnome-keyboard-properties.glade	2009-05-22 22:37:50.000000000 +0400
 @@ -567,6 +567,31 @@
                          <property name="visible">True</property>
                          <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
@@ -33,9 +33,9 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.25.90/capplets/keyboard/gno
                          <child>
                            <widget class="GtkButton" id="xkb_layout_options">
                              <property name="visible">True</property>
-diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.25.90/capplets/keyboard/gnome-keyboard-properties-xkb.c gnome-control-center-2.25.90.new/capplets/keyboard/gnome-keyboard-properties-xkb.c
---- gnome-control-center-2.25.90/capplets/keyboard/gnome-keyboard-properties-xkb.c	2009-02-11 15:26:48.000000000 +0100
-+++ gnome-control-center-2.25.90.new/capplets/keyboard/gnome-keyboard-properties-xkb.c	2009-02-11 15:26:53.000000000 +0100
+diff -Naur old/capplets/keyboard/gnome-keyboard-properties-xkb.c new/capplets/keyboard/gnome-keyboard-properties-xkb.c
+--- old/capplets/keyboard/gnome-keyboard-properties-xkb.c	2008-11-04 19:09:47.000000000 +0300
++++ new/capplets/keyboard/gnome-keyboard-properties-xkb.c	2009-05-22 22:41:03.000000000 +0400
 @@ -30,6 +30,7 @@
  #include <gconf/gconf-client.h>
  #include <glade/glade.h>
@@ -44,7 +44,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.25.90/capplets/keyboard/gno
  
  #include "capplet-util.h"
  #include "gconf-property-editor.h"
-@@ -123,6 +124,154 @@
+@@ -123,6 +124,176 @@
  	xkb_gconf_client = NULL;
  }
  
@@ -73,18 +73,40 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.25.90/capplets/keyboard/gno
 +	// convert so that its apprioriate for the dbus backend
 +	strncpy(model, kbd.model, sizeof(model));
 +
-+	// get default_group
-+	gchar *ndata = (gchar*)g_list_nth_data((GSList*)kbd.layouts_variants, default_group);
-+	// something is wrong with the gconf settings, ignore
-+	if(ndata == NULL) {
-+	   g_printerr("gconf default keyboard group out of range\n");
-+	   return;
++	// Copy GSList layouts and variants into gchar* with commas
++	// Put default layout first - index == -1
++	gchar*  p_variant = variant;
++	gchar*  p_layout = layout;
++	GSList* group = kbd.layouts_variants;
++	gint    index;
++	for (index = -1; group != NULL; index++)
++	{
++		gchar* data;
++		if (index >= 0) {
++			data = (gchar*) group->data;
++			group = g_slist_next(group);
++		} else
++			data = (gchar*)g_slist_nth_data(group, default_group);
++		if (data == NULL || index == default_group)
++			continue;
++		
++		gchar** layout_variant = g_strsplit(data, "\t", -1);
++		strncpy(p_layout, layout_variant[0],
++		        sizeof(layout) - (p_layout-layout+1)*sizeof(gchar));
++		p_layout += strlen(p_layout);
++		(*p_layout++) = ',';
++		
++		if(g_strv_length(layout_variant) > 1) {
++			p_variant = strncpy(p_variant, layout_variant[1],
++			                    sizeof(variant) - (p_variant-variant+1)*sizeof(gchar));
++			p_variant += strlen(p_variant);
++		}
++		(*p_variant++) = ',';
++		
++		g_strfreev(layout_variant);
 +	}
-+	gchar** layout_variant = g_strsplit(ndata, "\t", -1);
-+	strncpy(layout, layout_variant[0], sizeof(layout));
-+	if(g_strv_length(layout_variant) > 1)
-+	   strncpy(variant, layout_variant[1], sizeof(variant));
-+	g_strfreev(layout_variant);
++	(*--p_layout) = 0;
++	(*--p_variant) = 0;
 +
 +	// build options string
 +	GString *options_str = g_string_new("");
@@ -199,7 +221,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.25.90/capplets/keyboard/gno
  static void
  reset_to_defaults (GtkWidget * button, GladeXML * dialog)
  {
-@@ -183,6 +332,11 @@
+@@ -183,6 +354,11 @@
  			  "clicked", G_CALLBACK (reset_to_defaults),
  			  dialog);
  
