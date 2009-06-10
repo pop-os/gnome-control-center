@@ -1,3 +1,96 @@
+gnome-control-center (1:2.26.0-1ubuntu1) UNRELEASED; urgency=low
+
+  * Merge with Debian unstable, remaining changes: (LP: #385413) 
+    - debian/patches/01_fix_libslab_build.patch:
+      - ? removed ?
+    - debian/patches/01_remove_debian_default_applications.patch:
+      - Remove the Debian entries from the default applications.
+    - debian/patches/16_preferred_applications_list_cleanup.patch:
+      - Don't list mozilla alternative as "Mozilla Mail"    
+    - debian/patches/17_default_applications_firefox_3.patch:
+      - Use the correct firefox3 icon
+    - debian/patches/26_add_touchpad_to_mouse_settings.patch:
+      - Recreate touchpad page in glade, the previous file didn't work there
+        for some reason; attempt to make a slight UI improvement in the process.
+      - Add setting to enable/disable touchpad and callbacks to toggle the
+        sensitivity of the other widgets accordingly.
+    - debian/patches/28_fixup_touchpad_config.patch:
+      - Add touchpad configuration
+    - debian/patches/50_ubuntu_systemwide_prefs.patch:
+      - Ubuntu specific preferences
+    - debian/patches/51_ubuntu_system_keyboard.patch:
+      - Implement the global keyboard spec at https://wiki.ubuntu.com/DefaultKeyboardSettings
+    - debian/patches/71_at_properties_gksudo_gdmsetup.patch:
+      - Use gksu to run the gdmsetup command
+    - debian/patches/80_aspect_in_dropdown.patch:
+      - Add aspect ratio to display selection drop-down menu
+    - debian/patches/90_gnome-mouse-properties_small_screen.patch:
+      - Add scrollbar on small screens in mouse properties
+    - debian/patches/91_gnome-about-me_small_screen.patch:
+      - Add scrollbar on small screens in about me
+    - debian/patches/92_display_properties_fit_small_screen.patch:
+      - Make the display properties capplet work correctly on screen which have low vertical resolution
+    - debian/patches/95_desktop-effects-integration.patch:
+      - Add desktop effects tab to the appearance capplet
+    - debian/patches/96_build_sound_capplet.patch:
+      - Reinstate upstream-removed sound capplet
+    - debian/patches/97_subpixel_hinting_defaults.patch:
+      - Change the default hinting level for subpixel rendering from "Full" to "Slight"
+    - debian/patches/98_correct_shell_use.patch:
+      - Correct shell use to fix build issue
+    - debian/patches/70_relibtoolize.patch:
+      - Renamed to 99_autoreconf.patch
+    - debian/patches/99_autoreconf.patch:
+      - Run autoreconf over source
+    - debian/patches/100_at_properties_readd_gksudo_disable_grab_toggle.patch:
+      - "no gksu/disable-grab option per gui in gnome-at-properties"
+    - debian/patches/109_screen_resolution_extra.patch:
+      - Automatically configure Virtual setting
+    - debian/patches/110_screen_resolution_package.patch:
+      - Make it possible to use Synaptic to install screen-resolution-extra from xrandr-capplet.c
+    - debian/patches/111_screen_resolution_vendor_fallback.patch:
+      - Fallback to vendor utilties if they are available and RR1.2 is not supported by the current driver
+    - debian/patches/series: Use cdbs instead of quilt
+    - debian/control.in:
+      - dependencies?
+      - Don't Build-Depends on libslab-dev, type-handling
+      - build-depends on librsvg2-dev, libpango1.0-dev, libgnomekbdui-dev
+      - gnome-control-center depends on ubuntu-system-service, gconf2-common
+      - gnome-control-center recommends mousetweaks, iso-codes
+      - gnome-control-center recommends screen-resolution-extra for 109_screen_resolution_extra.patch
+      - Tighten the deps between capplets-data and gnome-control-center as
+        otherwise Glade / code mismatches can cause breakage: g-c-c depends on
+        capplets-data >= source:Version, not just gnome:Version; capplets-data
+        breaks g-c-c <x source:Version.
+    - debian/capplets-data.gconf-defaults: Don't set a keycode for multimedia keys there, the corresponding schemas
+      is in gnome-settings-daemon now and already has keysyms set
+    - debian/index.theme: Drop the Debian specific Default theme entry, it's confusing
+    - debian/rules:
+      - Use CDBS instead of quilt
+      - Install icons for 95_desktop-effects-integration.patch
+    - debian/visual-effects*.svg: Icons for 95_desktop-effects-integration.patch
+    - debian/watch: Watch for unstable versions
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Wed, 10 Jun 2009 10:57:51 +1000
+
+control-center (1:2.26.0-1) unstable; urgency=low
+
+  * Stop mentioning GNOME 2.
+  * Remove scrollkeeper dependency.
+  * New upstream release.
+  * Update build-dependencies.
+  * Remove build-deps unneeded thanks to the external libslab: librsvg, 
+    pango.
+  * 02_build_libgnome.patch, 06_gnomedesktop_api.patch: removed, fixed 
+    upstream.
+  * 03_a11y_logout.patch: removed, now uses the gnome-session dbus 
+    interface.
+  * 05_ta_po.patch, 70_relibtoolize.patch: updated for the new version.
+  * Install the autostart file in /usr/share/gnome/autostart.
+  * capplets-data.postinst: remove the one in the old location.
+
+ -- Josselin Mouette <joss@debian.org>  Fri, 29 May 2009 13:28:19 +0200
+
 gnome-control-center (1:2.26.0-0ubuntu5) karmic; urgency=low
 
   * Fix system-wide changes of keyboard layouts (LP: #379474)
@@ -258,6 +351,88 @@ gnome-control-center (1:2.25.2-0ubuntu1) jaunty; urgency=low
     - please drop this patch when the code is fixed in svn
 
  -- Michael Vogt <michael.vogt@ubuntu.com>  Tue, 16 Dec 2008 07:23:19 +0100
+
+control-center (1:2.24.0.1-5) unstable; urgency=low
+
+  * Remove useless build-dependency on libeel2-dev.
+
+ -- Josselin Mouette <joss@debian.org>  Sat, 25 Apr 2009 13:18:24 +0200
+
+control-center (1:2.24.0.1-4) unstable; urgency=low
+
+  * Set the team as primary maintainer. Closes: #523535.
+  * 02_build_libgnome.patch: new patch. Fix build failure by linking 
+    explicitly to libgnomeui for stuff incorrectly listing gnome-desktop 
+    only as a requirement. Closes: #524308.
+  * 06_gnomedesktop_api.patch: patch to cope with the API changes in 
+    GnomeRR 2.26.
+  * 70_relibtoolize.patch: regenerated.
+  * Bump build-dependency on gnome-desktop to 2.26.
+
+ -- Josselin Mouette <joss@debian.org>  Thu, 16 Apr 2009 10:34:54 +0200
+
+control-center (1:2.24.0.1-3) unstable; urgency=low
+
+  * capplets-data.gconf-defaults: remove the keybinding settings. Now 
+    that X.org returns correctly the XF86* keys, they must be used 
+    instead.
+  * Add missing shortcuts for Home and Help.
+
+ -- Josselin Mouette <joss@debian.org>  Fri, 10 Apr 2009 20:51:39 +0200
+
+control-center (1:2.24.0.1-2) unstable; urgency=low
+
+  [ Josselin Mouette ]
+  * Depend on gnome-settings-daemon >= 2.24. Closes: #510172.
+  * Standards version is 3.8.1.
+  * Upload to unstable.
+
+  [ Emilio Pozuelo Monfort ]
+  * debian/rules, debian/shlibs.local: Call dh_makeshlibs for libgnome-
+    window-settings1 instead of using shlibs.local. It was likely
+    there to workaround dpkg-dev setting ignoring the dependency from
+    the Depends line and using that of dpkg-shlibdeps, but it's no
+    longer the case. As a side effect, this makes the shlibs
+    file be versioned as it should be.
+
+  [ Loic Minier ]
+  * Demote the scrollkeeper dep of capplets-data to a Suggest on rarian-compat
+    | scrollkeeper; the scrollkeeper dep seems to have been added around 2002
+    due to use of scrollkeeper-update in the postinst.
+
+ -- Josselin Mouette <joss@debian.org>  Tue, 07 Apr 2009 09:11:09 +0200
+
+control-center (1:2.24.0.1-1) experimental; urgency=low
+
+  * 03_a11y_logout.patch: use gnome-panel-logout for logout when 
+    available.
+  * New upstream release.
+    + Correctly sets background without nautilus. Closes: #472902.
+    + The about-me capplet correctly saves emails. Closes: #350651.
+    + Resolutions are sorted in the display capplet. Closes: #509899.
+  * Update build-dependencies.
+  * Build-depend on libeel 2.24 to build against the experimental 
+    version.
+  * Suggest libcanberra-gtk-module instead of esound-clients.
+  * Remove obsolete files: libgnome-settings-daemon-dev.install, 
+    gnome-control-center.dirs.
+  * Switch to quilt for managing patches; build-depend on quilt.
+  * 01_fix_libslab_build.patch: updated for the new version.
+  * 02_xklavier_utf8.patch: dropped, merged upstream
+  * 25_window_manager_settings.patch: don’t patch the Makefile.in’s.
+  * 70_relibtoolize.patch: regenerated.
+  * capplets-data.gconf-defaults: the /music key is renamed to /media.
+  * Don’t remove the GConf schemas in the installation target.
+  * *.install: simplify a lot the installation files.
+    + Remove the pkg-config files in capplets-data.
+  * Remove -1 suffix in build-deps.
+  * 99_ltmain_as-needed.patch: make --as-needed work for the library as 
+    well.
+  * debian/gnome-control-center.postinst: remove gnome-vfs conffiles.
+  * 05_ta_po.patch: new patch. Fix Tamil translation of the GConf 
+    defaults.
+
+ -- Josselin Mouette <joss@debian.org>  Sun, 28 Dec 2008 12:38:50 +0100
 
 gnome-control-center (1:2.24.0.1-0ubuntu7.1) intrepid-proposed; urgency=low
 
@@ -793,6 +968,15 @@ gnome-control-center (1:2.23.3-0ubuntu1) intrepid; urgency=low
     - new xrandr capplet
 
  -- Sebastien Bacher <seb128@canonical.com>  Fri, 06 Jun 2008 15:04:15 +0200
+
+control-center (1:2.22.2.1-2) unstable; urgency=low
+
+  * 02_xklavier_utf8.patch: patch from upstream to accommodate the UTF8
+    changes in libxklavier 3.5-2.
+  * Standards version is 3.8.0, no changes.
+  * Suggest x11-xserver-utils for xrdb instead of xbase-clients.
+
+ -- Josselin Mouette <joss@debian.org>  Wed, 10 Sep 2008 12:34:52 +0200
 
 control-center (1:2.22.2.1-1) unstable; urgency=low
 

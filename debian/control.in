@@ -4,60 +4,49 @@ Priority: optional
 Maintainer: Ubuntu Desktop Team <ubuntu-desktop@lists.ubuntu.com>
 XSBC-Original-Maintainer: Marco Cabizza <marco87@gmail.com>
 Uploaders: @GNOME_TEAM@
-Standards-Version: 3.8.0
+Standards-Version: 3.8.1
 Vcs-Bzr: http://code.launchpad.net/~ubuntu-desktop/gnome-control-center/ubuntu
 Build-Depends: cdbs (>= 0.4.41),
                gnome-pkg-tools (>= 0.10),
                dpkg-dev (>= 1.13.19),
                debhelper (>= 5.0.0),
-               libgtk2.0-dev (>= 2.11.6),
-               libgnomeui-dev (>= 2.16.0-2),
-               intltool (>= 0.35.5),
-               libglade2-dev (>= 2.4.0-1),
-               libgnome-desktop-dev (>= 1:2.25),
-               zlib1g-dev,
-               flex,
-               libmetacity-dev (>= 1:2.23.1),
-               libxcursor-dev,
-               libbonobo2-dev (>= 2.6.2-6),
-               libnautilus-extension-dev (>= 1:2.21.6),
-               libxrandr-dev,
                docbook-to-man,
-               libgstreamer0.10-dev (>= 0.10.1.2),
-               libgstreamer-plugins-base0.10-dev (>= 0.10.1.2),
                autotools-dev,
-               libxss-dev,
-               libxinerama-dev,
-               libxft-dev (>= 2.1.2),
-               libxxf86misc-dev,
-               libxkbfile-dev,
-               libebook1.2-dev (>= 1.7.90),
-               desktop-file-utils,
                gnome-doc-utils (>= 0.3.2),
-               libgnome-menu-dev (>= 2.12.0),
-               libx11-dev,
-               libxrender-dev,
-               libgconf2-dev,
-               libbonoboui2-dev,
-               libesd0-dev,
-               libgnomevfs2-dev,
-               libfontconfig1-dev,
-               libfreetype6-dev,
-               libglib2.0-dev (>= 2.16.0),
+               intltool (>= 0.37.1),
                libxt-dev,
-               libhal-dev (>= 0.5.6),
+               libx11-dev,
+               libxss-dev,
+               libxxf86misc-dev,
+               libcanberra-gtk-dev,
+               libgtk2.0-dev (>= 2.13.1),
+               libglib2.0-dev (>= 2.17.4),
+               libgconf2-dev,
+               libgnomeui-dev (>= 2.16.0-2),
+               libglade2-dev (>= 1:2.4.0),
+               libgnome-desktop-dev (>= 2.25.1),
+               libgnome-menu-dev (>= 2.10.1),
+               libpanel-applet2-dev,
                libdbus-1-dev (>= 0.32),
                libdbus-glib-1-dev (>= 0.32),
-               librsvg2-dev,
-               libpanel-applet2-dev,
-               libgnomekbd-dev (>= 2.21.4.1),
-               shared-mime-info,
-               libpango1.0-dev (>= 1.17),
-               libgnomekbdui-dev (>= 2.21.4.1),
-               scrollkeeper,
-               libxklavier12-dev (>= 3.6),
+               libxml2-dev,
+               libmetacity-dev (>= 1:2.23.1),
                gnome-settings-daemon-dev (>= 2.22.0),
-               libcanberra-gtk-dev
+               libxft-dev (>= 2.1.2),
+               libxrender-dev,
+               libxrandr-dev,
+               libxcursor-dev,
+               libgnomekbd-dev (>= 2.24),
+               libxklavier12-dev (>= 3.6),
+               libebook1.2-dev (>= 1.7.90),
+               libpolkit-gnome-dev,
+               libhal-dev (>= 0.5.6),
+               desktop-file-utils,
+               shared-mime-info,
+               scrollkeeper,
+               librsvg2-dev,
+               libpango1.0-dev (>= 1.17),
+               libgnomekbdui-dev (>= 2.21.4.1)
 
 Package: gnome-control-center
 Architecture: any
@@ -67,28 +56,27 @@ Depends: ${shlibs:Depends},
          capplets-data (>= ${source:Version}),
          capplets-data (<< ${gnome:NextVersion}),
          libgnome-window-settings1 (= ${binary:Version}),
-         gnome-settings-daemon,
+         gnome-settings-daemon (>= 2.24),
          gnome-menus (>= 2.12.0),
          gnome-desktop-data,
-         gnome-icon-theme (>= 2.16),
+         gnome-icon-theme (>= 2.24),
          desktop-file-utils,
          gconf2-common (>= 2.23.2-0ubuntu3),
          ubuntu-system-service (>= 0.1.10)
 Recommends: bzip2,
             evolution-data-server,
             gnome-user-guide,
-            mousetweaks,
             gnome-session,
+            mousetweaks,
             screen-resolution-extra,
             iso-codes
 Replaces: capplets
 Conflicts: capplets,
            gnome-session (<< 2.22.0)
-Suggests: esound-clients,
+Suggests: libcanberra-gtk-module,
           gnome-screensaver | xscreensaver,
-          xbase-clients,
-          gstreamer0.10-alsa | gstreamer0.10-audiosink,
-          xrdb
+          x11-xserver-utils,
+          gstreamer0.10-alsa | gstreamer0.10-audiosink
 Description: utilities to configure the GNOME desktop
  This package contains configuration applets for the GNOME desktop,
  allowing to set accessibility configuration, desktop fonts, keyboard
@@ -101,10 +89,10 @@ Description: utilities to configure the GNOME desktop
 Package: capplets-data
 Architecture: all
 Section: gnome
-Depends: scrollkeeper, ${misc:Depends}
+Depends: ${misc:Depends}
 Recommends: gnome-control-center (>= ${source:Version})
 Breaks: gnome-control-center (<< ${source:Version})
-Description: configuration applets for GNOME 2 - data files
+Description: configuration applets for GNOME - data files
  This package contains data files (icons, pixmaps, locales files) needed by
  the configuration applets in the gnome-control-center package.
 

@@ -22,6 +22,7 @@ DEB_CONFIGURE_EXTRA_FLAGS += --disable-mime-cache \
 DEB_INSTALL_MANPAGES_gnome-control-center += debian/gnome-control-center.1
 
 DEB_DH_MAKESHLIBS_ARGS_gnome-control-center = --no-act
+DEB_DH_MAKESHLIBS_ARGS_libgnome-window-settings1 = -V "libgnome-window-settings1 (>= 1:2.17.5)"
 
 build/gnome-control-center:: $(DEB_INSTALL_MANPAGES_gnome-control-center)
 
@@ -43,4 +44,5 @@ install/capplets-data::
 
 binary-post-install/capplets-data::
 	rm -rf debian/capplets-data/usr/share/applications/mimeinfo.cache
+	rm -rf debian/capplets-data/usr/share/pkgconfig
 	dh_installmime -p$(cdbs_curpkg)
