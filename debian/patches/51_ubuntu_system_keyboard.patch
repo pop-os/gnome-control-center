@@ -1,6 +1,6 @@
-diff -Naur old/capplets/keyboard/gnome-keyboard-properties.glade new/capplets/keyboard/gnome-keyboard-properties.glade
---- old/capplets/keyboard/gnome-keyboard-properties.glade	2009-03-16 18:14:59.000000000 +0300
-+++ new/capplets/keyboard/gnome-keyboard-properties.glade	2009-05-22 22:37:50.000000000 +0400
+diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.26.0/capplets/keyboard/gnome-keyboard-properties.glade gnome-control-center-2.26.0.new/capplets/keyboard/gnome-keyboard-properties.glade
+--- gnome-control-center-2.26.0/capplets/keyboard/gnome-keyboard-properties.glade	2009-07-14 13:23:20.831914952 +0200
++++ gnome-control-center-2.26.0.new/capplets/keyboard/gnome-keyboard-properties.glade	2009-07-14 13:23:24.051915598 +0200
 @@ -567,6 +567,31 @@
                          <property name="visible">True</property>
                          <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
@@ -33,9 +33,9 @@ diff -Naur old/capplets/keyboard/gnome-keyboard-properties.glade new/capplets/ke
                          <child>
                            <widget class="GtkButton" id="xkb_layout_options">
                              <property name="visible">True</property>
-diff -Naur old/capplets/keyboard/gnome-keyboard-properties-xkb.c new/capplets/keyboard/gnome-keyboard-properties-xkb.c
---- old/capplets/keyboard/gnome-keyboard-properties-xkb.c	2008-11-04 19:09:47.000000000 +0300
-+++ new/capplets/keyboard/gnome-keyboard-properties-xkb.c	2009-05-22 22:41:03.000000000 +0400
+diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.26.0/capplets/keyboard/gnome-keyboard-properties-xkb.c gnome-control-center-2.26.0.new/capplets/keyboard/gnome-keyboard-properties-xkb.c
+--- gnome-control-center-2.26.0/capplets/keyboard/gnome-keyboard-properties-xkb.c	2009-07-14 13:23:20.859917962 +0200
++++ gnome-control-center-2.26.0.new/capplets/keyboard/gnome-keyboard-properties-xkb.c	2009-07-14 13:23:53.687192238 +0200
 @@ -30,6 +30,7 @@
  #include <gconf/gconf-client.h>
  #include <glade/glade.h>
@@ -44,7 +44,7 @@ diff -Naur old/capplets/keyboard/gnome-keyboard-properties-xkb.c new/capplets/ke
  
  #include "capplet-util.h"
  #include "gconf-property-editor.h"
-@@ -123,6 +124,176 @@
+@@ -123,6 +124,142 @@
  	xkb_gconf_client = NULL;
  }
  
@@ -147,40 +147,6 @@ diff -Naur old/capplets/keyboard/gnome-keyboard-properties-xkb.c new/capplets/ke
 +	   return;
 +	}
 +
-+	dbus_proxy = dbus_g_proxy_new_for_name (sessionbus,
-+						"org.freedesktop.PolicyKit.AuthenticationAgent",
-+						"/",
-+						"org.freedesktop.PolicyKit.AuthenticationAgent");
-+	if (dbus_proxy == NULL) {
-+	   g_printerr ("Failed to get proxy: %s\n",
-+                  error->message);
-+	   g_error_free (error);
-+	   return;
-+	}
-+
-+	if (!dbus_g_proxy_call (dbus_proxy, "ObtainAuthorization", &error, 
-+				G_TYPE_STRING, "com.ubuntu.systemservice.setkeyboard",			   
-+				G_TYPE_UINT, 0,
-+				G_TYPE_UINT, getpid(),
-+				G_TYPE_INVALID,
-+				G_TYPE_BOOLEAN, &res, G_TYPE_INVALID))
-+	   {
-+	      if (error->domain == DBUS_GERROR && 
-+		  error->code == DBUS_GERROR_REMOTE_EXCEPTION)
-+		 g_printerr ("Caught remote method exception %s: %s",
-+			     dbus_g_error_get_name (error),
-+			     error->message);
-+	      else
-+		 g_printerr ("Error: %s\n", error->message);
-+	      g_error_free (error);
-+	      return;
-+	   }
-+	g_object_unref (dbus_proxy);
-+	g_print("ObtainAuth returned: %i\n", res);
-+	// so we get a "0" here too if the auth is not required ?!?
-+	//   if(!res)
-+	//   return;
-+   
 +	systembus = dbus_g_bus_get (DBUS_BUS_SYSTEM, &error);
 +	dbus_proxy = dbus_g_proxy_new_for_name (systembus,
 +						"com.ubuntu.SystemService",
@@ -221,7 +187,7 @@ diff -Naur old/capplets/keyboard/gnome-keyboard-properties-xkb.c new/capplets/ke
  static void
  reset_to_defaults (GtkWidget * button, GladeXML * dialog)
  {
-@@ -183,6 +354,11 @@
+@@ -183,6 +320,11 @@
  			  "clicked", G_CALLBACK (reset_to_defaults),
  			  dialog);
  
