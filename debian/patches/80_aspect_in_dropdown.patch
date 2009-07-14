@@ -1,12 +1,12 @@
 # Description: add aspect ratio estimates to resolution drop-down menu
 # Upstream: http://bugzilla.gnome.org/show_bug.cgi?id=549642
 #
-diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.25.2/capplets/display/xrandr-capplet.c gnome-control-center-2.25.2-patched/capplets/display/xrandr-capplet.c
---- gnome-control-center-2.25.2/capplets/display/xrandr-capplet.c	2008-10-09 11:58:09.000000000 +0200
-+++ gnome-control-center-2.25.2-patched/capplets/display/xrandr-capplet.c	2008-12-16 22:05:15.000000000 +0100
-@@ -441,6 +441,49 @@
+diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.3/capplets/display/xrandr-capplet.c gnome-control-center-2.27.3.new/capplets/display/xrandr-capplet.c
+--- gnome-control-center-2.27.3/capplets/display/xrandr-capplet.c	2009-07-13 19:50:30.472644920 +0100
++++ gnome-control-center-2.27.3.new/capplets/display/xrandr-capplet.c	2009-07-13 19:50:32.716647960 +0100
+@@ -438,6 +438,49 @@
+ 	combo_select (app->rotation_combo, _("Normal"));
  }
- #endif
  
 +static const char *
 +generate_mode_text (int width, int height)
@@ -52,9 +52,9 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.25.2/capplets/display/xrand
 +
 +
  static void
- rebuild_resolution_combo (App *app)
+ rebuild_rate_combo (App *app)
  {
-@@ -464,7 +507,7 @@
+@@ -630,7 +673,7 @@
  	height = gnome_rr_mode_get_height (modes[i]);
  
  	add_key (app->resolution_combo,
@@ -63,7 +63,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.25.2/capplets/display/xrand
  		 width, height, 0, -1);
  
  	if (width * height > best_w * best_h)
-@@ -483,17 +526,15 @@
+@@ -640,15 +683,13 @@
  	}
      }
  

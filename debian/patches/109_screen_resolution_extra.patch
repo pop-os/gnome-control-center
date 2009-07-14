@@ -1,6 +1,6 @@
-diff -Nur gnome-control-center-2.25.92.orig/capplets/display/xrandr-capplet.c gnome-control-center-2.25.92/capplets/display/xrandr-capplet.c
---- gnome-control-center-2.25.92.orig/capplets/display/xrandr-capplet.c	2009-03-04 10:03:32.000000000 +0100
-+++ gnome-control-center-2.25.92/capplets/display/xrandr-capplet.c	2009-03-04 10:45:01.000000000 +0100
+diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.3/capplets/display/xrandr-capplet.c gnome-control-center-2.27.3.new/capplets/display/xrandr-capplet.c
+--- gnome-control-center-2.27.3/capplets/display/xrandr-capplet.c	2009-07-13 19:21:04.957646582 +0100
++++ gnome-control-center-2.27.3.new/capplets/display/xrandr-capplet.c	2009-07-13 19:42:54.953646616 +0100
 @@ -35,6 +35,7 @@
  #include <gconf/gconf-client.h>
  #include <dbus/dbus-glib.h>
@@ -9,7 +9,7 @@ diff -Nur gnome-control-center-2.25.92.orig/capplets/display/xrandr-capplet.c gn
  
  typedef struct App App;
  typedef struct GrabInfo GrabInfo;
-@@ -92,6 +93,64 @@
+@@ -104,6 +105,64 @@
      gtk_widget_destroy (dialog);
  }
  
@@ -74,7 +74,7 @@ diff -Nur gnome-control-center-2.25.92.orig/capplets/display/xrandr-capplet.c gn
  static gboolean
  do_free (gpointer data)
  {
-@@ -1656,39 +1715,14 @@
+@@ -1689,39 +1748,14 @@
      }
  }
  
@@ -116,7 +116,7 @@ diff -Nur gnome-control-center-2.25.92.orig/capplets/display/xrandr-capplet.c gn
  
      gnome_rr_screen_get_ranges (app->screen, &min_width, &max_width, &min_height, &max_height);
  
-@@ -1703,11 +1737,116 @@
+@@ -1736,11 +1770,116 @@
      if (!(min_width <= req_width && req_width <= max_width
  	  && min_height <= req_height && req_height <= max_height))
      {
@@ -233,28 +233,25 @@ diff -Nur gnome-control-center-2.25.92.orig/capplets/display/xrandr-capplet.c gn
 +        return TRUE;
  }
  
- /* Callback for dbus_g_proxy_begin_call() */
-@@ -1747,45 +1886,52 @@
+ static void
+@@ -1866,33 +2005,38 @@
  
      gnome_rr_config_sanitize (app->current_configuration);
  
 -    check_required_virtual_size (app);
 -
 -    foo_scroll_area_invalidate (FOO_SCROLL_AREA (app->area));
-+    /* Don't try to apply the settings unless the framebuffer
-+     * is enough. The user will be notified in 
++	/* Don't try to apply the settings unless the framebuffer
++	 * is enough. The user will be notified in 
 +     * check_required_virtual_size()
 +     */
 +	if (app->current_configuration->clone || check_required_virtual_size (app))
- 
--    if (!gnome_rr_config_save (app->current_configuration, &error))
-     {
--	error_message (app, _("Could not save the monitor configuration"), error->message);
--	g_error_free (error);
--	return;
--    }
++	{
 +        foo_scroll_area_invalidate (FOO_SCROLL_AREA (app->area));
-+    
+ 
+-    ensure_current_configuration_is_saved ();
++    	ensure_current_configuration_is_saved ();
++    	    
 +        if (!gnome_rr_config_save (app->current_configuration, &error))
 +        {
 +            error_message (app, _("Could not save the monitor configuration"), error->message);
@@ -273,6 +270,14 @@ diff -Nur gnome-control-center-2.25.92.orig/capplets/display/xrandr-capplet.c gn
 +	    return;
 +        }
  
+-    if (!gnome_rr_config_save (app->current_configuration, &error))
+-    {
+-	error_message (app, _("Could not save the monitor configuration"), error->message);
+-	g_error_free (error);
+-	return;
+-    }
++	    gtk_widget_set_sensitive (app->dialog, FALSE);
+ 
 -    g_assert (app->connection == NULL);
 -    g_assert (app->proxy == NULL);
 -    g_assert (app->proxy_call == NULL);
@@ -282,42 +287,12 @@ diff -Nur gnome-control-center-2.25.92.orig/capplets/display/xrandr-capplet.c gn
 -	error_message (app, _("Could not get session bus while applying display configuration"), error->message);
 -	g_error_free (error);
 -	return;
--    }
-+        app->proxy = dbus_g_proxy_new_for_name (app->connection,
-+	    				    "org.gnome.SettingsDaemon",
-+	    				    "/org/gnome/SettingsDaemon/XRANDR",
-+		    			    "org.gnome.SettingsDaemon.XRANDR");
-+
-+        if (!app->proxy) {
-+	    error_message (app, _("Could not get org.gnome.SettingsDaemon.XRANDR"), NULL);
-+	    dbus_g_connection_unref (app->connection);
-+	    app->connection = NULL;
-+	    return;
-+        }
- 
--    app->proxy = dbus_g_proxy_new_for_name (app->connection,
--					    "org.gnome.SettingsDaemon",
--					    "/org/gnome/SettingsDaemon/XRANDR",
--					    "org.gnome.SettingsDaemon.XRANDR");
--    if (!app->proxy) {
--	error_message (app, _("Could not get org.gnome.SettingsDaemon.XRANDR"), NULL);
--	dbus_g_connection_unref (app->connection);
--	app->connection = NULL;
--	return;
-+        gtk_widget_set_sensitive (app->dialog, FALSE);
-+        app->proxy_call = dbus_g_proxy_begin_call (app->proxy, "ApplyConfiguration",
-+							   apply_configuration_returned_cb, app,
-+							   NULL,
-+							   G_TYPE_INVALID,
-+							   G_TYPE_INVALID);
++    	begin_version2_apply_configuration (app, gtk_widget_get_window (app->dialog), app->apply_button_clicked_timestamp);
      }
 -
 -    gtk_widget_set_sensitive (app->dialog, FALSE);
--    app->proxy_call = dbus_g_proxy_begin_call (app->proxy, "ApplyConfiguration",
--					       apply_configuration_returned_cb, app,
--					       NULL,
--					       G_TYPE_INVALID,
--					       G_TYPE_INVALID);
+-
+-    begin_version2_apply_configuration (app, gtk_widget_get_window (app->dialog), app->apply_button_clicked_timestamp);
  }
  
  #if 0

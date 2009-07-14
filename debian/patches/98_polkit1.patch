@@ -1,0 +1,98 @@
+diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.3/capplets/about-me/gnome-about-me.c gnome-control-center-2.27.3.new/capplets/about-me/gnome-about-me.c
+--- gnome-control-center-2.27.3/capplets/about-me/gnome-about-me.c	2009-07-14 21:57:34.989857651 +0100
++++ gnome-control-center-2.27.3.new/capplets/about-me/gnome-about-me.c	2009-07-14 21:57:37.256858839 +0100
+@@ -36,10 +36,6 @@
+ #define GNOME_DESKTOP_USE_UNSTABLE_API
+ #include <libgnomeui/gnome-desktop-thumbnail.h>
+ 
+-#ifdef HAVE_POLKIT
+-#include <polkit-gnome/polkit-gnome.h>
+-#endif
+-
+ #include "e-image-chooser.h"
+ #include "gnome-about-me-password.h"
+ #include "gnome-about-me-fingerprint.h"
+@@ -167,28 +163,6 @@
+ 	gtk_widget_destroy (dialog);
+ }
+ 
+-#ifdef HAVE_POLKIT
+-static GtkWidget *
+-create_fingerprint_button (const char *msg, const char *name)
+-{
+-	GtkWidget *button;
+-	PolKitAction *action;
+-	PolKitGnomeAction *gaction;
+-
+-	action = polkit_action_new_from_string_representation ("net.reactivated.fprint.device.enroll");
+-	gaction = polkit_gnome_action_new_default (name,
+-						   action,
+-						   msg,
+-						   NULL);
+-	polkit_action_unref (action);
+-
+-	button = polkit_gnome_action_create_button (gaction);
+-	g_object_unref (gaction);
+-
+-	return button;
+-}
+-#endif /* HAVE_POLKIT */
+-
+ /********************/
+ static void
+ about_me_destroy (GnomeAboutMe *me)
+@@ -1109,19 +1083,8 @@
+ 	g_signal_connect (widget, "clicked",
+ 			  G_CALLBACK (about_me_image_clicked_cb), me);
+ 
+-#ifdef HAVE_POLKIT
+-	gtk_widget_destroy (WID ("enable_fingerprint_button"));
+-	gtk_widget_destroy (WID ("disable_fingerprint_button"));
+-
+-	me->enable_fingerprint_button = create_fingerprint_button (_("Enable _Fingerprint Login..."), "enable-action");
+-	gtk_container_add (GTK_CONTAINER (WID("buttons_vbox")), me->enable_fingerprint_button);
+-
+-	me->disable_fingerprint_button = create_fingerprint_button (_("Disable _Fingerprint Login..."), "disable-action");
+-	gtk_container_add (GTK_CONTAINER (WID("buttons_vbox")), me->disable_fingerprint_button);
+-#else
+ 	me->enable_fingerprint_button = WID ("enable_fingerprint_button");
+ 	me->disable_fingerprint_button = WID ("disable_fingerprint_button");
+-#endif /* HAVE_POLKIT */
+ 
+ 	g_signal_connect (me->enable_fingerprint_button, "clicked",
+ 			  G_CALLBACK (about_me_fingerprint_button_clicked_cb), me);
+diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.3/capplets/about-me/Makefile.am gnome-control-center-2.27.3.new/capplets/about-me/Makefile.am
+--- gnome-control-center-2.27.3/capplets/about-me/Makefile.am	2009-07-14 21:57:31.460861633 +0100
++++ gnome-control-center-2.27.3.new/capplets/about-me/Makefile.am	2009-07-14 21:57:37.256858839 +0100
+@@ -28,7 +28,7 @@
+ pixmapdir = $(pkgdatadir)/pixmaps
+ pixmap_DATA = $(pixmap_files)
+ 
+-gnome_about_me_LDADD = $(GNOMECC_CAPPLETS_LIBS) $(LIBEBOOK_LIBS) $(POLKIT_GNOME_LIBS)
++gnome_about_me_LDADD = $(GNOMECC_CAPPLETS_LIBS) $(LIBEBOOK_LIBS)
+ gnome_about_me_LDFLAGS = -export-dynamic
+ 
+ @INTLTOOL_DESKTOP_RULE@
+@@ -42,7 +42,6 @@
+ INCLUDES = \
+ 	$(GNOMECC_CAPPLETS_CFLAGS) \
+ 	$(LIBEBOOK_CFLAGS) \
+-	$(POLKIT_GNOME_CFLAGS) \
+ 	-DDATADIR="\"$(datadir)\"" \
+ 	-DGNOMECC_DATA_DIR="\"$(pkgdatadir)\"" \
+ 	-DGNOMECC_GLADE_DIR="\"$(gladedir)\"" \
+diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.3/configure.in gnome-control-center-2.27.3.new/configure.in
+--- gnome-control-center-2.27.3/configure.in	2009-07-14 21:57:33.921858206 +0100
++++ gnome-control-center-2.27.3.new/configure.in	2009-07-14 21:57:37.256858839 +0100
+@@ -214,11 +214,6 @@
+   PKG_CHECK_MODULES(LIBEBOOK, [libebook-1.2 >= 1.7.90],
+                     [AC_DEFINE([HAVE_LIBEBOOK], 1,
+                     [Define if evolution-data-server libebook-1.2 is available])])
+-  dnl PolicyKit-gnome is optional
+-  PKG_CHECK_MODULES(POLKIT_GNOME, [polkit-gnome],
+-  		    [AC_DEFINE([HAVE_POLKIT], 1,
+-  		    [Define if PolicyKit-gnome is available])],
+-  		    has_polkit=false)
+ fi
+ 
+ AM_CONDITIONAL(BUILD_ABOUTME, test "x$enable_aboutme" = "xyes")

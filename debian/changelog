@@ -1,3 +1,83 @@
+gnome-control-center (1:2.27.3-0ubuntu1) UNRELEASED; urgency=low
+
+  * New upstream version (LP: #393815): 
+    - About me:
+      + Initialize GThread subsystem (Vivian Zhang) (#583451).
+    - Appearance:
+      + After removing an image set the cursor to the newly selected 
+        wallpaper so that keyboard navigation works as expected 
+        (Jens Granseuer) (#575075, LP: #334307).
+      + Search GTK+ icon theme search path for icon themes 
+        (Jens Granseuer) (#575906).
+      + Only delete the theme if the user pressed OK (Benjamin Berg) 
+        (#578694).
+      + Close gtkrc files after use (Jens Granseuer) (#578835).
+      + Fix theme engine detection on non-UNIX platform 
+        (Jens Granseuer) (#581156).
+      + Don't unref NULL GConf entries (Jens Granseuer).
+      + After removing an image set the cursor to the newly selected 
+        wallpaper (Jens Granseuer) (#575075).
+    - Default applications:
+      + Add Arora to list of browsers (Bastien Nocera).
+    - Display:
+      + Pass a transient parent ID to the ApplyConfiguration callback 
+        so that it can make its confirmation dialog a child of the parent 
+        (Federico Mena Quintero) (#576006).
+      + Simplify calls to dbus-glib which cannot fail (Federico Mena Quintero)
+      + Ensure that there will be a backup file before committing 
+        (Federico Mena Quintero) (#486093).
+      + Make the monitor heading be explicitly black (Federico Mena Quintero) 
+        (#556050).
+      + Fix the layout-outputs-horizontally helper (Federico Mena Quintero).
+      + Use the timestamp of the Apply button to change the RANDR 
+        configuration (Federico Mena Quintero).
+      + Don't pop up a redundant error dialog (Federico Mena Quintero)
+    - Font viewer:
+      + Safely printf strings (Christian Persch)
+      + Interrupt thumbnailing at 30 s instead of 30 msecs (Jens Granseuer) 
+        (#584107, LP: #381252).
+    - Keybindings:
+      + Make activating a section header row expand or collapse the 
+        section as expected instead of crashing (Jens Granseuer) (#577474).
+      + Make the custom keybinding UI smoother (Matthias Clasen).
+      + Don't needlessly write entries back to gconf on startup 
+        (Matthias Clasen) (#581986).
+    - Keyboard:
+      + Dependency on libxklavier 4.0, optional load/display of extra layouts 
+        (Sergey V. Udaltsov).
+    - Shell:
+      + Fix libslab svn:external problem (Rodrigo Moya).
+  * Dropped debian/patches/98_correct_shell_use.patch - the change is in
+    the new version.
+  * debian/control{.in}:
+    - libxklavier migration - changed libxklavier12-dev to libxklavier-dev.
+    - Bump up build-dep on libgnomekbd-dev.
+  * 98_polkit1.patch:
+    - Patch from Fedora for polkit-1 migration.
+  * debian/rules:
+    - Build with --disable-hal. This seems to be a redundant built-time
+      check anyway. I can't find any features that are disabled 
+      without HAL support.
+  * Refreshed patches:
+    - 04_path_xtra.patch.
+    - 05_ta_po.patch.
+    - 100_at_properties_readd_gksudo_disable_grab_toggle.patch.
+    - 109_screen_resolution_extra.patch.
+    - 110_screen_resolution_package.patch.
+    - 111_screen_resolution_vendor_fallback.patch.
+    - 16_preferred_applications_list_cleanup.patch.
+    - 25_window_manager_settings.patch.
+    - 26_add_touchpad_to_mouse_settings.patch.
+    - 51_ubuntu_system_keyboard.patch.
+    - 71_at_properties_gksudo_gdmsetup.patch.
+    - 80_aspect_in_dropdown.patch.
+    - 92_display_properties_fit_small_screen.patch.
+    - 97_subpixel_hinting_defaults.patch.
+    - 99_autoreconf.patch.
+  * Also fixes LP: #351271, LP: #355905. 
+
+ -- Chris Coulson <chrisccoulson@ubuntu.com>  Tue, 14 Jul 2009 23:35:35 +0100
+
 gnome-control-center (1:2.26.0-1ubuntu6) karmic; urgency=low
 
   [ Michael Vogt ]
