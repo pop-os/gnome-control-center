@@ -1,6 +1,6 @@
-diff -Nur gnome-control-center-2.26.0/capplets/appearance/appearance-effects.c gnome-control-center-2.26.0.new/capplets/appearance/appearance-effects.c
---- gnome-control-center-2.26.0/capplets/appearance/appearance-effects.c	1970-01-01 01:00:00.000000000 +0100
-+++ gnome-control-center-2.26.0.new/capplets/appearance/appearance-effects.c	2009-06-15 11:35:10.000000000 +0200
+diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.4.1/capplets/appearance/appearance-effects.c gnome-control-center-2.27.4.1.new/capplets/appearance/appearance-effects.c
+--- gnome-control-center-2.27.4.1/capplets/appearance/appearance-effects.c	1970-01-01 01:00:00.000000000 +0100
++++ gnome-control-center-2.27.4.1.new/capplets/appearance/appearance-effects.c	2009-07-28 00:14:19.280819468 +0100
 @@ -0,0 +1,1074 @@
 +/*
 + * Copyright (C) 2007 Canonical
@@ -66,7 +66,7 @@ diff -Nur gnome-control-center-2.26.0/capplets/appearance/appearance-effects.c g
 +	CUSTOM_EFFECTS
 +};
 +
-+/* radio-button names in glade-file */
++/* radio-button names in ui-file */
 +static const char *effect_choices[] =  {
 +	"no_effects_button",
 +	"normal_effects_button", 
@@ -939,14 +939,14 @@ diff -Nur gnome-control-center-2.26.0/capplets/appearance/appearance-effects.c g
 +	if (!gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (widget))) 
 +		return;
 +
-+	previously_selected_button = glade_xml_get_widget (appdata->xml,
-+							   effect_choices [old_effects_level]);
++	previously_selected_button = appearance_capplet_get_widget (appdata,
++							   								effect_choices [old_effects_level]);
 +
 +	/* Look for the button which has been selected */
 +	for (i = 0; i < G_N_ELEMENTS (effect_choices); i++) 
 +	{
-+		if (widget == glade_xml_get_widget(appdata->xml,
-+						   effect_choices [i]))
++		if (widget == appearance_capplet_get_widget (appdata,
++						   							effect_choices [i]))
 +			break;
 +	}
 +
@@ -961,9 +961,9 @@ diff -Nur gnome-control-center-2.26.0/capplets/appearance/appearance-effects.c g
 +			g_signal_handlers_block_by_func (widget,
 +							 on_effects_toggle,
 +							 appdata);
-+			gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (glade_xml_get_widget(appdata->xml,
-+						      effect_choices [old_effects_level])),
-+						      TRUE);
++			gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (appearance_capplet_get_widget (appdata,
++						      			effect_choices [old_effects_level])),
++						      			TRUE);
 +			g_signal_handlers_unblock_by_func (widget,
 +							   on_effects_toggle,
 +							   appdata);
@@ -998,9 +998,9 @@ diff -Nur gnome-control-center-2.26.0/capplets/appearance/appearance-effects.c g
 +		g_signal_handlers_block_by_func (widget,
 +						 on_effects_toggle,
 +						 appdata);
-+		gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (glade_xml_get_widget (appdata->xml,
-+										       effect_choices [old_effects_level])),
-+										       TRUE);		
++		gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (appearance_capplet_get_widget (appdata,
++										      		 effect_choices [old_effects_level])),
++										       		 TRUE);		
 +		g_signal_handlers_unblock_by_func (widget,
 +						   on_effects_toggle,
 +						   appdata);
@@ -1040,14 +1040,14 @@ diff -Nur gnome-control-center-2.26.0/capplets/appearance/appearance-effects.c g
 +
 +	data->compiz_running = (wm == COMPIZ);
 +	data->compiz_was_running = (wm == COMPIZ);
-+	data->dialog = glade_xml_get_widget (data->xml, "appearance_window");
++	data->dialog = appearance_capplet_get_widget (data, "appearance_window");
 +
 +	data->desktop_effects_level = get_effects_level (data);
 +
 +	for (i = 0; i < G_N_ELEMENTS (effect_choices); i++) 
 +	{
-+		level_effects_button = glade_xml_get_widget (data->xml,
-+							     effect_choices[i]);
++		level_effects_button = appearance_capplet_get_widget (data,
++							     							effect_choices[i]);
 +		if (i == data->desktop_effects_level)
 +			gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (level_effects_button),
 +						      TRUE);
@@ -1058,15 +1058,15 @@ diff -Nur gnome-control-center-2.26.0/capplets/appearance/appearance-effects.c g
 +				  data);
 +	}
 +
-+	hbox_custom_effects = glade_xml_get_widget (data->xml,
-+						    "hbox_custom_effects");
++	hbox_custom_effects = appearance_capplet_get_widget (data,
++						    				"hbox_custom_effects");
 +	if (check_simple_ccsm ())
 +	{
 +		GtkWidget *button = NULL;
 +
 +		gtk_widget_show (hbox_custom_effects);
-+		button = glade_xml_get_widget (data->xml,
-+					       "custom_effects_edit_button");
++		button = appearance_capplet_get_widget (data,
++					       				"custom_effects_edit_button");
 +		g_signal_connect (button,
 +				  "clicked",
 +				  G_CALLBACK (run_simple_ccsm),
@@ -1076,9 +1076,9 @@ diff -Nur gnome-control-center-2.26.0/capplets/appearance/appearance-effects.c g
 +		gtk_widget_hide (hbox_custom_effects);
 +}
 +
-diff -Nur gnome-control-center-2.26.0/capplets/appearance/appearance-effects.h gnome-control-center-2.26.0.new/capplets/appearance/appearance-effects.h
---- gnome-control-center-2.26.0/capplets/appearance/appearance-effects.h	1970-01-01 01:00:00.000000000 +0100
-+++ gnome-control-center-2.26.0.new/capplets/appearance/appearance-effects.h	2009-06-15 11:29:44.000000000 +0200
+diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.4.1/capplets/appearance/appearance-effects.h gnome-control-center-2.27.4.1.new/capplets/appearance/appearance-effects.h
+--- gnome-control-center-2.27.4.1/capplets/appearance/appearance-effects.h	1970-01-01 01:00:00.000000000 +0100
++++ gnome-control-center-2.27.4.1.new/capplets/appearance/appearance-effects.h	2009-07-27 23:58:37.616816477 +0100
 @@ -0,0 +1,21 @@
 +/*
 + * Copyright (C) 2007 Canonical
@@ -1101,9 +1101,9 @@ diff -Nur gnome-control-center-2.26.0/capplets/appearance/appearance-effects.h g
 + */
 +
 +void effects_init (AppearanceData *data);
-diff -Nur gnome-control-center-2.26.0/capplets/appearance/appearance.h gnome-control-center-2.26.0.new/capplets/appearance/appearance.h
---- gnome-control-center-2.26.0/capplets/appearance/appearance.h	2009-06-15 11:29:42.000000000 +0200
-+++ gnome-control-center-2.26.0.new/capplets/appearance/appearance.h	2009-06-15 11:29:44.000000000 +0200
+diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.4.1/capplets/appearance/appearance.h gnome-control-center-2.27.4.1.new/capplets/appearance/appearance.h
+--- gnome-control-center-2.27.4.1/capplets/appearance/appearance.h	2009-07-27 23:58:32.092820651 +0100
++++ gnome-control-center-2.27.4.1.new/capplets/appearance/appearance.h	2009-07-27 23:58:37.616816477 +0100
 @@ -70,6 +70,12 @@
    gchar *revert_windowtitle_font;
    gchar *revert_monospace_font;
@@ -1117,10 +1117,10 @@ diff -Nur gnome-control-center-2.26.0/capplets/appearance/appearance.h gnome-con
    /* style */
    GdkPixbuf *gtk_theme_icon;
    GdkPixbuf *window_theme_icon;
-diff -Nur gnome-control-center-2.26.0/capplets/appearance/appearance-main.c gnome-control-center-2.26.0.new/capplets/appearance/appearance-main.c
---- gnome-control-center-2.26.0/capplets/appearance/appearance-main.c	2009-06-15 11:29:42.000000000 +0200
-+++ gnome-control-center-2.26.0.new/capplets/appearance/appearance-main.c	2009-06-15 11:29:44.000000000 +0200
-@@ -105,11 +105,19 @@
+diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.4.1/capplets/appearance/appearance-main.c gnome-control-center-2.27.4.1.new/capplets/appearance/appearance-main.c
+--- gnome-control-center-2.27.4.1/capplets/appearance/appearance-main.c	2009-07-27 23:58:32.080816026 +0100
++++ gnome-control-center-2.27.4.1.new/capplets/appearance/appearance-main.c	2009-07-28 00:04:44.708818109 +0100
+@@ -115,11 +115,19 @@
    }
  }
  
@@ -1140,24 +1140,24 @@ diff -Nur gnome-control-center-2.26.0/capplets/appearance/appearance-main.c gnom
  
    gchar *install_filename = NULL;
    gchar *start_page = NULL;
-@@ -163,6 +171,7 @@
+@@ -173,6 +181,7 @@
    g_strfreev (wallpaper_files);
    font_init (data);
    ui_init (data);
 +  effects_init (data);
  
    /* prepare the main window */
-   w = glade_xml_get_widget (data->xml, "appearance_window");
-@@ -197,6 +206,18 @@
+   w = appearance_capplet_get_widget (data, "appearance_window");
+@@ -207,6 +216,18 @@
  
    g_option_context_free (option_context);
  
-+  warning = glade_xml_get_widget (data->xml, "no_compiz_box");
++  warning = appearance_capplet_get_widget (data, "no_compiz_box");
 +
 +  if (g_find_program_in_path ("compiz") == NULL) {
 +    GtkWidget *box;
 +
-+    box = glade_xml_get_widget (data->xml, "effects_vbox");
++    box = appearance_capplet_get_widget (data, "effects_vbox");
 +    gtk_container_foreach (GTK_CONTAINER (box),
 +                           (GtkCallback) set_sensitivity, warning);
 +  }
@@ -1167,35 +1167,35 @@ diff -Nur gnome-control-center-2.26.0/capplets/appearance/appearance-main.c gnom
    /* start the mainloop */
    gtk_main ();
  
-diff -Nur gnome-control-center-2.26.0/capplets/appearance/data/appearance.glade gnome-control-center-2.26.0.new/capplets/appearance/data/appearance.glade
---- gnome-control-center-2.26.0/capplets/appearance/data/appearance.glade	2009-06-15 11:29:41.000000000 +0200
-+++ gnome-control-center-2.26.0.new/capplets/appearance/data/appearance.glade	2009-06-15 11:29:44.000000000 +0200
-@@ -1815,6 +1815,319 @@
+diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.4.1/capplets/appearance/data/appearance.ui gnome-control-center-2.27.4.1.new/capplets/appearance/data/appearance.ui
+--- gnome-control-center-2.27.4.1/capplets/appearance/data/appearance.ui	2009-07-27 23:58:31.960820899 +0100
++++ gnome-control-center-2.27.4.1.new/capplets/appearance/data/appearance.ui	2009-07-27 23:58:37.616816477 +0100
+@@ -1849,6 +1849,310 @@
                  <property name="tab_fill">False</property>
                </packing>
              </child>
 +            <child>
-+              <widget class="GtkVBox" id="effects_vbox">
++              <object class="GtkVBox" id="effects_vbox">
 +                <property name="visible">True</property>
 +                <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
 +                <property name="border_width">6</property>
 +                <property name="spacing">18</property>
 +                <property name="homogeneous">True</property>
 +                <child>
-+                  <widget class="GtkAlignment" id="no_compiz_box">
++                  <object class="GtkAlignment" id="no_compiz_box">
 +                    <property name="left_padding">26</property>
 +                    <property name="visible">True</property>
 +                    <child>
-+                      <widget class="GtkHBox" id="hbox1">
++                      <object class="GtkHBox" id="hbox1">
 +                        <property name="visible">True</property>
 +                        <property name="spacing">6</property>
 +                        <child>
-+                          <widget class="GtkImage" id="image3">
++                          <object class="GtkImage" id="image3">
 +                            <property name="visible">True</property>
 +                            <property name="xalign">0</property>
 +                            <property name="stock">gtk-dialog-warning</property>
 +                            <property name="icon-size">6</property>
-+                          </widget>
++                          </object>
 +                          <packing>
 +                            <property name="expand">False</property>
 +                            <property name="fill">False</property>
@@ -1203,45 +1203,44 @@ diff -Nur gnome-control-center-2.26.0/capplets/appearance/data/appearance.glade 
 +                          </packing>
 +                        </child>
 +                        <child>
-+                          <widget class="GtkLabel" id="label4">
++                          <object class="GtkLabel" id="label4">
 +                            <property name="visible">True</property>
 +                            <property name="xalign">0</property>
 +                            <property name="xpad">6</property>
 +                            <property name="label" translatable="yes">&lt;b&gt;Compiz is not installed&lt;/b&gt;</property>
 +                            <property name="use_markup">True</property>
-+                          </widget>
++                          </object>
 +                        </child>
-+                      </widget>
++                      </object>
 +                    </child>
-+                  </widget>
++                  </object>
 +                  <packing>
 +                    <property name="position">0</property>
 +                  </packing>
 +                </child>
 +                <child>
-+                  <widget class="GtkRadioButton" id="no_effects_button">
++                  <object class="GtkRadioButton" id="no_effects_button">
 +                    <property name="visible">True</property>
 +                    <property name="can_focus">True</property>
 +                    <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
-+                    <property name="response_id">0</property>
 +                    <property name="active">True</property>
 +                    <property name="draw_indicator">True</property>
 +                    <accelerator key="n" modifiers="" signal="activate"/>
 +                    <child>
-+                      <widget class="GtkHBox" id="hbox_no_effects">
++                      <object class="GtkHBox" id="hbox_no_effects">
 +                        <property name="visible">True</property>
 +                        <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
 +                        <child>
-+                          <widget class="GtkImage" id="image_no_effects">
++                          <object class="GtkImage" id="image_no_effects">
 +                            <property name="visible">True</property>
 +                            <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
 +                            <property name="xpad">6</property>
 +                            <property name="pixbuf">/usr/share/gnome-control-center/pixmaps/visual-effects_none.svg</property>
 +                            <property name="icon_size">6</property>
-+                          </widget>
++                          </object>
 +                        </child>
 +                        <child>
-+                          <widget class="GtkLabel" id="label_desc_no_effects">
++                          <object class="GtkLabel" id="label_desc_no_effects">
 +                            <property name="visible">True</property>
 +                            <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
 +                            <property name="xpad">6</property>
@@ -1249,14 +1248,14 @@ diff -Nur gnome-control-center-2.26.0/capplets/appearance/data/appearance.glade 
 +                            <property name="use_markup">True</property>
 +                            <property name="use_underline">True</property>
 +                            <property name="wrap">True</property>
-+                          </widget>
++                          </object>
 +                          <packing>
 +                            <property name="position">1</property>
 +                          </packing>
 +                        </child>
-+                      </widget>
++                      </object>
 +                    </child>
-+                  </widget>
++                  </object>
 +                  <packing>
 +                    <property name="expand">False</property>
 +                    <property name="fill">False</property>
@@ -1265,30 +1264,29 @@ diff -Nur gnome-control-center-2.26.0/capplets/appearance/data/appearance.glade 
 +                  </packing>
 +                </child>
 +                <child>
-+                  <widget class="GtkRadioButton" id="normal_effects_button">
++                  <object class="GtkRadioButton" id="normal_effects_button">
 +                    <property name="visible">True</property>
 +                    <property name="can_focus">True</property>
 +                    <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
-+                    <property name="response_id">0</property>
 +                    <property name="active">True</property>
 +                    <property name="draw_indicator">True</property>
 +                    <property name="group">no_effects_button</property>
 +                    <accelerator key="o" modifiers="" signal="activate"/>
 +                    <child>
-+                      <widget class="GtkHBox" id="hbox_normal_effects">
++                      <object class="GtkHBox" id="hbox_normal_effects">
 +                        <property name="visible">True</property>
 +                        <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
 +                        <child>
-+                          <widget class="GtkImage" id="image_normal_effects">
++                          <object class="GtkImage" id="image_normal_effects">
 +                            <property name="visible">True</property>
 +                            <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
 +                            <property name="xpad">6</property>
 +                            <property name="pixbuf">/usr/share/gnome-control-center/pixmaps/visual-effects_normal.svg</property>
 +                            <property name="icon_size">6</property>
-+                          </widget>
++                          </object>
 +                        </child>
 +                        <child>
-+                          <widget class="GtkLabel" id="label_desc_normal_effects">
++                          <object class="GtkLabel" id="label_desc_normal_effects">
 +                            <property name="visible">True</property>
 +                            <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
 +                            <property name="xpad">6</property>
@@ -1296,14 +1294,14 @@ diff -Nur gnome-control-center-2.26.0/capplets/appearance/data/appearance.glade 
 +                            <property name="use_markup">True</property>
 +                            <property name="use_underline">True</property>
 +                            <property name="wrap">True</property>
-+                          </widget>
++                          </object>
 +                          <packing>
 +                            <property name="position">1</property>
 +                          </packing>
 +                        </child>
-+                      </widget>
++                      </object>
 +                    </child>
-+                  </widget>
++                  </object>
 +                  <packing>
 +                    <property name="expand">False</property>
 +                    <property name="fill">False</property>
@@ -1312,30 +1310,29 @@ diff -Nur gnome-control-center-2.26.0/capplets/appearance/data/appearance.glade 
 +                  </packing>
 +                </child>
 +                <child>
-+                  <widget class="GtkRadioButton" id="extra_effects_button">
++                  <object class="GtkRadioButton" id="extra_effects_button">
 +                    <property name="visible">True</property>
 +                    <property name="can_focus">True</property>
 +                    <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
-+                    <property name="response_id">0</property>
 +                    <property name="active">True</property>
 +                    <property name="draw_indicator">True</property>
 +                    <property name="group">no_effects_button</property>
 +                    <accelerator key="x" modifiers="" signal="activate"/>
 +                    <child>
-+                      <widget class="GtkHBox" id="hbox_extra_effects">
++                      <object class="GtkHBox" id="hbox_extra_effects">
 +                        <property name="visible">True</property>
 +                        <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
 +                        <child>
-+                          <widget class="GtkImage" id="image_extra_effects">
++                          <object class="GtkImage" id="image_extra_effects">
 +                            <property name="visible">True</property>
 +                            <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
 +                            <property name="xpad">6</property>
 +                            <property name="pixbuf">/usr/share/gnome-control-center/pixmaps/visual-effects_extra.svg</property>
 +                            <property name="icon_size">6</property>
-+                          </widget>
++                          </object>
 +                        </child>
 +                        <child>
-+                          <widget class="GtkLabel" id="label_desc_extra_effects">
++                          <object class="GtkLabel" id="label_desc_extra_effects">
 +                            <property name="visible">True</property>
 +                            <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
 +                            <property name="xpad">6</property>
@@ -1343,14 +1340,14 @@ diff -Nur gnome-control-center-2.26.0/capplets/appearance/data/appearance.glade 
 +                            <property name="use_markup">True</property>
 +                            <property name="use_underline">True</property>
 +                            <property name="wrap">True</property>
-+                          </widget>
++                          </object>
 +                          <packing>
 +                            <property name="position">1</property>
 +                          </packing>
 +                        </child>
-+                      </widget>
++                      </object>
 +                    </child>
-+                  </widget>
++                  </object>
 +                  <packing>
 +                    <property name="expand">False</property>
 +                    <property name="fill">False</property>
@@ -1359,85 +1356,83 @@ diff -Nur gnome-control-center-2.26.0/capplets/appearance/data/appearance.glade 
 +                  </packing>
 +                </child>
 +                <child>
-+                  <widget class="GtkHBox" id="hbox_custom_effects">
++                  <object class="GtkHBox" id="hbox_custom_effects">
 +                    <property name="visible">True</property>
 +                    <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
 +                    <property name="no_show_all">True</property>
 +                    <child>
-+                      <widget class="GtkRadioButton" id="custom_effects_button">
++                      <object class="GtkRadioButton" id="custom_effects_button">
 +                        <property name="visible">True</property>
 +                        <property name="can_focus">True</property>
 +                        <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
-+                        <property name="response_id">0</property>
 +                        <property name="active">True</property>
 +                        <property name="draw_indicator">True</property>
 +                        <property name="group">no_effects_button</property>
 +                        <accelerator key="u" modifiers="" signal="activate"/>
 +                        <child>
-+                          <widget class="GtkHBox" id="hbox_custom_effects_2">
++                          <object class="GtkHBox" id="hbox_custom_effects_2">
 +                            <property name="visible">True</property>
 +                            <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
 +                            <property name="spacing">6</property>
 +                            <child>
-+                              <widget class="GtkImage" id="image_custom_effects">
++                              <object class="GtkImage" id="image_custom_effects">
 +                                <property name="visible">True</property>
 +                                <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
 +                                <property name="xpad">6</property>
 +                                <property name="pixbuf">/usr/share/gnome-control-center/pixmaps/visual-effects_custom.svg</property>
 +                                <property name="icon_size">6</property>
-+                              </widget>
++                              </object>
 +                              <packing>
 +                                <property name="expand">False</property>
 +                                <property name="fill">False</property>
 +                              </packing>
 +                            </child>
 +                            <child>
-+                              <widget class="GtkLabel" id="label_desc_custom_effects">
++                              <object class="GtkLabel" id="label_desc_custom_effects">
 +                                <property name="visible">True</property>
 +                                <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
 +                                <property name="label" translatable="yes">&lt;b&gt;C_ustom:&lt;/b&gt; Uses custom set of effects.</property>
 +                                <property name="use_markup">True</property>
 +                                <property name="use_underline">True</property>
 +                                <property name="wrap">True</property>
-+                              </widget>
++                              </object>
 +                              <packing>
 +                                <property name="expand">False</property>
 +                                <property name="fill">False</property>
 +                                <property name="position">1</property>
 +                              </packing>
 +                            </child>
-+                          </widget>
++                          </object>
 +                        </child>
-+                      </widget>
++                      </object>
 +                      <packing>
 +                        <property name="expand">False</property>
 +                        <property name="fill">False</property>
 +                      </packing>
 +                    </child>
 +                    <child>
-+                      <widget class="GtkVBox" id="vbox_custom_effects">
++                      <object class="GtkVBox" id="vbox_custom_effects">
 +                        <property name="visible">True</property>
 +                        <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
 +                        <child>
-+                          <widget class="GtkLabel" id="label_dummy_1">
++                          <object class="GtkLabel" id="label_dummy_1">
 +                            <property name="visible">True</property>
 +                            <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
-+                          </widget>
++                          </object>
 +                          <packing>
 +                            <property name="expand">False</property>
 +                            <property name="fill">False</property>
 +                          </packing>
 +                        </child>
 +                        <child>
-+                          <widget class="GtkButton" id="custom_effects_edit_button">
++                          <object class="GtkButton" id="custom_effects_edit_button">
 +                            <property name="visible">True</property>
 +                            <property name="can_focus">True</property>
 +                            <property name="receives_default">True</property>
 +                            <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
 +                            <property name="label" translatable="no">gtk-preferences</property>
 +                            <property name="use_stock">True</property>
-+                            <property name="response_id">0</property>
-+                          </widget>
++                          </object>
 +                          <packing>
 +                            <property name="expand">False</property>
 +                            <property name="fill">False</property>
@@ -1445,17 +1440,17 @@ diff -Nur gnome-control-center-2.26.0/capplets/appearance/data/appearance.glade 
 +                          </packing>
 +                        </child>
 +                        <child>
-+                          <widget class="GtkLabel" id="label_dummy_2">
++                          <object class="GtkLabel" id="label_dummy_2">
 +                            <property name="visible">True</property>
 +                            <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
-+                          </widget>
++                          </object>
 +                          <packing>
 +                            <property name="expand">False</property>
 +                            <property name="fill">False</property>
 +                            <property name="position">2</property>
 +                          </packing>
 +                        </child>
-+                      </widget>
++                      </object>
 +                      <packing>
 +                        <property name="expand">False</property>
 +                        <property name="fill">False</property>
@@ -1463,36 +1458,32 @@ diff -Nur gnome-control-center-2.26.0/capplets/appearance/data/appearance.glade 
 +                        <property name="position">1</property>
 +                      </packing>
 +                    </child>
-+                  </widget>
++                  </object>
 +                  <packing>
 +                    <property name="expand">False</property>
 +                    <property name="fill">False</property>
 +                    <property name="position">4</property>
 +                  </packing>
 +                </child>
-+              </widget>
-+              <packing>
-+                <property name="position">4</property>
-+              </packing>
++              </object>
 +            </child>
-+            <child>
-+              <widget class="GtkLabel" id="label5">
++            <child type="tab">
++              <object class="GtkLabel" id="label5">
 +                <property name="visible">True</property>
 +                <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
 +                <property name="label" translatable="yes">Visual Effects</property>
-+              </widget>
++              </object>
 +              <packing>
-+                <property name="type">tab</property>
 +                <property name="position">4</property>
 +                <property name="tab_fill">False</property>
 +              </packing>
-+            </child>
-           </widget>
++            </child>                        
+           </object>
            <packing>
              <property name="position">1</property>
-diff -Nur gnome-control-center-2.26.0/capplets/appearance/Makefile.am gnome-control-center-2.26.0.new/capplets/appearance/Makefile.am
---- gnome-control-center-2.26.0/capplets/appearance/Makefile.am	2009-06-15 11:29:42.000000000 +0200
-+++ gnome-control-center-2.26.0.new/capplets/appearance/Makefile.am	2009-06-15 11:29:44.000000000 +0200
+diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.4.1/capplets/appearance/Makefile.am gnome-control-center-2.27.4.1.new/capplets/appearance/Makefile.am
+--- gnome-control-center-2.27.4.1/capplets/appearance/Makefile.am	2009-07-27 23:58:32.068820062 +0100
++++ gnome-control-center-2.27.4.1.new/capplets/appearance/Makefile.am	2009-07-27 23:58:37.616816477 +0100
 @@ -9,6 +9,8 @@
  	appearance.h \
  	appearance-desktop.c \
@@ -1502,9 +1493,9 @@ diff -Nur gnome-control-center-2.26.0/capplets/appearance/Makefile.am gnome-cont
  	appearance-font.c \
  	appearance-font.h \
  	appearance-main.c \
-diff -Nur gnome-control-center-2.26.0/po/POTFILES.in gnome-control-center-2.26.0.new/po/POTFILES.in
---- gnome-control-center-2.26.0/po/POTFILES.in	2009-06-15 11:29:41.000000000 +0200
-+++ gnome-control-center-2.26.0.new/po/POTFILES.in	2009-06-15 11:29:44.000000000 +0200
+diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.4.1/po/POTFILES.in gnome-control-center-2.27.4.1.new/po/POTFILES.in
+--- gnome-control-center-2.27.4.1/po/POTFILES.in	2009-07-27 23:58:30.696818362 +0100
++++ gnome-control-center-2.27.4.1.new/po/POTFILES.in	2009-07-27 23:58:37.616816477 +0100
 @@ -14,6 +14,7 @@
  capplets/accessibility/at-properties/at-properties.desktop.in.in
  capplets/accessibility/at-properties/main.c

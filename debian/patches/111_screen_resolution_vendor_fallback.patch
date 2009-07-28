@@ -7,16 +7,14 @@
 #              This helps to alleviate possible crashes from unsupported features in RR1.0
 #              drivers.
 #
-
-diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.3/capplets/display/display-capplet.glade gnome-control-center-2.27.3.new/capplets/display/display-capplet.glade
---- gnome-control-center-2.27.3/capplets/display/display-capplet.glade	2009-07-13 19:44:35.188645577 +0100
-+++ gnome-control-center-2.27.3.new/capplets/display/display-capplet.glade	2009-07-13 19:44:39.092640726 +0100
-@@ -537,5 +537,32 @@
-     </widget>
-   </child>
- </widget>
--
-+  <widget class="GtkMessageDialog" id="legacy_question">
+diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.4.1/capplets/display/display-capplet.ui gnome-control-center-2.27.4.1.new/capplets/display/display-capplet.ui
+--- gnome-control-center-2.27.4.1/capplets/display/display-capplet.ui	2009-07-27 20:06:43.807550522 +0100
++++ gnome-control-center-2.27.4.1.new/capplets/display/display-capplet.ui	2009-07-27 20:10:42.147551791 +0100
+@@ -381,6 +381,34 @@
+       <action-widget response="-7">button2</action-widget>
+     </action-widgets>
+   </object>
++  <object class="GtkMessageDialog" id="legacy_question">
 +    <property name="border_width">5</property>
 +    <property name="resizable">False</property>
 +    <property name="window_position">GTK_WIN_POS_CENTER_ON_PARENT</property>
@@ -26,72 +24,53 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.3/capplets/display/displ
 +    <property name="message_type">GTK_MESSAGE_QUESTION</property>
 +    <property name="buttons">GTK_BUTTONS_YES_NO</property>
 +    <property name="text" translatable="yes">It appears that your graphics driver does not support the necessary extensions to use this tool.  Do you want to use your graphics driver vendor's tool instead?</property>
-+    <property name="image"></property>
++    <property name="image"/>
 +    <child internal-child="vbox">
-+      <widget class="GtkVBox" id="dialog-vbox2">
++      <object class="GtkVBox" id="dialog-vbox2">
 +        <property name="visible">True</property>
 +        <property name="spacing">2</property>
 +        <child internal-child="action_area">
-+          <widget class="GtkHButtonBox" id="dialog-action_area2">
++          <object class="GtkHButtonBox" id="dialog-action_area2">
 +            <property name="visible">True</property>
 +            <property name="layout_style">GTK_BUTTONBOX_END</property>
-+          </widget>
++          </object>
 +          <packing>
 +            <property name="expand">False</property>
 +            <property name="pack_type">GTK_PACK_END</property>
 +          </packing>
 +        </child>
-+      </widget>
++      </object>
 +    </child>
-+  </widget>
- </glade-interface>
-diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.3/capplets/display/Makefile.am gnome-control-center-2.27.3.new/capplets/display/Makefile.am
---- gnome-control-center-2.27.3/capplets/display/Makefile.am	2009-07-13 19:44:38.160647213 +0100
-+++ gnome-control-center-2.27.3.new/capplets/display/Makefile.am	2009-07-13 19:44:39.092640726 +0100
++  </object>
+   <object class="GtkListStore" id="liststore1">
+     <columns>
+       <!-- column-name item -->
+diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.4.1/capplets/display/Makefile.am gnome-control-center-2.27.4.1.new/capplets/display/Makefile.am
+--- gnome-control-center-2.27.4.1/capplets/display/Makefile.am	2009-07-27 20:06:47.243549201 +0100
++++ gnome-control-center-2.27.4.1.new/capplets/display/Makefile.am	2009-07-27 20:12:42.176550662 +0100
 @@ -2,6 +2,9 @@
  cappletname = display
  
- gladedir = $(pkgdatadir)/glade
+ uidir = $(pkgdatadir)/ui
 +nvidia_settings = /usr/bin/nvidia-settings
 +amdcccle = /usr/bin/amdcccle
 +
- dist_glade_DATA = display-capplet.glade
+ dist_ui_DATA = display-capplet.ui
  
  bin_PROGRAMS = gnome-display-properties
 @@ -40,6 +43,8 @@
  INCLUDES   = $(DISPLAY_CAPPLET_CFLAGS) \
               $(GNOMECC_CAPPLETS_CFLAGS) \
- 	     -DGLADEDIR="\"$(gladedir)\"" \
+ 	     -DUIDIR="\"$(uidir)\"" \
 +	     -DNVIDIA_SETTINGS="\"$(nvidia_settings)\"" \
 +	     -DAMDCCCLE="\"$(amdcccle)\"" \
  	     -DGNOMELOCALEDIR="\"$(datadir)/locale\"" \
  	     -DGNOMECC_DATA_DIR="\"$(pkgdatadir)\""
  
-diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.3/capplets/display/Makefile.in gnome-control-center-2.27.3.new/capplets/display/Makefile.in
---- gnome-control-center-2.27.3/capplets/display/Makefile.in	2009-07-13 19:44:38.160647213 +0100
-+++ gnome-control-center-2.27.3.new/capplets/display/Makefile.in	2009-07-13 19:44:39.092640726 +0100
-@@ -309,6 +309,8 @@
- # This is used in GNOMECC_CAPPLETS_CFLAGS
- cappletname = display
- gladedir = $(pkgdatadir)/glade
-+nvidia_settings = /usr/bin/nvidia-settings
-+amdcccle = /usr/bin/amdcccle
- dist_glade_DATA = display-capplet.glade
- gnome_display_properties_SOURCES = \
- 	xrandr-capplet.c		\
-@@ -340,6 +342,8 @@
- INCLUDES = $(DISPLAY_CAPPLET_CFLAGS) \
-              $(GNOMECC_CAPPLETS_CFLAGS) \
- 	     -DGLADEDIR="\"$(gladedir)\"" \
-+	     -DNVIDIA_SETTINGS="\"$(nvidia_settings)\"" \
-+	     -DAMDCCCLE="\"$(amdcccle)\"" \
- 	     -DGNOMELOCALEDIR="\"$(datadir)/locale\"" \
- 	     -DGNOMECC_DATA_DIR="\"$(pkgdatadir)\""
- 
-diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.3/capplets/display/xrandr-capplet.c gnome-control-center-2.27.3.new/capplets/display/xrandr-capplet.c
---- gnome-control-center-2.27.3/capplets/display/xrandr-capplet.c	2009-07-13 19:44:38.136643257 +0100
-+++ gnome-control-center-2.27.3.new/capplets/display/xrandr-capplet.c	2009-07-13 19:44:39.096644132 +0100
-@@ -499,7 +499,6 @@
+diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.4.1/capplets/display/xrandr-capplet.c gnome-control-center-2.27.4.1.new/capplets/display/xrandr-capplet.c
+--- gnome-control-center-2.27.4.1/capplets/display/xrandr-capplet.c	2009-07-27 20:06:47.195551627 +0100
++++ gnome-control-center-2.27.4.1.new/capplets/display/xrandr-capplet.c	2009-07-27 20:19:06.944551081 +0100
+@@ -498,7 +498,6 @@
      return count;
  }
  
@@ -99,7 +78,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.3/capplets/display/xrand
  static int
  count_all_outputs (GnomeRRConfig *config)
  {
-@@ -510,7 +509,6 @@
+@@ -509,7 +508,6 @@
  
      return i;
  }
@@ -107,7 +86,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.3/capplets/display/xrand
  
  static void
  rebuild_current_monitor_label (App *app)
-@@ -2039,7 +2037,6 @@
+@@ -2038,7 +2036,6 @@
      }
  }
  
@@ -115,7 +94,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.3/capplets/display/xrand
  /* Returns whether the graphics driver doesn't advertise RANDR 1.2 features, and just 1.0 */
  static gboolean
  driver_is_randr_10 (GnomeRRConfig *config)
-@@ -2060,7 +2057,6 @@
+@@ -2059,7 +2056,6 @@
  
      return (count_all_outputs (config) == 1 && strcmp (config->outputs[0]->name, "default") == 0);
  }
@@ -123,20 +102,20 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.3/capplets/display/xrand
  
  static void
  on_detect_displays (GtkWidget *widget, gpointer data)
-@@ -2264,6 +2260,8 @@
-     GladeXML *xml;
+@@ -2269,6 +2265,8 @@
+     GtkBuilder *builder;
      GtkWidget *align;
      GError *error;
 +    GtkWidget *active_dialog;
 +    gchar* command=NULL;
  
-     xml = glade_xml_new (GLADE_FILE, NULL, NULL);
-     if (!xml)
-@@ -2361,12 +2359,25 @@
+     error = NULL;
+     builder = gtk_builder_new ();
+@@ -2375,12 +2373,25 @@
      g_signal_connect (app->apply_button, "clicked",
  		      G_CALLBACK (apply_button_clicked_cb), app);
  
-+    active_dialog=app->dialog;
++	active_dialog=app->dialog;
      on_screen_changed (app->screen, app);
  
 +    if (driver_is_randr_10(app->current_configuration))
@@ -147,11 +126,11 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.3/capplets/display/xrand
 +            command=AMDCCCLE;
 +        if (command != NULL)
 +        {
-+            active_dialog = glade_xml_get_widget (xml, "legacy_question");
++            active_dialog = _gtk_builder_get_widget (builder, "legacy_question");
 +        }
 +    }
 +
-     g_object_unref (xml);
+     g_object_unref (builder);
  
  restart:
 -    switch (gtk_dialog_run (GTK_DIALOG (app->dialog)))
@@ -159,7 +138,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.3/capplets/display/xrand
      {
      default:
  	/* Fall Through */
-@@ -2388,6 +2399,18 @@
+@@ -2402,6 +2413,18 @@
  	apply (app);
  	goto restart;
  	break;
@@ -174,7 +153,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.3/capplets/display/xrand
 +	/* Legacy dialog question posed, user wants vendor tool */
 +	case GTK_RESPONSE_YES:
 +            g_spawn_command_line_async (command, NULL);
-+	    break;
++    break;
      }
  
      gtk_widget_destroy (app->dialog);

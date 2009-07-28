@@ -1,16 +1,16 @@
 === modified file 'capplets/network/gnome-network-preferences.c'
-diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.26.0/capplets/network/gnome-network-properties.c gnome-control-center-2.26.0.new/capplets/network/gnome-network-properties.c
---- gnome-control-center-2.26.0/capplets/network/gnome-network-properties.c	2009-07-14 13:20:43.527914497 +0200
-+++ gnome-control-center-2.26.0.new/capplets/network/gnome-network-properties.c	2009-07-14 13:22:47.667915474 +0200
+diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.4.1/capplets/network/gnome-network-properties.c gnome-control-center-2.27.4.1.new/capplets/network/gnome-network-properties.c
+--- gnome-control-center-2.27.4.1/capplets/network/gnome-network-properties.c	2009-07-27 21:55:46.344549157 +0100
++++ gnome-control-center-2.27.4.1.new/capplets/network/gnome-network-properties.c	2009-07-27 21:55:51.700552420 +0100
 @@ -28,6 +28,7 @@
+ #include <string.h>
  #include <gconf/gconf-client.h>
- #include <glade/glade.h>
  #include <glib/gi18n.h>
 +#include <dbus/dbus-glib.h>
  
  #include "capplet-util.h"
  #include "gconf-property-editor.h"
-@@ -181,6 +182,211 @@
+@@ -191,6 +192,210 @@
  	}
  }
  
@@ -145,7 +145,6 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.26.0/capplets/network/gnome
 +   gboolean use_proxy;
 +   gboolean res;
 +
-+   GladeXML *dialog = (GladeXML *) data;
 +   g_print ("cb_make_system_default\n");
 +
 +   // do ride the dbus
@@ -222,7 +221,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.26.0/capplets/network/gnome
  static void
  cb_dialog_response (GtkDialog *dialog, gint response_id)
  {
-@@ -1072,7 +1278,6 @@
+@@ -1121,7 +1326,6 @@
  
  	mode_type = g_enum_register_static ("NetworkPreferencesProxyType",
  				            proxytype_values);
@@ -230,73 +229,67 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.26.0/capplets/network/gnome
  	/* There's a bug in peditors that cause them to not initialize the entry
  	 * correctly. */
  	client = gconf_client_get_default ();
-@@ -1168,7 +1373,7 @@
- 	peditor = GCONF_PROPERTY_EDITOR (gconf_peditor_new_integer (
- 			NULL, SOCKS_PROXY_PORT_KEY, WID ("socks_port_spinbutton"),
+@@ -1221,7 +1425,7 @@
+ 			NULL, SOCKS_PROXY_PORT_KEY,
+ 			_gtk_builder_get_widget (builder, "socks_port_spinbutton"),
  			NULL));
 -
 +	
  	/* Set the proxy entries insensitive if we are using the same proxy for all */
  	if (gconf_client_get_bool (client, USE_SAME_PROXY_KEY, NULL))
  	{
-@@ -1203,6 +1408,12 @@
- 						G_CALLBACK (cb_add_url), dialog);
- 	g_signal_connect (WID ("button_remove_url"), "clicked",
- 						G_CALLBACK (cb_remove_url), dialog);
-+
-+	/* System-wide default */
-+	g_signal_connect(WID("button_make_system_default"), "clicked",
-+			 G_CALLBACK(cb_make_system_default), dialog);
-+	g_signal_connect(WID("button_reset_to_defaults"), "clicked",
-+			 G_CALLBACK(cb_reset_system_default), dialog);
+@@ -1256,6 +1460,12 @@
+ 			  "activate", G_CALLBACK (cb_add_url), builder);
+ 	g_signal_connect (gtk_builder_get_object (builder, "button_remove_url"),
+ 			  "clicked", G_CALLBACK (cb_remove_url), builder);
++ 
++ 	/* System-wide default */
++ 	g_signal_connect(gtk_builder_get_object (builder, "button_make_system_default"), "clicked",
++ 			 G_CALLBACK(cb_make_system_default), builder);
++ 	g_signal_connect(gtk_builder_get_object (builder, "button_reset_to_defaults"), "clicked",
++ 			 G_CALLBACK(cb_reset_system_default), builder);
  }
  
  int
-diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.26.0/capplets/network/gnome-network-properties.glade gnome-control-center-2.26.0.new/capplets/network/gnome-network-properties.glade
---- gnome-control-center-2.26.0/capplets/network/gnome-network-properties.glade	2009-07-14 13:20:43.523917340 +0200
-+++ gnome-control-center-2.26.0.new/capplets/network/gnome-network-properties.glade	2009-07-14 13:20:46.656916112 +0200
-@@ -832,6 +832,44 @@
- 		  <property name="fill">True</property>
- 		</packing>
- 	      </child>
-+
-+
-+                <child>
-+                  <widget class="GtkHButtonBox" id="hbuttonbox1">
-+                    <property name="visible">True</property>
-+                    <property name="spacing">6</property>
-+                    <property name="layout_style">GTK_BUTTONBOX_START</property>
-+                    <child>
-+                      <widget class="GtkButton" id="button_make_system_default">
-+                        <property name="visible">True</property>
-+                        <property name="can_focus">True</property>
-+                        <property name="receives_default">True</property>
-+                        <property name="label" translatable="yes">Apply System-Wide...</property>
-+                        <property name="response_id">0</property>
-+                      </widget>
-+                      <packing>
-+                        <property name="expand">False</property>
-+                        <property name="fill">False</property>
-+                      </packing>
-+                    </child>
-+                    <child>
-+                      <widget class="GtkButton" id="button_reset_to_defaults">
-+                        <property name="visible">True</property>
-+                        <property name="can_focus">True</property>
-+                        <property name="receives_default">True</property>
-+                        <property name="label" translatable="yes">Reset</property>
-+                        <property name="response_id">0</property>
-+                      </widget>
-+                      <packing>
-+                        <property name="expand">False</property>
-+                        <property name="fill">False</property>
-+                        <property name="position">1</property>
-+                      </packing>
-+                    </child>
-+                  </widget>
-+                </child>
-+
-+
- 	    </widget>
- 	    <packing>
- 	      <property name="tab_expand">False</property>
+diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.4.1/capplets/network/gnome-network-properties.ui gnome-control-center-2.27.4.1.new/capplets/network/gnome-network-properties.ui
+--- gnome-control-center-2.27.4.1/capplets/network/gnome-network-properties.ui	2009-07-27 21:55:46.340551896 +0100
++++ gnome-control-center-2.27.4.1.new/capplets/network/gnome-network-properties.ui	2009-07-27 21:55:51.700552420 +0100
+@@ -491,6 +491,38 @@
+                             <property name="position">1</property>
+                           </packing>
+                         </child>
++                        <child>
++                          <object class="GtkHButtonBox" id="hbuttonbox1">
++                            <property name="visible">True</property>
++                            <property name="spacing">6</property>
++                            <property name="layout_style">GTK_BUTTONBOX_START</property>
++                            <child>
++                              <object class="GtkButton" id="button_make_system_default">
++                                <property name="visible">True</property>
++                                <property name="can_focus">True</property>
++                                <property name="receives_default">True</property>
++                                <property name="label" translatable="yes">Apply System-Wide...</property>
++                              </object>
++                              <packing>
++                                <property name="expand">False</property>
++                                <property name="fill">False</property>
++                              </packing>
++                            </child>
++                            <child>
++                              <object class="GtkButton" id="button_reset_to_defaults">
++                                <property name="visible">True</property>
++                                <property name="can_focus">True</property>
++                                <property name="receives_default">True</property>
++                                <property name="label" translatable="yes">Reset</property>
++                              </object>
++                              <packing>
++                                <property name="expand">False</property>
++                                <property name="fill">False</property>
++                                <property name="position">1</property>
++                              </packing>
++                            </child>
++                          </object>
++                        </child>                        
+                       </object>
+                       <packing>
+                         <property name="expand">False</property>
