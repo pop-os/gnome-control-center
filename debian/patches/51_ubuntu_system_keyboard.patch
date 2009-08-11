@@ -1,58 +1,53 @@
-diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.3/capplets/keyboard/gnome-keyboard-properties.glade gnome-control-center-2.27.3.new/capplets/keyboard/gnome-keyboard-properties.glade
---- gnome-control-center-2.27.3/capplets/keyboard/gnome-keyboard-properties.glade	2009-07-14 21:21:42.005856299 +0100
-+++ gnome-control-center-2.27.3.new/capplets/keyboard/gnome-keyboard-properties.glade	2009-07-14 21:21:47.477858652 +0100
-@@ -567,6 +567,31 @@
-                         <property name="visible">True</property>
+diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.5/capplets/keyboard/gnome-keyboard-properties-dialog.ui gnome-control-center-2.27.5.new/capplets/keyboard/gnome-keyboard-properties-dialog.ui
+--- gnome-control-center-2.27.5/capplets/keyboard/gnome-keyboard-properties-dialog.ui	2009-08-11 18:19:21.859214454 +0100
++++ gnome-control-center-2.27.5.new/capplets/keyboard/gnome-keyboard-properties-dialog.ui	2009-08-11 18:23:14.856214527 +0100
+@@ -703,6 +703,26 @@
                          <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
-                         <property name="layout_style">GTK_BUTTONBOX_END</property>
-+
-+                                    <child>
-+                                      <widget class="GtkButton" id="button_make_default">
-+                                        <property name="visible">True</property>
-+                                        <property name="can_focus">True</property>
-+                                        <property name="receives_default">True</property>
-+                                        <property name="response_id">0</property>
-+                                        <child>
-+                                          <widget class="GtkAlignment" id="alignment4">
-+                                            <property name="visible">True</property>
-+                                            <property name="left_padding">4</property>
-+                                            <property name="right_padding">4</property>
-+                                            <child>
-+                                              <widget class="GtkLabel" id="label15">
-+                                                <property name="visible">True</property>
-+                                                <property name="label" translatable="yes">Apply System-Wide...</property>
-+                                              </widget>
-+                                            </child>
-+                                          </widget>
-+                                        </child>
-+                                      </widget>
-+                                    </child>
-+
-+
-+
+                         <property name="layout_style">end</property>
                          <child>
-                           <widget class="GtkButton" id="xkb_layout_options">
++                          <object class="GtkButton" id="button_make_default">
++                            <property name="visible">True</property>
++                            <property name="can_focus">True</property>
++                            <property name="receives_default">True</property>
++                            <child>
++                              <object class="GtkAlignment" id="alignment4">
++                                <property name="visible">True</property>
++                                <property name="left_padding">4</property>
++                                <property name="right_padding">4</property>
++                                <child>
++                                  <object class="GtkLabel" id="label15">
++                                    <property name="visible">True</property>
++                                    <property name="label" translatable="yes">Apply System-Wide...</property>
++                                  </object>
++                                </child>
++                              </object>
++                            </child>
++                          </object>
++                        </child>
++                        <child>
+                           <object class="GtkButton" id="xkb_layout_options">
+                             <property name="label" translatable="yes">Layout _Options...</property>
                              <property name="visible">True</property>
-diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.3/capplets/keyboard/gnome-keyboard-properties-xkb.c gnome-control-center-2.27.3.new/capplets/keyboard/gnome-keyboard-properties-xkb.c
---- gnome-control-center-2.27.3/capplets/keyboard/gnome-keyboard-properties-xkb.c	2009-07-14 21:21:41.989859677 +0100
-+++ gnome-control-center-2.27.3.new/capplets/keyboard/gnome-keyboard-properties-xkb.c	2009-07-14 21:21:47.481859553 +0100
-@@ -30,6 +30,7 @@
+diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.5/capplets/keyboard/gnome-keyboard-properties-xkb.c gnome-control-center-2.27.5.new/capplets/keyboard/gnome-keyboard-properties-xkb.c
+--- gnome-control-center-2.27.5/capplets/keyboard/gnome-keyboard-properties-xkb.c	2009-08-11 18:19:21.863213952 +0100
++++ gnome-control-center-2.27.5.new/capplets/keyboard/gnome-keyboard-properties-xkb.c	2009-08-11 18:29:39.659216386 +0100
+@@ -29,6 +29,7 @@
+ #include <gdk/gdkx.h>
  #include <gconf/gconf-client.h>
- #include <glade/glade.h>
  #include <glib/gi18n.h>
 +#include <dbus/dbus-glib.h>
  
  #include "capplet-util.h"
  #include "gconf-property-editor.h"
-@@ -125,6 +126,142 @@
+@@ -124,6 +125,142 @@
  	xkb_gconf_client = NULL;
  }
  
 +// mvo: make default entry the system wide default
 +static void
-+make_default (GtkWidget * button, GladeXML * dialog)
++make_default (GtkWidget * button, GtkBuilder * dialog)
 +{
-+        GkbdKeyboardConfig kbd;
++    GkbdKeyboardConfig kbd;
 +	GError *error = NULL;
 +	gboolean dbus_ret, res;
 +	DBusGConnection *systembus, *sessionbus;
@@ -185,9 +180,9 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.3/capplets/keyboard/gnom
 +}
 +
  static void
- reset_to_defaults (GtkWidget * button, GladeXML * dialog)
+ reset_to_defaults (GtkWidget * button, GtkBuilder * dialog)
  {
-@@ -190,6 +327,11 @@
+@@ -189,6 +326,11 @@
  			  "clicked", G_CALLBACK (reset_to_defaults),
  			  dialog);
  

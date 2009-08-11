@@ -1,9 +1,9 @@
 # Description: polkit-1 API transition (remove client-side polkit stuff)
 # Fedora: https://bugzilla.redhat.com/show_bug.cgi?id=498365
-diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.4.1/capplets/about-me/gnome-about-me.c gnome-control-center-2.27.4.1.new/capplets/about-me/gnome-about-me.c
---- gnome-control-center-2.27.4.1/capplets/about-me/gnome-about-me.c	2009-07-28 00:25:17.741818097 +0100
-+++ gnome-control-center-2.27.4.1.new/capplets/about-me/gnome-about-me.c	2009-07-28 00:25:19.657814825 +0100
-@@ -36,10 +36,6 @@
+diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.5/capplets/about-me/gnome-about-me.c gnome-control-center-2.27.5.new/capplets/about-me/gnome-about-me.c
+--- gnome-control-center-2.27.5/capplets/about-me/gnome-about-me.c	2009-08-11 19:05:55.920212468 +0100
++++ gnome-control-center-2.27.5.new/capplets/about-me/gnome-about-me.c	2009-08-11 19:05:58.019214207 +0100
+@@ -35,10 +35,6 @@
  #define GNOME_DESKTOP_USE_UNSTABLE_API
  #include <libgnomeui/gnome-desktop-thumbnail.h>
  
@@ -43,7 +43,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.4.1/capplets/about-me/gn
  /********************/
  static void
  about_me_destroy (GnomeAboutMe *me)
-@@ -1109,19 +1083,8 @@
+@@ -1086,19 +1060,8 @@
  	g_signal_connect (widget, "clicked",
  			  G_CALLBACK (about_me_image_clicked_cb), me);
  
@@ -63,9 +63,9 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.4.1/capplets/about-me/gn
  
  	g_signal_connect (me->enable_fingerprint_button, "clicked",
  			  G_CALLBACK (about_me_fingerprint_button_clicked_cb), me);
-diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.4.1/capplets/about-me/Makefile.am gnome-control-center-2.27.4.1.new/capplets/about-me/Makefile.am
---- gnome-control-center-2.27.4.1/capplets/about-me/Makefile.am	2009-07-28 00:25:14.841817639 +0100
-+++ gnome-control-center-2.27.4.1.new/capplets/about-me/Makefile.am	2009-07-28 00:25:19.657814825 +0100
+diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.5/capplets/about-me/Makefile.am gnome-control-center-2.27.5.new/capplets/about-me/Makefile.am
+--- gnome-control-center-2.27.5/capplets/about-me/Makefile.am	2009-08-11 19:05:53.123215406 +0100
++++ gnome-control-center-2.27.5.new/capplets/about-me/Makefile.am	2009-08-11 19:05:58.019214207 +0100
 @@ -23,7 +23,7 @@
  if BUILD_ABOUTME
  bin_PROGRAMS = gnome-about-me
@@ -82,11 +82,11 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.4.1/capplets/about-me/Ma
 -	$(POLKIT_GNOME_CFLAGS) \
  	-DDATADIR="\"$(datadir)\"" \
  	-DGNOMECC_DATA_DIR="\"$(pkgdatadir)\"" \
- 	-DGNOMECC_GLADE_DIR="\"$(gladedir)\"" \
-diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.4.1/configure.in gnome-control-center-2.27.4.1.new/configure.in
---- gnome-control-center-2.27.4.1/configure.in	2009-07-28 00:25:16.969817875 +0100
-+++ gnome-control-center-2.27.4.1.new/configure.in	2009-07-28 00:25:19.657814825 +0100
-@@ -228,11 +228,6 @@
+ 	-DGNOMECC_UI_DIR="\"$(uidir)\"" \
+diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.5/configure.in gnome-control-center-2.27.5.new/configure.in
+--- gnome-control-center-2.27.5/configure.in	2009-08-11 19:05:55.256214397 +0100
++++ gnome-control-center-2.27.5.new/configure.in	2009-08-11 19:05:58.023213983 +0100
+@@ -233,11 +233,6 @@
    PKG_CHECK_MODULES(LIBEBOOK, [libebook-1.2 >= 1.7.90],
                      [AC_DEFINE([HAVE_LIBEBOOK], 1,
                      [Define if evolution-data-server libebook-1.2 is available])])

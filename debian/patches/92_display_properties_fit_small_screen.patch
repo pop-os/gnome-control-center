@@ -4,10 +4,10 @@
 # Patch: http://bugzilla.gnome.org/attachment.cgi?id=130847&action=view
 # Description: Make Display capplet fit in smaller screens
 #
-diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.4.1/capplets/display/display-capplet.ui gnome-control-center-2.27.4.1.new/capplets/display/display-capplet.ui
---- gnome-control-center-2.27.4.1/capplets/display/display-capplet.ui	2009-07-27 23:05:32.623547880 +0100
-+++ gnome-control-center-2.27.4.1.new/capplets/display/display-capplet.ui	2009-07-27 23:23:16.720553397 +0100
-@@ -100,28 +100,11 @@
+diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.5/capplets/display/display-capplet.ui gnome-control-center-2.27.5.new/capplets/display/display-capplet.ui
+--- gnome-control-center-2.27.5/capplets/display/display-capplet.ui	2009-08-11 19:04:31.811215293 +0100
++++ gnome-control-center-2.27.5.new/capplets/display/display-capplet.ui	2009-08-11 19:04:34.315214177 +0100
+@@ -104,28 +104,11 @@
              <child>
                <object class="GtkTable" id="table1">
                  <property name="visible">True</property>
@@ -37,7 +37,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.4.1/capplets/display/dis
                    <object class="GtkLabel" id="label2">
                      <property name="visible">True</property>
                      <property name="xalign">0</property>
-@@ -147,10 +130,10 @@
+@@ -151,10 +134,10 @@
                      <property name="mnemonic_widget">refresh_combo</property>
                    </object>
                    <packing>
@@ -52,7 +52,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.4.1/capplets/display/dis
                      <property name="x_options">GTK_SHRINK | GTK_FILL</property>
                      <property name="y_options"></property>
                    </packing>
-@@ -166,8 +149,8 @@
+@@ -170,8 +153,8 @@
                    <packing>
                      <property name="left_attach">3</property>
                      <property name="right_attach">4</property>
@@ -63,7 +63,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.4.1/capplets/display/dis
                      <property name="x_options">GTK_SHRINK | GTK_FILL</property>
                      <property name="y_options"></property>
                    </packing>
-@@ -190,10 +173,10 @@
+@@ -194,10 +177,10 @@
                      <property name="visible">True</property>
                    </object>
                    <packing>
@@ -78,7 +78,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.4.1/capplets/display/dis
                      <property name="y_options"></property>
                    </packing>
                  </child>
-@@ -211,8 +194,8 @@
+@@ -215,8 +198,8 @@
                    <packing>
                      <property name="left_attach">4</property>
                      <property name="right_attach">5</property>
@@ -89,7 +89,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.4.1/capplets/display/dis
                      <property name="y_options"></property>
                    </packing>
                  </child>
-@@ -225,7 +208,7 @@
+@@ -229,7 +212,7 @@
                      </child>
                    </object>
                    <packing>
@@ -98,9 +98,9 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.4.1/capplets/display/dis
                      <property name="y_options">GTK_FILL</property>
                    </packing>
                  </child>
-diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.4.1/capplets/display/xrandr-capplet.c gnome-control-center-2.27.4.1.new/capplets/display/xrandr-capplet.c
---- gnome-control-center-2.27.4.1/capplets/display/xrandr-capplet.c	2009-07-27 23:05:32.783549777 +0100
-+++ gnome-control-center-2.27.4.1.new/capplets/display/xrandr-capplet.c	2009-07-27 23:24:58.707550815 +0100
+diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.5/capplets/display/xrandr-capplet.c gnome-control-center-2.27.5.new/capplets/display/xrandr-capplet.c
+--- gnome-control-center-2.27.5/capplets/display/xrandr-capplet.c	2009-08-11 19:04:32.211215281 +0100
++++ gnome-control-center-2.27.5.new/capplets/display/xrandr-capplet.c	2009-08-11 19:04:34.315214177 +0100
 @@ -55,7 +55,6 @@
      GtkWidget	   *resolution_combo;
      GtkWidget	   *refresh_combo;
@@ -109,7 +109,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.4.1/capplets/display/xra
      GtkWidget	   *clone_checkbox;
      GtkWidget	   *show_icon_checkbox;
  
-@@ -719,7 +718,6 @@
+@@ -712,7 +711,6 @@
  #if 0
      g_debug ("sensitive: %d, on: %d", sensitive, app->current_output->on);
  #endif
@@ -117,7 +117,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.4.1/capplets/display/xra
  
      app->ignore_gui_changes = FALSE;
  
-@@ -987,8 +985,8 @@
+@@ -1032,8 +1030,8 @@
      }
  }
  
@@ -128,7 +128,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.4.1/capplets/display/xra
  
  static GList *
  list_connected_outputs (App *app, int *total_w, int *total_h)
-@@ -2382,21 +2380,17 @@
+@@ -2427,21 +2425,17 @@
  
      g_signal_connect (app->show_icon_checkbox, "toggled", G_CALLBACK (on_show_icon_toggled), app);
  
