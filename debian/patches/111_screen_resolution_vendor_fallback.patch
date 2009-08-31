@@ -7,9 +7,9 @@
 #              This helps to alleviate possible crashes from unsupported features in RR1.0
 #              drivers.
 #
-diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.5/capplets/display/display-capplet.ui gnome-control-center-2.27.5.new/capplets/display/display-capplet.ui
---- gnome-control-center-2.27.5/capplets/display/display-capplet.ui	2009-08-11 00:33:47.333567173 +0100
-+++ gnome-control-center-2.27.5.new/capplets/display/display-capplet.ui	2009-08-11 00:33:49.945572201 +0100
+diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.91/capplets/display/display-capplet.ui gnome-control-center-2.27.91.new/capplets/display/display-capplet.ui
+--- gnome-control-center-2.27.91/capplets/display/display-capplet.ui	2009-08-31 01:41:01.396855424 +0100
++++ gnome-control-center-2.27.91.new/capplets/display/display-capplet.ui	2009-08-31 01:41:06.376853449 +0100
 @@ -387,6 +387,34 @@
        <action-widget response="-7">button2</action-widget>
      </action-widgets>
@@ -45,9 +45,9 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.5/capplets/display/displ
    <object class="GtkListStore" id="liststore1">
      <columns>
        <!-- column-name item -->
-diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.5/capplets/display/Makefile.am gnome-control-center-2.27.5.new/capplets/display/Makefile.am
---- gnome-control-center-2.27.5/capplets/display/Makefile.am	2009-08-11 00:33:48.861573652 +0100
-+++ gnome-control-center-2.27.5.new/capplets/display/Makefile.am	2009-08-11 00:33:49.945572201 +0100
+diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.91/capplets/display/Makefile.am gnome-control-center-2.27.91.new/capplets/display/Makefile.am
+--- gnome-control-center-2.27.91/capplets/display/Makefile.am	2009-08-31 01:41:04.452858119 +0100
++++ gnome-control-center-2.27.91.new/capplets/display/Makefile.am	2009-08-31 01:41:06.376853449 +0100
 @@ -2,6 +2,9 @@
  cappletname = display
  
@@ -67,10 +67,10 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.5/capplets/display/Makef
  	     -DGNOMELOCALEDIR="\"$(datadir)/locale\"" \
  	     -DGNOMECC_DATA_DIR="\"$(pkgdatadir)\""
  
-diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.5/capplets/display/xrandr-capplet.c gnome-control-center-2.27.5.new/capplets/display/xrandr-capplet.c
---- gnome-control-center-2.27.5/capplets/display/xrandr-capplet.c	2009-08-11 00:33:48.841571159 +0100
-+++ gnome-control-center-2.27.5.new/capplets/display/xrandr-capplet.c	2009-08-11 00:33:49.945572201 +0100
-@@ -504,7 +504,6 @@
+diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.91/capplets/display/xrandr-capplet.c gnome-control-center-2.27.91.new/capplets/display/xrandr-capplet.c
+--- gnome-control-center-2.27.91/capplets/display/xrandr-capplet.c	2009-08-31 01:41:04.408855812 +0100
++++ gnome-control-center-2.27.91.new/capplets/display/xrandr-capplet.c	2009-08-31 01:41:06.376853449 +0100
+@@ -466,7 +466,6 @@
      return count;
  }
  
@@ -78,7 +78,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.5/capplets/display/xrand
  static int
  count_all_outputs (GnomeRRConfig *config)
  {
-@@ -515,7 +514,6 @@
+@@ -477,7 +476,6 @@
  
      return i;
  }
@@ -86,7 +86,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.5/capplets/display/xrand
  
  static void
  rebuild_current_monitor_label (App *app)
-@@ -2088,7 +2086,6 @@
+@@ -2040,7 +2038,6 @@
      }
  }
  
@@ -94,7 +94,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.5/capplets/display/xrand
  /* Returns whether the graphics driver doesn't advertise RANDR 1.2 features, and just 1.0 */
  static gboolean
  driver_is_randr_10 (GnomeRRConfig *config)
-@@ -2109,7 +2106,6 @@
+@@ -2061,7 +2058,6 @@
  
      return (count_all_outputs (config) == 1 && strcmp (config->outputs[0]->name, "default") == 0);
  }
@@ -102,7 +102,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.5/capplets/display/xrand
  
  static void
  on_detect_displays (GtkWidget *widget, gpointer data)
-@@ -2319,6 +2315,8 @@
+@@ -2271,6 +2267,8 @@
      GtkBuilder *builder;
      GtkWidget *align;
      GError *error;
@@ -111,7 +111,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.5/capplets/display/xrand
  
      error = NULL;
      builder = gtk_builder_new ();
-@@ -2425,12 +2423,25 @@
+@@ -2377,12 +2375,25 @@
      g_signal_connect (app->apply_button, "clicked",
  		      G_CALLBACK (apply_button_clicked_cb), app);
  
@@ -138,7 +138,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.5/capplets/display/xrand
      {
      default:
  	/* Fall Through */
-@@ -2452,6 +2463,18 @@
+@@ -2404,6 +2415,18 @@
  	apply (app);
  	goto restart;
  	break;

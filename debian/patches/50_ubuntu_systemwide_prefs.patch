@@ -1,7 +1,7 @@
 === modified file 'capplets/network/gnome-network-preferences.c'
-diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.5/capplets/network/gnome-network-properties.c gnome-control-center-2.27.5.new/capplets/network/gnome-network-properties.c
---- gnome-control-center-2.27.5/capplets/network/gnome-network-properties.c	2009-08-11 18:00:53.095215751 +0100
-+++ gnome-control-center-2.27.5.new/capplets/network/gnome-network-properties.c	2009-08-11 18:00:58.500214946 +0100
+diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.91/capplets/network/gnome-network-properties.c gnome-control-center-2.27.91.new/capplets/network/gnome-network-properties.c
+--- gnome-control-center-2.27.91/capplets/network/gnome-network-properties.c	2009-08-31 02:08:03.276856407 +0100
++++ gnome-control-center-2.27.91.new/capplets/network/gnome-network-properties.c	2009-08-31 02:08:07.392854605 +0100
 @@ -28,6 +28,7 @@
  #include <string.h>
  #include <gconf/gconf-client.h>
@@ -221,7 +221,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.5/capplets/network/gnome
  static void
  cb_dialog_response (GtkDialog *dialog, gint response_id)
  {
-@@ -1121,7 +1326,6 @@
+@@ -1134,7 +1339,6 @@
  
  	mode_type = g_enum_register_static ("NetworkPreferencesProxyType",
  				            proxytype_values);
@@ -229,7 +229,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.5/capplets/network/gnome
  	/* There's a bug in peditors that cause them to not initialize the entry
  	 * correctly. */
  	client = gconf_client_get_default ();
-@@ -1221,7 +1425,7 @@
+@@ -1236,7 +1440,7 @@
  			NULL, SOCKS_PROXY_PORT_KEY,
  			_gtk_builder_get_widget (builder, "socks_port_spinbutton"),
  			NULL));
@@ -238,7 +238,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.5/capplets/network/gnome
  	/* Set the proxy entries insensitive if we are using the same proxy for all */
  	if (gconf_client_get_bool (client, USE_SAME_PROXY_KEY, NULL))
  	{
-@@ -1256,6 +1460,12 @@
+@@ -1271,6 +1475,12 @@
  			  "activate", G_CALLBACK (cb_add_url), builder);
  	g_signal_connect (gtk_builder_get_object (builder, "button_remove_url"),
  			  "clicked", G_CALLBACK (cb_remove_url), builder);
@@ -251,10 +251,10 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.5/capplets/network/gnome
  }
  
  int
-diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.5/capplets/network/gnome-network-properties.ui gnome-control-center-2.27.5.new/capplets/network/gnome-network-properties.ui
---- gnome-control-center-2.27.5/capplets/network/gnome-network-properties.ui	2009-08-11 18:00:53.091212064 +0100
-+++ gnome-control-center-2.27.5.new/capplets/network/gnome-network-properties.ui	2009-08-11 18:00:58.500214946 +0100
-@@ -500,6 +500,38 @@
+diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.91/capplets/network/gnome-network-properties.ui gnome-control-center-2.27.91.new/capplets/network/gnome-network-properties.ui
+--- gnome-control-center-2.27.91/capplets/network/gnome-network-properties.ui	2009-08-31 02:08:03.272855792 +0100
++++ gnome-control-center-2.27.91.new/capplets/network/gnome-network-properties.ui	2009-08-31 02:08:07.392854605 +0100
+@@ -491,6 +491,38 @@
                              <property name="position">1</property>
                            </packing>
                          </child>
