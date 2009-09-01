@@ -1,7 +1,7 @@
 diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.91/capplets/appearance/appearance-effects.c gnome-control-center-2.27.91.new/capplets/appearance/appearance-effects.c
---- gnome-control-center-2.27.91/capplets/appearance/appearance-effects.c	1970-01-01 01:00:00.000000000 +0100
-+++ gnome-control-center-2.27.91.new/capplets/appearance/appearance-effects.c	2009-08-31 21:14:58.112851732 +0100
-@@ -0,0 +1,1074 @@
+--- gnome-control-center-2.27.91/capplets/appearance/appearance-effects.c	1969-12-31 18:00:00.000000000 -0600
++++ gnome-control-center-2.27.91.new/capplets/appearance/appearance-effects.c	2009-09-01 11:23:27.952732810 -0500
+@@ -0,0 +1,1085 @@
 +/*
 + * Copyright (C) 2007 Canonical
 + * Written by Michael Vogt <mvo@ubuntu.com>
@@ -477,17 +477,16 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.91/capplets/appearance/a
 +	gdk_flush ();
 +}
 +
-+/* get_wm_window() and current_window_manager() are essentially cutted and
-+ * pasted from gnome-wm.c from gnome-control-center. */
-+static Window
-+get_wm_window (void)
++
++static gchar*
++get_current_window_manager (void)
 +{
 +	Window	*xwindow;
 +	Atom	type;
 +	gint	format;
 +	gulong	nitems;
 +	gulong	bytes_after;
-+	Window	result;
++	gchar  *name;
 +
 +	XGetWindowProperty (GDK_DISPLAY (),
 +			    GDK_ROOT_WINDOW (),
@@ -505,7 +504,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.91/capplets/appearance/a
 +			    (guchar **) &xwindow);
 +
 +	if (type != XA_WINDOW)
-+		return None;
++		return NULL;
 +
 +	gdk_error_trap_push ();
 +	XSelectInput (GDK_DISPLAY (),
@@ -516,33 +515,44 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.91/capplets/appearance/a
 +	if (gdk_error_trap_pop ())
 +	{
 +		XFree (xwindow);
-+		return None;
++		return NULL;
 +	}
 +
-+	result = *xwindow;
++	name = NULL;
++
++	gdk_error_trap_push ();
++          
++	XGetWindowProperty (GDK_DISPLAY (),
++			    *xwindow,
++			    XInternAtom (GDK_DISPLAY (),
++					 "_NET_WM_NAME",
++					 False),
++			    0,
++			    G_MAXLONG,
++			    False,
++			    XInternAtom (GDK_DISPLAY (),
++					 "UTF8_STRING",
++					 False),
++			    &type,
++			    &format,
++			    &nitems,
++			    &bytes_after,
++			    (guchar **)&name);
++          
++	gdk_display_sync (GDK_DISPLAY ());
++	gdk_error_trap_pop ();
 +	XFree (xwindow);
-+
-+	return result;
-+}
-+
-+static const char*
-+get_current_window_manager (void)
-+{
-+	GdkScreen *default_gdk_screen;
-+
-+	default_gdk_screen = gdk_screen_get_default();
-+	if (!default_gdk_screen)
-+		return NULL;
-+	return gdk_x11_screen_get_window_manager_name(default_gdk_screen);
++	return name;
 +}
 +
 +static gboolean
 +compiz_started (void)
 +{
 +	gboolean result;
-+	const char *wm = get_current_window_manager ();
++	gchar *wm = get_current_window_manager ();
 +
 +	result = wm && strcmp (wm, "compiz") == 0;
++	g_free (wm);
 +
 +	return result;
 +}
@@ -1034,9 +1044,10 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.91/capplets/appearance/a
 +	GtkWidget     *hbox_custom_effects = NULL;
 +	WindowManager wm = METACITY;
 +	gint	      i;
-+	const char *str = get_current_window_manager ();
++	gchar        *str = get_current_window_manager ();
 +	if (str && (strcmp (str, "compiz") == 0))
 +		wm = COMPIZ;
++	g_free (str);
 +
 +	data->compiz_running = (wm == COMPIZ);
 +	data->compiz_was_running = (wm == COMPIZ);
@@ -1077,8 +1088,8 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.91/capplets/appearance/a
 +}
 +
 diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.91/capplets/appearance/appearance-effects.h gnome-control-center-2.27.91.new/capplets/appearance/appearance-effects.h
---- gnome-control-center-2.27.91/capplets/appearance/appearance-effects.h	1970-01-01 01:00:00.000000000 +0100
-+++ gnome-control-center-2.27.91.new/capplets/appearance/appearance-effects.h	2009-08-31 21:14:58.116854582 +0100
+--- gnome-control-center-2.27.91/capplets/appearance/appearance-effects.h	1969-12-31 18:00:00.000000000 -0600
++++ gnome-control-center-2.27.91.new/capplets/appearance/appearance-effects.h	2009-09-01 11:05:50.180710474 -0500
 @@ -0,0 +1,21 @@
 +/*
 + * Copyright (C) 2007 Canonical
@@ -1102,8 +1113,8 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.91/capplets/appearance/a
 +
 +void effects_init (AppearanceData *data);
 diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.91/capplets/appearance/appearance.h gnome-control-center-2.27.91.new/capplets/appearance/appearance.h
---- gnome-control-center-2.27.91/capplets/appearance/appearance.h	2009-08-31 21:14:51.673854332 +0100
-+++ gnome-control-center-2.27.91.new/capplets/appearance/appearance.h	2009-08-31 21:14:58.116854582 +0100
+--- gnome-control-center-2.27.91/capplets/appearance/appearance.h	2009-09-01 11:05:47.113690644 -0500
++++ gnome-control-center-2.27.91.new/capplets/appearance/appearance.h	2009-09-01 11:05:50.180710474 -0500
 @@ -70,6 +70,12 @@
    gchar *revert_windowtitle_font;
    gchar *revert_monospace_font;
@@ -1118,8 +1129,8 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.91/capplets/appearance/a
    GdkPixbuf *gtk_theme_icon;
    GdkPixbuf *window_theme_icon;
 diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.91/capplets/appearance/appearance-main.c gnome-control-center-2.27.91.new/capplets/appearance/appearance-main.c
---- gnome-control-center-2.27.91/capplets/appearance/appearance-main.c	2009-08-31 21:14:51.661853886 +0100
-+++ gnome-control-center-2.27.91.new/capplets/appearance/appearance-main.c	2009-08-31 21:14:58.116854582 +0100
+--- gnome-control-center-2.27.91/capplets/appearance/appearance-main.c	2009-09-01 11:05:47.085690855 -0500
++++ gnome-control-center-2.27.91.new/capplets/appearance/appearance-main.c	2009-09-01 11:05:50.180710474 -0500
 @@ -115,11 +115,19 @@
    }
  }
@@ -1168,8 +1179,8 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.91/capplets/appearance/a
    gtk_main ();
  
 diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.91/capplets/appearance/data/appearance.ui gnome-control-center-2.27.91.new/capplets/appearance/data/appearance.ui
---- gnome-control-center-2.27.91/capplets/appearance/data/appearance.ui	2009-08-31 21:14:51.533855178 +0100
-+++ gnome-control-center-2.27.91.new/capplets/appearance/data/appearance.ui	2009-08-31 21:19:06.916859206 +0100
+--- gnome-control-center-2.27.91/capplets/appearance/data/appearance.ui	2009-09-01 11:05:47.252691976 -0500
++++ gnome-control-center-2.27.91.new/capplets/appearance/data/appearance.ui	2009-09-01 11:05:50.180710474 -0500
 @@ -1894,6 +1894,310 @@
                  <property name="tab_fill">False</property>
                </packing>
@@ -1482,8 +1493,8 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.91/capplets/appearance/d
            <packing>
              <property name="position">1</property>
 diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.91/capplets/appearance/Makefile.am gnome-control-center-2.27.91.new/capplets/appearance/Makefile.am
---- gnome-control-center-2.27.91/capplets/appearance/Makefile.am	2009-08-31 21:14:51.641852491 +0100
-+++ gnome-control-center-2.27.91.new/capplets/appearance/Makefile.am	2009-08-31 21:14:58.120855475 +0100
+--- gnome-control-center-2.27.91/capplets/appearance/Makefile.am	2009-09-01 11:05:47.081691254 -0500
++++ gnome-control-center-2.27.91.new/capplets/appearance/Makefile.am	2009-09-01 11:05:50.184688703 -0500
 @@ -9,6 +9,8 @@
  	appearance.h \
  	appearance-desktop.c \
@@ -1494,8 +1505,8 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.91/capplets/appearance/M
  	appearance-font.h \
  	appearance-main.c \
 diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.91/po/POTFILES.in gnome-control-center-2.27.91.new/po/POTFILES.in
---- gnome-control-center-2.27.91/po/POTFILES.in	2009-08-31 21:14:50.081856472 +0100
-+++ gnome-control-center-2.27.91.new/po/POTFILES.in	2009-08-31 21:14:58.120855475 +0100
+--- gnome-control-center-2.27.91/po/POTFILES.in	2009-09-01 11:05:48.076691245 -0500
++++ gnome-control-center-2.27.91.new/po/POTFILES.in	2009-09-01 11:05:50.184688703 -0500
 @@ -16,6 +16,7 @@
  capplets/accessibility/at-properties/at-properties.desktop.in.in
  capplets/accessibility/at-properties/main.c
