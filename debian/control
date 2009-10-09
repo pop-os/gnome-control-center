@@ -2,8 +2,8 @@ Source: control-center
 Section: gnome
 Priority: optional
 Maintainer: Debian GNOME Maintainers <pkg-gnome-maintainers@lists.alioth.debian.org>
-Uploaders: Josselin Mouette <joss@debian.org>, Loic Minier <lool@dooz.org>, Sebastian Dröge <slomo@debian.org>
-Standards-Version: 3.8.1
+Uploaders: Emilio Pozuelo Monfort <pochu@debian.org>, Josselin Mouette <joss@debian.org>, Sebastian Dröge <slomo@debian.org>
+Standards-Version: 3.8.3
 Build-Depends: cdbs (>= 0.4.41),
                gnome-pkg-tools (>= 0.10),
                quilt,
@@ -19,14 +19,11 @@ Build-Depends: cdbs (>= 0.4.41),
                libxss-dev,
                libxxf86misc-dev,
                libcanberra-gtk-dev,
-               libgtk2.0-dev (>= 2.13.1),
+               libgtk2.0-dev (>= 2.15.0),
                libglib2.0-dev (>= 2.17.4),
                libgconf2-dev,
-               libgnomeui-dev (>= 2.16.0-2),
-               libglade2-dev (>= 1:2.4.0),
                libgnome-desktop-dev (>= 2.25.1),
                libgnome-menu-dev (>= 2.10.1),
-               libpanel-applet2-dev,
                libdbus-1-dev (>= 0.32),
                libdbus-glib-1-dev (>= 0.32),
                libxml2-dev,
@@ -36,11 +33,12 @@ Build-Depends: cdbs (>= 0.4.41),
                libxrender-dev,
                libxrandr-dev,
                libxcursor-dev,
-               libgnomekbd-dev (>= 2.24),
-               libxklavier12-dev (>= 3.6),
+               libxi-dev (>= 2:1.2),
+               libgnomekbd-dev (>= 2.27.4),
+               libxklavier-dev (>= 4.0),
                libebook1.2-dev (>= 1.7.90),
-               libpolkit-gnome-dev,
                libhal-dev (>= 0.5.6),
+               libunique-dev,
                desktop-file-utils,
                shared-mime-info,
                libslab-dev,
@@ -62,10 +60,9 @@ Depends: ${shlibs:Depends},
 Recommends: bzip2,
             evolution-data-server,
             gnome-user-guide,
-            gnome-session
-Replaces: capplets
-Conflicts: capplets,
-           gnome-session (<< 2.22.0)
+            gnome-session,
+            policykit-1-gnome
+Conflicts: gnome-session (<< 2.22.0)
 Suggests: libcanberra-gtk-module,
           gnome-screensaver | xscreensaver,
           x11-xserver-utils,
@@ -93,20 +90,16 @@ Architecture: any
 Section: libs
 Depends: ${shlibs:Depends},
          ${misc:Depends}
-Replaces: gnome-control-center (<< 1:2.14.1-1),
-          capplets
-Conflicts: capplets
 Description: Utility library for getting window manager settings
  This package contains the libwindow-settings library, which is used by
  the GNOME window managers.
 
 Package: libgnome-window-settings-dev
-Architecture: all
+Architecture: any
 Section: libdevel
 Depends: ${shlibs:Depends},
          ${misc:Depends},
-         libgnome-window-settings1 (>= ${source:Version})
-Replaces: gnome-control-center (<< 1:2.14.1-1)
+         libgnome-window-settings1 (= ${binary:Version})
 Description: Utility library for getting window manager settings (headers)
  This package contains the libwindow-settings library header files.
 
@@ -118,4 +111,3 @@ Replaces: libgnome-settings-daemon-dev
 Depends: ${misc:Depends}
 Description: utilities to configure the GNOME desktop
  This package contains the file required to get the keydirs location
-
