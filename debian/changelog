@@ -1,4 +1,11 @@
-control-center (1:2.26.0-2) UNRELEASED; urgency=low
+control-center (1:2.28.0-2) experimental; urgency=low
+
+  * Build depend on a recent libslab-dev to build against one that doesn't
+    use libgnomeui, making gnome-control-center start again. Closes: #550461.
+
+ -- Emilio Pozuelo Monfort <pochu@debian.org>  Mon, 12 Oct 2009 01:58:10 +0200
+
+control-center (1:2.28.0-1) experimental; urgency=low
 
   [ Loic Minier ]
   * Drop --disable-mime-cache configure flag which was introduced in a Debian
@@ -10,7 +17,35 @@ control-center (1:2.26.0-2) UNRELEASED; urgency=low
   [ Josselin Mouette ]
   * Require gnome-settings-daemon 2.26. Closes: #540418.
 
- -- Loic Minier <lool@dooz.org>  Mon, 15 Jun 2009 12:12:58 +0200
+  [ Emilio Pozuelo Monfort ]
+  * New upstream release.
+    - debian/control.in:
+      + Bump libgtk2.0-dev and libgnomekbd-dev build dependencies.
+      + Build depend on libxklavier-dev >= 4.0 rather than libxklavier12-dev.
+      + Remove libglade2-dev, libpanel-applet2-dev and libgnomeui-dev build
+        dependencies.
+      + Add libunique-dev and libxi-dev build dependencies.
+      + Remove libpolkit-gnome-dev from build depends, recommend
+        policykit-1-gnome for PolicyKit 1 support.
+    - debian/patches/05_ta_po.patch:
+      + Removed, the issue is no longer present in the po file.
+    - debian/patches/01_fix_libslab_build.patch:
+      + Updated from https://bugzilla.gnome.org/show_bug.cgi?id=591428.
+    - debian/patches/25_window_manager_settings.patch,
+      debian/patches/70_relibtoolize.patch:
+      + Updated.
+    - debian/patches/04_path_xtra.patch:
+      + Removed, Debian's autoconf patch doesn't patch AC_PATH_XTRA to check
+        for its arguments anymore, so it's useless.
+  * debian/rules:
+    - Stop touching every file, it was done to workaround a broken tarball.
+    - Include check-dist.mk to avoid uploads to experimental.
+  * debian/control.in:
+    - Tighten libgnome-window-settings-dev dependency on the shared library.
+    - Standards-Version is 3.8.3, no changes needed.
+    - Remove old conflicts/replaces.
+
+ -- Emilio Pozuelo Monfort <pochu@debian.org>  Fri, 09 Oct 2009 20:54:05 +0200
 
 control-center (1:2.26.0-1) unstable; urgency=low
 
