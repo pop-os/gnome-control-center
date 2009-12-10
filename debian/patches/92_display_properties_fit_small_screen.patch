@@ -4,9 +4,10 @@
 # Patch: http://bugzilla.gnome.org/attachment.cgi?id=130847&action=view
 # Description: Make Display capplet fit in smaller screens
 #
-diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.91/capplets/display/display-capplet.ui gnome-control-center-2.27.91.new/capplets/display/display-capplet.ui
---- gnome-control-center-2.27.91/capplets/display/display-capplet.ui	2009-08-31 02:11:29.996856695 +0100
-+++ gnome-control-center-2.27.91.new/capplets/display/display-capplet.ui	2009-08-31 02:11:32.241300380 +0100
+Index: gnome-control-center-2.28.1/capplets/display/display-capplet.ui
+===================================================================
+--- gnome-control-center-2.28.1.orig/capplets/display/display-capplet.ui	2009-12-10 13:11:51.654226986 +1100
++++ gnome-control-center-2.28.1/capplets/display/display-capplet.ui	2009-12-10 13:12:07.934219416 +1100
 @@ -104,28 +104,11 @@
              <child>
                <object class="GtkTable" id="table1">
@@ -98,9 +99,10 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.91/capplets/display/disp
                      <property name="y_options">GTK_FILL</property>
                    </packing>
                  </child>
-diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.91/capplets/display/xrandr-capplet.c gnome-control-center-2.27.91.new/capplets/display/xrandr-capplet.c
---- gnome-control-center-2.27.91/capplets/display/xrandr-capplet.c	2009-08-31 02:11:30.280854305 +0100
-+++ gnome-control-center-2.27.91.new/capplets/display/xrandr-capplet.c	2009-08-31 02:11:32.245855791 +0100
+Index: gnome-control-center-2.28.1/capplets/display/xrandr-capplet.c
+===================================================================
+--- gnome-control-center-2.28.1.orig/capplets/display/xrandr-capplet.c	2009-12-10 13:12:00.581719378 +1100
++++ gnome-control-center-2.28.1/capplets/display/xrandr-capplet.c	2009-12-10 13:12:07.944219011 +1100
 @@ -55,7 +55,6 @@
      GtkWidget	   *resolution_combo;
      GtkWidget	   *refresh_combo;
@@ -109,7 +111,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.91/capplets/display/xran
      GtkWidget	   *clone_checkbox;
      GtkWidget	   *show_icon_checkbox;
  
-@@ -671,7 +670,6 @@
+@@ -683,7 +682,6 @@
  #if 0
      g_debug ("sensitive: %d, on: %d", sensitive, app->current_output->on);
  #endif
@@ -117,7 +119,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.91/capplets/display/xran
  
      app->ignore_gui_changes = FALSE;
  
-@@ -998,8 +996,8 @@
+@@ -1010,8 +1008,8 @@
     }
  }
  
@@ -128,7 +130,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.91/capplets/display/xran
  
  static GList *
  list_connected_outputs (App *app, int *total_w, int *total_h)
-@@ -2379,21 +2377,17 @@
+@@ -2391,21 +2389,17 @@
  
      g_signal_connect (app->show_icon_checkbox, "toggled", G_CALLBACK (on_show_icon_toggled), app);
  

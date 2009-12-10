@@ -2,12 +2,13 @@ Source: gnome-control-center
 Section: gnome
 Priority: optional
 Maintainer: Ubuntu Desktop Team <ubuntu-desktop@lists.ubuntu.com>
-XSBC-Original-Maintainer: Marco Cabizza <marco87@gmail.com>
+XSBC-Original-Maintainer: Debian GNOME Maintainers <pkg-gnome-maintainers@lists.alioth.debian.org>
 Uploaders: @GNOME_TEAM@
-Standards-Version: 3.8.1
+Standards-Version: 3.8.3
 Vcs-Bzr: http://code.launchpad.net/~ubuntu-desktop/gnome-control-center/ubuntu
 Build-Depends: cdbs (>= 0.4.41),
                gnome-pkg-tools (>= 0.10),
+               quilt,
                dpkg-dev (>= 1.13.19),
                debhelper (>= 5.0.0),
                docbook-to-man,
@@ -20,6 +21,8 @@ Build-Depends: cdbs (>= 0.4.41),
                libxxf86misc-dev,
                libcanberra-gtk-dev,
                libgtk2.0-dev (>= 2.15.0),
+               librsvg2-dev,
+               libpango1.0-dev (>= 1.17),
                libglib2.0-dev (>= 2.17.4),
                libgconf2-dev,
                libgnome-desktop-dev (>= 2.25.1),
@@ -34,15 +37,14 @@ Build-Depends: cdbs (>= 0.4.41),
                libxrender-dev,
                libxrandr-dev,
                libxcursor-dev,
+               libxi-dev (>= 2:1.2),
                libgnomekbd-dev (>= 2.27.4),
                libxklavier-dev (>= 4.0),
                libebook1.2-dev (>= 1.7.90),
+               libunique-dev,
                desktop-file-utils,
                shared-mime-info,
-               scrollkeeper,
-               librsvg2-dev,
-               libpango1.0-dev (>= 1.17),
-               libunique-dev
+               scrollkeeper
 
 Package: gnome-control-center
 Architecture: any
@@ -52,7 +54,7 @@ Depends: ${shlibs:Depends},
          capplets-data (>= ${source:Version}),
          capplets-data (<< ${gnome:NextVersion}),
          libgnome-window-settings1 (= ${binary:Version}),
-         gnome-settings-daemon (>= 2.24),
+         gnome-settings-daemon (>= 2.26),
          gnome-menus (>= 2.12.0),
          gnome-desktop-data,
          gnome-icon-theme (>= 2.24),
@@ -63,12 +65,11 @@ Recommends: bzip2,
             evolution-data-server,
             gnome-user-guide,
             gnome-session,
+            policykit-1-gnome,
             mousetweaks,
             screen-resolution-extra,
             iso-codes
-Replaces: capplets
-Conflicts: capplets,
-           gnome-session (<< 2.22.0)
+Conflicts: gnome-session (<< 2.22.0)
 Suggests: libcanberra-gtk-module,
           gnome-screensaver | xscreensaver,
           x11-xserver-utils,
@@ -97,9 +98,6 @@ Architecture: any
 Section: libs
 Depends: ${shlibs:Depends},
          ${misc:Depends}
-Replaces: gnome-control-center (<< 1:2.14.1-1),
-          capplets
-Conflicts: capplets
 Description: Utility library for getting window manager settings
  This package contains the libwindow-settings library, which is used by
  the GNOME window managers.
@@ -110,7 +108,6 @@ Section: libdevel
 Depends: ${shlibs:Depends},
          ${misc:Depends},
          libgnome-window-settings1 (>= ${source:Version})
-Replaces: gnome-control-center (<< 1:2.14.1-1)
 Description: Utility library for getting window manager settings (headers)
  This package contains the libwindow-settings library header files.
 
@@ -122,4 +119,3 @@ Replaces: libgnome-settings-daemon-dev
 Depends: ${misc:Depends}
 Description: utilities to configure the GNOME desktop
  This package contains the file required to get the keydirs location
-

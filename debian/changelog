@@ -1,472 +1,151 @@
-gnome-control-center (1:2.28.1-0ubuntu2) UNRELEASED; urgency=low
+gnome-control-center (1:2.28.1-1ubuntu1) UNRELEASED; urgency=low
 
-  * Drop libgnomekbdui-dev build dependency, it does not exist any more.
-
- -- Martin Pitt <martin.pitt@ubuntu.com>  Tue, 08 Dec 2009 09:17:20 +0100
-
-gnome-control-center (1:2.28.1-0ubuntu1) karmic; urgency=low
-
-  * New upstream release: (LP: #455971)
-    - Drop obsolete check for HAL
-    - Translation updates
-  * debian/rules:
-    - No longer need --disable-hal
-  * debian/patches/99_autoreconf.patch: Refreshed
-
- -- Robert Ancell <robert.ancell@canonical.com>  Tue, 20 Oct 2009 12:52:31 +1100
-
-gnome-control-center (1:2.28.0-0ubuntu4) karmic; urgency=low
-
-  * debian/patches/81_upstream_change_fix_xrand_capplet_crash.patch:
-    - bugzilla change to fix a crasher in the xrandr capplet 
-      (lp: #431953)
-  * debian/patches/82_upstream_change_fix_aboutme_crash.patch:
-    - bugzilla change to fix the aboutme capplet crashing on closing 
-      (lp: #414538) 
-
- -- Sebastien Bacher <seb128@ubuntu.com>  Tue, 06 Oct 2009 19:20:49 +0200
-
-gnome-control-center (1:2.28.0-0ubuntu3) karmic; urgency=low
-
-  * debian/patches/52_fix_missing_keybindings.patch:
-    - Fix missing keybindings (LP: #437682)
-
- -- Robert Ancell <robert.ancell@canonical.com>  Thu, 01 Oct 2009 23:45:06 +0200
-
-gnome-control-center (1:2.28.0-0ubuntu2) karmic; urgency=low
-
-  * Add 98_password_dialog_launcher.patch: create a way to launch
-    the password changing dialog externally (LP: #307019).
-
- -- Kees Cook <kees@ubuntu.com>  Tue, 22 Sep 2009 16:27:55 -0700
-
-gnome-control-center (1:2.28.0-0ubuntu1) karmic; urgency=low
-
-  * New upstream release: (LP: #434437)
-    Appearance:
-    - Add link buttons to get more themes/backgrounds online (LP: #163385)
-    - Add/remove buttons should be the same size
-    - Make slideshows visually distinct
-    - Don't call gnome_wp_item_ensure_gnome_bg too early
-    - Rename some widget ids to make GtkBuilder happy
-    - Use XDG user and system data dirs to load backgrounds 
-    - Fix compiler warnings
-    - Make the font DPI spin button work again (LP: #424804)
-    - Show correct default layout
-    - Update icon because the old one has been removed from g-i-t
-    - Allow a window manager to inherit keybindings from another window manager
-    - Force cursor slide to 100 px, in order to use it without changing
-      the window width
-    Common:
-    - Drop check for libgnomeui
+  * Merge with Debian unstable, remaining changes:
   * debian/control.in:
-    - Drop build-dependency on libgnomeui
-
- -- Robert Ancell <robert.ancell@canonical.com>  Tue, 22 Sep 2009 14:14:38 +1000
-
-gnome-control-center (1:2.27.91-0ubuntu3) karmic; urgency=low
-
-  * debian/patches/95_desktop-effects-integration.patch:
-    - use xlib intead of gdk to get the WM name (LP: #420308)
-
- -- Travis Watkins <amaranth@ubuntu.com>  Tue, 01 Sep 2009 11:24:06 -0500
-
-gnome-control-center (1:2.27.91-0ubuntu2) karmic; urgency=low
-
-  * Updated debian/patches/95_desktop-effects-integration.patch:
-    - Fix ID clashes in ui file for appearances capplet (LP: #421944).
-  * Added debian/patches/96_hide_accessible_login.patch:
+    - Rename package from control-center to gnome-control-center
+    - Don't Build-Depends on libslab-dev, type-handling
+    - Build-depends on librsvg2-dev, libpango1.0-dev,
+      libgstreamer-plugins-base0.10-dev
+    - gnome-control-center depends on ubuntu-system-service, gconf2-common
+    - gnome-control-center recommends mousetweaks, iso-codes
+    - gnome-control-center recommends screen-resolution-extra for
+      109_screen_resolution_extra.patch
+    - Tighten the deps between capplets-data and gnome-control-center as
+      otherwise Glade / code mismatches can cause breakage: g-c-c depends on
+      capplets-data >= source:Version, not just gnome:Version; capplets-data
+      breaks g-c-c <x source:Version.
+    - Add BZR link
+  * debian/capplets-data.gconf_defaults:
+    - Don't set a keycode for multimedia keys there, the corresponding schemas
+      is in gnome-settings-daemon now and already has keysyms set
+  * debian/index.theme:
+    - Drop the Debian specific Default theme entry, it's confusing
+  * debian/capplets-data.install:
+    - Install visual effects images
+    - Don't move the autostart to usr, that's a debian unilateral decision and
+      should be discussed with upstream rather than distro changed
+  * debian/capplets-data.postinst:
+    - Don't clean the moved file in etc since it's not moved in ubuntu
+  * 01_remove_debian_default_applications.patch:
+    - Remove the Debian entries from the default applications.
+  * 100_at_properties_readd_gksudo_disable_grab_toggle.patch:
+    - "no gksu/disable-grab option per gui in gnome-at-properties"
+  * 109_screen_resolution_extra.patch:
+    - Automatically configure Virtual setting
+  * 110_screen_resolution_package.patch:
+    - Make it possible to use Synaptic to install screen-resolution-extra from
+      xrandr-capplet.c
+  * 111_screen_resolution_vendor_fallback.patch:
+    - Fallback to vendor utilties if they are available and RR1.2 is not
+      supported by the current driver
+  * 16_preferred_applications_list_cleanup.patch:
+    - Don't list mozilla alternative as "Mozilla Mail"
+  * 17_default_applications_firefox_3-5.patch:
+    - Use the correct firefox3 icon
+  * 50_ubuntu_systemwide_prefs.patch:
+    - Ubuntu specific preferences
+  * 51_ubuntu_system_keyboard.patch:
+    - Implement the global keyboard spec at
+      https://wiki.ubuntu.com/DefaultKeyboardSettings
+  * 52_fix_missing_keybindings.patch:
+    - Fix missing keybindings
+  * 80_aspect_in_dropdown.patch:
+    - Add aspect ratio to display selection drop-down menu
+  * 81_upstream_change_fix_xrand_capplet_crash.patch:
+    - Bugzilla change to fix a crasher in the xrandr capplet
+  * 82_upstream_change_fix_aboutme_crash.patch:
+    - Bugzilla change to fix the aboutme capplet crashing on closing
+  * 90_gnome-mouse-properties_small_screen.patch:
+    - Add scrollbar on small screens in mouse properties
+  * 91_gnome-about-me_small_screen.patch:
+    - Add scrollbar on small screens in about me
+  * 92_display_properties_fit_small_screen.patch:
+    - Make the display properties capplet work correctly on screen which have
+      low vertical resolution
+  * 95_desktop-effects-integration.patch:
+  * debian/visual-effects_custom.svg:
+  * debian/visual-effects_extra.svg:
+  * debian/visual-effects_none.svg:
+  * debian/visual-effects_normal.svg:
+    - Add desktop effects tab to the appearance capplet
+  * 96_hide_accessible_login.patch:
     - Remove the "Accessible Login" button from gnome-at-properties.
       All this does is launch gdmsetup, and the new version of this
       tool doesn't support changing accessibility settings.
+  * 97_subpixel_hinting_defaults.patch:
+    - Change the default hinting level for subpixel rendering from "Full" to
+      "Slight"
+  * 98_password_dialog_launcher.patch:
+    - Correct shell use to fix build issue
+  * 70_relibtoolize.patch:
+  * 99_autoreconf.patch:
+    - Renamed and regenerated
+  * 99_ltmain_as-needed.patch:
+    - Regenerated
+  * debian/watch:
+    - Watch for unstable versions
 
- -- Chris Coulson <chrisccoulson@ubuntu.com>  Mon, 31 Aug 2009 20:05:38 +0100
+ -- Robert Ancell <robert.ancell@canonical.com>  Thu, 10 Dec 2009 11:14:11 +1100
 
-gnome-control-center (1:2.27.91-0ubuntu1) karmic; urgency=low
+control-center (1:2.28.1-1) unstable; urgency=low
 
-  * New upstream version (LP: #418212):
-    - Appearance:
-      + Use unique widget IDs (Jens Granseuer) (#592182)
-      + Add workaround for glade-3 not working with vbox (William Jon 
-        McCann) (#584029)
-      + Fix parentless modal dialogs in theme installer (William Jon McCann) 
-        (#592354)
-      + Fix crash when iterating through the tree model (Jens Granseuer) 
-        (#591392, LP: #412732)
-      + Make sure the underline in "Save _As..." is interpreted (Christian 
-        Hergert) (LP: #418018)
-      + Attributes tag is not supported in GtkButtons (Claude Paroz) 
-        (#591656, LP: #413486)
-    - Common:
-      + Add schemas file (William Jon McCann)
-      + Change error message reference about Bonobo to DBus (Rodrigo 
-        Moya)
-      + Remove markup from translatable string (Claude Paroz) (#590933)
-    - Display:
-      + Fix dragging of rotate monitors (Matthias Clasen) (#578109)
-      + Don't sort the outputs before creating the labeler (Federico 
-        Mena Quintero)
-      + Remove dead code (Federico Mena Quintero)
-      + Ensure that the output labels fit inside the monitor rectangles 
-        (Federico Mena Quintero)
-    - Font viewer:
-      + Use preferences-desktop-font for the icon (Jens Granseuer) 
-        (#592642)
-      + Fix filename after GTKBuilder migration (Claude Paroz)
-    - Network:
-      + Update the ignored hosts list when the location changes (Maxim 
-        Ermilov) (#581472)
-    - Mouse:
-      + Keep touchpad UI in sync with GConf (Jens Granseuer) (#592425)
-    - Shell:
-      + Updated to latest libslab (Rodrigo Moya)
-      + Remove libgnomeui usage (Andreas Proschofsky) (#586527)
-      + Do not depend on libpanel-applet (Vincent Untz)
-      + Fix requires in gnome-window-settings-2.0.pc (Vincent Untz)
-      + Use GOption in the shell (Vincent Untz)
-      + Fix error message with unknown option in shell (Vincent Untz)
-      + Use libunique in the shell to have a single-instance shell 
-        (Vincent Untz)
-  * debian/control:
-    - Don't build-depend on libpanel-applet-dev.
-    - Add build-depend on libunique-dev.
-  * Dropped patches merged upstream:
-    - 93_auto_libslab_detection.patch
-    - 94_unbreak_internal_libslab.patch
-    - 98_polkit1.patch
-  * Refreshed patches:
-    - 100_at_properties_readd_gksudo_disable_grab_toggle.patch
-    - 109_screen_resolution_extra.patch
-    - 110_screen_resolution_package.patch
-    - 111_screen_resolution_vendor_fallback.patch
-    - 25_window_manager_settings.patch
-    - 50_ubuntu_systemwide_prefs.patch
-    - 51_ubuntu_system_keyboard.patch
-    - 80_aspect_in_dropdown.patch
-    - 90_gnome-mouse-properties_small_screen.patch
-    - 91_gnome-about-me_small_screen.patch
-    - 92_display_properties_fit_small_screen.patch
-    - 95_desktop-effects-integration.patch
-    - 99_autoreconf.patch
-  * Renamed 17_default_applications_firefox_3.patch to 
-    17_default_applications_firefox_3-5 and changed icon name to 
-    firefox-3.5.
-  * Dropped debian/patches/71_at_properties_gksudo_gdmsetup.patch:
-    - gdmsetup doesn't require gksu anymore.
-
- -- Chris Coulson <chrisccoulson@ubuntu.com>  Mon, 31 Aug 2009 00:46:05 +0100
-
-gnome-control-center (1:2.27.5-0ubuntu1) karmic; urgency=low
-
-  * New upstream version (LP: #411330):
-    - Default applications: Don't clear the custom browser command on 
-      startup (Jens Granseuer) (#590316, LP: #403671).
-    - Remove all libglade dependencies (Robert Ancell).
-    - Remove markup from translatable strings in GTKBuilder files 
-      (Claude Paroz) (#599759).
-    - Network: Fix unparsed mnemonics (Felix Riemann) (#590364).
-    - Shell:
-      + Removed deprecated dependencies from libslab (Federico Mena 
-        Quintero, Felix Riemann).
-      + Adapted shell to new libslab API (Rodrigo Moya).
-      + Remove libgnome and libgnomeui dependencies (Rodrigo Moya).
-  * debian/control:
-    - Bump libgtk2.0-dev to 2.15.0.
-    - Drop libglade2-dev build-dep.
-    - Bump libgnomekbd{,ui}-dev build-dep's to 2.27.4.
-  * Ported to GtkBuilder:
-    - 51_ubuntu_system_keyboard.patch
-    - 90_gnome-mouse-properties_small_screen.patch
-    - 91_gnome-about-me_small_screen.patch
-  * debian/patches/80_aspect_in_dropdown.patch:
-    - Updated for new version.
-    - Also changed to make updating easier in future.
-  * debian/patches/93_auto_libslab_detection.patch:
-    - Patch from Vincent Untz to correctly detect whether to use internal
-      or external libslab.
-  * debian/patches/94_unbreak_internal_libslab.patch:
-    - Added patch to build correctly with internal libslab.
-  * Other refreshed patches:
-    - 05_ta_po.patch
-    - 109_screen_resolution_extra.patch
-    - 110_screen_resolution_package.patch
-    - 111_screen_resolution_vendor_fallback.patch
-    - 50_ubuntu_systemwide_prefs.patch
-    - 92_display_properties_fit_small_screen.patch
-    - 95_desktop-effects-integration.patch
-    - 98_polkit1.patch
-    - 99_autoreconf.patch
-
- -- Chris Coulson <chrisccoulson@ubuntu.com>  Tue, 11 Aug 2009 00:06:31 +0100
-
-gnome-control-center (1:2.27.4.1-0ubuntu1) karmic; urgency=low
-
-  * New upstream version (LP: #400156):
-    - About me:
-      + New icons for fingerprint screen (Michael Langlie).
-      + EXTRA_DIST fingerprint icons (Rodrigo Moya).
-    - Appearance:
-      + Migrate to GtkBuilder (Thomas Wood).
-      + Remove custom cell renderers (Thomas Wood).
-    - At-properties:
-      + Remove libglade depency from at-properties capplet (Felix Riemann).
-    - Common:
-      + Automatically generate .gitignore files with git.mk (Thomas Wood).
-    - Default applications:
-      + Remove libglade dep from default-applications capplet (Felix Riemann).
-    - Display:
-      + Remove libglade dependency from display-properties capplet 
-        (Felix Riemann).
-    - Keybindings:
-      + Remove libglade dependency from keybindings capplet (Felix Riemann).
-    - Mouse:
-      + Support touchpad configuration through device properties 
-        (Peter Hutterer) (LP: #404219).
-    - Network:
-      + Remove libglade dependency from gnome-network-properties 
-        (Felix Riemann).
-    - Shell:
-      + Fix libslab for single includes in GTK+ (Thomas Wood).
-    - Typing break:
-      + Use GtkUIManager to replace GtkItemFactory (Thomas Hindoe 
-        Paaboel Andersen).
-    - Windows:
-      + Strip libglade dependency from gnome-window-properties (Felix Riemann).
-  * Patches ported from GladeXML to GtkBuilder:
-    - 100_at_properties_readd_gksudo_disable_grab_toggle.patch
-    - 111_screen_resolution_vendor_fallback.patch
-    - 50_ubuntu_systemwide_prefs.patch
-    - 92_display_properties_fit_small_screen.patch
-    - 95_desktop-effects-integration.patch
-  * Other refreshed patches:
-    - 109_screen_resolution_extra.patch
-    - 110_screen_resolution_package.patch
-    - 25_window_manager_settings.patch
-    - 71_at_properties_gksudo_gdmsetup.patch
-    - 80_aspect_in_dropdown.patch
-    - 90_gnome-mouse-properties_small_screen.patch
-    - 97_subpixel_hinting_defaults.patch
-    - 98_polkit1.patch
-    - 99_autoreconf.patch
-  * Dropped patches merged upstream:
-    - 26_add_touchpad_to_mouse_settings.patch
-    - 28_fixup_touchpad_config.patch
-    - 75_fix_ftbfs.patch
-
- -- Chris Coulson <chrisccoulson@ubuntu.com>  Mon, 27 Jul 2009 18:34:44 +0100
-
-gnome-control-center (1:2.27.3-0ubuntu1) karmic; urgency=low
-
-  * New upstream version (LP: #393815): 
-    - About me:
-      + Initialize GThread subsystem (Vivian Zhang) (#583451).
-    - Appearance:
-      + After removing an image set the cursor to the newly selected 
-        wallpaper so that keyboard navigation works as expected 
-        (Jens Granseuer) (#575075, LP: #334307).
-      + Search GTK+ icon theme search path for icon themes 
-        (Jens Granseuer) (#575906).
-      + Only delete the theme if the user pressed OK (Benjamin Berg) 
-        (#578694).
-      + Close gtkrc files after use (Jens Granseuer) (#578835).
-      + Fix theme engine detection on non-UNIX platform 
-        (Jens Granseuer) (#581156).
-      + Don't unref NULL GConf entries (Jens Granseuer).
-      + After removing an image set the cursor to the newly selected 
-        wallpaper (Jens Granseuer) (#575075).
-    - Default applications:
-      + Add Arora to list of browsers (Bastien Nocera).
-    - Display:
-      + Pass a transient parent ID to the ApplyConfiguration callback 
-        so that it can make its confirmation dialog a child of the parent 
-        (Federico Mena Quintero) (#576006).
-      + Simplify calls to dbus-glib which cannot fail (Federico Mena Quintero)
-      + Ensure that there will be a backup file before committing 
-        (Federico Mena Quintero) (#486093).
-      + Make the monitor heading be explicitly black (Federico Mena Quintero) 
-        (#556050).
-      + Fix the layout-outputs-horizontally helper (Federico Mena Quintero).
-      + Use the timestamp of the Apply button to change the RANDR 
-        configuration (Federico Mena Quintero).
-      + Don't pop up a redundant error dialog (Federico Mena Quintero)
-    - Font viewer:
-      + Safely printf strings (Christian Persch)
-      + Interrupt thumbnailing at 30 s instead of 30 msecs (Jens Granseuer) 
-        (#584107, LP: #381252).
-    - Keybindings:
-      + Make activating a section header row expand or collapse the 
-        section as expected instead of crashing (Jens Granseuer) (#577474).
-      + Make the custom keybinding UI smoother (Matthias Clasen).
-      + Don't needlessly write entries back to gconf on startup 
-        (Matthias Clasen) (#581986).
-    - Keyboard:
-      + Dependency on libxklavier 4.0, optional load/display of extra layouts 
-        (Sergey V. Udaltsov).
-    - Shell:
-      + Fix libslab svn:external problem (Rodrigo Moya).
-  * Dropped debian/patches/98_correct_shell_use.patch - the change is in
-    the new version.
-  * debian/control{.in}:
-    - libxklavier migration - changed libxklavier12-dev to libxklavier-dev.
-    - Bump up build-dep on libgnomekbd-dev.
-  * 98_polkit1.patch:
-    - Patch from Fedora for polkit-1 migration.
-  * debian/rules:
-    - Build with --disable-hal. This seems to be a redundant built-time
-      check anyway. I can't find any features that are disabled 
-      without HAL support.
-  * Refreshed patches:
-    - 04_path_xtra.patch.
-    - 05_ta_po.patch.
-    - 100_at_properties_readd_gksudo_disable_grab_toggle.patch.
-    - 109_screen_resolution_extra.patch.
-    - 110_screen_resolution_package.patch.
-    - 111_screen_resolution_vendor_fallback.patch.
-    - 16_preferred_applications_list_cleanup.patch.
-    - 25_window_manager_settings.patch.
-    - 26_add_touchpad_to_mouse_settings.patch.
-    - 51_ubuntu_system_keyboard.patch.
-    - 71_at_properties_gksudo_gdmsetup.patch.
-    - 80_aspect_in_dropdown.patch.
-    - 92_display_properties_fit_small_screen.patch.
-    - 97_subpixel_hinting_defaults.patch.
-    - 99_autoreconf.patch.
-  * Also fixes LP: #351271, LP: #355905. 
-
- -- Chris Coulson <chrisccoulson@ubuntu.com>  Wed, 15 Jul 2009 13:11:43 +0200
-
-gnome-control-center (1:2.26.0-1ubuntu6) karmic; urgency=low
-
-  [ Michael Vogt ]
-  * updated for policykit-1 / new ubuntu-system-service: 
-    - debian/patches/50_ubuntu_systemwide_prefs.patch 
-    - debian/patches/51_ubuntu_system_keyboard.patch
-
-  [ Martin Pitt ]
-  * debian/control.in: Drop libpolkit-gnome-dev build dep (not necessary any
-    more with patch above).
-  * Drop 96_build_sound_capplet.patch, old non-pulse mixer applet not
-    supported any more in Karmic. Drop libhal-dev build dependency (that patch
-    was the last thing which used it).
-  * 99_autoreconf.patch: Regenerate.
-
- -- Martin Pitt <martin.pitt@ubuntu.com>  Tue, 14 Jul 2009 22:10:16 +0200
-
-gnome-control-center (1:2.26.0-1ubuntu5) karmic; urgency=low
-
-  * Regenerate autoreconf patch properly, that is with all other patches
-    applied and dropping autom4te.cache; revert bogus
-    libgnome-window-settings1.install workaround, the files are installed in
-    the expected place now (usr/lib/libgnome-window-settings1).
-
- -- Loic Minier <lool@dooz.org>  Mon, 15 Jun 2009 12:00:25 +0200
-
-gnome-control-center (1:2.26.0-1ubuntu4) karmic; urgency=low
-
-  * Update patch 95_desktop-effects-integration to use
-    gdk_x11_screen_get_window_manager_name(gdk_screen_get_default()) instead
-    of manual XInternAtom calls.
-
- -- Loic Minier <lool@dooz.org>  Mon, 15 Jun 2009 11:37:32 +0200
-
-gnome-control-center (1:2.26.0-1ubuntu3) karmic; urgency=low
-
-  * debian/control.in:
-    - build-depends on libgstreamer-plugins-base0.10-dev
-
- -- Sebastien Bacher <seb128@ubuntu.com>  Thu, 11 Jun 2009 09:24:54 +0200
-
-gnome-control-center (1:2.26.0-1ubuntu2) karmic; urgency=low
-
-  * Upload to karmic
-  * debian/capplets-data.install:
-    - don't move the autostart to usr, that's a debian unilateral decision and
-      should be discussed with upstream rather than distro changed
-  * debian/capplets-data.postinst:
-    - don't clean the moved file in etc since it's not moved in ubuntu
-
-  [ Robert Ancell ]
-  * debian/patches/95_desktop-effects-integration.patch:
-    - Check array != NULL before calling g_array_free() (LP: #152844)
-  * debian/patches/96_build_sound_capplet.patch:
-    - Install 16x16, 22x22 and 32x32 icons (LP: #361425)
-
- -- Sebastien Bacher <seb128@ubuntu.com>  Wed, 10 Jun 2009 23:13:42 +0200
-
-gnome-control-center (1:2.26.0-1ubuntu1) karmic; urgency=low
-
-  * Merge with Debian unstable, remaining changes: (LP: #385413) 
-    - debian/patches/01_fix_libslab_build.patch:
-      - Removed
-    - debian/patches/01_remove_debian_default_applications.patch:
-      - Remove the Debian entries from the default applications.
-    - debian/patches/16_preferred_applications_list_cleanup.patch:
-      - Don't list mozilla alternative as "Mozilla Mail"    
-    - debian/patches/17_default_applications_firefox_3.patch:
-      - Use the correct firefox3 icon
-    - debian/patches/26_add_touchpad_to_mouse_settings.patch:
-      - Recreate touchpad page in glade, the previous file didn't work there
-        for some reason; attempt to make a slight UI improvement in the process.
-      - Add setting to enable/disable touchpad and callbacks to toggle the
-        sensitivity of the other widgets accordingly.
-    - debian/patches/28_fixup_touchpad_config.patch:
-      - Add touchpad configuration
-    - debian/patches/50_ubuntu_systemwide_prefs.patch:
-      - Ubuntu specific preferences
-    - debian/patches/51_ubuntu_system_keyboard.patch:
-      - Implement the global keyboard spec at https://wiki.ubuntu.com/DefaultKeyboardSettings
-    - debian/patches/71_at_properties_gksudo_gdmsetup.patch:
-      - Use gksu to run the gdmsetup command
-    - debian/patches/80_aspect_in_dropdown.patch:
-      - Add aspect ratio to display selection drop-down menu
-    - debian/patches/90_gnome-mouse-properties_small_screen.patch:
-      - Add scrollbar on small screens in mouse properties
-    - debian/patches/91_gnome-about-me_small_screen.patch:
-      - Add scrollbar on small screens in about me
-    - debian/patches/92_display_properties_fit_small_screen.patch:
-      - Make the display properties capplet work correctly on screen which have low vertical resolution
-    - debian/patches/95_desktop-effects-integration.patch:
-      - Add desktop effects tab to the appearance capplet
-    - debian/patches/96_build_sound_capplet.patch:
-      - Reinstate upstream-removed sound capplet
-    - debian/patches/97_subpixel_hinting_defaults.patch:
-      - Change the default hinting level for subpixel rendering from "Full" to "Slight"
-    - debian/patches/98_correct_shell_use.patch:
-      - Correct shell use to fix build issue
+  * New upstream release.
     - debian/patches/70_relibtoolize.patch:
-      - Renamed to 99_autoreconf.patch
-    - debian/patches/99_autoreconf.patch:
-      - Run autoreconf over source
-    - debian/patches/100_at_properties_readd_gksudo_disable_grab_toggle.patch:
-      - "no gksu/disable-grab option per gui in gnome-at-properties"
-    - debian/patches/109_screen_resolution_extra.patch:
-      - Automatically configure Virtual setting
-    - debian/patches/110_screen_resolution_package.patch:
-      - Make it possible to use Synaptic to install screen-resolution-extra from xrandr-capplet.c
-    - debian/patches/111_screen_resolution_vendor_fallback.patch:
-      - Fallback to vendor utilties if they are available and RR1.2 is not supported by the current driver
-    - debian/patches/series: Use cdbs instead of quilt
+      + Updated.
     - debian/control.in:
-      - Don't Build-Depends on libslab-dev, type-handling
-      - build-depends on librsvg2-dev, libpango1.0-dev, libgnomekbdui-dev
-      - gnome-control-center depends on ubuntu-system-service, gconf2-common
-      - gnome-control-center recommends mousetweaks, iso-codes
-      - gnome-control-center recommends screen-resolution-extra for 109_screen_resolution_extra.patch
-      - Tighten the deps between capplets-data and gnome-control-center as
-        otherwise Glade / code mismatches can cause breakage: g-c-c depends on
-        capplets-data >= source:Version, not just gnome:Version; capplets-data
-        breaks g-c-c <x source:Version.
-    - debian/capplets-data.gconf-defaults: Don't set a keycode for multimedia keys there, the corresponding schemas
-      is in gnome-settings-daemon now and already has keysyms set
-    - debian/index.theme: Drop the Debian specific Default theme entry, it's confusing
-    - libgnome-window-settings1.install: Handle installed files in wrong directory
-    - debian/rules:
-      - Use CDBS instead of quilt
-      - Install icons for 95_desktop-effects-integration.patch
-    - debian/visual-effects*.svg: Icons for 95_desktop-effects-integration.patch
-    - debian/watch: Watch for unstable versions
+      + Stop build depending on libhal-dev, it's not needed anymore.
+  * debian/rules: Remove check-dist.mk include to upload to unstable.
 
- -- Robert Ancell <robert.ancell@canonical.com>  Wed, 10 Jun 2009 10:57:51 +1000
+ -- Emilio Pozuelo Monfort <pochu@debian.org>  Thu, 22 Oct 2009 05:11:23 +0200
+
+control-center (1:2.28.0-2) experimental; urgency=low
+
+  * Build depend on a recent libslab-dev to build against one that doesn't
+    use libgnomeui, making gnome-control-center start again. Closes: #550461.
+
+ -- Emilio Pozuelo Monfort <pochu@debian.org>  Mon, 12 Oct 2009 01:58:10 +0200
+
+control-center (1:2.28.0-1) experimental; urgency=low
+
+  [ Loic Minier ]
+  * Drop --disable-mime-cache configure flag which was introduced in a Debian
+    specific patch which was dropped in 1:2.18.1-1.
+
+  [ Emilio Pozuelo Monfort ]
+  * debian/patches/05_ta_po.patch: forwarded, add header.
+
+  [ Josselin Mouette ]
+  * Require gnome-settings-daemon 2.26. Closes: #540418.
+
+  [ Emilio Pozuelo Monfort ]
+  * New upstream release.
+    - debian/control.in:
+      + Bump libgtk2.0-dev and libgnomekbd-dev build dependencies.
+      + Build depend on libxklavier-dev >= 4.0 rather than libxklavier12-dev.
+      + Remove libglade2-dev, libpanel-applet2-dev and libgnomeui-dev build
+        dependencies.
+      + Add libunique-dev and libxi-dev build dependencies.
+      + Remove libpolkit-gnome-dev from build depends, recommend
+        policykit-1-gnome for PolicyKit 1 support.
+    - debian/patches/05_ta_po.patch:
+      + Removed, the issue is no longer present in the po file.
+    - debian/patches/01_fix_libslab_build.patch:
+      + Updated from https://bugzilla.gnome.org/show_bug.cgi?id=591428.
+    - debian/patches/25_window_manager_settings.patch,
+      debian/patches/70_relibtoolize.patch:
+      + Updated.
+    - debian/patches/04_path_xtra.patch:
+      + Removed, Debian's autoconf patch doesn't patch AC_PATH_XTRA to check
+        for its arguments anymore, so it's useless.
+  * debian/rules:
+    - Stop touching every file, it was done to workaround a broken tarball.
+    - Include check-dist.mk to avoid uploads to experimental.
+  * debian/control.in:
+    - Tighten libgnome-window-settings-dev dependency on the shared library.
+    - Standards-Version is 3.8.3, no changes needed.
+    - Remove old conflicts/replaces.
+
+ -- Emilio Pozuelo Monfort <pochu@debian.org>  Fri, 09 Oct 2009 20:54:05 +0200
 
 control-center (1:2.26.0-1) unstable; urgency=low
 
@@ -485,267 +164,6 @@ control-center (1:2.26.0-1) unstable; urgency=low
   * capplets-data.postinst: remove the one in the old location.
 
  -- Josselin Mouette <joss@debian.org>  Fri, 29 May 2009 13:28:19 +0200
-
-gnome-control-center (1:2.26.0-0ubuntu5) karmic; urgency=low
-
-  * Fix system-wide changes of keyboard layouts (LP: #379474)
-
- -- Nizovtsev Sergey <snizovtsev@gmail.com>  Fri, 22 May 2009 22:48:54 +0400
-
-gnome-control-center (1:2.26.0-0ubuntu4) karmic; urgency=low
-
-  * debian/control.in:
-    - don't build-depends on libeel it's not used there
-
- -- Sebastien Bacher <seb128@ubuntu.com>  Mon, 11 May 2009 19:01:31 +0200
-
-gnome-control-center (1:2.26.0-0ubuntu3) jaunty; urgency=low
-
-  * Apply the contents of
-    debian/patches/92_display_properties_fit_small_screen.patch as intended
-    (fix patch in patch); LP: #224229.
-  * Tighten the deps between capplets-data and gnome-control-center as
-    otherwise Glade / code mismatches can cause breakage: g-c-c depends on
-    capplets-data >= source:Version, not just gnome:Version; capplets-data
-    breaks g-c-c <x source:Version.
-
- -- Loic Minier <lool@dooz.org>  Sun, 12 Apr 2009 20:05:17 +0200
-
-gnome-control-center (1:2.26.0-0ubuntu2) jaunty; urgency=low
-
-  * debian/patches/92_display_properties_fit_small_screen.patch:
-    - change from Michael Terry to make the display properties capplet work 
-      correctly on screen which have low vertical resolution (lp: #224229)
-
- -- Sebastien Bacher <seb128@ubuntu.com>  Wed, 08 Apr 2009 16:29:36 +0200
-
-gnome-control-center (1:2.26.0-0ubuntu1) jaunty; urgency=low
-
-  * New upstream release: (LP: #344244)
-    + About me:
-     - Fix warning when selecting a finger to enroll in the combo box
-       (Bastien Nocera)
-    + Default applications:
-     - Fix mnemonic conflicts (Jens Granseuer)
-    + Display:
-     - Make the strings of the rotation dialog appear translated (Gabor Kelemen)
-     - Fix crash when refreshing RANDR configuration (Federico Mena Quintero)
-       (LP: #340386)
-    + Font viewer:
-     - Stop the font thumbnailer eating all the CPU (Bastien Nocera) (LP: #339417)
-    + Keybindings:
-     - Fix mnemonics conflict on the custom shortcut window (Jens Granseuer)
-    + Typing break:
-     - Revert string freeze breaker (Thomas H.P. Andersen)
-    + Updated translations
-  * Refresh debian/patches/99_autoreconf.patch
-
- -- Didier Roche <didrocks@ubuntu.com>  Tue, 17 Mar 2009 15:34:39 +0100
-
-gnome-control-center (1:2.25.92-0ubuntu4) jaunty; urgency=low
-
-  * debian/patches/95_desktop-effects-integration.patch:
-    - show warning at the top of the effects tab when compiz isn't
-      installed (lp: #327465) 
-
- -- Bruce Cowan <bcowan@fastmail.co.uk>  Tue, 10 Mar 2009 23:14:19 +0000
-
-gnome-control-center (1:2.25.92-0ubuntu3) jaunty; urgency=low
-
-  * debian/patches/98_correct_shell_use.patch:
-    - correct shell use to fix build issue, thanks to lool!
-
- -- Sebastien Bacher <seb128@ubuntu.com>  Fri, 06 Mar 2009 10:57:51 +0100
-
-gnome-control-center (1:2.25.92-0ubuntu2) jaunty; urgency=low
-
-  * Reapply revision which was not correcly pushed to bzr (lp: #331818)
-
- -- Sebastien Bacher <seb128@ubuntu.com>  Fri, 06 Mar 2009 09:55:01 +0100
-
-gnome-control-center (1:2.25.92-0ubuntu1) jaunty; urgency=low
-
-  * New upstream version
-  * debian/patches/109_screen_resolution_extra.patch:
-    - updated to the new version, thanks to Alberto Milone
-  * debian/patches/99_autoreconf.patch:
-    - new version update
-
- -- Sebastien Bacher <seb128@ubuntu.com>  Tue, 03 Mar 2009 15:17:38 +0100
-
-gnome-control-center (1:2.25.90-0ubuntu4) jaunty; urgency=low
-
-  * Update 111_screen_resolution_vendor_fallback.patch with a
-    patch from Gabor Kelemen to make it translatable. (LP: #331818)
-
- -- Mario Limonciello <superm1@ubuntu.com>  Mon, 23 Feb 2009 00:14:57 -0600
-
-gnome-control-center (1:2.25.90-0ubuntu3) jaunty; urgency=low
-
-  * debian/control.in:
-    - recommends iso-codes which is used in the layout selection dialog
-      (lp: #289005)
-  * debian/patches/90_gnome-mouse-properties_small_screen.patch:
-    - change by Ying-Chun Liu to add scrollbar on small screens (lp: #28805)
-  * debian/patches/91_gnome-about-me_small_screen.patch:
-    - change by Ying-Chun Liu to add scrollbar on small screens (lp: #324464)
-  * debian/patches/95_desktop-effects-integration.patch:
-    - only call jockey when there was no desktop effects used yet (lp: #285879)
-  * debian/patches/96_build_sound_capplet.patch:
-    - update by Ying-Chun Liu to add scrollbar on small screens (lp: #28805)
-  * debian/patches/109_screen_resolution_extra.patch:
-    - change a string to fix a typo (lp: #284630)
-
- -- Sebastien Bacher <seb128@ubuntu.com>  Fri, 20 Feb 2009 16:58:47 +0100
-
-gnome-control-center (1:2.25.90-0ubuntu2) jaunty; urgency=low
-
-  * debian/patches/111_screen_resolution_vendor_fallback.patch:
-    - Fallback to vendor utilties if they are available and RR1.2
-      is not supported by the current driver. (LP: #319725)
-
- -- Mario Limonciello <mario_limonciello@dell.com>  Thu, 12 Feb 2009 11:09:25 -0600
-
-gnome-control-center (1:2.25.90-0ubuntu1) jaunty; urgency=low
-
-  * New upstream version:
-    General:
-    - Rename gnome-network-preferences to gnome-network-properties 
-    - Add optional libcanberra-gtk dependency
-    About me:
-    - Build fixes
-    - Fix email addresses being generated by g-a-m always being saved as type
-      "OTHER" 
-    Appearance:
-    - Fix newly installed themes appearing twice in the GTK themes list if the
-      package contains themes for both GTK and metacity 
-    - Use "Desktop Background" instead "Wallpaper" as per GDP glossary
-    Common:
-    - Add GnomeThemeElement parameter to the ThemeChangedCallback so that the
-      receiver can determine what part of the theme changed 
-    Default application:
-    - Fix the https handler never being set 
-    - Update the web entry with the correct command for the selected option 
-      instead of always using the default 
-    Display:
-    - Build fixes
-    - Add On/Off radio buttons to turn on/off a monitor 
-    - Don't crash if we don't have an output 
-    Keybindings:
-    - Build fixes
-    - Print a warning when a key doesn't have a schema, so no description
-    - Make Enter work as expected in the custom key shortcut edit dialogue
-    Keyboard:
-    - Sort options by description 
-    - Hide help button in Options 
-    - Allow setting a repeat delay of up to 2 seconds 
-    Shell:
-    - Use single GTK includes in slab 
-    - Compile with G*_DISABLE_DEPRECATED in slab 
-    Typing break:
-    - Play a sound when the display is locked or unlocked 
-    Translations
-  * debian/patches/50_ubuntu_systemwide_prefs.patch:
-    - new version update
-  * debian/patches/51_ubuntu_system_keyboard.patch:
-    - cleaned the change
-  * debian/patches/96_build_sound_capplet.patch:
-    - new version update
-  * debian/patches/99_autoreconf.patch:
-    - new version update
-
-  [ Alberto Milone ] 
-  * debian/patches/80_aspect_in_dropdown.patch:
-    - new version update
-
- -- Sebastien Bacher <seb128@ubuntu.com>  Wed, 11 Feb 2009 15:21:57 +0100
-
-gnome-control-center (1:2.25.3-0ubuntu4) jaunty; urgency=low
-
-  * debian/patches/96_build_sound_capplet.patch:
-    - upstream stopped building this capplet in favor of the new gnome-media one
-      but jaunty will still use the intrepid variants (lp: #327069)
-  * debian/patches/99_autoreconf.patch:
-    - updated
-
- -- Sebastien Bacher <seb128@ubuntu.com>  Sat, 07 Feb 2009 16:18:05 +0100
-
-gnome-control-center (1:2.25.3-0ubuntu3) jaunty; urgency=low
-
-  * debian/patches/111_add_dontzap_checkbox.patch:
-    - removed again after a discussion if the screen resolution
-      capplet is the right place for this option
-  * debian/control.in, debian/control:
-    - revert recommend on dontzap
-
- -- Michael Vogt <michael.vogt@ubuntu.com>  Fri, 30 Jan 2009 09:02:50 +0100
-
-gnome-control-center (1:2.25.3-0ubuntu2) jaunty; urgency=low
-
-  * debian/patches/111_add_dontzap_checkbox.patch:
-    - add dontzap checkbox to the UI if both dontzap and its
-      policykit interface are available
-  * debian/patches/99_autoreconf.patch
-    - do not conflict with patch 111_add_dontzap_checkbox.patch
-  * debian/control:
-    - add Recommends dependency on dontzap to gnome-control-center
-
- -- Alberto Milone (tseliot) <albertomilone@alice.it>  Wed, 28 Jan 2009 15:32:08 +0100
-
-gnome-control-center (1:2.25.3-0ubuntu1) jaunty; urgency=low
-
-  * New upstream release
-   General:
-    - Remove sound capplet and documentation, it moved to gnome-media
-   About me:
-    - Add support for fingerprint readers with more than one enrollment
-      stage
-   Display:
-    - Display errors when any happen
-    - Slight UI changes
-    - When a monitor is selected, update the monitor label to have the
-      monitor's name and colour so they know which one is being edited
-    - Make the monitor on which the dialogue appears the default one on
-      startup
-    - Fix monitors still overlapping when turning off "Mirror screens"
-    - Remove unneeded help button
-  * Removed unneeded patch: debian/patches/107_rr_NULL_output_name.patch
-  * Adapt debian/patches/109_screen_resolution_extra.patch as xrandr is
-    now handled totally differently
-  * Remove debian/patches/111_xrandr_args_fix.patch (taken upstream)
-  * re-generate debian/patches/99_autoreconf.patch
-
- -- Didier Roche <didrocks@ubuntu.com>  Mon, 05 Jan 2009 23:13:00 +0100
-
-gnome-control-center (1:2.25.2-0ubuntu2) jaunty; urgency=low
-
-  * fix button position for the global network preferences
-  * bump build depends on libgnome-desktop
-
- -- Michael Vogt <michael.vogt@ubuntu.com>  Wed, 17 Dec 2008 15:38:15 +0100
-
-gnome-control-center (1:2.25.2-0ubuntu1) jaunty; urgency=low
-
-  [ Michael Vogt ]
-  * New upstream release
-  * Updated (glade merging is no fun):
-    - debian/patches/109_screen_resolution_extra.patch
-    - debian/patches/50_ubuntu_systemwide_prefs.patch
-    - debian/patches/51_ubuntu_system_keyboard.patch
-    - debian/patches/80_aspect_in_dropdown.patch
-  * re-generated:
-    - debian/patches/99_autoreconf.patch
-
-  [ Alberto Milone ]
-  * debian/patches/80_aspect_in_dropdown.patch:
-    - put definition of generate_mode_text() before using the function
-  * debian/patches/111_xrandr_args_fix.patch:
-    - pass pointer to GError as an argument to gnome_rr_config_applicable(),
-      gnome_rr_screen_refresh() and gnome_rr_screen_new() to reflect the
-      relevant prototypes in gnome_rr_config.h and gnome_rr.h
-    - please drop this patch when the code is fixed in svn
-
- -- Michael Vogt <michael.vogt@ubuntu.com>  Tue, 16 Dec 2008 07:23:19 +0100
 
 control-center (1:2.24.0.1-5) unstable; urgency=low
 
@@ -828,541 +246,6 @@ control-center (1:2.24.0.1-1) experimental; urgency=low
     defaults.
 
  -- Josselin Mouette <joss@debian.org>  Sun, 28 Dec 2008 12:38:50 +0100
-
-gnome-control-center (1:2.24.0.1-0ubuntu7.1) intrepid-proposed; urgency=low
-
-  * debian/patches/109_screen_resolution_extra.patch:
-    - do not try to set the virtual resolution if the clone checkbox
-      is enabled (LP: #287062)
-
- -- Alberto Milone (tseliot) <albertomilone@alice.it>  Thu, 30 Oct 2008 13:14:50 +0100
-
-gnome-control-center (1:2.24.0.1-0ubuntu7) intrepid; urgency=low
-
-  * debian/patches/50_ubuntu_systemwide_prefs.patch:
-    - fix typo (LP: #279716)
-
- -- Michael Vogt <michael.vogt@ubuntu.com>  Mon, 20 Oct 2008 19:52:58 +0200
-
-gnome-control-center (1:2.24.0.1-0ubuntu6) intrepid; urgency=low
-
-  * Rebuild due to x11proto-input fix in 283921
-
- -- Bryce Harrington <bryce@ubuntu.com>  Sat, 18 Oct 2008 01:30:31 -0700
-
-gnome-control-center (1:2.24.0.1-0ubuntu5) intrepid; urgency=low
-
-  * debian/patches/95_desktop-effects-integration.patch:
-    - change by Bruce Cowan to allow selecting the desktop effects only when
-      the compiz binary is installed (lp: #159996) 
-
- -- Sebastien Bacher <seb128@canonical.com>  Wed, 15 Oct 2008 15:19:28 +0200
-
-gnome-control-center (1:2.24.0.1-0ubuntu4) intrepid; urgency=low
-
-  * debian/patches/28_fixup_touchpad_config.patch: Update to new property API.
-    (LP: #274728)
-    - Don't use XQueryDeviceProperty to determine if a property exists - it is
-      no longer.
-
- -- William Grant <wgrant@ubuntu.com>  Fri, 10 Oct 2008 19:26:20 +1100
-
-gnome-control-center (1:2.24.0.1-0ubuntu3) intrepid; urgency=low
-
-  * debian/patches/109_screen_resolution_extra.patch:
-    - replace what 106_screen-res-extra-support.patch did with a more
-      polished process (in screen-package.c).
-  * debian/110_screen_resolution_package.patch:
-    - make it possible to use Synaptic to install screen-resolution-extra
-      from xrandr-capplet.c
-  * debian/patches/105_cc-randr12-ubuntu-colors.patch:
-    - remove the patch for good
-  * debian/control.in:
-    - build-depends on libgnome-desktop-dev (>= 1:2.24.0-0ubuntu2)
-
- -- Alberto Milone (tseliot) <albertomilone@alice.it>  Tue, 07 Oct 2008 12:15:08 +0200
-
-gnome-control-center (1:2.24.0.1-0ubuntu2) intrepid; urgency=low
-
-  * debian/patches/51_ubuntu_system_keyboard.patch:
-    - fix crash if the keyboard has no xkb option set (LP: #272280)
-
- -- Michael Vogt <michael.vogt@ubuntu.com>  Mon, 29 Sep 2008 11:21:52 +0200
-
-gnome-control-center (1:2.24.0.1-0ubuntu1) intrepid; urgency=low
-
-  * New upstream version
-  * debian/patches/96_gnome_appearance_properties_doesnt_crash.patch:
-    - not required the issue is fixed in the new version
-
- -- Sebastien Bacher <seb128@ubuntu.com>  Wed, 24 Sep 2008 21:54:06 +0200
-
-gnome-control-center (1:2.24.0-0ubuntu2) intrepid; urgency=low
-
-  * debian/patches/96_gnome_appearance_properties_doesnt_crash.patch:
-    - don't call refresh_thumbnail using a null value to fix a crasher
-
- -- Sebastien Bacher <seb128@ubuntu.com>  Wed, 24 Sep 2008 17:11:20 +0200
-
-gnome-control-center (1:2.24.0-0ubuntu1) intrepid; urgency=low
-
-  * New upstream release
-  * debian/patches/105_cc-randr12-ubuntu-colors.patch:
-    - removed, the code in question disappeared
-  * debian/patches/50_ubuntu_systemwide_prefs.patch:
-    - updated the current glade file
-
- -- Michael Vogt <michael.vogt@ubuntu.com>  Tue, 23 Sep 2008 12:12:50 +0200
-
-gnome-control-center (1:2.23.90-0ubuntu12) intrepid; urgency=low
-
-  * debian/patches/50_ubuntu_systemwide_prefs.patch:
-    - fix reseting the proxy environment (LP: #271108)
-
- -- Michael Vogt <michael.vogt@ubuntu.com>  Tue, 23 Sep 2008 10:01:28 +0200
-
-gnome-control-center (1:2.23.90-0ubuntu11) intrepid; urgency=low
-
-  [ James Westby ]
-  * debian/patches/50_ubuntu_systemwide_prefs.patch:
-    - fix typo (LP: #269328)
-  * debian/patches/107_rr_NULL_output_name.patch
-    - handle output->name being NULL in on_screen_changed
-      in the xrandr capplet. (LP: #269595)
-
-  [ Michael Vogt ]
-  * debian/control.in:
-    - add missing gconf2-common (>= 2.23.2-0ubuntu3) to ensure
-      that the gconf system default stuff is working 
-
- -- Michael Vogt <michael.vogt@ubuntu.com>  Sat, 20 Sep 2008 00:09:11 +0200
-
-gnome-control-center (1:2.23.90-0ubuntu10) intrepid; urgency=low
-
-  * debian/patches/50_ubuntu_systemwide_prefs.patch:
-    - run gconf_client_suggest_sync() before calling SetSystem
-  * debian/patches/95_desktop-effects-integration.patch:
-    - update the gconf key to the new gnome-session location
-  
- -- Michael Vogt <michael.vogt@ubuntu.com>  Thu, 11 Sep 2008 21:34:08 +0200
-
-gnome-control-center (1:2.23.90-0ubuntu9) intrepid; urgency=low
-
-  * debian/patches/50_ubuntu_systemwide_prefs.patch:
-    - make use of the org.gnome.Default.GConf interface
-    - simplify the UI again
-    - add "Reset" button
-  * debian/control.in:
-    - depend on the latest ubuntu-system-service package
-  
- -- Michael Vogt <michael.vogt@ubuntu.com>  Thu, 11 Sep 2008 20:13:45 +0200
-
-gnome-control-center (1:2.23.90-0ubuntu8) intrepid; urgency=low
-
-  * Rebuild due to the libgnomekbd soname change
-
- -- Sebastien Bacher <seb128@ubuntu.com>  Wed, 10 Sep 2008 22:22:06 +0200
-
-gnome-control-center (1:2.23.90-0ubuntu7) intrepid; urgency=low
-
-  * debian/patches/51_ubuntu_system_keyboard.patch:
-    - fix a crash in the new "make system default" keyboard
-    - Use wording "Apply System-Wide..."
-    - update the glade file to match the design by 
-      Matthew Paul Thomas
-
- -- Michael Vogt <michael.vogt@ubuntu.com>  Wed, 10 Sep 2008 11:22:49 +0200
-
-gnome-control-center (1:2.23.90-0ubuntu6) intrepid; urgency=low
-
-  * move packaging into bzr
-  * cleanup cruft from -0ubuntu1 upload
-  * debian/patches/51_ubuntu_system_keyboard.patch:
-    - add patch that implements the global keyboard spec at
-      https://wiki.ubuntu.com/DefaultKeyboardSettings
-  * debian/control:
-    - add vcs-bzr header
-    - depend on latest ubuntu-system-service package
-
- -- Michael Vogt <michael.vogt@ubuntu.com>  Tue, 09 Sep 2008 12:26:40 +0200
-
-gnome-control-center (1:2.23.90-0ubuntu5) intrepid; urgency=low
-
-  * control:  Add screen-resolution-extra to Recommends now that it is
-    in main.
-
- -- Bryce Harrington <bryce@ubuntu.com>  Thu, 04 Sep 2008 18:14:12 -0700
-
-gnome-control-center (1:2.23.90-0ubuntu4) intrepid; urgency=low
-
-  * debian/patches/28_fixup_touchpad_config.patch: Check for the
-    "Synaptics Off" XInput property to determine if a device is a
-    touchpad. (LP: #207781) 
-
- -- William Grant <wgrant@ubuntu.com>  Sun, 31 Aug 2008 17:06:55 +1000
-
-gnome-control-center (1:2.23.90-0ubuntu3) intrepid; urgency=low
-
-  [Alberto Milone]
-  * patches/106_screen-res-extra-support.patch:  Add use of
-    screen-resolution-extra for automatically configuring Virtual
-    setting.  (LP: #220563)
-
- -- Bryce Harrington <bryce@ubuntu.com>  Fri, 29 Aug 2008 13:09:13 -0700
-
-gnome-control-center (1:2.23.90-0ubuntu2) intrepid; urgency=low
-
-  * 80_aspect_in_dropdown.patch: add aspect ratio to display selection
-    drop-down menu (http://bugzilla.gnome.org/show_bug.cgi?id=549642).
-
- -- Kees Cook <kees@ubuntu.com>  Wed, 27 Aug 2008 14:00:08 -0700
-
-gnome-control-center (1:2.23.90-0ubuntu1) intrepid; urgency=low
-
-  * New upstream version:
-  Appearance:
-  - Make theme installation from GIO-supported sources work (including
-    drag and drop) (Jens Granseuer) (#545335)
-  Default Applications:
-  - Fix custom commands for mail default application (James Westby)
-  Display:
-  - Add a check box to turn on and off display icon (Soren Sandmann)
-  - Draw rotated outputs rotated (Soren Sandmann)
-  General:
-  - Move directory deletion code from appearance capplet into common
-    code (Bastien Nocera)
-  - Make the file transfer dialog work with GFiles instead of gchar
-    paths internally (Jens Granseuer)
-  - Don't set notification theme to "standard" if the metatheme loaded
-    doesn't define one (Jens Granseuer) (#546036)
-  Keybindings:
-  - When trying to assign a shortcut that is already in use, ask the user
-    whether to reassign it instead of refusing to do anything (Denis
-    Washington) (#133318)
-  Shell:
-  - Don't do thumbnailing, let Nautilus do it (Federico Mena Quintero)
-  - Fix a build warning (Cosimo Cecchi) (#544538)
-  Sound:
-  - Remove separate bell settings tab (Bastien Nocera)
-  - Remove libsounds dependency (Bastien Nocera)
-  - Add freedesktop sound theme support through libcanberra (Bastien Nocera)
-  - Fix property passing (Lennart Poettering)
-  - Plug some leaks (Jens Granseuer)
-  - Add some filtering for OSS devices and create more useful device
-    descriptions (Alexander Schwenn) (#545275)
-  Translations:
-  - ar (Djihed Afifi)
-  - es (Jorge Gonzalez)
-  - gl (Ignacio Casal Quinteiro)
-  - nb (Kjartan Maraas)
-  - pt_BR (Leonardo Ferreira Fontenelle)
-  - sv (Daniel Nylander)
-
- -- Michael Vogt <michael.vogt@ubuntu.com>  Tue, 19 Aug 2008 12:52:43 +0200
-
-gnome-control-center (1:2.23.6-0ubuntu5) intrepid; urgency=low
-
-  * debian/patches/50_ubuntu_systemwide_prefs.patch:
-    - show system wide defaults
-
- -- Michael Vogt <michael.vogt@ubuntu.com>  Tue, 19 Aug 2008 12:36:24 +0200
-
-gnome-control-center (1:2.23.6-0ubuntu4) intrepid; urgency=low
-
-  * debian/patches/50_ubuntu_systemwide_prefs.patch:
-    - add patch to allow setting of the system proxy settings
-  * debian/control:
-    - add depends to ubuntu-system-service dbus backend
-
- -- Michael Vogt <michael.vogt@ubuntu.com>  Mon, 18 Aug 2008 18:44:27 +0200
-
-gnome-control-center (1:2.23.6-0ubuntu3) intrepid; urgency=low
-
-  * 95_desktop-effects-integration.patch:
-    - update for the new gnome-session (new gconf location).
-      Thanks to Mehdi Abaakouk (LP: #2536606)
-
- -- Michael Vogt <michael.vogt@ubuntu.com>  Mon, 18 Aug 2008 10:55:28 +0200
-
-gnome-control-center (1:2.23.6-0ubuntu2) intrepid; urgency=low
-
-  * debian/capplets-data.gconf-defaults:
-    - don't set a keycode for multimedia keys there, the corresponding schemas
-      is in gnome-settings-daemon now and already has keysyms set
-
- -- Sebastien Bacher <seb128@canonical.com>  Wed, 13 Aug 2008 23:50:57 +0200
-
-gnome-control-center (1:2.23.6-0ubuntu1) intrepid; urgency=low
-
-  * New upstream version:
-    Appearance:
-    - Make theme installation from GIO-supported sources work (including
-     drag and drop) 
-    Default Applications:
-    - Fix custom commands for mail default application (lp: #252253)
-    Display:
-    - Add a check box to turn on and off display icon 
-    - Draw rotated outputs rotated 
-    General:
-    - Move directory deletion code from appearance capplet into common code 
-    - Make the file transfer dialog work with GFiles instead of gchar
-      paths internally 
-    - Don't set notification theme to "standard" if the metatheme loaded
-      doesn't define one 
-    Keybindings:
-    - When trying to assign a shortcut that is already in use, ask the user
-      whether to reassign it instead of refusing to do anything 
-    Shell:
-    - Don't do thumbnailing, let Nautilus do it 
-    - Fix a build warning 
-    Sound:
-    - Remove separate bell settings tab 
-    - Remove libsounds dependency 
-    - Add freedesktop sound theme support through libcanberra 
-    - Fix property passing 
-    - Plug some leaks 
-    - Add some filtering for OSS devices and create more useful device
-      descriptions (lp: #252814)
-  * debian/control.in:
-    - build-depends on libcanberra-gtk-dev
-  * debian/patches/90_from_svn_use_gio_for_themes_copies.patch:
-    - the change is in the new version
-  * debian/patches/105_cc-randr12-ubuntu-colors.patch:
-    - change the color only there
-
- -- Sebastien Bacher <seb128@canonical.com>  Wed, 06 Aug 2008 11:46:57 +0200
-
-gnome-control-center (1:2.23.5-0ubuntu2) intrepid; urgency=low
-
-  * debian/patches/90_from_svn_use_gio_for_themes_copies.patch:
-    - change from svn to fix non local themes installation (lp: #252885)
-
- -- Sebastien Bacher <seb128@canonical.com>  Wed, 30 Jul 2008 10:07:18 +0200
-
-gnome-control-center (1:2.23.5-0ubuntu1) intrepid; urgency=low
-
-  * New upstream version:
-    General:
-    - Remove VFS methods code 
-    - Intltool churn 
-    - Use standard icon names from icon naming spec
-    Appearance Capplet:
-    - Don't delete ~/.icons when deleting the last icon theme    
-    - Add notification themes to the metatheme format
-    Display Capplet:
-    - New RandR 1.2 based capplet with support for dual screens and stuff.    
-    Default Applications:
-    - Use -x instead of -e as exec_flag for Terminator.
-    - Install the default apps list in the default-apps subdirectory 
-    - Make it possible for apps to install additional XML files to
-      extend the list of available applications
-    Mouse Capplet:
-    - Decrease lower boundary of dwell delay to 0.2
-  * debian/capplets-data.preinst:
-    - clean the gnomevfs conffile on upgrade
-  * debian/control.in:
-    - updated libgnome-desktop requirement
-  * debian/capplets-data.install, debian/gnome-control-center.install, 
-    debian/rules:
-    - updated to the new version changes
-  * debian/patches/101_cc-add-randr12-capplet.patch,
-    debian/patches/102_cc-randr12-makefile.patch,
-    debian/patches/104_cc-randr12-enable-i18n.patch,
-    debian/patches/106_cc-randr12-capplet-icon.patch,
-    debian/patches/107_cc-randr12-check-version.patch,
-    debian/patches/108_cc-randr12-capplet-font-layout.patch,
-    debian/patches/109_cc-randr12-gui-shrinkage.patch,
-    debian/patches/110_cc-randr12-revert-dialog.patch,
-    debian/patches/112_cc-randr12-potfiles.patch,
-    debian/patches/113_cc-randr12-fix-clone-checkbox.patch,
-    debian/patches/113_cc-randr12-remove_g_prints.patch,
-    debian/patches/114_cc-randr12-handle_rw_screen_new_failure.patch,
-    debian/patches/115_cc-randr12-fix-rebuild-gui.patch,
-    debian/patches/116_cc-randr12-handle-screen-NULL-in-on_screen_changed.patch,
-    debian/patches/117_cc-randr12-disable-help-button.patch,
-    debian/patches/118_cc-randr12-translate-extra-strings.patch:
-    - dropped, the new version version has the xrandr capplet now
-	
- -- Sebastien Bacher <seb128@canonical.com>  Fri, 25 Jul 2008 14:56:36 +0200
-
-gnome-control-center (1:2.23.4-0ubuntu2) intrepid; urgency=low
-
-  * debian/control.in:
-    - updated gnome-desktop requirement
-
- -- Sebastien Bacher <seb128@canonical.com>  Tue, 17 Jun 2008 17:43:53 +0200
-
-gnome-control-center (1:2.23.4-0ubuntu1) intrepid; urgency=low
-
-  * New upstream version:
-    default applications:
-    - Convert to use GConfPropertyEditor and remove a lot of duplicated code in
-      the process 
-    - Provide a Tango style application icon 
-    typing break:
-    - When postponing a voluntary break, go back to the state before taking the
-      break instead of going to warn state 
-    general:
-    - Increased gnome-desktop requirement 
-
- -- Sebastien Bacher <seb128@canonical.com>  Tue, 17 Jun 2008 09:17:15 +0200
-
-gnome-control-center (1:2.23.3-0ubuntu1) intrepid; urgency=low
-
-  * New upstream version:
-    appearance:
-    - Remove the last traces of gnome-vfs 
-    - Fix theme deletion 
-    - Update to match API changes in gnome-desktop 
-    - Fix "zoom" mode 
-    - Use URIs instead of paths for drag and drop 
-    - Delay creation of the wallaper file chooser for increased startup 
-      performance 
-    default-applications:
-    - Major refactoring to use GConfPropertyEditor and reduce code duplication
-    keybindings:
-    - Don't use deprecated GTK+ symbol 
-    - Add support for editing custom keybindings (create/delete not yet
-      implemented) 
-    general:
-    - Remove themus vfs-method 
-    - Minor cleanup in capplet-util and gconf-property-editor
-    about-me:
-    - Fix image scaling on the photo button 
-    - Fix build on Solaris 
-    - Properly handle errors when no icon is available 
-    - Fix handling of Home and Work email addresses 
-    - Close a memory leak 
-    appearance:
-    - Convert some more parts to gio 
-    - Show errors for incomplete control themes 
-    - Add support for installing missing GTK+ theme engines via PackageKit
-    keyboard:
-    - Don't close the Keyboard Layout Options window when the Help button is
-      clicked 
-    - Access keyboard layouts by country or language 
-    network;
-    - Drop gnome-vfs dependency 
-    sound:
-    - Add support for OSS4 mixers 
-    general:
-    - libbackground is no longer needed 
-    - Remove iso-codes dependency again 
-    - Require libxklavier 3.6 
-    - Port theme handling code from gnome-vfs to gio 
-    about-me:
-    - Launch the error dialog with the proper parent 
-    accessibility:
-    - Add button to launch mouse accessibility properties 
-    - Don't show the "accessible login" button if gdmsetup is not available    
-    - Open the preferred applications dialog on the a11y page 
-    appearance:
-    - Allow the user to revert a font change proposed by a metatheme
-    - Add a custom cell renderer for metatheme names to allow rounded corners on
-      the selection indicator 
-    - Replace gnome-vfs with gio 
-    - Show a warning message when the selected theme is incomplete 
-      default applications:
-    - Add -p/--show-page to open the dialog on a specific page 
-    keybindings:
-    - Fix mismatched modifier mapping between egg and GTK 
-    - Fix Esc and Backspace being bindable when Caps Lock is on     
-    - Get rid of unneeded sort model indirection 
-    keyboard:
-    - Fix various string and layout issues 
-    mouse:
-    - Add support for starting the capplet on the appearance tab     
-    - Remove unused custom widget 
-    network:
-    - Renamce "Advanced configuration" tab to "Ignored hosts"     
-    sound:
-    - Don't mention esd 
-    - Sort mixer devices alphabitically 
-    themus:
-    - Handle failed thumbnailing attempts properly 
-    windows:
-    - Add "Maximize Vertically" and "Maximize Horizontally" 
-      to possible double-click
-    actions 
-    - Require metacity <= 2.23.1 
-    general:
-    - Figure out where GTK+ expects its theme engines and make 
-      that info available to interested capplets 
-    - Introduce dependency on iso-codes 
-    updated translations
-  * Sync on Debian
-  * debian/control.in:
-    - don't Build-Depends on libslab-dev, type-handling
-    - gnome-control-center recommends mousetweaks
-    - the source name is gnome-control-center now
-    - updated build requirements
-    - updated maintainer information
-  * debian/gnome-control-center.install:
-    - updated nautilus versionning
-  * debian/index.theme:
-    - drop the Debian specific Default theme entry, it's confusing
-      (Ubuntu: #15268).
-  * debian/patches/01_fix_libslab_build.patch:
-    - don't build with the gnome-main-menu libslab for Ubuntu
-  * debian/patches/01_remove_debian_default_applications.patch:
-    - remove the debian specific entries
-  * debian/patches/16_preferred_applications_list_cleanup.patch:
-    - don't list mozilla alternative as "Mozilla Mail"
-  * debian/patches/17_default_applications_firefox_3.patch:
-    - use the correct firefox3 icon
-  * debian/patches/26_add_touchpad_to_mouse_settings.patch:
-    - Recreate touchpad page in glade, the previous file didn't work there
-      for some reason; attempt to make a slight UI improvement in the process.
-    - Add setting to enable/disable touchpad and callbacks to toggle the
-      sensitivity of the other widgets accordingly.
-  * debian/patches/28_fixup_touchpad_config.patch:
-    - add touchpad configuration
-  * debian/patches/71_at_properties_gksudo_gdmsetup.patch:
-    - use gksu to run the gdmsetup command
-  * debian/patches/95_desktop-effects-integration.patch,
-    debian/patches/99_autoreconf.patch,
-    debian/visual-effects_custom.svg,
-    debian/visual-effects_extra.svg,
-    debian/visual-effects_none.svg,
-    debian/visual-effects_normal.svg,
-    debian/rules:
-    - add desktop effects tab to the appearance capplet
-  * debian/patches/97_subpixel_hinting_defaults.patch:
-    - Controversial patch time.  Change the default hinting level for
-      subpixel rendering from "Full" to "Slight".
-
-      Rationale: hinting is corrupting the shape of the rendered font to
-      better fix the pixel grid.  With subpixel LCD filtering, we have
-      effectively three times the resolution in which to render the font,
-      so there's no need to align them to the pixel grid - indeed, doing
-      that defeats the point of doing things by subpixel at all.
-
-      The outcome of this patch is that the shapes of the fonts will appear
-      much better when using Subpixel rendering.  Some people will complain
-      about colour fringing, but those people who can detect subpixel
-      sub-conciously should be using Best Shapes or Best Contrast anyway.
-  * debian/patches/100_at_properties_readd_gksudo_disable_grab_toggle.patch:
-    - "no gksu/disable-grab option per gui in gnome-at-properties"
-  * debian/patches/101_cc-add-randr12-capplet.patch,
-    debian/patches/102_cc-randr12-makefile.patch,
-    debian/patches/104_cc-randr12-enable-i18n.patch,
-    debian/patches/105_cc-randr12-ubuntu-colors.patch,
-    debian/patches/106_cc-randr12-capplet-icon.patch,
-    debian/patches/107_cc-randr12-check-version.patch,
-    debian/patches/108_cc-randr12-capplet-font-layout.patch,
-    debian/patches/109_cc-randr12-gui-shrinkage.patch,
-    debian/patches/110_cc-randr12-revert-dialog.patch,
-    debian/patches/112_cc-randr12-potfiles.patch,
-    debian/patches/113_cc-randr12-fix-clone-checkbox.patch,
-    debian/patches/113_cc-randr12-remove_g_prints.patch,
-    debian/patches/114_cc-randr12-handle_rw_screen_new_failure.patch,
-    debian/patches/115_cc-randr12-fix-rebuild-gui.patch,
-    debian/patches/116_cc-randr12-handle-screen-NULL-in-on_screen_changed.patch,
-    debian/patches/117_cc-randr12-disable-help-button.patch,
-    debian/patches/118_cc-randr12-translate-extra-strings.patch:
-    - new xrandr capplet
-
- -- Sebastien Bacher <seb128@canonical.com>  Fri, 06 Jun 2008 15:04:15 +0200
 
 control-center (1:2.22.2.1-2) unstable; urgency=low
 

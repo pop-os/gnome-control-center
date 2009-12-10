@@ -1,7 +1,8 @@
-diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/aclocal.m4 gnome-control-center-2.28.1.new/aclocal.m4
---- gnome-control-center-2.28.1/aclocal.m4	2009-10-20 12:57:25.000000000 +1100
-+++ gnome-control-center-2.28.1.new/aclocal.m4	2009-10-20 12:57:48.000000000 +1100
-@@ -13,1892 +13,1894 @@
+Index: gnome-control-center-2.28.1/aclocal.m4
+===================================================================
+--- gnome-control-center-2.28.1.orig/aclocal.m4	2009-12-10 13:12:28.021719082 +1100
++++ gnome-control-center-2.28.1/aclocal.m4	2009-12-10 13:22:01.121744575 +1100
+@@ -13,1892 +13,1701 @@
  
  m4_ifndef([AC_AUTOCONF_VERSION],
    [m4_copy([m4_PACKAGE_VERSION], [AC_AUTOCONF_VERSION])])dnl
@@ -345,7 +346,10 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/aclocal.m4 gnome-contr
 -    [case " $depcc " in #(
 -     *\ -arch\ *\ -arch\ *) am__universal=true ;;
 -     esac])
--
++    CATOBJEXT=NONE
++    XGETTEXT=:
++    INTLLIBS=
+ 
 -  for depmode in $am_compiler_list; do
 -    # Setup a source with many dependencies, because some compilers
 -    # like to wrap large dependency lists on column 80 (with \), and
@@ -362,7 +366,10 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/aclocal.m4 gnome-contr
 -      touch sub/conftst$i.h
 -    done
 -    echo "${am__include} ${am__quote}sub/conftest.Po${am__quote}" > confmf
--
++    AC_CHECK_HEADER(libintl.h,
++     [gt_cv_func_dgettext_libintl="no"
++      libintl_extra_libs=""
+ 
 -    # We check with `-c' and `-o' for the sake of the "dashmstdout"
 -    # mode.  It turns out that the SunPro C++ compiler does not properly
 -    # handle `-M -o', and we need to detect this.  Also, some Intel
@@ -381,7 +388,28 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/aclocal.m4 gnome-contr
 -	continue
 -      else
 -	break
--      fi
++      #
++      # First check in libc
++      #
++      AC_CACHE_CHECK([for ngettext in libc], gt_cv_func_ngettext_libc,
++        [AC_TRY_LINK([
++#include <libintl.h>
++],
++         [return !ngettext ("","", 1)],
++	  gt_cv_func_ngettext_libc=yes,
++          gt_cv_func_ngettext_libc=no)
++        ])
++  
++      if test "$gt_cv_func_ngettext_libc" = "yes" ; then
++	      AC_CACHE_CHECK([for dgettext in libc], gt_cv_func_dgettext_libc,
++        	[AC_TRY_LINK([
++#include <libintl.h>
++],
++	          [return !dgettext ("","")],
++		  gt_cv_func_dgettext_libc=yes,
++	          gt_cv_func_dgettext_libc=no)
++        	])
+       fi
 -      ;;
 -    msvisualcpp | msvcmsys)
 -      # This compiler won't grok `-c -o', but also, the minuso test has
@@ -412,7 +440,10 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/aclocal.m4 gnome-contr
 -          grep 'not supported' conftest.err) >/dev/null 2>&1; then :; else
 -        am_cv_$1_dependencies_compiler_type=$depmode
 -        break
--      fi
++  
++      if test "$gt_cv_func_ngettext_libc" = "yes" ; then
++        AC_CHECK_FUNCS(bind_textdomain_codeset)
+       fi
 -    fi
 -  done
 -
@@ -438,7 +469,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/aclocal.m4 gnome-contr
 -AC_SUBST([DEPDIR], ["${am__leading_dot}deps"])dnl
 -])
 -
--
+ 
 -# AM_DEP_TRACK
 -# ------------
 -AC_DEFUN([AM_DEP_TRACK],
@@ -453,18 +484,60 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/aclocal.m4 gnome-contr
 -AC_SUBST([AMDEPBACKSLASH])dnl
 -_AM_SUBST_NOTMAKE([AMDEPBACKSLASH])dnl
 -])
--
++      #
++      # If we don't have everything we want, check in libintl
++      #
++      if test "$gt_cv_func_dgettext_libc" != "yes" \
++	 || test "$gt_cv_func_ngettext_libc" != "yes" \
++         || test "$ac_cv_func_bind_textdomain_codeset" != "yes" ; then
++        
++        AC_CHECK_LIB(intl, bindtextdomain,
++	    [AC_CHECK_LIB(intl, ngettext,
++		    [AC_CHECK_LIB(intl, dgettext,
++			          gt_cv_func_dgettext_libintl=yes)])])
+ 
 -# Generate code to set up dependency tracking.              -*- Autoconf -*-
--
++	if test "$gt_cv_func_dgettext_libintl" != "yes" ; then
++	  AC_MSG_CHECKING([if -liconv is needed to use gettext])
++	  AC_MSG_RESULT([])
++  	  AC_CHECK_LIB(intl, ngettext,
++          	[AC_CHECK_LIB(intl, dcgettext,
++		       [gt_cv_func_dgettext_libintl=yes
++			libintl_extra_libs=-liconv],
++			:,-liconv)],
++		:,-liconv)
++        fi
+ 
 -# Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2008
 -# Free Software Foundation, Inc.
 -#
 -# This file is free software; the Free Software Foundation
 -# gives unlimited permission to copy and/or distribute it,
 -# with or without modifications, as long as this notice is preserved.
--
++        #
++        # If we found libintl, then check in it for bind_textdomain_codeset();
++        # we'll prefer libc if neither have bind_textdomain_codeset(),
++        # and both have dgettext and ngettext
++        #
++        if test "$gt_cv_func_dgettext_libintl" = "yes" ; then
++          glib_save_LIBS="$LIBS"
++          LIBS="$LIBS -lintl $libintl_extra_libs"
++          unset ac_cv_func_bind_textdomain_codeset
++          AC_CHECK_FUNCS(bind_textdomain_codeset)
++          LIBS="$glib_save_LIBS"
+ 
 -#serial 5
--
++          if test "$ac_cv_func_bind_textdomain_codeset" = "yes" ; then
++            gt_cv_func_dgettext_libc=no
++          else
++            if test "$gt_cv_func_dgettext_libc" = "yes" \
++		&& test "$gt_cv_func_ngettext_libc" = "yes"; then
++              gt_cv_func_dgettext_libintl=no
++            fi
++          fi
++        fi
++      fi
+ 
 -# _AM_OUTPUT_DEPENDENCY_COMMANDS
 -# ------------------------------
 -AC_DEFUN([_AM_OUTPUT_DEPENDENCY_COMMANDS],
@@ -602,10 +675,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/aclocal.m4 gnome-contr
 -_AM_IF_OPTION([no-define],,
 -[AC_DEFINE_UNQUOTED(PACKAGE, "$PACKAGE", [Name of package])
 - AC_DEFINE_UNQUOTED(VERSION, "$VERSION", [Version number of package])])dnl
-+    CATOBJEXT=NONE
-+    XGETTEXT=:
-+    INTLLIBS=
- 
+-
 -# Some tools Automake needs.
 -AC_REQUIRE([AM_SANITY_CHECK])dnl
 -AC_REQUIRE([AC_ARG_PROGRAM])dnl
@@ -647,68 +717,18 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/aclocal.m4 gnome-contr
 -[m4_provide_if([_AM_COMPILER_EXEEXT],
 -  [AM_CONDITIONAL([am__EXEEXT], [test -n "$EXEEXT"])])])dnl
 -])
-+    AC_CHECK_HEADER(libintl.h,
-+     [gt_cv_func_dgettext_libintl="no"
-+      libintl_extra_libs=""
- 
+-
 -dnl Hook into `_AC_COMPILER_EXEEXT' early to learn its expansion.  Do not
 -dnl add the conditional right here, as _AC_COMPILER_EXEEXT may be further
 -dnl mangled by Autoconf and run in a shell conditional statement.
 -m4_define([_AC_COMPILER_EXEEXT],
 -m4_defn([_AC_COMPILER_EXEEXT])[m4_provide([_AM_COMPILER_EXEEXT])])
-+      #
-+      # First check in libc
-+      #
-+      AC_CACHE_CHECK([for ngettext in libc], gt_cv_func_ngettext_libc,
-+        [AC_TRY_LINK([
-+#include <libintl.h>
-+],
-+         [return !ngettext ("","", 1)],
-+	  gt_cv_func_ngettext_libc=yes,
-+          gt_cv_func_ngettext_libc=no)
-+        ])
-+  
-+      if test "$gt_cv_func_ngettext_libc" = "yes" ; then
-+	      AC_CACHE_CHECK([for dgettext in libc], gt_cv_func_dgettext_libc,
-+        	[AC_TRY_LINK([
-+#include <libintl.h>
-+],
-+	          [return !dgettext ("","")],
-+		  gt_cv_func_dgettext_libc=yes,
-+	          gt_cv_func_dgettext_libc=no)
-+        	])
-+      fi
-+  
-+      if test "$gt_cv_func_ngettext_libc" = "yes" ; then
-+        AC_CHECK_FUNCS(bind_textdomain_codeset)
-+      fi
- 
-+      #
-+      # If we don't have everything we want, check in libintl
-+      #
-+      if test "$gt_cv_func_dgettext_libc" != "yes" \
-+	 || test "$gt_cv_func_ngettext_libc" != "yes" \
-+         || test "$ac_cv_func_bind_textdomain_codeset" != "yes" ; then
-+        
-+        AC_CHECK_LIB(intl, bindtextdomain,
-+	    [AC_CHECK_LIB(intl, ngettext,
-+		    [AC_CHECK_LIB(intl, dgettext,
-+			          gt_cv_func_dgettext_libintl=yes)])])
- 
+-
+-
 -# When config.status generates a header, we must update the stamp-h file.
 -# This file resides in the same directory as the config header
 -# that is generated.  The stamp files are numbered to have different names.
-+	if test "$gt_cv_func_dgettext_libintl" != "yes" ; then
-+	  AC_MSG_CHECKING([if -liconv is needed to use gettext])
-+	  AC_MSG_RESULT([])
-+  	  AC_CHECK_LIB(intl, ngettext,
-+          	[AC_CHECK_LIB(intl, dcgettext,
-+		       [gt_cv_func_dgettext_libintl=yes
-+			libintl_extra_libs=-liconv],
-+			:,-liconv)],
-+		:,-liconv)
-+        fi
- 
+-
 -# Autoconf calls _AC_AM_CONFIG_HEADER_HOOK (when defined) in the
 -# loop where config.status creates the headers, so we can generate
 -# our stamp files there.
@@ -725,34 +745,13 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/aclocal.m4 gnome-contr
 -  esac
 -done
 -echo "timestamp for $_am_arg" >`AS_DIRNAME(["$_am_arg"])`/stamp-h[]$_am_stamp_count])
-+        #
-+        # If we found libintl, then check in it for bind_textdomain_codeset();
-+        # we'll prefer libc if neither have bind_textdomain_codeset(),
-+        # and both have dgettext and ngettext
-+        #
-+        if test "$gt_cv_func_dgettext_libintl" = "yes" ; then
-+          glib_save_LIBS="$LIBS"
-+          LIBS="$LIBS -lintl $libintl_extra_libs"
-+          unset ac_cv_func_bind_textdomain_codeset
-+          AC_CHECK_FUNCS(bind_textdomain_codeset)
-+          LIBS="$glib_save_LIBS"
- 
+-
 -# Copyright (C) 2001, 2003, 2005, 2008  Free Software Foundation, Inc.
 -#
 -# This file is free software; the Free Software Foundation
 -# gives unlimited permission to copy and/or distribute it,
 -# with or without modifications, as long as this notice is preserved.
-+          if test "$ac_cv_func_bind_textdomain_codeset" = "yes" ; then
-+            gt_cv_func_dgettext_libc=no
-+          else
-+            if test "$gt_cv_func_dgettext_libc" = "yes" \
-+		&& test "$gt_cv_func_ngettext_libc" = "yes"; then
-+              gt_cv_func_dgettext_libintl=no
-+            fi
-+          fi
-+        fi
-+      fi
- 
+-
 -# AM_PROG_INSTALL_SH
 -# ------------------
 -# Define $install_sh.
@@ -767,6 +766,238 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/aclocal.m4 gnome-contr
 -  esac
 -fi
 -AC_SUBST(install_sh)])
+-
+-# Copyright (C) 2003, 2005  Free Software Foundation, Inc.
+-#
+-# This file is free software; the Free Software Foundation
+-# gives unlimited permission to copy and/or distribute it,
+-# with or without modifications, as long as this notice is preserved.
+-
+-# serial 2
+-
+-# Check whether the underlying file-system supports filenames
+-# with a leading dot.  For instance MS-DOS doesn't.
+-AC_DEFUN([AM_SET_LEADING_DOT],
+-[rm -rf .tst 2>/dev/null
+-mkdir .tst 2>/dev/null
+-if test -d .tst; then
+-  am__leading_dot=.
+-else
+-  am__leading_dot=_
+-fi
+-rmdir .tst 2>/dev/null
+-AC_SUBST([am__leading_dot])])
+-
+-# Add --enable-maintainer-mode option to configure.         -*- Autoconf -*-
+-# From Jim Meyering
+-
+-# Copyright (C) 1996, 1998, 2000, 2001, 2002, 2003, 2004, 2005, 2008
+-# Free Software Foundation, Inc.
+-#
+-# This file is free software; the Free Software Foundation
+-# gives unlimited permission to copy and/or distribute it,
+-# with or without modifications, as long as this notice is preserved.
+-
+-# serial 5
+-
+-# AM_MAINTAINER_MODE([DEFAULT-MODE])
+-# ----------------------------------
+-# Control maintainer-specific portions of Makefiles.
+-# Default is to disable them, unless `enable' is passed literally.
+-# For symmetry, `disable' may be passed as well.  Anyway, the user
+-# can override the default with the --enable/--disable switch.
+-AC_DEFUN([AM_MAINTAINER_MODE],
+-[m4_case(m4_default([$1], [disable]),
+-       [enable], [m4_define([am_maintainer_other], [disable])],
+-       [disable], [m4_define([am_maintainer_other], [enable])],
+-       [m4_define([am_maintainer_other], [enable])
+-        m4_warn([syntax], [unexpected argument to AM@&t@_MAINTAINER_MODE: $1])])
+-AC_MSG_CHECKING([whether to am_maintainer_other maintainer-specific portions of Makefiles])
+-  dnl maintainer-mode's default is 'disable' unless 'enable' is passed
+-  AC_ARG_ENABLE([maintainer-mode],
+-[  --][am_maintainer_other][-maintainer-mode  am_maintainer_other make rules and dependencies not useful
+-			  (and sometimes confusing) to the casual installer],
+-      [USE_MAINTAINER_MODE=$enableval],
+-      [USE_MAINTAINER_MODE=]m4_if(am_maintainer_other, [enable], [no], [yes]))
+-  AC_MSG_RESULT([$USE_MAINTAINER_MODE])
+-  AM_CONDITIONAL([MAINTAINER_MODE], [test $USE_MAINTAINER_MODE = yes])
+-  MAINT=$MAINTAINER_MODE_TRUE
+-  AC_SUBST([MAINT])dnl
+-]
+-)
+-
+-AU_DEFUN([jm_MAINTAINER_MODE], [AM_MAINTAINER_MODE])
+-
+-# Check to see how 'make' treats includes.	            -*- Autoconf -*-
+-
+-# Copyright (C) 2001, 2002, 2003, 2005, 2009  Free Software Foundation, Inc.
+-#
+-# This file is free software; the Free Software Foundation
+-# gives unlimited permission to copy and/or distribute it,
+-# with or without modifications, as long as this notice is preserved.
+-
+-# serial 4
+-
+-# AM_MAKE_INCLUDE()
+-# -----------------
+-# Check to see how make treats includes.
+-AC_DEFUN([AM_MAKE_INCLUDE],
+-[am_make=${MAKE-make}
+-cat > confinc << 'END'
+-am__doit:
+-	@echo this is the am__doit target
+-.PHONY: am__doit
+-END
+-# If we don't find an include directive, just comment out the code.
+-AC_MSG_CHECKING([for style of include used by $am_make])
+-am__include="#"
+-am__quote=
+-_am_result=none
+-# First try GNU make style include.
+-echo "include confinc" > confmf
+-# Ignore all kinds of additional output from `make'.
+-case `$am_make -s -f confmf 2> /dev/null` in #(
+-*the\ am__doit\ target*)
+-  am__include=include
+-  am__quote=
+-  _am_result=GNU
+-  ;;
+-esac
+-# Now try BSD make style include.
+-if test "$am__include" = "#"; then
+-   echo '.include "confinc"' > confmf
+-   case `$am_make -s -f confmf 2> /dev/null` in #(
+-   *the\ am__doit\ target*)
+-     am__include=.include
+-     am__quote="\""
+-     _am_result=BSD
+-     ;;
+-   esac
+-fi
+-AC_SUBST([am__include])
+-AC_SUBST([am__quote])
+-AC_MSG_RESULT([$_am_result])
+-rm -f confinc confmf
+-])
+-
+-# Copyright (C) 1999, 2000, 2001, 2003, 2004, 2005, 2008
+-# Free Software Foundation, Inc.
+-#
+-# This file is free software; the Free Software Foundation
+-# gives unlimited permission to copy and/or distribute it,
+-# with or without modifications, as long as this notice is preserved.
+-
+-# serial 6
+-
+-# AM_PROG_CC_C_O
+-# --------------
+-# Like AC_PROG_CC_C_O, but changed for automake.
+-AC_DEFUN([AM_PROG_CC_C_O],
+-[AC_REQUIRE([AC_PROG_CC_C_O])dnl
+-AC_REQUIRE([AM_AUX_DIR_EXPAND])dnl
+-AC_REQUIRE_AUX_FILE([compile])dnl
+-# FIXME: we rely on the cache variable name because
+-# there is no other way.
+-set dummy $CC
+-am_cc=`echo $[2] | sed ['s/[^a-zA-Z0-9_]/_/g;s/^[0-9]/_/']`
+-eval am_t=\$ac_cv_prog_cc_${am_cc}_c_o
+-if test "$am_t" != yes; then
+-   # Losing compiler, so override with the script.
+-   # FIXME: It is wrong to rewrite CC.
+-   # But if we don't then we get into trouble of one sort or another.
+-   # A longer-term fix would be to have automake use am__CC in this case,
+-   # and then we could set am__CC="\$(top_srcdir)/compile \$(CC)"
+-   CC="$am_aux_dir/compile $CC"
+-fi
+-dnl Make sure AC_PROG_CC is never called again, or it will override our
+-dnl setting of CC.
+-m4_define([AC_PROG_CC],
+-          [m4_fatal([AC_PROG_CC cannot be called after AM_PROG_CC_C_O])])
+-])
+-
+-# Fake the existence of programs that GNU maintainers use.  -*- Autoconf -*-
+-
+-# Copyright (C) 1997, 1999, 2000, 2001, 2003, 2004, 2005, 2008
+-# Free Software Foundation, Inc.
+-#
+-# This file is free software; the Free Software Foundation
+-# gives unlimited permission to copy and/or distribute it,
+-# with or without modifications, as long as this notice is preserved.
+-
+-# serial 6
+-
+-# AM_MISSING_PROG(NAME, PROGRAM)
+-# ------------------------------
+-AC_DEFUN([AM_MISSING_PROG],
+-[AC_REQUIRE([AM_MISSING_HAS_RUN])
+-$1=${$1-"${am_missing_run}$2"}
+-AC_SUBST($1)])
+-
+-
+-# AM_MISSING_HAS_RUN
+-# ------------------
+-# Define MISSING if not defined so far and test if it supports --run.
+-# If it does, set am_missing_run to use it, otherwise, to nothing.
+-AC_DEFUN([AM_MISSING_HAS_RUN],
+-[AC_REQUIRE([AM_AUX_DIR_EXPAND])dnl
+-AC_REQUIRE_AUX_FILE([missing])dnl
+-if test x"${MISSING+set}" != xset; then
+-  case $am_aux_dir in
+-  *\ * | *\	*)
+-    MISSING="\${SHELL} \"$am_aux_dir/missing\"" ;;
+-  *)
+-    MISSING="\${SHELL} $am_aux_dir/missing" ;;
+-  esac
+-fi
+-# Use eval to expand $SHELL
+-if eval "$MISSING --run true"; then
+-  am_missing_run="$MISSING --run "
+-else
+-  am_missing_run=
+-  AC_MSG_WARN([`missing' script is too old or missing])
+-fi
+-])
+-
+-# Copyright (C) 2003, 2004, 2005, 2006  Free Software Foundation, Inc.
+-#
+-# This file is free software; the Free Software Foundation
+-# gives unlimited permission to copy and/or distribute it,
+-# with or without modifications, as long as this notice is preserved.
+-
+-# AM_PROG_MKDIR_P
+-# ---------------
+-# Check for `mkdir -p'.
+-AC_DEFUN([AM_PROG_MKDIR_P],
+-[AC_PREREQ([2.60])dnl
+-AC_REQUIRE([AC_PROG_MKDIR_P])dnl
+-dnl Automake 1.8 to 1.9.6 used to define mkdir_p.  We now use MKDIR_P,
+-dnl while keeping a definition of mkdir_p for backward compatibility.
+-dnl @MKDIR_P@ is magic: AC_OUTPUT adjusts its value for each Makefile.
+-dnl However we cannot define mkdir_p as $(MKDIR_P) for the sake of
+-dnl Makefile.ins that do not define MKDIR_P, so we do our own
+-dnl adjustment using top_builddir (which is defined more often than
+-dnl MKDIR_P).
+-AC_SUBST([mkdir_p], ["$MKDIR_P"])dnl
+-case $mkdir_p in
+-  [[\\/$]]* | ?:[[\\/]]*) ;;
+-  */*) mkdir_p="\$(top_builddir)/$mkdir_p" ;;
+-esac
+-])
+-
+-# Helper functions for option handling.                     -*- Autoconf -*-
+-
+-# Copyright (C) 2001, 2002, 2003, 2005, 2008  Free Software Foundation, Inc.
+-#
+-# This file is free software; the Free Software Foundation
+-# gives unlimited permission to copy and/or distribute it,
+-# with or without modifications, as long as this notice is preserved.
+-
+-# serial 4
+-
+-# _AM_MANGLE_OPTION(NAME)
+-# -----------------------
+-AC_DEFUN([_AM_MANGLE_OPTION],
+-[[_AM_OPTION_]m4_bpatsubst($1, [[^a-zA-Z0-9_]], [_])])
 +      if test "$gt_cv_func_dgettext_libc" = "yes" \
 +	|| test "$gt_cv_func_dgettext_libintl" = "yes"; then
 +        gt_cv_have_gettext=yes
@@ -832,17 +1063,21 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/aclocal.m4 gnome-contr
 +      fi
 +    ])
  
--# Copyright (C) 2003, 2005  Free Software Foundation, Inc.
--#
--# This file is free software; the Free Software Foundation
--# gives unlimited permission to copy and/or distribute it,
--# with or without modifications, as long as this notice is preserved.
+-# _AM_SET_OPTION(NAME)
+-# ------------------------------
+-# Set option NAME.  Presently that only means defining a flag for this option.
+-AC_DEFUN([_AM_SET_OPTION],
+-[m4_define(_AM_MANGLE_OPTION([$1]), 1)])
 +    if test "$gt_cv_have_gettext" = "yes" ; then
 +      AC_DEFINE(ENABLE_NLS, 1,
 +        [always defined to indicate that i18n is enabled])
 +    fi
  
--# serial 2
+-# _AM_SET_OPTIONS(OPTIONS)
+-# ----------------------------------
+-# OPTIONS is a space-separated list of Automake options.
+-AC_DEFUN([_AM_SET_OPTIONS],
+-[m4_foreach_w([_AM_Option], [$1], [_AM_SET_OPTION(_AM_Option)])])
 +    dnl Test whether we really found GNU xgettext.
 +    if test "$XGETTEXT" != ":"; then
 +      dnl If it is not GNU xgettext we define it as : so that the
@@ -856,34 +1091,34 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/aclocal.m4 gnome-contr
 +      fi
 +    fi
  
--# Check whether the underlying file-system supports filenames
--# with a leading dot.  For instance MS-DOS doesn't.
--AC_DEFUN([AM_SET_LEADING_DOT],
--[rm -rf .tst 2>/dev/null
--mkdir .tst 2>/dev/null
--if test -d .tst; then
--  am__leading_dot=.
--else
--  am__leading_dot=_
--fi
--rmdir .tst 2>/dev/null
--AC_SUBST([am__leading_dot])])
+-# _AM_IF_OPTION(OPTION, IF-SET, [IF-NOT-SET])
+-# -------------------------------------------
+-# Execute IF-SET if OPTION is set, IF-NOT-SET otherwise.
+-AC_DEFUN([_AM_IF_OPTION],
+-[m4_ifset(_AM_MANGLE_OPTION([$1]), [$2], [$3])])
 +    # We need to process the po/ directory.
 +    POSUB=po
  
--# Add --enable-maintainer-mode option to configure.         -*- Autoconf -*-
--# From Jim Meyering
+-# Copyright (C) 2001, 2003, 2005  Free Software Foundation, Inc.
+-#
+-# This file is free software; the Free Software Foundation
+-# gives unlimited permission to copy and/or distribute it,
+-# with or without modifications, as long as this notice is preserved.
 +    AC_OUTPUT_COMMANDS(
 +      [case "$CONFIG_FILES" in *po/Makefile.in*)
 +        sed -e "/POTFILES =/r po/POTFILES" po/Makefile.in > po/Makefile
 +      esac])
  
--# Copyright (C) 1996, 1998, 2000, 2001, 2002, 2003, 2004, 2005, 2008
--# Free Software Foundation, Inc.
--#
--# This file is free software; the Free Software Foundation
--# gives unlimited permission to copy and/or distribute it,
--# with or without modifications, as long as this notice is preserved.
+-# AM_RUN_LOG(COMMAND)
+-# -------------------
+-# Run COMMAND, save the exit status in ac_status, and log it.
+-# (This has been adapted from Autoconf's _AC_RUN_LOG macro.)
+-AC_DEFUN([AM_RUN_LOG],
+-[{ echo "$as_me:$LINENO: $1" >&AS_MESSAGE_LOG_FD
+-   ($1) >&AS_MESSAGE_LOG_FD 2>&AS_MESSAGE_LOG_FD
+-   ac_status=$?
+-   echo "$as_me:$LINENO: \$? = $ac_status" >&AS_MESSAGE_LOG_FD
+-   (exit $ac_status); }])
 +    dnl These rules are solely for the distribution goal.  While doing this
 +    dnl we only have to keep exactly one list of the available catalogs
 +    dnl in configure.in.
@@ -892,7 +1127,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/aclocal.m4 gnome-contr
 +      POFILES="$POFILES $lang.po"
 +    done
  
--# serial 5
+-# Check to make sure that the build environment is sane.    -*- Autoconf -*-
 +    dnl Make all variables we use known to autoconf.
 +    AC_SUBST(CATALOGS)
 +    AC_SUBST(CATOBJEXT)
@@ -906,31 +1141,12 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/aclocal.m4 gnome-contr
 +    AC_SUBST(POSUB)
 +  ])
  
--# AM_MAINTAINER_MODE([DEFAULT-MODE])
--# ----------------------------------
--# Control maintainer-specific portions of Makefiles.
--# Default is to disable them, unless `enable' is passed literally.
--# For symmetry, `disable' may be passed as well.  Anyway, the user
--# can override the default with the --enable/--disable switch.
--AC_DEFUN([AM_MAINTAINER_MODE],
--[m4_case(m4_default([$1], [disable]),
--       [enable], [m4_define([am_maintainer_other], [disable])],
--       [disable], [m4_define([am_maintainer_other], [enable])],
--       [m4_define([am_maintainer_other], [enable])
--        m4_warn([syntax], [unexpected argument to AM@&t@_MAINTAINER_MODE: $1])])
--AC_MSG_CHECKING([whether to am_maintainer_other maintainer-specific portions of Makefiles])
--  dnl maintainer-mode's default is 'disable' unless 'enable' is passed
--  AC_ARG_ENABLE([maintainer-mode],
--[  --][am_maintainer_other][-maintainer-mode  am_maintainer_other make rules and dependencies not useful
--			  (and sometimes confusing) to the casual installer],
--      [USE_MAINTAINER_MODE=$enableval],
--      [USE_MAINTAINER_MODE=]m4_if(am_maintainer_other, [enable], [no], [yes]))
--  AC_MSG_RESULT([$USE_MAINTAINER_MODE])
--  AM_CONDITIONAL([MAINTAINER_MODE], [test $USE_MAINTAINER_MODE = yes])
--  MAINT=$MAINTAINER_MODE_TRUE
--  AC_SUBST([MAINT])dnl
--]
--)
+-# Copyright (C) 1996, 1997, 2000, 2001, 2003, 2005, 2008
+-# Free Software Foundation, Inc.
+-#
+-# This file is free software; the Free Software Foundation
+-# gives unlimited permission to copy and/or distribute it,
+-# with or without modifications, as long as this notice is preserved.
 +# AM_GLIB_GNU_GETTEXT
 +# -------------------
 +# Do checks necessary for use of gettext. If a suitable implementation 
@@ -948,7 +1164,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/aclocal.m4 gnome-contr
 +   GLIB_LC_MESSAGES
 +   GLIB_WITH_NLS
  
--AU_DEFUN([jm_MAINTAINER_MODE], [AM_MAINTAINER_MODE])
+-# serial 5
 +   if test "$gt_cv_have_gettext" = "yes"; then
 +     if test "x$ALL_LINGUAS" = "x"; then
 +       LINGUAS=
@@ -980,31 +1196,62 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/aclocal.m4 gnome-contr
 +       AC_MSG_RESULT($LINGUAS)
 +     fi
  
--# Check to see how 'make' treats includes.	            -*- Autoconf -*-
+-# AM_SANITY_CHECK
+-# ---------------
+-AC_DEFUN([AM_SANITY_CHECK],
+-[AC_MSG_CHECKING([whether build environment is sane])
+-# Just in case
+-sleep 1
+-echo timestamp > conftest.file
+-# Reject unsafe characters in $srcdir or the absolute working directory
+-# name.  Accept space and tab only in the latter.
+-am_lf='
+-'
+-case `pwd` in
+-  *[[\\\"\#\$\&\'\`$am_lf]]*)
+-    AC_MSG_ERROR([unsafe absolute working directory name]);;
+-esac
+-case $srcdir in
+-  *[[\\\"\#\$\&\'\`$am_lf\ \	]]*)
+-    AC_MSG_ERROR([unsafe srcdir value: `$srcdir']);;
+-esac
 +     dnl Construct list of names of catalog files to be constructed.
 +     if test -n "$LINGUAS"; then
 +       for lang in $LINGUAS; do CATALOGS="$CATALOGS $lang$CATOBJEXT"; done
 +     fi
 +   fi
  
--# Copyright (C) 2001, 2002, 2003, 2005, 2009  Free Software Foundation, Inc.
--#
--# This file is free software; the Free Software Foundation
--# gives unlimited permission to copy and/or distribute it,
--# with or without modifications, as long as this notice is preserved.
+-# Do `set' in a subshell so we don't clobber the current shell's
+-# arguments.  Must try -L first in case configure is actually a
+-# symlink; some systems play weird games with the mod time of symlinks
+-# (eg FreeBSD returns the mod time of the symlink's containing
+-# directory).
+-if (
+-   set X `ls -Lt "$srcdir/configure" conftest.file 2> /dev/null`
+-   if test "$[*]" = "X"; then
+-      # -L didn't work.
+-      set X `ls -t "$srcdir/configure" conftest.file`
 +   dnl If the AC_CONFIG_AUX_DIR macro for autoconf is used we possibly
 +   dnl find the mkinstalldirs script in another subdir but ($top_srcdir).
 +   dnl Try to locate is.
 +   MKINSTALLDIRS=
 +   if test -n "$ac_aux_dir"; then
 +     MKINSTALLDIRS="$ac_aux_dir/mkinstalldirs"
-+   fi
+    fi
+-   rm -f conftest.file
+-   if test "$[*]" != "X $srcdir/configure conftest.file" \
+-      && test "$[*]" != "X conftest.file $srcdir/configure"; then
 +   if test -z "$MKINSTALLDIRS"; then
 +     MKINSTALLDIRS="\$(top_srcdir)/mkinstalldirs"
 +   fi
 +   AC_SUBST(MKINSTALLDIRS)
  
--# serial 4
+-      # If neither matched, then we have a broken ls.  This can happen
+-      # if, for instance, CONFIG_SHELL is bash and it inherits a
+-      # broken ls alias from the environment.  This has actually
+-      # happened.  Such a system could not be considered "sane".
+-      AC_MSG_ERROR([ls -t appears to fail.  Make sure there is not a broken
+-alias in your environment])
 +   dnl Generate list of files to be processed by xgettext which will
 +   dnl be included in po/Makefile.
 +   test -d po || mkdir po
@@ -1016,47 +1263,17 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/aclocal.m4 gnome-contr
 +     fi
 +   else
 +     posrcprefix="../"
-+   fi
+    fi
 +   rm -f po/POTFILES
 +   sed -e "/^#/d" -e "/^\$/d" -e "s,.*,	$posrcprefix& \\\\," -e "\$s/\(.*\) \\\\/\1/" \
 +	< $srcdir/po/POTFILES.in > po/POTFILES
 +  ])
  
--# AM_MAKE_INCLUDE()
--# -----------------
--# Check to see how make treats includes.
--AC_DEFUN([AM_MAKE_INCLUDE],
--[am_make=${MAKE-make}
--cat > confinc << 'END'
--am__doit:
--	@echo this is the am__doit target
--.PHONY: am__doit
--END
--# If we don't find an include directive, just comment out the code.
--AC_MSG_CHECKING([for style of include used by $am_make])
--am__include="#"
--am__quote=
--_am_result=none
--# First try GNU make style include.
--echo "include confinc" > confmf
--# Ignore all kinds of additional output from `make'.
--case `$am_make -s -f confmf 2> /dev/null` in #(
--*the\ am__doit\ target*)
--  am__include=include
--  am__quote=
--  _am_result=GNU
--  ;;
--esac
--# Now try BSD make style include.
--if test "$am__include" = "#"; then
--   echo '.include "confinc"' > confmf
--   case `$am_make -s -f confmf 2> /dev/null` in #(
--   *the\ am__doit\ target*)
--     am__include=.include
--     am__quote="\""
--     _am_result=BSD
--     ;;
--   esac
+-   test "$[2]" = conftest.file
+-   )
+-then
+-   # Ok.
+-   :
 +# AM_GLIB_DEFINE_LOCALEDIR(VARIABLE)
 +# -------------------------------
 +# Define VARIABLE to the location where catalog files will
@@ -1071,26 +1288,19 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/aclocal.m4 gnome-contr
 +datarootdir=`eval echo "${datarootdir}"`
 +if test "x$CATOBJEXT" = "x.mo" ; then
 +  localedir=`eval echo "${libdir}/locale"`
-+else
+ else
+-   AC_MSG_ERROR([newly created file is older than distributed files!
+-Check your system clock])
 +  localedir=`eval echo "${datadir}/locale"`
  fi
--AC_SUBST([am__include])
--AC_SUBST([am__quote])
--AC_MSG_RESULT([$_am_result])
--rm -f confinc confmf
+-AC_MSG_RESULT(yes)])
 +prefix="$glib_save_prefix"
 +exec_prefix="$glib_save_exec_prefix"
 +datarootdir="$glib_save_datarootdir"
 +AC_DEFINE_UNQUOTED($1, "$localedir",
 +  [Define the location where the catalogs will be installed])
- ])
- 
--# Copyright (C) 1999, 2000, 2001, 2003, 2004, 2005, 2008
--# Free Software Foundation, Inc.
--#
--# This file is free software; the Free Software Foundation
--# gives unlimited permission to copy and/or distribute it,
--# with or without modifications, as long as this notice is preserved.
++])
++
 +dnl
 +dnl Now the definitions that aclocal will find
 +dnl
@@ -1114,354 +1324,8 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/aclocal.m4 gnome-contr
 +echo "$as_me: failed input was:" >&AS_MESSAGE_LOG_FD
 +sed 's/^/| /' conftest.foo >&AS_MESSAGE_LOG_FD
 +fi])
- 
--# serial 6
- 
--# AM_PROG_CC_C_O
--# --------------
--# Like AC_PROG_CC_C_O, but changed for automake.
--AC_DEFUN([AM_PROG_CC_C_O],
--[AC_REQUIRE([AC_PROG_CC_C_O])dnl
--AC_REQUIRE([AM_AUX_DIR_EXPAND])dnl
--AC_REQUIRE_AUX_FILE([compile])dnl
--# FIXME: we rely on the cache variable name because
--# there is no other way.
--set dummy $CC
--am_cc=`echo $[2] | sed ['s/[^a-zA-Z0-9_]/_/g;s/^[0-9]/_/']`
--eval am_t=\$ac_cv_prog_cc_${am_cc}_c_o
--if test "$am_t" != yes; then
--   # Losing compiler, so override with the script.
--   # FIXME: It is wrong to rewrite CC.
--   # But if we don't then we get into trouble of one sort or another.
--   # A longer-term fix would be to have automake use am__CC in this case,
--   # and then we could set am__CC="\$(top_srcdir)/compile \$(CC)"
--   CC="$am_aux_dir/compile $CC"
--fi
--dnl Make sure AC_PROG_CC is never called again, or it will override our
--dnl setting of CC.
--m4_define([AC_PROG_CC],
--          [m4_fatal([AC_PROG_CC cannot be called after AM_PROG_CC_C_O])])
--])
-+# gnome-common.m4
-+# 
- 
--# Fake the existence of programs that GNU maintainers use.  -*- Autoconf -*-
-+dnl GNOME_COMMON_INIT
- 
--# Copyright (C) 1997, 1999, 2000, 2001, 2003, 2004, 2005, 2008
--# Free Software Foundation, Inc.
--#
--# This file is free software; the Free Software Foundation
--# gives unlimited permission to copy and/or distribute it,
--# with or without modifications, as long as this notice is preserved.
-+AC_DEFUN([GNOME_COMMON_INIT],
-+[
-+  dnl this macro should come after AC_CONFIG_MACRO_DIR
-+  AC_BEFORE([AC_CONFIG_MACRO_DIR], [$0])
- 
--# serial 6
-+  dnl ensure that when the Automake generated makefile calls aclocal,
-+  dnl it honours the $ACLOCAL_FLAGS environment variable
-+  ACLOCAL_AMFLAGS="\${ACLOCAL_FLAGS}"
-+  if test -n "$ac_macro_dir"; then
-+    ACLOCAL_AMFLAGS="-I $ac_macro_dir $ACLOCAL_AMFLAGS"
-+  fi
- 
--# AM_MISSING_PROG(NAME, PROGRAM)
--# ------------------------------
--AC_DEFUN([AM_MISSING_PROG],
--[AC_REQUIRE([AM_MISSING_HAS_RUN])
--$1=${$1-"${am_missing_run}$2"}
--AC_SUBST($1)])
-+  AC_SUBST([ACLOCAL_AMFLAGS])
-+])
- 
-+AC_DEFUN([GNOME_DEBUG_CHECK],
-+[
-+	AC_ARG_ENABLE([debug],
-+                      AC_HELP_STRING([--enable-debug],
-+                                     [turn on debugging]),,
-+                      [enable_debug=no])
- 
--# AM_MISSING_HAS_RUN
--# ------------------
--# Define MISSING if not defined so far and test if it supports --run.
--# If it does, set am_missing_run to use it, otherwise, to nothing.
--AC_DEFUN([AM_MISSING_HAS_RUN],
--[AC_REQUIRE([AM_AUX_DIR_EXPAND])dnl
--AC_REQUIRE_AUX_FILE([missing])dnl
--if test x"${MISSING+set}" != xset; then
--  case $am_aux_dir in
--  *\ * | *\	*)
--    MISSING="\${SHELL} \"$am_aux_dir/missing\"" ;;
--  *)
--    MISSING="\${SHELL} $am_aux_dir/missing" ;;
--  esac
--fi
--# Use eval to expand $SHELL
--if eval "$MISSING --run true"; then
--  am_missing_run="$MISSING --run "
--else
--  am_missing_run=
--  AC_MSG_WARN([`missing' script is too old or missing])
--fi
-+	if test x$enable_debug = xyes ; then
-+	    AC_DEFINE(GNOME_ENABLE_DEBUG, 1,
-+		[Enable additional debugging at the expense of performance and size])
-+	fi
- ])
- 
--# Copyright (C) 2003, 2004, 2005, 2006  Free Software Foundation, Inc.
--#
--# This file is free software; the Free Software Foundation
--# gives unlimited permission to copy and/or distribute it,
--# with or without modifications, as long as this notice is preserved.
-+dnl GNOME_MAINTAINER_MODE_DEFINES ()
-+dnl define DISABLE_DEPRECATED
-+dnl
-+AC_DEFUN([GNOME_MAINTAINER_MODE_DEFINES],
-+[
-+	AC_REQUIRE([AM_MAINTAINER_MODE])
- 
--# AM_PROG_MKDIR_P
--# ---------------
--# Check for `mkdir -p'.
--AC_DEFUN([AM_PROG_MKDIR_P],
--[AC_PREREQ([2.60])dnl
--AC_REQUIRE([AC_PROG_MKDIR_P])dnl
--dnl Automake 1.8 to 1.9.6 used to define mkdir_p.  We now use MKDIR_P,
--dnl while keeping a definition of mkdir_p for backward compatibility.
--dnl @MKDIR_P@ is magic: AC_OUTPUT adjusts its value for each Makefile.
--dnl However we cannot define mkdir_p as $(MKDIR_P) for the sake of
--dnl Makefile.ins that do not define MKDIR_P, so we do our own
--dnl adjustment using top_builddir (which is defined more often than
--dnl MKDIR_P).
--AC_SUBST([mkdir_p], ["$MKDIR_P"])dnl
--case $mkdir_p in
--  [[\\/$]]* | ?:[[\\/]]*) ;;
--  */*) mkdir_p="\$(top_builddir)/$mkdir_p" ;;
--esac
-+	DISABLE_DEPRECATED=""
-+	if test $USE_MAINTAINER_MODE = yes; then
-+	        DOMAINS="G ATK PANGO GDK GDK_PIXBUF GTK GCONF BONOBO BONOBO_UI GNOME LIBGLADE VTE GNOME_VFS WNCK LIBSOUP"
-+	        for DOMAIN in $DOMAINS; do
-+	               DISABLE_DEPRECATED="$DISABLE_DEPRECATED -D${DOMAIN}_DISABLE_DEPRECATED -D${DOMAIN}_DISABLE_SINGLE_INCLUDES"
-+	        done
-+	fi
 +
-+	AC_SUBST(DISABLE_DEPRECATED)
- ])
- 
--# Helper functions for option handling.                     -*- Autoconf -*-
-+dnl GNOME_COMPILE_WARNINGS
-+dnl Turn on many useful compiler warnings
-+dnl For now, only works on GCC
-+AC_DEFUN([GNOME_COMPILE_WARNINGS],[
-+    dnl ******************************
-+    dnl More compiler warnings
-+    dnl ******************************
- 
--# Copyright (C) 2001, 2002, 2003, 2005, 2008  Free Software Foundation, Inc.
--#
--# This file is free software; the Free Software Foundation
--# gives unlimited permission to copy and/or distribute it,
--# with or without modifications, as long as this notice is preserved.
-+    AC_ARG_ENABLE(compile-warnings, 
-+                  AC_HELP_STRING([--enable-compile-warnings=@<:@no/minimum/yes/maximum/error@:>@],
-+                                 [Turn on compiler warnings]),,
-+                  [enable_compile_warnings="m4_default([$1],[yes])"])
- 
--# serial 4
-+    warnCFLAGS=
-+    if test "x$GCC" != xyes; then
-+	enable_compile_warnings=no
-+    fi
- 
--# _AM_MANGLE_OPTION(NAME)
--# -----------------------
--AC_DEFUN([_AM_MANGLE_OPTION],
--[[_AM_OPTION_]m4_bpatsubst($1, [[^a-zA-Z0-9_]], [_])])
-+    warning_flags=
-+    realsave_CFLAGS="$CFLAGS"
- 
--# _AM_SET_OPTION(NAME)
--# ------------------------------
--# Set option NAME.  Presently that only means defining a flag for this option.
--AC_DEFUN([_AM_SET_OPTION],
--[m4_define(_AM_MANGLE_OPTION([$1]), 1)])
-+    case "$enable_compile_warnings" in
-+    no)
-+	warning_flags=
-+	;;
-+    minimum)
-+	warning_flags="-Wall"
-+	;;
-+    yes)
-+	warning_flags="-Wall -Wmissing-prototypes"
-+	;;
-+    maximum|error)
-+	warning_flags="-Wall -Wmissing-prototypes -Wnested-externs -Wpointer-arith"
-+	CFLAGS="$warning_flags $CFLAGS"
-+	for option in -Wno-sign-compare; do
-+		SAVE_CFLAGS="$CFLAGS"
-+		CFLAGS="$CFLAGS $option"
-+		AC_MSG_CHECKING([whether gcc understands $option])
-+		AC_TRY_COMPILE([], [],
-+			has_option=yes,
-+			has_option=no,)
-+		CFLAGS="$SAVE_CFLAGS"
-+		AC_MSG_RESULT($has_option)
-+		if test $has_option = yes; then
-+		  warning_flags="$warning_flags $option"
-+		fi
-+		unset has_option
-+		unset SAVE_CFLAGS
-+	done
-+	unset option
-+	if test "$enable_compile_warnings" = "error" ; then
-+	    warning_flags="$warning_flags -Werror"
-+	fi
-+	;;
-+    *)
-+	AC_MSG_ERROR(Unknown argument '$enable_compile_warnings' to --enable-compile-warnings)
-+	;;
-+    esac
-+    CFLAGS="$realsave_CFLAGS"
-+    AC_MSG_CHECKING(what warning flags to pass to the C compiler)
-+    AC_MSG_RESULT($warning_flags)
- 
--# _AM_SET_OPTIONS(OPTIONS)
--# ----------------------------------
--# OPTIONS is a space-separated list of Automake options.
--AC_DEFUN([_AM_SET_OPTIONS],
--[m4_foreach_w([_AM_Option], [$1], [_AM_SET_OPTION(_AM_Option)])])
-+    AC_ARG_ENABLE(iso-c,
-+                  AC_HELP_STRING([--enable-iso-c],
-+                                 [Try to warn if code is not ISO C ]),,
-+                  [enable_iso_c=no])
- 
--# _AM_IF_OPTION(OPTION, IF-SET, [IF-NOT-SET])
--# -------------------------------------------
--# Execute IF-SET if OPTION is set, IF-NOT-SET otherwise.
--AC_DEFUN([_AM_IF_OPTION],
--[m4_ifset(_AM_MANGLE_OPTION([$1]), [$2], [$3])])
-+    AC_MSG_CHECKING(what language compliance flags to pass to the C compiler)
-+    complCFLAGS=
-+    if test "x$enable_iso_c" != "xno"; then
-+	if test "x$GCC" = "xyes"; then
-+	case " $CFLAGS " in
-+	    *[\ \	]-ansi[\ \	]*) ;;
-+	    *) complCFLAGS="$complCFLAGS -ansi" ;;
-+	esac
-+	case " $CFLAGS " in
-+	    *[\ \	]-pedantic[\ \	]*) ;;
-+	    *) complCFLAGS="$complCFLAGS -pedantic" ;;
-+	esac
-+	fi
-+    fi
-+    AC_MSG_RESULT($complCFLAGS)
- 
--# Copyright (C) 2001, 2003, 2005  Free Software Foundation, Inc.
--#
--# This file is free software; the Free Software Foundation
--# gives unlimited permission to copy and/or distribute it,
--# with or without modifications, as long as this notice is preserved.
-+    WARN_CFLAGS="$warning_flags $complCFLAGS"
-+    AC_SUBST(WARN_CFLAGS)
-+])
 +
-+dnl For C++, do basically the same thing.
-+
-+AC_DEFUN([GNOME_CXX_WARNINGS],[
-+  AC_ARG_ENABLE(cxx-warnings,
-+                AC_HELP_STRING([--enable-cxx-warnings=@<:@no/minimum/yes@:>@]
-+                               [Turn on compiler warnings.]),,
-+                [enable_cxx_warnings="m4_default([$1],[minimum])"])
-+
-+  AC_MSG_CHECKING(what warning flags to pass to the C++ compiler)
-+  warnCXXFLAGS=
-+  if test "x$GXX" != xyes; then
-+    enable_cxx_warnings=no
-+  fi
-+  if test "x$enable_cxx_warnings" != "xno"; then
-+    if test "x$GXX" = "xyes"; then
-+      case " $CXXFLAGS " in
-+      *[\ \	]-Wall[\ \	]*) ;;
-+      *) warnCXXFLAGS="-Wall -Wno-unused" ;;
-+      esac
-+
-+      ## -W is not all that useful.  And it cannot be controlled
-+      ## with individual -Wno-xxx flags, unlike -Wall
-+      if test "x$enable_cxx_warnings" = "xyes"; then
-+	warnCXXFLAGS="$warnCXXFLAGS -Wshadow -Woverloaded-virtual"
-+      fi
-+    fi
-+  fi
-+  AC_MSG_RESULT($warnCXXFLAGS)
- 
--# AM_RUN_LOG(COMMAND)
--# -------------------
--# Run COMMAND, save the exit status in ac_status, and log it.
--# (This has been adapted from Autoconf's _AC_RUN_LOG macro.)
--AC_DEFUN([AM_RUN_LOG],
--[{ echo "$as_me:$LINENO: $1" >&AS_MESSAGE_LOG_FD
--   ($1) >&AS_MESSAGE_LOG_FD 2>&AS_MESSAGE_LOG_FD
--   ac_status=$?
--   echo "$as_me:$LINENO: \$? = $ac_status" >&AS_MESSAGE_LOG_FD
--   (exit $ac_status); }])
-+   AC_ARG_ENABLE(iso-cxx,
-+                 AC_HELP_STRING([--enable-iso-cxx],
-+                                [Try to warn if code is not ISO C++ ]),,
-+                 [enable_iso_cxx=no])
- 
--# Check to make sure that the build environment is sane.    -*- Autoconf -*-
-+   AC_MSG_CHECKING(what language compliance flags to pass to the C++ compiler)
-+   complCXXFLAGS=
-+   if test "x$enable_iso_cxx" != "xno"; then
-+     if test "x$GXX" = "xyes"; then
-+      case " $CXXFLAGS " in
-+      *[\ \	]-ansi[\ \	]*) ;;
-+      *) complCXXFLAGS="$complCXXFLAGS -ansi" ;;
-+      esac
- 
--# Copyright (C) 1996, 1997, 2000, 2001, 2003, 2005, 2008
--# Free Software Foundation, Inc.
--#
--# This file is free software; the Free Software Foundation
--# gives unlimited permission to copy and/or distribute it,
--# with or without modifications, as long as this notice is preserved.
-+      case " $CXXFLAGS " in
-+      *[\ \	]-pedantic[\ \	]*) ;;
-+      *) complCXXFLAGS="$complCXXFLAGS -pedantic" ;;
-+      esac
-+     fi
-+   fi
-+  AC_MSG_RESULT($complCXXFLAGS)
- 
--# serial 5
-+  WARN_CXXFLAGS="$CXXFLAGS $warnCXXFLAGS $complCXXFLAGS"
-+  AC_SUBST(WARN_CXXFLAGS)
-+])
- 
--# AM_SANITY_CHECK
--# ---------------
--AC_DEFUN([AM_SANITY_CHECK],
--[AC_MSG_CHECKING([whether build environment is sane])
--# Just in case
--sleep 1
--echo timestamp > conftest.file
--# Reject unsafe characters in $srcdir or the absolute working directory
--# name.  Accept space and tab only in the latter.
--am_lf='
--'
--case `pwd` in
--  *[[\\\"\#\$\&\'\`$am_lf]]*)
--    AC_MSG_ERROR([unsafe absolute working directory name]);;
--esac
--case $srcdir in
--  *[[\\\"\#\$\&\'\`$am_lf\ \	]]*)
--    AC_MSG_ERROR([unsafe srcdir value: `$srcdir']);;
--esac
 +# nls.m4 serial 3 (gettext-0.15)
 +dnl Copyright (C) 1995-2003, 2005-2006 Free Software Foundation, Inc.
 +dnl This file is free software; the Free Software Foundation
@@ -1476,44 +1340,14 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/aclocal.m4 gnome-contr
 +dnl by the GNU Library General Public License, and the rest of the GNU
 +dnl gettext package package is covered by the GNU General Public License.
 +dnl They are *not* in the public domain.
- 
--# Do `set' in a subshell so we don't clobber the current shell's
--# arguments.  Must try -L first in case configure is actually a
--# symlink; some systems play weird games with the mod time of symlinks
--# (eg FreeBSD returns the mod time of the symlink's containing
--# directory).
--if (
--   set X `ls -Lt "$srcdir/configure" conftest.file 2> /dev/null`
--   if test "$[*]" = "X"; then
--      # -L didn't work.
--      set X `ls -t "$srcdir/configure" conftest.file`
--   fi
--   rm -f conftest.file
--   if test "$[*]" != "X $srcdir/configure conftest.file" \
--      && test "$[*]" != "X conftest.file $srcdir/configure"; then
++
 +dnl Authors:
 +dnl   Ulrich Drepper <drepper@cygnus.com>, 1995-2000.
 +dnl   Bruno Haible <haible@clisp.cons.org>, 2000-2003.
  
--      # If neither matched, then we have a broken ls.  This can happen
--      # if, for instance, CONFIG_SHELL is bash and it inherits a
--      # broken ls alias from the environment.  This has actually
--      # happened.  Such a system could not be considered "sane".
--      AC_MSG_ERROR([ls -t appears to fail.  Make sure there is not a broken
--alias in your environment])
--   fi
+-# Copyright (C) 2001, 2003, 2005  Free Software Foundation, Inc.
 +AC_PREREQ(2.50)
- 
--   test "$[2]" = conftest.file
--   )
--then
--   # Ok.
--   :
--else
--   AC_MSG_ERROR([newly created file is older than distributed files!
--Check your system clock])
--fi
--AC_MSG_RESULT(yes)])
++
 +AC_DEFUN([AM_NLS],
 +[
 +  AC_MSG_CHECKING([whether NLS is requested])
@@ -1524,8 +1358,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/aclocal.m4 gnome-contr
 +  AC_MSG_RESULT($USE_NLS)
 +  AC_SUBST(USE_NLS)
 +])
- 
--# Copyright (C) 2001, 2003, 2005  Free Software Foundation, Inc.
++
 +# pkg.m4 - Macros to locate and utilise pkg-config.            -*- Autoconf -*-
 +# 
 +# Copyright © 2004 Scott James Remnant <scott@netsplit.com>.
@@ -1679,7 +1512,6 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/aclocal.m4 gnome-contr
 +# Note that if there is a possibility the first call to
 +# PKG_CHECK_MODULES might not happen, you should be sure to include an
 +# explicit call to PKG_PROG_PKG_CONFIG in your configure.ac
-+#
  #
 -# Substitute a variable $(am__untar) that extract such
 -# a tarball read from stdin.
@@ -1733,6 +1565,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/aclocal.m4 gnome-contr
 -    am__untar=false
 -    ;;
 -  esac
++#
 +# --------------------------------------------------------------
 +AC_DEFUN([PKG_CHECK_MODULES],
 +[AC_REQUIRE([PKG_PROG_PKG_CONFIG])dnl
@@ -1768,13 +1601,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/aclocal.m4 gnome-contr
 +m4_define([_PKG_TEXT], [Alternatively, you may set the environment variables $1[]_CFLAGS
 +and $1[]_LIBS to avoid the need to call pkg-config.
 +See the pkg-config man page for more details.])
- 
--dnl AM_GCONF_SOURCE_2
--dnl Defines GCONF_SCHEMA_CONFIG_SOURCE which is where you should install schemas
--dnl  (i.e. pass to gconftool-2
--dnl Defines GCONF_SCHEMA_FILE_DIR which is a filesystem directory where
--dnl  you should install foo.schemas files
--dnl
++
 +if test $pkg_failed = yes; then
 +        _PKG_SHORT_ERRORS_SUPPORTED
 +        if test $_pkg_short_errors_supported = yes; then
@@ -1784,31 +1611,15 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/aclocal.m4 gnome-contr
 +        fi
 +	# Put the nasty error message in config.log where it belongs
 +	echo "$$1[]_PKG_ERRORS" >&AS_MESSAGE_LOG_FD
- 
--AC_DEFUN([AM_GCONF_SOURCE_2],
--[
--  if test "x$GCONF_SCHEMA_INSTALL_SOURCE" = "x"; then
--    GCONF_SCHEMA_CONFIG_SOURCE=`gconftool-2 --get-default-source`
--  else
--    GCONF_SCHEMA_CONFIG_SOURCE=$GCONF_SCHEMA_INSTALL_SOURCE
--  fi
++
 +	ifelse([$4], , [AC_MSG_ERROR(dnl
 +[Package requirements ($2) were not met:
- 
--  AC_ARG_WITH([gconf-source],
--	      AC_HELP_STRING([--with-gconf-source=sourceaddress],
--			     [Config database for installing schema files.]),
--	      [GCONF_SCHEMA_CONFIG_SOURCE="$withval"],)
++
 +$$1_PKG_ERRORS
- 
--  AC_SUBST(GCONF_SCHEMA_CONFIG_SOURCE)
--  AC_MSG_RESULT([Using config source $GCONF_SCHEMA_CONFIG_SOURCE for schema installation])
++
 +Consider adjusting the PKG_CONFIG_PATH environment variable if you
 +installed software in a non-standard prefix.
- 
--  if test "x$GCONF_SCHEMA_FILE_DIR" = "x"; then
--    GCONF_SCHEMA_FILE_DIR='$(sysconfdir)/gconf/schemas'
--  fi
++
 +_PKG_TEXT
 +])],
 +		[AC_MSG_RESULT([no])
@@ -1819,14 +1630,21 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/aclocal.m4 gnome-contr
 +is in your PATH or set the PKG_CONFIG environment variable to the full
 +path to pkg-config.
  
--  AC_ARG_WITH([gconf-schema-file-dir],
--	      AC_HELP_STRING([--with-gconf-schema-file-dir=dir],
--			     [Directory for installing schema files.]),
--	      [GCONF_SCHEMA_FILE_DIR="$withval"],)
+-dnl AM_GCONF_SOURCE_2
+-dnl Defines GCONF_SCHEMA_CONFIG_SOURCE which is where you should install schemas
+-dnl  (i.e. pass to gconftool-2
+-dnl Defines GCONF_SCHEMA_FILE_DIR which is a filesystem directory where
+-dnl  you should install foo.schemas files
+-dnl
 +_PKG_TEXT
  
--  AC_SUBST(GCONF_SCHEMA_FILE_DIR)
--  AC_MSG_RESULT([Using $GCONF_SCHEMA_FILE_DIR as install directory for schema files])
+-AC_DEFUN([AM_GCONF_SOURCE_2],
+-[
+-  if test "x$GCONF_SCHEMA_INSTALL_SOURCE" = "x"; then
+-    GCONF_SCHEMA_CONFIG_SOURCE=`gconftool-2 --get-default-source`
+-  else
+-    GCONF_SCHEMA_CONFIG_SOURCE=$GCONF_SCHEMA_INSTALL_SOURCE
+-  fi
 +To get pkg-config, see <http://pkg-config.freedesktop.org/>.])],
 +		[$4])
 +else
@@ -1837,20 +1655,18 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/aclocal.m4 gnome-contr
 +fi[]dnl
 +])# PKG_CHECK_MODULES
  
--  AC_ARG_ENABLE(schemas-install,
--  	AC_HELP_STRING([--disable-schemas-install],
--		       [Disable the schemas installation]),
--     [case ${enableval} in
--       yes|no) ;;
--       *) AC_MSG_ERROR([bad value ${enableval} for --enable-schemas-install]) ;;
--      esac])
--  AM_CONDITIONAL([GCONF_SCHEMAS_INSTALL], [test "$enable_schemas_install" != no])
+-  AC_ARG_WITH([gconf-source],
+-	      AC_HELP_STRING([--with-gconf-source=sourceaddress],
+-			     [Config database for installing schema files.]),
+-	      [GCONF_SCHEMA_CONFIG_SOURCE="$withval"],)
 +# Copyright (C) 2002, 2003, 2005, 2006, 2007, 2008  Free Software Foundation, Inc.
 +#
 +# This file is free software; the Free Software Foundation
 +# gives unlimited permission to copy and/or distribute it,
 +# with or without modifications, as long as this notice is preserved.
-+
+ 
+-  AC_SUBST(GCONF_SCHEMA_CONFIG_SOURCE)
+-  AC_MSG_RESULT([Using config source $GCONF_SCHEMA_CONFIG_SOURCE for schema installation])
 +# AM_AUTOMAKE_VERSION(VERSION)
 +# ----------------------------
 +# Automake X.Y traces this macro to ensure aclocal.m4 has been
@@ -1862,27 +1678,22 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/aclocal.m4 gnome-contr
 +dnl require some minimum version.  Point them to the right macro.
 +m4_if([$1], [1.11], [],
 +      [AC_FATAL([Do not call $0, use AM_INIT_AUTOMAKE([$1]).])])dnl
- ])
++])
  
--# Copyright (C) 1995-2002 Free Software Foundation, Inc.
--# Copyright (C) 2001-2003,2004 Red Hat, Inc.
--#
--# This file is free software, distributed under the terms of the GNU
--# General Public License.  As a special exception to the GNU General
--# Public License, this file may be distributed as part of a program
--# that contains a configuration script generated by Autoconf, under
--# the same distribution terms as the rest of that program.
--#
--# This file can be copied and used freely without restrictions.  It can
--# be used in projects which are not available under the GNU Public License
--# but which still want to provide support for the GNU gettext functionality.
+-  if test "x$GCONF_SCHEMA_FILE_DIR" = "x"; then
+-    GCONF_SCHEMA_FILE_DIR='$(sysconfdir)/gconf/schemas'
+-  fi
 +# _AM_AUTOCONF_VERSION(VERSION)
 +# -----------------------------
 +# aclocal traces this macro to find the Autoconf version.
 +# This is a private macro too.  Using m4_define simplifies
 +# the logic in aclocal, which can simply ignore this definition.
 +m4_define([_AM_AUTOCONF_VERSION], [])
-+
+ 
+-  AC_ARG_WITH([gconf-schema-file-dir],
+-	      AC_HELP_STRING([--with-gconf-schema-file-dir=dir],
+-			     [Directory for installing schema files.]),
+-	      [GCONF_SCHEMA_FILE_DIR="$withval"],)
 +# AM_SET_CURRENT_AUTOMAKE_VERSION
 +# -------------------------------
 +# Call AM_AUTOMAKE_VERSION and AM_AUTOMAKE_VERSION so they can be traced.
@@ -1892,23 +1703,37 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/aclocal.m4 gnome-contr
 +m4_ifndef([AC_AUTOCONF_VERSION],
 +  [m4_copy([m4_PACKAGE_VERSION], [AC_AUTOCONF_VERSION])])dnl
 +_AM_AUTOCONF_VERSION(m4_defn([AC_AUTOCONF_VERSION]))])
-+
+ 
+-  AC_SUBST(GCONF_SCHEMA_FILE_DIR)
+-  AC_MSG_RESULT([Using $GCONF_SCHEMA_FILE_DIR as install directory for schema files])
 +# AM_AUX_DIR_EXPAND                                         -*- Autoconf -*-
-+
+ 
+-  AC_ARG_ENABLE(schemas-install,
+-  	AC_HELP_STRING([--disable-schemas-install],
+-		       [Disable the schemas installation]),
+-     [case ${enableval} in
+-       yes|no) ;;
+-       *) AC_MSG_ERROR([bad value ${enableval} for --enable-schemas-install]) ;;
+-      esac])
+-  AM_CONDITIONAL([GCONF_SCHEMAS_INSTALL], [test "$enable_schemas_install" != no])
+-])
 +# Copyright (C) 2001, 2003, 2005  Free Software Foundation, Inc.
- #
--# Macro to add for using GNU gettext.
--# Ulrich Drepper <drepper@cygnus.com>, 1995, 1996
++#
 +# This file is free software; the Free Software Foundation
 +# gives unlimited permission to copy and/or distribute it,
 +# with or without modifications, as long as this notice is preserved.
-+
+ 
+-# Copyright (C) 1995-2002 Free Software Foundation, Inc.
+-# Copyright (C) 2001-2003,2004 Red Hat, Inc.
 +# For projects using AC_CONFIG_AUX_DIR([foo]), Autoconf sets
 +# $ac_aux_dir to `$srcdir/foo'.  In other projects, it is set to
 +# `$srcdir', `$srcdir/..', or `$srcdir/../..'.
  #
--# Modified to never use included libintl. 
--# Owen Taylor <otaylor@redhat.com>, 12/15/1998
+-# This file is free software, distributed under the terms of the GNU
+-# General Public License.  As a special exception to the GNU General
+-# Public License, this file may be distributed as part of a program
+-# that contains a configuration script generated by Autoconf, under
+-# the same distribution terms as the rest of that program.
 +# Of course, Automake must honor this variable whenever it calls a
 +# tool from the auxiliary directory.  The problem is that $srcdir (and
 +# therefore $ac_aux_dir as well) can be either absolute or relative,
@@ -1917,8 +1742,9 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/aclocal.m4 gnome-contr
 +# source directory, any form will work fine, but in subdirectories a
 +# relative path needs to be adjusted first.
  #
--# Major rework to remove unused code
--# Owen Taylor <otaylor@redhat.com>, 12/11/2002
+-# This file can be copied and used freely without restrictions.  It can
+-# be used in projects which are not available under the GNU Public License
+-# but which still want to provide support for the GNU gettext functionality.
 +# $ac_aux_dir/missing
 +#    fails when called from a subdirectory if $ac_aux_dir is relative
 +# $top_srcdir/$ac_aux_dir/missing
@@ -1926,15 +1752,15 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/aclocal.m4 gnome-contr
 +#    fails when called from a subdirectory in a VPATH build with
 +#          a relative $ac_aux_dir
  #
--# Added better handling of ALL_LINGUAS from GNU gettext version 
--# written by Bruno Haible, Owen Taylor <otaylor.redhat.com> 5/30/3002
+-# Macro to add for using GNU gettext.
+-# Ulrich Drepper <drepper@cygnus.com>, 1995, 1996
 +# The reason of the latter failure is that $top_srcdir and $ac_aux_dir
 +# are both prefixed by $srcdir.  In an in-source build this is usually
 +# harmless because $srcdir is `.', but things will broke when you
 +# start a VPATH build or use an absolute $srcdir.
  #
--# Modified to require ngettext
--# Matthias Clasen <mclasen@redhat.com> 08/06/2004
+-# Modified to never use included libintl. 
+-# Owen Taylor <otaylor@redhat.com>, 12/15/1998
 +# So we could use something similar to $top_srcdir/$ac_aux_dir/missing,
 +# iff we strip the leading $srcdir from $ac_aux_dir.  That would be:
 +#   am_aux_dir='\$(top_srcdir)/'`expr "$ac_aux_dir" : "$srcdir//*\(.*\)"`
@@ -1945,10 +1771,8 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/aclocal.m4 gnome-contr
 +# However there are other variables, like CC, which are often used in
 +# configure, and could therefore not use this "fixed" $ac_aux_dir.
  #
--# We need this here as well, since someone might use autoconf-2.5x
--# to configure GLib then an older version to configure a package
--# using AM_GLIB_GNU_GETTEXT
--AC_PREREQ(2.53)
+-# Major rework to remove unused code
+-# Owen Taylor <otaylor@redhat.com>, 12/11/2002
 +# Another solution, used here, is to always expand $ac_aux_dir to an
 +# absolute PATH.  The drawback is that using absolute paths prevent a
 +# configured tree to be moved without reconfiguration.
@@ -1959,74 +1783,18 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/aclocal.m4 gnome-contr
 +# expand $ac_aux_dir to an absolute path
 +am_aux_dir=`cd $ac_aux_dir && pwd`
 +])
- 
--dnl
--dnl We go to great lengths to make sure that aclocal won't 
--dnl try to pull in the installed version of these macros
--dnl when running aclocal in the glib directory.
--dnl
--m4_copy([AC_DEFUN],[glib_DEFUN])
--m4_copy([AC_REQUIRE],[glib_REQUIRE])
--dnl
--dnl At the end, if we're not within glib, we'll define the public
--dnl definitions in terms of our private definitions.
--dnl
++
 +# AM_CONDITIONAL                                            -*- Autoconf -*-
- 
--# GLIB_LC_MESSAGES
--#--------------------
--glib_DEFUN([GLIB_LC_MESSAGES],
--  [AC_CHECK_HEADERS([locale.h])
--    if test $ac_cv_header_locale_h = yes; then
--    AC_CACHE_CHECK([for LC_MESSAGES], am_cv_val_LC_MESSAGES,
--      [AC_TRY_LINK([#include <locale.h>], [return LC_MESSAGES],
--       am_cv_val_LC_MESSAGES=yes, am_cv_val_LC_MESSAGES=no)])
--    if test $am_cv_val_LC_MESSAGES = yes; then
--      AC_DEFINE(HAVE_LC_MESSAGES, 1,
--        [Define if your <locale.h> file defines LC_MESSAGES.])
--    fi
--  fi])
++
 +# Copyright (C) 1997, 2000, 2001, 2003, 2004, 2005, 2006, 2008
 +# Free Software Foundation, Inc.
-+#
+ #
+-# Added better handling of ALL_LINGUAS from GNU gettext version 
+-# written by Bruno Haible, Owen Taylor <otaylor.redhat.com> 5/30/3002
 +# This file is free software; the Free Software Foundation
 +# gives unlimited permission to copy and/or distribute it,
 +# with or without modifications, as long as this notice is preserved.
- 
--# GLIB_PATH_PROG_WITH_TEST
--#----------------------------
--dnl GLIB_PATH_PROG_WITH_TEST(VARIABLE, PROG-TO-CHECK-FOR,
--dnl   TEST-PERFORMED-ON-FOUND_PROGRAM [, VALUE-IF-NOT-FOUND [, PATH]])
--glib_DEFUN([GLIB_PATH_PROG_WITH_TEST],
--[# Extract the first word of "$2", so it can be a program name with args.
--set dummy $2; ac_word=[$]2
--AC_MSG_CHECKING([for $ac_word])
--AC_CACHE_VAL(ac_cv_path_$1,
--[case "[$]$1" in
--  /*)
--  ac_cv_path_$1="[$]$1" # Let the user override the test with a path.
--  ;;
--  *)
--  IFS="${IFS= 	}"; ac_save_ifs="$IFS"; IFS="${IFS}:"
--  for ac_dir in ifelse([$5], , $PATH, [$5]); do
--    test -z "$ac_dir" && ac_dir=.
--    if test -f $ac_dir/$ac_word; then
--      if [$3]; then
--	ac_cv_path_$1="$ac_dir/$ac_word"
--	break
--      fi
--    fi
--  done
--  IFS="$ac_save_ifs"
--dnl If no 4th arg is given, leave the cache variable unset,
--dnl so AC_PATH_PROGS will keep looking.
--ifelse([$4], , , [  test -z "[$]ac_cv_path_$1" && ac_cv_path_$1="$4"
--])dnl
--  ;;
--esac])dnl
--$1="$ac_cv_path_$1"
--if test ifelse([$4], , [-n "[$]$1"], ["[$]$1" != "$4"]); then
--  AC_MSG_RESULT([$]$1)
++
 +# serial 9
 +
 +# AM_CONDITIONAL(NAME, SHELL-CONDITION)
@@ -2044,75 +1812,44 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/aclocal.m4 gnome-contr
 +if $2; then
 +  $1_TRUE=
 +  $1_FALSE='#'
- else
--  AC_MSG_RESULT(no)
++else
 +  $1_TRUE='#'
 +  $1_FALSE=
- fi
--AC_SUBST($1)dnl
--])
++fi
 +AC_CONFIG_COMMANDS_PRE(
 +[if test -z "${$1_TRUE}" && test -z "${$1_FALSE}"; then
 +  AC_MSG_ERROR([[conditional "$1" was never defined.
 +Usually this means the macro was only invoked conditionally.]])
 +fi])])
- 
--# GLIB_WITH_NLS
--#-----------------
--glib_DEFUN([GLIB_WITH_NLS],
--  dnl NLS is obligatory
--  [USE_NLS=yes
--    AC_SUBST(USE_NLS)
++
 +# Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2009
 +# Free Software Foundation, Inc.
-+#
+ #
+-# Modified to require ngettext
+-# Matthias Clasen <mclasen@redhat.com> 08/06/2004
 +# This file is free software; the Free Software Foundation
 +# gives unlimited permission to copy and/or distribute it,
 +# with or without modifications, as long as this notice is preserved.
- 
--    gt_cv_have_gettext=no
++
 +# serial 10
- 
--    CATOBJEXT=NONE
--    XGETTEXT=:
--    INTLLIBS=
++
 +# There are a few dirty hacks below to avoid letting `AC_PROG_CC' be
 +# written in clear, in which case automake, when reading aclocal.m4,
 +# will think it sees a *use*, and therefore will trigger all it's
 +# C support machinery.  Also note that it means that autoscan, seeing
 +# CC etc. in the Makefile, will ask for an AC_PROG_CC use...
- 
--    AC_CHECK_HEADER(libintl.h,
--     [gt_cv_func_dgettext_libintl="no"
--      libintl_extra_libs=""
- 
--      #
--      # First check in libc
--      #
--      AC_CACHE_CHECK([for ngettext in libc], gt_cv_func_ngettext_libc,
--        [AC_TRY_LINK([
--#include <libintl.h>
--],
--         [return !ngettext ("","", 1)],
--	  gt_cv_func_ngettext_libc=yes,
--          gt_cv_func_ngettext_libc=no)
--        ])
--  
--      if test "$gt_cv_func_ngettext_libc" = "yes" ; then
--	      AC_CACHE_CHECK([for dgettext in libc], gt_cv_func_dgettext_libc,
--        	[AC_TRY_LINK([
--#include <libintl.h>
--],
--	          [return !dgettext ("","")],
--		  gt_cv_func_dgettext_libc=yes,
--	          gt_cv_func_dgettext_libc=no)
--        	])
++
++
 +# _AM_DEPENDENCIES(NAME)
 +# ----------------------
 +# See how the compiler implements dependency checking.
 +# NAME is "CC", "CXX", "GCJ", or "OBJC".
 +# We try a few techniques and use that to set a single cache variable.
-+#
+ #
+-# We need this here as well, since someone might use autoconf-2.5x
+-# to configure GLib then an older version to configure a package
+-# using AM_GLIB_GNU_GETTEXT
+-AC_PREREQ(2.53)
 +# We don't AC_REQUIRE the corresponding AC_PROG_CC since the latter was
 +# modified to invoke _AM_DEPENDENCIES(CC); we would have a circular
 +# dependency, and given that the user is not expected to run this macro,
@@ -2122,7 +1859,18 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/aclocal.m4 gnome-contr
 +AC_REQUIRE([AM_OUTPUT_DEPENDENCY_COMMANDS])dnl
 +AC_REQUIRE([AM_MAKE_INCLUDE])dnl
 +AC_REQUIRE([AM_DEP_TRACK])dnl
-+
+ 
+-dnl
+-dnl We go to great lengths to make sure that aclocal won't 
+-dnl try to pull in the installed version of these macros
+-dnl when running aclocal in the glib directory.
+-dnl
+-m4_copy([AC_DEFUN],[glib_DEFUN])
+-m4_copy([AC_REQUIRE],[glib_REQUIRE])
+-dnl
+-dnl At the end, if we're not within glib, we'll define the public
+-dnl definitions in terms of our private definitions.
+-dnl
 +ifelse([$1], CC,   [depcc="$CC"   am_compiler_list=],
 +       [$1], CXX,  [depcc="$CXX"  am_compiler_list=],
 +       [$1], OBJC, [depcc="$OBJC" am_compiler_list='gcc3 gcc'],
@@ -2150,7 +1898,20 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/aclocal.m4 gnome-contr
 +  # the current directory while Tru64 will put them in the object
 +  # directory.
 +  mkdir sub
-+
+ 
+-# GLIB_LC_MESSAGES
+-#--------------------
+-glib_DEFUN([GLIB_LC_MESSAGES],
+-  [AC_CHECK_HEADERS([locale.h])
+-    if test $ac_cv_header_locale_h = yes; then
+-    AC_CACHE_CHECK([for LC_MESSAGES], am_cv_val_LC_MESSAGES,
+-      [AC_TRY_LINK([#include <locale.h>], [return LC_MESSAGES],
+-       am_cv_val_LC_MESSAGES=yes, am_cv_val_LC_MESSAGES=no)])
+-    if test $am_cv_val_LC_MESSAGES = yes; then
+-      AC_DEFINE(HAVE_LC_MESSAGES, 1,
+-        [Define if your <locale.h> file defines LC_MESSAGES.])
+-    fi
+-  fi])
 +  am_cv_$1_dependencies_compiler_type=none
 +  if test "$am_compiler_list" = ""; then
 +     am_compiler_list=`sed -n ['s/^#*\([a-zA-Z0-9]*\))$/\1/p'] < ./depcomp`
@@ -2164,7 +1925,27 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/aclocal.m4 gnome-contr
 +    [case " $depcc " in #(
 +     *\ -arch\ *\ -arch\ *) am__universal=true ;;
 +     esac])
-+
+ 
+-# GLIB_PATH_PROG_WITH_TEST
+-#----------------------------
+-dnl GLIB_PATH_PROG_WITH_TEST(VARIABLE, PROG-TO-CHECK-FOR,
+-dnl   TEST-PERFORMED-ON-FOUND_PROGRAM [, VALUE-IF-NOT-FOUND [, PATH]])
+-glib_DEFUN([GLIB_PATH_PROG_WITH_TEST],
+-[# Extract the first word of "$2", so it can be a program name with args.
+-set dummy $2; ac_word=[$]2
+-AC_MSG_CHECKING([for $ac_word])
+-AC_CACHE_VAL(ac_cv_path_$1,
+-[case "[$]$1" in
+-  /*)
+-  ac_cv_path_$1="[$]$1" # Let the user override the test with a path.
+-  ;;
+-  *)
+-  IFS="${IFS= 	}"; ac_save_ifs="$IFS"; IFS="${IFS}:"
+-  for ac_dir in ifelse([$5], , $PATH, [$5]); do
+-    test -z "$ac_dir" && ac_dir=.
+-    if test -f $ac_dir/$ac_word; then
+-      if [$3]; then
+-	ac_cv_path_$1="$ac_dir/$ac_word"
 +  for depmode in $am_compiler_list; do
 +    # Setup a source with many dependencies, because some compilers
 +    # like to wrap large dependency lists on column 80 (with \), and
@@ -2199,11 +1980,8 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/aclocal.m4 gnome-contr
 +      if test "x$enable_dependency_tracking" = xyes; then
 +	continue
 +      else
-+	break
+ 	break
        fi
--  
--      if test "$gt_cv_func_ngettext_libc" = "yes" ; then
--        AC_CHECK_FUNCS(bind_textdomain_codeset)
 +      ;;
 +    msvisualcpp | msvcmsys)
 +      # This compiler won't grok `-c -o', but also, the minuso test has
@@ -2234,9 +2012,164 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/aclocal.m4 gnome-contr
 +          grep 'not supported' conftest.err) >/dev/null 2>&1; then :; else
 +        am_cv_$1_dependencies_compiler_type=$depmode
 +        break
-       fi
++      fi
+     fi
+   done
+-  IFS="$ac_save_ifs"
+-dnl If no 4th arg is given, leave the cache variable unset,
+-dnl so AC_PATH_PROGS will keep looking.
+-ifelse([$4], , , [  test -z "[$]ac_cv_path_$1" && ac_cv_path_$1="$4"
+-])dnl
+-  ;;
+-esac])dnl
+-$1="$ac_cv_path_$1"
+-if test ifelse([$4], , [-n "[$]$1"], ["[$]$1" != "$4"]); then
+-  AC_MSG_RESULT([$]$1)
++
++  cd ..
++  rm -rf conftest.dir
+ else
+-  AC_MSG_RESULT(no)
++  am_cv_$1_dependencies_compiler_type=none
+ fi
+-AC_SUBST($1)dnl
++])
++AC_SUBST([$1DEPMODE], [depmode=$am_cv_$1_dependencies_compiler_type])
++AM_CONDITIONAL([am__fastdep$1], [
++  test "x$enable_dependency_tracking" != xno \
++  && test "$am_cv_$1_dependencies_compiler_type" = gcc3])
+ ])
+ 
+-# GLIB_WITH_NLS
+-#-----------------
+-glib_DEFUN([GLIB_WITH_NLS],
+-  dnl NLS is obligatory
+-  [USE_NLS=yes
+-    AC_SUBST(USE_NLS)
+ 
+-    gt_cv_have_gettext=no
++# AM_SET_DEPDIR
++# -------------
++# Choose a directory name for dependency files.
++# This macro is AC_REQUIREd in _AM_DEPENDENCIES
++AC_DEFUN([AM_SET_DEPDIR],
++[AC_REQUIRE([AM_SET_LEADING_DOT])dnl
++AC_SUBST([DEPDIR], ["${am__leading_dot}deps"])dnl
++])
+ 
+-    CATOBJEXT=NONE
+-    XGETTEXT=:
+-    INTLLIBS=
+ 
+-    AC_CHECK_HEADER(libintl.h,
+-     [gt_cv_func_dgettext_libintl="no"
+-      libintl_extra_libs=""
++# AM_DEP_TRACK
++# ------------
++AC_DEFUN([AM_DEP_TRACK],
++[AC_ARG_ENABLE(dependency-tracking,
++[  --disable-dependency-tracking  speeds up one-time build
++  --enable-dependency-tracking   do not reject slow dependency extractors])
++if test "x$enable_dependency_tracking" != xno; then
++  am_depcomp="$ac_aux_dir/depcomp"
++  AMDEPBACKSLASH='\'
++fi
++AM_CONDITIONAL([AMDEP], [test "x$enable_dependency_tracking" != xno])
++AC_SUBST([AMDEPBACKSLASH])dnl
++_AM_SUBST_NOTMAKE([AMDEPBACKSLASH])dnl
++])
+ 
+-      #
+-      # First check in libc
+-      #
+-      AC_CACHE_CHECK([for ngettext in libc], gt_cv_func_ngettext_libc,
+-        [AC_TRY_LINK([
+-#include <libintl.h>
+-],
+-         [return !ngettext ("","", 1)],
+-	  gt_cv_func_ngettext_libc=yes,
+-          gt_cv_func_ngettext_libc=no)
+-        ])
+-  
+-      if test "$gt_cv_func_ngettext_libc" = "yes" ; then
+-	      AC_CACHE_CHECK([for dgettext in libc], gt_cv_func_dgettext_libc,
+-        	[AC_TRY_LINK([
+-#include <libintl.h>
+-],
+-	          [return !dgettext ("","")],
+-		  gt_cv_func_dgettext_libc=yes,
+-	          gt_cv_func_dgettext_libc=no)
+-        	])
+-      fi
+-  
+-      if test "$gt_cv_func_ngettext_libc" = "yes" ; then
+-        AC_CHECK_FUNCS(bind_textdomain_codeset)
+-      fi
++# Generate code to set up dependency tracking.              -*- Autoconf -*-
++
++# Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2008
++# Free Software Foundation, Inc.
++#
++# This file is free software; the Free Software Foundation
++# gives unlimited permission to copy and/or distribute it,
++# with or without modifications, as long as this notice is preserved.
++
++#serial 5
++
++# _AM_OUTPUT_DEPENDENCY_COMMANDS
++# ------------------------------
++AC_DEFUN([_AM_OUTPUT_DEPENDENCY_COMMANDS],
++[{
++  # Autoconf 2.62 quotes --file arguments for eval, but not when files
++  # are listed without --file.  Let's play safe and only enable the eval
++  # if we detect the quoting.
++  case $CONFIG_FILES in
++  *\'*) eval set x "$CONFIG_FILES" ;;
++  *)   set x $CONFIG_FILES ;;
++  esac
++  shift
++  for mf
++  do
++    # Strip MF so we end up with the name of the file.
++    mf=`echo "$mf" | sed -e 's/:.*$//'`
++    # Check whether this is an Automake generated Makefile or not.
++    # We used to match only the files named `Makefile.in', but
++    # some people rename them; so instead we look at the file content.
++    # Grep'ing the first line is not enough: some people post-process
++    # each Makefile.in and add a new line on top of each file to say so.
++    # Grep'ing the whole file is not good either: AIX grep has a line
++    # limit of 2048, but all sed's we know have understand at least 4000.
++    if sed -n 's,^#.*generated by automake.*,X,p' "$mf" | grep X >/dev/null 2>&1; then
++      dirpart=`AS_DIRNAME("$mf")`
++    else
++      continue
 +    fi
++    # Extract the definition of DEPDIR, am__include, and am__quote
++    # from the Makefile without running `make'.
++    DEPDIR=`sed -n 's/^DEPDIR = //p' < "$mf"`
++    test -z "$DEPDIR" && continue
++    am__include=`sed -n 's/^am__include = //p' < "$mf"`
++    test -z "am__include" && continue
++    am__quote=`sed -n 's/^am__quote = //p' < "$mf"`
++    # When using ansi2knr, U may be empty or an underscore; expand it
++    U=`sed -n 's/^U = //p' < "$mf"`
++    # Find all dependency output files, they are included files with
++    # $(DEPDIR) in their names.  We invoke sed twice because it is the
++    # simplest approach to changing $(DEPDIR) to its actual value in the
++    # expansion.
++    for file in `sed -n "
++      s/^$am__include $am__quote\(.*(DEPDIR).*\)$am__quote"'$/\1/p' <"$mf" | \
++	 sed -e 's/\$(DEPDIR)/'"$DEPDIR"'/g' -e 's/\$U/'"$U"'/g'`; do
++      # Make sure the directory exists.
++      test -f "$dirpart/$file" && continue
++      fdir=`AS_DIRNAME(["$file"])`
++      AS_MKDIR_P([$dirpart/$fdir])
++      # echo "creating $dirpart/$file"
++      echo '# dummy' > "$dirpart/$file"
++    done
 +  done
++}
++])# _AM_OUTPUT_DEPENDENCY_COMMANDS
  
 -      #
 -      # If we don't have everything we want, check in libintl
@@ -2249,7 +2182,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/aclocal.m4 gnome-contr
 -	    [AC_CHECK_LIB(intl, ngettext,
 -		    [AC_CHECK_LIB(intl, dgettext,
 -			          gt_cv_func_dgettext_libintl=yes)])])
--
+ 
 -	if test "$gt_cv_func_dgettext_libintl" != "yes" ; then
 -	  AC_MSG_CHECKING([if -liconv is needed to use gettext])
 -	  AC_MSG_RESULT([])
@@ -2260,16 +2193,17 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/aclocal.m4 gnome-contr
 -			:,-liconv)],
 -		:,-liconv)
 -        fi
-+  cd ..
-+  rm -rf conftest.dir
-+else
-+  am_cv_$1_dependencies_compiler_type=none
-+fi
-+])
-+AC_SUBST([$1DEPMODE], [depmode=$am_cv_$1_dependencies_compiler_type])
-+AM_CONDITIONAL([am__fastdep$1], [
-+  test "x$enable_dependency_tracking" != xno \
-+  && test "$am_cv_$1_dependencies_compiler_type" = gcc3])
++# AM_OUTPUT_DEPENDENCY_COMMANDS
++# -----------------------------
++# This macro should only be invoked once -- use via AC_REQUIRE.
++#
++# This code is only required when automatic dependency tracking
++# is enabled.  FIXME.  This creates each `.P' file that we will
++# need in order to bootstrap the dependency handling code.
++AC_DEFUN([AM_OUTPUT_DEPENDENCY_COMMANDS],
++[AC_CONFIG_COMMANDS([depfiles],
++     [test x"$AMDEP_TRUE" != x"" || _AM_OUTPUT_DEPENDENCY_COMMANDS],
++     [AMDEP_TRUE="$AMDEP_TRUE" ac_aux_dir="$ac_aux_dir"])
 +])
  
 -        #
@@ -2283,6 +2217,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/aclocal.m4 gnome-contr
 -          unset ac_cv_func_bind_textdomain_codeset
 -          AC_CHECK_FUNCS(bind_textdomain_codeset)
 -          LIBS="$glib_save_LIBS"
++# Do all the work for Automake.                             -*- Autoconf -*-
  
 -          if test "$ac_cv_func_bind_textdomain_codeset" = "yes" ; then
 -            gt_cv_func_dgettext_libc=no
@@ -2294,14 +2229,12 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/aclocal.m4 gnome-contr
 -          fi
 -        fi
 -      fi
-+# AM_SET_DEPDIR
-+# -------------
-+# Choose a directory name for dependency files.
-+# This macro is AC_REQUIREd in _AM_DEPENDENCIES
-+AC_DEFUN([AM_SET_DEPDIR],
-+[AC_REQUIRE([AM_SET_LEADING_DOT])dnl
-+AC_SUBST([DEPDIR], ["${am__leading_dot}deps"])dnl
-+])
++# Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004,
++# 2005, 2006, 2008, 2009 Free Software Foundation, Inc.
++#
++# This file is free software; the Free Software Foundation
++# gives unlimited permission to copy and/or distribute it,
++# with or without modifications, as long as this notice is preserved.
  
 -      if test "$gt_cv_func_dgettext_libc" = "yes" \
 -	|| test "$gt_cv_func_dgettext_libintl" = "yes"; then
@@ -2367,25 +2300,14 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/aclocal.m4 gnome-contr
 -	fi
 -      fi
 -    ])
++# serial 16
  
 -    if test "$gt_cv_have_gettext" = "yes" ; then
 -      AC_DEFINE(ENABLE_NLS, 1,
 -        [always defined to indicate that i18n is enabled])
 -    fi
-+# AM_DEP_TRACK
-+# ------------
-+AC_DEFUN([AM_DEP_TRACK],
-+[AC_ARG_ENABLE(dependency-tracking,
-+[  --disable-dependency-tracking  speeds up one-time build
-+  --enable-dependency-tracking   do not reject slow dependency extractors])
-+if test "x$enable_dependency_tracking" != xno; then
-+  am_depcomp="$ac_aux_dir/depcomp"
-+  AMDEPBACKSLASH='\'
-+fi
-+AM_CONDITIONAL([AMDEP], [test "x$enable_dependency_tracking" != xno])
-+AC_SUBST([AMDEPBACKSLASH])dnl
-+_AM_SUBST_NOTMAKE([AMDEPBACKSLASH])dnl
-+])
++# This macro actually does too much.  Some checks are only needed if
++# your package does certain things.  But this isn't really a big deal.
  
 -    dnl Test whether we really found GNU xgettext.
 -    if test "$XGETTEXT" != ":"; then
@@ -2399,219 +2321,6 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/aclocal.m4 gnome-contr
 -        XGETTEXT=":"
 -      fi
 -    fi
-+# Generate code to set up dependency tracking.              -*- Autoconf -*-
- 
--    # We need to process the po/ directory.
--    POSUB=po
-+# Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2008
-+# Free Software Foundation, Inc.
-+#
-+# This file is free software; the Free Software Foundation
-+# gives unlimited permission to copy and/or distribute it,
-+# with or without modifications, as long as this notice is preserved.
- 
--    AC_OUTPUT_COMMANDS(
--      [case "$CONFIG_FILES" in *po/Makefile.in*)
--        sed -e "/POTFILES =/r po/POTFILES" po/Makefile.in > po/Makefile
--      esac])
-+#serial 5
- 
--    dnl These rules are solely for the distribution goal.  While doing this
--    dnl we only have to keep exactly one list of the available catalogs
--    dnl in configure.in.
--    for lang in $ALL_LINGUAS; do
--      GMOFILES="$GMOFILES $lang.gmo"
--      POFILES="$POFILES $lang.po"
-+# _AM_OUTPUT_DEPENDENCY_COMMANDS
-+# ------------------------------
-+AC_DEFUN([_AM_OUTPUT_DEPENDENCY_COMMANDS],
-+[{
-+  # Autoconf 2.62 quotes --file arguments for eval, but not when files
-+  # are listed without --file.  Let's play safe and only enable the eval
-+  # if we detect the quoting.
-+  case $CONFIG_FILES in
-+  *\'*) eval set x "$CONFIG_FILES" ;;
-+  *)   set x $CONFIG_FILES ;;
-+  esac
-+  shift
-+  for mf
-+  do
-+    # Strip MF so we end up with the name of the file.
-+    mf=`echo "$mf" | sed -e 's/:.*$//'`
-+    # Check whether this is an Automake generated Makefile or not.
-+    # We used to match only the files named `Makefile.in', but
-+    # some people rename them; so instead we look at the file content.
-+    # Grep'ing the first line is not enough: some people post-process
-+    # each Makefile.in and add a new line on top of each file to say so.
-+    # Grep'ing the whole file is not good either: AIX grep has a line
-+    # limit of 2048, but all sed's we know have understand at least 4000.
-+    if sed -n 's,^#.*generated by automake.*,X,p' "$mf" | grep X >/dev/null 2>&1; then
-+      dirpart=`AS_DIRNAME("$mf")`
-+    else
-+      continue
-+    fi
-+    # Extract the definition of DEPDIR, am__include, and am__quote
-+    # from the Makefile without running `make'.
-+    DEPDIR=`sed -n 's/^DEPDIR = //p' < "$mf"`
-+    test -z "$DEPDIR" && continue
-+    am__include=`sed -n 's/^am__include = //p' < "$mf"`
-+    test -z "am__include" && continue
-+    am__quote=`sed -n 's/^am__quote = //p' < "$mf"`
-+    # When using ansi2knr, U may be empty or an underscore; expand it
-+    U=`sed -n 's/^U = //p' < "$mf"`
-+    # Find all dependency output files, they are included files with
-+    # $(DEPDIR) in their names.  We invoke sed twice because it is the
-+    # simplest approach to changing $(DEPDIR) to its actual value in the
-+    # expansion.
-+    for file in `sed -n "
-+      s/^$am__include $am__quote\(.*(DEPDIR).*\)$am__quote"'$/\1/p' <"$mf" | \
-+	 sed -e 's/\$(DEPDIR)/'"$DEPDIR"'/g' -e 's/\$U/'"$U"'/g'`; do
-+      # Make sure the directory exists.
-+      test -f "$dirpart/$file" && continue
-+      fdir=`AS_DIRNAME(["$file"])`
-+      AS_MKDIR_P([$dirpart/$fdir])
-+      # echo "creating $dirpart/$file"
-+      echo '# dummy' > "$dirpart/$file"
-     done
-+  done
-+}
-+])# _AM_OUTPUT_DEPENDENCY_COMMANDS
- 
--    dnl Make all variables we use known to autoconf.
--    AC_SUBST(CATALOGS)
--    AC_SUBST(CATOBJEXT)
--    AC_SUBST(DATADIRNAME)
--    AC_SUBST(GMOFILES)
--    AC_SUBST(INSTOBJEXT)
--    AC_SUBST(INTLLIBS)
--    AC_SUBST(PO_IN_DATADIR_TRUE)
--    AC_SUBST(PO_IN_DATADIR_FALSE)
--    AC_SUBST(POFILES)
--    AC_SUBST(POSUB)
--  ])
--
--# AM_GLIB_GNU_GETTEXT
--# -------------------
--# Do checks necessary for use of gettext. If a suitable implementation 
--# of gettext is found in either in libintl or in the C library,
--# it will set INTLLIBS to the libraries needed for use of gettext
--# and AC_DEFINE() HAVE_GETTEXT and ENABLE_NLS. (The shell variable
--# gt_cv_have_gettext will be set to "yes".) It will also call AC_SUBST()
--# on various variables needed by the Makefile.in.in installed by 
--# glib-gettextize.
--dnl
--glib_DEFUN([GLIB_GNU_GETTEXT],
--  [AC_REQUIRE([AC_PROG_CC])dnl
--   AC_REQUIRE([AC_HEADER_STDC])dnl
--   
--   GLIB_LC_MESSAGES
--   GLIB_WITH_NLS
- 
--   if test "$gt_cv_have_gettext" = "yes"; then
--     if test "x$ALL_LINGUAS" = "x"; then
--       LINGUAS=
--     else
--       AC_MSG_CHECKING(for catalogs to be installed)
--       NEW_LINGUAS=
--       for presentlang in $ALL_LINGUAS; do
--         useit=no
--         if test "%UNSET%" != "${LINGUAS-%UNSET%}"; then
--           desiredlanguages="$LINGUAS"
--         else
--           desiredlanguages="$ALL_LINGUAS"
--         fi
--         for desiredlang in $desiredlanguages; do
-- 	   # Use the presentlang catalog if desiredlang is
--           #   a. equal to presentlang, or
--           #   b. a variant of presentlang (because in this case,
--           #      presentlang can be used as a fallback for messages
--           #      which are not translated in the desiredlang catalog).
--           case "$desiredlang" in
--             "$presentlang"*) useit=yes;;
--           esac
--         done
--         if test $useit = yes; then
--           NEW_LINGUAS="$NEW_LINGUAS $presentlang"
--         fi
--       done
--       LINGUAS=$NEW_LINGUAS
--       AC_MSG_RESULT($LINGUAS)
--     fi
-+# AM_OUTPUT_DEPENDENCY_COMMANDS
-+# -----------------------------
-+# This macro should only be invoked once -- use via AC_REQUIRE.
-+#
-+# This code is only required when automatic dependency tracking
-+# is enabled.  FIXME.  This creates each `.P' file that we will
-+# need in order to bootstrap the dependency handling code.
-+AC_DEFUN([AM_OUTPUT_DEPENDENCY_COMMANDS],
-+[AC_CONFIG_COMMANDS([depfiles],
-+     [test x"$AMDEP_TRUE" != x"" || _AM_OUTPUT_DEPENDENCY_COMMANDS],
-+     [AMDEP_TRUE="$AMDEP_TRUE" ac_aux_dir="$ac_aux_dir"])
-+])
- 
--     dnl Construct list of names of catalog files to be constructed.
--     if test -n "$LINGUAS"; then
--       for lang in $LINGUAS; do CATALOGS="$CATALOGS $lang$CATOBJEXT"; done
--     fi
--   fi
-+# Do all the work for Automake.                             -*- Autoconf -*-
- 
--   dnl If the AC_CONFIG_AUX_DIR macro for autoconf is used we possibly
--   dnl find the mkinstalldirs script in another subdir but ($top_srcdir).
--   dnl Try to locate is.
--   MKINSTALLDIRS=
--   if test -n "$ac_aux_dir"; then
--     MKINSTALLDIRS="$ac_aux_dir/mkinstalldirs"
--   fi
--   if test -z "$MKINSTALLDIRS"; then
--     MKINSTALLDIRS="\$(top_srcdir)/mkinstalldirs"
--   fi
--   AC_SUBST(MKINSTALLDIRS)
-+# Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004,
-+# 2005, 2006, 2008, 2009 Free Software Foundation, Inc.
-+#
-+# This file is free software; the Free Software Foundation
-+# gives unlimited permission to copy and/or distribute it,
-+# with or without modifications, as long as this notice is preserved.
- 
--   dnl Generate list of files to be processed by xgettext which will
--   dnl be included in po/Makefile.
--   test -d po || mkdir po
--   if test "x$srcdir" != "x."; then
--     if test "x`echo $srcdir | sed 's@/.*@@'`" = "x"; then
--       posrcprefix="$srcdir/"
--     else
--       posrcprefix="../$srcdir/"
--     fi
--   else
--     posrcprefix="../"
--   fi
--   rm -f po/POTFILES
--   sed -e "/^#/d" -e "/^\$/d" -e "s,.*,	$posrcprefix& \\\\," -e "\$s/\(.*\) \\\\/\1/" \
--	< $srcdir/po/POTFILES.in > po/POTFILES
--  ])
-+# serial 16
- 
--# AM_GLIB_DEFINE_LOCALEDIR(VARIABLE)
--# -------------------------------
--# Define VARIABLE to the location where catalog files will
--# be installed by po/Makefile.
--glib_DEFUN([GLIB_DEFINE_LOCALEDIR],
--[glib_REQUIRE([GLIB_GNU_GETTEXT])dnl
--glib_save_prefix="$prefix"
--glib_save_exec_prefix="$exec_prefix"
--glib_save_datarootdir="$datarootdir"
--test "x$prefix" = xNONE && prefix=$ac_default_prefix
--test "x$exec_prefix" = xNONE && exec_prefix=$prefix
--datarootdir=`eval echo "${datarootdir}"`
--if test "x$CATOBJEXT" = "x.mo" ; then
--  localedir=`eval echo "${libdir}/locale"`
--else
--  localedir=`eval echo "${datadir}/locale"`
-+# This macro actually does too much.  Some checks are only needed if
-+# your package does certain things.  But this isn't really a big deal.
-+
 +# AM_INIT_AUTOMAKE(PACKAGE, VERSION, [NO-DEFINE])
 +# AM_INIT_AUTOMAKE([OPTIONS])
 +# -----------------------------------------------
@@ -2638,13 +2347,10 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/aclocal.m4 gnome-contr
 +  if test -f $srcdir/config.status; then
 +    AC_MSG_ERROR([source directory already configured; run "make distclean" there first])
 +  fi
- fi
--prefix="$glib_save_prefix"
--exec_prefix="$glib_save_exec_prefix"
--datarootdir="$glib_save_datarootdir"
--AC_DEFINE_UNQUOTED($1, "$localedir",
--  [Define the location where the catalogs will be installed])
-+
++fi
+ 
+-    # We need to process the po/ directory.
+-    POSUB=po
 +# test whether we have cygpath
 +if test -z "$CYGPATH_W"; then
 +  if (cygpath --version) >/dev/null 2>/dev/null; then
@@ -2654,7 +2360,11 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/aclocal.m4 gnome-contr
 +  fi
 +fi
 +AC_SUBST([CYGPATH_W])
-+
+ 
+-    AC_OUTPUT_COMMANDS(
+-      [case "$CONFIG_FILES" in *po/Makefile.in*)
+-        sed -e "/POTFILES =/r po/POTFILES" po/Makefile.in > po/Makefile
+-      esac])
 +# Define the identity of the package.
 +dnl Distinguish between old-style and new-style calls.
 +m4_ifval([$2],
@@ -2667,7 +2377,14 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/aclocal.m4 gnome-contr
 +  [m4_fatal([AC_INIT should be called with package and version arguments])])dnl
 + AC_SUBST([PACKAGE], ['AC_PACKAGE_TARNAME'])dnl
 + AC_SUBST([VERSION], ['AC_PACKAGE_VERSION'])])dnl
-+
+ 
+-    dnl These rules are solely for the distribution goal.  While doing this
+-    dnl we only have to keep exactly one list of the available catalogs
+-    dnl in configure.in.
+-    for lang in $ALL_LINGUAS; do
+-      GMOFILES="$GMOFILES $lang.gmo"
+-      POFILES="$POFILES $lang.po"
+-    done
 +_AM_IF_OPTION([no-define],,
 +[AC_DEFINE_UNQUOTED(PACKAGE, "$PACKAGE", [Name of package])
 + AC_DEFINE_UNQUOTED(VERSION, "$VERSION", [Version number of package])])dnl
@@ -2712,43 +2429,77 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/aclocal.m4 gnome-contr
 +AC_CONFIG_COMMANDS_PRE(dnl
 +[m4_provide_if([_AM_COMPILER_EXEEXT],
 +  [AM_CONDITIONAL([am__EXEEXT], [test -n "$EXEEXT"])])])dnl
- ])
- 
--dnl
--dnl Now the definitions that aclocal will find
--dnl
--ifdef(glib_configure_in,[],[
--AC_DEFUN([AM_GLIB_GNU_GETTEXT],[GLIB_GNU_GETTEXT($@)])
--AC_DEFUN([AM_GLIB_DEFINE_LOCALEDIR],[GLIB_DEFINE_LOCALEDIR($@)])
--])dnl
++])
++
 +dnl Hook into `_AC_COMPILER_EXEEXT' early to learn its expansion.  Do not
 +dnl add the conditional right here, as _AC_COMPILER_EXEEXT may be further
 +dnl mangled by Autoconf and run in a shell conditional statement.
 +m4_define([_AC_COMPILER_EXEEXT],
 +m4_defn([_AC_COMPILER_EXEEXT])[m4_provide([_AM_COMPILER_EXEEXT])])
  
--# GLIB_RUN_PROG(PROGRAM, TEST-FILE, [ACTION-IF-PASS], [ACTION-IF-FAIL])
--# 
--# Create a temporary file with TEST-FILE as its contents and pass the
--# file name to PROGRAM.  Perform ACTION-IF-PASS if PROGRAM exits with
--# 0 and perform ACTION-IF-FAIL for any other exit status.
--AC_DEFUN([GLIB_RUN_PROG],
--[cat >conftest.foo <<_ACEOF
--$2
--_ACEOF
--if AC_RUN_LOG([$1 conftest.foo]); then
--  m4_ifval([$3], [$3], [:])
--m4_ifvaln([$4], [else $4])dnl
--echo "$as_me: failed input was:" >&AS_MESSAGE_LOG_FD
--sed 's/^/| /' conftest.foo >&AS_MESSAGE_LOG_FD
--fi])
+-    dnl Make all variables we use known to autoconf.
+-    AC_SUBST(CATALOGS)
+-    AC_SUBST(CATOBJEXT)
+-    AC_SUBST(DATADIRNAME)
+-    AC_SUBST(GMOFILES)
+-    AC_SUBST(INSTOBJEXT)
+-    AC_SUBST(INTLLIBS)
+-    AC_SUBST(PO_IN_DATADIR_TRUE)
+-    AC_SUBST(PO_IN_DATADIR_FALSE)
+-    AC_SUBST(POFILES)
+-    AC_SUBST(POSUB)
+-  ])
  
+-# AM_GLIB_GNU_GETTEXT
+-# -------------------
+-# Do checks necessary for use of gettext. If a suitable implementation 
+-# of gettext is found in either in libintl or in the C library,
+-# it will set INTLLIBS to the libraries needed for use of gettext
+-# and AC_DEFINE() HAVE_GETTEXT and ENABLE_NLS. (The shell variable
+-# gt_cv_have_gettext will be set to "yes".) It will also call AC_SUBST()
+-# on various variables needed by the Makefile.in.in installed by 
+-# glib-gettextize.
+-dnl
+-glib_DEFUN([GLIB_GNU_GETTEXT],
+-  [AC_REQUIRE([AC_PROG_CC])dnl
+-   AC_REQUIRE([AC_HEADER_STDC])dnl
+-   
+-   GLIB_LC_MESSAGES
+-   GLIB_WITH_NLS
 +# When config.status generates a header, we must update the stamp-h file.
 +# This file resides in the same directory as the config header
 +# that is generated.  The stamp files are numbered to have different names.
  
--# gnome-common.m4
--# 
+-   if test "$gt_cv_have_gettext" = "yes"; then
+-     if test "x$ALL_LINGUAS" = "x"; then
+-       LINGUAS=
+-     else
+-       AC_MSG_CHECKING(for catalogs to be installed)
+-       NEW_LINGUAS=
+-       for presentlang in $ALL_LINGUAS; do
+-         useit=no
+-         if test "%UNSET%" != "${LINGUAS-%UNSET%}"; then
+-           desiredlanguages="$LINGUAS"
+-         else
+-           desiredlanguages="$ALL_LINGUAS"
+-         fi
+-         for desiredlang in $desiredlanguages; do
+- 	   # Use the presentlang catalog if desiredlang is
+-           #   a. equal to presentlang, or
+-           #   b. a variant of presentlang (because in this case,
+-           #      presentlang can be used as a fallback for messages
+-           #      which are not translated in the desiredlang catalog).
+-           case "$desiredlang" in
+-             "$presentlang"*) useit=yes;;
+-           esac
+-         done
+-         if test $useit = yes; then
+-           NEW_LINGUAS="$NEW_LINGUAS $presentlang"
+-         fi
+-       done
+-       LINGUAS=$NEW_LINGUAS
+-       AC_MSG_RESULT($LINGUAS)
+-     fi
 +# Autoconf calls _AC_AM_CONFIG_HEADER_HOOK (when defined) in the
 +# loop where config.status creates the headers, so we can generate
 +# our stamp files there.
@@ -2766,17 +2517,28 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/aclocal.m4 gnome-contr
 +done
 +echo "timestamp for $_am_arg" >`AS_DIRNAME(["$_am_arg"])`/stamp-h[]$_am_stamp_count])
  
--dnl GNOME_COMMON_INIT
+-     dnl Construct list of names of catalog files to be constructed.
+-     if test -n "$LINGUAS"; then
+-       for lang in $LINGUAS; do CATALOGS="$CATALOGS $lang$CATOBJEXT"; done
+-     fi
+-   fi
 +# Copyright (C) 2001, 2003, 2005, 2008  Free Software Foundation, Inc.
 +#
 +# This file is free software; the Free Software Foundation
 +# gives unlimited permission to copy and/or distribute it,
 +# with or without modifications, as long as this notice is preserved.
  
--AC_DEFUN([GNOME_COMMON_INIT],
--[
--  dnl this macro should come after AC_CONFIG_MACRO_DIR
--  AC_BEFORE([AC_CONFIG_MACRO_DIR], [$0])
+-   dnl If the AC_CONFIG_AUX_DIR macro for autoconf is used we possibly
+-   dnl find the mkinstalldirs script in another subdir but ($top_srcdir).
+-   dnl Try to locate is.
+-   MKINSTALLDIRS=
+-   if test -n "$ac_aux_dir"; then
+-     MKINSTALLDIRS="$ac_aux_dir/mkinstalldirs"
+-   fi
+-   if test -z "$MKINSTALLDIRS"; then
+-     MKINSTALLDIRS="\$(top_srcdir)/mkinstalldirs"
+-   fi
+-   AC_SUBST(MKINSTALLDIRS)
 +# AM_PROG_INSTALL_SH
 +# ------------------
 +# Define $install_sh.
@@ -2792,28 +2554,44 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/aclocal.m4 gnome-contr
 +fi
 +AC_SUBST(install_sh)])
  
--  dnl ensure that when the Automake generated makefile calls aclocal,
--  dnl it honours the $ACLOCAL_FLAGS environment variable
--  ACLOCAL_AMFLAGS="\${ACLOCAL_FLAGS}"
--  if test -n "$ac_macro_dir"; then
--    ACLOCAL_AMFLAGS="-I $ac_macro_dir $ACLOCAL_AMFLAGS"
--  fi
+-   dnl Generate list of files to be processed by xgettext which will
+-   dnl be included in po/Makefile.
+-   test -d po || mkdir po
+-   if test "x$srcdir" != "x."; then
+-     if test "x`echo $srcdir | sed 's@/.*@@'`" = "x"; then
+-       posrcprefix="$srcdir/"
+-     else
+-       posrcprefix="../$srcdir/"
+-     fi
+-   else
+-     posrcprefix="../"
+-   fi
+-   rm -f po/POTFILES
+-   sed -e "/^#/d" -e "/^\$/d" -e "s,.*,	$posrcprefix& \\\\," -e "\$s/\(.*\) \\\\/\1/" \
+-	< $srcdir/po/POTFILES.in > po/POTFILES
+-  ])
 +# Copyright (C) 2003, 2005  Free Software Foundation, Inc.
 +#
 +# This file is free software; the Free Software Foundation
 +# gives unlimited permission to copy and/or distribute it,
 +# with or without modifications, as long as this notice is preserved.
  
--  AC_SUBST([ACLOCAL_AMFLAGS])
--])
+-# AM_GLIB_DEFINE_LOCALEDIR(VARIABLE)
+-# -------------------------------
+-# Define VARIABLE to the location where catalog files will
+-# be installed by po/Makefile.
+-glib_DEFUN([GLIB_DEFINE_LOCALEDIR],
+-[glib_REQUIRE([GLIB_GNU_GETTEXT])dnl
+-glib_save_prefix="$prefix"
+-glib_save_exec_prefix="$exec_prefix"
+-glib_save_datarootdir="$datarootdir"
+-test "x$prefix" = xNONE && prefix=$ac_default_prefix
+-test "x$exec_prefix" = xNONE && exec_prefix=$prefix
+-datarootdir=`eval echo "${datarootdir}"`
+-if test "x$CATOBJEXT" = "x.mo" ; then
+-  localedir=`eval echo "${libdir}/locale"`
 +# serial 2
- 
--AC_DEFUN([GNOME_DEBUG_CHECK],
--[
--	AC_ARG_ENABLE([debug],
--                      AC_HELP_STRING([--enable-debug],
--                                     [turn on debugging]),,
--                      [enable_debug=no])
++
 +# Check whether the underlying file-system supports filenames
 +# with a leading dot.  For instance MS-DOS doesn't.
 +AC_DEFUN([AM_SET_LEADING_DOT],
@@ -2821,26 +2599,44 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/aclocal.m4 gnome-contr
 +mkdir .tst 2>/dev/null
 +if test -d .tst; then
 +  am__leading_dot=.
-+else
+ else
+-  localedir=`eval echo "${datadir}/locale"`
 +  am__leading_dot=_
-+fi
+ fi
+-prefix="$glib_save_prefix"
+-exec_prefix="$glib_save_exec_prefix"
+-datarootdir="$glib_save_datarootdir"
+-AC_DEFINE_UNQUOTED($1, "$localedir",
+-  [Define the location where the catalogs will be installed])
+-])
 +rmdir .tst 2>/dev/null
 +AC_SUBST([am__leading_dot])])
  
--	if test x$enable_debug = xyes ; then
--	    AC_DEFINE(GNOME_ENABLE_DEBUG, 1,
--		[Enable additional debugging at the expense of performance and size])
--	fi
--])
+-dnl
+-dnl Now the definitions that aclocal will find
+-dnl
+-ifdef(glib_configure_in,[],[
+-AC_DEFUN([AM_GLIB_GNU_GETTEXT],[GLIB_GNU_GETTEXT($@)])
+-AC_DEFUN([AM_GLIB_DEFINE_LOCALEDIR],[GLIB_DEFINE_LOCALEDIR($@)])
+-])dnl
 +# Add --enable-maintainer-mode option to configure.         -*- Autoconf -*-
 +# From Jim Meyering
  
--dnl GNOME_MAINTAINER_MODE_DEFINES ()
--dnl define DISABLE_DEPRECATED
--dnl
--AC_DEFUN([GNOME_MAINTAINER_MODE_DEFINES],
--[
--	AC_REQUIRE([AM_MAINTAINER_MODE])
+-# GLIB_RUN_PROG(PROGRAM, TEST-FILE, [ACTION-IF-PASS], [ACTION-IF-FAIL])
+-# 
+-# Create a temporary file with TEST-FILE as its contents and pass the
+-# file name to PROGRAM.  Perform ACTION-IF-PASS if PROGRAM exits with
+-# 0 and perform ACTION-IF-FAIL for any other exit status.
+-AC_DEFUN([GLIB_RUN_PROG],
+-[cat >conftest.foo <<_ACEOF
+-$2
+-_ACEOF
+-if AC_RUN_LOG([$1 conftest.foo]); then
+-  m4_ifval([$3], [$3], [:])
+-m4_ifvaln([$4], [else $4])dnl
+-echo "$as_me: failed input was:" >&AS_MESSAGE_LOG_FD
+-sed 's/^/| /' conftest.foo >&AS_MESSAGE_LOG_FD
+-fi])
 +# Copyright (C) 1996, 1998, 2000, 2001, 2002, 2003, 2004, 2005, 2008
 +# Free Software Foundation, Inc.
 +#
@@ -2848,17 +2644,10 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/aclocal.m4 gnome-contr
 +# gives unlimited permission to copy and/or distribute it,
 +# with or without modifications, as long as this notice is preserved.
  
--	DISABLE_DEPRECATED=""
--	if test $USE_MAINTAINER_MODE = yes; then
--	        DOMAINS="G ATK PANGO GDK GDK_PIXBUF GTK GCONF BONOBO BONOBO_UI GNOME LIBGLADE VTE GNOME_VFS WNCK LIBSOUP"
--	        for DOMAIN in $DOMAINS; do
--	               DISABLE_DEPRECATED="$DISABLE_DEPRECATED -D${DOMAIN}_DISABLE_DEPRECATED -D${DOMAIN}_DISABLE_SINGLE_INCLUDES"
--	        done
--	fi
 +# serial 5
  
--	AC_SUBST(DISABLE_DEPRECATED)
--])
+-# gnome-common.m4
+-# 
 +# AM_MAINTAINER_MODE([DEFAULT-MODE])
 +# ----------------------------------
 +# Control maintainer-specific portions of Makefiles.
@@ -2885,6 +2674,133 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/aclocal.m4 gnome-contr
 +]
 +)
  
+-dnl GNOME_COMMON_INIT
++AU_DEFUN([jm_MAINTAINER_MODE], [AM_MAINTAINER_MODE])
+ 
+-AC_DEFUN([GNOME_COMMON_INIT],
+-[
+-  dnl this macro should come after AC_CONFIG_MACRO_DIR
+-  AC_BEFORE([AC_CONFIG_MACRO_DIR], [$0])
++# Check to see how 'make' treats includes.	            -*- Autoconf -*-
+ 
+-  dnl ensure that when the Automake generated makefile calls aclocal,
+-  dnl it honours the $ACLOCAL_FLAGS environment variable
+-  ACLOCAL_AMFLAGS="\${ACLOCAL_FLAGS}"
+-  if test -n "$ac_macro_dir"; then
+-    ACLOCAL_AMFLAGS="-I $ac_macro_dir $ACLOCAL_AMFLAGS"
+-  fi
++# Copyright (C) 2001, 2002, 2003, 2005, 2009  Free Software Foundation, Inc.
++#
++# This file is free software; the Free Software Foundation
++# gives unlimited permission to copy and/or distribute it,
++# with or without modifications, as long as this notice is preserved.
+ 
+-  AC_SUBST([ACLOCAL_AMFLAGS])
+-])
++# serial 4
+ 
+-AC_DEFUN([GNOME_DEBUG_CHECK],
+-[
+-	AC_ARG_ENABLE([debug],
+-                      AC_HELP_STRING([--enable-debug],
+-                                     [turn on debugging]),,
+-                      [enable_debug=no])
+-
+-	if test x$enable_debug = xyes ; then
+-	    AC_DEFINE(GNOME_ENABLE_DEBUG, 1,
+-		[Enable additional debugging at the expense of performance and size])
+-	fi
++# AM_MAKE_INCLUDE()
++# -----------------
++# Check to see how make treats includes.
++AC_DEFUN([AM_MAKE_INCLUDE],
++[am_make=${MAKE-make}
++cat > confinc << 'END'
++am__doit:
++	@echo this is the am__doit target
++.PHONY: am__doit
++END
++# If we don't find an include directive, just comment out the code.
++AC_MSG_CHECKING([for style of include used by $am_make])
++am__include="#"
++am__quote=
++_am_result=none
++# First try GNU make style include.
++echo "include confinc" > confmf
++# Ignore all kinds of additional output from `make'.
++case `$am_make -s -f confmf 2> /dev/null` in #(
++*the\ am__doit\ target*)
++  am__include=include
++  am__quote=
++  _am_result=GNU
++  ;;
++esac
++# Now try BSD make style include.
++if test "$am__include" = "#"; then
++   echo '.include "confinc"' > confmf
++   case `$am_make -s -f confmf 2> /dev/null` in #(
++   *the\ am__doit\ target*)
++     am__include=.include
++     am__quote="\""
++     _am_result=BSD
++     ;;
++   esac
++fi
++AC_SUBST([am__include])
++AC_SUBST([am__quote])
++AC_MSG_RESULT([$_am_result])
++rm -f confinc confmf
+ ])
+ 
+-dnl GNOME_MAINTAINER_MODE_DEFINES ()
+-dnl define DISABLE_DEPRECATED
+-dnl
+-AC_DEFUN([GNOME_MAINTAINER_MODE_DEFINES],
+-[
+-	AC_REQUIRE([AM_MAINTAINER_MODE])
++# Copyright (C) 1999, 2000, 2001, 2003, 2004, 2005, 2008
++# Free Software Foundation, Inc.
++#
++# This file is free software; the Free Software Foundation
++# gives unlimited permission to copy and/or distribute it,
++# with or without modifications, as long as this notice is preserved.
+ 
+-	DISABLE_DEPRECATED=""
+-	if test $USE_MAINTAINER_MODE = yes; then
+-	        DOMAINS="G ATK PANGO GDK GDK_PIXBUF GTK GCONF BONOBO BONOBO_UI GNOME LIBGLADE VTE GNOME_VFS WNCK LIBSOUP"
+-	        for DOMAIN in $DOMAINS; do
+-	               DISABLE_DEPRECATED="$DISABLE_DEPRECATED -D${DOMAIN}_DISABLE_DEPRECATED -D${DOMAIN}_DISABLE_SINGLE_INCLUDES"
+-	        done
+-	fi
++# serial 6
+ 
+-	AC_SUBST(DISABLE_DEPRECATED)
++# AM_PROG_CC_C_O
++# --------------
++# Like AC_PROG_CC_C_O, but changed for automake.
++AC_DEFUN([AM_PROG_CC_C_O],
++[AC_REQUIRE([AC_PROG_CC_C_O])dnl
++AC_REQUIRE([AM_AUX_DIR_EXPAND])dnl
++AC_REQUIRE_AUX_FILE([compile])dnl
++# FIXME: we rely on the cache variable name because
++# there is no other way.
++set dummy $CC
++am_cc=`echo $[2] | sed ['s/[^a-zA-Z0-9_]/_/g;s/^[0-9]/_/']`
++eval am_t=\$ac_cv_prog_cc_${am_cc}_c_o
++if test "$am_t" != yes; then
++   # Losing compiler, so override with the script.
++   # FIXME: It is wrong to rewrite CC.
++   # But if we don't then we get into trouble of one sort or another.
++   # A longer-term fix would be to have automake use am__CC in this case,
++   # and then we could set am__CC="\$(top_srcdir)/compile \$(CC)"
++   CC="$am_aux_dir/compile $CC"
++fi
++dnl Make sure AC_PROG_CC is never called again, or it will override our
++dnl setting of CC.
++m4_define([AC_PROG_CC],
++          [m4_fatal([AC_PROG_CC cannot be called after AM_PROG_CC_C_O])])
+ ])
+ 
 -dnl GNOME_COMPILE_WARNINGS
 -dnl Turn on many useful compiler warnings
 -dnl For now, only works on GCC
@@ -2892,27 +2808,26 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/aclocal.m4 gnome-contr
 -    dnl ******************************
 -    dnl More compiler warnings
 -    dnl ******************************
-+AU_DEFUN([jm_MAINTAINER_MODE], [AM_MAINTAINER_MODE])
- 
+-
 -    AC_ARG_ENABLE(compile-warnings, 
 -                  AC_HELP_STRING([--enable-compile-warnings=@<:@no/minimum/yes/maximum/error@:>@],
 -                                 [Turn on compiler warnings]),,
 -                  [enable_compile_warnings="m4_default([$1],[yes])"])
-+# Check to see how 'make' treats includes.	            -*- Autoconf -*-
- 
+-
 -    warnCFLAGS=
 -    if test "x$GCC" != xyes; then
 -	enable_compile_warnings=no
 -    fi
-+# Copyright (C) 2001, 2002, 2003, 2005, 2009  Free Software Foundation, Inc.
++# Fake the existence of programs that GNU maintainers use.  -*- Autoconf -*-
+ 
+-    warning_flags=
+-    realsave_CFLAGS="$CFLAGS"
++# Copyright (C) 1997, 1999, 2000, 2001, 2003, 2004, 2005, 2008
++# Free Software Foundation, Inc.
 +#
 +# This file is free software; the Free Software Foundation
 +# gives unlimited permission to copy and/or distribute it,
 +# with or without modifications, as long as this notice is preserved.
- 
--    warning_flags=
--    realsave_CFLAGS="$CFLAGS"
-+# serial 4
  
 -    case "$enable_compile_warnings" in
 -    no)
@@ -2954,59 +2869,12 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/aclocal.m4 gnome-contr
 -    CFLAGS="$realsave_CFLAGS"
 -    AC_MSG_CHECKING(what warning flags to pass to the C compiler)
 -    AC_MSG_RESULT($warning_flags)
-+# AM_MAKE_INCLUDE()
-+# -----------------
-+# Check to see how make treats includes.
-+AC_DEFUN([AM_MAKE_INCLUDE],
-+[am_make=${MAKE-make}
-+cat > confinc << 'END'
-+am__doit:
-+	@echo this is the am__doit target
-+.PHONY: am__doit
-+END
-+# If we don't find an include directive, just comment out the code.
-+AC_MSG_CHECKING([for style of include used by $am_make])
-+am__include="#"
-+am__quote=
-+_am_result=none
-+# First try GNU make style include.
-+echo "include confinc" > confmf
-+# Ignore all kinds of additional output from `make'.
-+case `$am_make -s -f confmf 2> /dev/null` in #(
-+*the\ am__doit\ target*)
-+  am__include=include
-+  am__quote=
-+  _am_result=GNU
-+  ;;
-+esac
-+# Now try BSD make style include.
-+if test "$am__include" = "#"; then
-+   echo '.include "confinc"' > confmf
-+   case `$am_make -s -f confmf 2> /dev/null` in #(
-+   *the\ am__doit\ target*)
-+     am__include=.include
-+     am__quote="\""
-+     _am_result=BSD
-+     ;;
-+   esac
-+fi
-+AC_SUBST([am__include])
-+AC_SUBST([am__quote])
-+AC_MSG_RESULT([$_am_result])
-+rm -f confinc confmf
-+])
- 
+-
 -    AC_ARG_ENABLE(iso-c,
 -                  AC_HELP_STRING([--enable-iso-c],
 -                                 [Try to warn if code is not ISO C ]),,
 -                  [enable_iso_c=no])
-+# Copyright (C) 1999, 2000, 2001, 2003, 2004, 2005, 2008
-+# Free Software Foundation, Inc.
-+#
-+# This file is free software; the Free Software Foundation
-+# gives unlimited permission to copy and/or distribute it,
-+# with or without modifications, as long as this notice is preserved.
- 
+-
 -    AC_MSG_CHECKING(what language compliance flags to pass to the C compiler)
 -    complCFLAGS=
 -    if test "x$enable_iso_c" != "xno"; then
@@ -3026,47 +2894,22 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/aclocal.m4 gnome-contr
  
 -    WARN_CFLAGS="$warning_flags $complCFLAGS"
 -    AC_SUBST(WARN_CFLAGS)
-+# AM_PROG_CC_C_O
-+# --------------
-+# Like AC_PROG_CC_C_O, but changed for automake.
-+AC_DEFUN([AM_PROG_CC_C_O],
-+[AC_REQUIRE([AC_PROG_CC_C_O])dnl
-+AC_REQUIRE([AM_AUX_DIR_EXPAND])dnl
-+AC_REQUIRE_AUX_FILE([compile])dnl
-+# FIXME: we rely on the cache variable name because
-+# there is no other way.
-+set dummy $CC
-+am_cc=`echo $[2] | sed ['s/[^a-zA-Z0-9_]/_/g;s/^[0-9]/_/']`
-+eval am_t=\$ac_cv_prog_cc_${am_cc}_c_o
-+if test "$am_t" != yes; then
-+   # Losing compiler, so override with the script.
-+   # FIXME: It is wrong to rewrite CC.
-+   # But if we don't then we get into trouble of one sort or another.
-+   # A longer-term fix would be to have automake use am__CC in this case,
-+   # and then we could set am__CC="\$(top_srcdir)/compile \$(CC)"
-+   CC="$am_aux_dir/compile $CC"
-+fi
-+dnl Make sure AC_PROG_CC is never called again, or it will override our
-+dnl setting of CC.
-+m4_define([AC_PROG_CC],
-+          [m4_fatal([AC_PROG_CC cannot be called after AM_PROG_CC_C_O])])
- ])
+-])
++# AM_MISSING_PROG(NAME, PROGRAM)
++# ------------------------------
++AC_DEFUN([AM_MISSING_PROG],
++[AC_REQUIRE([AM_MISSING_HAS_RUN])
++$1=${$1-"${am_missing_run}$2"}
++AC_SUBST($1)])
  
 -dnl For C++, do basically the same thing.
-+# Fake the existence of programs that GNU maintainers use.  -*- Autoconf -*-
  
 -AC_DEFUN([GNOME_CXX_WARNINGS],[
 -  AC_ARG_ENABLE(cxx-warnings,
 -                AC_HELP_STRING([--enable-cxx-warnings=@<:@no/minimum/yes@:>@]
 -                               [Turn on compiler warnings.]),,
 -                [enable_cxx_warnings="m4_default([$1],[minimum])"])
-+# Copyright (C) 1997, 1999, 2000, 2001, 2003, 2004, 2005, 2008
-+# Free Software Foundation, Inc.
-+#
-+# This file is free software; the Free Software Foundation
-+# gives unlimited permission to copy and/or distribute it,
-+# with or without modifications, as long as this notice is preserved.
- 
+-
 -  AC_MSG_CHECKING(what warning flags to pass to the C++ compiler)
 -  warnCXXFLAGS=
 -  if test "x$GXX" != xyes; then
@@ -3078,8 +2921,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/aclocal.m4 gnome-contr
 -      *[\ \	]-Wall[\ \	]*) ;;
 -      *) warnCXXFLAGS="-Wall -Wno-unused" ;;
 -      esac
-+# serial 6
- 
+-
 -      ## -W is not all that useful.  And it cannot be controlled
 -      ## with individual -Wno-xxx flags, unlike -Wall
 -      if test "x$enable_cxx_warnings" = "xyes"; then
@@ -3088,26 +2930,6 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/aclocal.m4 gnome-contr
 -    fi
 -  fi
 -  AC_MSG_RESULT($warnCXXFLAGS)
-+# AM_MISSING_PROG(NAME, PROGRAM)
-+# ------------------------------
-+AC_DEFUN([AM_MISSING_PROG],
-+[AC_REQUIRE([AM_MISSING_HAS_RUN])
-+$1=${$1-"${am_missing_run}$2"}
-+AC_SUBST($1)])
- 
--   AC_ARG_ENABLE(iso-cxx,
--                 AC_HELP_STRING([--enable-iso-cxx],
--                                [Try to warn if code is not ISO C++ ]),,
--                 [enable_iso_cxx=no])
- 
--   AC_MSG_CHECKING(what language compliance flags to pass to the C++ compiler)
--   complCXXFLAGS=
--   if test "x$enable_iso_cxx" != "xno"; then
--     if test "x$GXX" = "xyes"; then
--      case " $CXXFLAGS " in
--      *[\ \	]-ansi[\ \	]*) ;;
--      *) complCXXFLAGS="$complCXXFLAGS -ansi" ;;
--      esac
 +# AM_MISSING_HAS_RUN
 +# ------------------
 +# Define MISSING if not defined so far and test if it supports --run.
@@ -3132,6 +2954,20 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/aclocal.m4 gnome-contr
 +fi
 +])
  
+-   AC_ARG_ENABLE(iso-cxx,
+-                 AC_HELP_STRING([--enable-iso-cxx],
+-                                [Try to warn if code is not ISO C++ ]),,
+-                 [enable_iso_cxx=no])
+-
+-   AC_MSG_CHECKING(what language compliance flags to pass to the C++ compiler)
+-   complCXXFLAGS=
+-   if test "x$enable_iso_cxx" != "xno"; then
+-     if test "x$GXX" = "xyes"; then
+-      case " $CXXFLAGS " in
+-      *[\ \	]-ansi[\ \	]*) ;;
+-      *) complCXXFLAGS="$complCXXFLAGS -ansi" ;;
+-      esac
+-
 -      case " $CXXFLAGS " in
 -      *[\ \	]-pedantic[\ \	]*) ;;
 -      *) complCXXFLAGS="$complCXXFLAGS -pedantic" ;;
@@ -3589,9 +3425,10 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/aclocal.m4 gnome-contr
  
  m4_include([m4/gnome-doc-utils.m4])
  m4_include([m4/intltool.m4])
-diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/capplets/about-me/icons/Makefile.in gnome-control-center-2.28.1.new/capplets/about-me/icons/Makefile.in
---- gnome-control-center-2.28.1/capplets/about-me/icons/Makefile.in	2009-10-20 12:57:26.000000000 +1100
-+++ gnome-control-center-2.28.1.new/capplets/about-me/icons/Makefile.in	2009-10-20 12:57:54.000000000 +1100
+Index: gnome-control-center-2.28.1/capplets/about-me/icons/Makefile.in
+===================================================================
+--- gnome-control-center-2.28.1.orig/capplets/about-me/icons/Makefile.in	2009-12-10 13:12:28.151720245 +1100
++++ gnome-control-center-2.28.1/capplets/about-me/icons/Makefile.in	2009-12-10 13:21:52.504218534 +1100
 @@ -193,6 +193,7 @@
  PACKAGE_NAME = @PACKAGE_NAME@
  PACKAGE_STRING = @PACKAGE_STRING@
@@ -3600,9 +3437,10 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/capplets/about-me/icon
  PACKAGE_VERSION = @PACKAGE_VERSION@
  PATH_SEPARATOR = @PATH_SEPARATOR@
  PKG_CONFIG = @PKG_CONFIG@
-diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/capplets/about-me/Makefile.in gnome-control-center-2.28.1.new/capplets/about-me/Makefile.in
---- gnome-control-center-2.28.1/capplets/about-me/Makefile.in	2009-10-20 12:57:26.000000000 +1100
-+++ gnome-control-center-2.28.1.new/capplets/about-me/Makefile.in	2009-10-20 12:57:54.000000000 +1100
+Index: gnome-control-center-2.28.1/capplets/about-me/Makefile.in
+===================================================================
+--- gnome-control-center-2.28.1.orig/capplets/about-me/Makefile.in	2009-12-10 13:12:28.141720370 +1100
++++ gnome-control-center-2.28.1/capplets/about-me/Makefile.in	2009-12-10 13:21:52.504218534 +1100
 @@ -264,6 +264,7 @@
  PACKAGE_NAME = @PACKAGE_NAME@
  PACKAGE_STRING = @PACKAGE_STRING@
@@ -3611,9 +3449,10 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/capplets/about-me/Make
  PACKAGE_VERSION = @PACKAGE_VERSION@
  PATH_SEPARATOR = @PATH_SEPARATOR@
  PKG_CONFIG = @PKG_CONFIG@
-diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/capplets/accessibility/at-properties/Makefile.in gnome-control-center-2.28.1.new/capplets/accessibility/at-properties/Makefile.in
---- gnome-control-center-2.28.1/capplets/accessibility/at-properties/Makefile.in	2009-10-20 12:57:26.000000000 +1100
-+++ gnome-control-center-2.28.1.new/capplets/accessibility/at-properties/Makefile.in	2009-10-20 12:57:54.000000000 +1100
+Index: gnome-control-center-2.28.1/capplets/accessibility/at-properties/Makefile.in
+===================================================================
+--- gnome-control-center-2.28.1.orig/capplets/accessibility/at-properties/Makefile.in	2009-12-10 13:12:28.091719041 +1100
++++ gnome-control-center-2.28.1/capplets/accessibility/at-properties/Makefile.in	2009-12-10 13:21:52.504218534 +1100
 @@ -222,6 +222,7 @@
  PACKAGE_NAME = @PACKAGE_NAME@
  PACKAGE_STRING = @PACKAGE_STRING@
@@ -3622,9 +3461,10 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/capplets/accessibility
  PACKAGE_VERSION = @PACKAGE_VERSION@
  PATH_SEPARATOR = @PATH_SEPARATOR@
  PKG_CONFIG = @PKG_CONFIG@
-diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/capplets/accessibility/Makefile.in gnome-control-center-2.28.1.new/capplets/accessibility/Makefile.in
---- gnome-control-center-2.28.1/capplets/accessibility/Makefile.in	2009-10-20 12:57:26.000000000 +1100
-+++ gnome-control-center-2.28.1.new/capplets/accessibility/Makefile.in	2009-10-20 12:57:54.000000000 +1100
+Index: gnome-control-center-2.28.1/capplets/accessibility/Makefile.in
+===================================================================
+--- gnome-control-center-2.28.1.orig/capplets/accessibility/Makefile.in	2009-12-10 13:12:28.101719894 +1100
++++ gnome-control-center-2.28.1/capplets/accessibility/Makefile.in	2009-12-10 13:21:52.504218534 +1100
 @@ -209,6 +209,7 @@
  PACKAGE_NAME = @PACKAGE_NAME@
  PACKAGE_STRING = @PACKAGE_STRING@
@@ -3633,9 +3473,10 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/capplets/accessibility
  PACKAGE_VERSION = @PACKAGE_VERSION@
  PATH_SEPARATOR = @PATH_SEPARATOR@
  PKG_CONFIG = @PKG_CONFIG@
-diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/capplets/appearance/data/Makefile.in gnome-control-center-2.28.1.new/capplets/appearance/data/Makefile.in
---- gnome-control-center-2.28.1/capplets/appearance/data/Makefile.in	2009-10-20 12:57:26.000000000 +1100
-+++ gnome-control-center-2.28.1.new/capplets/appearance/data/Makefile.in	2009-10-20 12:57:54.000000000 +1100
+Index: gnome-control-center-2.28.1/capplets/appearance/data/Makefile.in
+===================================================================
+--- gnome-control-center-2.28.1.orig/capplets/appearance/data/Makefile.in	2009-12-10 13:12:28.131720914 +1100
++++ gnome-control-center-2.28.1/capplets/appearance/data/Makefile.in	2009-12-10 13:21:52.504218534 +1100
 @@ -201,6 +201,7 @@
  PACKAGE_NAME = @PACKAGE_NAME@
  PACKAGE_STRING = @PACKAGE_STRING@
@@ -3644,9 +3485,10 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/capplets/appearance/da
  PACKAGE_VERSION = @PACKAGE_VERSION@
  PATH_SEPARATOR = @PATH_SEPARATOR@
  PKG_CONFIG = @PKG_CONFIG@
-diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/capplets/appearance/Makefile.in gnome-control-center-2.28.1.new/capplets/appearance/Makefile.in
---- gnome-control-center-2.28.1/capplets/appearance/Makefile.in	2009-10-20 12:57:26.000000000 +1100
-+++ gnome-control-center-2.28.1.new/capplets/appearance/Makefile.in	2009-10-20 12:57:54.000000000 +1100
+Index: gnome-control-center-2.28.1/capplets/appearance/Makefile.in
+===================================================================
+--- gnome-control-center-2.28.1.orig/capplets/appearance/Makefile.in	2009-12-10 13:12:28.121720411 +1100
++++ gnome-control-center-2.28.1/capplets/appearance/Makefile.in	2009-12-10 13:21:52.504218534 +1100
 @@ -52,12 +52,13 @@
  am__installdirs = "$(DESTDIR)$(bindir)"
  PROGRAMS = $(bin_PROGRAMS)
@@ -3692,9 +3534,10 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/capplets/appearance/Ma
  @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/appearance-font.Po@am__quote@
  @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/appearance-main.Po@am__quote@
  @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/appearance-style.Po@am__quote@
-diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/capplets/common/Makefile.in gnome-control-center-2.28.1.new/capplets/common/Makefile.in
---- gnome-control-center-2.28.1/capplets/common/Makefile.in	2009-10-20 12:57:26.000000000 +1100
-+++ gnome-control-center-2.28.1.new/capplets/common/Makefile.in	2009-10-20 12:57:54.000000000 +1100
+Index: gnome-control-center-2.28.1/capplets/common/Makefile.in
+===================================================================
+--- gnome-control-center-2.28.1.orig/capplets/common/Makefile.in	2009-12-10 13:12:28.051720033 +1100
++++ gnome-control-center-2.28.1/capplets/common/Makefile.in	2009-12-10 13:21:52.504218534 +1100
 @@ -202,6 +202,7 @@
  PACKAGE_NAME = @PACKAGE_NAME@
  PACKAGE_STRING = @PACKAGE_STRING@
@@ -3703,9 +3546,10 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/capplets/common/Makefi
  PACKAGE_VERSION = @PACKAGE_VERSION@
  PATH_SEPARATOR = @PATH_SEPARATOR@
  PKG_CONFIG = @PKG_CONFIG@
-diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/capplets/default-applications/Makefile.in gnome-control-center-2.28.1.new/capplets/default-applications/Makefile.in
---- gnome-control-center-2.28.1/capplets/default-applications/Makefile.in	2009-10-20 12:57:25.000000000 +1100
-+++ gnome-control-center-2.28.1.new/capplets/default-applications/Makefile.in	2009-10-20 12:57:55.000000000 +1100
+Index: gnome-control-center-2.28.1/capplets/default-applications/Makefile.in
+===================================================================
+--- gnome-control-center-2.28.1.orig/capplets/default-applications/Makefile.in	2009-12-10 13:12:28.091719041 +1100
++++ gnome-control-center-2.28.1/capplets/default-applications/Makefile.in	2009-12-10 13:21:52.504218534 +1100
 @@ -237,6 +237,7 @@
  PACKAGE_NAME = @PACKAGE_NAME@
  PACKAGE_STRING = @PACKAGE_STRING@
@@ -3714,9 +3558,10 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/capplets/default-appli
  PACKAGE_VERSION = @PACKAGE_VERSION@
  PATH_SEPARATOR = @PATH_SEPARATOR@
  PKG_CONFIG = @PKG_CONFIG@
-diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/capplets/display/Makefile.in gnome-control-center-2.28.1.new/capplets/display/Makefile.in
---- gnome-control-center-2.28.1/capplets/display/Makefile.in	2009-10-20 12:57:28.000000000 +1100
-+++ gnome-control-center-2.28.1.new/capplets/display/Makefile.in	2009-10-20 12:57:55.000000000 +1100
+Index: gnome-control-center-2.28.1/capplets/display/Makefile.in
+===================================================================
+--- gnome-control-center-2.28.1.orig/capplets/display/Makefile.in	2009-12-10 13:21:52.294218316 +1100
++++ gnome-control-center-2.28.1/capplets/display/Makefile.in	2009-12-10 13:21:52.504218534 +1100
 @@ -60,7 +60,8 @@
  	"$(DESTDIR)$(iconssvgdir)" "$(DESTDIR)$(uidir)"
  PROGRAMS = $(bin_PROGRAMS)
@@ -3763,9 +3608,10 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/capplets/display/Makef
  @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/xrandr-capplet.Po@am__quote@
  
  .c.o:
-diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/capplets/keybindings/Makefile.in gnome-control-center-2.28.1.new/capplets/keybindings/Makefile.in
---- gnome-control-center-2.28.1/capplets/keybindings/Makefile.in	2009-10-20 12:57:26.000000000 +1100
-+++ gnome-control-center-2.28.1.new/capplets/keybindings/Makefile.in	2009-10-20 12:57:55.000000000 +1100
+Index: gnome-control-center-2.28.1/capplets/keybindings/Makefile.in
+===================================================================
+--- gnome-control-center-2.28.1.orig/capplets/keybindings/Makefile.in	2009-12-10 13:12:28.111719908 +1100
++++ gnome-control-center-2.28.1/capplets/keybindings/Makefile.in	2009-12-10 13:21:52.514218547 +1100
 @@ -222,6 +222,7 @@
  PACKAGE_NAME = @PACKAGE_NAME@
  PACKAGE_STRING = @PACKAGE_STRING@
@@ -3774,9 +3620,10 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/capplets/keybindings/M
  PACKAGE_VERSION = @PACKAGE_VERSION@
  PATH_SEPARATOR = @PATH_SEPARATOR@
  PKG_CONFIG = @PKG_CONFIG@
-diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/capplets/keyboard/Makefile.in gnome-control-center-2.28.1.new/capplets/keyboard/Makefile.in
---- gnome-control-center-2.28.1/capplets/keyboard/Makefile.in	2009-10-20 12:57:26.000000000 +1100
-+++ gnome-control-center-2.28.1.new/capplets/keyboard/Makefile.in	2009-10-20 12:57:55.000000000 +1100
+Index: gnome-control-center-2.28.1/capplets/keyboard/Makefile.in
+===================================================================
+--- gnome-control-center-2.28.1.orig/capplets/keyboard/Makefile.in	2009-12-10 13:12:28.061720047 +1100
++++ gnome-control-center-2.28.1/capplets/keyboard/Makefile.in	2009-12-10 13:21:52.514218547 +1100
 @@ -228,6 +228,7 @@
  PACKAGE_NAME = @PACKAGE_NAME@
  PACKAGE_STRING = @PACKAGE_STRING@
@@ -3785,9 +3632,10 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/capplets/keyboard/Make
  PACKAGE_VERSION = @PACKAGE_VERSION@
  PATH_SEPARATOR = @PATH_SEPARATOR@
  PKG_CONFIG = @PKG_CONFIG@
-diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/capplets/Makefile.in gnome-control-center-2.28.1.new/capplets/Makefile.in
---- gnome-control-center-2.28.1/capplets/Makefile.in	2009-10-20 12:57:26.000000000 +1100
-+++ gnome-control-center-2.28.1.new/capplets/Makefile.in	2009-10-20 12:57:53.000000000 +1100
+Index: gnome-control-center-2.28.1/capplets/Makefile.in
+===================================================================
+--- gnome-control-center-2.28.1.orig/capplets/Makefile.in	2009-12-10 13:12:28.111719908 +1100
++++ gnome-control-center-2.28.1/capplets/Makefile.in	2009-12-10 13:21:52.514218547 +1100
 @@ -210,6 +210,7 @@
  PACKAGE_NAME = @PACKAGE_NAME@
  PACKAGE_STRING = @PACKAGE_STRING@
@@ -3796,9 +3644,10 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/capplets/Makefile.in g
  PACKAGE_VERSION = @PACKAGE_VERSION@
  PATH_SEPARATOR = @PATH_SEPARATOR@
  PKG_CONFIG = @PKG_CONFIG@
-diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/capplets/mouse/Makefile.in gnome-control-center-2.28.1.new/capplets/mouse/Makefile.in
---- gnome-control-center-2.28.1/capplets/mouse/Makefile.in	2009-10-20 12:57:26.000000000 +1100
-+++ gnome-control-center-2.28.1.new/capplets/mouse/Makefile.in	2009-10-20 12:57:55.000000000 +1100
+Index: gnome-control-center-2.28.1/capplets/mouse/Makefile.in
+===================================================================
+--- gnome-control-center-2.28.1.orig/capplets/mouse/Makefile.in	2009-12-10 13:12:28.071720759 +1100
++++ gnome-control-center-2.28.1/capplets/mouse/Makefile.in	2009-12-10 13:21:52.514218547 +1100
 @@ -218,6 +218,7 @@
  PACKAGE_NAME = @PACKAGE_NAME@
  PACKAGE_STRING = @PACKAGE_STRING@
@@ -3807,9 +3656,10 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/capplets/mouse/Makefil
  PACKAGE_VERSION = @PACKAGE_VERSION@
  PATH_SEPARATOR = @PATH_SEPARATOR@
  PKG_CONFIG = @PKG_CONFIG@
-diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/capplets/network/Makefile.in gnome-control-center-2.28.1.new/capplets/network/Makefile.in
---- gnome-control-center-2.28.1/capplets/network/Makefile.in	2009-10-20 12:57:25.000000000 +1100
-+++ gnome-control-center-2.28.1.new/capplets/network/Makefile.in	2009-10-20 12:57:55.000000000 +1100
+Index: gnome-control-center-2.28.1/capplets/network/Makefile.in
+===================================================================
+--- gnome-control-center-2.28.1.orig/capplets/network/Makefile.in	2009-12-10 13:12:28.121720411 +1100
++++ gnome-control-center-2.28.1/capplets/network/Makefile.in	2009-12-10 13:21:52.514218547 +1100
 @@ -227,6 +227,7 @@
  PACKAGE_NAME = @PACKAGE_NAME@
  PACKAGE_STRING = @PACKAGE_STRING@
@@ -3818,9 +3668,10 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/capplets/network/Makef
  PACKAGE_VERSION = @PACKAGE_VERSION@
  PATH_SEPARATOR = @PATH_SEPARATOR@
  PKG_CONFIG = @PKG_CONFIG@
-diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/capplets/windows/Makefile.in gnome-control-center-2.28.1.new/capplets/windows/Makefile.in
---- gnome-control-center-2.28.1/capplets/windows/Makefile.in	2009-10-20 12:57:26.000000000 +1100
-+++ gnome-control-center-2.28.1.new/capplets/windows/Makefile.in	2009-10-20 12:57:55.000000000 +1100
+Index: gnome-control-center-2.28.1/capplets/windows/Makefile.in
+===================================================================
+--- gnome-control-center-2.28.1.orig/capplets/windows/Makefile.in	2009-12-10 13:12:28.071720759 +1100
++++ gnome-control-center-2.28.1/capplets/windows/Makefile.in	2009-12-10 13:21:52.514218547 +1100
 @@ -220,6 +220,7 @@
  PACKAGE_NAME = @PACKAGE_NAME@
  PACKAGE_STRING = @PACKAGE_STRING@
@@ -3838,9 +3689,10 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/capplets/windows/Makef
  	     -DUIDIR=\""$(uidir)"\"  	\
  	     -DGNOMELOCALEDIR="\"$(datadir)/locale\""			\
  	     -DPIXMAPDIR=\""$(pixmapdir)"\"
-diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/config.h.in gnome-control-center-2.28.1.new/config.h.in
---- gnome-control-center-2.28.1/config.h.in	2009-10-20 12:57:26.000000000 +1100
-+++ gnome-control-center-2.28.1.new/config.h.in	2009-10-20 12:57:52.000000000 +1100
+Index: gnome-control-center-2.28.1/config.h.in
+===================================================================
+--- gnome-control-center-2.28.1.orig/config.h.in	2009-12-10 13:12:28.011720465 +1100
++++ gnome-control-center-2.28.1/config.h.in	2009-12-10 13:21:52.514218547 +1100
 @@ -100,6 +100,9 @@
  /* Define to the one symbol short name of this package. */
  #undef PACKAGE_TARNAME
@@ -3851,9 +3703,10 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/config.h.in gnome-cont
  /* Define to the version of this package. */
  #undef PACKAGE_VERSION
  
-diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/configure gnome-control-center-2.28.1.new/configure
---- gnome-control-center-2.28.1/configure	2009-10-20 12:57:26.000000000 +1100
-+++ gnome-control-center-2.28.1.new/configure	2009-10-20 12:57:50.000000000 +1100
+Index: gnome-control-center-2.28.1/configure
+===================================================================
+--- gnome-control-center-2.28.1.orig/configure	2009-12-10 13:12:28.031720633 +1100
++++ gnome-control-center-2.28.1/configure	2009-12-10 13:21:52.524218491 +1100
 @@ -1,20 +1,22 @@
  #! /bin/sh
  # Guess values for system-dependent variables and create Makefiles.
@@ -19906,9 +19759,10 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/configure gnome-contro
  $as_echo "$as_me: WARNING: unrecognized options: $ac_unrecognized_opts" >&2;}
  fi
  
-diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/font-viewer/Makefile.in gnome-control-center-2.28.1.new/font-viewer/Makefile.in
---- gnome-control-center-2.28.1/font-viewer/Makefile.in	2009-10-20 12:57:27.000000000 +1100
-+++ gnome-control-center-2.28.1.new/font-viewer/Makefile.in	2009-10-20 12:57:55.000000000 +1100
+Index: gnome-control-center-2.28.1/font-viewer/Makefile.in
+===================================================================
+--- gnome-control-center-2.28.1.orig/font-viewer/Makefile.in	2009-12-10 13:12:27.991719670 +1100
++++ gnome-control-center-2.28.1/font-viewer/Makefile.in	2009-12-10 13:21:52.524218491 +1100
 @@ -226,6 +226,7 @@
  PACKAGE_NAME = @PACKAGE_NAME@
  PACKAGE_STRING = @PACKAGE_STRING@
@@ -19917,9 +19771,10 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/font-viewer/Makefile.i
  PACKAGE_VERSION = @PACKAGE_VERSION@
  PATH_SEPARATOR = @PATH_SEPARATOR@
  PKG_CONFIG = @PKG_CONFIG@
-diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/help/Makefile.in gnome-control-center-2.28.1.new/help/Makefile.in
---- gnome-control-center-2.28.1/help/Makefile.in	2009-10-20 12:57:26.000000000 +1100
-+++ gnome-control-center-2.28.1.new/help/Makefile.in	2009-10-20 12:57:56.000000000 +1100
+Index: gnome-control-center-2.28.1/help/Makefile.in
+===================================================================
+--- gnome-control-center-2.28.1.orig/help/Makefile.in	2009-12-10 13:12:27.981719797 +1100
++++ gnome-control-center-2.28.1/help/Makefile.in	2009-12-10 13:21:52.524218491 +1100
 @@ -194,6 +194,7 @@
  PACKAGE_NAME = @PACKAGE_NAME@
  PACKAGE_STRING = @PACKAGE_STRING@
@@ -19928,9 +19783,10 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/help/Makefile.in gnome
  PACKAGE_VERSION = @PACKAGE_VERSION@
  PATH_SEPARATOR = @PATH_SEPARATOR@
  PKG_CONFIG = @PKG_CONFIG@
-diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/INSTALL gnome-control-center-2.28.1.new/INSTALL
---- gnome-control-center-2.28.1/INSTALL	2009-10-20 12:57:26.000000000 +1100
-+++ gnome-control-center-2.28.1.new/INSTALL	2009-10-20 12:57:56.000000000 +1100
+Index: gnome-control-center-2.28.1/INSTALL
+===================================================================
+--- gnome-control-center-2.28.1.orig/INSTALL	2009-12-10 13:12:27.991719670 +1100
++++ gnome-control-center-2.28.1/INSTALL	2009-12-10 13:21:52.524218491 +1100
 @@ -2,15 +2,15 @@
  *************************
  
@@ -20130,9 +19986,10 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/INSTALL gnome-control-
  `configure' also accepts some other, not widely useful, options.  Run
  `configure --help' for more details.
  
-diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/libslab/Makefile.in gnome-control-center-2.28.1.new/libslab/Makefile.in
---- gnome-control-center-2.28.1/libslab/Makefile.in	2009-10-20 12:57:27.000000000 +1100
-+++ gnome-control-center-2.28.1.new/libslab/Makefile.in	2009-10-20 12:57:56.000000000 +1100
+Index: gnome-control-center-2.28.1/libslab/Makefile.in
+===================================================================
+--- gnome-control-center-2.28.1.orig/libslab/Makefile.in	2009-12-10 13:12:28.161721376 +1100
++++ gnome-control-center-2.28.1/libslab/Makefile.in	2009-12-10 13:21:52.524218491 +1100
 @@ -235,6 +235,7 @@
  PACKAGE_NAME = @PACKAGE_NAME@
  PACKAGE_STRING = @PACKAGE_STRING@
@@ -20141,9 +19998,10 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/libslab/Makefile.in gn
  PACKAGE_VERSION = @PACKAGE_VERSION@
  PATH_SEPARATOR = @PATH_SEPARATOR@
  PKG_CONFIG = @PKG_CONFIG@
-diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/libwindow-settings/Makefile.in gnome-control-center-2.28.1.new/libwindow-settings/Makefile.in
---- gnome-control-center-2.28.1/libwindow-settings/Makefile.in	2009-10-20 12:57:25.000000000 +1100
-+++ gnome-control-center-2.28.1.new/libwindow-settings/Makefile.in	2009-10-20 12:57:56.000000000 +1100
+Index: gnome-control-center-2.28.1/libwindow-settings/Makefile.in
+===================================================================
+--- gnome-control-center-2.28.1.orig/libwindow-settings/Makefile.in	2009-12-10 13:12:28.001720103 +1100
++++ gnome-control-center-2.28.1/libwindow-settings/Makefile.in	2009-12-10 13:21:52.524218491 +1100
 @@ -235,6 +235,7 @@
  PACKAGE_NAME = @PACKAGE_NAME@
  PACKAGE_STRING = @PACKAGE_STRING@
@@ -20161,9 +20019,10 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/libwindow-settings/Mak
  INCLUDES = \
  	-DGNOMELOCALEDIR="\"$(datadir)/locale\""			\
  	-DGNOME_ICONDIR=\""$(datadir)/pixmaps"\"			\
-diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/ltmain.sh gnome-control-center-2.28.1.new/ltmain.sh
---- gnome-control-center-2.28.1/ltmain.sh	2009-10-20 12:57:25.000000000 +1100
-+++ gnome-control-center-2.28.1.new/ltmain.sh	2009-10-20 12:57:42.000000000 +1100
+Index: gnome-control-center-2.28.1/ltmain.sh
+===================================================================
+--- gnome-control-center-2.28.1.orig/ltmain.sh	2009-12-10 13:21:52.484240158 +1100
++++ gnome-control-center-2.28.1/ltmain.sh	2009-12-10 13:21:52.524218491 +1100
 @@ -65,7 +65,7 @@
  #       compiler:		$LTCC
  #       compiler flags:		$LTCFLAGS
@@ -20202,7 +20061,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/ltmain.sh gnome-contro
  : ${SHELL="${CONFIG_SHELL-/bin/sh}"}
  : ${Xsed="$SED -e 1s/^X//"}
  
-@@ -5033,7 +5033,10 @@
+@@ -5038,7 +5038,10 @@
  	case $pass in
  	dlopen) libs="$dlfiles" ;;
  	dlpreopen) libs="$dlprefiles" ;;
@@ -20214,7 +20073,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/ltmain.sh gnome-contro
  	esac
        fi
        if test "$linkmode,$pass" = "lib,dlpreopen"; then
-@@ -5344,19 +5347,19 @@
+@@ -5358,19 +5361,19 @@
  	    # It is a libtool convenience library, so add in its objects.
  	    convenience="$convenience $ladir/$objdir/$old_library"
  	    old_convenience="$old_convenience $ladir/$objdir/$old_library"
@@ -20244,7 +20103,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/ltmain.sh gnome-contro
  	  continue
  	fi # $pass = conv
  
-@@ -5893,6 +5896,7 @@
+@@ -5907,6 +5910,7 @@
  	  if test "$link_all_deplibs" != no; then
  	    # Add the search paths of all dependency libraries
  	    for deplib in $dependency_libs; do
@@ -20252,7 +20111,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/ltmain.sh gnome-contro
  	      case $deplib in
  	      -L*) path="$deplib" ;;
  	      *.la)
-@@ -6206,6 +6210,9 @@
+@@ -6220,6 +6224,9 @@
  	    revision="$number_minor"
  	    lt_irix_increment=no
  	    ;;
@@ -20262,9 +20121,10 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/ltmain.sh gnome-contro
  	  esac
  	  ;;
  	no)
-diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/m4/libtool.m4 gnome-control-center-2.28.1.new/m4/libtool.m4
---- gnome-control-center-2.28.1/m4/libtool.m4	2009-10-20 12:57:25.000000000 +1100
-+++ gnome-control-center-2.28.1.new/m4/libtool.m4	2009-10-20 12:57:42.000000000 +1100
+Index: gnome-control-center-2.28.1/m4/libtool.m4
+===================================================================
+--- gnome-control-center-2.28.1.orig/m4/libtool.m4	2009-12-10 13:12:28.151720245 +1100
++++ gnome-control-center-2.28.1/m4/libtool.m4	2009-12-10 13:21:52.524218491 +1100
 @@ -2485,6 +2485,18 @@
    dynamic_linker='GNU/Linux ld.so'
    ;;
@@ -20348,9 +20208,10 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/m4/libtool.m4 gnome-co
        if echo __ELF__ | $CC -E - | $GREP __ELF__ >/dev/null; then
  	_LT_TAGVAR(archive_cmds, $1)='$LD -Bshareable -o $lib $libobjs $deplibs $linker_flags'  # a.out
        else
-diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/Makefile.in gnome-control-center-2.28.1.new/Makefile.in
---- gnome-control-center-2.28.1/Makefile.in	2009-10-20 12:57:26.000000000 +1100
-+++ gnome-control-center-2.28.1.new/Makefile.in	2009-10-20 12:57:56.000000000 +1100
+Index: gnome-control-center-2.28.1/Makefile.in
+===================================================================
+--- gnome-control-center-2.28.1.orig/Makefile.in	2009-12-10 13:12:28.051720033 +1100
++++ gnome-control-center-2.28.1/Makefile.in	2009-12-10 13:21:52.524218491 +1100
 @@ -250,6 +250,7 @@
  PACKAGE_NAME = @PACKAGE_NAME@
  PACKAGE_STRING = @PACKAGE_STRING@
@@ -20359,9 +20220,10 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/Makefile.in gnome-cont
  PACKAGE_VERSION = @PACKAGE_VERSION@
  PATH_SEPARATOR = @PATH_SEPARATOR@
  PKG_CONFIG = @PKG_CONFIG@
-diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/shell/Makefile.in gnome-control-center-2.28.1.new/shell/Makefile.in
---- gnome-control-center-2.28.1/shell/Makefile.in	2009-10-20 12:57:26.000000000 +1100
-+++ gnome-control-center-2.28.1.new/shell/Makefile.in	2009-10-20 12:57:56.000000000 +1100
+Index: gnome-control-center-2.28.1/shell/Makefile.in
+===================================================================
+--- gnome-control-center-2.28.1.orig/shell/Makefile.in	2009-12-10 13:12:28.021719082 +1100
++++ gnome-control-center-2.28.1/shell/Makefile.in	2009-12-10 13:21:52.524218491 +1100
 @@ -219,6 +219,7 @@
  PACKAGE_NAME = @PACKAGE_NAME@
  PACKAGE_STRING = @PACKAGE_STRING@
@@ -20370,9 +20232,10 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/shell/Makefile.in gnom
  PACKAGE_VERSION = @PACKAGE_VERSION@
  PATH_SEPARATOR = @PATH_SEPARATOR@
  PKG_CONFIG = @PKG_CONFIG@
-diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.28.1/typing-break/Makefile.in gnome-control-center-2.28.1.new/typing-break/Makefile.in
---- gnome-control-center-2.28.1/typing-break/Makefile.in	2009-10-20 12:57:26.000000000 +1100
-+++ gnome-control-center-2.28.1.new/typing-break/Makefile.in	2009-10-20 12:57:56.000000000 +1100
+Index: gnome-control-center-2.28.1/typing-break/Makefile.in
+===================================================================
+--- gnome-control-center-2.28.1.orig/typing-break/Makefile.in	2009-12-10 13:12:28.001720103 +1100
++++ gnome-control-center-2.28.1/typing-break/Makefile.in	2009-12-10 13:21:52.524218491 +1100
 @@ -229,6 +229,7 @@
  PACKAGE_NAME = @PACKAGE_NAME@
  PACKAGE_STRING = @PACKAGE_STRING@
