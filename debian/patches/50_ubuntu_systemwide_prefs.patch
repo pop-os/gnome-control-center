@@ -1,7 +1,8 @@
 === modified file 'capplets/network/gnome-network-preferences.c'
-diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.91/capplets/network/gnome-network-properties.c gnome-control-center-2.27.91.new/capplets/network/gnome-network-properties.c
---- gnome-control-center-2.27.91/capplets/network/gnome-network-properties.c	2009-08-31 02:08:03.276856407 +0100
-+++ gnome-control-center-2.27.91.new/capplets/network/gnome-network-properties.c	2009-08-31 02:08:07.392854605 +0100
+Index: gnome-control-center-2.29.4/capplets/network/gnome-network-properties.c
+===================================================================
+--- gnome-control-center-2.29.4.orig/capplets/network/gnome-network-properties.c	2009-12-23 22:30:02.000000000 +0000
++++ gnome-control-center-2.29.4/capplets/network/gnome-network-properties.c	2010-01-11 01:59:32.000000000 +0000
 @@ -28,6 +28,7 @@
  #include <string.h>
  #include <gconf/gconf-client.h>
@@ -221,24 +222,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.91/capplets/network/gnom
  static void
  cb_dialog_response (GtkDialog *dialog, gint response_id)
  {
-@@ -1134,7 +1339,6 @@
- 
- 	mode_type = g_enum_register_static ("NetworkPreferencesProxyType",
- 				            proxytype_values);
--
- 	/* There's a bug in peditors that cause them to not initialize the entry
- 	 * correctly. */
- 	client = gconf_client_get_default ();
-@@ -1236,7 +1440,7 @@
- 			NULL, SOCKS_PROXY_PORT_KEY,
- 			_gtk_builder_get_widget (builder, "socks_port_spinbutton"),
- 			NULL));
--
-+	
- 	/* Set the proxy entries insensitive if we are using the same proxy for all */
- 	if (gconf_client_get_bool (client, USE_SAME_PROXY_KEY, NULL))
- 	{
-@@ -1271,6 +1475,12 @@
+@@ -1355,6 +1560,12 @@
  			  "activate", G_CALLBACK (cb_add_url), builder);
  	g_signal_connect (gtk_builder_get_object (builder, "button_remove_url"),
  			  "clicked", G_CALLBACK (cb_remove_url), builder);
@@ -251,9 +235,10 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.91/capplets/network/gnom
  }
  
  int
-diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.91/capplets/network/gnome-network-properties.ui gnome-control-center-2.27.91.new/capplets/network/gnome-network-properties.ui
---- gnome-control-center-2.27.91/capplets/network/gnome-network-properties.ui	2009-08-31 02:08:03.272855792 +0100
-+++ gnome-control-center-2.27.91.new/capplets/network/gnome-network-properties.ui	2009-08-31 02:08:07.392854605 +0100
+Index: gnome-control-center-2.29.4/capplets/network/gnome-network-properties.ui
+===================================================================
+--- gnome-control-center-2.29.4.orig/capplets/network/gnome-network-properties.ui	2009-08-18 06:59:34.000000000 +0100
++++ gnome-control-center-2.29.4/capplets/network/gnome-network-properties.ui	2010-01-11 01:59:32.000000000 +0000
 @@ -491,6 +491,38 @@
                              <property name="position">1</property>
                            </packing>

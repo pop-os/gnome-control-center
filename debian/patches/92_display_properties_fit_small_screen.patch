@@ -4,10 +4,10 @@
 # Patch: http://bugzilla.gnome.org/attachment.cgi?id=130847&action=view
 # Description: Make Display capplet fit in smaller screens
 #
-Index: gnome-control-center-2.28.1/capplets/display/display-capplet.ui
+Index: gnome-control-center-2.29.4/capplets/display/display-capplet.ui
 ===================================================================
---- gnome-control-center-2.28.1.orig/capplets/display/display-capplet.ui	2009-12-10 13:11:51.654226986 +1100
-+++ gnome-control-center-2.28.1/capplets/display/display-capplet.ui	2009-12-10 13:12:07.934219416 +1100
+--- gnome-control-center-2.29.4.orig/capplets/display/display-capplet.ui	2010-01-11 02:11:17.000000000 +0000
++++ gnome-control-center-2.29.4/capplets/display/display-capplet.ui	2010-01-11 02:12:19.000000000 +0000
 @@ -104,28 +104,11 @@
              <child>
                <object class="GtkTable" id="table1">
@@ -99,10 +99,10 @@ Index: gnome-control-center-2.28.1/capplets/display/display-capplet.ui
                      <property name="y_options">GTK_FILL</property>
                    </packing>
                  </child>
-Index: gnome-control-center-2.28.1/capplets/display/xrandr-capplet.c
+Index: gnome-control-center-2.29.4/capplets/display/xrandr-capplet.c
 ===================================================================
---- gnome-control-center-2.28.1.orig/capplets/display/xrandr-capplet.c	2009-12-10 13:12:00.581719378 +1100
-+++ gnome-control-center-2.28.1/capplets/display/xrandr-capplet.c	2009-12-10 13:12:07.944219011 +1100
+--- gnome-control-center-2.29.4.orig/capplets/display/xrandr-capplet.c	2010-01-11 02:11:21.000000000 +0000
++++ gnome-control-center-2.29.4/capplets/display/xrandr-capplet.c	2010-01-11 02:12:19.000000000 +0000
 @@ -55,7 +55,6 @@
      GtkWidget	   *resolution_combo;
      GtkWidget	   *refresh_combo;
@@ -111,15 +111,15 @@ Index: gnome-control-center-2.28.1/capplets/display/xrandr-capplet.c
      GtkWidget	   *clone_checkbox;
      GtkWidget	   *show_icon_checkbox;
  
-@@ -683,7 +682,6 @@
+@@ -766,7 +765,6 @@
  #if 0
      g_debug ("sensitive: %d, on: %d", sensitive, app->current_output->on);
  #endif
 -    gtk_widget_set_sensitive (app->panel_checkbox, sensitive);
  
      app->ignore_gui_changes = FALSE;
- 
-@@ -1010,8 +1008,8 @@
+ }
+@@ -1144,8 +1142,8 @@
     }
  }
  
@@ -130,7 +130,7 @@ Index: gnome-control-center-2.28.1/capplets/display/xrandr-capplet.c
  
  static GList *
  list_connected_outputs (App *app, int *total_w, int *total_h)
-@@ -2391,21 +2389,17 @@
+@@ -2525,21 +2523,17 @@
  
      g_signal_connect (app->show_icon_checkbox, "toggled", G_CALLBACK (on_show_icon_toggled), app);
  

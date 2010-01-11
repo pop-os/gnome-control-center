@@ -1,6 +1,7 @@
-diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.91/capplets/display/xrandr-capplet.c gnome-control-center-2.27.91.new/capplets/display/xrandr-capplet.c
---- gnome-control-center-2.27.91/capplets/display/xrandr-capplet.c	2009-08-31 01:39:29.080853299 +0100
-+++ gnome-control-center-2.27.91.new/capplets/display/xrandr-capplet.c	2009-08-31 01:39:33.920857676 +0100
+Index: gnome-control-center-2.29.4/capplets/display/xrandr-capplet.c
+===================================================================
+--- gnome-control-center-2.29.4.orig/capplets/display/xrandr-capplet.c	2009-12-23 22:30:01.000000000 +0000
++++ gnome-control-center-2.29.4/capplets/display/xrandr-capplet.c	2010-01-11 01:55:41.000000000 +0000
 @@ -34,6 +34,7 @@
  #include <gconf/gconf-client.h>
  #include <dbus/dbus-glib.h>
@@ -9,7 +10,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.91/capplets/display/xran
  
  typedef struct App App;
  typedef struct GrabInfo GrabInfo;
-@@ -103,6 +104,64 @@
+@@ -106,6 +107,64 @@
      gtk_widget_destroy (dialog);
  }
  
@@ -74,7 +75,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.91/capplets/display/xran
  static gboolean
  do_free (gpointer data)
  {
-@@ -1690,39 +1749,14 @@
+@@ -1836,39 +1895,14 @@
      }
  }
  
@@ -116,7 +117,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.91/capplets/display/xran
  
      gnome_rr_screen_get_ranges (app->screen, &min_width, &max_width, &min_height, &max_height);
  
-@@ -1737,11 +1771,116 @@
+@@ -1883,11 +1917,116 @@
      if (!(min_width <= req_width && req_width <= max_width
  	  && min_height <= req_height && req_height <= max_height))
      {
@@ -234,13 +235,11 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.91/capplets/display/xran
  }
  
  static void
-@@ -1867,33 +2006,38 @@
+@@ -2013,33 +2152,38 @@
  
      gnome_rr_config_sanitize (app->current_configuration);
  
 -    check_required_virtual_size (app);
--
--    foo_scroll_area_invalidate (FOO_SCROLL_AREA (app->area));
 +	/* Don't try to apply the settings unless the framebuffer
 +	 * is enough. The user will be notified in 
 +     * check_required_virtual_size()
@@ -249,7 +248,7 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.91/capplets/display/xran
 +	{
 +        foo_scroll_area_invalidate (FOO_SCROLL_AREA (app->area));
  
--    ensure_current_configuration_is_saved ();
+-    foo_scroll_area_invalidate (FOO_SCROLL_AREA (app->area));
 +    	ensure_current_configuration_is_saved ();
 +    	    
 +        if (!gnome_rr_config_save (app->current_configuration, &error))
@@ -258,7 +257,8 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-2.27.91/capplets/display/xran
 +            g_error_free (error);
 +            return;
 +        }
-+
+ 
+-    ensure_current_configuration_is_saved ();
 +        g_assert (app->connection == NULL);
 +        g_assert (app->proxy == NULL);
 +        g_assert (app->proxy_call == NULL);
