@@ -7,6 +7,12 @@ gnome-control-center (1:2.29.6-0ubuntu1) UNRELEASED; urgency=low
     - Some typo fixes in strings
     - Translation updates.
   * 99_autoreconf.patch: Refresh.
+  * Add 02_gnome-at-session_autostart-condition.patch: The gnome-at-session
+    autostart desktop file launches a shell script, which in turn calls
+    gconftool-2, just to find out that it's disabled, and exit. This
+    wastes unnecessary cycles on starting the desktop.  Add an
+    AutostartCondition to the .desktop file which only runs when a11y is
+    enabled. (submitted to GNOME #608138)
 
  -- Martin Pitt <martin.pitt@ubuntu.com>  Tue, 26 Jan 2010 11:30:28 +0100
 
