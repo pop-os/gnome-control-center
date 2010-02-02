@@ -1,7 +1,7 @@
-Index: gnome-control-center-2.29.4/capplets/appearance/appearance-effects.c
+Index: gnome-control-center-2.29.6/capplets/appearance/appearance-effects.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center-2.29.4/capplets/appearance/appearance-effects.c	2010-01-11 02:16:27.000000000 +0000
++++ gnome-control-center-2.29.6/capplets/appearance/appearance-effects.c	2010-02-01 16:32:20.000000000 -0800
 @@ -0,0 +1,1085 @@
 +/*
 + * Copyright (C) 2007 Canonical
@@ -479,7 +479,7 @@ Index: gnome-control-center-2.29.4/capplets/appearance/appearance-effects.c
 +}
 +
 +
-+static gchar*
++gchar*
 +get_current_window_manager (void)
 +{
 +	Window	*xwindow;
@@ -1088,11 +1088,11 @@ Index: gnome-control-center-2.29.4/capplets/appearance/appearance-effects.c
 +		gtk_widget_hide (hbox_custom_effects);
 +}
 +
-Index: gnome-control-center-2.29.4/capplets/appearance/appearance-effects.h
+Index: gnome-control-center-2.29.6/capplets/appearance/appearance-effects.h
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center-2.29.4/capplets/appearance/appearance-effects.h	2010-01-11 02:16:27.000000000 +0000
-@@ -0,0 +1,21 @@
++++ gnome-control-center-2.29.6/capplets/appearance/appearance-effects.h	2010-02-01 16:32:20.000000000 -0800
+@@ -0,0 +1,22 @@
 +/*
 + * Copyright (C) 2007 Canonical
 + * Written by Michael Vogt <mvo@ubuntu.com>
@@ -1114,10 +1114,11 @@ Index: gnome-control-center-2.29.4/capplets/appearance/appearance-effects.h
 + */
 +
 +void effects_init (AppearanceData *data);
-Index: gnome-control-center-2.29.4/capplets/appearance/appearance.h
++gchar* get_current_window_manager (void);
+Index: gnome-control-center-2.29.6/capplets/appearance/appearance.h
 ===================================================================
---- gnome-control-center-2.29.4.orig/capplets/appearance/appearance.h	2009-12-23 22:30:01.000000000 +0000
-+++ gnome-control-center-2.29.4/capplets/appearance/appearance.h	2010-01-11 02:16:27.000000000 +0000
+--- gnome-control-center-2.29.6.orig/capplets/appearance/appearance.h	2010-01-26 00:46:31.000000000 -0800
++++ gnome-control-center-2.29.6/capplets/appearance/appearance.h	2010-02-01 16:32:20.743566006 -0800
 @@ -79,6 +79,12 @@
    gchar *revert_windowtitle_font;
    gchar *revert_monospace_font;
@@ -1131,10 +1132,10 @@ Index: gnome-control-center-2.29.4/capplets/appearance/appearance.h
    /* style */
    GdkPixbuf *gtk_theme_icon;
    GdkPixbuf *window_theme_icon;
-Index: gnome-control-center-2.29.4/capplets/appearance/appearance-main.c
+Index: gnome-control-center-2.29.6/capplets/appearance/appearance-main.c
 ===================================================================
---- gnome-control-center-2.29.4.orig/capplets/appearance/appearance-main.c	2009-12-04 17:11:07.000000000 +0000
-+++ gnome-control-center-2.29.4/capplets/appearance/appearance-main.c	2010-01-11 02:17:34.000000000 +0000
+--- gnome-control-center-2.29.6.orig/capplets/appearance/appearance-main.c	2010-01-26 00:46:31.000000000 -0800
++++ gnome-control-center-2.29.6/capplets/appearance/appearance-main.c	2010-02-01 16:32:20.743566006 -0800
 @@ -114,11 +114,19 @@
    }
  }
@@ -1163,7 +1164,7 @@ Index: gnome-control-center-2.29.4/capplets/appearance/appearance-main.c
  
    /* prepare the main window */
    w = appearance_capplet_get_widget (data, "appearance_window");
-@@ -205,6 +214,18 @@
+@@ -205,6 +214,34 @@
  
    g_option_context_free (option_context);
  
@@ -1179,14 +1180,30 @@ Index: gnome-control-center-2.29.4/capplets/appearance/appearance-main.c
 +  else
 +    gtk_widget_hide_all (warning);
 +
++  warning = appearance_capplet_get_widget (data, "mutter_box");
++
++  gchar *wm = get_current_window_manager ();
++
++  if (strcmp (wm, "Mutter") == 0) {
++    GtkWidget *box;
++
++    box = appearance_capplet_get_widget (data, "effects_vbox");
++    gtk_container_foreach (GTK_CONTAINER (box),
++                           (GtkCallback) set_sensitivity, warning);
++  }
++  else
++    gtk_widget_hide_all (warning);
++
++  g_free (wm);
++
    /* start the mainloop */
    gtk_main ();
  
-Index: gnome-control-center-2.29.4/capplets/appearance/data/appearance.ui
+Index: gnome-control-center-2.29.6/capplets/appearance/data/appearance.ui
 ===================================================================
---- gnome-control-center-2.29.4.orig/capplets/appearance/data/appearance.ui	2009-12-04 17:11:07.000000000 +0000
-+++ gnome-control-center-2.29.4/capplets/appearance/data/appearance.ui	2010-01-11 02:16:27.000000000 +0000
-@@ -1549,6 +1549,310 @@
+--- gnome-control-center-2.29.6.orig/capplets/appearance/data/appearance.ui	2010-01-26 00:46:31.000000000 -0800
++++ gnome-control-center-2.29.6/capplets/appearance/data/appearance.ui	2010-02-01 16:33:24.023550809 -0800
+@@ -1549,6 +1549,342 @@
                  <property name="tab_fill">False</property>
                </packing>
              </child>
@@ -1224,6 +1241,38 @@ Index: gnome-control-center-2.29.4/capplets/appearance/data/appearance.ui
 +                            <property name="xalign">0</property>
 +                            <property name="xpad">6</property>
 +                            <property name="label" translatable="yes">&lt;b&gt;Compiz is not installed&lt;/b&gt;</property>
++                            <property name="use_markup">True</property>
++                          </object>
++                        </child>
++                      </object>
++                    </child>
++                  </object>
++                  <object class="GtkAlignment" id="mutter_box">
++                    <property name="left_padding">26</property>
++                    <property name="visible">True</property>
++                    <child>
++                      <object class="GtkHBox" id="hbox15">
++                        <property name="visible">True</property>
++                        <property name="spacing">6</property>
++                        <child>
++                          <object class="GtkImage" id="image5">
++                            <property name="visible">True</property>
++                            <property name="xalign">0</property>
++                            <property name="stock">gtk-dialog-warning</property>
++                            <property name="icon-size">6</property>
++                          </object>
++                          <packing>
++                            <property name="expand">False</property>
++                            <property name="fill">False</property>
++                            <property name="position">0</property>
++                          </packing>
++                        </child>
++                        <child>
++                          <object class="GtkLabel" id="label17">
++                            <property name="visible">True</property>
++                            <property name="xalign">0</property>
++                            <property name="xpad">6</property>
++                            <property name="label" translatable="yes">&lt;b&gt;Mutter is running, can't switch to other effects.&lt;/b&gt;</property>
 +                            <property name="use_markup">True</property>
 +                          </object>
 +                        </child>
@@ -1497,10 +1546,10 @@ Index: gnome-control-center-2.29.4/capplets/appearance/data/appearance.ui
            </object>
            <packing>
              <property name="position">1</property>
-Index: gnome-control-center-2.29.4/capplets/appearance/Makefile.am
+Index: gnome-control-center-2.29.6/capplets/appearance/Makefile.am
 ===================================================================
---- gnome-control-center-2.29.4.orig/capplets/appearance/Makefile.am	2009-12-04 17:11:07.000000000 +0000
-+++ gnome-control-center-2.29.4/capplets/appearance/Makefile.am	2010-01-11 02:16:27.000000000 +0000
+--- gnome-control-center-2.29.6.orig/capplets/appearance/Makefile.am	2010-01-26 00:46:31.000000000 -0800
++++ gnome-control-center-2.29.6/capplets/appearance/Makefile.am	2010-02-01 16:32:20.771551549 -0800
 @@ -9,6 +9,8 @@
  	appearance.h \
  	appearance-desktop.c \
@@ -1510,10 +1559,10 @@ Index: gnome-control-center-2.29.4/capplets/appearance/Makefile.am
  	appearance-font.c \
  	appearance-font.h \
  	appearance-main.c \
-Index: gnome-control-center-2.29.4/po/POTFILES.in
+Index: gnome-control-center-2.29.6/po/POTFILES.in
 ===================================================================
---- gnome-control-center-2.29.4.orig/po/POTFILES.in	2009-08-26 20:27:49.000000000 +0100
-+++ gnome-control-center-2.29.4/po/POTFILES.in	2010-01-11 02:16:27.000000000 +0000
+--- gnome-control-center-2.29.6.orig/po/POTFILES.in	2009-08-24 03:54:41.000000000 -0700
++++ gnome-control-center-2.29.6/po/POTFILES.in	2010-02-01 16:32:20.771551549 -0800
 @@ -16,6 +16,7 @@
  capplets/accessibility/at-properties/at-properties.desktop.in.in
  capplets/accessibility/at-properties/main.c
