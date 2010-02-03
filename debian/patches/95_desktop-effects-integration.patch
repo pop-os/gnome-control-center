@@ -1,8 +1,8 @@
 Index: gnome-control-center-2.29.6/capplets/appearance/appearance-effects.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center-2.29.6/capplets/appearance/appearance-effects.c	2010-02-01 16:32:20.000000000 -0800
-@@ -0,0 +1,1085 @@
++++ gnome-control-center-2.29.6/capplets/appearance/appearance-effects.c	2010-02-02 15:19:44.000000000 -0800
+@@ -0,0 +1,1089 @@
 +/*
 + * Copyright (C) 2007 Canonical
 + * Written by Michael Vogt <mvo@ubuntu.com>
@@ -36,8 +36,10 @@ Index: gnome-control-center-2.29.6/capplets/appearance/appearance-effects.c
 +#include <gdk/gdkx.h>
 +#include <X11/extensions/Xcomposite.h>
 +#include <math.h>
++#include <stdlib.h>
 +
 +#include "appearance.h"
++#include "appearance-effects.h"
 +
 +#include "gconf-property-editor.h"
 +
@@ -138,6 +140,7 @@ Index: gnome-control-center-2.29.6/capplets/appearance/appearance-effects.c
 +					 GTK_DIALOG_MODAL,
 +					 GTK_MESSAGE_INFO,
 +					 GTK_BUTTONS_OK,
++					 "%s",
 +					 text);
 +
 +	gtk_dialog_run (GTK_DIALOG (dialog));
@@ -598,6 +601,7 @@ Index: gnome-control-center-2.29.6/capplets/appearance/appearance-effects.c
 +					 GTK_DIALOG_DESTROY_WITH_PARENT,
 +					 GTK_MESSAGE_WARNING,
 +					 GTK_BUTTONS_OK,
++					 "%s",
 +					 err->message);
 +
 +	gtk_window_set_title (GTK_WINDOW (dialog), "");
@@ -831,6 +835,7 @@ Index: gnome-control-center-2.29.6/capplets/appearance/appearance-effects.c
 +					 GTK_DIALOG_MODAL,
 +					 GTK_MESSAGE_ERROR,
 +					 GTK_BUTTONS_OK,
++					 "%s",					 
 +					 text);
 +
 +	gtk_dialog_run (GTK_DIALOG (dialog));
@@ -915,7 +920,7 @@ Index: gnome-control-center-2.29.6/capplets/appearance/appearance-effects.c
 +
 +	reset_plugins (app);
 +
-+	plugins = get_plugins (app, err);
++	plugins = get_plugins (app, &err);
 +	for (i = 0; extra_effects[i] != NULL; i++)
 +		plugins = g_slist_append (plugins,
 +					  (gchar*) extra_effects[i]);
@@ -1040,7 +1045,6 @@ Index: gnome-control-center-2.29.6/capplets/appearance/appearance-effects.c
 +void
 +effects_init (AppearanceData *data)
 +{
-+	GError	      *error = NULL;
 +	GtkWidget     *level_effects_button = NULL;
 +	GtkWidget     *hbox_custom_effects = NULL;
 +	WindowManager wm = METACITY;
@@ -1091,7 +1095,7 @@ Index: gnome-control-center-2.29.6/capplets/appearance/appearance-effects.c
 Index: gnome-control-center-2.29.6/capplets/appearance/appearance-effects.h
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center-2.29.6/capplets/appearance/appearance-effects.h	2010-02-01 16:32:20.000000000 -0800
++++ gnome-control-center-2.29.6/capplets/appearance/appearance-effects.h	2010-02-02 15:15:42.000000000 -0800
 @@ -0,0 +1,22 @@
 +/*
 + * Copyright (C) 2007 Canonical
@@ -1118,7 +1122,7 @@ Index: gnome-control-center-2.29.6/capplets/appearance/appearance-effects.h
 Index: gnome-control-center-2.29.6/capplets/appearance/appearance.h
 ===================================================================
 --- gnome-control-center-2.29.6.orig/capplets/appearance/appearance.h	2010-01-26 00:46:31.000000000 -0800
-+++ gnome-control-center-2.29.6/capplets/appearance/appearance.h	2010-02-01 16:32:20.743566006 -0800
++++ gnome-control-center-2.29.6/capplets/appearance/appearance.h	2010-02-02 15:15:42.000000000 -0800
 @@ -79,6 +79,12 @@
    gchar *revert_windowtitle_font;
    gchar *revert_monospace_font;
@@ -1135,8 +1139,16 @@ Index: gnome-control-center-2.29.6/capplets/appearance/appearance.h
 Index: gnome-control-center-2.29.6/capplets/appearance/appearance-main.c
 ===================================================================
 --- gnome-control-center-2.29.6.orig/capplets/appearance/appearance-main.c	2010-01-26 00:46:31.000000000 -0800
-+++ gnome-control-center-2.29.6/capplets/appearance/appearance-main.c	2010-02-01 16:32:20.743566006 -0800
-@@ -114,11 +114,19 @@
++++ gnome-control-center-2.29.6/capplets/appearance/appearance-main.c	2010-02-02 15:16:04.000000000 -0800
+@@ -21,6 +21,7 @@
+ #include <glib/gi18n.h>
+ #include "appearance.h"
+ #include "appearance-desktop.h"
++#include "appearance-effects.h"
+ #include "appearance-font.h"
+ #include "appearance-themes.h"
+ #include "appearance-style.h"
+@@ -114,11 +115,19 @@
    }
  }
  
@@ -1156,7 +1168,7 @@ Index: gnome-control-center-2.29.6/capplets/appearance/appearance-main.c
  
    gchar *install_filename = NULL;
    gchar *start_page = NULL;
-@@ -164,6 +172,7 @@
+@@ -164,6 +173,7 @@
    desktop_init (data, (const gchar **) wallpaper_files);
    g_strfreev (wallpaper_files);
    font_init (data);
@@ -1164,7 +1176,7 @@ Index: gnome-control-center-2.29.6/capplets/appearance/appearance-main.c
  
    /* prepare the main window */
    w = appearance_capplet_get_widget (data, "appearance_window");
-@@ -205,6 +214,34 @@
+@@ -205,6 +215,34 @@
  
    g_option_context_free (option_context);
  
@@ -1202,7 +1214,7 @@ Index: gnome-control-center-2.29.6/capplets/appearance/appearance-main.c
 Index: gnome-control-center-2.29.6/capplets/appearance/data/appearance.ui
 ===================================================================
 --- gnome-control-center-2.29.6.orig/capplets/appearance/data/appearance.ui	2010-01-26 00:46:31.000000000 -0800
-+++ gnome-control-center-2.29.6/capplets/appearance/data/appearance.ui	2010-02-01 16:33:24.023550809 -0800
++++ gnome-control-center-2.29.6/capplets/appearance/data/appearance.ui	2010-02-02 15:15:42.000000000 -0800
 @@ -1549,6 +1549,342 @@
                  <property name="tab_fill">False</property>
                </packing>
@@ -1549,7 +1561,7 @@ Index: gnome-control-center-2.29.6/capplets/appearance/data/appearance.ui
 Index: gnome-control-center-2.29.6/capplets/appearance/Makefile.am
 ===================================================================
 --- gnome-control-center-2.29.6.orig/capplets/appearance/Makefile.am	2010-01-26 00:46:31.000000000 -0800
-+++ gnome-control-center-2.29.6/capplets/appearance/Makefile.am	2010-02-01 16:32:20.771551549 -0800
++++ gnome-control-center-2.29.6/capplets/appearance/Makefile.am	2010-02-02 15:15:42.000000000 -0800
 @@ -9,6 +9,8 @@
  	appearance.h \
  	appearance-desktop.c \
@@ -1562,7 +1574,7 @@ Index: gnome-control-center-2.29.6/capplets/appearance/Makefile.am
 Index: gnome-control-center-2.29.6/po/POTFILES.in
 ===================================================================
 --- gnome-control-center-2.29.6.orig/po/POTFILES.in	2009-08-24 03:54:41.000000000 -0700
-+++ gnome-control-center-2.29.6/po/POTFILES.in	2010-02-01 16:32:20.771551549 -0800
++++ gnome-control-center-2.29.6/po/POTFILES.in	2010-02-02 15:15:42.000000000 -0800
 @@ -16,6 +16,7 @@
  capplets/accessibility/at-properties/at-properties.desktop.in.in
  capplets/accessibility/at-properties/main.c
