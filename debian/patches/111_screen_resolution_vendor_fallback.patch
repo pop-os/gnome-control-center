@@ -7,11 +7,11 @@
 #              This helps to alleviate possible crashes from unsupported features in RR1.0
 #              drivers.
 #
-Index: gnome-control-center-2.29.4/capplets/display/display-capplet.ui
+Index: gnome-control-center-2.29.91/capplets/display/display-capplet.ui
 ===================================================================
---- gnome-control-center-2.29.4.orig/capplets/display/display-capplet.ui	2009-08-08 12:56:56.000000000 +0100
-+++ gnome-control-center-2.29.4/capplets/display/display-capplet.ui	2010-01-11 01:56:46.000000000 +0000
-@@ -387,6 +387,34 @@
+--- gnome-control-center-2.29.91.orig/capplets/display/display-capplet.ui	2010-02-18 19:07:46.000000000 +0000
++++ gnome-control-center-2.29.91/capplets/display/display-capplet.ui	2010-03-01 08:38:40.230385752 +0000
+@@ -398,6 +398,34 @@
        <action-widget response="-7">button2</action-widget>
      </action-widgets>
    </object>
@@ -46,10 +46,10 @@ Index: gnome-control-center-2.29.4/capplets/display/display-capplet.ui
    <object class="GtkListStore" id="liststore1">
      <columns>
        <!-- column-name item -->
-Index: gnome-control-center-2.29.4/capplets/display/Makefile.am
+Index: gnome-control-center-2.29.91/capplets/display/Makefile.am
 ===================================================================
---- gnome-control-center-2.29.4.orig/capplets/display/Makefile.am	2010-01-11 01:56:26.000000000 +0000
-+++ gnome-control-center-2.29.4/capplets/display/Makefile.am	2010-01-11 01:56:46.000000000 +0000
+--- gnome-control-center-2.29.91.orig/capplets/display/Makefile.am	2010-03-01 08:38:38.170386504 +0000
++++ gnome-control-center-2.29.91/capplets/display/Makefile.am	2010-03-01 08:38:40.230385752 +0000
 @@ -2,6 +2,9 @@
  cappletname = display
  
@@ -69,10 +69,10 @@ Index: gnome-control-center-2.29.4/capplets/display/Makefile.am
  	     -DGNOMELOCALEDIR="\"$(datadir)/locale\"" \
  	     -DGNOMECC_DATA_DIR="\"$(pkgdatadir)\""
  
-Index: gnome-control-center-2.29.4/capplets/display/xrandr-capplet.c
+Index: gnome-control-center-2.29.91/capplets/display/xrandr-capplet.c
 ===================================================================
---- gnome-control-center-2.29.4.orig/capplets/display/xrandr-capplet.c	2010-01-11 01:55:41.000000000 +0000
-+++ gnome-control-center-2.29.4/capplets/display/xrandr-capplet.c	2010-01-11 01:56:46.000000000 +0000
+--- gnome-control-center-2.29.91.orig/capplets/display/xrandr-capplet.c	2010-03-01 08:38:29.712886181 +0000
++++ gnome-control-center-2.29.91/capplets/display/xrandr-capplet.c	2010-03-01 08:38:40.230385752 +0000
 @@ -469,7 +469,6 @@
      return count;
  }
@@ -89,7 +89,7 @@ Index: gnome-control-center-2.29.4/capplets/display/xrandr-capplet.c
  
  /* Computes whether "Mirror Screens" (clone mode) is supported based on these criteria:
   *
-@@ -2186,7 +2184,6 @@
+@@ -2208,7 +2206,6 @@
      }
  }
  
@@ -97,7 +97,7 @@ Index: gnome-control-center-2.29.4/capplets/display/xrandr-capplet.c
  /* Returns whether the graphics driver doesn't advertise RANDR 1.2 features, and just 1.0 */
  static gboolean
  driver_is_randr_10 (GnomeRRConfig *config)
-@@ -2207,7 +2204,6 @@
+@@ -2229,7 +2226,6 @@
  
      return (count_all_outputs (config) == 1 && strcmp (config->outputs[0]->name, "default") == 0);
  }
@@ -105,7 +105,7 @@ Index: gnome-control-center-2.29.4/capplets/display/xrandr-capplet.c
  
  static void
  on_detect_displays (GtkWidget *widget, gpointer data)
-@@ -2417,6 +2413,8 @@
+@@ -2439,6 +2435,8 @@
      GtkBuilder *builder;
      GtkWidget *align;
      GError *error;
@@ -114,7 +114,7 @@ Index: gnome-control-center-2.29.4/capplets/display/xrandr-capplet.c
  
      error = NULL;
      builder = gtk_builder_new ();
-@@ -2523,12 +2521,25 @@
+@@ -2547,12 +2545,25 @@
      g_signal_connect (app->apply_button, "clicked",
  		      G_CALLBACK (apply_button_clicked_cb), app);
  
@@ -141,7 +141,7 @@ Index: gnome-control-center-2.29.4/capplets/display/xrandr-capplet.c
      {
      default:
  	/* Fall Through */
-@@ -2550,6 +2561,18 @@
+@@ -2574,6 +2585,18 @@
  	apply (app);
  	goto restart;
  	break;
