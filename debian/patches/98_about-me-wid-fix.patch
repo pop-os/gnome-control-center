@@ -1,0 +1,20 @@
+Description: The name returned from gtk_widget_get_name isn't the same 
+ as the widget ID in the GtkBuilder UI file, so don't rely on this
+ to identify widgets by ID
+Author: Chris Coulson <chris.coulson@canonical.com>
+Forwarded: no
+Bug-Ubuntu: https://bugs.launchpad.net/bugs/525520
+Bug: https://bugzilla.gnome.org/show_bug.cgi?id=611463
+Index: gnome-control-center-2.29.91/capplets/about-me/gnome-about-me.c
+===================================================================
+--- gnome-control-center-2.29.91.orig/capplets/about-me/gnome-about-me.c	2010-03-02 01:00:25.097134732 +0000
++++ gnome-control-center-2.29.91/capplets/about-me/gnome-about-me.c	2010-03-02 01:01:40.704622280 +0000
+@@ -279,7 +279,7 @@
+ 	if (me == NULL)
+ 		return FALSE;
+ 
+-	wid = gtk_widget_get_name (widget);
++	wid = gtk_buildable_get_name (GTK_BUILDABLE (widget));
+ 
+ 	if (wid == NULL)
+ 		return FALSE;
