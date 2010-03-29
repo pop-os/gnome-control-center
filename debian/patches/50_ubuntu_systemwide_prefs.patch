@@ -1,17 +1,19 @@
 === modified file 'capplets/network/gnome-network-preferences.c'
-Index: gnome-control-center-2.29.4/capplets/network/gnome-network-properties.c
+Index: gnome-control-center-2.29.92/capplets/network/gnome-network-properties.c
 ===================================================================
---- gnome-control-center-2.29.4.orig/capplets/network/gnome-network-properties.c	2009-12-23 22:30:02.000000000 +0000
-+++ gnome-control-center-2.29.4/capplets/network/gnome-network-properties.c	2010-01-11 01:59:32.000000000 +0000
-@@ -28,6 +28,7 @@
+--- gnome-control-center-2.29.92.orig/capplets/network/gnome-network-properties.c	2010-01-26 09:46:31.000000000 +0100
++++ gnome-control-center-2.29.92/capplets/network/gnome-network-properties.c	2010-03-29 16:53:43.189104816 +0200
+@@ -28,6 +28,9 @@
  #include <string.h>
  #include <gconf/gconf-client.h>
  #include <glib/gi18n.h>
 +#include <dbus/dbus-glib.h>
++#include <grp.h>
++#include <unistd.h>
  
  #include "capplet-util.h"
  #include "gconf-property-editor.h"
-@@ -191,6 +192,210 @@
+@@ -191,6 +194,352 @@
  	}
  }
  
@@ -218,11 +220,176 @@ Index: gnome-control-center-2.29.4/capplets/network/gnome-network-properties.c
 +   g_object_unref(dbus_proxy);
 +}
 +
++static gboolean
++is_admin ()
++{
++	gid_t groups [1024];
++	int i, ngroups;
++	struct group *admin;
++
++	admin = getgrnam ("admin");
++	if (admin == NULL)
++		return FALSE;
++
++	ngroups = getgroups (1024, groups);
++	if (ngroups < 0) {
++		perror ("getgroups");
++		return FALSE;
++	}
++
++	for (i = 0; i < ngroups; ++i) {
++		if (groups[i] == admin->gr_gid)
++			return TRUE;
++	}
++
++	return FALSE;
++
++}
++
++static gboolean
++check_user_system_diff ()
++{
++	DBusGConnection *systembus;
++	GError *error = NULL;
++	DBusGProxy *dbus_proxy;
++	GConfClient *client;
++	gchar *sys_http, *sys_ftp, *sys_https;
++	gboolean use_proxy;
++	gchar *proxy;
++	gint port;
++	gchar* s;
++	gboolean ret = FALSE;
++
++	g_print ("check_do_system_wide\n");
++
++	// check the system wide values
++	systembus = dbus_g_bus_get (DBUS_BUS_SYSTEM, &error);
++	dbus_proxy = dbus_g_proxy_new_for_name (systembus,
++			"com.ubuntu.SystemService",
++			"/",
++			"com.ubuntu.SystemService");
++	if (dbus_proxy == NULL) {
++		g_printerr ("Failed to get D-BUS proxy: %s\n",
++				error->message);
++		g_error_free (error);
++		return FALSE;
++	}
++
++	if (!dbus_g_proxy_call (dbus_proxy, "get_proxy", &error, 
++					G_TYPE_STRING, "http",
++					G_TYPE_INVALID,
++					G_TYPE_STRING, &sys_http, 
++					G_TYPE_INVALID)) {
++		g_printerr ("Failed to get http proxy: %s\n",
++				error->message);
++		g_error_free (error);
++		return FALSE;
++	}
++	g_print("  system wide HTTP: %s\n", sys_http);
++	if (!dbus_g_proxy_call (dbus_proxy, "get_proxy", &error, 
++					G_TYPE_STRING, "https",
++					G_TYPE_INVALID,
++					G_TYPE_STRING, &sys_https, 
++					G_TYPE_INVALID)) {
++		g_printerr ("Failed to get https proxy: %s\n",
++				error->message);
++		g_error_free (error);
++		return FALSE;
++	}
++	g_print("  system wide HTTPS: %s\n", sys_https);
++	if (!dbus_g_proxy_call (dbus_proxy, "get_proxy", &error, 
++					G_TYPE_STRING, "ftp",
++					G_TYPE_INVALID,
++					G_TYPE_STRING, &sys_ftp, 
++					G_TYPE_INVALID)) {
++		g_printerr ("Failed to get ftp proxy: %s\n",
++				error->message);
++		g_error_free (error);
++		return FALSE;
++	}
++	g_print("  system wide FTP: %s\n", sys_ftp);
++	g_object_unref(dbus_proxy);
++
++
++	client = gconf_client_get_default ();
++	use_proxy = gconf_client_get_bool (client, USE_PROXY_KEY, NULL);
++
++	/* compare with values from gconf for HTTP */
++	proxy = gconf_client_get_string (client, HTTP_PROXY_HOST_KEY, NULL);
++	port = gconf_client_get_int (client, HTTP_PROXY_PORT_KEY, NULL);
++	if (use_proxy && g_strcmp0 (proxy, "")) {
++		s = g_strdup_printf ("http://%s:%i/", proxy, port);
++		g_print ("  user HTTP: %s\n", s);
++		if (strcmp (s, sys_http))
++			ret = TRUE;
++		g_free (s);
++	} else {
++		g_print ("  no user HTTP\n");
++		if (g_strcmp0 (sys_http, ""))
++			ret = TRUE;
++	}
++
++	/* compare with values from gconf for HTTPS */
++	proxy = gconf_client_get_string (client, FTP_PROXY_HOST_KEY, NULL);
++	port = gconf_client_get_int (client, FTP_PROXY_PORT_KEY, NULL);
++	if (use_proxy && g_strcmp0 (proxy, "")) {
++		s = g_strdup_printf ("ftp://%s:%i/", proxy, port);
++		g_print ("  user FTP: %s\n", s);
++		if (strcmp (s, sys_ftp))
++			ret = TRUE;
++		g_free (s);
++	} else {
++		g_print ("  no user FTP\n");
++		if (g_strcmp0 (sys_ftp, ""))
++			ret = TRUE;
++	}
++
++	/* compare with values from gconf for HTTPS */
++	proxy = gconf_client_get_string (client, SECURE_PROXY_HOST_KEY, NULL);
++	port = gconf_client_get_int (client, SECURE_PROXY_PORT_KEY, NULL);
++	if (use_proxy && g_strcmp0 (proxy, "")) {
++		s = g_strdup_printf ("https://%s:%i/", proxy, port);
++		g_print ("  user HTTPS: %s\n", s);
++		if (strcmp (s, sys_https))
++			ret = TRUE;
++		g_free (s);
++	} else {
++		g_print ("  no user HTTPS\n");
++		if (g_strcmp0 (sys_https, ""))
++			ret = TRUE;
++	}
++
++	return ret;
++}
++
 +
  static void
  cb_dialog_response (GtkDialog *dialog, gint response_id)
  {
-@@ -1355,6 +1560,12 @@
+@@ -199,6 +548,22 @@
+ 			"goscustdesk-50");
+ 	else if (response_id == GTK_RESPONSE_CLOSE || response_id == GTK_RESPONSE_DELETE_EVENT)
+ 	{
++		if (is_admin () && check_user_system_diff ()) {
++			g_debug ("user and system proxy settings differ");
++			gint res;
++			GtkDialog *msg = GTK_DIALOG (gtk_message_dialog_new (GTK_WINDOW (dialog), 0,
++				GTK_MESSAGE_QUESTION, GTK_BUTTONS_CLOSE, _(
++				"Do you want to apply these settings system-wide, "
++				"so that they are also used for package installation "
++				"and other system services?")));
++			gtk_dialog_add_button (msg,
++					_("Apply System-Wide..."), GTK_RESPONSE_APPLY);
++			res = gtk_dialog_run (msg);
++			gtk_widget_destroy (GTK_WIDGET (msg));
++
++			if (res == GTK_RESPONSE_APPLY)
++				cb_make_system_default (NULL, NULL);
++		}
+ 		if (ignore_hosts) {
+ 			g_slist_foreach (ignore_hosts, (GFunc) g_free, NULL);
+ 			g_slist_free (ignore_hosts);
+@@ -1355,6 +1720,12 @@
  			  "activate", G_CALLBACK (cb_add_url), builder);
  	g_signal_connect (gtk_builder_get_object (builder, "button_remove_url"),
  			  "clicked", G_CALLBACK (cb_remove_url), builder);
@@ -235,10 +402,10 @@ Index: gnome-control-center-2.29.4/capplets/network/gnome-network-properties.c
  }
  
  int
-Index: gnome-control-center-2.29.4/capplets/network/gnome-network-properties.ui
+Index: gnome-control-center-2.29.92/capplets/network/gnome-network-properties.ui
 ===================================================================
---- gnome-control-center-2.29.4.orig/capplets/network/gnome-network-properties.ui	2009-08-18 06:59:34.000000000 +0100
-+++ gnome-control-center-2.29.4/capplets/network/gnome-network-properties.ui	2010-01-11 01:59:32.000000000 +0000
+--- gnome-control-center-2.29.92.orig/capplets/network/gnome-network-properties.ui	2009-08-17 10:40:16.000000000 +0200
++++ gnome-control-center-2.29.92/capplets/network/gnome-network-properties.ui	2010-03-29 16:53:27.469079578 +0200
 @@ -491,6 +491,38 @@
                              <property name="position">1</property>
                            </packing>
