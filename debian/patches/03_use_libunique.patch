@@ -2,8 +2,10 @@
 # Ubuntu: https://bugs.launchpad.net/bugs/531974
 # Upstream: 
 === modified file 'gnome-control-center-2.29.91/capplets/about-me/Makefile.am'
---- gnome-control-center-2.29.91/capplets/about-me/Makefile.am	2010-03-03 11:33:36 +0000
-+++ gnome-control-center-2.29.91/capplets/about-me/Makefile.am	2010-03-03 12:07:27 +0000
+Index: gnome-control-center-2.30.0/capplets/about-me/Makefile.am
+===================================================================
+--- gnome-control-center-2.30.0.orig/capplets/about-me/Makefile.am	2009-08-24 12:54:41.000000000 +0200
++++ gnome-control-center-2.30.0/capplets/about-me/Makefile.am	2010-03-29 17:01:49.013545896 +0200
 @@ -31,7 +31,7 @@
  if BUILD_ABOUTME
  bin_PROGRAMS = gnome-about-me
@@ -21,9 +23,10 @@
  	$(LIBEBOOK_CFLAGS) \
  	-DDATADIR="\"$(datadir)\"" \
  	-DGNOMECC_DATA_DIR="\"$(pkgdatadir)\"" \
-=== modified file 'gnome-control-center-2.29.91/capplets/about-me/gnome-about-me.c'
---- gnome-control-center-2.29.91/capplets/about-me/gnome-about-me.c	2010-03-03 11:33:36 +0000
-+++ gnome-control-center-2.29.91/capplets/about-me/gnome-about-me.c	2010-03-03 12:48:10 +0000
+Index: gnome-control-center-2.30.0/capplets/about-me/gnome-about-me.c
+===================================================================
+--- gnome-control-center-2.30.0.orig/capplets/about-me/gnome-about-me.c	2010-03-29 16:22:56.000000000 +0200
++++ gnome-control-center-2.30.0/capplets/about-me/gnome-about-me.c	2010-03-29 17:03:35.768549194 +0200
 @@ -29,6 +29,7 @@
  #include <unistd.h>
  #include <libebook/e-book.h>
@@ -44,22 +47,22 @@
 @@ -856,7 +857,7 @@
  
  	if (dialog == NULL) {
- 		about_me_destroy (me);
+ 		about_me_destroy ();
 -		return -1;
 +		return NULL;
  	}
  
- 	if (gdk_screen_get_default () != NULL && gdk_screen_get_height (gdk_screen_get_default ()) <= 600) {
-@@ -966,7 +967,7 @@
+ 	me->dialog = dialog;
+@@ -891,7 +892,7 @@
  						"Evolution Data Server can't handle the protocol"));
  			g_clear_error (&error);
- 			about_me_destroy (me);
+ 			about_me_destroy ();
 -			return -1;
 +			return NULL;
  		}
  
  		g_clear_error (&error);
-@@ -1054,27 +1055,80 @@
+@@ -979,27 +980,80 @@
  
  	gtk_widget_show_all (main_dialog);
  
@@ -127,15 +130,13 @@
  
  	dbus_g_object_register_marshaller (fprintd_marshal_VOID__STRING_BOOLEAN,
 -					   G_TYPE_NONE, G_TYPE_STRING, G_TYPE_BOOLEAN, G_TYPE_INVALID);
--
--	rc = about_me_setup_dialog ();
--
--	if (rc != -1) {
 +					   G_TYPE_NONE, G_TYPE_STRING,
 +					   G_TYPE_BOOLEAN, G_TYPE_INVALID);
-+
+ 
+-	rc = about_me_setup_dialog ();
 +	main_dialog = about_me_setup_dialog ();
-+
+ 
+-	if (rc != -1) {
 +	if (main_dialog != NULL) {
 +		unique_app_watch_window (unique_app, main_dialog);
 +		g_signal_connect (unique_app, "message-received",
@@ -149,9 +150,10 @@
  
 -	return rc;
  }
-=== modified file 'gnome-control-center-2.29.91/configure.ac'
---- gnome-control-center-2.29.91/configure.ac	2010-03-03 11:33:36 +0000
-+++ gnome-control-center-2.29.91/configure.ac	2010-03-03 12:07:27 +0000
+Index: gnome-control-center-2.30.0/configure.ac
+===================================================================
+--- gnome-control-center-2.30.0.orig/configure.ac	2010-03-29 17:01:08.000000000 +0200
++++ gnome-control-center-2.30.0/configure.ac	2010-03-29 17:01:49.013545896 +0200
 @@ -125,6 +125,7 @@
  PKG_CHECK_MODULES(CAPPLET, $COMMON_MODULES)
  PKG_CHECK_MODULES(GNOMECC, $COMMON_MODULES libgnome-menu >= 2.10.1)
@@ -160,4 +162,3 @@
  PKG_CHECK_MODULES(DBUS, dbus-1 dbus-glib-1)
  PKG_CHECK_MODULES(GNOME_DESKTOP, gnome-desktop-2.0)
  PKG_CHECK_MODULES(DEFAULT_APPLICATIONS_CAPPLET, libxml-2.0)
-
