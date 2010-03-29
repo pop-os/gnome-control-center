@@ -2,7 +2,7 @@
 Index: gnome-control-center-2.29.92/capplets/network/gnome-network-properties.c
 ===================================================================
 --- gnome-control-center-2.29.92.orig/capplets/network/gnome-network-properties.c	2010-01-26 09:46:31.000000000 +0100
-+++ gnome-control-center-2.29.92/capplets/network/gnome-network-properties.c	2010-03-29 16:56:44.579118773 +0200
++++ gnome-control-center-2.29.92/capplets/network/gnome-network-properties.c	2010-03-29 17:00:15.753169106 +0200
 @@ -28,6 +28,9 @@
  #include <string.h>
  #include <gconf/gconf-client.h>
@@ -130,10 +130,10 @@ Index: gnome-control-center-2.29.92/capplets/network/gnome-network-properties.c
 +   client = gconf_client_get_default ();
 +   res = gconf_client_recursive_unset (client, "/system/proxy", 0, &error);
 +   if(!res)
-+      g_printerr("recursive_unset: %s", dbus_g_error_get_name(error), error->message);
++      g_printerr("recursive_unset: %s: %s", dbus_g_error_get_name(error), error->message);
 +   res = gconf_client_recursive_unset (client, "/system/http_proxy", 0, &error);
 +   if(!res)
-+      g_printerr("recursive_unset: %s", dbus_g_error_get_name(error), error->message);
++      g_printerr("recursive_unset: %s: %s", dbus_g_error_get_name(error), error->message);
 +}
 +
 +static void
@@ -396,7 +396,7 @@ Index: gnome-control-center-2.29.92/capplets/network/gnome-network-properties.c
 Index: gnome-control-center-2.29.92/capplets/network/gnome-network-properties.ui
 ===================================================================
 --- gnome-control-center-2.29.92.orig/capplets/network/gnome-network-properties.ui	2009-08-17 10:40:16.000000000 +0200
-+++ gnome-control-center-2.29.92/capplets/network/gnome-network-properties.ui	2010-03-29 16:56:02.341578598 +0200
++++ gnome-control-center-2.29.92/capplets/network/gnome-network-properties.ui	2010-03-29 17:00:03.711579048 +0200
 @@ -491,6 +491,38 @@
                              <property name="position">1</property>
                            </packing>
