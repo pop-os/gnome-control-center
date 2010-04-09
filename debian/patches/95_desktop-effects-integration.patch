@@ -1,7 +1,7 @@
-Index: gnome-control-center-2.29.90/capplets/appearance/appearance-effects.c
+Index: gnome-control-center-2.30.0/capplets/appearance/appearance-effects.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center-2.29.90/capplets/appearance/appearance-effects.c	2010-02-23 02:45:24.082445648 +0000
++++ gnome-control-center-2.30.0/capplets/appearance/appearance-effects.c	2010-04-10 00:21:01.152659047 +0100
 @@ -0,0 +1,1089 @@
 +/*
 + * Copyright (C) 2007 Canonical
@@ -724,7 +724,7 @@ Index: gnome-control-center-2.29.90/capplets/appearance/appearance-effects.c
 +	timeout_data.dialog = GTK_DIALOG (dialog);
 +	timeout_data.timed_out = FALSE;
 +
-+	timeout = g_timeout_add (1000, save_timeout_callback, &timeout_data);
++	timeout = gdk_threads_add_timeout (1000, save_timeout_callback, &timeout_data);
 +	res = gtk_dialog_run (GTK_DIALOG (dialog));
 +
 +	if (!timeout_data.timed_out)
@@ -1035,7 +1035,7 @@ Index: gnome-control-center-2.29.90/capplets/appearance/appearance-effects.c
 +			set_busy (info->app->dialog, TRUE);
 +			gtk_widget_set_sensitive (appdata->dialog, FALSE);
 +			
-+			g_timeout_add (250, show_dialog_timeout, info);
++			gdk_threads_add_timeout (250, show_dialog_timeout, info);
 +		}
 +	}
 +
@@ -1092,10 +1092,10 @@ Index: gnome-control-center-2.29.90/capplets/appearance/appearance-effects.c
 +		gtk_widget_hide (hbox_custom_effects);
 +}
 +
-Index: gnome-control-center-2.29.90/capplets/appearance/appearance-effects.h
+Index: gnome-control-center-2.30.0/capplets/appearance/appearance-effects.h
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center-2.29.90/capplets/appearance/appearance-effects.h	2010-02-23 02:45:24.082445648 +0000
++++ gnome-control-center-2.30.0/capplets/appearance/appearance-effects.h	2010-04-10 00:19:11.640173172 +0100
 @@ -0,0 +1,22 @@
 +/*
 + * Copyright (C) 2007 Canonical
@@ -1119,13 +1119,13 @@ Index: gnome-control-center-2.29.90/capplets/appearance/appearance-effects.h
 +
 +void effects_init (AppearanceData *data);
 +gchar* get_current_window_manager (void);
-Index: gnome-control-center-2.29.90/capplets/appearance/appearance.h
+Index: gnome-control-center-2.30.0/capplets/appearance/appearance.h
 ===================================================================
---- gnome-control-center-2.29.90.orig/capplets/appearance/appearance.h	2010-02-23 02:45:01.412442341 +0000
-+++ gnome-control-center-2.29.90/capplets/appearance/appearance.h	2010-02-23 02:45:24.082445648 +0000
-@@ -79,6 +79,12 @@
-   gchar *revert_windowtitle_font;
+--- gnome-control-center-2.30.0.orig/capplets/appearance/appearance.h	2010-04-10 00:19:11.570163577 +0100
++++ gnome-control-center-2.30.0/capplets/appearance/appearance.h	2010-04-10 00:19:11.640173172 +0100
+@@ -81,6 +81,12 @@
    gchar *revert_monospace_font;
+   gchar *revert_button_layout;
  
 +  /* effects */
 +  gboolean compiz_running;
@@ -1136,10 +1136,10 @@ Index: gnome-control-center-2.29.90/capplets/appearance/appearance.h
    /* style */
    GdkPixbuf *gtk_theme_icon;
    GdkPixbuf *window_theme_icon;
-Index: gnome-control-center-2.29.90/capplets/appearance/appearance-main.c
+Index: gnome-control-center-2.30.0/capplets/appearance/appearance-main.c
 ===================================================================
---- gnome-control-center-2.29.90.orig/capplets/appearance/appearance-main.c	2010-02-23 02:45:01.442443569 +0000
-+++ gnome-control-center-2.29.90/capplets/appearance/appearance-main.c	2010-02-23 02:47:47.124969629 +0000
+--- gnome-control-center-2.30.0.orig/capplets/appearance/appearance-main.c	2010-03-29 15:22:56.000000000 +0100
++++ gnome-control-center-2.30.0/capplets/appearance/appearance-main.c	2010-04-10 00:19:11.640173172 +0100
 @@ -21,6 +21,7 @@
  #include <glib/gi18n.h>
  #include "appearance.h"
@@ -1148,7 +1148,7 @@ Index: gnome-control-center-2.29.90/capplets/appearance/appearance-main.c
  #include "appearance-font.h"
  #include "appearance-themes.h"
  #include "appearance-style.h"
-@@ -114,11 +115,19 @@
+@@ -116,11 +117,19 @@
    }
  }
  
@@ -1168,7 +1168,7 @@ Index: gnome-control-center-2.29.90/capplets/appearance/appearance-main.c
  
    gchar *install_filename = NULL;
    gchar *start_page = NULL;
-@@ -164,6 +173,7 @@
+@@ -166,6 +175,7 @@
    desktop_init (data, (const gchar **) wallpaper_files);
    g_strfreev (wallpaper_files);
    font_init (data);
@@ -1176,7 +1176,7 @@ Index: gnome-control-center-2.29.90/capplets/appearance/appearance-main.c
  
    /* prepare the main window */
    w = appearance_capplet_get_widget (data, "appearance_window");
-@@ -205,6 +215,34 @@
+@@ -207,6 +217,34 @@
  
    g_option_context_free (option_context);
  
@@ -1210,11 +1210,11 @@ Index: gnome-control-center-2.29.90/capplets/appearance/appearance-main.c
 +
    /* start the mainloop */
    gtk_main ();
- 
-Index: gnome-control-center-2.29.90/capplets/appearance/data/appearance.ui
+   gdk_threads_leave ();
+Index: gnome-control-center-2.30.0/capplets/appearance/data/appearance.ui
 ===================================================================
---- gnome-control-center-2.29.90.orig/capplets/appearance/data/appearance.ui	2010-02-23 02:45:01.382443277 +0000
-+++ gnome-control-center-2.29.90/capplets/appearance/data/appearance.ui	2010-02-23 02:45:24.092453554 +0000
+--- gnome-control-center-2.30.0.orig/capplets/appearance/data/appearance.ui	2010-03-04 13:49:28.000000000 +0000
++++ gnome-control-center-2.30.0/capplets/appearance/data/appearance.ui	2010-04-10 00:19:11.640173172 +0100
 @@ -1549,6 +1549,342 @@
                  <property name="tab_fill">False</property>
                </packing>
@@ -1558,10 +1558,10 @@ Index: gnome-control-center-2.29.90/capplets/appearance/data/appearance.ui
            </object>
            <packing>
              <property name="position">1</property>
-Index: gnome-control-center-2.29.90/capplets/appearance/Makefile.am
+Index: gnome-control-center-2.30.0/capplets/appearance/Makefile.am
 ===================================================================
---- gnome-control-center-2.29.90.orig/capplets/appearance/Makefile.am	2010-02-23 02:45:01.402442467 +0000
-+++ gnome-control-center-2.29.90/capplets/appearance/Makefile.am	2010-02-23 02:45:24.092453554 +0000
+--- gnome-control-center-2.30.0.orig/capplets/appearance/Makefile.am	2010-01-26 08:46:31.000000000 +0000
++++ gnome-control-center-2.30.0/capplets/appearance/Makefile.am	2010-04-10 00:19:11.640173172 +0100
 @@ -9,6 +9,8 @@
  	appearance.h \
  	appearance-desktop.c \
@@ -1571,10 +1571,10 @@ Index: gnome-control-center-2.29.90/capplets/appearance/Makefile.am
  	appearance-font.c \
  	appearance-font.h \
  	appearance-main.c \
-Index: gnome-control-center-2.29.90/po/POTFILES.in
+Index: gnome-control-center-2.30.0/po/POTFILES.in
 ===================================================================
---- gnome-control-center-2.29.90.orig/po/POTFILES.in	2010-02-23 02:45:01.462452955 +0000
-+++ gnome-control-center-2.29.90/po/POTFILES.in	2010-02-23 02:45:24.092453554 +0000
+--- gnome-control-center-2.30.0.orig/po/POTFILES.in	2009-08-24 11:54:41.000000000 +0100
++++ gnome-control-center-2.30.0/po/POTFILES.in	2010-04-10 00:19:11.640173172 +0100
 @@ -16,6 +16,7 @@
  capplets/accessibility/at-properties/at-properties.desktop.in.in
  capplets/accessibility/at-properties/main.c
