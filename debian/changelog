@@ -1,324 +1,16 @@
-gnome-control-center (1:2.30.1-0ubuntu1) lucid-proposed; urgency=low
-
-  * New upstream version (LP: #571244)
-    - gnome-about-me: Don't hang when new and old password only differ in case
-
- -- Chris Coulson <chris.coulson@canonical.com>  Wed, 28 Apr 2010 12:03:03 +0100
-
-gnome-control-center (1:2.30.0-0ubuntu4) lucid; urgency=low
-
-  * debian/patches/95_desktop-effects-integration.patch:
-    - Updated to ensure that we don't call GTK functions outside of the
-      GDK global lock. This fixes a deadlock caused by trying to
-      recursively lock the GDK global lock (LP: #554106)
-
- -- Chris Coulson <chris.coulson@canonical.com>  Sat, 10 Apr 2010 00:21:28 +0100
-
-gnome-control-center (1:2.30.0-0ubuntu3) lucid; urgency=low
-
-  * debian/patches/52_button_layout_from_theme.patch:
-    - fix crash at startup when the button layout isn't the selected
-      theme one (LP: #552132)
-
- -- Didier Roche <didrocks@ubuntu.com>  Wed, 31 Mar 2010 10:12:48 +0200
-
-gnome-control-center (1:2.30.0-0ubuntu2) lucid; urgency=low
-
-  * debian/patches/52_button_layout_from_theme.patch:
-    - copy button layout to custom theme when creating one (LP: #551048)
-    - had some additional checkings on button layout property
-
- -- Didier Roche <didrocks@ubuntu.com>  Tue, 30 Mar 2010 17:07:05 +0200
-
-gnome-control-center (1:2.30.0-0ubuntu1) lucid; urgency=low
-
-  * New upstream release:
-    + About me:
-      - Fix global variable confusion (Michal Schmidt)
-      - Fix remembering of data between runs (Michal Schmidt)
-    + Appearance:
-      - Mark a string for translation (Gabor Kelemen) (#612015)
-      - Fix GTK+ multi-threading (Matthias Clasen) (#610003)
-    + Display:
-      - Don't show a tooltip while a monitor is being dragged
-        (Federico Mena Quintero)
-    + Typing break:
-      - Lock all the screens (Matthias Clasen) (#492974)
-     + Updated translations
-  * debian/patches/03_use_libunique.patch: refreshed
-  * removed debian/patches/98_about-me-wid-fix.patch: upstreamed
-
- -- Didier Roche <didrocks@ubuntu.com>  Mon, 29 Mar 2010 17:21:56 +0200
-
-gnome-control-center (1:2.29.92-0ubuntu4) lucid; urgency=low
-
-  * 50_ubuntu_systemwide_prefs.patch: If the user has different proxy settings
-    than the system, and is an admin, ask whether to apply the settings system
-    wide for package management. (LP: #432631)
-  * 50_ubuntu_systemwide_prefs.patch: Drop unused connection to session D-Bus,
-    and two unused variables.
-  * 50_ubuntu_systemwide_prefs.patch: Fix two format string errors.
-
- -- Martin Pitt <martin.pitt@ubuntu.com>  Mon, 29 Mar 2010 17:19:35 +0200
-
-gnome-control-center (1:2.29.92-0ubuntu3) lucid; urgency=low
-
-  * debian/patches/52_button_layout_from_theme.patch:
-    - Enable themes to provide a prefered button layout option:
-      X-GNOME-Metatheme/ButtonLayout. (LP: #535322, #548833)
-
- -- Didier Roche <didrocks@ubuntu.com>  Fri, 26 Mar 2010 15:58:44 +0100
-
-gnome-control-center (1:2.29.92-0ubuntu2) lucid; urgency=low
-
-  * Add 04_keyboard_layout_gconf_names.patch: keyboard: Fix layout gconf key
-    initialization for empty variants. (LP: #460328)
-
- -- Martin Pitt <martin.pitt@ubuntu.com>  Wed, 24 Mar 2010 09:24:11 +0100
-
-gnome-control-center (1:2.29.92-0ubuntu1) lucid; urgency=low
-
-  [ Alex Launi ]
-  * debian/patches/112_banshee_in_media_dropdown.patch:
-    - Update preferred applications xml file for banshee to use
-      banshee-1 instead of banshee executable (lp: #533888)
-
-  [ Didier Roche ]
-  * New upstream release:
-    - updated translations
-  * debian/patches/99_autoreconf.patch:
-    - refreshed
-
- -- Didier Roche <didrocks@ubuntu.com>  Mon, 08 Mar 2010 14:17:02 +0100
-
-gnome-control-center (1:2.29.91-0ubuntu3) lucid; urgency=low
-
-  * debian/patches/03_use_libunique.patch:
-    - change by Mikkel Kamstrup Erlandsen to let the about-me capplet display
-      the running instance when launched twice (lp: #531974)
-  * debian/patches/99_autoreconf.patch:
-    - refreshed for the previous change
-
- -- Sebastien Bacher <seb128@ubuntu.com>  Fri, 05 Mar 2010 16:22:06 +0100
-
-gnome-control-center (1:2.29.91-0ubuntu2) lucid; urgency=low
-
-  * debian/patches/98_about-me-wid-fix.patch:
-    - Widget contents are mapped to EContact fields using widget ID's
-      defined in the GtkBuilder UI file. However, the name returned
-      by gtk_widget_get_name is no longer the same as the ID in the latest 
-      Gtk version, so don't depend on the name for mapping the widgets 
-      to the correct EContact fields (LP: #525520).
-
- -- Chris Coulson <chris.coulson@canonical.com>  Tue, 02 Mar 2010 01:57:53 +0000
-
-gnome-control-center (1:2.29.91-0ubuntu1) lucid; urgency=low
-
-  * New upstream version
-    - Appearance:
-      + Add 'span' as a style for backgrounds
-    - Display Properties:
-      + Now fits in 640x480 and has a better layout overall
-      + Just use "monitors" for wording, not a mixture of "monitor",
-        "display", "screen"
-      + Make the mouse cursor indicate when you can drag a monitor
-  * debian/control:
-    - Bump libgnome-desktop-dev build-dep to 2.29.4
-    - Drop libxrandr-dev and libxrender-dev build-deps
-  * Refreshed patches:
-    - 109_screen_resolution_extra.patch
-    - 111_screen_resolution_vendor_fallback.patch
-    - 99_autoreconf.patch
-  * Dropped 92_display_properties_fit_small_screen.patch: this is not
-    required with the new capplet layout
-  * debian/patches/95_desktop-effects-integration.patch:
-    - Don't crash when there is no supported WM available (LP: #516189) 
-
- -- Chris Coulson <chrisccoulson@ubuntu.com>  Mon, 01 Mar 2010 08:29:48 +0000
-
-gnome-control-center (1:2.29.90-0ubuntu3) lucid; urgency=low
-
-  * debian/control.in:
-    - build-depends on libappindicator-dev 
-
- -- Sebastien Bacher <seb128@ubuntu.com>  Thu, 11 Feb 2010 23:46:12 +0100
-
-gnome-control-center (1:2.29.90-0ubuntu2) lucid; urgency=low
-
-  * debian/patches/02_use_application_indicator.patch:
-    - use the lucid application indicator, thanks Travis B. Hartwell
-      (lp: #497857)
-  * debian/patches/99_autoreconf.patch:
-    - refreshed for the previous change to build
-
- -- Sebastien Bacher <seb128@ubuntu.com>  Thu, 11 Feb 2010 15:10:32 +0100
-
-gnome-control-center (1:2.29.90-0ubuntu1) lucid; urgency=low
-
-  * New upstream version
-    - About-me:
-      + Fix hangs when 'passwd' outputs unexpected answers (lp: #338976)
-      + Fix list of passwd error strings (lp: #498875)
-      + Fix fingerprint name on 2nd page
-    - At-properties:
-      + Add AutostartCondition to gnome-at-session.desktop
-    - Mouse:
-      + Fix mnemonics conflicts on touchpad tab
-  * Dropped patches merged upstream:
-    - 02_gnome-at-session_autostart-condition.patch
-  * Refreshed patches:
-    - 99_autoreconf.patch
-    - 99_ltmain_as-needed.patch
-  * Disable 98_password_dialog_launcher.patch - this isn't currently used
-    by users-admin
-  * Drop 17_default_applications_firefox_3-5.patch - no need to rename the
-    icon now with the unversioned Firefox package
-
- -- Chris Coulson <chrisccoulson@ubuntu.com>  Wed, 10 Feb 2010 01:22:18 +0000
-
-gnome-control-center (1:2.29.6-0ubuntu3) lucid; urgency=low
-
-  * debian/patches/95_desktop-effects-integration.patch:
-    - cleaned some warnings and errors in the code and fix build
-  * debian/patches/109_screen_resolution_extra.patch,
-    debian/patches/110_screen_resolution_package.patch:
-    - cleaned some warnings
-
- -- Sebastien Bacher <seb128@ubuntu.com>  Tue, 02 Feb 2010 15:09:00 -0800
-
-gnome-control-center (1:2.29.6-0ubuntu2) lucid; urgency=low
-
-  * debian/patches/95_desktop-effects-integration.patch:
-    don't enable switching wm if you run mutter
-
- -- Didier Roche <didrocks@ubuntu.com>  Mon, 01 Feb 2010 16:56:56 -0800
-
-gnome-control-center (1:2.29.6-0ubuntu1) lucid; urgency=low
-
-  * New upstream version:
-    - Don't leak file descriptors when checking for colour schemes
-    - Disable tapping only for touchpads without a left mouse button
-    - use GtkInfoBar rather than a copy of GeditMessageArea
-    - Some typo fixes in strings
-    - Translation updates.
-  * 99_autoreconf.patch: Refresh.
-  * Add 02_gnome-at-session_autostart-condition.patch: The gnome-at-session
-    autostart desktop file launches a shell script, which in turn calls
-    gconftool-2, just to find out that it's disabled, and exit. This
-    wastes unnecessary cycles on starting the desktop.  Add an
-    AutostartCondition to the .desktop file which only runs when a11y is
-    enabled. (submitted to GNOME #608138)
-
- -- Martin Pitt <martin.pitt@ubuntu.com>  Tue, 26 Jan 2010 12:08:15 +0100
-
-gnome-control-center (1:2.29.4-0ubuntu2) lucid; urgency=low
-
-  * debian/patches/95_desktop-effects-integration.patch:
-    - spelling error fix in the appearance string (lp: #508652)
-
- -- Sebastien Bacher <seb128@ubuntu.com>  Tue, 19 Jan 2010 15:47:08 +0100
-
-gnome-control-center (1:2.29.4-0ubuntu1) lucid; urgency=low
-
-  * New upstream version
-  * General:
-    - Drop obsolete check for HAL (#595832) (Jens Granseuer)
-    - Use external libslab when available (Vincent Untz)
-    - Add gthread-2.0 to common modules for linking (#600589) (Jens 
-      Granseuer)
-    - Enable silent build rules (Thomas Wood)
-  * Common:
-    - Fix all the keybindings showing up when using compiz (#600021) 
-      (Bastien Nocera)
-    - Fix leak (Jens Granseuer)
-    - Fix warning (Jens Granseuer)
-  * About-me:
-    - Fix crash when closing the window using the window button (#592348,
-      LP: #414538) (Jens Granseuer)
-    - Add missing PNG files (Bastien Nocera)
-  * Appearance:
-    - Remove interface tab (#592756) (William Jon McCann)
-    - Add OnlyShowIn=GNOME to the .desktop file (#594709) (Thomas Wood)
-    - Update the background style option labels (#411048, LP: #416605) 
-      (Thomas Wood)
-    - Fix tooltip in the background chooser (#596369) (Matthias Clasen)
-    - Add support for per-monitor backgrounds (#147808, LP: #153793) 
-      (William Jon McCann)
-  * Default applications:
-    - Update the exec arg when changing terminal (#597185) (Vincent Untz)
-    - Be sure to add the gconf directories for monitoring (#597186) 
-      (Thomas Wood)
-    - Return an empty string for the custom web item (Thomas Wood)
-  * Display:
-    - Don't assert when the current output doesn't have a resolution set yet
-      (#593866) (Federico Mena Quintero)
-    - Automatically turn on outputs which support Mirror Screens (#590823)
-      (Federico Mena Quintero)
-    - Sensitize 'Mirror Screens' depending on whether mirror mode is actually
-      supported (Federico Mena Quintero)
-    - Desensitize the on/off radio buttons if we are in Mirror Screens mode
-      (Federico Mena Quintero)
-    - Show 'Mirror Screens' in the monitor label, not a random monitor's name
-      (Federico Mena Quintero)
-  * Font Viewer:
-    - Use pango_language_get_sample_string for sample text (#595107) (Jens
-      Granseuer)
-    - Expand the Copyright display to get rid of unnecessary scrollbar (Jens
-      Granseuer)
-    - Don't use URI notation when installing fonts (#603732) (Jens Granseuer)
-  * Keybindings:
-    - Fix broken logic in keybinding tree model (Robert Ancell)
-    - Fix zombie bindings appearing after deleting custom shortcuts (#596351) 
-      (Jens Granseuer)
-    - Show shortcuts for the active window manager (#600531, LP: #500672) 
-      (Wang Xin)
-    - Remove sleep key entry (#170175) (Bastien Nocera)
-  * Keyboard:
-    - Major UI reorganization (Sergey V. Udaltsov)
-    - Fix mnemonic conflict in mousekeys tab (#586433) (Jens Granseuer)
-  * Mouse:
-    - Disable two-finger scrolling/tapping based on touchpad capabilities. 
-      (Peter Hutterer)
-  * Network:
-    - Keep proxies in sync when "use same proxy" is selected (#589952, 
-      LP: #226748) (Cyril Roelandt)
-  * Typing break:
-    - Increase delay for activating the postpone button to 5s (#597086) 
-      (Tim Waugh)
-    - Reset timer after suspend (#430797) (Jens Granseuer)
-  * Windows:
-    - Don't allow Ctrl+Click as window movement modifier (#409405) (Jens 
-      Granseuer)
-  * debian/control:
-    - Bump libgnome-desktop-dev build dep to 2.27.91
-  * Dropped patches merged upstream:
-    - 01_fix_libslab_build
-    - 52_fix_missing_keybindings
-    - 81_upstream_change_fix_xrand_capplet_crash
-    - 82_upstream_change_fix_aboutme_crash
-  * Refreshed patches:
-    - 109_screen_resolution_extra
-    - 110_screen_resolution_package
-    - 111_screen_resolution_vendor_fallback
-    - 50_ubuntu_systemwide_prefs
-    - 51_ubuntu_system_keyboard
-    - 80_aspect_in_dropdown
-    - 90_gnome-mouse-properties_small_screen
-    - 91_gnome-about-me_small_screen
-    - 92_display_properties_fit_small_screen
-    - 95_desktop-effects-integration
-    - 98_password_dialog_launcher
-
- -- Chris Coulson <chrisccoulson@ubuntu.com>  Mon, 11 Jan 2010 00:01:08 +0000
-
-gnome-control-center (1:2.28.1-1ubuntu1) lucid; urgency=low
+gnome-control-center (1:2.30.1-1ubuntu1) maverick; urgency=low
 
   * Merge with Debian unstable, remaining changes:
   * debian/control.in:
     - Rename package from control-center to gnome-control-center
-    - Don't Build-Depends on libslab-dev, type-handling
+    - Build-depend on gnome-common to run autotools
+    - Don't build-depend on type-handling (?)
+    - Don't build-depend libxrandr-dev and libxrender-dev (?)
+    - Don't build-depend on libslab-dev - we aren't using the slab
     - Build-depends on librsvg2-dev, libpango1.0-dev,
-      libgstreamer-plugins-base0.10-dev
+      libgstreamer-plugins-base0.10-dev (?)
+    - Build-depend on libappindicator-dev for application indicator patch
+    - Add Vcs-Bzr link
     - gnome-control-center depends on ubuntu-system-service, gconf2-common
     - gnome-control-center recommends mousetweaks, iso-codes
     - gnome-control-center recommends screen-resolution-extra for
@@ -327,78 +19,95 @@ gnome-control-center (1:2.28.1-1ubuntu1) lucid; urgency=low
       otherwise Glade / code mismatches can cause breakage: g-c-c depends on
       capplets-data >= source:Version, not just gnome:Version; capplets-data
       breaks g-c-c <x source:Version.
-    - Add BZR link
+  * debian/rules:
+    - Run autotools on build
   * debian/capplets-data.gconf_defaults:
     - Don't set a keycode for multimedia keys there, the corresponding schemas
       is in gnome-settings-daemon now and already has keysyms set
-  * debian/index.theme:
-    - Drop the Debian specific Default theme entry, it's confusing
   * debian/capplets-data.install:
     - Install visual effects images
     - Don't move the autostart to usr, that's a debian unilateral decision and
       should be discussed with upstream rather than distro changed
   * debian/capplets-data.postinst:
     - Don't clean the moved file in etc since it's not moved in ubuntu
-  * 01_remove_debian_default_applications.patch:
-    - Remove the Debian entries from the default applications.
-  * 100_at_properties_readd_gksudo_disable_grab_toggle.patch:
-    - "no gksu/disable-grab option per gui in gnome-at-properties"
-  * 109_screen_resolution_extra.patch:
+  * debian/index.theme:
+    - Drop the Debian specific Default theme entry, it's confusing
+  * debian/visual-effects_*.svg:
+    - Icons for visual effects settings in appearance capplet
+  * debian/patches/01_remove_debian_default_applications.patch:
+    - Remove the Debian entries from the default applications
+  * debian/patches/02_use_application_indicator.patch:
+    - Use the lucid application indicator
+  * debian/patches/03_use_libunique.patch:
+    - Use libunique so only one instance of the about-me capplet is opened
+  * debian/patches/04_keyboard_layout_gconf_names.patch:
+    - keyboard: Fix layout gconf key initialization for empty variants.
+  * debian/patches/100_at_properties_readd_gksudo_disable_grab_toggle.patch:
+    - No gksu/disable-grab option per gui in gnome-at-properties
+  * debian/patches/109_screen_resolution_extra.patch:
     - Automatically configure Virtual setting
-  * 110_screen_resolution_package.patch:
+  * debian/patches/110_screen_resolution_package.patch:
     - Make it possible to use Synaptic to install screen-resolution-extra from
       xrandr-capplet.c
-  * 111_screen_resolution_vendor_fallback.patch:
+  * debian/patches/111_screen_resolution_vendor_fallback.patch:
     - Fallback to vendor utilties if they are available and RR1.2 is not
       supported by the current driver
-  * 16_preferred_applications_list_cleanup.patch:
-    - Don't list mozilla alternative as "Mozilla Mail"
-  * 17_default_applications_firefox_3-5.patch:
-    - Use the correct firefox3 icon
-  * 50_ubuntu_systemwide_prefs.patch:
+  * debian/patches/112_banshee_in_media_dropdown.patch:
+    - Update preferred applications xml file for banshee to use
+      banshee-1 instead of banshee executable
+  * debian/patches/16_preferred_applications_list_cleanup.patch:
+    - Don't list Mozilla commands which are compatibility symlinks
+  * debian/patches/50_ubuntu_systemwide_prefs.patch:
     - Ubuntu specific preferences
-  * 51_ubuntu_system_keyboard.patch:
+  * debian/patches/51_ubuntu_system_keyboard.patch:
     - Implement the global keyboard spec at
       https://wiki.ubuntu.com/DefaultKeyboardSettings
-  * 52_fix_missing_keybindings.patch:
-    - Fix missing keybindings
-  * 80_aspect_in_dropdown.patch:
+  * debian/patches/52_button_layout_from_theme.patch:
+    - Enable themes to provide a prefered button layout option:
+      X-GNOME-Metatheme/ButtonLayout.
+  * debian/patches/80_aspect_in_dropdown.patch:
     - Add aspect ratio to display selection drop-down menu
-  * 81_upstream_change_fix_xrand_capplet_crash.patch:
-    - Bugzilla change to fix a crasher in the xrandr capplet
-  * 82_upstream_change_fix_aboutme_crash.patch:
-    - Bugzilla change to fix the aboutme capplet crashing on closing
-  * 90_gnome-mouse-properties_small_screen.patch:
+  * debian/patches/90_gnome-mouse-properties_small_screen.patch:
     - Add scrollbar on small screens in mouse properties
-  * 91_gnome-about-me_small_screen.patch:
+  * debian/patches/91_gnome-about-me_small_screen.patch:
     - Add scrollbar on small screens in about me
-  * 92_display_properties_fit_small_screen.patch:
-    - Make the display properties capplet work correctly on screen which have
-      low vertical resolution
-  * 95_desktop-effects-integration.patch:
-  * debian/visual-effects_custom.svg:
-  * debian/visual-effects_extra.svg:
-  * debian/visual-effects_none.svg:
-  * debian/visual-effects_normal.svg:
+  * debian/patches/95_desktop-effects-integration.patch:
     - Add desktop effects tab to the appearance capplet
-  * 96_hide_accessible_login.patch:
+  * debian/patches/96_hide_accessible_login.patch:
     - Remove the "Accessible Login" button from gnome-at-properties.
       All this does is launch gdmsetup, and the new version of this
       tool doesn't support changing accessibility settings.
-  * 97_subpixel_hinting_defaults.patch:
+  * debian/patches/97_subpixel_hinting_defaults.patch:
     - Change the default hinting level for subpixel rendering from "Full" to
       "Slight"
-  * 98_password_dialog_launcher.patch:
-    - Correct shell use to fix build issue
   * 70_relibtoolize.patch:
-  * 99_autoreconf.patch:
-    - Renamed and regenerated
-  * 99_ltmain_as-needed.patch:
-    - Regenerated
+    - Not required, autotools run in debian/rules
   * debian/watch:
     - Watch for unstable versions
 
- -- Robert Ancell <robert.ancell@canonical.com>  Thu, 10 Dec 2009 11:14:11 +1100
+ -- Robert Ancell <robert.ancell@canonical.com>  Wed, 23 Jun 2010 15:59:34 +1000
+
+control-center (1:2.30.1-1) unstable; urgency=low
+
+  * New upstream release.
+  * Update build-dependencies.
+  * Require g-s-d 2.30.
+  * 01_fix_libslab_build.patch, 02_xrandr_assert.patch: dropped, merged 
+    upstream.
+  * 70_relibtoolize.patch: updated for the new version.
+  * 01_ml_po.patch: new patch. Fix Malayalam translation that causes 
+    GConf errors.
+
+ -- Josselin Mouette <joss@debian.org>  Tue, 27 Apr 2010 20:22:38 +0200
+
+control-center (1:2.28.1-2) unstable; urgency=low
+
+  * Drop libxxf86misc-dev build-dependency, it is not used.
+    Closes: #559694.
+  * 02_xrandr_assert.patch: stolen upstream. Fix assertion when using 
+    mirroring. Closes: #563094.
+
+ -- Josselin Mouette <joss@debian.org>  Mon, 04 Jan 2010 18:26:06 +0100
 
 control-center (1:2.28.1-1) unstable; urgency=low
 
@@ -1732,6 +1441,125 @@ control-center2 (1:2.0.1.1-3) experimental; urgency=low
 
  -- Christian Marillat <marillat@debian.org>  Sat, 28 Sep 2002 20:07:45 +0200
 
+control-center2 (2.0.1.1-2) experimental; urgency=low
+
+  * Update to standards version 3.5.7
+  * Upload withtout the 2 suffix
+
+ -- Christian Marillat <marillat@debian.org>  Sat, 28 Sep 2002 18:05:58 +0200
+
+control-center2 (2.0.1.1-1) experimental; urgency=low
+
+  * New upstream release.
+  * Remove fam from recommends should be in libgnomevfs2-0 package.
+
+ -- Christian Marillat <marillat@debian.org>  Thu, 22 Aug 2002 15:44:13 +0200
+
+control-center2 (2.0.1-2) experimental; urgency=low
+
+  * Build against the latest libgnomevfs2-dev 2.0.2-4
+
+ -- Christian Marillat <marillat@debian.org>  Fri, 16 Aug 2002 17:44:03 +0200
+
+control-center2 (2.0.1-1) experimental; urgency=low
+
+  * New upstream release.
+
+ -- Christian Marillat <marillat@debian.org>  Wed,  7 Aug 2002 12:33:10 +0200
+
+control-center2 (2.0.0-3) experimental; urgency=low
+
+  * Should recommends fame.
+
+ -- Christian Marillat <marillat@debian.org>  Thu, 25 Jul 2002 15:28:22 +0200
+
+control-center2 (2.0.0-2) experimental; urgency=low
+
+  * Add x-terminal-emulator in the list of terminal.
+  * Build against the latest libzvt
+
+ -- Christian Marillat <marillat@debian.org>  Sun,  7 Jul 2002 20:44:23 +0200
+
+control-center2 (2.0.0-1) experimental; urgency=low
+
+  * New upstream release.
+  * Add support for DEB_HOST_GNU_TYPE DEB_BUILD_GNU_TYPE and
+    DEB_BUILD_OPTIONS
+
+ -- Christian Marillat <marillat@debian.org>  Tue, 18 Jun 2002 12:34:40 +0200
+
+control-center2 (1.99.10-2) experimental; urgency=low
+
+  * debian/rules Add GCONF_DISABLE_MAKEFILE_SCHEMA_INSTALL=1 in install target.
+  * Install schemas file in postinst.
+  * debian/postinst check if schemas files are present before calling
+    gconftool-2
+  * debian/postrm call scrollkeeper-update with -q
+  * Removed old package in suggests
+  * Update the menu file with the rigth binary name
+
+ -- Christian Marillat <marillat@debian.org>  Sun,  9 Jun 2002 20:29:30 +0200
+
+control-center2 (1.99.10-1) experimental; urgency=low
+
+  * New upstream release.
+
+ -- Christian Marillat <marillat@debian.org>  Sun, 12 May 2002 14:59:06 +0200
+
+control-center2 (1.99.9-1) experimental; urgency=low
+
+  * New upstream release.
+
+ -- Christian Marillat <marillat@debian.org>  Tue, 30 Apr 2002 10:47:01 +0200
+
+control-center2 (1.99.7-1) experimental; urgency=low
+
+  * New upstream release.
+
+ -- Christian Marillat <marillat@debian.org>  Mon, 22 Apr 2002 18:17:28 +0200
+
+control-center2 (1.99.6-1) experimental; urgency=low
+
+  * New upstream release.
+
+ -- Christian Marillat <marillat@debian.org>  Sun, 14 Apr 2002 17:43:36 +0200
+
+control-center2 (1.99.4-3) experimental; urgency=low
+
+  * Need to Depends on gnome-desktop-data
+
+ -- Christian Marillat <marillat@debian.org>  Wed, 13 Mar 2002 11:17:58 +0100
+
+control-center2 (1.99.4-2) experimental; urgency=low
+
+  * Need to Depends on gnome-session2 (Closes: #137961)
+
+ -- Christian Marillat <marillat@debian.org>  Wed, 13 Mar 2002 11:05:26 +0100
+
+control-center2 (1.99.4-1) experimental; urgency=low
+
+  * New upstream release.
+
+ -- Christian Marillat <marillat@debian.org>  Mon, 11 Mar 2002 14:49:29 +0100
+
+control-center2 (1.99.3-2) experimental; urgency=low
+
+  * Remove duplicate session.desktop file.
+
+ -- Christian Marillat <marillat@debian.org>  Mon, 25 Feb 2002 18:14:07 +0100
+
+control-center2 (1.99.3-1) experimental; urgency=low
+
+  * New upstream release
+
+ -- Christian Marillat <marillat@debian.org>  Fri, 15 Feb 2002 00:35:49 +0100
+
+control-center2 (1.99.0-1) experimental; urgency=low
+
+  * New upstream release.
+
+ -- Christian Marillat <marillat@debian.org>  Sun, 20 Jan 2002 18:08:37 +0100
+
 control-center (1:1.5.11-1) unstable; urgency=low
 
   * New upstream release.
@@ -1918,125 +1746,6 @@ control-center (1:1.2.2-1) unstable; urgency=low
   * New/old GUI (Closes: #71043, #71040, #71039, #71038)
 
  -- Christian Marillat <marillat@debian.org>  Mon, 25 Sep 2000 17:33:23 +0200
-
-control-center2 (2.0.1.1-2) experimental; urgency=low
-
-  * Update to standards version 3.5.7
-  * Upload withtout the 2 suffix
-
- -- Christian Marillat <marillat@debian.org>  Sat, 28 Sep 2002 18:05:58 +0200
-
-control-center2 (2.0.1.1-1) experimental; urgency=low
-
-  * New upstream release.
-  * Remove fam from recommends should be in libgnomevfs2-0 package.
-
- -- Christian Marillat <marillat@debian.org>  Thu, 22 Aug 2002 15:44:13 +0200
-
-control-center2 (2.0.1-2) experimental; urgency=low
-
-  * Build against the latest libgnomevfs2-dev 2.0.2-4
-
- -- Christian Marillat <marillat@debian.org>  Fri, 16 Aug 2002 17:44:03 +0200
-
-control-center2 (2.0.1-1) experimental; urgency=low
-
-  * New upstream release.
-
- -- Christian Marillat <marillat@debian.org>  Wed,  7 Aug 2002 12:33:10 +0200
-
-control-center2 (2.0.0-3) experimental; urgency=low
-
-  * Should recommends fame.
-
- -- Christian Marillat <marillat@debian.org>  Thu, 25 Jul 2002 15:28:22 +0200
-
-control-center2 (2.0.0-2) experimental; urgency=low
-
-  * Add x-terminal-emulator in the list of terminal.
-  * Build against the latest libzvt
-
- -- Christian Marillat <marillat@debian.org>  Sun,  7 Jul 2002 20:44:23 +0200
-
-control-center2 (2.0.0-1) experimental; urgency=low
-
-  * New upstream release.
-  * Add support for DEB_HOST_GNU_TYPE DEB_BUILD_GNU_TYPE and
-    DEB_BUILD_OPTIONS
-
- -- Christian Marillat <marillat@debian.org>  Tue, 18 Jun 2002 12:34:40 +0200
-
-control-center2 (1.99.10-2) experimental; urgency=low
-
-  * debian/rules Add GCONF_DISABLE_MAKEFILE_SCHEMA_INSTALL=1 in install target.
-  * Install schemas file in postinst.
-  * debian/postinst check if schemas files are present before calling
-    gconftool-2
-  * debian/postrm call scrollkeeper-update with -q
-  * Removed old package in suggests
-  * Update the menu file with the rigth binary name
-
- -- Christian Marillat <marillat@debian.org>  Sun,  9 Jun 2002 20:29:30 +0200
-
-control-center2 (1.99.10-1) experimental; urgency=low
-
-  * New upstream release.
-
- -- Christian Marillat <marillat@debian.org>  Sun, 12 May 2002 14:59:06 +0200
-
-control-center2 (1.99.9-1) experimental; urgency=low
-
-  * New upstream release.
-
- -- Christian Marillat <marillat@debian.org>  Tue, 30 Apr 2002 10:47:01 +0200
-
-control-center2 (1.99.7-1) experimental; urgency=low
-
-  * New upstream release.
-
- -- Christian Marillat <marillat@debian.org>  Mon, 22 Apr 2002 18:17:28 +0200
-
-control-center2 (1.99.6-1) experimental; urgency=low
-
-  * New upstream release.
-
- -- Christian Marillat <marillat@debian.org>  Sun, 14 Apr 2002 17:43:36 +0200
-
-control-center2 (1.99.4-3) experimental; urgency=low
-
-  * Need to Depends on gnome-desktop-data
-
- -- Christian Marillat <marillat@debian.org>  Wed, 13 Mar 2002 11:17:58 +0100
-
-control-center2 (1.99.4-2) experimental; urgency=low
-
-  * Need to Depends on gnome-session2 (Closes: #137961)
-
- -- Christian Marillat <marillat@debian.org>  Wed, 13 Mar 2002 11:05:26 +0100
-
-control-center2 (1.99.4-1) experimental; urgency=low
-
-  * New upstream release.
-
- -- Christian Marillat <marillat@debian.org>  Mon, 11 Mar 2002 14:49:29 +0100
-
-control-center2 (1.99.3-2) experimental; urgency=low
-
-  * Remove duplicate session.desktop file.
-
- -- Christian Marillat <marillat@debian.org>  Mon, 25 Feb 2002 18:14:07 +0100
-
-control-center2 (1.99.3-1) experimental; urgency=low
-
-  * New upstream release
-
- -- Christian Marillat <marillat@debian.org>  Fri, 15 Feb 2002 00:35:49 +0100
-
-control-center2 (1.99.0-1) experimental; urgency=low
-
-  * New upstream release.
-
- -- Christian Marillat <marillat@debian.org>  Sun, 20 Jan 2002 18:08:37 +0100
 
 control-center (1.3.0-5) unstable; urgency=low
 
@@ -2281,4 +1990,5 @@ gnome-core (0.13-1) unstable; urgency=low
   * Initial Release.
 
  -- Jim Pick <jim@jimpick.com>  Mon, 16 Mar 1998 15:27:43 -0800
+
 
