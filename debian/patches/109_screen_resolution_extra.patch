@@ -1,10 +1,10 @@
 Description: Automatically configure Virtual setting
 Author: ?
 
-Index: gnome-control-center-2.30.1/capplets/display/xrandr-capplet.c
+Index: gnome-control-center-2.31.90/capplets/display/xrandr-capplet.c
 ===================================================================
---- gnome-control-center-2.30.1.orig/capplets/display/xrandr-capplet.c	2010-04-27 00:10:41.000000000 +1000
-+++ gnome-control-center-2.30.1/capplets/display/xrandr-capplet.c	2010-06-23 16:16:54.928187001 +1000
+--- gnome-control-center-2.31.90.orig/capplets/display/xrandr-capplet.c	2010-08-17 02:46:46.000000000 +1000
++++ gnome-control-center-2.31.90/capplets/display/xrandr-capplet.c	2010-09-01 17:42:24.862617002 +1000
 @@ -34,6 +34,7 @@
  #include <gconf/gconf-client.h>
  #include <dbus/dbus-glib.h>
@@ -13,7 +13,7 @@ Index: gnome-control-center-2.30.1/capplets/display/xrandr-capplet.c
  
  typedef struct App App;
  typedef struct GrabInfo GrabInfo;
-@@ -106,6 +107,64 @@
+@@ -111,6 +112,64 @@
      gtk_widget_destroy (dialog);
  }
  
@@ -78,7 +78,7 @@ Index: gnome-control-center-2.30.1/capplets/display/xrandr-capplet.c
  static gboolean
  do_free (gpointer data)
  {
-@@ -1873,39 +1932,14 @@
+@@ -1880,39 +1939,14 @@
      }
  }
  
@@ -120,7 +120,7 @@ Index: gnome-control-center-2.30.1/capplets/display/xrandr-capplet.c
  
      gnome_rr_screen_get_ranges (app->screen, &min_width, &max_width, &min_height, &max_height);
  
-@@ -1920,11 +1954,116 @@
+@@ -1927,11 +1961,116 @@
      if (!(min_width <= req_width && req_width <= max_width
  	  && min_height <= req_height && req_height <= max_height))
      {
@@ -238,64 +238,50 @@ Index: gnome-control-center-2.30.1/capplets/display/xrandr-capplet.c
  }
  
  static void
-@@ -2050,33 +2189,38 @@
+@@ -2057,18 +2196,37 @@
  
      gnome_rr_config_sanitize (app->current_configuration);
  
 -    check_required_virtual_size (app);
-+	/* Don't try to apply the settings unless the framebuffer
-+	 * is enough. The user will be notified in 
++    /* Don't try to apply the settings unless the framebuffer
++     * is enough. The user will be notified in 
 +     * check_required_virtual_size()
 +     */
-+	if (app->current_configuration->clone || check_required_virtual_size (app))
-+	{
++    if (app->current_configuration->clone || check_required_virtual_size (app))
++    {
 +        foo_scroll_area_invalidate (FOO_SCROLL_AREA (app->area));
- 
--    foo_scroll_area_invalidate (FOO_SCROLL_AREA (app->area));
-+    	ensure_current_configuration_is_saved ();
-+    	    
++
++        ensure_current_configuration_is_saved ();
++            
 +        if (!gnome_rr_config_save (app->current_configuration, &error))
 +        {
 +            error_message (app, _("Could not save the monitor configuration"), error->message);
 +            g_error_free (error);
-+            return;
++            return FALSE;
 +        }
  
--    ensure_current_configuration_is_saved ();
+-    foo_scroll_area_invalidate (FOO_SCROLL_AREA (app->area));
 +        g_assert (app->connection == NULL);
 +        g_assert (app->proxy == NULL);
 +        g_assert (app->proxy_call == NULL);
 +
 +        app->connection = dbus_g_bus_get (DBUS_BUS_SESSION, &error);
 +        if (app->connection == NULL) {
-+	    error_message (app, _("Could not get session bus while applying display configuration"), error->message);
-+	    g_error_free (error);
-+	    return;
++            error_message (app, _("Could not get session bus while applying display configuration"), error->message);
++            g_error_free (error);
++            return FALSE;
 +        }
  
+-    ensure_current_configuration_is_saved ();
++	    gtk_widget_set_sensitive (app->dialog, FALSE);
+ 
+-    error = NULL;
 -    if (!gnome_rr_config_save (app->current_configuration, &error))
 -    {
 -	error_message (app, _("Could not save the monitor configuration"), error->message);
 -	g_error_free (error);
--	return;
--    }
-+	    gtk_widget_set_sensitive (app->dialog, FALSE);
- 
--    g_assert (app->connection == NULL);
--    g_assert (app->proxy == NULL);
--    g_assert (app->proxy_call == NULL);
--
--    app->connection = dbus_g_bus_get (DBUS_BUS_SESSION, &error);
--    if (app->connection == NULL) {
--	error_message (app, _("Could not get session bus while applying display configuration"), error->message);
--	g_error_free (error);
--	return;
+-	return FALSE;
 +    	begin_version2_apply_configuration (app, gtk_widget_get_window (app->dialog), app->apply_button_clicked_timestamp);
      }
--
--    gtk_widget_set_sensitive (app->dialog, FALSE);
--
--    begin_version2_apply_configuration (app, gtk_widget_get_window (app->dialog), app->apply_button_clicked_timestamp);
- }
  
- #if 0
+     return TRUE;

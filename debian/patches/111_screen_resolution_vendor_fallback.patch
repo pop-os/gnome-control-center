@@ -6,11 +6,11 @@ Bug: http://bugzilla.gnome.org/show_bug.cgi?id=571214
 Bug-Ubuntu: https://bugs.edge.launchpad.net/ubuntu/+source/gnome-control-center/+bug/319725
 Patch: http://bugzilla.gnome.org/attachment.cgi?id=128398&action=view
 
-Index: gnome-control-center-2.30.1/capplets/display/display-capplet.ui
+Index: gnome-control-center-2.31.90/capplets/display/display-capplet.ui
 ===================================================================
---- gnome-control-center-2.30.1.orig/capplets/display/display-capplet.ui	2010-04-27 00:10:41.000000000 +1000
-+++ gnome-control-center-2.30.1/capplets/display/display-capplet.ui	2010-06-23 16:16:59.818187001 +1000
-@@ -398,6 +398,34 @@
+--- gnome-control-center-2.31.90.orig/capplets/display/display-capplet.ui	2010-08-17 02:46:46.000000000 +1000
++++ gnome-control-center-2.31.90/capplets/display/display-capplet.ui	2010-09-01 17:42:34.192617001 +1000
+@@ -414,6 +414,34 @@
        <action-widget response="-7">button2</action-widget>
      </action-widgets>
    </object>
@@ -45,10 +45,10 @@ Index: gnome-control-center-2.30.1/capplets/display/display-capplet.ui
    <object class="GtkListStore" id="liststore1">
      <columns>
        <!-- column-name item -->
-Index: gnome-control-center-2.30.1/capplets/display/Makefile.am
+Index: gnome-control-center-2.31.90/capplets/display/Makefile.am
 ===================================================================
---- gnome-control-center-2.30.1.orig/capplets/display/Makefile.am	2010-06-23 16:16:59.008187001 +1000
-+++ gnome-control-center-2.30.1/capplets/display/Makefile.am	2010-06-23 16:16:59.818187001 +1000
+--- gnome-control-center-2.31.90.orig/capplets/display/Makefile.am	2010-09-01 17:42:32.282617001 +1000
++++ gnome-control-center-2.31.90/capplets/display/Makefile.am	2010-09-01 17:42:34.192617001 +1000
 @@ -2,6 +2,9 @@
  cappletname = display
  
@@ -59,20 +59,20 @@ Index: gnome-control-center-2.30.1/capplets/display/Makefile.am
  dist_ui_DATA = display-capplet.ui
  
  bin_PROGRAMS = gnome-display-properties
-@@ -40,6 +43,8 @@
- INCLUDES   = $(DISPLAY_CAPPLET_CFLAGS) \
+@@ -57,6 +60,8 @@
               $(GNOMECC_CAPPLETS_CFLAGS) \
+ 	     -DSBINDIR="\"$(sbindir)\"" \
  	     -DUIDIR="\"$(uidir)\"" \
 +	     -DNVIDIA_SETTINGS="\"$(nvidia_settings)\"" \
 +	     -DAMDCCCLE="\"$(amdcccle)\"" \
  	     -DGNOMELOCALEDIR="\"$(datadir)/locale\"" \
  	     -DGNOMECC_DATA_DIR="\"$(pkgdatadir)\""
  
-Index: gnome-control-center-2.30.1/capplets/display/xrandr-capplet.c
+Index: gnome-control-center-2.31.90/capplets/display/xrandr-capplet.c
 ===================================================================
---- gnome-control-center-2.30.1.orig/capplets/display/xrandr-capplet.c	2010-06-23 16:16:54.928187001 +1000
-+++ gnome-control-center-2.30.1/capplets/display/xrandr-capplet.c	2010-06-23 16:16:59.818187001 +1000
-@@ -469,7 +469,6 @@
+--- gnome-control-center-2.31.90.orig/capplets/display/xrandr-capplet.c	2010-09-01 17:42:24.862617002 +1000
++++ gnome-control-center-2.31.90/capplets/display/xrandr-capplet.c	2010-09-01 17:42:34.192617001 +1000
+@@ -474,7 +474,6 @@
      return count;
  }
  
@@ -80,7 +80,7 @@ Index: gnome-control-center-2.30.1/capplets/display/xrandr-capplet.c
  static int
  count_all_outputs (GnomeRRConfig *config)
  {
-@@ -480,7 +479,6 @@
+@@ -485,7 +484,6 @@
  
      return i;
  }
@@ -88,15 +88,15 @@ Index: gnome-control-center-2.30.1/capplets/display/xrandr-capplet.c
  
  /* Computes whether "Mirror Screens" (clone mode) is supported based on these criteria:
   *
-@@ -2223,7 +2221,6 @@
-     }
+@@ -2256,7 +2254,6 @@
+     begin_version2_apply_configuration (app, gtk_widget_get_window (app->dialog), app->apply_button_clicked_timestamp);
  }
  
 -#if 0
  /* Returns whether the graphics driver doesn't advertise RANDR 1.2 features, and just 1.0 */
  static gboolean
  driver_is_randr_10 (GnomeRRConfig *config)
-@@ -2244,7 +2241,6 @@
+@@ -2277,7 +2274,6 @@
  
      return (count_all_outputs (config) == 1 && strcmp (config->outputs[0]->name, "default") == 0);
  }
@@ -104,7 +104,7 @@ Index: gnome-control-center-2.30.1/capplets/display/xrandr-capplet.c
  
  static void
  on_detect_displays (GtkWidget *widget, gpointer data)
-@@ -2454,6 +2450,8 @@
+@@ -2542,6 +2538,8 @@
      GtkBuilder *builder;
      GtkWidget *align;
      GError *error;
@@ -113,7 +113,7 @@ Index: gnome-control-center-2.30.1/capplets/display/xrandr-capplet.c
  
      error = NULL;
      builder = gtk_builder_new ();
-@@ -2562,12 +2560,25 @@
+@@ -2650,12 +2648,25 @@
      g_signal_connect (app->apply_button, "clicked",
  		      G_CALLBACK (apply_button_clicked_cb), app);
  
@@ -140,8 +140,8 @@ Index: gnome-control-center-2.30.1/capplets/display/xrandr-capplet.c
      {
      default:
  	/* Fall Through */
-@@ -2589,6 +2600,18 @@
- 	apply (app);
+@@ -2682,6 +2693,18 @@
+ 	make_default (app);
  	goto restart;
  	break;
 +

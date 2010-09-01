@@ -1,11 +1,11 @@
 Description: Fallback to vendor utilties if they are available and RR1.2 is not supported by the current driver
 Author: ?
 
-Index: gnome-control-center-2.29.6/capplets/display/Makefile.am
+Index: gnome-control-center-2.31.90/capplets/display/Makefile.am
 ===================================================================
---- gnome-control-center-2.29.6.orig/capplets/display/Makefile.am	2009-07-16 07:33:13.000000000 -0700
-+++ gnome-control-center-2.29.6/capplets/display/Makefile.am	2010-02-02 16:17:52.000000000 -0800
-@@ -9,8 +9,10 @@
+--- gnome-control-center-2.31.90.orig/capplets/display/Makefile.am	2010-08-17 02:46:46.000000000 +1000
++++ gnome-control-center-2.31.90/capplets/display/Makefile.am	2010-09-01 17:42:32.282617001 +1000
+@@ -11,8 +11,10 @@
  gnome_display_properties_SOURCES =	\
  	xrandr-capplet.c		\
  	scrollarea.c			\
@@ -16,20 +16,20 @@ Index: gnome-control-center-2.29.6/capplets/display/Makefile.am
  	foo-marshal.h
  
  gnome_display_properties_LDFLAGS = -export-dynamic
-Index: gnome-control-center-2.29.6/capplets/display/Makefile.in
+Index: gnome-control-center-2.31.90/capplets/display/Makefile.in
 ===================================================================
---- gnome-control-center-2.29.6.orig/capplets/display/Makefile.in	2010-01-26 00:51:46.000000000 -0800
-+++ gnome-control-center-2.29.6/capplets/display/Makefile.in	2010-02-02 16:17:52.000000000 -0800
-@@ -60,7 +60,7 @@
- 	"$(DESTDIR)$(iconssvgdir)" "$(DESTDIR)$(uidir)"
- PROGRAMS = $(bin_PROGRAMS)
+--- gnome-control-center-2.31.90.orig/capplets/display/Makefile.in	2010-08-17 03:02:40.000000000 +1000
++++ gnome-control-center-2.31.90/capplets/display/Makefile.in	2010-09-01 17:42:32.282617001 +1000
+@@ -61,7 +61,7 @@
+ 	"$(DESTDIR)$(polkit_policydir)" "$(DESTDIR)$(uidir)"
+ PROGRAMS = $(bin_PROGRAMS) $(sbin_PROGRAMS)
  am_gnome_display_properties_OBJECTS = xrandr-capplet.$(OBJEXT) \
 -	scrollarea.$(OBJEXT) foo-marshal.$(OBJEXT)
 +	scrollarea.$(OBJEXT) screen-package.$(OBJEXT) foo-marshal.$(OBJEXT)
  gnome_display_properties_OBJECTS =  \
  	$(am_gnome_display_properties_OBJECTS)
  am__DEPENDENCIES_1 =
-@@ -343,8 +343,10 @@
+@@ -357,8 +357,10 @@
  gnome_display_properties_SOURCES = \
  	xrandr-capplet.c		\
  	scrollarea.c			\
@@ -40,18 +40,18 @@ Index: gnome-control-center-2.29.6/capplets/display/Makefile.in
  	foo-marshal.h
  
  gnome_display_properties_LDFLAGS = -export-dynamic
-@@ -464,6 +466,7 @@
- 
+@@ -538,6 +540,7 @@
  @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/foo-marshal.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gnome-display-properties-install-systemwide.Po@am__quote@
  @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/scrollarea.Po@am__quote@
 +@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/screen-package.Po@am__quote@
  @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/xrandr-capplet.Po@am__quote@
  
  .c.o:
-Index: gnome-control-center-2.29.6/capplets/display/screen-package.c
+Index: gnome-control-center-2.31.90/capplets/display/screen-package.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center-2.29.6/capplets/display/screen-package.c	2010-02-02 16:18:00.000000000 -0800
++++ gnome-control-center-2.31.90/capplets/display/screen-package.c	2010-09-01 17:42:32.282617001 +1000
 @@ -0,0 +1,219 @@
 +/*
 + *      screen-package.c
@@ -272,10 +272,10 @@ Index: gnome-control-center-2.29.6/capplets/display/screen-package.c
 +  return retval;
 +}
 +
-Index: gnome-control-center-2.29.6/capplets/display/screen-package.h
+Index: gnome-control-center-2.31.90/capplets/display/screen-package.h
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center-2.29.6/capplets/display/screen-package.h	2010-02-02 16:17:52.000000000 -0800
++++ gnome-control-center-2.31.90/capplets/display/screen-package.h	2010-09-01 17:42:32.282617001 +1000
 @@ -0,0 +1,39 @@
 +/*
 + *      screen-package.h
