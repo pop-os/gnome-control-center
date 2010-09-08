@@ -1,10 +1,8 @@
 Description: Automatically configure Virtual setting
 Author: ?
 
-Index: gnome-control-center-2.31.90/capplets/display/xrandr-capplet.c
-===================================================================
---- gnome-control-center-2.31.90.orig/capplets/display/xrandr-capplet.c	2010-08-17 02:46:46.000000000 +1000
-+++ gnome-control-center-2.31.90/capplets/display/xrandr-capplet.c	2010-09-01 17:42:24.862617002 +1000
+--- a/capplets/display/xrandr-capplet.c
++++ b/capplets/display/xrandr-capplet.c
 @@ -34,6 +34,7 @@
  #include <gconf/gconf-client.h>
  #include <dbus/dbus-glib.h>
@@ -13,7 +11,7 @@ Index: gnome-control-center-2.31.90/capplets/display/xrandr-capplet.c
  
  typedef struct App App;
  typedef struct GrabInfo GrabInfo;
-@@ -111,6 +112,64 @@
+@@ -111,6 +112,64 @@ error_message (App *app, const char *pri
      gtk_widget_destroy (dialog);
  }
  
@@ -78,7 +76,7 @@ Index: gnome-control-center-2.31.90/capplets/display/xrandr-capplet.c
  static gboolean
  do_free (gpointer data)
  {
-@@ -1880,39 +1939,14 @@
+@@ -1880,39 +1939,14 @@ make_text_combo (GtkWidget *widget, int
      }
  }
  
@@ -120,7 +118,7 @@ Index: gnome-control-center-2.31.90/capplets/display/xrandr-capplet.c
  
      gnome_rr_screen_get_ranges (app->screen, &min_width, &max_width, &min_height, &max_height);
  
-@@ -1927,11 +1961,116 @@
+@@ -1927,11 +1961,116 @@ check_required_virtual_size (App *app)
      if (!(min_width <= req_width && req_width <= max_width
  	  && min_height <= req_height && req_height <= max_height))
      {
@@ -238,7 +236,12 @@ Index: gnome-control-center-2.31.90/capplets/display/xrandr-capplet.c
  }
  
  static void
-@@ -2057,18 +2196,37 @@
+@@ -2053,22 +2192,41 @@ apply_configuration_returned_cb (DBusGPr
+ static gboolean
+ sanitize_and_save_configuration (App *app)
+ {
+-    GError *error;
++    GError *error = NULL;
  
      gnome_rr_config_sanitize (app->current_configuration);
  
@@ -250,7 +253,8 @@ Index: gnome-control-center-2.31.90/capplets/display/xrandr-capplet.c
 +    if (app->current_configuration->clone || check_required_virtual_size (app))
 +    {
 +        foo_scroll_area_invalidate (FOO_SCROLL_AREA (app->area));
-+
+ 
+-    foo_scroll_area_invalidate (FOO_SCROLL_AREA (app->area));
 +        ensure_current_configuration_is_saved ();
 +            
 +        if (!gnome_rr_config_save (app->current_configuration, &error))
@@ -259,8 +263,7 @@ Index: gnome-control-center-2.31.90/capplets/display/xrandr-capplet.c
 +            g_error_free (error);
 +            return FALSE;
 +        }
- 
--    foo_scroll_area_invalidate (FOO_SCROLL_AREA (app->area));
++
 +        g_assert (app->connection == NULL);
 +        g_assert (app->proxy == NULL);
 +        g_assert (app->proxy_call == NULL);
