@@ -236,7 +236,7 @@ Author: ?
  }
  
  static void
-@@ -2053,22 +2192,41 @@ apply_configuration_returned_cb (DBusGPr
+@@ -2053,25 +2192,30 @@ apply_configuration_returned_cb (DBusGPr
  static gboolean
  sanitize_and_save_configuration (App *app)
  {
@@ -246,15 +246,24 @@ Author: ?
      gnome_rr_config_sanitize (app->current_configuration);
  
 -    check_required_virtual_size (app);
+-
+-    foo_scroll_area_invalidate (FOO_SCROLL_AREA (app->area));
+-
+-    ensure_current_configuration_is_saved ();
+-
+-    error = NULL;
+-    if (!gnome_rr_config_save (app->current_configuration, &error))
 +    /* Don't try to apply the settings unless the framebuffer
 +     * is enough. The user will be notified in 
 +     * check_required_virtual_size()
 +     */
 +    if (app->current_configuration->clone || check_required_virtual_size (app))
-+    {
+     {
+-	error_message (app, _("Could not save the monitor configuration"), error->message);
+-	g_error_free (error);
+-	return FALSE;
 +        foo_scroll_area_invalidate (FOO_SCROLL_AREA (app->area));
- 
--    foo_scroll_area_invalidate (FOO_SCROLL_AREA (app->area));
++
 +        ensure_current_configuration_is_saved ();
 +            
 +        if (!gnome_rr_config_save (app->current_configuration, &error))
@@ -263,28 +272,11 @@ Author: ?
 +            g_error_free (error);
 +            return FALSE;
 +        }
-+
-+        g_assert (app->connection == NULL);
-+        g_assert (app->proxy == NULL);
-+        g_assert (app->proxy_call == NULL);
-+
-+        app->connection = dbus_g_bus_get (DBUS_BUS_SESSION, &error);
-+        if (app->connection == NULL) {
-+            error_message (app, _("Could not get session bus while applying display configuration"), error->message);
-+            g_error_free (error);
-+            return FALSE;
-+        }
- 
--    ensure_current_configuration_is_saved ();
-+	    gtk_widget_set_sensitive (app->dialog, FALSE);
- 
--    error = NULL;
--    if (!gnome_rr_config_save (app->current_configuration, &error))
--    {
--	error_message (app, _("Could not save the monitor configuration"), error->message);
--	g_error_free (error);
--	return FALSE;
-+    	begin_version2_apply_configuration (app, gtk_widget_get_window (app->dialog), app->apply_button_clicked_timestamp);
++        return TRUE;
      }
  
-     return TRUE;
+-    return TRUE;
++    return FALSE;
+ }
+ 
+ static void
