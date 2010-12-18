@@ -1,0 +1,24 @@
+From 5d7ad665ecb3bf780dfcff3c3efec73a4351810a Mon Sep 17 00:00:00 2001
+From: Owen W. Taylor <otaylor@fishsoup.net>
+Date: Mon, 06 Dec 2010 13:37:00 +0000
+Subject: xandr-capplet: Remove depth argument from gdk_window_get_geometry()
+
+Make compile again with the latest GTK+ 2.9x API changes.
+
+https://bugzilla.gnome.org/show_bug.cgi?id=636581
+---
+diff --git a/panels/display/xrandr-capplet.c b/panels/display/xrandr-capplet.c
+index cc7d122..3d7fd54 100644
+--- a/panels/display/xrandr-capplet.c
++++ b/panels/display/xrandr-capplet.c
+@@ -2354,7 +2354,7 @@ get_output_for_window (GnomeRRConfig *configuration, GdkWindow *window)
+   int largest_area;
+   int largest_index;
+ 
+-  gdk_window_get_geometry (window, &win_rect.x, &win_rect.y, &win_rect.width, &win_rect.height, NULL);
++  gdk_window_get_geometry (window, &win_rect.x, &win_rect.y, &win_rect.width, &win_rect.height);
+   gdk_window_get_origin (window, &win_rect.x, &win_rect.y);
+ 
+   largest_area = 0;
+--
+cgit v0.8.3.1
