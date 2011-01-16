@@ -14,8 +14,6 @@ DEB_AUTO_UPDATE_AUTOCONF=1
 DEB_AUTO_UPDATE_AUTOHEADER=1
 DEB_AUTO_UPDATE_AUTOMAKE=1.11
 
-GNOME_MODULE := gnome-control-center
-
 LDFLAGS += -Wl,-z,defs -Wl,-O1 -Wl,--as-needed
 
 DEB_CONFIGURE_EXTRA_FLAGS += --disable-scrollkeeper \
@@ -32,10 +30,5 @@ build/gnome-control-center:: $(DEB_INSTALL_MANPAGES_gnome-control-center)
 
 clean::
 	rm -f $(DEB_INSTALL_MANPAGES_gnome-control-center)
-
-binary-post-install/capplets-data::
-	rm -rf debian/capplets-data/usr/share/applications/mimeinfo.cache
-	rm -rf debian/capplets-data/usr/share/pkgconfig
-	dh_installmime -p$(cdbs_curpkg)
 
 common-binary-post-install-arch:: list-missing

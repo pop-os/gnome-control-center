@@ -10,6 +10,7 @@ Build-Depends: cdbs (>= 0.4.41),
                dpkg-dev (>= 1.13.19),
                debhelper (>= 5.0.0),
                docbook-to-man,
+               docbook-xml,
                autotools-dev,
                gnome-doc-utils (>= 0.3.2),
                intltool (>= 0.37.1),
@@ -40,8 +41,8 @@ Architecture: any
 Section: gnome
 Depends: ${shlibs:Depends},
          ${misc:Depends},
-         capplets-data (>= ${source:Version}),
-         capplets-data (<< ${gnome:NextVersion}),
+         gnome-control-center-data (>= ${source:Version}),
+         gnome-control-center-data (<< ${gnome:NextVersion}),
          gnome-settings-daemon (>= 2.91),
          gnome-menus (>= 2.12.0),
          gnome-desktop-data,
@@ -74,12 +75,14 @@ Depends: ${misc:Depends}
 Description: utilities to configure the GNOME desktop
  This package contains the file required to get the keydirs location
 
-Package: capplets-data
+Package: gnome-control-center-data
 Architecture: all
 Section: gnome
 Depends: ${misc:Depends}
 Recommends: gnome-control-center (>= ${source:Version})
-Replaces: gnome-media-common (<< 2.91)
+Provides: capplets-data
+Conflicts: capplets-data
+Replaces: capplets-data, gnome-media-common (<< 2.91)
 Breaks: gnome-control-center (<< ${source:Version})
 Description: configuration applets for GNOME - data files
  This package contains data files (icons, pixmaps, locales files) needed by
