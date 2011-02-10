@@ -9,10 +9,10 @@ Bug: https://bugzilla.gnome.org/show_bug.cgi?id=614014
 Bug-Ubuntu: https://bugs.launchpad.net/bugs/535322
 Author: Didier Roche <didrocks@ubuntu.com>
 
-Index: gnome-control-center-2.30.0/capplets/common/gnome-theme-info.c
+Index: gnome-control-center-2.32.1/capplets/common/gnome-theme-info.c
 ===================================================================
---- gnome-control-center-2.30.0.orig/capplets/common/gnome-theme-info.c	2009-05-03 20:30:56.000000000 +0200
-+++ gnome-control-center-2.30.0/capplets/common/gnome-theme-info.c	2010-03-31 10:02:31.318276440 +0200
+--- gnome-control-center-2.32.1.orig/capplets/common/gnome-theme-info.c	2011-01-23 17:05:46.992505001 +0300
++++ gnome-control-center-2.32.1/capplets/common/gnome-theme-info.c	2011-01-27 21:42:50.466628001 +0300
 @@ -36,6 +36,9 @@
  #define MONOSPACE_FONT_KEY "X-GNOME-Metatheme/MonospaceFont"
  #define BACKGROUND_IMAGE_KEY "X-GNOME-Metatheme/BackgroundImage"
@@ -54,10 +54,10 @@ Index: gnome-control-center-2.30.0/capplets/common/gnome-theme-info.c
    return safe_strcmp (a->background_image, b->background_image);
  }
  
-Index: gnome-control-center-2.30.0/capplets/common/gnome-theme-info.h
+Index: gnome-control-center-2.32.1/capplets/common/gnome-theme-info.h
 ===================================================================
---- gnome-control-center-2.30.0.orig/capplets/common/gnome-theme-info.h	2009-05-03 20:30:56.000000000 +0200
-+++ gnome-control-center-2.30.0/capplets/common/gnome-theme-info.h	2010-03-31 10:02:31.318276440 +0200
+--- gnome-control-center-2.32.1.orig/capplets/common/gnome-theme-info.h	2011-01-23 17:05:47.032505001 +0300
++++ gnome-control-center-2.32.1/capplets/common/gnome-theme-info.h	2011-01-27 21:42:50.466628001 +0300
 @@ -115,6 +115,7 @@
    gchar *windowtitle_font;
    gchar *monospace_font;
@@ -66,10 +66,10 @@ Index: gnome-control-center-2.30.0/capplets/common/gnome-theme-info.h
  };
  
  enum {
-Index: gnome-control-center-2.30.0/capplets/appearance/appearance-themes.c
+Index: gnome-control-center-2.32.1/capplets/appearance/appearance-themes.c
 ===================================================================
---- gnome-control-center-2.30.0.orig/capplets/appearance/appearance-themes.c	2010-01-26 09:46:31.000000000 +0100
-+++ gnome-control-center-2.30.0/capplets/appearance/appearance-themes.c	2010-03-31 10:04:20.466277444 +0200
+--- gnome-control-center-2.32.1.orig/capplets/appearance/appearance-themes.c	2011-01-23 17:05:46.882505001 +0300
++++ gnome-control-center-2.32.1/capplets/appearance/appearance-themes.c	2011-01-27 21:43:40.096628002 +0300
 @@ -39,7 +39,8 @@
    RESPONSE_APPLY_BG,
    RESPONSE_REVERT_FONT,
@@ -89,15 +89,32 @@ Index: gnome-control-center-2.30.0/capplets/appearance/appearance-themes.c
  static time_t
  theme_get_mtime (const char *name)
  {
-@@ -383,6 +386,7 @@
+@@ -257,6 +260,8 @@
+ 
+   theme->application_font = gconf_client_get_string (client, APPLICATION_FONT_KEY, NULL);
+ 
++  theme->button_layout = gconf_client_get_string (client, BUTTON_LAYOUT_KEY, NULL);
++
+   return theme;
+ }
+ 
+@@ -374,6 +379,7 @@
+     g_free (custom->gtk_color_scheme);
+     g_free (custom->cursor_theme_name);
+     g_free (custom->application_font);
++    g_free (custom->button_layout);
+     custom->gtk_color_scheme = NULL;
+     custom->application_font = NULL;
+ 
+@@ -383,6 +389,7 @@
      custom->metacity_theme_name = g_strdup (info->metacity_theme_name);
      custom->cursor_theme_name = g_strdup (info->cursor_theme_name);
      custom->cursor_size = info->cursor_size;
-+    custom->button_layout = info->button_layout;
++    custom->button_layout = g_strdup (info->button_layout);
  
      /* these can be NULL */
      if (info->gtk_color_scheme)
-@@ -579,6 +583,16 @@
+@@ -579,6 +586,16 @@
        }
        theme_message_area_update (data);
        break;
@@ -114,7 +131,7 @@ Index: gnome-control-center-2.30.0/capplets/appearance/appearance-themes.c
    }
  }
  
-@@ -589,9 +603,11 @@
+@@ -589,9 +606,11 @@
    gboolean show_apply_background = FALSE;
    gboolean show_apply_font = FALSE;
    gboolean show_revert_font = FALSE;
@@ -126,7 +143,7 @@ Index: gnome-control-center-2.30.0/capplets/appearance/appearance-themes.c
    GError *error = NULL;
  
    theme = theme_get_selected (GTK_ICON_VIEW (appearance_capplet_get_widget (data, "theme_list")), data);
-@@ -652,6 +668,11 @@
+@@ -652,6 +671,11 @@
      show_revert_font = (data->revert_application_font != NULL ||
        data->revert_documents_font != NULL || data->revert_desktop_font != NULL ||
        data->revert_windowtitle_font != NULL || data->revert_monospace_font != NULL);
@@ -138,7 +155,7 @@ Index: gnome-control-center-2.30.0/capplets/appearance/appearance-themes.c
    }
  
    if (data->theme_message_area == NULL) {
-@@ -659,7 +680,7 @@
+@@ -659,7 +683,7 @@
      GtkWidget *parent;
      GtkWidget *content;
  
@@ -147,7 +164,7 @@ Index: gnome-control-center-2.30.0/capplets/appearance/appearance-themes.c
        return;
  
      data->theme_message_area = gtk_info_bar_new ();
-@@ -684,6 +705,10 @@
+@@ -684,6 +708,10 @@
          GTK_INFO_BAR (data->theme_message_area),
          _("Install"),
          RESPONSE_INSTALL_ENGINE);
@@ -158,7 +175,7 @@ Index: gnome-control-center-2.30.0/capplets/appearance/appearance-themes.c
  
      data->theme_message_label = gtk_label_new (NULL);
      gtk_widget_show (data->theme_message_label);
-@@ -708,20 +733,30 @@
+@@ -708,20 +736,30 @@
  
    if (show_error)
      message = error->message;
@@ -189,7 +206,7 @@ Index: gnome-control-center-2.30.0/capplets/appearance/appearance-themes.c
    else
      message = NULL;
  
-@@ -740,6 +775,11 @@
+@@ -740,6 +778,11 @@
    else
      gtk_widget_hide (data->revert_font_button);
  
@@ -201,7 +218,7 @@ Index: gnome-control-center-2.30.0/capplets/appearance/appearance-themes.c
    if (show_error
        && g_error_matches (error, GNOME_THEME_ERROR, GNOME_THEME_ERROR_GTK_ENGINE_NOT_AVAILABLE)
        && packagekit_available ())
-@@ -747,7 +787,7 @@
+@@ -747,7 +790,7 @@
    else
      gtk_widget_hide (data->install_button);
  
@@ -210,7 +227,7 @@ Index: gnome-control-center-2.30.0/capplets/appearance/appearance-themes.c
      gtk_widget_show (data->theme_message_area);
      gtk_widget_queue_draw (data->theme_message_area);
  
-@@ -767,6 +807,29 @@
+@@ -767,6 +810,29 @@
  }
  
  static void
@@ -240,7 +257,7 @@ Index: gnome-control-center-2.30.0/capplets/appearance/appearance-themes.c
  theme_selection_changed_cb (GtkWidget *icon_view, AppearanceData *data)
  {
    GList *selection;
-@@ -794,6 +857,8 @@
+@@ -794,6 +860,8 @@
      if (theme) {
        gnome_meta_theme_set (theme);
        theme_message_area_update (data);
@@ -249,7 +266,7 @@ Index: gnome-control-center-2.30.0/capplets/appearance/appearance-themes.c
      }
  
      g_free (name);
-@@ -998,7 +1063,7 @@
+@@ -998,7 +1066,7 @@
  }
  
  static void
@@ -258,7 +275,7 @@ Index: gnome-control-center-2.30.0/capplets/appearance/appearance-themes.c
                              guint cnxn_id,
                              GConfEntry *entry,
                              AppearanceData *data)
-@@ -1027,6 +1092,7 @@
+@@ -1027,6 +1095,7 @@
    data->revert_documents_font = NULL;
    data->revert_desktop_font = NULL;
    data->revert_windowtitle_font = NULL;
@@ -266,7 +283,7 @@ Index: gnome-control-center-2.30.0/capplets/appearance/appearance-themes.c
    data->revert_monospace_font = NULL;
    data->theme_save_dialog = NULL;
    data->theme_message_area = NULL;
-@@ -1147,12 +1213,13 @@
+@@ -1147,12 +1216,13 @@
  #ifdef HAVE_XCURSOR
    gconf_client_notify_add (data->client, CURSOR_SIZE_KEY, (GConfClientNotifyFunc) theme_gconf_changed, data, NULL, NULL);
  #endif
@@ -286,16 +303,16 @@ Index: gnome-control-center-2.30.0/capplets/appearance/appearance-themes.c
  
    settings = gtk_settings_get_default ();
    g_signal_connect (settings, "notify::gtk-color-scheme", (GCallback) theme_setting_changed_cb, data);
-@@ -1187,4 +1254,5 @@
+@@ -1187,4 +1257,5 @@
    g_free (data->revert_desktop_font);
    g_free (data->revert_windowtitle_font);
    g_free (data->revert_monospace_font);
 +  g_free (data->revert_button_layout);
  }
-Index: gnome-control-center-2.30.0/capplets/appearance/appearance.h
+Index: gnome-control-center-2.32.1/capplets/appearance/appearance.h
 ===================================================================
---- gnome-control-center-2.30.0.orig/capplets/appearance/appearance.h	2010-01-26 09:46:31.000000000 +0100
-+++ gnome-control-center-2.30.0/capplets/appearance/appearance.h	2010-03-31 10:02:31.322276040 +0200
+--- gnome-control-center-2.32.1.orig/capplets/appearance/appearance.h	2011-01-23 17:05:46.912505001 +0300
++++ gnome-control-center-2.32.1/capplets/appearance/appearance.h	2011-01-27 21:42:50.486628001 +0300
 @@ -73,11 +73,13 @@
    GtkWidget *install_button;
    GtkWidget *theme_info_icon;
@@ -310,10 +327,10 @@ Index: gnome-control-center-2.30.0/capplets/appearance/appearance.h
  
    /* style */
    GdkPixbuf *gtk_theme_icon;
-Index: gnome-control-center-2.30.0/capplets/appearance/theme-util.h
+Index: gnome-control-center-2.32.1/capplets/appearance/theme-util.h
 ===================================================================
---- gnome-control-center-2.30.0.orig/capplets/appearance/theme-util.h	2009-05-03 20:30:56.000000000 +0200
-+++ gnome-control-center-2.30.0/capplets/appearance/theme-util.h	2010-03-31 10:02:31.322276040 +0200
+--- gnome-control-center-2.32.1.orig/capplets/appearance/theme-util.h	2011-01-23 17:05:46.972505001 +0300
++++ gnome-control-center-2.32.1/capplets/appearance/theme-util.h	2011-01-27 21:42:50.496628001 +0300
 @@ -30,6 +30,7 @@
  #define DESKTOP_FONT_KEY "/apps/nautilus/preferences/desktop_font"
  #define WINDOWTITLE_FONT_KEY "/apps/metacity/general/titlebar_font"
@@ -322,3 +339,20 @@ Index: gnome-control-center-2.30.0/capplets/appearance/theme-util.h
  
  #ifdef HAVE_XCURSOR
  # define CURSOR_THEME_KEY "/desktop/gnome/peripherals/mouse/cursor_theme"
+Index: gnome-control-center-2.32.1/capplets/appearance/theme-save.c
+===================================================================
+--- gnome-control-center-2.32.1.orig/capplets/appearance/theme-save.c	2011-01-27 21:43:27.506628001 +0300
++++ gnome-control-center-2.32.1/capplets/appearance/theme-save.c	2011-01-27 21:43:40.096628002 +0300
+@@ -257,6 +257,12 @@
+     g_object_unref (client);
+   }
+ 
++  if (theme_info->button_layout) {
++    str = g_strdup_printf ("ButtonLayout=%s\n", theme_info->button_layout);
++    g_output_stream_write (output, str, strlen (str), NULL, NULL);
++    g_free( str );
++  }
++
+   g_file_move (tmp_file, target_file, G_FILE_COPY_OVERWRITE, NULL, NULL, NULL, NULL);
+   g_output_stream_close (output, NULL, NULL);
+ 
