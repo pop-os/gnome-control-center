@@ -1,0 +1,1196 @@
+Description: disable NM 0.9 bits
+
+Index: gnome-control-center-2.91.90/configure.ac
+===================================================================
+--- gnome-control-center-2.91.90.orig/configure.ac	2011-02-25 09:56:16.856327001 +0100
++++ gnome-control-center-2.91.90/configure.ac	2011-02-25 09:56:22.900327002 +0100
+@@ -122,12 +122,7 @@
+ GDESKTOP_PREFIX=`$PKG_CONFIG --variable prefix gsettings-desktop-schemas`
+ AC_SUBST(GDESKTOP_PREFIX)
+ 
+-# Check for NetworkManager ~0.9
+-PKG_CHECK_MODULES(NETWORK_MANAGER, libnm-glib >= $NETWORK_MANAGER_REQUIRED_VERSION,
+-		  [have_networkmanager=yes], have_networkmanager=no)
+-if test "x$have_networkmanager" = xno ; then
+-        AC_MSG_WARN(*** Network panel will not be built (NetworkManager ~0.9 or newer not found) ***)
+-fi
++have_networkmanager=yes
+ AM_CONDITIONAL(BUILD_NETWORK, [test x$have_networkmanager = xyes])
+ 
+ # Check for CUPS 1.4 or newer
+Index: gnome-control-center-2.91.90/panels/network/cc-network-panel.c
+===================================================================
+--- gnome-control-center-2.91.90.orig/panels/network/cc-network-panel.c	2011-02-25 09:56:16.848327001 +0100
++++ gnome-control-center-2.91.90/panels/network/cc-network-panel.c	2011-02-25 09:56:35.556327002 +0100
+@@ -24,16 +24,6 @@
+ 
+ #include "cc-network-panel.h"
+ 
+-#include "nm-remote-settings.h"
+-#include "nm-client.h"
+-#include "nm-device.h"
+-#include "nm-device-ethernet.h"
+-#include "nm-device-wifi.h"
+-#include "nm-utils.h"
+-#include "nm-active-connection.h"
+-#include "nm-vpn-connection.h"
+-#include "nm-setting-ip4-config.h"
+-
+ #include "panel-common.h"
+ #include "panel-cell-renderer-mode.h"
+ #include "panel-cell-renderer-signal.h"
+@@ -50,7 +40,6 @@
+         GPtrArray       *devices;
+         GSettings       *proxy_settings;
+         GtkBuilder      *builder;
+-        NMClient        *client;
+ };
+ 
+ enum {
+@@ -72,8 +61,6 @@
+         PANEL_WIRELESS_COLUMN_LAST
+ };
+ 
+-static void     nm_device_refresh_item_ui               (CcNetworkPanel *panel, NMDevice *device);
+-
+ static void
+ cc_network_panel_get_property (GObject    *object,
+                                guint       property_id,
+@@ -116,10 +103,6 @@
+                 g_object_unref (priv->builder);
+                 priv->builder = NULL;
+         }
+-        if (priv->client != NULL) {
+-                g_object_unref (priv->client);
+-                priv->client = NULL;
+-        }
+ 
+         G_OBJECT_CLASS (cc_network_panel_parent_class)->dispose (object);
+ }
+@@ -258,210 +241,6 @@
+ }
+ 
+ static void
+-panel_device_got_modem_manager_cb (GObject *source_object,
+-                                   GAsyncResult *res,
+-                                   gpointer user_data)
+-{
+-        GError *error = NULL;
+-        GVariant *result = NULL;
+-        GDBusProxy *proxy;
+-        NMDevice *device = (NMDevice *) user_data;
+-
+-        proxy = g_dbus_proxy_new_for_bus_finish (res, &error);
+-        if (proxy == NULL) {
+-                g_warning ("Error creating ModemManager proxy: %s",
+-                           error->message);
+-                g_error_free (error);
+-                goto out;
+-        }
+-
+-        /* get the IMEI */
+-        result = g_dbus_proxy_get_cached_property (proxy,
+-                                                   "EquipmentIdentifier");
+-
+-        /* save */
+-        g_object_set_data_full (G_OBJECT (device),
+-                                "ControlCenter::EquipmentIdentifier",
+-                                g_variant_dup_string (result, NULL),
+-                                g_free);
+-out:
+-        if (result != NULL)
+-                g_variant_unref (result);
+-        if (proxy != NULL)
+-                g_object_unref (proxy);
+-        return;
+-}
+-
+-static void
+-panel_get_registration_info_cb (GObject *source_object, GAsyncResult *res, gpointer user_data)
+-{
+-        gchar *operator_code = NULL;
+-        GError *error = NULL;
+-        guint registration_status;
+-        GVariant *result = NULL;
+-        gchar *operator_name = NULL;
+-        NMDevice *device = (NMDevice *) user_data;
+-
+-        result = g_dbus_proxy_call_finish (G_DBUS_PROXY (source_object), res, &error);
+-        if (result == NULL) {
+-                g_warning ("Error getting registration info: %s\n",
+-                           error->message);
+-                g_error_free (error);
+-                return;
+-        }
+-
+-        /* get values */
+-        g_variant_get (result, "((uss))",
+-                       &registration_status,
+-                       &operator_code,
+-                       &operator_name);
+-
+-        /* save */
+-        g_object_set_data_full (G_OBJECT (device),
+-                                "ControlCenter::OperatorName",
+-                                g_strdup (operator_name),
+-                                g_free);
+-
+-        g_free (operator_name);
+-        g_free (operator_code);
+-        g_variant_unref (result);
+-}
+-
+-static void
+-panel_device_got_modem_manager_gsm_cb (GObject *source_object,
+-                                       GAsyncResult *res,
+-                                       gpointer user_data)
+-{
+-        GError *error = NULL;
+-        GDBusProxy *proxy;
+-        NMDevice *device = (NMDevice *) user_data;
+-
+-        proxy = g_dbus_proxy_new_for_bus_finish (res, &error);
+-        if (proxy == NULL) {
+-                g_warning ("Error creating ModemManager GSM proxy: %s\n",
+-                           error->message);
+-                g_error_free (error);
+-                goto out;
+-        }
+-
+-        g_dbus_proxy_call (proxy,
+-                           "GetRegistrationInfo",
+-                           NULL,
+-                           G_DBUS_CALL_FLAGS_NONE,
+-                           -1,
+-                           NULL,
+-                           panel_get_registration_info_cb,
+-                           device);
+-out:
+-        if (proxy != NULL)
+-                g_object_unref (proxy);
+-        return;
+-}
+-
+-static void
+-panel_add_device (CcNetworkPanel *panel, NMDevice *device)
+-{
+-        GtkListStore *liststore_devices;
+-        GtkTreeIter iter;
+-        gchar *title = NULL;
+-        NMDeviceType type;
+-        CcNetworkPanelPrivate *priv = panel->priv;
+-
+-        g_debug ("device %s type %i",
+-                 nm_device_get_udi (device),
+-                 nm_device_get_device_type (device));
+-
+-        g_ptr_array_add (panel->priv->devices,
+-                         g_object_ref (device));
+-
+-        /* do we have to get additonal data from ModemManager */
+-        type = nm_device_get_device_type (device);
+-        if (type == NM_DEVICE_TYPE_GSM ||
+-            type == NM_DEVICE_TYPE_CDMA) {
+-                g_dbus_proxy_new_for_bus (G_BUS_TYPE_SYSTEM,
+-                                          G_DBUS_PROXY_FLAGS_NONE,
+-                                          NULL,
+-                                          "org.freedesktop.ModemManager",
+-                                          nm_device_get_udi (device),
+-                                          "org.freedesktop.ModemManager.Modem",
+-                                          panel->priv->cancellable,
+-                                          panel_device_got_modem_manager_cb,
+-                                          device);
+-                g_dbus_proxy_new_for_bus (G_BUS_TYPE_SYSTEM,
+-                                          G_DBUS_PROXY_FLAGS_NONE,
+-                                          NULL,
+-                                          "org.freedesktop.ModemManager",
+-                                          nm_device_get_udi (device),
+-                                          "org.freedesktop.ModemManager.Modem.Gsm.Network",
+-                                          panel->priv->cancellable,
+-                                          panel_device_got_modem_manager_gsm_cb,
+-                                          device);
+-        }
+-
+-        /* make title a bit bigger */
+-        title = g_strdup_printf ("<span size=\"large\">%s</span>",
+-                                 panel_device_type_to_localized_string (nm_device_get_device_type (device)));
+-
+-        liststore_devices = GTK_LIST_STORE (gtk_builder_get_object (priv->builder,
+-                                            "liststore_devices"));
+-        gtk_list_store_append (liststore_devices, &iter);
+-        gtk_list_store_set (liststore_devices,
+-                            &iter,
+-                            PANEL_DEVICES_COLUMN_ICON, panel_device_type_to_icon_name (nm_device_get_device_type (device)),
+-                            PANEL_DEVICES_COLUMN_SORT, panel_device_type_to_sortable_string (nm_device_get_device_type (device)),
+-                            PANEL_DEVICES_COLUMN_TITLE, title,
+-                            PANEL_DEVICES_COLUMN_ID, nm_device_get_udi (device),
+-                            PANEL_DEVICES_COLUMN_TOOLTIP, NULL,
+-                            PANEL_DEVICES_COLUMN_COMPOSITE_DEVICE, device,
+-                            -1);
+-        g_free (title);
+-}
+-
+-static void
+-panel_remove_device (CcNetworkPanel *panel, NMDevice *device)
+-{
+-        gboolean ret;
+-        gchar *id_tmp;
+-        GtkTreeIter iter;
+-        GtkTreeModel *model;
+-        guint i;
+-        NMDevice *device_tmp = NULL;
+-
+-        /* remove device from array */
+-        for (i=0; i<panel->priv->devices->len; i++) {
+-                device_tmp = g_ptr_array_index (panel->priv->devices, i);
+-                if (g_strcmp0 (nm_device_get_udi (device),
+-                               nm_device_get_udi (device_tmp)) == 0) {
+-                        g_ptr_array_remove_index_fast (panel->priv->devices, i);
+-                        break;
+-                }
+-        }
+-        if (device_tmp == NULL)
+-                return;
+-
+-        /* remove device from model */
+-        model = GTK_TREE_MODEL (gtk_builder_get_object (panel->priv->builder,
+-                                                        "liststore_devices"));
+-        ret = gtk_tree_model_get_iter_first (model, &iter);
+-        if (!ret)
+-                return;
+-
+-        /* get the other elements */
+-        do {
+-                gtk_tree_model_get (model, &iter,
+-                                    PANEL_DEVICES_COLUMN_ID, &id_tmp,
+-                                    -1);
+-                if (g_strcmp0 (id_tmp,
+-                               nm_device_get_udi (device_tmp)) == 0) {
+-                        gtk_list_store_remove (GTK_LIST_STORE (model), &iter);
+-                        g_free (id_tmp);
+-                        break;
+-                }
+-                g_free (id_tmp);
+-        } while (gtk_tree_model_iter_next (model, &iter));
+-}
+-
+-static void
+ panel_add_devices_columns (CcNetworkPanel *panel, GtkTreeView *treeview)
+ {
+         CcNetworkPanelPrivate *priv = panel->priv;
+@@ -524,46 +303,6 @@
+         g_free (label_id);
+ }
+ 
+-static void
+-add_access_point (CcNetworkPanel *panel, NMAccessPoint *ap, NMAccessPoint *active)
+-{
+-        CcNetworkPanelPrivate *priv = panel->priv;
+-        const GByteArray *ssid;
+-        const gchar *ssid_text;
+-        const gchar *hw_address;
+-        GtkListStore *liststore_wireless_network;
+-        GtkTreeIter treeiter;
+-        GtkWidget *widget;
+-
+-        ssid = nm_access_point_get_ssid (ap);
+-        if (ssid == NULL)
+-                return;
+-        ssid_text = nm_utils_escape_ssid (ssid->data, ssid->len);
+-
+-        liststore_wireless_network = GTK_LIST_STORE (gtk_builder_get_object (priv->builder,
+-                                                     "liststore_wireless_network"));
+-
+-        hw_address = nm_access_point_get_hw_address (ap);
+-        gtk_list_store_append (liststore_wireless_network, &treeiter);
+-        gtk_list_store_set (liststore_wireless_network,
+-                            &treeiter,
+-                            PANEL_WIRELESS_COLUMN_ID, hw_address,
+-                            PANEL_WIRELESS_COLUMN_TITLE, ssid_text,
+-                            PANEL_WIRELESS_COLUMN_SORT, ssid_text,
+-                            PANEL_WIRELESS_COLUMN_STRENGTH, nm_access_point_get_strength (ap),
+-                            PANEL_WIRELESS_COLUMN_MODE, nm_access_point_get_mode (ap),
+-                            -1);
+-
+-        /* is this what we're on already? */
+-        if (active == NULL)
+-                return;
+-        if (g_strcmp0 (hw_address, nm_access_point_get_hw_address (active)) == 0) {
+-                widget = GTK_WIDGET (gtk_builder_get_object (priv->builder,
+-                                                             "combobox_network_name"));
+-                gtk_combo_box_set_active_iter (GTK_COMBO_BOX (widget), &treeiter);
+-        }
+-}
+-
+ static gchar *
+ ip4_address_as_string (guint32 ip)
+ {
+@@ -583,334 +322,12 @@
+ }
+ 
+ static void
+-panel_show_ip4_config (NMIP4Config *cfg)
+-{
+-        gchar *tmp;
+-        const GArray *array;
+-        const GPtrArray *ptr_array;
+-        GSList *iter;
+-        int i;
+-
+-        for (iter = (GSList *) nm_ip4_config_get_addresses (cfg); iter; iter = g_slist_next (iter)) {
+-                NMIP4Address *addr = iter->data;
+-                guint32 u;
+-
+-                tmp = ip4_address_as_string (nm_ip4_address_get_address (addr));
+-                g_debug ("IP4 address: %s", tmp);
+-                g_free (tmp);
+-
+-                u = nm_ip4_address_get_prefix (addr);
+-                tmp = ip4_address_as_string (nm_utils_ip4_prefix_to_netmask (u));
+-                g_debug ("IP4 prefix: %d (%s)", u, tmp);
+-                g_free (tmp);
+-
+-                tmp = ip4_address_as_string (nm_ip4_address_get_gateway (addr));
+-                g_debug ("IP4 gateway: %s", tmp);
+-                g_free (tmp);
+-        }
+-
+-        array = nm_ip4_config_get_nameservers (cfg);
+-        if (array) {
+-                g_debug ("IP4 DNS:");
+-                for (i = 0; i < array->len; i++) {
+-                        tmp = ip4_address_as_string (g_array_index (array, guint32, i));
+-                        g_debug ("\t%s", tmp);
+-                        g_free (tmp);
+-                }
+-        }
+-
+-        ptr_array = nm_ip4_config_get_domains (cfg);
+-        if (ptr_array) {
+-                g_debug ("IP4 domains:");
+-                for (i = 0; i < ptr_array->len; i++)
+-                        g_debug ("\t%s", (const char *) g_ptr_array_index (ptr_array, i));
+-        }
+-
+-        array = nm_ip4_config_get_wins_servers (cfg);
+-        if (array) {
+-                g_debug ("IP4 WINS:");
+-                for (i = 0; i < array->len; i++) {
+-                        tmp = ip4_address_as_string (g_array_index (array, guint32, i));
+-                        g_debug ("\t%s", tmp);
+-                        g_free (tmp);
+-                }
+-        }
+-}
+-
+-static GPtrArray *
+-panel_get_strongest_unique_aps (const GPtrArray *aps)
+-{
+-        const GByteArray *ssid;
+-        const GByteArray *ssid_tmp;
+-        gboolean add_ap;
+-        GPtrArray *aps_unique = NULL;
+-        guint i;
+-        guint j;
+-        NMAccessPoint *ap;
+-        NMAccessPoint *ap_tmp;
+-
+-        /* we will have multiple entries for typical hotspots, just
+-         * filter to the one with the strongest signal */
+-        aps_unique = g_ptr_array_new_with_free_func ((GDestroyNotify) g_object_unref);
+-        for (i = 0; i < aps->len; i++) {
+-                ap = NM_ACCESS_POINT (g_ptr_array_index (aps, i));
+-                ssid = nm_access_point_get_ssid (ap);
+-                add_ap = TRUE;
+-
+-                /* get already added list */
+-                for (j=0; j<aps_unique->len; j++) {
+-                        ap_tmp = NM_ACCESS_POINT (g_ptr_array_index (aps, j));
+-                        ssid_tmp = nm_access_point_get_ssid (ap_tmp);
+-
+-                        /* is this the same type and data? */
+-                        if (ssid->len != ssid_tmp->len)
+-                                continue;
+-                        if (memcmp (ssid->data, ssid_tmp->data, ssid_tmp->len) != 0)
+-                                continue;
+-                        g_debug ("found duplicate: %s",
+-                                 nm_utils_escape_ssid (ssid_tmp->data,
+-                                                       ssid_tmp->len));
+-
+-                        /* the new access point is stronger */
+-                        if (nm_access_point_get_strength (ap) >
+-                            nm_access_point_get_strength (ap_tmp)) {
+-                                g_debug ("removing %s",
+-                                         nm_utils_escape_ssid (ssid_tmp->data,
+-                                                               ssid_tmp->len));
+-                                g_ptr_array_remove (aps_unique, ap_tmp);
+-                                break;
+-                        } else {
+-                                add_ap = FALSE;
+-                                break;
+-                        }
+-                }
+-                if (add_ap) {
+-                        g_debug ("adding %s",
+-                                 nm_utils_escape_ssid (ssid->data,
+-                                                       ssid->len));
+-                        g_ptr_array_add (aps_unique, g_object_ref (ap));
+-                }
+-        }
+-        return aps_unique;
+-}
+-
+-static void
+-nm_device_refresh_item_ui (CcNetworkPanel *panel, NMDevice *device)
+-{
+-        CcNetworkPanelPrivate *priv = panel->priv;
+-        const gchar *str;
+-        const gchar *sub_pane = NULL;
+-        const GPtrArray *aps;
+-        GPtrArray *aps_unique = NULL;
+-        gchar *str_tmp;
+-        GHashTable *options = NULL;
+-        GtkListStore *liststore_wireless_network;
+-        GtkWidget *widget;
+-        guint i;
+-        NMAccessPoint *ap;
+-        NMAccessPoint *active_ap;
+-        NMDeviceState state;
+-        NMDeviceType type;
+-        NMDHCP4Config *config_dhcp4 = NULL;
+-        NMDHCP6Config *config_dhcp6 = NULL;
+-
+-        /* we have a new device */
+-        g_debug ("selected device is: %s", nm_device_get_udi (device));
+-        widget = GTK_WIDGET (gtk_builder_get_object (priv->builder,
+-                                                     "hbox_device_header"));
+-        gtk_widget_set_visible (widget, TRUE);
+-
+-        type = nm_device_get_device_type (device);
+-        g_debug ("device %s type %i",
+-                 nm_device_get_udi (device),
+-                 type);
+-
+-        /* set device icon */
+-        widget = GTK_WIDGET (gtk_builder_get_object (priv->builder,
+-                                                     "image_device"));
+-        gtk_image_set_from_icon_name (GTK_IMAGE (widget),
+-                                      panel_device_type_to_icon_name (type),
+-                                      GTK_ICON_SIZE_DIALOG);
+-
+-        /* set device kind */
+-        widget = GTK_WIDGET (gtk_builder_get_object (priv->builder,
+-                                                     "label_device"));
+-        gtk_label_set_label (GTK_LABEL (widget),
+-                             panel_device_type_to_localized_string (type));
+-
+-
+-        /* set device state */
+-        state = nm_device_get_state (device);
+-        widget = GTK_WIDGET (gtk_builder_get_object (priv->builder,
+-                                                     "label_status"));
+-        gtk_label_set_label (GTK_LABEL (widget),
+-                             panel_device_state_to_localized_string (state));
+-
+-        widget = GTK_WIDGET (gtk_builder_get_object (priv->builder,
+-                                                     "notebook_types"));
+-        if (type == NM_DEVICE_TYPE_ETHERNET) {
+-                gtk_notebook_set_current_page (GTK_NOTEBOOK (widget), 0);
+-                sub_pane = "wired";
+-        } else if (type == NM_DEVICE_TYPE_WIFI) {
+-                gtk_notebook_set_current_page (GTK_NOTEBOOK (widget), 1);
+-                sub_pane = "wireless";
+-        } else if (type == NM_DEVICE_TYPE_GSM ||
+-                   type == NM_DEVICE_TYPE_CDMA) {
+-                gtk_notebook_set_current_page (GTK_NOTEBOOK (widget), 4);
+-                sub_pane = "mobilebb";
+-        }
+-        if (sub_pane == NULL)
+-                goto out;
+-
+-        /* FIXME? should we need to do something with this? */
+-        if (state == NM_DEVICE_STATE_ACTIVATED)
+-                panel_show_ip4_config (nm_device_get_ip4_config (device));
+-
+-        if (type == NM_DEVICE_TYPE_ETHERNET) {
+-
+-                /* speed */
+-                str_tmp = g_strdup_printf ("%d Mb/sec",
+-                                           nm_device_ethernet_get_speed (NM_DEVICE_ETHERNET (device)));
+-                panel_set_widget_data (panel,
+-                                       sub_pane,
+-                                       "speed",
+-                                       str_tmp);
+-                g_free (str_tmp);
+-
+-                /* device MAC */
+-                str = nm_device_ethernet_get_hw_address (NM_DEVICE_ETHERNET (device));
+-                panel_set_widget_data (panel,
+-                                       sub_pane,
+-                                       "mac",
+-                                       str);
+-
+-        } else if (type == NM_DEVICE_TYPE_WIFI) {
+-
+-                /* speed */
+-                str_tmp = g_strdup_printf ("%d Mb/s",
+-                                           nm_device_wifi_get_bitrate (NM_DEVICE_WIFI (device)));
+-                panel_set_widget_data (panel,
+-                                       sub_pane,
+-                                       "speed",
+-                                       str_tmp);
+-                g_free (str_tmp);
+-
+-                /* device MAC */
+-                str = nm_device_wifi_get_hw_address (NM_DEVICE_WIFI (device));
+-                panel_set_widget_data (panel,
+-                                       sub_pane,
+-                                       "mac",
+-                                       str);
+-                /* security */
+-                str = nm_device_wifi_get_hw_address (NM_DEVICE_WIFI (device));
+-                panel_set_widget_data (panel,
+-                                       sub_pane,
+-                                       "security",
+-                                       NULL); /* FIXME */
+-
+-                /* populate access point dropdown */
+-                liststore_wireless_network = GTK_LIST_STORE (gtk_builder_get_object (priv->builder,
+-                                                             "liststore_wireless_network"));
+-                gtk_list_store_clear (liststore_wireless_network);
+-                active_ap = nm_device_wifi_get_active_access_point (NM_DEVICE_WIFI (device));
+-                aps = nm_device_wifi_get_access_points (NM_DEVICE_WIFI (device));
+-                if (aps == NULL)
+-                        return;
+-                aps_unique = panel_get_strongest_unique_aps (aps);
+-                for (i = 0; i < aps_unique->len; i++) {
+-                        ap = NM_ACCESS_POINT (g_ptr_array_index (aps_unique, i));
+-                        add_access_point (panel,
+-                                          ap,
+-                                          active_ap);
+-                }
+-
+-        } else if (type == NM_DEVICE_TYPE_GSM ||
+-                   type == NM_DEVICE_TYPE_CDMA) {
+-
+-                /* IMEI */
+-                str = g_object_get_data (G_OBJECT (device),
+-                                         "ControlCenter::EquipmentIdentifier");
+-                panel_set_widget_data (panel,
+-                                       sub_pane,
+-                                       "imei",
+-                                       str);
+-
+-                /* operator name */
+-                str = g_object_get_data (G_OBJECT (device),
+-                                         "ControlCenter::OperatorName");
+-                panel_set_widget_data (panel,
+-                                       sub_pane,
+-                                       "provider",
+-                                       str);
+-
+-                /* device speed */
+-                panel_set_widget_data (panel,
+-                                       sub_pane,
+-                                       "speed",
+-                                       NULL);
+-        }
+-
+-        /* get IP4 parameters */
+-        config_dhcp4 = nm_device_get_dhcp4_config (device);
+-        if (config_dhcp4 != NULL) {
+-                g_object_get (G_OBJECT (config_dhcp4),
+-                              NM_DHCP4_CONFIG_OPTIONS, &options,
+-                              NULL);
+-
+-                /* IPv4 address */
+-                panel_set_widget_data (panel,
+-                                       sub_pane,
+-                                       "ip4",
+-                                       nm_dhcp4_config_get_one_option (config_dhcp4,
+-                                                                       "ip_address"));
+-
+-                /* IPv4 DNS */
+-                panel_set_widget_data (panel,
+-                                       sub_pane,
+-                                       "dns",
+-                                       nm_dhcp4_config_get_one_option (config_dhcp4,
+-                                                                       "domain_name_servers"));
+-
+-                /* IPv4 route */
+-                panel_set_widget_data (panel,
+-                                       sub_pane,
+-                                       "route",
+-                                       nm_dhcp4_config_get_one_option (config_dhcp4,
+-                                                                       "routers"));
+-
+-                /* IPv4 netmask */
+-                if (type == NM_DEVICE_TYPE_ETHERNET) {
+-                        panel_set_widget_data (panel,
+-                                               sub_pane,
+-                                               "subnet",
+-                                               nm_dhcp4_config_get_one_option (config_dhcp4,
+-                                                                               "subnet_mask"));
+-                }
+-        }
+-
+-        /* get IP6 parameters */
+-        if (0) config_dhcp6 = nm_device_get_dhcp6_config (device);
+-        if (config_dhcp6 != NULL) {
+-
+-                /* IPv6 address */
+-                panel_set_widget_data (panel,
+-                                       sub_pane,
+-                                       "ip6",
+-                                       nm_dhcp6_config_get_one_option (config_dhcp6,
+-                                                                       "ip_address"));
+-        }
+-out:
+-        if (aps_unique != NULL)
+-                g_ptr_array_unref (aps_unique);
+-}
+-
+-static void
+ nm_devices_treeview_clicked_cb (GtkTreeSelection *selection, CcNetworkPanel *panel)
+ {
+         GtkTreeIter iter;
+         GtkTreeModel *model;
+         GtkWidget *widget;
+-        NMDevice *device;
++        void *device;
+         CcNetworkPanelPrivate *priv = panel->priv;
+ 
+         /* will only work in single or browse selection mode! */
+@@ -939,12 +356,6 @@
+                 goto out;
+         }
+ 
+-        /* save so we can update */
+-        g_free (priv->current_device);
+-        priv->current_device = g_strdup (nm_device_get_udi (device));
+-
+-        /* refresh device */
+-        nm_device_refresh_item_ui (panel, device);
+ out:
+         return;
+ }
+@@ -975,175 +386,8 @@
+ }
+ 
+ static void
+-cc_network_panel_notify_enable_active_cb (GtkSwitch *sw,
+-                                          GParamSpec *pspec,
+-                                          CcNetworkPanel *panel)
+-{
+-        gboolean enable;
+-
+-        /* set enabled state */
+-        enable = !gtk_switch_get_active (sw);
+-        nm_client_wireless_set_enabled (panel->priv->client, enable);
+-}
+-
+-static void
+-active_connections_changed (NMClient *client, GParamSpec *pspec, gpointer user_data)
+-{
+-        const GPtrArray *connections;
+-        int i, j;
+-
+-        g_debug ("Active connections changed:");
+-        connections = nm_client_get_active_connections (client);
+-        for (i = 0; connections && (i < connections->len); i++) {
+-                NMActiveConnection *connection;
+-                const GPtrArray *devices;
+-
+-                connection = g_ptr_array_index (connections, i);
+-                g_debug ("    %s", nm_object_get_path (NM_OBJECT (connection)));
+-                devices = nm_active_connection_get_devices (connection);
+-                for (j = 0; devices && j < devices->len; j++)
+-                        g_debug ("           %s", nm_device_get_udi (g_ptr_array_index (devices, j)));
+-                if (NM_IS_VPN_CONNECTION (connection))
+-                        g_debug ("           VPN base connection: %s", nm_active_connection_get_specific_object (connection));
+-        }
+-}
+-
+-static void
+-device_state_notify_changed_cb (NMDevice *device,
+-                                GParamSpec *pspec,
+-                                gpointer user_data)
+-{
+-        CcNetworkPanel *panel = CC_NETWORK_PANEL (user_data);
+-
+-        /* only refresh the selected device */
+-        if (g_strcmp0 (panel->priv->current_device,
+-                       nm_device_get_udi (device)) == 0) {
+-                nm_device_refresh_item_ui (panel, device);
+-        }
+-}
+-
+-static void
+-device_added_cb (NMClient *client, NMDevice *device, CcNetworkPanel *panel)
+-{
+-        g_debug ("New device added");
+-        panel_add_device (panel, device);
+-        g_signal_connect (G_OBJECT (device), "notify::state",
+-                          (GCallback) device_state_notify_changed_cb, NULL);
+-}
+-
+-static void
+-device_removed_cb (NMClient *client, NMDevice *device, CcNetworkPanel *panel)
+-{
+-        g_debug ("Device removed");
+-        panel_remove_device (panel, device);
+-}
+-
+-static void
+-manager_running (NMClient *client, GParamSpec *pspec, gpointer user_data)
+-{
+-        const GPtrArray *devices;
+-        int i;
+-        NMDevice *device_tmp;
+-        CcNetworkPanel *panel = CC_NETWORK_PANEL (user_data);
+-
+-        /* TODO: clear all devices we added */
+-        if (!nm_client_get_manager_running (client)) {
+-                g_debug ("NM disappeared");
+-                return;
+-        }
+-
+-        g_debug ("coldplugging devices");
+-        devices = nm_client_get_devices (client);
+-        if (devices == NULL) {
+-                g_debug ("No devices to add");
+-                return;
+-        }
+-        for (i = 0; i < devices->len; i++) {
+-                device_tmp = g_ptr_array_index (devices, i);
+-                panel_add_device (panel, device_tmp);
+-        }
+-
+-        /* select the first device */
+-        select_first_device (panel);
+-}
+-
+-static void
+-notify_connections_read_cb (NMRemoteSettings *settings,
+-                            GParamSpec *pspec,
+-                            gpointer user_data)
+-{
+-        CcNetworkPanel *panel = CC_NETWORK_PANEL (user_data);
+-        GSList *list, *iter;
+-
+-        list = nm_remote_settings_list_connections (settings);
+-        g_debug ("%p has %i remote connections",
+-                 panel, g_slist_length (list));
+-        for (iter = list; iter; iter = g_slist_next (iter)) {
+-                NMConnection *candidate = NM_CONNECTION (iter->data);
+-                /* we can't actually test this yet as VPN support in
+-                 * NetworkManager 0.9 is currently broken */
+-                g_debug ("TODO: add %s", nm_connection_get_path (candidate));
+-        }
+-}
+-
+-static gboolean
+-panel_check_network_manager_version (CcNetworkPanel *panel)
+-{
+-        const gchar *message;
+-        const gchar *version;
+-        gchar **split;
+-        GtkWidget *dialog;
+-        GtkWindow *window = NULL;
+-        guint major = 0;
+-        guint micro = 0;
+-        guint minor = 0;
+-        gboolean ret = TRUE;
+-
+-        /* parse running version */
+-        version = nm_client_get_version (panel->priv->client);
+-        if (version != NULL) {
+-                split = g_strsplit (version, ".", -1);
+-                major = atoi (split[0]);
+-                minor = atoi (split[1]);
+-                micro = atoi (split[2]);
+-        }
+-
+-        /* is it too new */
+-        if (major > 0 || major > 9) {
+-
+-                /* TRANSLATORS: the user is running a NM that is too new and API compatible */
+-                message = _("The running NetworkManager version is not compatible (too new).");
+-
+-        /* is it new enough */
+-        } else if (minor <= 8 && micro < 992) {
+-
+-                /* TRANSLATORS: the user is running a NM that is too old and API compatible */
+-                message = _("The running NetworkManager version is not compatible (too old).");
+-        }
+-
+-        /* nothing to do */
+-        if (message == NULL)
+-                goto out;
+-
+-        /* do modal dialog */
+-        ret = FALSE;
+-        dialog = gtk_message_dialog_new (window,
+-                                         GTK_DIALOG_MODAL,
+-                                         GTK_MESSAGE_ERROR,
+-                                         GTK_BUTTONS_CLOSE,
+-                                         "%s",
+-                                         message);
+-        gtk_dialog_run (GTK_DIALOG (dialog));
+-        gtk_widget_destroy (dialog);
+-out:
+-        g_strfreev (split);
+-        return ret;
+-}
+-
+-static void
+ cc_network_panel_init (CcNetworkPanel *panel)
+ {
+-        DBusGConnection *bus = NULL;
+         gboolean ret;
+         GError *error = NULL;
+         gint value;
+@@ -1155,7 +399,6 @@
+         GtkTreeSelection *selection;
+         GtkTreeSortable *sortable;
+         GtkWidget *widget;
+-        NMRemoteSettings *remote_settings;
+ 
+         panel->priv = NETWORK_PANEL_PRIVATE (panel);
+ 
+@@ -1270,44 +513,6 @@
+         /* add the virtual proxy device */
+         panel_add_proxy_device (panel);
+ 
+-        /* setup wireless combobox model */
+-        combobox = GTK_COMBO_BOX (gtk_builder_get_object (panel->priv->builder,
+-                                                          "combobox_network_name"));
+-
+-        renderer = panel_cell_renderer_mode_new ();
+-        gtk_cell_layout_pack_start (GTK_CELL_LAYOUT (combobox),
+-                                    renderer,
+-                                    FALSE);
+-        gtk_cell_layout_set_attributes (GTK_CELL_LAYOUT (combobox), renderer,
+-                                        "mode", PANEL_WIRELESS_COLUMN_MODE,
+-                                        NULL);
+-
+-        /* sort networks in drop down */
+-        sortable = GTK_TREE_SORTABLE (gtk_builder_get_object (panel->priv->builder,
+-                                                              "liststore_wireless_network"));
+-        gtk_tree_sortable_set_sort_column_id (sortable,
+-                                              PANEL_WIRELESS_COLUMN_SORT,
+-                                              GTK_SORT_ASCENDING);
+-
+-        renderer = panel_cell_renderer_signal_new ();
+-        gtk_cell_layout_pack_start (GTK_CELL_LAYOUT (combobox),
+-                                    renderer,
+-                                    FALSE);
+-        gtk_cell_layout_set_attributes (GTK_CELL_LAYOUT (combobox), renderer,
+-                                        "signal", PANEL_WIRELESS_COLUMN_STRENGTH,
+-                                        NULL);
+-
+-        /* use NetworkManager client */
+-        panel->priv->client = nm_client_new ();
+-        g_signal_connect (panel->priv->client, "notify::" NM_CLIENT_MANAGER_RUNNING,
+-                          G_CALLBACK (manager_running), panel);
+-        g_signal_connect (panel->priv->client, "notify::" NM_CLIENT_ACTIVE_CONNECTIONS,
+-                          G_CALLBACK (active_connections_changed), panel);
+-        g_signal_connect (panel->priv->client, "device-added",
+-                          G_CALLBACK (device_added_cb), panel);
+-        g_signal_connect (panel->priv->client, "device-removed",
+-                          G_CALLBACK (device_removed_cb), panel);
+-
+         /* disable for now, until we can remove connections without
+          * segfaulting NM... */
+         widget = GTK_WIDGET (gtk_builder_get_object (panel->priv->builder,
+@@ -1321,32 +526,10 @@
+         gtk_widget_set_sensitive (widget, FALSE);
+         widget = GTK_WIDGET (gtk_builder_get_object (panel->priv->builder,
+                                                      "switch_flight_mode"));
+-        ret = nm_client_wireless_get_enabled (panel->priv->client);
+-        gtk_switch_set_active (GTK_SWITCH (widget), !ret);
+-        g_signal_connect (GTK_SWITCH (widget), "notify::active",
+-                          G_CALLBACK (cc_network_panel_notify_enable_active_cb),
+-                          panel);
++        gtk_switch_set_active (GTK_SWITCH (widget), FALSE);
+ 
+-        /* add remote settings such as VPN settings as virtual devices */
+-        bus = dbus_g_bus_get (DBUS_BUS_SYSTEM, &error);
+-        if (bus == NULL) {
+-                g_warning ("Error connecting to system D-Bus: %s",
+-                           error->message);
+-                g_error_free (error);
+-        }
+-        remote_settings = nm_remote_settings_new (bus);
+-        g_signal_connect (remote_settings, "notify::" NM_REMOTE_SETTINGS_CONNECTIONS_READ,
+-                          G_CALLBACK (notify_connections_read_cb), panel);
+-
+-        /* is the user compiling against a new version, but running an
+-         * old daemon version? */
+-        ret = panel_check_network_manager_version (panel);
+-        if (ret) {
+-                manager_running (panel->priv->client, NULL, panel);
+-        } else {
+-                /* just select the proxy settings */
+-                select_first_device (panel);
+-        }
++        /* just select the proxy settings */
++        select_first_device (panel);
+ 
+         /* hide implementation details */
+         widget = GTK_WIDGET (gtk_builder_get_object (panel->priv->builder,
+Index: gnome-control-center-2.91.90/panels/network/panel-common.c
+===================================================================
+--- gnome-control-center-2.91.90.orig/panels/network/panel-common.c	2011-02-25 09:56:16.828327001 +0100
++++ gnome-control-center-2.91.90/panels/network/panel-common.c	2011-02-25 09:56:22.904327002 +0100
+@@ -27,188 +27,3 @@
+ 
+ #include "panel-common.h"
+ 
+-/**
+- * panel_device_type_to_icon_name:
+- **/
+-const gchar *
+-panel_device_type_to_icon_name (NMDeviceType type)
+-{
+-        const gchar *value = NULL;
+-        switch (type) {
+-        case NM_DEVICE_TYPE_ETHERNET:
+-                value = "network-wired";
+-                break;
+-        case NM_DEVICE_TYPE_WIFI:
+-        case NM_DEVICE_TYPE_GSM:
+-        case NM_DEVICE_TYPE_CDMA:
+-        case NM_DEVICE_TYPE_BT:
+-        case NM_DEVICE_TYPE_OLPC_MESH:
+-                value = "network-wireless";
+-                break;
+-        default:
+-                break;
+-        }
+-        return value;
+-}
+-
+-/**
+- * panel_device_type_to_localized_string:
+- **/
+-const gchar *
+-panel_device_type_to_localized_string (NMDeviceType type)
+-{
+-        const gchar *value = NULL;
+-        switch (type) {
+-        case NM_DEVICE_TYPE_UNKNOWN:
+-                /* TRANSLATORS: device type */
+-                value = _("Unknown");
+-                break;
+-        case NM_DEVICE_TYPE_ETHERNET:
+-                /* TRANSLATORS: device type */
+-                value = _("Wired");
+-                break;
+-        case NM_DEVICE_TYPE_WIFI:
+-                /* TRANSLATORS: device type */
+-                value = _("Wireless");
+-                break;
+-        case NM_DEVICE_TYPE_GSM:
+-        case NM_DEVICE_TYPE_CDMA:
+-                /* TRANSLATORS: device type */
+-                value = _("Mobile broadband");
+-                break;
+-        case NM_DEVICE_TYPE_BT:
+-                /* TRANSLATORS: device type */
+-                value = _("Bluetooth");
+-                break;
+-        case NM_DEVICE_TYPE_OLPC_MESH:
+-                /* TRANSLATORS: device type */
+-                value = _("Mesh");
+-                break;
+-        default:
+-                break;
+-        }
+-        return value;
+-}
+-
+-/**
+- * panel_device_type_to_sortable_string:
+- *
+- * Try to return order of approximate connection speed.
+- **/
+-const gchar *
+-panel_device_type_to_sortable_string (NMDeviceType type)
+-{
+-        const gchar *value = NULL;
+-        switch (type) {
+-        case NM_DEVICE_TYPE_ETHERNET:
+-                value = "1";
+-                break;
+-        case NM_DEVICE_TYPE_WIFI:
+-                value = "2";
+-                break;
+-        case NM_DEVICE_TYPE_GSM:
+-        case NM_DEVICE_TYPE_CDMA:
+-                value = "3";
+-                break;
+-        case NM_DEVICE_TYPE_BT:
+-                value = "4";
+-                break;
+-        case NM_DEVICE_TYPE_OLPC_MESH:
+-                value = "5";
+-                break;
+-        default:
+-                value = "6";
+-                break;
+-        }
+-        return value;
+-}
+-
+-/**
+- * panel_ap_mode_to_localized_string:
+- **/
+-const gchar *
+-panel_ap_mode_to_localized_string (NM80211Mode mode)
+-{
+-        const gchar *value = NULL;
+-        switch (mode) {
+-        case NM_802_11_MODE_UNKNOWN:
+-                /* TRANSLATORS: AP type */
+-                value = _("Unknown");
+-                break;
+-        case NM_802_11_MODE_ADHOC:
+-                /* TRANSLATORS: AP type */
+-                value = _("Ad-hoc");
+-                break;
+-        case NM_802_11_MODE_INFRA:
+-                /* TRANSLATORS: AP type */
+-                value = _("Infrastructure");
+-                break;
+-        default:
+-                break;
+-        }
+-        return value;
+-}
+-
+-/**
+- * panel_device_state_to_localized_string:
+- **/
+-const gchar *
+-panel_device_state_to_localized_string (NMDeviceState type)
+-{
+-        const gchar *value = NULL;
+-        switch (type) {
+-        case NM_DEVICE_STATE_UNKNOWN:
+-                /* TRANSLATORS: device status */
+-                value = _("Status unknown");
+-                break;
+-        case NM_DEVICE_STATE_UNMANAGED:
+-                /* TRANSLATORS: device status */
+-                value = _("Unmanaged");
+-                break;
+-        case NM_DEVICE_STATE_UNAVAILABLE:
+-                /* TRANSLATORS: device status */
+-                value = _("Unavailable");
+-                break;
+-        case NM_DEVICE_STATE_DISCONNECTED:
+-                /* TRANSLATORS: device status */
+-                value = _("Disconnected");
+-                break;
+-        case NM_DEVICE_STATE_PREPARE:
+-                /* TRANSLATORS: device status */
+-                value = _("Preparing connection");
+-                break;
+-        case NM_DEVICE_STATE_CONFIG:
+-                /* TRANSLATORS: device status */
+-                value = _("Configuring connection");
+-                break;
+-        case NM_DEVICE_STATE_NEED_AUTH:
+-                /* TRANSLATORS: device status */
+-                value = _("Authenticating");
+-                break;
+-        case NM_DEVICE_STATE_IP_CONFIG:
+-                /* TRANSLATORS: device status */
+-                value = _("Getting network address");
+-                break;
+-        case NM_DEVICE_STATE_IP_CHECK:
+-                /* TRANSLATORS: device status */
+-                value = _("Checking network address");
+-                break;
+-        case NM_DEVICE_STATE_ACTIVATED:
+-                /* TRANSLATORS: device status */
+-                value = _("Connected");
+-                break;
+-        case NM_DEVICE_STATE_DEACTIVATING:
+-                /* TRANSLATORS: device status */
+-                value = _("Disconnecting");
+-                break;
+-        case NM_DEVICE_STATE_FAILED:
+-                /* TRANSLATORS: device status */
+-                value = _("Failed to connect");
+-                break;
+-        default:
+-                /* TRANSLATORS: device status */
+-                value = _("Status unknown (missing)");
+-                break;
+-        }
+-        return value;
+-}
+Index: gnome-control-center-2.91.90/panels/network/panel-common.h
+===================================================================
+--- gnome-control-center-2.91.90.orig/panels/network/panel-common.h	2011-02-25 09:56:16.832327001 +0100
++++ gnome-control-center-2.91.90/panels/network/panel-common.h	2011-02-25 09:56:22.904327002 +0100
+@@ -23,16 +23,9 @@
+ #define PANEL_COMMON_H
+ 
+ #include <glib-object.h>
+-#include <NetworkManager.h>
+ 
+ G_BEGIN_DECLS
+ 
+-const gchar     *panel_device_type_to_icon_name                 (NMDeviceType type);
+-const gchar     *panel_device_type_to_localized_string          (NMDeviceType type);
+-const gchar     *panel_device_type_to_sortable_string           (NMDeviceType type);
+-const gchar     *panel_ap_mode_to_localized_string              (NM80211Mode mode);
+-const gchar     *panel_device_state_to_localized_string         (NMDeviceState type);
+-
+ G_END_DECLS
+ 
+ #endif /* PANEL_COMMON_H */
+Index: gnome-control-center-2.91.90/panels/network/panel-cell-renderer-mode.c
+===================================================================
+--- gnome-control-center-2.91.90.orig/panels/network/panel-cell-renderer-mode.c	2011-02-25 09:56:16.820327001 +0100
++++ gnome-control-center-2.91.90/panels/network/panel-cell-renderer-mode.c	2011-02-25 09:56:22.904327002 +0100
+@@ -64,8 +64,6 @@
+ {
+         const gchar *icon_name = NULL;
+ 
+-        if (renderer->mode == NM_802_11_MODE_ADHOC)
+-                icon_name = "network-workgroup";
+ 
+         g_object_set (renderer, "icon-name", icon_name, NULL);
+ }
+Index: gnome-control-center-2.91.90/panels/network/panel-cell-renderer-mode.h
+===================================================================
+--- gnome-control-center-2.91.90.orig/panels/network/panel-cell-renderer-mode.h	2011-02-25 09:56:16.816327001 +0100
++++ gnome-control-center-2.91.90/panels/network/panel-cell-renderer-mode.h	2011-02-25 09:56:22.904327002 +0100
+@@ -25,9 +25,6 @@
+ #include <glib-object.h>
+ #include <gtk/gtk.h>
+ 
+-#include "nm-device.h"
+-#include "nm-access-point.h"
+-
+ #define PANEL_TYPE_CELL_RENDERER_MODE           (panel_cell_renderer_mode_get_type())
+ #define PANEL_CELL_RENDERER_MODE(obj)           (G_TYPE_CHECK_INSTANCE_CAST((obj), PANEL_TYPE_CELL_RENDERER_MODE, PanelCellRendererMode))
+ #define PANEL_CELL_RENDERER_MODE_CLASS(cls)     (G_TYPE_CHECK_CLASS_CAST((cls), PANEL_TYPE_CELL_RENDERER_MODE, PanelCellRendererModeClass))
+Index: gnome-control-center-2.91.90/panels/network/panel-cell-renderer-signal.h
+===================================================================
+--- gnome-control-center-2.91.90.orig/panels/network/panel-cell-renderer-signal.h	2011-02-25 09:56:16.808327001 +0100
++++ gnome-control-center-2.91.90/panels/network/panel-cell-renderer-signal.h	2011-02-25 09:56:22.904327002 +0100
+@@ -25,9 +25,6 @@
+ #include <glib-object.h>
+ #include <gtk/gtk.h>
+ 
+-#include "nm-device.h"
+-#include "nm-access-point.h"
+-
+ #define PANEL_TYPE_CELL_RENDERER_SIGNAL                 (panel_cell_renderer_signal_get_type())
+ #define PANEL_CELL_RENDERER_SIGNAL(obj)                 (G_TYPE_CHECK_INSTANCE_CAST((obj), PANEL_TYPE_CELL_RENDERER_SIGNAL, PanelCellRendererSignal))
+ #define PANEL_CELL_RENDERER_SIGNAL_CLASS(cls)           (G_TYPE_CHECK_CLASS_CAST((cls), PANEL_TYPE_CELL_RENDERER_SIGNAL, PanelCellRendererSignalClass))
