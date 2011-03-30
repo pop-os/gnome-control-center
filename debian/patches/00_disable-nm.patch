@@ -1,7 +1,7 @@
-Index: gnome-control-center-2.91.92/configure.ac
+Index: gnome-control-center-2.91.93/configure.ac
 ===================================================================
---- gnome-control-center-2.91.92.orig/configure.ac	2011-03-21 16:55:17.000000000 +0100
-+++ gnome-control-center-2.91.92/configure.ac	2011-03-21 20:56:18.160367002 +0100
+--- gnome-control-center-2.91.93.orig/configure.ac	2011-03-30 23:54:43.672222233 +0530
++++ gnome-control-center-2.91.93/configure.ac	2011-03-30 23:54:56.652286589 +0530
 @@ -123,12 +123,7 @@
  GDESKTOP_PREFIX=`$PKG_CONFIG --variable prefix gsettings-desktop-schemas`
  AC_SUBST(GDESKTOP_PREFIX)
@@ -16,11 +16,11 @@ Index: gnome-control-center-2.91.92/configure.ac
  AM_CONDITIONAL(BUILD_NETWORK, [test x$have_networkmanager = xyes])
  
  # Check for CUPS 1.4 or newer
-Index: gnome-control-center-2.91.92/panels/network/Makefile.am
+Index: gnome-control-center-2.91.93/panels/network/Makefile.am
 ===================================================================
---- gnome-control-center-2.91.92.orig/panels/network/Makefile.am	2011-03-21 20:55:18.080367002 +0100
-+++ gnome-control-center-2.91.92/panels/network/Makefile.am	2011-03-21 20:56:18.160367002 +0100
-@@ -14,18 +14,6 @@
+--- gnome-control-center-2.91.93.orig/panels/network/Makefile.am	2011-03-30 23:54:43.660222174 +0530
++++ gnome-control-center-2.91.93/panels/network/Makefile.am	2011-03-30 23:56:16.436682197 +0530
+@@ -14,20 +14,6 @@
  
  libnetwork_la_SOURCES =					\
  	network-module.c				\
@@ -34,15 +34,17 @@ Index: gnome-control-center-2.91.92/panels/network/Makefile.am
 -	net-vpn.h					\
 -	panel-cell-renderer-mode.c			\
 -	panel-cell-renderer-mode.h			\
+-	panel-cell-renderer-security.c			\
+-	panel-cell-renderer-security.h			\
 -	panel-cell-renderer-signal.c			\
 -	panel-cell-renderer-signal.h			\
  	cc-network-panel.c				\
  	cc-network-panel.h
  
-Index: gnome-control-center-2.91.92/panels/network/cc-network-panel.c
+Index: gnome-control-center-2.91.93/panels/network/cc-network-panel.c
 ===================================================================
---- gnome-control-center-2.91.92.orig/panels/network/cc-network-panel.c	2011-03-21 20:55:18.072367002 +0100
-+++ gnome-control-center-2.91.92/panels/network/cc-network-panel.c	2011-03-21 21:03:09.456367002 +0100
+--- gnome-control-center-2.91.93.orig/panels/network/cc-network-panel.c	2011-03-30 23:54:43.648222109 +0530
++++ gnome-control-center-2.91.93/panels/network/cc-network-panel.c	2011-03-31 00:03:04.258704453 +0530
 @@ -25,6 +25,7 @@
  
  #include "cc-network-panel.h"
@@ -51,15 +53,15 @@ Index: gnome-control-center-2.91.92/panels/network/cc-network-panel.c
  #include "nm-remote-settings.h"
  #include "nm-client.h"
  #include "nm-device.h"
-@@ -47,6 +48,7 @@
- #include "panel-common.h"
+@@ -48,6 +49,7 @@
  #include "panel-cell-renderer-mode.h"
  #include "panel-cell-renderer-signal.h"
+ #include "panel-cell-renderer-security.h"
 +#endif
  
  G_DEFINE_DYNAMIC_TYPE (CcNetworkPanel, cc_network_panel, CC_TYPE_PANEL)
  
-@@ -58,8 +60,6 @@
+@@ -59,8 +61,6 @@
          GCancellable     *cancellable;
          GSettings        *proxy_settings;
          GtkBuilder       *builder;
@@ -68,7 +70,15 @@ Index: gnome-control-center-2.91.92/panels/network/cc-network-panel.c
          gboolean          updating_device;
  };
  
-@@ -124,6 +124,7 @@
+@@ -83,7 +83,6 @@
+ };
+ 
+ static void     refresh_ui      (CcNetworkPanel *panel);
+-static NetObject *find_in_model_by_id (CcNetworkPanel *panel, const gchar *id);
+ 
+ static void
+ cc_network_panel_get_property (GObject    *object,
+@@ -127,6 +126,7 @@
                  g_object_unref (priv->builder);
                  priv->builder = NULL;
          }
@@ -76,7 +86,7 @@ Index: gnome-control-center-2.91.92/panels/network/cc-network-panel.c
          if (priv->client != NULL) {
                  g_object_unref (priv->client);
                  priv->client = NULL;
-@@ -132,6 +133,7 @@
+@@ -135,6 +135,7 @@
                  g_object_unref (priv->remote_settings);
                  priv->remote_settings = NULL;
          }
@@ -84,7 +94,7 @@ Index: gnome-control-center-2.91.92/panels/network/cc-network-panel.c
  
          G_OBJECT_CLASS (cc_network_panel_parent_class)->dispose (object);
  }
-@@ -213,6 +215,7 @@
+@@ -216,6 +217,7 @@
          check_wpad_warning (panel);
  }
  
@@ -92,7 +102,7 @@ Index: gnome-control-center-2.91.92/panels/network/cc-network-panel.c
  static NetObject *
  get_selected_object (CcNetworkPanel *panel)
  {
-@@ -235,6 +238,7 @@
+@@ -238,6 +240,7 @@
  
          return object;
  }
@@ -100,7 +110,7 @@ Index: gnome-control-center-2.91.92/panels/network/cc-network-panel.c
  
  static void
  panel_proxy_mode_combo_setup_widgets (CcNetworkPanel *panel, guint value)
-@@ -336,6 +340,7 @@
+@@ -367,6 +370,7 @@
          gtk_tree_path_free (path);
  }
  
@@ -108,7 +118,7 @@ Index: gnome-control-center-2.91.92/panels/network/cc-network-panel.c
  static void
  panel_device_got_modem_manager_cb (GObject *source_object,
                                     GAsyncResult *res,
-@@ -596,6 +601,7 @@
+@@ -632,6 +636,7 @@
                  g_object_unref (object_tmp);
          } while (gtk_tree_model_iter_next (model, &iter));
  }
@@ -116,7 +126,7 @@ Index: gnome-control-center-2.91.92/panels/network/cc-network-panel.c
  
  static void
  panel_add_devices_columns (CcNetworkPanel *panel, GtkTreeView *treeview)
-@@ -631,6 +637,7 @@
+@@ -667,6 +672,7 @@
          gtk_tree_view_column_set_expand (column, TRUE);
  }
  
@@ -124,7 +134,7 @@ Index: gnome-control-center-2.91.92/panels/network/cc-network-panel.c
  static void
  panel_set_widget_data (CcNetworkPanel *panel,
                         const gchar *sub_pane,
-@@ -1460,6 +1467,7 @@
+@@ -1652,6 +1658,7 @@
                                 "group_password",
                                  net_vpn_get_password (vpn));
  }
@@ -132,7 +142,7 @@ Index: gnome-control-center-2.91.92/panels/network/cc-network-panel.c
  
  static void
  refresh_ui (CcNetworkPanel *panel)
-@@ -1468,7 +1476,7 @@
+@@ -1660,7 +1667,7 @@
          GtkTreeIter iter;
          GtkTreeModel *model;
          GtkWidget *widget;
@@ -141,7 +151,7 @@ Index: gnome-control-center-2.91.92/panels/network/cc-network-panel.c
          CcNetworkPanelPrivate *priv = panel->priv;
  
          widget = GTK_WIDGET (gtk_builder_get_object (panel->priv->builder,
-@@ -1481,8 +1489,6 @@
+@@ -1673,8 +1680,6 @@
                  goto out;
          }
  
@@ -150,7 +160,7 @@ Index: gnome-control-center-2.91.92/panels/network/cc-network-panel.c
          /* this is the proxy settings device */
          if (object == NULL) {
  
-@@ -1516,6 +1522,7 @@
+@@ -1709,6 +1714,7 @@
                  goto out;
          }
  
@@ -158,7 +168,7 @@ Index: gnome-control-center-2.91.92/panels/network/cc-network-panel.c
          /* VPN */
          if (NET_IS_VPN (object)) {
                  nm_device_refresh_vpn_ui (panel, NET_VPN (object));
-@@ -1538,6 +1545,7 @@
+@@ -1731,6 +1737,7 @@
                  /* refresh device */
                  nm_device_refresh_device_ui (panel, NET_DEVICE (object));
          }
@@ -166,7 +176,7 @@ Index: gnome-control-center-2.91.92/panels/network/cc-network-panel.c
  out:
          return;
  }
-@@ -1571,6 +1579,7 @@
+@@ -1764,6 +1771,7 @@
          g_free (title);
  }
  
@@ -174,7 +184,7 @@ Index: gnome-control-center-2.91.92/panels/network/cc-network-panel.c
  static void
  cc_network_panel_notify_enable_active_cb (GtkSwitch *sw,
                                            GParamSpec *pspec,
-@@ -1919,25 +1928,17 @@
+@@ -2130,25 +2138,17 @@
                  return;
          }
  }
@@ -204,7 +214,7 @@ Index: gnome-control-center-2.91.92/panels/network/cc-network-panel.c
  static void
  wireless_ap_changed_cb (GtkComboBox *combo_box, CcNetworkPanel *panel)
  {
-@@ -2023,11 +2024,11 @@
+@@ -2238,11 +2238,11 @@
          g_free (ssid_target);
          g_free (object_path);
  }
@@ -217,15 +227,15 @@ Index: gnome-control-center-2.91.92/panels/network/cc-network-panel.c
          gboolean ret;
          GError *error = NULL;
          gint value;
-@@ -2154,6 +2155,7 @@
+@@ -2369,6 +2369,7 @@
          /* add the virtual proxy device */
          panel_add_proxy_device (panel);
  
 +#if 0
          /* setup wireless combobox model */
          combobox = GTK_COMBO_BOX (gtk_builder_get_object (panel->priv->builder,
-                                                           "combobox_network_name"));
-@@ -2255,6 +2257,7 @@
+                                                           "combobox_wireless_network_name"));
+@@ -2498,6 +2499,7 @@
                            G_CALLBACK (notify_connections_read_cb), panel);
          g_signal_connect (panel->priv->remote_settings, NM_REMOTE_SETTINGS_NEW_CONNECTION,
                            G_CALLBACK (notify_new_connection_cb), panel);
