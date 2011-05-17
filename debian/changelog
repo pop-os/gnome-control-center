@@ -1,320 +1,196 @@
-gnome-control-center (1:2.32.1-0ubuntu15) natty; urgency=low
+gnome-control-center (1:3.0.1.1-1ubuntu1) UNRELEASED; urgency=low
 
-  * debian/rules: switch rules order to avoid log files in the diff.gz
-
- -- Sebastien Bacher <seb128@ubuntu.com>  Tue, 19 Apr 2011 11:31:56 +0200
-
-gnome-control-center (1:2.32.1-0ubuntu14) natty; urgency=low
-
-  * debian/patches/06_use_icon_description_in_indicator.patch:
-    - Add patch to set a description (for A11Y) on indicators (LP: #740729)
-
- -- Rodrigo Moya <rodrigo.moya@canonical.com>  Mon, 11 Apr 2011 16:59:07 +0200
-
-gnome-control-center (1:2.32.1-0ubuntu13) natty; urgency=low
-
-  * remove 112_banshee_in_media_dropdown.patch now that banshee executable
-    has been renamed to banshee instead of banshee-1 (LP: #750058)
-
- -- Didier Roche <didrocks@ubuntu.com>  Tue, 05 Apr 2011 15:55:54 +0200
-
-gnome-control-center (1:2.32.1-0ubuntu12) natty; urgency=low
-
-  * Add 00git_keyboard_help_button.patch: Re-fix help button in the keyboard
-    preferences. (LP: #545107)
-
- -- Martin Pitt <martin.pitt@ubuntu.com>  Thu, 31 Mar 2011 17:49:52 +0200
-
-gnome-control-center (1:2.32.1-0ubuntu11) natty; urgency=low
-
+  * Rebase on Debian, remaining Ubuntu changes:
   * debian/control:
-    - Fix epoch of libgnome-desktop-dev version
-
- -- Robert Ancell <robert.ancell@canonical.com>  Thu, 17 Mar 2011 16:01:20 +1100
-
-gnome-control-center (1:2.32.1-0ubuntu10) natty; urgency=low
-
-  * debian/control:
-    - Bump build-depends on libgnome-desktop-dev to use patched version that
-      supports toggling of monitor labels
-  * debian/patches/05_display_capplet_label_focus.patch:
-    - Only show monitor labels when display applet has focus (LP: #403840)
-
- -- Robert Ancell <robert.ancell@canonical.com>  Thu, 17 Mar 2011 14:49:32 +1100
-
-gnome-control-center (1:2.32.1-0ubuntu9) natty; urgency=low
-
-  * Add 54_ubuntu_rename_shell.patch: Rename control center shell to "System
-    Settings", as per Ayatana design team decision. (LP: #733234)
-
- -- Martin Pitt <martin.pitt@ubuntu.com>  Mon, 14 Mar 2011 16:56:58 +0100
-
-gnome-control-center (1:2.32.1-0ubuntu8) natty; urgency=low
-
-  * debian/patches/00_git_dont_erase_background_xml.patch:
-    - from upstream, prevent removing background.xml which removes
-      manually added backgrounds. (LP: #584054)
-      Thanks to Kimiko Koopman for backporting it.
-
- -- Didier Roche <didrocks@ubuntu.com>  Fri, 11 Mar 2011 11:40:00 +0100
-
-gnome-control-center (1:2.32.1-0ubuntu7) natty; urgency=low
-
-  * Add debian/gnome-control-center.links: Add gnomecc.desktop to
-    indicator-session extra menu list. (LP: #727823)
-
- -- Martin Pitt <martin.pitt@ubuntu.com>  Fri, 11 Mar 2011 09:22:41 +0100
-
-gnome-control-center (1:2.32.1-0ubuntu6) natty; urgency=low
-
-  * Add 53_ubuntu_show_shell.patch: Show gnomecc.desktop, so that we can find
-    it in Unity. For classic GNOME we will disable it in
-    /etc/xdg/menus/settings.menu instead. (LP: #727823)
-
- -- Martin Pitt <martin.pitt@ubuntu.com>  Mon, 07 Mar 2011 16:50:00 +0100
-
-gnome-control-center (1:2.32.1-0ubuntu5) natty; urgency=low
-
-  * debian/{control{,.in},rules}: enable PIE build for security hardening
-    of font thumbnailer (Closes: #613761).
-
- -- Kees Cook <kees@ubuntu.com>  Wed, 16 Feb 2011 16:43:20 -0800
-
-gnome-control-center (1:2.32.1-0ubuntu4) natty; urgency=low
-
-  [ Sebastien Bacher ]
-  * Drop icons which were used in the desktop effect tab
-
-  [ Dmitry Andreychuk ]
+    - Build-Depend on hardening-wrapper, quilt, dpkg-dev, dh-autoreconf and
+      libappindicator3-dev
+    - Add dependency on ubuntu-system-service
+  * debian/rules:
+    - Use autoreconf and quilt for patches
+    - Add binary-post-install rule for gnome-control-center-data
+  * debian/gnome-control-center.dirs:
+  * debian/gnome-control-center.links:
+    - Add a link to the control center shell for indicators
+  * debian/patches/50_ubuntu_systemwide_prefs.patch:
+    - Ubuntu specific proxy preferences
+  * debian/patches/51_ubuntu_system_keyboard.patch:
+    - Implement the global keyboard spec at https://wiki.ubuntu.com/DefaultKeyboardSettings
   * debian/patches/52_button_layout_from_theme.patch:
-    - when saving custom theme to file also save current button 
-      layout (LP: #589377)
-    - process button layout in theme_load_from_gconf()
-    - fixed copying button layout to custom theme
+    - Enable themes to provide a prefered button layout option:
+      X-GNOME-Metatheme/ButtonLayout
+  * debian/patches/96_hide_accessible_login.patch:
+    - Remove the "Accessible Login" button from gnome-at-properties
+  * debian/patches/99_ltmain_as-needed.patch
+    - Process --as-needed option for ltmain
 
- -- Ken VanDine <ken.vandine@canonical.com>  Thu, 10 Feb 2011 13:13:30 -0500
+ -- Rodrigo Moya <rodrigo.moya@canonical.com>  Tue, 17 May 2011 10:47:27 +0200
 
-gnome-control-center (1:2.32.1-0ubuntu3) natty; urgency=low
+gnome-control-center (1:3.0.1.1-1) experimental; urgency=low
 
-  * 140_backport_default_internet_apps.patch:
-    - Backport default Internet app panel from 3.0 to 2.32.  This lets one
-      set the new-style glib url handlers for web and mail.
-  * 141_set_default_internet_apps.patch:
-    - On startup, set the web and mail combo boxes to the current glib
-      value.  Patch sent upstream.
-  * 142_fix_icons_for_default_apps.patch:
-    - Fix icon handling for web and mail combo boxes.  Patch sent upstream.
-  * 143_write_default_internet_apps_to_gconf.patch:
-    - Until we update GNOME to 3.0, write back the current glib url
-      handlers to gconf for apps still directly using such keys rather than
-      the glib functions for launching apps.
+  * New upstream release.
+  * gnome-control-center-data.install: drop GConf schemas.
+  * gnome-control-center-data.gconf-defaults: dropped, obsolete.
 
- -- Michael Terry <mterry@ubuntu.com>  Thu, 06 Jan 2011 10:01:07 -0500
+ -- Josselin Mouette <joss@debian.org>  Fri, 29 Apr 2011 02:24:28 +0200
 
-gnome-control-center (1:2.32.1-0ubuntu2) natty; urgency=low
+gnome-control-center (1:3.0.0.1-1) experimental; urgency=low
 
-  * 95_desktop-effects-integration.patch: drop the desktop effects tab,
-    the desktop environment selection is made on gdm nowadays and changing the
-    wm is a techinical task, not something that requires a graphical interface.
-    The capplet which is being patched for the desktop effects is going to be
-    deprecated in GNOME3 so in any case that would need to be rewritten.
+  * New upstream release.
+  * debian/control.in:
+    + add build dependency on new libnm-glib-dev, libnm-util-dev, and
+      network-manager-dev.
+    + bump build dependency on gnome-settings-daemon-dev.
+    + add dependency on gnome-icon-theme-symbolic.
+    + bump dependency on gnome-settings-daemon, required for new gsettings
+      schema.
+  * debian/patches/00_disable-nm.patch: removed as NM 0.9 is now available.
+  * debian/patches/99_autoreconf.patch: removed.
+  * debian/libgnome-control-center-dev.install: do not install gtk-doc as it
+    was incomplete and got removed.
 
- -- Sebastien Bacher <seb128@ubuntu.com>  Mon, 13 Dec 2010 18:39:24 +0100
+ -- Frederic Peters <fpeters@debian.org>  Thu, 31 Mar 2011 01:01:31 +0530
 
-gnome-control-center (1:2.32.1-0ubuntu1) natty; urgency=low
-
-  * New upstream release
-  * debian/patches/98_fix_dso_linking.patch:
-    - Remove upstreamed patch
-
- -- Rodrigo Moya <rodrigo.moya@canonical.com>  Thu, 18 Nov 2010 10:24:28 +0100
-
-gnome-control-center (1:2.32.0-0ubuntu3) natty; urgency=low
-
-  [ Martin Pitt ]
-  * Drop 109_screen_resolution_extra.patch,
-    110_screen_resolution_package.patch,
-    111_screen_resolution_vendor_fallback.patch, and drop
-    screen-resolution-extra recommends. This isn't necessary any more with
-    XRandR 1.2 capable drivers, and the proprietary fglrx/nvidia ones have
-    their own control panels.
-
-  [ Didier Roche ]
-  * debian/patches/95_desktop-effects-integration.patch:
-    - correctly detect if compiz is running
-    - link against xcomposite to avoid DSO linking issue
-  * debian/control.in, debian/rules:
-    - use dh-autoreconf for previous patch
-  * debian/patches/98_fix_dso_linking.patch:
-    - one more dso linking issue
-
- -- Didier Roche <didrocks@ubuntu.com>  Wed, 10 Nov 2010 16:52:50 +0100
-
-gnome-control-center (1:2.32.0-0ubuntu2) maverick; urgency=low
-
-  * Fix LP: #646076 - gnome-display-properties: cannot save systemwide 
-    resolution. Ship /etc/gnome-settings-daemon/xrandr in the package
-    - add debian/gnome-control-center.dirs
-    - add debian/gnome-control-center.postrm
-
- -- Chris Coulson <chris.coulson@canonical.com>  Mon, 04 Oct 2010 17:47:22 +0100
-
-gnome-control-center (1:2.32.0-0ubuntu1) maverick; urgency=low
+gnome-control-center (1:2.91.93-1) experimental; urgency=low
 
   * New upstream release.
 
- -- Michael Terry <mike@mterry.name>  Mon, 27 Sep 2010 10:54:11 -0400
-
-gnome-control-center (1:2.31.92.1-0ubuntu1) maverick; urgency=low
-
-  * New upstream release:
-    - Don't silently ignore errors when pkexec(1) fails (Kalev Lember)
-    - Use translations from fprintd for finger ops (Bastien Nocera)
-    - Updated translations
-    - Add missing include to fix build (Vincent Untz)
-
- -- Didier Roche <didrocks@ubuntu.com>  Mon, 20 Sep 2010 16:04:44 +0200
-
-gnome-control-center (1:2.31.91-0ubuntu2) maverick; urgency=low
-
-  * Fix LP: #631217 - Don't pass an uninitialized GError to 
-    gnome_rr_config_save
-    - update debian/patches/109_screen_resolution_extra.patch
-  * Install the gnome-display-properties-install-systemwide helper
-    - update debian/gnome-control-center.install
-  * Don't try to apply the monitor configuration twice. Not only is this
-    not necessary, but it also causes gnome-display-properties to assert
-    the in apply() when applying the configuration for the second time, 
-    because the DBusGConnection already exists
-    - update debian/patches/109_screen_resolution_extra.patch
-
- -- Chris Coulson <chris.coulson@canonical.com>  Thu, 09 Sep 2010 01:06:00 +0100
-
-gnome-control-center (1:2.31.91-0ubuntu1) maverick; urgency=low
-
-  [ Robert Ancell ]
-  * New upstream release
-  * debian/patches/92_git_correct_escaping.patch:
-    - Applied upstream
-
-  [ Didier Roche ]
-  * Readd dropped debian/patches/113_at_properties_add_visual_bell.patch
-
- -- Didier Roche <didrocks@ubuntu.com>  Fri, 03 Sep 2010 19:12:11 +0200
-
-gnome-control-center (1:2.31.90-0ubuntu1) maverick; urgency=low
-
-  * New upstream release
-  * debian/control:
-    - Bump build-depends on libgtk2.0-dev, libgnomekbd-dev
-  * debian/patches/01_ml_po.patch:
-  * debian/patches/02_use_application_indicator.patch:
-    - Applied upstream
-
- -- Robert Ancell <robert.ancell@canonical.com>  Wed, 01 Sep 2010 17:36:06 +1000
-
-gnome-control-center (1:2.30.1-1ubuntu3) maverick; urgency=low
-
-  * debian/patches/113_at_properties_add_visual_bell.patch
-    - Add checkbox to enable visual system bell (LP: #491821)
-
- -- Mackenzie Morgan <maco.m@ubuntu.com>  Fri, 20 Aug 2010 20:31:34 -0400
-
-gnome-control-center (1:2.30.1-1ubuntu2) maverick; urgency=low
-
-  * debian/patches/92_git_correct_escaping.patch:
-    - git commit to fix an escaping issue, thanks Daniel van Eeden (lp: #428642)
-
- -- Sebastien Bacher <seb128@ubuntu.com>  Wed, 04 Aug 2010 18:51:46 +0200
-
-gnome-control-center (1:2.30.1-1ubuntu1) maverick; urgency=low
-
-  * Merge with Debian unstable, remaining changes:
+  [ Emilio Pozuelo Monfort ]
   * debian/control.in:
-    - Rename package from control-center to gnome-control-center
-    - Build-depend on gnome-common to run autotools
-    - Don't build-depend on type-handling (?)
-    - Don't build-depend libxrandr-dev and libxrender-dev (?)
-    - Don't build-depend on libslab-dev - we aren't using the slab
-    - Build-depends on librsvg2-dev, libpango1.0-dev,
-      libgstreamer-plugins-base0.10-dev (?)
-    - Build-depend on libappindicator-dev for application indicator patch
-    - Add Vcs-Bzr link
-    - gnome-control-center depends on ubuntu-system-service, gconf2-common
-    - gnome-control-center recommends mousetweaks, iso-codes
-    - gnome-control-center recommends screen-resolution-extra for
-      109_screen_resolution_extra.patch
-    - Tighten the deps between capplets-data and gnome-control-center as
-      otherwise Glade / code mismatches can cause breakage: g-c-c depends on
-      capplets-data >= source:Version, not just gnome:Version; capplets-data
-      breaks g-c-c <x source:Version.
-  * debian/rules:
-    - Run autotools on build
-  * debian/capplets-data.gconf_defaults:
-    - Don't set a keycode for multimedia keys there, the corresponding schemas
-      is in gnome-settings-daemon now and already has keysyms set
-  * debian/capplets-data.install:
-    - Install visual effects images
-    - Don't move the autostart to usr, that's a debian unilateral decision and
-      should be discussed with upstream rather than distro changed
-  * debian/capplets-data.postinst:
-    - Don't clean the moved file in etc since it's not moved in ubuntu
-  * debian/index.theme:
-    - Drop the Debian specific Default theme entry, it's confusing
-  * debian/visual-effects_*.svg:
-    - Icons for visual effects settings in appearance capplet
-  * debian/patches/01_remove_debian_default_applications.patch:
-    - Remove the Debian entries from the default applications
-  * debian/patches/02_use_application_indicator.patch:
-    - Use the lucid application indicator
-  * debian/patches/03_use_libunique.patch:
-    - Use libunique so only one instance of the about-me capplet is opened
-  * debian/patches/04_keyboard_layout_gconf_names.patch:
-    - keyboard: Fix layout gconf key initialization for empty variants.
-  * debian/patches/100_at_properties_readd_gksudo_disable_grab_toggle.patch:
-    - No gksu/disable-grab option per gui in gnome-at-properties
-  * debian/patches/109_screen_resolution_extra.patch:
-    - Automatically configure Virtual setting
-  * debian/patches/110_screen_resolution_package.patch:
-    - Make it possible to use Synaptic to install screen-resolution-extra from
-      xrandr-capplet.c
-  * debian/patches/111_screen_resolution_vendor_fallback.patch:
-    - Fallback to vendor utilties if they are available and RR1.2 is not
-      supported by the current driver
-  * debian/patches/112_banshee_in_media_dropdown.patch:
-    - Update preferred applications xml file for banshee to use
-      banshee-1 instead of banshee executable
-  * debian/patches/16_preferred_applications_list_cleanup.patch:
-    - Don't list Mozilla commands which are compatibility symlinks
-  * debian/patches/50_ubuntu_systemwide_prefs.patch:
-    - Ubuntu specific preferences
-  * debian/patches/51_ubuntu_system_keyboard.patch:
-    - Implement the global keyboard spec at
-      https://wiki.ubuntu.com/DefaultKeyboardSettings
-  * debian/patches/52_button_layout_from_theme.patch:
-    - Enable themes to provide a prefered button layout option:
-      X-GNOME-Metatheme/ButtonLayout.
-  * debian/patches/80_aspect_in_dropdown.patch:
-    - Add aspect ratio to display selection drop-down menu
-  * debian/patches/90_gnome-mouse-properties_small_screen.patch:
-    - Add scrollbar on small screens in mouse properties
-  * debian/patches/91_gnome-about-me_small_screen.patch:
-    - Add scrollbar on small screens in about me
-  * debian/patches/95_desktop-effects-integration.patch:
-    - Add desktop effects tab to the appearance capplet
-  * debian/patches/96_hide_accessible_login.patch:
-    - Remove the "Accessible Login" button from gnome-at-properties.
-      All this does is launch gdmsetup, and the new version of this
-      tool doesn't support changing accessibility settings.
-  * debian/patches/97_subpixel_hinting_defaults.patch:
-    - Change the default hinting level for subpixel rendering from "Full" to
-      "Slight"
-  * 70_relibtoolize.patch:
-    - Not required, autotools run in debian/rules
-  * debian/watch:
-    - Watch for unstable versions
+    + Build depend on a new enough version of gdk-pixbuf. Closes: #619282.
+    + Drop Breaks on gnome-media-common.
 
- -- Robert Ancell <robert.ancell@canonical.com>  Wed, 23 Jun 2010 15:59:34 +1000
+  [ Frederic Peters ]
+  * debian/patches/00_disable-nm.patch: updated.
+  * debian/patches/99_autoreconf.patch: refreshed.
+
+ -- Frederic Peters <fpeters@debian.org>  Wed, 30 Mar 2011 23:44:16 +0530
+
+gnome-control-center (1:2.91.92-1) experimental; urgency=low
+
+  * New upstream release.
+
+  [ Emilio Pozuelo Monfort ]
+  * debian/control.in:
+    + gnome-control-center-dev belongs in the devel section.
+
+  [ Laurent Bigonville ]
+  * debian/control.in
+    - Add Vcs-* fields
+    - Bump libglib2.0-dev and gnome-settings-daemon-dev Build-dependencies
+    - Bump gnome-control-center Dependency against gnome-settings-daemon
+    - gnome-control-center-data Breaks gnome-media-common (<< 2.91)
+
+  [ Frederic Peters ]
+  * debian/patches/00_disable-nm.patch: updated.
+  * debian/images/, debian/patches/12_timezones.patch: merged upstream.
+  * debian/patches/10_libshortcuts-link.patch: merged upstream.
+  * debian/control.in: update build-deps.
+  * debian/control.in: add dependency on gsettings-desktop-schemas.
+
+ -- Frederic Peters <fpeters@debian.org>  Mon, 21 Mar 2011 22:30:04 +0100
+
+gnome-control-center (1:2.91.91-3) experimental; urgency=low
+
+  * debian/control.in: add build-dep on locales, required for the datetime
+    test-endianess check.
+
+ -- Frederic Peters <fpeters@debian.org>  Sun, 13 Mar 2011 20:05:56 +0100
+
+gnome-control-center (1:2.91.91-2) experimental; urgency=low
+
+  * debian/rules, debian/images/*, debian/patches/12_timezones.patch: ship
+    and install missing timezone graphics.
+  * debian/libgnome-control-center1.symbols: updated with three new symbols.
+
+ -- Frederic Peters <fpeters@debian.org>  Sat, 12 Mar 2011 21:38:35 +0100
+
+gnome-control-center (1:2.91.91-1) experimental; urgency=low
+
+  * New upstream release.
+    + debian/patches/00_disable-nm.patch: updated.
+    + debian/patches/10_mouse-panel-link.patch: fixed upstream.
+    + debian/patches/11_keyboard-panel-link.patch: ditto.
+    + debian/patches/10_libshortcuts-link.patch: fix linking of the shortcut
+      code.
+    + debian/patches/99_autoreconf.patch: refreshed.
+    + debian/control.in: build build-dep on libgnomekbd-dev
+
+ -- Frederic Peters <fpeters@debian.org>  Thu, 10 Mar 2011 17:35:21 +0100
+
+gnome-control-center (1:2.91.90-1) experimental; urgency=low
+
+  * New upstream release.
+    + debian/patches/00_disable-nm.patch: disable Network Manager 0.9 bits.
+    + debian/patches/10_mouse-panel-link.patch: fix linking of the mouse
+      panel.
+    + debian/patches/11_keyboard-panel-link.patch: fix linking of the keyboard
+      panel.
+    + debian/libgnome-control-center1.symbols: updated with a new symbol.
+
+ -- Frederic Peters <fpeters@debian.org>  Fri, 25 Feb 2011 10:44:34 +0100
+
+gnome-control-center (1:2.91.6-1) experimental; urgency=low
+
+  * debian/control.in:
+    + Depend on accountsservice and apg for the User Accounts panel.
+    + Update for the new gtk+ package names.
+  * New upstream release.
+    + debian/patches/01_printers_link.patch:
+      - Fix linking for the printers capplet.
+    + debian/control.in:
+      - Update build dependencies.
+
+ -- Emilio Pozuelo Monfort <pochu@debian.org>  Sat, 19 Feb 2011 14:40:15 +0000
+
+gnome-control-center (1:2.91.5-2) experimental; urgency=low
+
+  * debian/control.in:
+    - Drop gnome-control-center breaks/replaces against gnome-media(-common),
+      they seem unneeded.
+    - capplets-data replaces gnome-media-common.
+    - Build depend on docbook-xml, needed to build the docs.
+    - capplets-data: stop breaking g-c-c, it already depends on a new
+      enough version of the former so this is not needed.
+    - gnome-control-center: no need to manually depend on
+      libgnome-control-center1. The shlibs does that for us.
+    - Don't use tabs for padding.
+    - Drop obsolete dpkg-dev b-d.
+  * debian/control.in,
+    debian/rules,
+    debian/source/format:
+    - Switch to source format 3.0 (quilt).
+  * debian/control.in,
+    debian/{capplets,gnome-control-center}-data.*,
+    debian/rules:
+    - Rename capplets-data to gnome-control-center-data.
+  * debian/index.theme:
+    - Removed, unused.
+  * debian/libgnome-control-center1.symbols:
+    - Add a Build-Depends-Package field.
+  * debian/gnome-keyboard-properties.1,
+    debian/gnome-control-center.manpages:
+    - gnome-keyboard-properties is gone, drop the manpage.
+
+ -- Emilio Pozuelo Monfort <pochu@debian.org>  Sun, 16 Jan 2011 23:01:37 +0000
+
+gnome-control-center (1:2.91.5-1) experimental; urgency=low
+
+  * New upstream release
+  * Based on ubuntu 1:2.91.3.1-0ubuntu1~build2, by Robert Ancell and others
+  * debian/patches/01_ml_po.patch
+    - Removed
+  * patches/25_window_manager_settings.patch
+    - Removed, no longer applicable
+
+ -- Sjoerd Simons <sjoerd@debian.org>  Sat, 15 Jan 2011 12:18:29 +0000
+
+control-center (1:2.30.1-2) unstable; urgency=low
+
+  * debian/control.in:
+    - Let gnome-control-center depend on evolution-data-server, instead of
+      only recommending it. It's needed by gnome-about-me. Closes: #592525.
+
+ -- Emilio Pozuelo Monfort <pochu@debian.org>  Wed, 11 Aug 2010 01:37:07 +0200
 
 control-center (1:2.30.1-1) unstable; urgency=low
 
