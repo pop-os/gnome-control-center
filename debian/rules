@@ -23,8 +23,6 @@ GNOME_MODULE := gnome-control-center
 LDFLAGS += -Wl,-z,defs -Wl,-O1 -Wl,--as-needed
 
 DEB_CONFIGURE_EXTRA_FLAGS += --disable-scrollkeeper \
-                             --enable-aboutme \
-                             --enable-gstreamer=0.10 \
                              --disable-update-mimedb
 
 DEB_INSTALL_MANPAGES_gnome-control-center += debian/gnome-control-center.1
@@ -40,7 +38,7 @@ build/gnome-control-center:: $(DEB_INSTALL_MANPAGES_gnome-control-center)
 clean::
 	rm -f $(DEB_INSTALL_MANPAGES_gnome-control-center)
 
-binary-post-install/capplets-data::
+binary-post-install/gnome-control-center-data::
 	rm -rf debian/capplets-data/usr/share/applications/mimeinfo.cache
 	rm -rf debian/capplets-data/usr/share/pkgconfig
 	dh_installmime -p$(cdbs_curpkg)
