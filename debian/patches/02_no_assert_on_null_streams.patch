@@ -1,0 +1,17 @@
+Author: Rodrigo Moya <rodrigo.moya@canonical.com>
+Description: Temporary patch to not assert on NULL streams (LP: #741155)
+
+diff --git a/panels/sound/gvc-speaker-test.c b/panels/sound/gvc-speaker-test.c
+index 1dd1bc4..d0a2a77 100644
+--- a/panels/sound/gvc-speaker-test.c
++++ b/panels/sound/gvc-speaker-test.c
+@@ -393,7 +393,8 @@ get_channel_map_for_card (GvcMixerControl *control,
+         }
+         g_slist_free (sinks);
+ 
+-        g_assert (stream);
++        if (stream == NULL)
++		return NULL;
+ 
+         g_debug ("Found stream '%s' for card '%s'",
+                  gvc_mixer_stream_get_name (stream),
