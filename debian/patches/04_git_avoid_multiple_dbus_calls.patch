@@ -1,0 +1,28 @@
+From 9132f8f2f848ddfb9a9059a64742c179c3181162 Mon Sep 17 00:00:00 2001
+From: Rodrigo Moya <rodrigo@gnome-db.org>
+Date: Tue, 5 Jul 2011 16:39:17 +0200
+Subject: [PATCH] Avoid making lots of DBus calls to set the brightness when
+ the slider changes too quickly
+
+https://bugs.launchpad.net/ubuntu/+source/gnome-control-center/+bug/805473
+---
+ panels/screen/cc-screen-panel.c |    3 +++
+ 1 files changed, 3 insertions(+), 0 deletions(-)
+
+diff --git a/panels/screen/cc-screen-panel.c b/panels/screen/cc-screen-panel.c
+index 75fb7ec..a6cc81f 100644
+--- a/panels/screen/cc-screen-panel.c
++++ b/panels/screen/cc-screen-panel.c
+@@ -221,6 +221,9 @@ brightness_slider_value_changed_cb (GtkRange *range, gpointer user_data)
+   CcScreenPanelPrivate *priv = CC_SCREEN_PANEL (user_data)->priv;
+ 
+   /* do not loop */
++  if (priv->setting_brightness)
++    return;
++
+   priv->setting_brightness = TRUE;
+ 
+   /* push this to g-p-m */
+-- 
+1.7.5.4
+
