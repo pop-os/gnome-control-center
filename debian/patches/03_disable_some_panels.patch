@@ -1,0 +1,51 @@
+diff --git a/configure.ac b/configure.ac
+index 78cd53d..f02dad9 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -101,9 +101,15 @@ PKG_CHECK_MODULES(MEDIA_PANEL, $COMMON_MODULES)
+ PKG_CHECK_MODULES(MOUSE_PANEL, $COMMON_MODULES xi >= 1.2
+                   gnome-settings-daemon >= $GSD_REQUIRED_VERSION x11)
+ PKG_CHECK_MODULES(NETWORK_PANEL, $COMMON_MODULES)
+-PKG_CHECK_MODULES(ONLINE_ACCOUNTS_PANEL, $COMMON_MODULES goa-1.0 goa-backend-1.0)
++PKG_CHECK_MODULES(ONLINE_ACCOUNTS_PANEL, $COMMON_MODULES goa-1.0 goa-backend-1.0,
++                  [have_goa=yes], have_goa=no)
++AM_CONDITIONAL(BUILD_ONLINE_ACCOUNTS, [test x$have_goa = xyes])
++
+ PKG_CHECK_MODULES(POWER_PANEL, $COMMON_MODULES upower-glib >= 0.9.1)
+-PKG_CHECK_MODULES(COLOR_PANEL, $COMMON_MODULES colord >= 0.1.8)
++PKG_CHECK_MODULES(COLOR_PANEL, $COMMON_MODULES colord >= 0.1.8,
++                  [have_colord=yes], have_colord=no)
++AM_CONDITIONAL(BUILD_COLOR, [test x$have_colord = xyes])
++
+ PKG_CHECK_MODULES(PRINTERS_PANEL, $COMMON_MODULES dbus-glib-1
+                   polkit-gobject-1 >= $POLKIT_REQUIRED_VERSION)
+ PKG_CHECK_MODULES(REGION_PANEL, $COMMON_MODULES libgnomekbd >= 2.91.91
+diff --git a/panels/Makefile.am b/panels/Makefile.am
+index 9806c50..9d704cb 100644
+--- a/panels/Makefile.am
++++ b/panels/Makefile.am
+@@ -3,11 +3,9 @@ SUBDIRS= \
+ 	background \
+ 	screen \
+ 	power \
+-	color \
+ 	display \
+ 	media \
+ 	mouse \
+-	online-accounts \
+ 	region \
+ 	info \
+ 	sound \
+@@ -24,4 +22,12 @@ if BUILD_NETWORK
+ SUBDIRS += network
+ endif
+ 
++if BUILD_COLOR
++SUBDIRS += color
++endif
++
++if BUILD_ONLINE_ACCOUNTS
++SUBDIRS += online-accounts
++endif
++
+ -include $(top_srcdir)/git.mk

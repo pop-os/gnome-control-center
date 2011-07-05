@@ -1,0 +1,275 @@
+diff --git a/libgnome-control-center/Makefile.am b/libgnome-control-center/Makefile.am
+index 6973288..da127c1 100644
+--- a/libgnome-control-center/Makefile.am
++++ b/libgnome-control-center/Makefile.am
+@@ -14,6 +14,7 @@ lib_LTLIBRARIES = libgnome-control-center.la
+ libgnome_control_center_include_HEADERS =	\
+ 	cc-panel.h				\
+ 	cc-shell.h				\
++	cc-external-panel.h			\
+ 	$(NULL)
+ 
+ libgnome_control_center_la_SOURCES =		\
+@@ -23,6 +24,7 @@ libgnome_control_center_la_SOURCES =		\
+ 	cc-shell.h				\
+ 	cc-editable-entry.c			\
+ 	cc-editable-entry.h			\
++	cc-external-panel.c			\
+ 	$(NULL)
+ 
+ libgnome_control_center_la_LDFLAGS =		\
+diff --git a/libgnome-control-center/cc-external-panel.c b/libgnome-control-center/cc-external-panel.c
+new file mode 100644
+index 0000000..3e162ca
+--- /dev/null
++++ b/libgnome-control-center/cc-external-panel.c
+@@ -0,0 +1,147 @@
++/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*-
++ *
++ * Copyright (C) 2011 Canonical Inc.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
++ *
++ * Authors: Rodrigo Moya <rodrigo@gnome.org>
++ *
++ */
++
++#include "config.h"
++
++#include "cc-external-panel.h"
++
++#define CC_EXTERNAL_PANEL_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), CC_TYPE_EXTERNAL_PANEL, CcExternalPanelPrivate))
++
++struct CcExternalPanelPrivate
++{
++  gchar *command_line;
++};
++
++enum
++{
++  PROP_0,
++  PROP_COMMAND_LINE
++};
++
++G_DEFINE_ABSTRACT_TYPE(CcExternalPanel, cc_external_panel, CC_TYPE_PANEL)
++
++static void
++cc_external_panel_set_property (GObject      *object,
++				guint         prop_id,
++				const GValue *value,
++				GParamSpec   *pspec)
++{
++  CcExternalPanel *panel;
++
++  panel = CC_EXTERNAL_PANEL (object);
++
++  switch (prop_id)
++    {
++    case PROP_COMMAND_LINE:
++      if (panel->priv->command_line != NULL)
++        g_free (panel->priv->command_line);
++
++      panel->priv->command_line = g_value_get_string (value);
++      break;
++
++    default:
++      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
++      break;
++    }
++}
++
++static void
++cc_external_panel_get_property (GObject    *object,
++				guint       prop_id,
++				GValue     *value,
++				GParamSpec *pspec)
++{
++  CcExternalPanel *panel;
++
++  panel = CC_EXTERNAL_PANEL (object);
++
++  switch (prop_id)
++    {
++    case PROP_COMMAND_LINE:
++      g_value_set_string (value, panel->priv->command_line);
++      break;
++
++    default:
++      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
++      break;
++    }
++}
++
++static void
++cc_external_panel_finalize (GObject *object)
++{
++  CcExternalPanel *panel;
++
++  g_return_if_fail (object != NULL);
++  g_return_if_fail (CC_IS_EXTERNAL_PANEL (object));
++
++  panel = CC_EXTERNAL_PANEL (object);
++
++  g_free (panel->priv->command_line);
++
++  G_OBJECT_CLASS (cc_external_panel_parent_class)->finalize (object);
++}
++
++static void
++cc_external_panel_class_init (CcExternalPanelClass *klass)
++{
++  GParamSpec   *pspec;
++  GObjectClass *object_class = G_OBJECT_CLASS (klass);
++
++  object_class->get_property = cc_external_panel_get_property;
++  object_class->set_property = cc_external_panel_set_property;
++  object_class->finalize = cc_external_panel_finalize;
++
++  g_type_class_add_private (klass, sizeof (CcExternalPanelPrivate));
++
++  pspec = g_param_spec_string ("command-line",
++			       "Command line",
++			       "Command line to run when activating this panel",
++			       NULL,
++			       G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
++  g_object_class_install_property (object_class, PROP_COMMAND_LINE, pspec);
++}
++
++static void
++cc_external_panel_init (CcExternalPanel *panel)
++{
++  panel->priv = CC_EXTERNAL_PANEL_GET_PRIVATE (panel);
++}
++
++const gchar *
++cc_external_panel_get_command_line (CcExternalPanel *panel)
++{
++  g_return_val_if_fail (CC_IS_EXTERNAL_PANEL (panel), NULL);
++
++  return panel->priv->command_line;
++}
++
++void
++cc_external_panel_set_command_line (CcExternalPanel *panel, const gchar *command_line)
++{
++  g_return_if_fail (CC_IS_EXTERNAL_PANEL (panel));
++
++  if (panel->priv->command_line != NULL)
++    g_free (panel->priv->command_line);
++
++  panel->priv->command_line = g_strdup (command_line);
++}
+diff --git a/libgnome-control-center/cc-external-panel.h b/libgnome-control-center/cc-external-panel.h
+new file mode 100644
+index 0000000..b3aebd8
+--- /dev/null
++++ b/libgnome-control-center/cc-external-panel.h
+@@ -0,0 +1,61 @@
++/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*-
++ *
++ * Copyright (C) 2011 Canonical Inc.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
++ *
++ * Authors: Rodrigo Moya <rodrigo@gnome.org>
++ */
++
++#ifndef __CC_EXTERNAL_PANEL_H
++#define __CC_EXTERNAL_PANEL_H
++
++#include "cc-panel.h"
++
++G_BEGIN_DECLS
++
++#define CC_TYPE_EXTERNAL_PANEL         (cc_external_panel_get_type ())
++#define CC_EXTERNAL_PANEL(o)           (G_TYPE_CHECK_INSTANCE_CAST ((o), CC_TYPE_EXTERNAL_PANEL, CcExternalPanel))
++#define CC_EXTERNAL_PANEL_CLASS(k)     (G_TYPE_CHECK_CLASS_CAST((k), CC_TYPE_EXTERNAL_PANEL, CcExternalPanelClass))
++#define CC_IS_EXTERNAL_PANEL(o)        (G_TYPE_CHECK_INSTANCE_TYPE ((o), CC_TYPE_EXTERNAL_PANEL))
++#define CC_IS_EXTERNAL_PANEL_CLASS(k)  (G_TYPE_CHECK_CLASS_TYPE ((k), CC_TYPE_EXTERNAL_PANEL))
++#define CC_EXTERNAL_PANEL_GET_CLASS(o) (G_TYPE_INSTANCE_GET_CLASS ((o), CC_TYPE_EXTERNAL_PANEL, CcExternalPanelClass))
++
++typedef struct CcExternalPanelPrivate CcExternalPanelPrivate;
++
++typedef struct _CcExternalPanel       CcExternalPanel;
++typedef struct _CcExternalPanelClass  CcExternalPanelClass;
++
++struct _CcExternalPanel
++{
++  /*< private >*/
++  CcPanel                 parent;
++  CcExternalPanelPrivate *priv;
++};
++
++struct _CcExternalPanelClass
++{
++  /*< private >*/
++  CcPanelClass parent_class;
++};
++
++GType        cc_external_panel_get_type         (void);
++
++const gchar *cc_external_panel_get_command_line (CcExternalPanel *panel);
++void         cc_external_panel_set_command_line (CcExternalPanel *panel, const gchar *command_line);
++
++G_END_DECLS
++
++#endif
+diff --git a/shell/gnome-control-center.c b/shell/gnome-control-center.c
+index a771282..d3cba1e 100644
+--- a/shell/gnome-control-center.c
++++ b/shell/gnome-control-center.c
+@@ -32,6 +32,7 @@
+ #include <gmenu-tree.h>
+ 
+ #include "cc-panel.h"
++#include "cc-external-panel.h"
+ #include "cc-shell.h"
+ #include "shell-search-renderer.h"
+ #include "cc-shell-category-view.h"
+@@ -129,6 +130,22 @@ activate_panel (GnomeControlCenter *shell,
+ 
+           /* create the panel plugin */
+           panel = g_object_new (panel_type, "shell", shell, NULL);
++	  if (CC_IS_EXTERNAL_PANEL (panel))
++	    {
++	      GError *error = NULL;
++
++	      /* For external panels, we just spawn it's command line */
++	      if (!g_spawn_command_line_async (cc_external_panel_get_command_line (CC_EXTERNAL_PANEL (panel)),
++					       &error))
++	        {
++		  g_warning ("Could not spawn %s: %s",
++			     cc_external_panel_get_command_line (CC_EXTERNAL_PANEL (panel)),
++			     error->message);
++		  g_error_free (error);
++		}
++
++	      return;
++	    }
+ 
+           gtk_lock_button_set_permission (GTK_LOCK_BUTTON (priv->lock_button),
+                                           cc_panel_get_permission (CC_PANEL (panel)));
