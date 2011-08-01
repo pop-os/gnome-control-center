@@ -8,7 +8,7 @@ Section: gnome
 Priority: optional
 Maintainer: Ubuntu Desktop Team <ubuntu-desktop@lists.ubuntu.com>
 XSBC-Original-Maintainer: Debian GNOME Maintainers <pkg-gnome-maintainers@lists.alioth.debian.org>
-Uploaders: Debian GNOME Maintainers <pkg-gnome-maintainers@lists.alioth.debian.org>, Frederic Peters <fpeters@debian.org>, Josselin Mouette <joss@debian.org>
+Uploaders: Debian GNOME Maintainers <pkg-gnome-maintainers@lists.alioth.debian.org>
 Standards-Version: 3.9.1
 Build-Depends: cdbs (>= 0.4.41),
                hardening-wrapper,
@@ -48,7 +48,8 @@ Build-Depends: cdbs (>= 0.4.41),
                libpulse-dev,
                libnm-glib-dev (>= 0.8.992),
                libnm-util-dev (>= 0.8.992),
-               locales
+               locales,
+               libgoa-1.0-dev
 Vcs-Bzr: http://code.launchpad.net/~ubuntu-desktop/gnome-control-center/ubuntu
 
 Package: gnome-control-center
@@ -72,7 +73,8 @@ Recommends: gnome-user-guide,
             iso-codes,
             accountsservice,
             apg,
-            gnome-icon-theme-symbolic
+            gnome-icon-theme-symbolic,
+            gnome-online-accounts
 Conflicts: gnome-session (<< 2.22.0)
 Suggests: libcanberra-gtk-module,
           gnome-screensaver | xscreensaver,
@@ -101,7 +103,10 @@ Depends: ${misc:Depends}
 Recommends: gnome-control-center (>= ${source:Version})
 Provides: capplets-data
 Conflicts: capplets-data
-Replaces: capplets-data, gnome-media-common (<< 2.91), gnome-settings-daemon (<< 3.0~)
+Replaces: capplets-data, 
+          gnome-media-common (<< 2.91), 
+          gnome-settings-daemon (<< 3.0~),
+          gdm (<< 2.91)
 Breaks: gnome-settings-daemon (<< 3.0~)
 Description: configuration applets for GNOME - data files
  This package contains data files (icons, pixmaps, locales files) needed by
