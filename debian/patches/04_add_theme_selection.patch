@@ -1,0 +1,909 @@
+diff --git a/configure.ac b/configure.ac
+index f1a1913..76d3c47 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -91,7 +91,7 @@ PKG_CHECK_MODULES(LIBLANGUAGE, $COMMON_MODULES gnome-desktop-3.0)
+ PKG_CHECK_MODULES(LIBSHORTCUTS, $COMMON_MODULES x11)
+ PKG_CHECK_MODULES(SHELL, $COMMON_MODULES libgnome-menu-3.0 gio-unix-2.0)
+ PKG_CHECK_MODULES(BACKGROUND_PANEL, $COMMON_MODULES libxml-2.0 gnome-desktop-3.0
+-                  gdk-pixbuf-2.0 >= $GDKPIXBUF_REQUIRED_VERSION)
++                  gdk-pixbuf-2.0 >= $GDKPIXBUF_REQUIRED_VERSION gconf-2.0)
+ PKG_CHECK_MODULES(DATETIME_PANEL, $COMMON_MODULES dbus-glib-1
+                   polkit-gobject-1 >= $POLKIT_REQUIRED_VERSION
+                   gdk-pixbuf-2.0 >= $GDKPIXBUF_REQUIRED_VERSION)
+diff --git a/panels/background/background.ui b/panels/background/background.ui
+index e695c52..ed47577 100644
+--- a/panels/background/background.ui
++++ b/panels/background/background.ui
+@@ -1,316 +1,434 @@
+-<?xml version="1.0"?>
++<?xml version="1.0" encoding="UTF-8"?>
+ <interface>
+   <requires lib="gtk+" version="2.16"/>
+-  <!-- interface-naming-policy project-wide -->
+-  <object class="GtkListStore" id="sources-liststore">
+-    <columns>
+-      <!-- column-name source-name -->
+-      <column type="gchararray"/>
+-      <!-- column-name source-id -->
+-      <column type="guint"/>
+-      <!-- column-name source-pointer -->
+-      <column type="gpointer"/>
+-    </columns>
+-  </object>
+-  <object class="GtkHBox" id="background-panel">
+-    <property name="visible">True</property>
+-    <property name="border_width">10</property>
+-    <property name="spacing">12</property>
++  <object class="GtkWindow" id="window1">
++    <property name="can_focus">False</property>
+     <child>
+-      <object class="GtkVBox" id="vbox2">
++      <object class="GtkBox" id="background-panel">
+         <property name="visible">True</property>
++        <property name="can_focus">False</property>
+         <property name="orientation">vertical</property>
+-        <property name="spacing">0</property>
++        <property name="spacing">3</property>
+         <child>
+-          <object class="GtkComboBox" id="sources-combobox">
++          <object class="GtkFrame" id="frame1">
+             <property name="visible">True</property>
+-            <property name="model">sources-liststore</property>
+-            <child>
+-              <object class="GtkCellRendererText" id="cellrenderertext2"/>
+-              <attributes>
+-                <attribute name="text">0</attribute>
+-              </attributes>
+-            </child>
+-          </object>
+-          <packing>
+-            <property name="expand">False</property>
+-            <property name="position">0</property>
+-            <property name="padding">6</property>
+-          </packing>
+-        </child>
+-        <child>
+-          <object class="GtkScrolledWindow" id="scrolledwindow1">
+-            <property name="width_request">220</property>
+-            <property name="height_request">380</property>
+-            <property name="visible">True</property>
+-            <property name="can_focus">True</property>
+-            <property name="hscrollbar_policy">automatic</property>
+-            <property name="vscrollbar_policy">automatic</property>
+-            <property name="shadow_type">in</property>
++            <property name="can_focus">False</property>
++            <property name="label_xalign">0</property>
++            <property name="shadow_type">none</property>
+             <child>
+-              <object class="GtkIconView" id="backgrounds-iconview">
++              <object class="GtkAlignment" id="alignment1">
+                 <property name="visible">True</property>
+-                <property name="can_focus">True</property>
+-                <property name="row_spacing">0</property>
+-                <property name="column_spacing">0</property>
+-                <property name="margin">0</property>
+-                <child>
+-                  <object class="GtkCellRendererPixbuf" id="pixbuf-renderer">
+-                    <property name="stock_size">6</property>
+-                  </object>
+-                  <attributes>
+-                    <attribute name="gicon">0</attribute>
+-                  </attributes>
+-                </child>
++                <property name="can_focus">False</property>
++                <property name="left_padding">12</property>
+                 <child>
+-                  <!-- this cell renderer is here just to have
+-                       the text spoken in orca -->
+-                  <object class="GtkCellRendererText" id="text-renderer">
+-                    <property name="visible">False</property>
++                  <object class="GtkHBox" id="background-container">
++                    <property name="visible">True</property>
++                    <property name="can_focus">False</property>
++                    <property name="border_width">10</property>
++                    <property name="spacing">12</property>
++                    <child>
++                      <object class="GtkVBox" id="vbox2">
++                        <property name="visible">True</property>
++                        <property name="can_focus">False</property>
++                        <child>
++                          <object class="GtkComboBox" id="sources-combobox">
++                            <property name="visible">True</property>
++                            <property name="can_focus">False</property>
++                            <property name="model">sources-liststore</property>
++                            <child>
++                              <object class="GtkCellRendererText" id="cellrenderertext2"/>
++                              <attributes>
++                                <attribute name="text">0</attribute>
++                              </attributes>
++                            </child>
++                          </object>
++                          <packing>
++                            <property name="expand">False</property>
++                            <property name="fill">True</property>
++                            <property name="padding">6</property>
++                            <property name="position">0</property>
++                          </packing>
++                        </child>
++                        <child>
++                          <object class="GtkScrolledWindow" id="scrolledwindow1">
++                            <property name="width_request">220</property>
++                            <property name="height_request">380</property>
++                            <property name="visible">True</property>
++                            <property name="can_focus">True</property>
++                            <property name="shadow_type">in</property>
++                            <child>
++                              <object class="GtkIconView" id="backgrounds-iconview">
++                                <property name="visible">True</property>
++                                <property name="can_focus">True</property>
++                                <property name="row_spacing">0</property>
++                                <property name="column_spacing">0</property>
++                                <child>
++                                  <object class="GtkCellRendererPixbuf" id="pixbuf-renderer">
++                                    <property name="stock_size">6</property>
++                                  </object>
++                                  <attributes>
++                                    <attribute name="gicon">0</attribute>
++                                  </attributes>
++                                </child>
++                                <child>
++                                  <object class="GtkCellRendererText" id="text-renderer">
++                                    <property name="visible">False</property>
++                                  </object>
++                                  <attributes>
++                                    <attribute name="text">2</attribute>
++                                  </attributes>
++                                </child>
++                              </object>
++                            </child>
++                          </object>
++                          <packing>
++                            <property name="expand">True</property>
++                            <property name="fill">True</property>
++                            <property name="position">1</property>
++                          </packing>
++                        </child>
++                        <child>
++                          <object class="GtkToolbar" id="toolbar1">
++                            <property name="visible">True</property>
++                            <property name="can_focus">False</property>
++                            <property name="icon_size">1</property>
++                            <child>
++                              <object class="GtkToolButton" id="add_button">
++                                <property name="visible">True</property>
++                                <property name="can_focus">False</property>
++                                <property name="use_action_appearance">False</property>
++                                <property name="label" translatable="yes">Add wallpaper</property>
++                                <property name="use_underline">True</property>
++                                <property name="icon_name">list-add-symbolic</property>
++                              </object>
++                              <packing>
++                                <property name="expand">False</property>
++                                <property name="homogeneous">True</property>
++                              </packing>
++                            </child>
++                            <child>
++                              <object class="GtkToolButton" id="remove_button">
++                                <property name="visible">True</property>
++                                <property name="sensitive">False</property>
++                                <property name="can_focus">False</property>
++                                <property name="use_action_appearance">False</property>
++                                <property name="label" translatable="yes">Remove wallpaper</property>
++                                <property name="use_underline">True</property>
++                                <property name="icon_name">list-remove-symbolic</property>
++                              </object>
++                              <packing>
++                                <property name="expand">False</property>
++                                <property name="homogeneous">True</property>
++                              </packing>
++                            </child>
++                          </object>
++                          <packing>
++                            <property name="expand">False</property>
++                            <property name="fill">True</property>
++                            <property name="position">2</property>
++                          </packing>
++                        </child>
++                      </object>
++                      <packing>
++                        <property name="expand">False</property>
++                        <property name="fill">True</property>
++                        <property name="position">0</property>
++                      </packing>
++                    </child>
++                    <child>
++                      <object class="GtkVBox" id="vbox3">
++                        <property name="visible">True</property>
++                        <property name="can_focus">False</property>
++                        <property name="spacing">6</property>
++                        <child>
++                          <object class="GtkHBox" id="heading-hbox">
++                            <property name="visible">True</property>
++                            <property name="can_focus">False</property>
++                            <property name="spacing">24</property>
++                            <child>
++                              <object class="GtkLabel" id="background-label">
++                                <property name="visible">True</property>
++                                <property name="can_focus">False</property>
++                                <property name="xalign">0</property>
++                                <property name="label">Current background</property>
++                                <attributes>
++                                  <attribute name="weight" value="bold"/>
++                                </attributes>
++                              </object>
++                              <packing>
++                                <property name="expand">False</property>
++                                <property name="fill">True</property>
++                                <property name="position">0</property>
++                              </packing>
++                            </child>
++                            <child>
++                              <object class="GtkLabel" id="size_label">
++                                <property name="visible">True</property>
++                                <property name="can_focus">False</property>
++                                <property name="xalign">1</property>
++                                <property name="label">1280x700px</property>
++                              </object>
++                              <packing>
++                                <property name="expand">True</property>
++                                <property name="fill">True</property>
++                                <property name="position">1</property>
++                              </packing>
++                            </child>
++                          </object>
++                          <packing>
++                            <property name="expand">False</property>
++                            <property name="fill">True</property>
++                            <property name="position">0</property>
++                          </packing>
++                        </child>
++                        <child>
++                          <object class="GtkDrawingArea" id="preview-area">
++                            <property name="visible">True</property>
++                            <property name="can_focus">False</property>
++                          </object>
++                          <packing>
++                            <property name="expand">True</property>
++                            <property name="fill">True</property>
++                            <property name="position">1</property>
++                          </packing>
++                        </child>
++                        <child>
++                          <object class="GtkHBox" id="bottom-hbox">
++                            <property name="visible">True</property>
++                            <property name="can_focus">False</property>
++                            <property name="spacing">12</property>
++                            <child>
++                              <object class="GtkHBox" id="hbox2">
++                                <property name="visible">True</property>
++                                <property name="can_focus">False</property>
++                                <property name="spacing">2</property>
++                                <child>
++                                  <object class="GtkImage" id="slide_image">
++                                    <property name="visible">True</property>
++                                    <property name="can_focus">False</property>
++                                    <property name="icon_name">slideshow-symbolic</property>
++                                  </object>
++                                  <packing>
++                                    <property name="expand">False</property>
++                                    <property name="fill">True</property>
++                                    <property name="position">0</property>
++                                  </packing>
++                                </child>
++                                <child>
++                                  <object class="GtkLabel" id="slide-label">
++                                    <property name="visible">True</property>
++                                    <property name="can_focus">False</property>
++                                    <property name="xalign">0</property>
++                                    <property name="label" translatable="yes" comments="This refers to a slideshow background">Changes throughout the day</property>
++                                  </object>
++                                  <packing>
++                                    <property name="expand">False</property>
++                                    <property name="fill">True</property>
++                                    <property name="position">1</property>
++                                  </packing>
++                                </child>
++                                <child>
++                                  <object class="GtkLabel" id="strut">
++                                    <property name="visible">True</property>
++                                    <property name="can_focus">False</property>
++                                    <property name="label"> </property>
++                                  </object>
++                                  <packing>
++                                    <property name="expand">False</property>
++                                    <property name="fill">True</property>
++                                    <property name="position">1</property>
++                                  </packing>
++                                </child>
++                              </object>
++                              <packing>
++                                <property name="expand">True</property>
++                                <property name="fill">True</property>
++                                <property name="position">0</property>
++                              </packing>
++                            </child>
++                            <child>
++                              <object class="GtkHBox" id="edit-hbox">
++                                <property name="visible">True</property>
++                                <property name="can_focus">False</property>
++                                <property name="spacing">6</property>
++                                <child>
++                                  <object class="GtkColorButton" id="style-pcolor">
++                                    <property name="visible">True</property>
++                                    <property name="can_focus">True</property>
++                                    <property name="receives_default">True</property>
++                                    <property name="use_action_appearance">False</property>
++                                    <property name="color">#000000000000</property>
++                                  </object>
++                                  <packing>
++                                    <property name="expand">False</property>
++                                    <property name="fill">False</property>
++                                    <property name="position">0</property>
++                                  </packing>
++                                </child>
++                                <child>
++                                  <object class="GtkButton" id="swap-color-button">
++                                    <property name="visible">True</property>
++                                    <property name="can_focus">True</property>
++                                    <property name="receives_default">True</property>
++                                    <property name="use_action_appearance">False</property>
++                                    <child>
++                                      <object class="GtkImage" id="image1">
++                                        <property name="visible">True</property>
++                                        <property name="can_focus">False</property>
++                                        <property name="icon_name">object-flip-horizontal-symbolic</property>
++                                      </object>
++                                    </child>
++                                  </object>
++                                  <packing>
++                                    <property name="expand">False</property>
++                                    <property name="fill">False</property>
++                                    <property name="position">1</property>
++                                  </packing>
++                                </child>
++                                <child>
++                                  <object class="GtkColorButton" id="style-scolor">
++                                    <property name="visible">True</property>
++                                    <property name="can_focus">True</property>
++                                    <property name="receives_default">True</property>
++                                    <property name="use_action_appearance">False</property>
++                                    <property name="color">#000000000000</property>
++                                  </object>
++                                  <packing>
++                                    <property name="expand">False</property>
++                                    <property name="fill">False</property>
++                                    <property name="position">2</property>
++                                  </packing>
++                                </child>
++                                <child>
++                                  <object class="GtkComboBox" id="style-combobox">
++                                    <property name="visible">True</property>
++                                    <property name="can_focus">False</property>
++                                    <property name="model">style-liststore</property>
++                                    <property name="active">0</property>
++                                    <child>
++                                      <object class="GtkCellRendererText" id="cellrenderertext1"/>
++                                      <attributes>
++                                        <attribute name="text">0</attribute>
++                                      </attributes>
++                                    </child>
++                                  </object>
++                                  <packing>
++                                    <property name="expand">False</property>
++                                    <property name="fill">False</property>
++                                    <property name="pack_type">end</property>
++                                    <property name="position">3</property>
++                                  </packing>
++                                </child>
++                              </object>
++                              <packing>
++                                <property name="expand">False</property>
++                                <property name="fill">False</property>
++                                <property name="pack_type">end</property>
++                                <property name="position">1</property>
++                              </packing>
++                            </child>
++                          </object>
++                          <packing>
++                            <property name="expand">False</property>
++                            <property name="fill">True</property>
++                            <property name="position">2</property>
++                          </packing>
++                        </child>
++                      </object>
++                      <packing>
++                        <property name="expand">True</property>
++                        <property name="fill">True</property>
++                        <property name="position">1</property>
++                      </packing>
++                    </child>
+                   </object>
+-                  <attributes>
+-                    <attribute name="text">2</attribute>
+-                  </attributes>
+                 </child>
+               </object>
+             </child>
+-          </object>
+-          <packing>
+-            <property name="expand">True</property>
+-            <property name="fill">True</property>
+-            <property name="position">1</property>
+-          </packing>
+-        </child>
+-        <child>
+-          <object class="GtkToolbar" id="toolbar1">
+-            <property name="visible">True</property>
+-            <property name="can_focus">False</property>
+-            <property name="icon_size">1</property>
+-            <style>
+-              <class name="inline-toolbar"/>
+-            </style>
+-            <child>
+-              <object class="GtkToolButton" id="add_button">
+-                <property name="visible">True</property>
+-                <property name="label" translatable="yes">Add wallpaper</property>
+-                <property name="use_action_appearance">False</property>
+-                <property name="use_underline">True</property>
+-                <property name="icon_name">list-add-symbolic</property>
+-              </object>
+-              <packing>
+-                <property name="expand">False</property>
+-                <property name="homogeneous">True</property>
+-              </packing>
+-            </child>
+-            <child>
+-              <object class="GtkToolButton" id="remove_button">
++            <child type="label">
++              <object class="GtkLabel" id="label1">
+                 <property name="visible">True</property>
+-                <property name="label" translatable="yes">Remove wallpaper</property>
+-                <property name="use_action_appearance">False</property>
+-                <property name="use_underline">True</property>
+-                <property name="icon_name">list-remove-symbolic</property>
+-                <property name="sensitive">False</property>
++                <property name="can_focus">False</property>
++                <property name="label" translatable="yes">&lt;b&gt;Background&lt;/b&gt;</property>
++                <property name="use_markup">True</property>
+               </object>
+-              <packing>
+-                <property name="expand">False</property>
+-                <property name="homogeneous">True</property>
+-              </packing>
+             </child>
+           </object>
+           <packing>
+             <property name="expand">False</property>
+             <property name="fill">True</property>
+-            <property name="position">2</property>
++            <property name="padding">6</property>
++            <property name="position">0</property>
+           </packing>
+         </child>
+-      </object>
+-      <packing>
+-        <property name="expand">False</property>
+-        <property name="fill">True</property>
+-        <property name="position">0</property>
+-      </packing>
+-    </child>
+-    <child>
+-      <object class="GtkVBox" id="vbox3">
+-        <property name="visible">True</property>
+-        <property name="can_focus">False</property>
+-        <property name="spacing">6</property>
+         <child>
+-          <object class="GtkHBox" id="heading-hbox">
++          <object class="GtkFrame" id="frame2">
+             <property name="visible">True</property>
+             <property name="can_focus">False</property>
+-            <property name="spacing">24</property>
++            <property name="label_xalign">0</property>
++            <property name="shadow_type">none</property>
+             <child>
+-              <object class="GtkLabel" id="background-label">
++              <object class="GtkAlignment" id="alignment2">
+                 <property name="visible">True</property>
+                 <property name="can_focus">False</property>
+-                <property name="xalign">0</property>
+-                <property name="label">Current background</property>
+-                <attributes>
+-                  <attribute name="weight" value="bold"/>
+-                </attributes>
+-              </object>
+-              <packing>
+-                <property name="expand">False</property>
+-                <property name="position">0</property>
+-              </packing>
+-            </child>
+-            <child>
+-              <object class="GtkLabel" id="size_label">
+-                <property name="visible">True</property>
+-                <property name="xalign">1</property>
+-                <property name="label">1280x700px</property>
+-              </object>
+-              <packing>
+-                <property name="position">1</property>
+-              </packing>
+-            </child>
+-          </object>
+-          <packing>
+-            <property name="expand">False</property>
+-            <property name="position">0</property>
+-          </packing>
+-        </child>
+-        <child>
+-          <object class="GtkDrawingArea" id="preview-area">
+-            <property name="visible">True</property>
+-          </object>
+-          <packing>
+-            <property name="position">1</property>
+-          </packing>
+-        </child>
+-        <child>
+-          <object class="GtkHBox" id="bottom-hbox">
+-            <property name="visible">True</property>
+-            <property name="spacing">12</property>
+-            <child>
+-              <object class="GtkHBox" id="hbox2">
+-                <property name="visible">True</property>
+-                <property name="spacing">2</property>
+-                <child>
+-                  <object class="GtkImage" id="slide_image">
+-                    <property name="visible">True</property>
+-                    <property name="icon_name">slideshow-symbolic</property>
+-                  </object>
+-                  <packing>
+-                    <property name="expand">False</property>
+-                    <property name="position">0</property>
+-                  </packing>
+-                </child>
+-                <child>
+-                  <object class="GtkLabel" id="slide-label">
+-                    <property name="visible">True</property>
+-                    <property name="xalign">0</property>
+-                    <property name="label" translatable="yes" comments="This refers to a slideshow background">Changes throughout the day</property>
+-                  </object>
+-                  <packing>
+-                    <property name="expand">False</property>
+-                    <property name="position">1</property>
+-                  </packing>
+-                </child>
++                <property name="left_padding">12</property>
+                 <child>
+-                  <object class="GtkLabel" id="strut">
++                  <object class="GtkBox" id="box1">
+                     <property name="visible">True</property>
+-                    <property name="label" translatable="no"> </property>
+-                  </object>
+-                  <packing>
+-                    <property name="expand">False</property>
+-                    <property name="position">1</property>
+-                  </packing>
+-                </child>
+-              </object>
+-              <packing>
+-                <property name="position">0</property>
+-              </packing>
+-            </child>
+-            <child>
+-              <object class="GtkHBox" id="edit-hbox">
+-                <property name="visible">True</property>
+-                <property name="spacing">6</property>
+-                <child>
+-                  <object class="GtkColorButton" id="style-pcolor">
+-                    <property name="visible">True</property>
+-                    <property name="can_focus">True</property>
+-                    <property name="receives_default">True</property>
+-                    <property name="color">#000000000000</property>
+-                  </object>
+-                  <packing>
+-                    <property name="expand">False</property>
+-                    <property name="fill">False</property>
+-                    <property name="position">0</property>
+-                  </packing>
+-                </child>
+-                <child>
+-                  <object class="GtkButton" id="swap-color-button">
+-                    <property name="visible">True</property>
+-                    <property name="can_focus">True</property>
+-                    <property name="receives_default">True</property>
+-                    <property name="use_action_appearance">False</property>
++                    <property name="can_focus">False</property>
++                    <property name="spacing">3</property>
++                    <property name="homogeneous">True</property>
+                     <child>
+-                      <object class="GtkImage" id="image1">
++                      <object class="GtkLabel" id="label3">
+                         <property name="visible">True</property>
+                         <property name="can_focus">False</property>
+-                        <property name="icon_name">object-flip-horizontal-symbolic</property>
++                        <property name="xalign">0</property>
++                        <property name="label" translatable="yes">Theme to be used for the UI</property>
+                       </object>
++                      <packing>
++                        <property name="expand">False</property>
++                        <property name="fill">True</property>
++                        <property name="position">0</property>
++                      </packing>
+                     </child>
+-                  </object>
+-                  <packing>
+-                    <property name="expand">False</property>
+-                    <property name="fill">False</property>
+-                    <property name="position">1</property>
+-                  </packing>
+-                </child>
+-                <child>
+-                  <object class="GtkComboBox" id="style-combobox">
+-                    <property name="visible">True</property>
+-                    <property name="model">style-liststore</property>
+-                    <property name="active">0</property>
+                     <child>
+-                      <object class="GtkCellRendererText" id="cellrenderertext1"/>
+-                      <attributes>
+-                        <attribute name="text">0</attribute>
+-                      </attributes>
++                      <object class="GtkComboBoxText" id="theme-selector">
++                        <property name="visible">True</property>
++                        <property name="can_focus">False</property>
++                        <items>
++                          <item translatable="yes">Ambiance</item>
++                          <item translatable="yes">Radiance</item>
++                          <item translatable="yes">High contrast inverse</item>
++                          <item translatable="yes">High contrast inverse large</item>
++                        </items>
++                      </object>
++                      <packing>
++                        <property name="expand">False</property>
++                        <property name="fill">True</property>
++                        <property name="padding">3</property>
++                        <property name="position">1</property>
++                      </packing>
+                     </child>
+                   </object>
+-                  <packing>
+-                    <property name="expand">False</property>
+-                    <property name="fill">False</property>
+-                    <property name="pack_type">end</property>
+-                    <property name="position">3</property>
+-                  </packing>
+-                </child>
+-                <child>
+-                  <object class="GtkColorButton" id="style-scolor">
+-                    <property name="visible">True</property>
+-                    <property name="can_focus">True</property>
+-                    <property name="receives_default">True</property>
+-                    <property name="use_action_appearance">False</property>
+-                    <property name="color">#000000000000</property>
+-                  </object>
+-                  <packing>
+-                    <property name="expand">False</property>
+-                    <property name="fill">False</property>
+-                    <property name="position">2</property>
+-                  </packing>
+                 </child>
+               </object>
+-              <packing>
+-                <property name="expand">False</property>
+-                <property name="fill">False</property>
+-                <property name="pack_type">end</property>
+-                <property name="position">1</property>
+-              </packing>
++            </child>
++            <child type="label">
++              <object class="GtkLabel" id="label2">
++                <property name="visible">True</property>
++                <property name="can_focus">False</property>
++                <property name="label" translatable="yes">&lt;b&gt;Theme&lt;/b&gt;</property>
++                <property name="use_markup">True</property>
++              </object>
+             </child>
+           </object>
+           <packing>
+             <property name="expand">False</property>
+-            <property name="position">2</property>
++            <property name="fill">True</property>
++            <property name="position">1</property>
+           </packing>
+         </child>
+       </object>
+-      <packing>
+-        <property name="position">1</property>
+-      </packing>
+     </child>
+   </object>
+   <object class="GtkSizeGroup" id="sizegroup">
+@@ -322,6 +440,16 @@
+       <widget name="strut"/>
+     </widgets>
+   </object>
++  <object class="GtkListStore" id="sources-liststore">
++    <columns>
++      <!-- column-name source-name -->
++      <column type="gchararray"/>
++      <!-- column-name source-id -->
++      <column type="guint"/>
++      <!-- column-name source-pointer -->
++      <column type="gpointer"/>
++    </columns>
++  </object>
+   <object class="GtkListStore" id="style-liststore">
+     <columns>
+       <!-- column-name name -->
+diff --git a/panels/background/cc-background-panel.c b/panels/background/cc-background-panel.c
+index f7f71ed..6d88f44 100644
+--- a/panels/background/cc-background-panel.c
++++ b/panels/background/cc-background-panel.c
+@@ -24,6 +24,7 @@
+ #include <string.h>
+ #include <glib/gi18n-lib.h>
+ #include <gdesktop-enums.h>
++#include <gconf/gconf-client.h>
+ 
+ #include "cc-background-panel.h"
+ #include "bg-wallpapers-source.h"
+@@ -69,6 +70,7 @@ struct _CcBackgroundPanelPrivate
+ #endif
+ 
+   GSettings *settings;
++  GSettings *interface_settings;
+ 
+   GnomeDesktopThumbnailFactory *thumb_factory;
+ 
+@@ -167,6 +169,12 @@ cc_background_panel_dispose (GObject *object)
+       priv->settings = NULL;
+     }
+ 
++  if (priv->interface_settings)
++    {
++      g_object_unref (priv->interface_settings);
++      priv->interface_settings = NULL;
++    }
++
+   if (priv->copy_cancellable)
+     {
+       /* cancel any copy operation */
+@@ -1137,6 +1145,112 @@ scrolled_realize_cb (GtkWidget         *scrolled,
+     g_object_set (G_OBJECT (scrolled), "height-request", 280, NULL);
+ }
+ 
++static gchar *themes[] = { "Ambiance", "Radiance", "HighContrast", "HighContrastInverse" };
++
++static gboolean
++get_theme_data (const gchar *theme_name,
++		gchar **gtk_theme,
++		gchar **icon_theme,
++		gchar **window_theme,
++		gchar **cursor_theme)
++{
++  gchar *path;
++  GKeyFile *theme_file;
++  GError *error = NULL;
++  gboolean result = FALSE;
++
++  *gtk_theme = *icon_theme = *window_theme = *cursor_theme = NULL;
++
++  theme_file = g_key_file_new ();
++  path = g_build_filename ("/usr/share/themes", theme_name, "index.theme", NULL);
++  if (g_key_file_load_from_file (theme_file, path, G_KEY_FILE_NONE, &error))
++    {
++      *gtk_theme = g_key_file_get_string (theme_file, "X-GNOME-Metatheme", "GtkTheme", NULL);
++      *icon_theme = g_key_file_get_string (theme_file, "X-GNOME-Metatheme", "IconTheme", NULL);
++      *window_theme = g_key_file_get_string (theme_file, "X-GNOME-Metatheme", "MetacityTheme", NULL);
++      *cursor_theme = g_key_file_get_string (theme_file, "X-GNOME-Metatheme", "CursorTheme", NULL);
++
++      result = TRUE;
++
++      g_key_file_free (theme_file);
++    }
++  else
++    {
++      g_warning ("Could not load %s: %s", path, error->message);
++      g_error_free (error);
++    }
++
++  g_free (path);
++
++  return result;
++}
++
++static void
++theme_selection_changed (GtkComboBox *combo, CcBackgroundPanel *self)
++{
++  gint active;
++  gchar *gtk_theme, *icon_theme, *window_theme, *cursor_theme;
++  GConfClient *client;
++
++  active = gtk_combo_box_get_active (combo);
++  g_return_if_fail (active >= 0 && active < G_N_ELEMENTS (themes));
++
++  get_theme_data (themes[active], &gtk_theme, &icon_theme, &window_theme, &cursor_theme);
++
++  g_settings_delay (self->priv->interface_settings);
++
++  g_settings_set_string (self->priv->interface_settings, "gtk-theme", gtk_theme);
++  g_settings_set_string (self->priv->interface_settings, "icon-theme", icon_theme);
++  g_settings_set_string (self->priv->interface_settings, "cursor-theme", cursor_theme);
++
++  g_settings_apply (self->priv->interface_settings);
++
++  /* For metacity, we use GConf */
++  client = gconf_client_get_default ();
++  gconf_client_set_string (client, "/desktop/gnome/shell/windows/theme", window_theme, NULL);
++
++  g_object_unref (client);
++  g_free (gtk_theme);
++  g_free (icon_theme);
++  g_free (window_theme);
++  g_free (cursor_theme);
++}
++
++static void
++setup_theme_selector (CcBackgroundPanel *self)
++{
++  gchar *current_gtk_theme;
++  gint i;
++  GtkWidget *widget;
++  CcBackgroundPanelPrivate *priv = self->priv;
++
++  priv->interface_settings = g_settings_new ("org.gnome.desktop.interface");
++  current_gtk_theme = g_settings_get_string (priv->interface_settings, "gtk-theme");
++
++  widget = WID ("theme-selector");
++  g_signal_connect (G_OBJECT (widget), "changed",
++		    G_CALLBACK (theme_selection_changed), self);
++
++  for (i = 0; i < G_N_ELEMENTS (themes); i++)
++    {
++      gchar *gtk_theme, *icon_theme, *window_theme, *cursor_theme;
++
++      get_theme_data (themes[i], &gtk_theme, &icon_theme, &window_theme, &cursor_theme);
++      if (g_str_equal (gtk_theme, current_gtk_theme))
++        {
++	  /* This is the current theme, so select item in the combo box and finish */
++	  gtk_combo_box_set_active (GTK_COMBO_BOX (widget), i);
++
++	  break;
++	}
++
++      g_free (gtk_theme);
++      g_free (icon_theme);
++      g_free (window_theme);
++      g_free (cursor_theme);
++    }
++}
++
+ static void
+ cc_background_panel_init (CcBackgroundPanel *self)
+ {
+@@ -1268,6 +1382,9 @@ cc_background_panel_init (CcBackgroundPanel *self)
+ 
+   /* Setup the edit box with our current settings */
+   source_update_edit_box (priv, TRUE);
++
++  /* Setup theme selector */
++  setup_theme_selector (self);
+ }
+ 
+ void
+diff --git a/panels/background/gnome-background-panel.desktop.in.in b/panels/background/gnome-background-panel.desktop.in.in
+index 8d9f7c0..36a4d28 100644
+--- a/panels/background/gnome-background-panel.desktop.in.in
++++ b/panels/background/gnome-background-panel.desktop.in.in
+@@ -1,6 +1,6 @@
+ [Desktop Entry]
+-_Name=Background
+-_Comment=Change the background
++_Name=Appearance
++_Comment=Change the background and theme
+ Exec=gnome-control-center background
+ Icon=preferences-desktop-wallpaper
+ Terminal=false
+@@ -10,4 +10,4 @@ Categories=GNOME;GTK;Settings;DesktopSettings;X-GNOME-Settings-Panel;X-GNOME-Per
+ OnlyShowIn=GNOME;Unity;
+ X-GNOME-Settings-Panel=background
+ # Translators: those are keywords for the background control-center panel
+-_X-GNOME-Keywords=Wallpaper;Screen;Desktop;
++_X-GNOME-Keywords=Wallpaper;Screen;Desktop;Theme;
