@@ -1,441 +1,183 @@
-Description: Ubuntu specific preferences
-Author: ?
-
-=== modified file 'capplets/network/gnome-network-preferences.c'
-Index: gnome-control-center-2.31.90/capplets/network/gnome-network-properties.c
-===================================================================
---- gnome-control-center-2.31.90.orig/capplets/network/gnome-network-properties.c	2010-08-17 02:46:46.000000000 +1000
-+++ gnome-control-center-2.31.90/capplets/network/gnome-network-properties.c	2010-09-01 17:42:38.122617000 +1000
-@@ -28,6 +28,9 @@
- #include <string.h>
- #include <gconf/gconf-client.h>
- #include <glib/gi18n.h>
-+#include <dbus/dbus-glib.h>
+diff --git a/panels/network/cc-network-panel.c b/panels/network/cc-network-panel.c
+index f837426..21d3f6a 100644
+--- a/panels/network/cc-network-panel.c
++++ b/panels/network/cc-network-panel.c
+@@ -23,6 +23,10 @@
+ #include <arpa/inet.h>
+ #include <netinet/ether.h>
+ #include <stdlib.h>
 +#include <grp.h>
 +#include <unistd.h>
++#include <gio/gio.h>
++#include <gdesktop-enums.h>
  
- #include "capplet-util.h"
- #include "gconf-property-editor.h"
-@@ -191,6 +194,343 @@
- 	}
+ #include "cc-network-panel.h"
+ 
+@@ -3114,6 +3118,128 @@ stop_hotspot (GtkButton *button, CcNetworkPanel *panel)
+         gtk_window_present (GTK_WINDOW (dialog));
  }
  
-+static gboolean 
-+dbus_set_proxy_helper(DBusGProxy *dbus_proxy, 
-+		      const char *proxy_type, 
-+		      const char *host, 
-+		      int port)
-+{
-+   GError *error = NULL;
-+   gboolean dbus_ret, res;
-+   gchar *proxy_str = NULL;
-+
-+   fprintf(stderr, "set_proxy_helper: '%s' '%s'\n", proxy_type, host);
-+
-+   /* FIXME: add proxy auth support when a "secure" store for the proxy
-+      password is available */
-+   proxy_str = g_strdup_printf("%s://%s:%i/", proxy_type, host, port);
-+   g_print("p: %s\n", proxy_str);
-+
-+   dbus_ret = dbus_g_proxy_call (dbus_proxy, "set_proxy", &error, 
-+				 G_TYPE_STRING, proxy_type,
-+				 G_TYPE_STRING, proxy_str,
-+				 G_TYPE_INVALID,
-+				 G_TYPE_BOOLEAN, &res, 
-+				 G_TYPE_INVALID);
-+
-+   if(!dbus_ret) {
-+      if (error->domain == DBUS_GERROR && 
-+	  error->code == DBUS_GERROR_REMOTE_EXCEPTION)
-+	 g_printerr ("Caught remote method exception %s: %s",
-+		     dbus_g_error_get_name (error),
-+		     error->message);
-+      else
-+	 g_printerr ("Error: %s\n", error->message);
-+      g_error_free (error);
-+      return FALSE;
-+   }
-+   g_print("set_proxy() returned: %i\n", res);
-+   return TRUE;
-+}
-+
-+static gboolean
-+dbus_reset_proxy_helper(DBusGProxy *dbus_proxy, const char *proxy_type)
-+{
-+   GError *error = NULL;
-+   gboolean dbus_ret, res;
-+
-+   fprintf(stderr, "reseting proxy %s\n", proxy_type);
-+
-+   dbus_ret = dbus_g_proxy_call (dbus_proxy, "set_proxy", &error, 
-+				 G_TYPE_STRING, proxy_type,
-+				 G_TYPE_STRING, "",
-+				 G_TYPE_INVALID,
-+				 G_TYPE_BOOLEAN, &res, 
-+				 G_TYPE_INVALID);
-+   fprintf(stderr, "reset_proxy() returned: %i\n", res);
-+
-+   if(!dbus_ret) 
-+   {
-+      if (error->domain == DBUS_GERROR && 
-+	  error->code == DBUS_GERROR_REMOTE_EXCEPTION)
-+	 g_printerr ("Caught remote method exception %s: %s",
-+		     dbus_g_error_get_name (error),
-+		     error->message);
-+      else
-+	 g_printerr ("Error: %s\n", error->message);
-+      g_error_free (error);
-+      return FALSE;
-+   }
-+   return TRUE;
-+}
-+
-+static gboolean
-+dbus_set_to_system_gconf_helper(DBusGProxy *dbus_proxy)
-+{
-+   GConfClient *client;
-+   GError *error = NULL;
-+   gboolean dbus_ret;
-+   gchar* include[] = {"/system/proxy","/system/http_proxy", NULL};
-+   gchar* exclude[] = {NULL};
-+
-+   fprintf(stderr, "set_set_to_system_gconf_helper\n");
-+   
-+   client = gconf_client_get_default ();
-+   gconf_client_suggest_sync (client, &error);
-+   dbus_ret = dbus_g_proxy_call (dbus_proxy, "SetSystem", &error,
-+				 G_TYPE_STRV, include,
-+				 G_TYPE_STRV, exclude,
-+				 G_TYPE_INVALID,
-+				 G_TYPE_INVALID);
-+
-+   if(!dbus_ret) {
-+      if (error->domain == DBUS_GERROR &&
-+	  error->code == DBUS_GERROR_REMOTE_EXCEPTION)
-+        g_printerr ("Caught remote method exception %s: %s",
-+                    dbus_g_error_get_name (error),
-+                    error->message);
-+      else
-+        g_printerr ("Error: %s\n", error->message);
-+      g_error_free (error);
-+      return FALSE;
-+   }
-+   return TRUE;
-+}
-+
-+static void
-+cb_reset_system_default (GtkButton *button, gpointer data)
-+{
-+   GConfClient *client;
-+   GError *error;
-+   gboolean res;
-+
-+   client = gconf_client_get_default ();
-+   res = gconf_client_recursive_unset (client, "/system/proxy", 0, &error);
-+   if(!res)
-+      g_printerr("recursive_unset: %s: %s", dbus_g_error_get_name(error), error->message);
-+   res = gconf_client_recursive_unset (client, "/system/http_proxy", 0, &error);
-+   if(!res)
-+      g_printerr("recursive_unset: %s: %s", dbus_g_error_get_name(error), error->message);
-+}
-+
-+static void
-+cb_make_system_default (GtkButton *button, gpointer data)
-+{
-+   DBusGConnection *systembus;
-+   GError *error = NULL;
-+   DBusGProxy *dbus_proxy;
-+   GConfClient *client;
-+   gchar *http_proxy, *ftp_proxy, *https_proxy;
-+   gint http_port, ftp_port, https_port;
-+   gboolean use_proxy;
-+
-+   g_print ("cb_make_system_default\n");
-+
-+   // do ride the dbus
-+   systembus = dbus_g_bus_get (DBUS_BUS_SYSTEM, &error);
-+   dbus_proxy = dbus_g_proxy_new_for_name (systembus,
-+				      "com.ubuntu.SystemService",
-+				      "/",
-+				      "com.ubuntu.SystemService");
-+   if (dbus_proxy == NULL) {
-+      g_printerr ("Failed to get proxy: %s\n",
-+                  error->message);
-+      g_error_free (error);
-+      return;
-+   }
-+   client = gconf_client_get_default ();
-+   use_proxy = gconf_client_get_bool (client, USE_PROXY_KEY, NULL);
-+   
-+   if (use_proxy) {
-+      // read the proxy settings
-+      http_proxy = gconf_client_get_string (client, HTTP_PROXY_HOST_KEY, NULL);
-+      http_port = gconf_client_get_int (client, HTTP_PROXY_PORT_KEY, NULL);
-+      if(http_proxy == NULL || strlen(http_proxy) == 0)
-+	 dbus_reset_proxy_helper(dbus_proxy, "http");
-+      else
-+	 dbus_set_proxy_helper(dbus_proxy, "http", http_proxy, http_port);
-+      
-+      ftp_proxy = gconf_client_get_string (client, FTP_PROXY_HOST_KEY, NULL);
-+      ftp_port = gconf_client_get_int (client, FTP_PROXY_PORT_KEY, NULL);
-+      if(ftp_proxy == NULL || strlen(ftp_proxy) == 0)
-+	 dbus_reset_proxy_helper(dbus_proxy, "ftp");
-+      else
-+	 dbus_set_proxy_helper(dbus_proxy, "ftp", ftp_proxy, ftp_port);
-+
-+      https_proxy = gconf_client_get_string (client, SECURE_PROXY_HOST_KEY, NULL);
-+      https_port = gconf_client_get_int (client, SECURE_PROXY_PORT_KEY, NULL);
-+      if(https_proxy == NULL || strlen(https_proxy) == 0)
-+	 dbus_reset_proxy_helper(dbus_proxy, "https");
-+      else
-+	 dbus_set_proxy_helper(dbus_proxy, "https", https_proxy, https_port);
-+      g_object_unref(dbus_proxy);
-+   } else {
-+      // we don't use a proxy
-+      dbus_reset_proxy_helper(dbus_proxy, "http");
-+      dbus_reset_proxy_helper(dbus_proxy, "ftp");
-+      dbus_reset_proxy_helper(dbus_proxy, "https");
-+   }
-+
-+
-+   // set it to gconf as well
-+   dbus_proxy = dbus_g_proxy_new_for_name (systembus,
-+				      "org.gnome.GConf.Defaults",
-+				      "/",
-+				      "org.gnome.GConf.Defaults");
-+   if (dbus_proxy == NULL) {
-+      g_printerr ("Failed to get proxy: %s\n",
-+                  error->message);
-+      g_error_free (error);
-+      return;
-+   }
-+   dbus_set_to_system_gconf_helper(dbus_proxy);
-+
-+   g_object_unref(dbus_proxy);
-+}
-+
 +static gboolean
 +is_admin ()
 +{
-+	gid_t groups [1024];
-+	int i, ngroups;
-+	struct group *admin;
++        gid_t groups [1024];
++        int i, ngroups;
++        struct group *admin;
 +
-+	admin = getgrnam ("admin");
-+	if (admin == NULL)
-+		return FALSE;
++        admin = getgrnam ("admin");
++        if (admin == NULL)
++                return FALSE;
 +
-+	ngroups = getgroups (1024, groups);
-+	if (ngroups < 0) {
-+		perror ("getgroups");
-+		return FALSE;
-+	}
++        ngroups = getgroups (1024, groups);
++        if (ngroups < 0) {
++                perror ("getgroups");
++                return FALSE;
++        }
 +
-+	for (i = 0; i < ngroups; ++i) {
-+		if (groups[i] == admin->gr_gid)
-+			return TRUE;
-+	}
++        for (i = 0; i < ngroups; ++i) {
++                if (groups[i] == admin->gr_gid)
++                        return TRUE;
++        }
 +
-+	return FALSE;
-+
++        return FALSE;
 +}
 +
-+static gboolean
-+check_user_system_diff ()
++static void
++reset_system_proxy (GDBusProxy *proxy, const gchar *protocol)
 +{
-+	DBusGConnection *systembus;
-+	GError *error = NULL;
-+	DBusGProxy *dbus_proxy;
-+	GConfClient *client;
-+	gchar *sys_http, *sys_ftp, *sys_https;
-+	gboolean use_proxy;
-+	gchar *proxy;
-+	gint port;
-+	gchar* s;
-+	gboolean ret = FALSE;
++        GVariant *result;
++        GError *error = NULL;
 +
-+	g_print ("check_do_system_wide\n");
-+
-+	// check the system wide values
-+	systembus = dbus_g_bus_get (DBUS_BUS_SYSTEM, &error);
-+	dbus_proxy = dbus_g_proxy_new_for_name (systembus,
-+			"com.ubuntu.SystemService",
-+			"/",
-+			"com.ubuntu.SystemService");
-+	if (dbus_proxy == NULL) {
-+		g_printerr ("Failed to get D-BUS proxy: %s\n",
-+				error->message);
-+		g_error_free (error);
-+		return FALSE;
-+	}
-+
-+	if (!dbus_g_proxy_call (dbus_proxy, "get_proxy", &error, 
-+					G_TYPE_STRING, "http",
-+					G_TYPE_INVALID,
-+					G_TYPE_STRING, &sys_http, 
-+					G_TYPE_INVALID)) {
-+		g_printerr ("Failed to get http proxy: %s\n",
-+				error->message);
-+		g_error_free (error);
-+		return FALSE;
-+	}
-+	g_print("  system wide HTTP: %s\n", sys_http);
-+	if (!dbus_g_proxy_call (dbus_proxy, "get_proxy", &error, 
-+					G_TYPE_STRING, "https",
-+					G_TYPE_INVALID,
-+					G_TYPE_STRING, &sys_https, 
-+					G_TYPE_INVALID)) {
-+		g_printerr ("Failed to get https proxy: %s\n",
-+				error->message);
-+		g_error_free (error);
-+		return FALSE;
-+	}
-+	g_print("  system wide HTTPS: %s\n", sys_https);
-+	if (!dbus_g_proxy_call (dbus_proxy, "get_proxy", &error, 
-+					G_TYPE_STRING, "ftp",
-+					G_TYPE_INVALID,
-+					G_TYPE_STRING, &sys_ftp, 
-+					G_TYPE_INVALID)) {
-+		g_printerr ("Failed to get ftp proxy: %s\n",
-+				error->message);
-+		g_error_free (error);
-+		return FALSE;
-+	}
-+	g_print("  system wide FTP: %s\n", sys_ftp);
-+	g_object_unref(dbus_proxy);
-+
-+
-+	client = gconf_client_get_default ();
-+	use_proxy = gconf_client_get_bool (client, USE_PROXY_KEY, NULL);
-+
-+	/* compare with values from gconf for HTTP */
-+	proxy = gconf_client_get_string (client, HTTP_PROXY_HOST_KEY, NULL);
-+	port = gconf_client_get_int (client, HTTP_PROXY_PORT_KEY, NULL);
-+	if (use_proxy && g_strcmp0 (proxy, "")) {
-+		s = g_strdup_printf ("http://%s:%i/", proxy, port);
-+		g_print ("  user HTTP: %s\n", s);
-+		if (strcmp (s, sys_http))
-+			ret = TRUE;
-+		g_free (s);
-+	} else {
-+		g_print ("  no user HTTP\n");
-+		if (g_strcmp0 (sys_http, ""))
-+			ret = TRUE;
-+	}
-+
-+	/* compare with values from gconf for HTTPS */
-+	proxy = gconf_client_get_string (client, FTP_PROXY_HOST_KEY, NULL);
-+	port = gconf_client_get_int (client, FTP_PROXY_PORT_KEY, NULL);
-+	if (use_proxy && g_strcmp0 (proxy, "")) {
-+		s = g_strdup_printf ("ftp://%s:%i/", proxy, port);
-+		g_print ("  user FTP: %s\n", s);
-+		if (strcmp (s, sys_ftp))
-+			ret = TRUE;
-+		g_free (s);
-+	} else {
-+		g_print ("  no user FTP\n");
-+		if (g_strcmp0 (sys_ftp, ""))
-+			ret = TRUE;
-+	}
-+
-+	/* compare with values from gconf for HTTPS */
-+	proxy = gconf_client_get_string (client, SECURE_PROXY_HOST_KEY, NULL);
-+	port = gconf_client_get_int (client, SECURE_PROXY_PORT_KEY, NULL);
-+	if (use_proxy && g_strcmp0 (proxy, "")) {
-+		s = g_strdup_printf ("https://%s:%i/", proxy, port);
-+		g_print ("  user HTTPS: %s\n", s);
-+		if (strcmp (s, sys_https))
-+			ret = TRUE;
-+		g_free (s);
-+	} else {
-+		g_print ("  no user HTTPS\n");
-+		if (g_strcmp0 (sys_https, ""))
-+			ret = TRUE;
-+	}
-+
-+	return ret;
++        result = g_dbus_proxy_call_sync (proxy, "set_proxy",
++                                         g_variant_new ("(ss)", protocol, ""),
++                                         G_DBUS_CALL_FLAGS_NONE,
++                                         -1, NULL, &error);
++        if (result)
++                g_variant_unref (result);
++        else {
++                g_warning ("Error while calling set_proxy for %s protocol: %s", protocol, error->message);
++                g_error_free (error);
++        }
 +}
 +
++static void
++set_proxy_for_protocol (GDBusProxy *proxy, const gchar *protocol, GSettings *settings)
++{
++        GVariant *result;
++        gchar *proxy_str;
++        GError *error = NULL;
++
++        proxy_str = g_strdup_printf ("%s://%s:%i/",
++                                     protocol,
++                                     g_settings_get_string (settings, "host"),
++                                     g_settings_get_int (settings, "port"));
++        result = g_dbus_proxy_call_sync (proxy, "set_proxy",
++                                         g_variant_new ("(ss)", protocol, proxy_str),
++                                         G_DBUS_CALL_FLAGS_NONE,
++                                         -1, NULL, &error);
++        if (result)
++                g_variant_unref (result);
++        else {
++                g_warning ("Error while calling set_proxy for %s protocol: %s", protocol, error->message);
++                g_error_free (error);
++        }
++
++        /* Free memory */
++        g_free (proxy_str);
++        g_object_unref (settings);
++}
++
++static void
++on_proxy_apply_system_wide (GtkButton *button, gpointer user_data)
++{
++        GDBusConnection *bus;
++        GDBusProxy *proxy;
++        GError *error;
++        GDesktopProxyMode proxy_mode;
++        CcNetworkPanel *panel = CC_NETWORK_PANEL (user_data);
++
++        error = NULL;
++        bus = g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, &error);
++        if (!bus) {
++                g_warning ("Could not retrieve system bus: %s", error->message);
++                g_error_free (error);
++
++                return;
++        }
++
++        proxy = g_dbus_proxy_new_sync (bus, 0, NULL,
++                                       "com.ubuntu.SystemService",
++                                       "/",
++                                       "com.ubuntu.SystemService",
++                                       NULL,
++                                       &error);
++        if (!proxy) {
++                g_warning ("Could not retrieve bus object: %s", error->message);
++                g_error_free (error);
++
++                return;
++        }
++
++        /* Retrieve the current settings */
++        proxy_mode = g_settings_get_enum (panel->priv->proxy_settings, "mode");
++        switch (proxy_mode) {
++        case G_DESKTOP_PROXY_MODE_NONE:
++                reset_system_proxy (proxy, "http");
++                reset_system_proxy (proxy, "https");
++                reset_system_proxy (proxy, "ftp");
++                reset_system_proxy (proxy, "socks");
++                break;
++        case G_DESKTOP_PROXY_MODE_MANUAL:
++                set_proxy_for_protocol (proxy, "http", g_settings_get_child (panel->priv->proxy_settings, "http"));
++                set_proxy_for_protocol (proxy, "https", g_settings_get_child (panel->priv->proxy_settings, "https"));
++                set_proxy_for_protocol (proxy, "ftp", g_settings_get_child (panel->priv->proxy_settings, "ftp"));
++                set_proxy_for_protocol (proxy, "socks", g_settings_get_child (panel->priv->proxy_settings, "socks"));
++                break;
++        }
++
++        /* Free memory */
++        g_object_unref (proxy);
++}
 +
  static void
- cb_dialog_response (GtkDialog *dialog, gint response_id)
+ cc_network_panel_init (CcNetworkPanel *panel)
  {
-@@ -199,6 +539,22 @@
- 			"goscustdesk-50");
- 	else if (response_id == GTK_RESPONSE_CLOSE || response_id == GTK_RESPONSE_DELETE_EVENT)
- 	{
-+		if (is_admin () && check_user_system_diff ()) {
-+			g_debug ("user and system proxy settings differ");
-+			gint res;
-+			GtkDialog *msg = GTK_DIALOG (gtk_message_dialog_new (GTK_WINDOW (dialog), 0,
-+				GTK_MESSAGE_QUESTION, GTK_BUTTONS_CLOSE, _(
-+				"Do you want to apply these settings system-wide, "
-+				"so that they are also used for package installation "
-+				"and other system services?")));
-+			gtk_dialog_add_button (msg,
-+					_("Apply System-Wide..."), GTK_RESPONSE_APPLY);
-+			res = gtk_dialog_run (msg);
-+			gtk_widget_destroy (GTK_WIDGET (msg));
-+
-+			if (res == GTK_RESPONSE_APPLY)
-+				cb_make_system_default (NULL, NULL);
-+		}
- 		if (ignore_hosts) {
- 			g_slist_foreach (ignore_hosts, (GFunc) g_free, NULL);
- 			g_slist_free (ignore_hosts);
-@@ -1348,6 +1704,12 @@
- 			  "activate", G_CALLBACK (cb_add_url), builder);
- 	g_signal_connect (gtk_builder_get_object (builder, "button_remove_url"),
- 			  "clicked", G_CALLBACK (cb_remove_url), builder);
-+ 
-+ 	/* System-wide default */
-+ 	g_signal_connect(gtk_builder_get_object (builder, "button_make_system_default"), "clicked",
-+ 			 G_CALLBACK(cb_make_system_default), builder);
-+ 	g_signal_connect(gtk_builder_get_object (builder, "button_reset_to_defaults"), "clicked",
-+ 			 G_CALLBACK(cb_reset_system_default), builder);
- }
+@@ -3244,6 +3370,13 @@ cc_network_panel_init (CcNetworkPanel *panel)
+         /* add the virtual proxy device */
+         panel_add_proxy_device (panel);
  
- int
-Index: gnome-control-center-2.31.90/capplets/network/gnome-network-properties.ui
-===================================================================
---- gnome-control-center-2.31.90.orig/capplets/network/gnome-network-properties.ui	2010-08-17 02:46:46.000000000 +1000
-+++ gnome-control-center-2.31.90/capplets/network/gnome-network-properties.ui	2010-09-01 17:42:38.122617000 +1000
-@@ -513,6 +513,38 @@
-                             <property name="position">1</property>
++        /* System wide proxy settings */
++        if (is_admin ()) {
++                g_signal_connect (G_OBJECT (gtk_builder_get_object (panel->priv->builder, "system_proxy_button")), "clicked",
++                                  G_CALLBACK (on_proxy_apply_system_wide), panel);
++        } else
++                gtk_widget_hide (GTK_WIDGET (gtk_builder_get_object (panel->priv->builder, "system_proxy_button")));
++
+         /* setup wireless combobox model */
+         combobox = GTK_COMBO_BOX (gtk_builder_get_object (panel->priv->builder,
+                                                           "combobox_wireless_network_name"));
+diff --git a/panels/network/network.ui b/panels/network/network.ui
+index 5ef4ec9..82b089a 100644
+--- a/panels/network/network.ui
++++ b/panels/network/network.ui
+@@ -2296,6 +2296,20 @@
+                             <property name="position">0</property>
                            </packing>
                          </child>
 +                        <child>
-+                          <object class="GtkHButtonBox" id="hbuttonbox1">
++                          <object class="GtkButton" id="system_proxy_button">
++                            <property name="label" translatable="yes">Apply system wide</property>
 +                            <property name="visible">True</property>
-+                            <property name="spacing">6</property>
-+                            <property name="layout_style">GTK_BUTTONBOX_START</property>
-+                            <child>
-+                              <object class="GtkButton" id="button_make_system_default">
-+                                <property name="visible">True</property>
-+                                <property name="can_focus">True</property>
-+                                <property name="receives_default">True</property>
-+                                <property name="label" translatable="yes">Apply System-Wide...</property>
-+                              </object>
-+                              <packing>
-+                                <property name="expand">False</property>
-+                                <property name="fill">False</property>
-+                              </packing>
-+                            </child>
-+                            <child>
-+                              <object class="GtkButton" id="button_reset_to_defaults">
-+                                <property name="visible">True</property>
-+                                <property name="can_focus">True</property>
-+                                <property name="receives_default">True</property>
-+                                <property name="label" translatable="yes">Reset</property>
-+                              </object>
-+                              <packing>
-+                                <property name="expand">False</property>
-+                                <property name="fill">False</property>
-+                                <property name="position">1</property>
-+                              </packing>
-+                            </child>
++                            <property name="can_focus">True</property>
++                            <property name="receives_default">True</property>
++                            <property name="use_action_appearance">False</property>
 +                          </object>
-+                        </child>                        
++                          <packing>
++                            <property name="expand">False</property>
++                            <property name="fill">False</property>
++                            <property name="position">1</property>
++                          </packing>
++                        </child>
                        </object>
                        <packing>
-                         <property name="expand">False</property>
+                         <property name="position">2</property>
