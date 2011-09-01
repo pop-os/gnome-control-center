@@ -765,7 +765,7 @@ index f7f71ed..6d88f44 100644
    if (priv->copy_cancellable)
      {
        /* cancel any copy operation */
-@@ -1137,6 +1145,113 @@ scrolled_realize_cb (GtkWidget         *scrolled,
+@@ -1137,6 +1145,114 @@ scrolled_realize_cb (GtkWidget         *scrolled,
      g_object_set (G_OBJECT (scrolled), "height-request", 280, NULL);
  }
  
@@ -853,8 +853,6 @@ index f7f71ed..6d88f44 100644
 +  current_gtk_theme = g_settings_get_string (priv->interface_settings, "gtk-theme");
 +
 +  widget = WID ("theme-selector");
-+  g_signal_connect (G_OBJECT (widget), "changed",
-+		    G_CALLBACK (theme_selection_changed), self);
 +
 +  for (i = 0; i < G_N_ELEMENTS (themes); i++)
 +    {
@@ -874,6 +872,9 @@ index f7f71ed..6d88f44 100644
 +      g_free (window_theme);
 +      g_free (cursor_theme);
 +    }
++
++  g_signal_connect (G_OBJECT (widget), "changed",
++		    G_CALLBACK (theme_selection_changed), self);
 +}
 +
  static void
