@@ -5,8 +5,31 @@ Subject: Printers: Include cups/ppd.h explicitly
 
 cups/ppd.h is not included by cups/cups.h since CUPS 1.5.
 ---
-(limited to 'panels/printers/pp-utils.c')
-
+diff --git a/configure.ac b/configure.ac
+index 24a2f8b..f8d5ff1 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -147,7 +147,7 @@ if test x"$enable_cups" != x"no" ; then
+   CUPS_API_MAJOR=`echo $ECHO_N $CUPS_API_VERSION | cut -d . -f 1`
+   CUPS_API_MINOR=`echo $ECHO_N $CUPS_API_VERSION | cut -d . -f 2`
+ 
+-  AC_CHECK_HEADERS([cups/cups.h cups/http.h cups/ipp.h],,
++  AC_CHECK_HEADERS([cups/cups.h cups/http.h cups/ipp.h cups/ppd.h],,
+                    AC_MSG_ERROR([CUPS headers not found but CUPS support requested]))
+ 
+   if ! test $CUPS_API_MAJOR -gt 1 -o \
+diff --git a/panels/printers/pp-new-printer-dialog.c b/panels/printers/pp-new-printer-dialog.c
+index a6164fa..d972c4d 100644
+--- a/panels/printers/pp-new-printer-dialog.c
++++ b/panels/printers/pp-new-printer-dialog.c
+@@ -31,6 +31,7 @@
+ #include <gtk/gtk.h>
+ 
+ #include <cups/cups.h>
++#include <cups/ppd.h>
+ 
+ #include "pp-new-printer-dialog.h"
+ #include "pp-utils.h"
 diff --git a/panels/printers/pp-utils.c b/panels/printers/pp-utils.c
 index 07ccfc3..faa29b9 100644
 --- a/panels/printers/pp-utils.c
