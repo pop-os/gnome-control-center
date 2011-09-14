@@ -1,0 +1,17 @@
+Description: Load correct theme at startup
+Author: Michael Terry <michael.terry@canonical.com>
+Bug-Ubuntu: https://launchpad.net/bugs/834958
+Bug: https://bugzilla.gnome.org/show_bug.cgi?id=658990
+
+Index: gnome-control-center-3.1.91/panels/universal-access/cc-ua-panel.c
+===================================================================
+--- gnome-control-center-3.1.91.orig/panels/universal-access/cc-ua-panel.c	2011-09-13 16:36:22.320920488 -0400
++++ gnome-control-center-3.1.91/panels/universal-access/cc-ua-panel.c	2011-09-13 16:36:42.420920100 -0400
+@@ -792,6 +792,7 @@
+   priv->interface_settings = g_settings_new ("org.gnome.desktop.interface");
+   g_signal_connect (priv->interface_settings, "changed",
+                     G_CALLBACK (interface_settings_changed_cb), self);
++  interface_settings_changed_cb (priv->interface_settings, "gtk-theme", self);
+ 
+   priv->kb_settings = g_settings_new ("org.gnome.desktop.a11y.keyboard");
+   priv->mouse_settings = g_settings_new ("org.gnome.desktop.a11y.mouse");
