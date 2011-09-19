@@ -1,0 +1,914 @@
+diff --git a/configure.ac b/configure.ac
+index 2c5592b..ba5e6c8 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -132,8 +132,7 @@ AC_SUBST(GDESKTOP_PREFIX)
+ # Check for NetworkManager ~0.9
+ PKG_CHECK_MODULES(NETWORK_MANAGER, NetworkManager >= $NETWORK_MANAGER_REQUIRED_VERSION
+                   libnm-glib >= $NETWORK_MANAGER_REQUIRED_VERSION
+-                  libnm-util >= $NETWORK_MANAGER_REQUIRED_VERSION
+-		  libnm-gtk >= $NETWORK_MANAGER_REQUIRED_VERSION,
++                  libnm-util >= $NETWORK_MANAGER_REQUIRED_VERSION,
+                   [have_networkmanager=yes], have_networkmanager=no)
+ if test "x$have_networkmanager" = xno ; then
+         AC_MSG_WARN(*** Network panel will not be built (NetworkManager >= $NETWORK_MANAGER_REQUIRED_VERSION or newer not found) ***)
+diff --git a/panels/network/Makefile.am b/panels/network/Makefile.am
+index 23e812d..5eec1eb 100644
+--- a/panels/network/Makefile.am
++++ b/panels/network/Makefile.am
+@@ -28,8 +28,6 @@ libnetwork_la_SOURCES =					\
+ 	panel-cell-renderer-security.h			\
+ 	panel-cell-renderer-signal.c			\
+ 	panel-cell-renderer-signal.h			\
+-	network-dialogs.c				\
+-	network-dialogs.h				\
+ 	cc-network-panel.c				\
+ 	cc-network-panel.h
+ 
+diff --git a/panels/network/cc-network-panel.c b/panels/network/cc-network-panel.c
+index 6698d86..df53d66 100644
+--- a/panels/network/cc-network-panel.c
++++ b/panels/network/cc-network-panel.c
+@@ -51,22 +51,11 @@
+ #include "panel-cell-renderer-signal.h"
+ #include "panel-cell-renderer-security.h"
+ 
+-#include "network-dialogs.h"
+-
+ G_DEFINE_DYNAMIC_TYPE (CcNetworkPanel, cc_network_panel, CC_TYPE_PANEL)
+ 
+ #define NETWORK_PANEL_PRIVATE(o) \
+         (G_TYPE_INSTANCE_GET_PRIVATE ((o), CC_TYPE_NETWORK_PANEL, CcNetworkPanelPrivate))
+ 
+-typedef enum {
+-        OPERATION_NULL,
+-        OPERATION_SHOW_DEVICE,
+-        OPERATION_CREATE_WIFI,
+-        OPERATION_CONNECT_HIDDEN,
+-        OPERATION_CONNECT_8021X,
+-        OPERATION_CONNECT_MOBILE
+-} CmdlineOperation;
+-
+ struct _CcNetworkPanelPrivate
+ {
+         GCancellable     *cancellable;
+@@ -76,12 +65,6 @@ struct _CcNetworkPanelPrivate
+         NMRemoteSettings *remote_settings;
+         gboolean          updating_device;
+         guint             refresh_idle;
+-
+-        /* wireless dialog stuff */
+-        CmdlineOperation  arg_operation;
+-        gchar            *arg_device;
+-        gchar            *arg_access_point;
+-        gboolean          operation_done;
+ };
+ 
+ enum {
+@@ -102,11 +85,6 @@ enum {
+         PANEL_WIRELESS_COLUMN_LAST
+ };
+ 
+-enum {
+-        PROP_0,
+-        PROP_ARGV
+-};
+-
+ static void     refresh_ui      (CcNetworkPanel *panel);
+ static NetObject *find_in_model_by_id (CcNetworkPanel *panel, const gchar *id);
+ static gboolean find_model_iter_by_object (GtkTreeModel *model, const NetObject *object, GtkTreeIter *iter);
+@@ -123,57 +101,13 @@ cc_network_panel_get_property (GObject    *object,
+         }
+ }
+ 
+-static CmdlineOperation
+-cmdline_operation_from_string (const gchar *string)
+-{
+-        if (g_strcmp0 (string, "create-wifi") == 0)
+-                return OPERATION_CREATE_WIFI;
+-        if (g_strcmp0 (string, "connect-hidden-wifi") == 0)
+-                return OPERATION_CONNECT_HIDDEN;
+-        if (g_strcmp0 (string, "connect-8021x-wifi") == 0)
+-                return OPERATION_CONNECT_8021X;
+-        if (g_strcmp0 (string, "connect-3g") == 0)
+-                return OPERATION_CONNECT_MOBILE;
+-        if (g_strcmp0 (string, "show-device") == 0)
+-                return OPERATION_SHOW_DEVICE;
+-
+-        g_warning ("Invalid additional argument %s", string);
+-        return OPERATION_NULL;
+-}
+-
+ static void
+ cc_network_panel_set_property (GObject      *object,
+                                guint         property_id,
+                                const GValue *value,
+                                GParamSpec   *pspec)
+ {
+-        CcNetworkPanel *self = CC_NETWORK_PANEL (object);
+-        CcNetworkPanelPrivate *priv = self->priv;
+-
+         switch (property_id) {
+-        case PROP_ARGV: {
+-                gchar **args;
+-
+-                priv->arg_operation = OPERATION_NULL;
+-                g_free (priv->arg_device);
+-                priv->arg_device = NULL;
+-                g_free (priv->arg_access_point);
+-                priv->arg_access_point = NULL;
+-
+-                args = g_value_get_boxed (value);
+-
+-                if (args) {
+-                        g_debug ("Invoked with operation %s", args[0]);
+-
+-                        if (args[0])
+-                                priv->arg_operation = cmdline_operation_from_string (args[0]);
+-                        if (args[0] && args[1])
+-                                priv->arg_device = g_strdup (args[1]);
+-                        if (args[0] && args[1] && args[2])
+-                                priv->arg_access_point = g_strdup (args[2]);
+-                }
+-                break;
+-        }
+         default:
+                 G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+         }
+@@ -212,10 +146,6 @@ cc_network_panel_dispose (GObject *object)
+ static void
+ cc_network_panel_finalize (GObject *object)
+ {
+-        CcNetworkPanelPrivate *priv = CC_NETWORK_PANEL (object)->priv;
+-        g_free (priv->arg_device);
+-        g_free (priv->arg_access_point);
+-
+         G_OBJECT_CLASS (cc_network_panel_parent_class)->finalize (object);
+ }
+ 
+@@ -230,8 +160,6 @@ cc_network_panel_class_init (CcNetworkPanelClass *klass)
+         object_class->set_property = cc_network_panel_set_property;
+         object_class->dispose = cc_network_panel_dispose;
+         object_class->finalize = cc_network_panel_finalize;
+-
+-        g_object_class_override_property (object_class, PROP_ARGV, "argv");
+ }
+ 
+ static void
+@@ -444,19 +372,6 @@ select_first_device (CcNetworkPanel *panel)
+ }
+ 
+ static void
+-select_tree_iter (CcNetworkPanel *panel, GtkTreeIter *iter)
+-{
+-        GtkTreeView *widget;
+-        GtkTreeSelection *selection;
+-
+-        widget = GTK_TREE_VIEW (gtk_builder_get_object (panel->priv->builder,
+-                                                        "treeview_devices"));
+-        selection = gtk_tree_view_get_selection (widget);
+-
+-        gtk_tree_selection_select_iter (selection, iter);
+-}
+-
+-static void
+ panel_device_got_modem_manager_cb (GObject *source_object,
+                                    GAsyncResult *res,
+                                    gpointer user_data)
+@@ -626,7 +541,7 @@ register_object_interest (CcNetworkPanel *panel, NetObject *object)
+                           panel);
+ }
+ 
+-static gboolean
++static void
+ panel_add_device (CcNetworkPanel *panel, NMDevice *device)
+ {
+         GtkListStore *liststore_devices;
+@@ -642,7 +557,6 @@ panel_add_device (CcNetworkPanel *panel, NMDevice *device)
+ 
+         /* we don't support bluetooth devices yet -- no mockup */
+         type = nm_device_get_device_type (device);
+-
+         if (type == NM_DEVICE_TYPE_BT)
+                 goto out;
+ 
+@@ -691,45 +605,8 @@ panel_add_device (CcNetworkPanel *panel, NMDevice *device)
+                             PANEL_DEVICES_COLUMN_TITLE, title,
+                             PANEL_DEVICES_COLUMN_OBJECT, net_device,
+                             -1);
+-
+-        if (priv->arg_operation != OPERATION_NULL) {
+-                if (type == NM_DEVICE_TYPE_WIFI &&
+-                    (priv->arg_operation == OPERATION_CREATE_WIFI ||
+-                     priv->arg_operation == OPERATION_CONNECT_HIDDEN)) {
+-                        g_debug ("Selecting wifi device");
+-                        select_tree_iter (panel, &iter);
+-
+-                        if (priv->arg_operation == OPERATION_CREATE_WIFI)
+-                                cc_network_panel_create_wifi_network (panel, priv->client, priv->remote_settings);
+-                        else
+-                                cc_network_panel_connect_to_hidden_network (panel, priv->client, priv->remote_settings);
+-
+-                        priv->arg_operation = OPERATION_NULL; /* done */
+-                        return TRUE;
+-                } else if (g_strcmp0 (nm_object_get_path (NM_OBJECT (device)), priv->arg_device) == 0) {
+-                        if (priv->arg_operation == OPERATION_CONNECT_MOBILE) {
+-                                cc_network_panel_connect_to_3g_network (panel, priv->client, priv->remote_settings, device);
+-
+-                                priv->arg_operation = OPERATION_NULL; /* done */
+-                                select_tree_iter (panel, &iter);
+-                                return TRUE;
+-                        } else if (priv->arg_operation == OPERATION_CONNECT_8021X
+-                                   || priv->arg_operation == OPERATION_SHOW_DEVICE) {
+-                                select_tree_iter (panel, &iter);
+-
+-                                /* 802.11 wireless stuff must be handled in add_access_point, but
+-                                   we still select the right page here, whereas if we're just showing
+-                                   the device, we're done right away */
+-                                if (priv->arg_operation == OPERATION_SHOW_DEVICE)
+-                                        priv->arg_operation = OPERATION_NULL;
+-                                return TRUE;
+-                        }
+-                }
+-        }
+-
+ out:
+         g_free (title);
+-        return FALSE;
+ }
+ 
+ static void
+@@ -880,7 +757,7 @@ get_access_point_security (NMAccessPoint *ap)
+ }
+ 
+ static void
+-add_access_point (CcNetworkPanel *panel, NMAccessPoint *ap, NMAccessPoint *active, NMDevice *device)
++add_access_point (CcNetworkPanel *panel, NMAccessPoint *ap, NMAccessPoint *active)
+ {
+         CcNetworkPanelPrivate *priv = panel->priv;
+         const GByteArray *ssid;
+@@ -918,17 +795,6 @@ add_access_point (CcNetworkPanel *panel, NMAccessPoint *ap, NMAccessPoint *activ
+                                                              "combobox_wireless_network_name"));
+                 gtk_combo_box_set_active_iter (GTK_COMBO_BOX (widget), &treeiter);
+         }
+-
+-        if (priv->arg_operation == OPERATION_CONNECT_8021X &&
+-            g_strcmp0(priv->arg_device, nm_object_get_path (NM_OBJECT (device))) == 0 &&
+-            g_strcmp0(priv->arg_access_point, object_path) == 0) {
+-                cc_network_panel_connect_to_8021x_network (panel,
+-                                                           priv->client,
+-                                                           priv->remote_settings,
+-                                                           device,
+-                                                           ap);
+-                priv->arg_operation = OPERATION_NULL; /* done */
+-        }
+ }
+ 
+ static void
+@@ -1782,7 +1648,7 @@ device_refresh_wifi_ui (CcNetworkPanel *panel, NetDevice *device)
+ 
+                 for (i = 0; i < aps_unique->len; i++) {
+                         ap = NM_ACCESS_POINT (g_ptr_array_index (aps_unique, i));
+-                        add_access_point (panel, ap, active_ap, nm_device);
++                        add_access_point (panel, ap, active_ap);
+                 }
+                 add_access_point_other (panel);
+                 if (active_ap == NULL) {
+@@ -2304,7 +2170,6 @@ manager_running (NMClient *client, GParamSpec *pspec, gpointer user_data)
+         int i;
+         NMDevice *device_tmp;
+         GtkListStore *liststore_devices;
+-        gboolean selected = FALSE;
+         CcNetworkPanel *panel = CC_NETWORK_PANEL (user_data);
+ 
+         /* clear all devices we added */
+@@ -2325,13 +2190,11 @@ manager_running (NMClient *client, GParamSpec *pspec, gpointer user_data)
+         }
+         for (i = 0; i < devices->len; i++) {
+                 device_tmp = g_ptr_array_index (devices, i);
+-                selected = panel_add_device (panel, device_tmp) || selected;
++                panel_add_device (panel, device_tmp);
+         }
+ out:
+-        if (!selected) {
+-                /* select the first device */
+-                select_first_device (panel);
+-        }
++        /* select the first device */
++        select_first_device (panel);
+ }
+ 
+ static NetObject *
+@@ -2667,11 +2530,58 @@ connection_add_activate_cb (NMClient *client,
+ }
+ 
+ static void
++connect_to_hidden_network_cb (GObject *source_object, GAsyncResult *res, gpointer user_data)
++{
++        GError *error = NULL;
++        GVariant *result = NULL;
++
++        result = g_dbus_proxy_call_finish (G_DBUS_PROXY (source_object), res, &error);
++        if (result == NULL) {
++                g_warning ("failed to connect to hidden network: %s",
++                           error->message);
++                g_error_free (error);
++                return;
++        }
++}
++
++static void
+ connect_to_hidden_network (CcNetworkPanel *panel)
+ {
+-        CcNetworkPanelPrivate *priv = panel->priv;
++        GDBusProxy *proxy;
++        GVariant *res = NULL;
++        GError *error = NULL;
+ 
+-        cc_network_panel_connect_to_hidden_network (panel, priv->client, priv->remote_settings);
++        /* connect to NM applet */
++        proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SESSION,
++                                               G_DBUS_PROXY_FLAGS_DO_NOT_LOAD_PROPERTIES |
++                                               G_DBUS_PROXY_FLAGS_DO_NOT_CONNECT_SIGNALS,
++                                               NULL,
++                                               "org.gnome.network_manager_applet",
++                                               "/org/gnome/network_manager_applet",
++                                               "org.gnome.network_manager_applet",
++                                               panel->priv->cancellable,
++                                               &error);
++        if (proxy == NULL) {
++                g_warning ("failed to connect to NM applet: %s",
++                           error->message);
++                g_error_free (error);
++                goto out;
++        }
++
++        /* try to show the hidden network UI */
++        g_dbus_proxy_call (proxy,
++                           "ConnectToHiddenNetwork",
++                           NULL,
++                           G_DBUS_CALL_FLAGS_NONE,
++                           5000, /* don't wait forever */
++                           panel->priv->cancellable,
++                           connect_to_hidden_network_cb,
++                           panel);
++out:
++        if (proxy != NULL)
++                g_object_unref (proxy);
++        if (res != NULL)
++                g_variant_unref (res);
+ }
+ 
+ static void
+diff --git a/panels/network/network-dialogs.c b/panels/network/network-dialogs.c
+deleted file mode 100644
+index d446dbd..0000000
+--- a/panels/network/network-dialogs.c
++++ /dev/null
+@@ -1,497 +0,0 @@
+-/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 8 -*-
+- *
+- * Copyright (C) 2011 Giovanni Campagna <scampa.giovanni@gmail.com>
+- *
+- * This program is free software; you can redistribute it and/or modify
+- * it under the terms of the GNU General Public License as published by
+- * the Free Software Foundation; either version 2 of the License, or
+- * (at your option) any later version.
+- *
+- * This program is distributed in the hope that it will be useful,
+- * but WITHOUT ANY WARRANTY; without even the implied warranty of
+- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+- * GNU General Public License for more details.
+- *
+- * You should have received a copy of the GNU General Public License
+- * along with this program; if not, write to the Free Software
+- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+- *
+- * Portions of this code were taken from network-manager-applet.
+- * Copyright 2008 - 2011 Red Hat, Inc. 
+- */
+-
+-#include <libgnome-control-center/cc-shell.h>
+-#include <nm-utils.h>
+-#include <nm-connection.h>
+-#include <nm-setting-gsm.h>
+-#include <nm-setting-cdma.h>
+-#include <nm-setting-serial.h>
+-#include <nm-device-modem.h>
+-
+-#include "network-dialogs.h"
+-#include "nm-wireless-dialog.h"
+-#include "nm-mobile-wizard.h"
+-
+-typedef struct {
+-        NMClient *client;
+-        NMRemoteSettings *settings;
+-} WirelessDialogClosure;
+-
+-typedef struct {
+-        NMClient *client;
+-        NMRemoteSettings *settings;
+-        NMDevice *device;
+-} MobileDialogClosure;
+-
+-static void
+-wireless_dialog_closure_closure_notify (gpointer data,
+-                                        GClosure *gclosure)
+-{
+-        WirelessDialogClosure *closure = data;
+-        g_object_unref (closure->client);
+-        g_object_unref (closure->settings);
+-
+-        g_slice_free (WirelessDialogClosure, data);
+-}
+-
+-static void
+-mobile_dialog_closure_free (gpointer data)
+-{
+-        MobileDialogClosure *closure = data;
+-        g_object_unref (closure->client);
+-        g_object_unref (closure->settings);
+-        g_object_unref (closure->device);
+-
+-        g_slice_free (MobileDialogClosure, data);
+-}
+-
+-static gboolean
+-wifi_can_create_wifi_network (NMClient *client)
+-{
+-	NMClientPermissionResult perm;
+-
+-	/* FIXME: check WIFI_SHARE_PROTECTED too, and make the wireless dialog
+-	 * handle the permissions as well so that admins can restrict open network
+-	 * creation separately from protected network creation.
+-	 */
+-	perm = nm_client_get_permission_result (client, NM_CLIENT_PERMISSION_WIFI_SHARE_OPEN);
+-	if (perm == NM_CLIENT_PERMISSION_RESULT_YES || perm == NM_CLIENT_PERMISSION_RESULT_AUTH)
+-	  return TRUE;
+-
+-	return FALSE;
+-}
+-
+-static void
+-activate_existing_cb (NMClient *client,
+-                      NMActiveConnection *active,
+-                      GError *error,
+-                      gpointer user_data)
+-{
+-	if (error)
+-		g_warning ("Failed to activate connection: (%d) %s", error->code, error->message);
+-}
+-
+-static void
+-activate_new_cb (NMClient *client,
+-                 NMActiveConnection *active,
+-                 const char *connection_path,
+-                 GError *error,
+-                 gpointer user_data)
+-{
+-	if (error)
+-		g_warning ("Failed to add new connection: (%d) %s", error->code, error->message);
+-}
+-
+-static void
+-nag_dialog_response_cb (GtkDialog *nag_dialog,
+-                        gint response,
+-                        gpointer user_data)
+-{
+-	NMAWirelessDialog *wireless_dialog = NMA_WIRELESS_DIALOG (user_data);
+-
+-	if (response == GTK_RESPONSE_NO) {  /* user opted not to correct the warning */
+-		nma_wireless_dialog_set_nag_ignored (wireless_dialog, TRUE);
+-		gtk_dialog_response (GTK_DIALOG (wireless_dialog), GTK_RESPONSE_OK);
+-	}
+-}
+-
+-static void
+-wireless_dialog_response_cb (GtkDialog *foo,
+-                             gint response,
+-                             gpointer user_data)
+-{
+-	NMAWirelessDialog *dialog = NMA_WIRELESS_DIALOG (foo);
+-	WirelessDialogClosure *closure = user_data;
+-	NMConnection *connection = NULL, *fuzzy_match = NULL;
+-	NMDevice *device = NULL;
+-	NMAccessPoint *ap = NULL;
+-	GSList *all, *iter;
+-
+-	if (response != GTK_RESPONSE_OK)
+-		goto done;
+-
+-	if (!nma_wireless_dialog_get_nag_ignored (dialog)) {
+-		GtkWidget *nag_dialog;
+-
+-		/* Nag the user about certificates or whatever.  Only destroy the dialog
+-		 * if no nagging was done.
+-		 */
+-		nag_dialog = nma_wireless_dialog_nag_user (dialog);
+-		if (nag_dialog) {
+-			gtk_window_set_transient_for (GTK_WINDOW (nag_dialog), GTK_WINDOW (dialog));
+-			g_signal_connect (nag_dialog, "response",
+-			                  G_CALLBACK (nag_dialog_response_cb),
+-			                  dialog);
+-			return;
+-		}
+-	}
+-
+-	/* nma_wireless_dialog_get_connection() returns a connection with the
+-	 * refcount incremented, so the caller must remember to unref it.
+-	 */
+-	connection = nma_wireless_dialog_get_connection (dialog, &device, &ap);
+-	g_assert (connection);
+-	g_assert (device);
+-
+-	/* Find a similar connection and use that instead */
+-	all = nm_remote_settings_list_connections (closure->settings);
+-	for (iter = all; iter; iter = g_slist_next (iter)) {
+-		if (nm_connection_compare (connection,
+-		                           NM_CONNECTION (iter->data),
+-		                           (NM_SETTING_COMPARE_FLAG_FUZZY | NM_SETTING_COMPARE_FLAG_IGNORE_ID))) {
+-			fuzzy_match = NM_CONNECTION (iter->data);
+-			break;
+-		}
+-	}
+-	g_slist_free (all);
+-
+-	if (fuzzy_match) {
+-		nm_client_activate_connection (closure->client,
+-		                               fuzzy_match,
+-		                               device,
+-		                               ap ? nm_object_get_path (NM_OBJECT (ap)) : NULL,
+-		                               activate_existing_cb,
+-		                               NULL);
+-	} else {
+-		NMSetting *s_con;
+-		NMSettingWireless *s_wifi = NULL;
+-		const char *mode = NULL;
+-
+-		/* Entirely new connection */
+-
+-		/* Don't autoconnect adhoc networks by default for now */
+-		s_wifi = (NMSettingWireless *) nm_connection_get_setting (connection, NM_TYPE_SETTING_WIRELESS);
+-		if (s_wifi)
+-			mode = nm_setting_wireless_get_mode (s_wifi);
+-		if (g_strcmp0 (mode, "adhoc") == 0) {
+-			s_con = nm_connection_get_setting (connection, NM_TYPE_SETTING_CONNECTION);
+-			if (!s_con) {
+-				s_con = nm_setting_connection_new ();
+-				nm_connection_add_setting (connection, s_con);
+-			}
+-			g_object_set (G_OBJECT (s_con), NM_SETTING_CONNECTION_AUTOCONNECT, FALSE, NULL);
+-		}
+-
+-		nm_client_add_and_activate_connection (closure->client,
+-		                                       connection,
+-		                                       device,
+-		                                       ap ? nm_object_get_path (NM_OBJECT (ap)) : NULL,
+-		                                       activate_new_cb,
+-		                                       NULL);
+-	}
+-
+-	/* Balance nma_wireless_dialog_get_connection() */
+-	g_object_unref (connection);
+-
+-done:
+-	gtk_widget_hide (GTK_WIDGET (dialog));
+-	gtk_widget_destroy (GTK_WIDGET (dialog));
+-}
+-
+-static void
+-show_wireless_dialog (CcNetworkPanel   *panel,
+-		      NMClient         *client,
+-		      NMRemoteSettings *settings,
+-		      GtkWidget        *dialog)
+-{
+-        GtkWidget *toplevel = cc_shell_get_toplevel (cc_panel_get_shell (CC_PANEL (panel)));
+-        WirelessDialogClosure *closure;
+-
+-        g_assert (gtk_widget_is_toplevel (toplevel));
+-        g_object_set (G_OBJECT (dialog),
+-                      "modal", TRUE,
+-                      "transient-for", toplevel,
+-                      NULL);
+-
+-        closure = g_slice_new (WirelessDialogClosure);
+-        closure->client = g_object_ref (client);
+-        closure->settings = g_object_ref (settings);
+-        g_signal_connect_data (dialog, "response",
+-                               G_CALLBACK (wireless_dialog_response_cb),
+-                               closure, wireless_dialog_closure_closure_notify, 0);
+-
+-        gtk_widget_show (dialog);
+-}
+-
+-void
+-cc_network_panel_create_wifi_network (CcNetworkPanel   *panel,
+-				      NMClient         *client,
+-				      NMRemoteSettings *settings)
+-{
+-  if (wifi_can_create_wifi_network (client)) {
+-          show_wireless_dialog (panel, client, settings,
+-                                nma_wireless_dialog_new_for_create (client, settings));
+-  }
+-}
+-
+-void
+-cc_network_panel_connect_to_hidden_network (CcNetworkPanel   *panel,
+-                                            NMClient         *client,
+-                                            NMRemoteSettings *settings)
+-{
+-        show_wireless_dialog (panel, client, settings,
+-                              nma_wireless_dialog_new_for_other (client, settings));
+-}
+-
+-void
+-cc_network_panel_connect_to_8021x_network (CcNetworkPanel   *panel,
+-                                           NMClient         *client,
+-                                           NMRemoteSettings *settings,
+-                                           NMDevice         *device,
+-                                           NMAccessPoint    *ap)
+-{
+-	NMConnection *connection = NULL;
+-	NMSettingConnection *s_con = NULL;
+-	NMSettingWireless *s_wifi = NULL;
+-	NMSettingWirelessSecurity *s_wsec = NULL;
+-	NMSetting8021x *s_8021x = NULL;
+-	NM80211ApSecurityFlags wpa_flags, rsn_flags;
+-	GtkWidget *dialog;
+-	char *uuid;
+-
+-        /* If the AP is WPA[2]-Enterprise then we need to set up a minimal 802.1x
+-	 * setting and ask the user for more information.
+-	 */
+-	rsn_flags = nm_access_point_get_rsn_flags (ap);
+-	wpa_flags = nm_access_point_get_wpa_flags (ap);
+-	if (!(rsn_flags & NM_802_11_AP_SEC_KEY_MGMT_802_1X)
+-	    && !(wpa_flags & NM_802_11_AP_SEC_KEY_MGMT_802_1X)) {
+-                g_warning ("Network panel loaded with connect-8021x-wifi but the "
+-                           "access point does not support 802.1x");
+-                return;
+-        }
+-
+-        /* Need a UUID for the "always ask" stuff in the Dialog of Doom */
+-        s_con = (NMSettingConnection *) nm_setting_connection_new ();
+-        uuid = nm_utils_uuid_generate ();
+-        g_object_set (s_con, NM_SETTING_CONNECTION_UUID, uuid, NULL);
+-        g_free (uuid);
+-        nm_connection_add_setting (connection, NM_SETTING (s_con));
+-
+-        s_wifi = (NMSettingWireless *) nm_setting_wireless_new ();
+-        nm_connection_add_setting (connection, NM_SETTING (s_wifi));
+-        g_object_set (s_wifi,
+-                      NM_SETTING_WIRELESS_SSID, nm_access_point_get_ssid (ap),
+-                      NM_SETTING_WIRELESS_SEC, NM_SETTING_WIRELESS_SECURITY_SETTING_NAME,
+-                      NULL);
+-
+-        s_wsec = (NMSettingWirelessSecurity *) nm_setting_wireless_security_new ();
+-        g_object_set (s_wsec, NM_SETTING_WIRELESS_SECURITY_KEY_MGMT, "wpa-eap", NULL);
+-        nm_connection_add_setting (connection, NM_SETTING (s_wsec));
+-
+-        s_8021x = (NMSetting8021x *) nm_setting_802_1x_new ();
+-        nm_setting_802_1x_add_eap_method (s_8021x, "ttls");
+-        g_object_set (s_8021x, NM_SETTING_802_1X_PHASE2_AUTH, "mschapv2", NULL);
+-        nm_connection_add_setting (connection, NM_SETTING (s_8021x));
+-
+-        dialog = nma_wireless_dialog_new (client, settings, connection, device, ap, FALSE);
+-        show_wireless_dialog (panel, client, settings, dialog);
+-}
+-
+-static void
+-connect_3g (NMConnection *connection,
+-            gboolean canceled,
+-            gpointer user_data)
+-{
+-        MobileDialogClosure *closure = user_data;
+-
+-	if (canceled == FALSE) {
+-		g_return_if_fail (connection != NULL);
+-
+-		/* Ask NM to add the new connection and activate it; NM will fill in the
+-		 * missing details based on the specific object and the device.
+-		 */
+-		nm_client_add_and_activate_connection (closure->client,
+-		                                       connection,
+-                                                       closure->device,
+-		                                       "/",
+-		                                       activate_new_cb,
+-		                                       NULL);
+-	}
+-
+-        mobile_dialog_closure_free (closure);
+-}
+-
+-static void
+-cdma_mobile_wizard_done (NMAMobileWizard *wizard,
+-                         gboolean canceled,
+-                         NMAMobileWizardAccessMethod *method,
+-                         gpointer user_data)
+-{
+-	NMConnection *connection = NULL;
+-
+-	if (!canceled && method) {
+-		NMSetting *setting;
+-		char *uuid, *id;
+-
+-		if (method->devtype != NM_DEVICE_MODEM_CAPABILITY_CDMA_EVDO) {
+-			g_warning ("Unexpected device type (not CDMA).");
+-			canceled = TRUE;
+-			goto done;
+-		}
+-
+-		connection = nm_connection_new ();
+-
+-		setting = nm_setting_cdma_new ();
+-		g_object_set (setting,
+-		              NM_SETTING_CDMA_NUMBER, "#777",
+-		              NM_SETTING_CDMA_USERNAME, method->username,
+-		              NM_SETTING_CDMA_PASSWORD, method->password,
+-		              NULL);
+-		nm_connection_add_setting (connection, setting);
+-
+-		/* Serial setting */
+-		setting = nm_setting_serial_new ();
+-		g_object_set (setting,
+-		              NM_SETTING_SERIAL_BAUD, 115200,
+-		              NM_SETTING_SERIAL_BITS, 8,
+-		              NM_SETTING_SERIAL_PARITY, 'n',
+-		              NM_SETTING_SERIAL_STOPBITS, 1,
+-		              NULL);
+-		nm_connection_add_setting (connection, setting);
+-
+-		nm_connection_add_setting (connection, nm_setting_ppp_new ());
+-
+-		setting = nm_setting_connection_new ();
+-		if (method->plan_name)
+-			id = g_strdup_printf ("%s %s", method->provider_name, method->plan_name);
+-		else
+-			id = g_strdup_printf ("%s connection", method->provider_name);
+-		uuid = nm_utils_uuid_generate ();
+-		g_object_set (setting,
+-		              NM_SETTING_CONNECTION_ID, id,
+-		              NM_SETTING_CONNECTION_TYPE, NM_SETTING_CDMA_SETTING_NAME,
+-		              NM_SETTING_CONNECTION_AUTOCONNECT, FALSE,
+-		              NM_SETTING_CONNECTION_UUID, uuid,
+-		              NULL);
+-		g_free (uuid);
+-		g_free (id);
+-		nm_connection_add_setting (connection, setting);
+-	}
+-
+- done:
+-        connect_3g (connection, canceled, user_data);
+-        nma_mobile_wizard_destroy (wizard);
+-}
+-
+-static void
+-gsm_mobile_wizard_done (NMAMobileWizard *wizard,
+-                        gboolean canceled,
+-                        NMAMobileWizardAccessMethod *method,
+-                        gpointer user_data)
+-{
+-	NMConnection *connection = NULL;
+-
+-	if (!canceled && method) {
+-		NMSetting *setting;
+-		char *uuid, *id;
+-
+-		if (method->devtype != NM_DEVICE_MODEM_CAPABILITY_GSM_UMTS) {
+-			g_warning ("Unexpected device type (not GSM).");
+-			canceled = TRUE;
+-			goto done;
+-		}
+-
+-		connection = nm_connection_new ();
+-
+-		setting = nm_setting_gsm_new ();
+-		g_object_set (setting,
+-		              NM_SETTING_GSM_NUMBER, "*99#",
+-		              NM_SETTING_GSM_USERNAME, method->username,
+-		              NM_SETTING_GSM_PASSWORD, method->password,
+-		              NM_SETTING_GSM_APN, method->gsm_apn,
+-		              NULL);
+-		nm_connection_add_setting (connection, setting);
+-
+-		/* Serial setting */
+-		setting = nm_setting_serial_new ();
+-		g_object_set (setting,
+-		              NM_SETTING_SERIAL_BAUD, 115200,
+-		              NM_SETTING_SERIAL_BITS, 8,
+-		              NM_SETTING_SERIAL_PARITY, 'n',
+-		              NM_SETTING_SERIAL_STOPBITS, 1,
+-		              NULL);
+-		nm_connection_add_setting (connection, setting);
+-
+-		nm_connection_add_setting (connection, nm_setting_ppp_new ());
+-
+-		setting = nm_setting_connection_new ();
+-		if (method->plan_name)
+-			id = g_strdup_printf ("%s %s", method->provider_name, method->plan_name);
+-		else
+-			id = g_strdup_printf ("%s connection", method->provider_name);
+-		uuid = nm_utils_uuid_generate ();
+-		g_object_set (setting,
+-		              NM_SETTING_CONNECTION_ID, id,
+-		              NM_SETTING_CONNECTION_TYPE, NM_SETTING_GSM_SETTING_NAME,
+-		              NM_SETTING_CONNECTION_AUTOCONNECT, FALSE,
+-		              NM_SETTING_CONNECTION_UUID, uuid,
+-		              NULL);
+-		g_free (uuid);
+-		g_free (id);
+-		nm_connection_add_setting (connection, setting);
+-	}
+-
+-done:
+-	connect_3g (connection, canceled, user_data);
+-        nma_mobile_wizard_destroy (wizard);
+-}
+-
+-void
+-cc_network_panel_connect_to_3g_network (CcNetworkPanel   *panel,
+-                                        NMClient         *client,
+-                                        NMRemoteSettings *settings,
+-                                        NMDevice         *device)
+-{
+-        GtkWidget *toplevel = cc_shell_get_toplevel (cc_panel_get_shell (CC_PANEL (panel)));
+-        MobileDialogClosure *closure;
+-        NMAMobileWizard *wizard;
+-	NMDeviceModemCapabilities caps;
+-
+-        if (!NM_IS_DEVICE_MODEM (device)) {
+-                g_warning ("Network panel loaded with connect-3g but the selected device"
+-                           " is not a modem");
+-                return;
+-        }
+-
+-        closure = g_slice_new (MobileDialogClosure);
+-        closure->client = g_object_ref (client);
+-        closure->settings = g_object_ref (settings);
+-        closure->device = g_object_ref (device);
+-
+-	caps = nm_device_modem_get_current_capabilities (NM_DEVICE_MODEM (device));
+-	if (caps & NM_DEVICE_MODEM_CAPABILITY_GSM_UMTS) {
+-                wizard = nma_mobile_wizard_new (GTK_WINDOW (toplevel), NULL, NM_DEVICE_MODEM_CAPABILITY_GSM_UMTS, FALSE,
+-                                                gsm_mobile_wizard_done, closure);
+-	} else if (caps & NM_DEVICE_MODEM_CAPABILITY_CDMA_EVDO) {
+-		wizard = nma_mobile_wizard_new (GTK_WINDOW (toplevel), NULL, NM_DEVICE_MODEM_CAPABILITY_CDMA_EVDO, FALSE,
+-                                                cdma_mobile_wizard_done, closure);
+-        } else {
+-                g_warning ("Network panel loaded with connect-3g but the selected device"
+-                           " does not support GSM or CDMA");
+-                mobile_dialog_closure_free (closure);
+-                return;
+-        }
+-
+-        nma_mobile_wizard_present (wizard);
+-}
+diff --git a/panels/network/network-dialogs.h b/panels/network/network-dialogs.h
+deleted file mode 100644
+index cd9c6a7..0000000
+--- a/panels/network/network-dialogs.h
++++ /dev/null
+@@ -1,43 +0,0 @@
+-/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 8 -*-
+- *
+- * Copyright (C) 2011 Giovanni Campagna <scampa.giovanni@gmail.com>
+- *
+- * This program is free software; you can redistribute it and/or modify
+- * it under the terms of the GNU General Public License as published by
+- * the Free Software Foundation; either version 2 of the License, or
+- * (at your option) any later version.
+- *
+- * This program is distributed in the hope that it will be useful,
+- * but WITHOUT ANY WARRANTY; without even the implied warranty of
+- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+- * GNU General Public License for more details.
+- *
+- * You should have received a copy of the GNU General Public License
+- * along with this program; if not, write to the Free Software
+- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+- */
+-
+-#include <nm-client.h>
+-#include <nm-remote-settings.h>
+-#include <nm-device.h>
+-#include <nm-access-point.h>
+-#include "cc-network-panel.h"
+-
+-void cc_network_panel_create_wifi_network (CcNetworkPanel   *panel,
+-					   NMClient         *client,
+-					   NMRemoteSettings *settings);
+-
+-void cc_network_panel_connect_to_hidden_network (CcNetworkPanel   *panel,
+-						 NMClient         *client,
+-						 NMRemoteSettings *settings);
+-
+-void cc_network_panel_connect_to_8021x_network (CcNetworkPanel   *panel,
+-                                                NMClient         *client,
+-                                                NMRemoteSettings *settings,
+-                                                NMDevice         *device,
+-                                                NMAccessPoint    *ap);
+-
+-void cc_network_panel_connect_to_3g_network (CcNetworkPanel   *panel,
+-                                             NMClient         *client,
+-                                             NMRemoteSettings *settings,
+-                                             NMDevice         *device);
