@@ -1,4 +1,4 @@
-From 1ea6aece10a7bb5020a72835630d7927f3cd1923 Mon Sep 17 00:00:00 2001
+From df74f2bd0ee6d2e8d992479010317daf5bcda6c7 Mon Sep 17 00:00:00 2001
 From: Martin Pitt <martin.pitt@ubuntu.com>
 Date: Wed, 14 Sep 2011 14:54:00 +0200
 Subject: [PATCH] power: Add configuration for lid action
@@ -6,25 +6,49 @@ Subject: [PATCH] power: Add configuration for lid action
 Bug: https://bugzilla.gnome.org/show_bug.cgi?id=659045
 Bug-Ubuntu: https://bugs.launchpad.net/bugs/792636
 ---
- panels/power/cc-power-panel.c |   23 +++++++++++
+ panels/power/cc-power-panel.c |   33 ++++++++++++++++
  panels/power/power.ui         |   82 ++++++++++++++++++++++++++++++++++++++++-
- 2 files changed, 104 insertions(+), 1 deletions(-)
+ 2 files changed, 114 insertions(+), 1 deletions(-)
 
 diff --git a/panels/power/cc-power-panel.c b/panels/power/cc-power-panel.c
-index c069187..4eb6351 100644
+index c069187..65b4b73 100644
 --- a/panels/power/cc-power-panel.c
 +++ b/panels/power/cc-power-panel.c
-@@ -551,6 +551,9 @@ out:
+@@ -511,6 +511,7 @@ static void
+ set_ac_battery_ui_mode (CcPowerPanel *self)
+ {
+   gboolean has_batteries = FALSE;
++  gboolean has_lid = FALSE;
+   gboolean ret;
+   GError *error = NULL;
+   GPtrArray *devices;
+@@ -544,6 +545,9 @@ set_ac_battery_ui_mode (CcPowerPanel *self)
+         }
+     }
+   g_ptr_array_unref (devices);
++
++  has_lid = up_client_get_lid_is_present (self->priv->up_client);
++
+ out:
+   widget = GTK_WIDGET (gtk_builder_get_object (priv->builder,
+                                                "box_header"));
+@@ -551,6 +555,15 @@ out:
    widget = GTK_WIDGET (gtk_builder_get_object (priv->builder,
                                                 "combobox_sleep_battery"));
    gtk_widget_set_visible (widget, has_batteries);
 +  widget = GTK_WIDGET (gtk_builder_get_object (priv->builder,
++                                               "combobox_lid_ac"));
++  gtk_widget_set_visible (widget, has_lid);
++  widget = GTK_WIDGET (gtk_builder_get_object (priv->builder,
++                                               "label_lid_action"));
++  gtk_widget_set_visible (widget, has_lid);
++  widget = GTK_WIDGET (gtk_builder_get_object (priv->builder,
 +                                               "combobox_lid_battery"));
-+  gtk_widget_set_visible (widget, has_batteries);
++  gtk_widget_set_visible (widget, has_batteries && has_lid);
  }
  
  static void
-@@ -629,6 +632,26 @@ cc_power_panel_init (CcPowerPanel *self)
+@@ -629,6 +642,26 @@ cc_power_panel_init (CcPowerPanel *self)
                      G_CALLBACK (combo_enum_changed_cb),
                      self);
  
@@ -52,7 +76,7 @@ index c069187..4eb6351 100644
    gtk_widget_reparent (widget, (GtkWidget *) self);
  }
 diff --git a/panels/power/power.ui b/panels/power/power.ui
-index 3d71281..86e1f57 100644
+index 3d71281..c1758f1 100644
 --- a/panels/power/power.ui
 +++ b/panels/power/power.ui
 @@ -112,6 +112,33 @@
@@ -98,7 +122,7 @@ index 3d71281..86e1f57 100644
 +                <property name="can_focus">False</property>
 +                <property name="spacing">9</property>
 +                <child>
-+                  <object class="GtkLabel" id="label1">
++                  <object class="GtkLabel" id="label_lid_action">
 +                    <property name="visible">True</property>
 +                    <property name="can_focus">False</property>
 +                    <property name="xalign">1</property>
@@ -168,7 +192,7 @@ index 3d71281..86e1f57 100644
      <property name="ignore_hidden">True</property>
      <widgets>
        <widget name="label5"/>
-+      <widget name="label1"/>
++      <widget name="label_lid_action"/>
        <widget name="label7"/>
        <widget name="label_header_padding"/>
      </widgets>
