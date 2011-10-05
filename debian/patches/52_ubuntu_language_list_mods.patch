@@ -2,9 +2,9 @@ Description: Makes the language list in User Accounts similar to the language li
 Forwarded: not-needed
 Author: Gunnar Hjalmarsson <ubuntu@gunnar.cc>
 
-diff -Nur -x '*.orig' -x '*~' gnome-control-center-3.1.90//panels/common/cc-common-language.c gnome-control-center-3.1.90.new//panels/common/cc-common-language.c
---- gnome-control-center-3.1.90//panels/common/cc-common-language.c	2011-08-29 20:50:12.000000000 +0200
-+++ gnome-control-center-3.1.90.new//panels/common/cc-common-language.c	2011-08-30 16:40:30.006132313 +0200
+diff -Nur -x '*.orig' -x '*~' gnome-control-center-3.2.0//panels/common/cc-common-language.c gnome-control-center-3.2.0.new//panels/common/cc-common-language.c
+--- gnome-control-center-3.2.0//panels/common/cc-common-language.c	2011-08-29 16:08:11.000000000 +0200
++++ gnome-control-center-3.2.0.new//panels/common/cc-common-language.c	2011-10-04 19:31:21.080647618 +0200
 @@ -509,17 +509,19 @@
          ht = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
  
@@ -64,9 +64,9 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-3.1.90//panels/common/cc-comm
  
          return ht;
  }
-diff -Nur -x '*.orig' -x '*~' gnome-control-center-3.1.90//panels/common/cc-language-chooser.c gnome-control-center-3.1.90.new//panels/common/cc-language-chooser.c
---- gnome-control-center-3.1.90//panels/common/cc-language-chooser.c	2011-08-29 20:50:12.000000000 +0200
-+++ gnome-control-center-3.1.90.new//panels/common/cc-language-chooser.c	2011-08-30 16:41:32.106223387 +0200
+diff -Nur -x '*.orig' -x '*~' gnome-control-center-3.2.0//panels/common/cc-language-chooser.c gnome-control-center-3.2.0.new//panels/common/cc-language-chooser.c
+--- gnome-control-center-3.2.0//panels/common/cc-language-chooser.c	2011-08-23 10:23:42.000000000 +0200
++++ gnome-control-center-3.2.0.new//panels/common/cc-language-chooser.c	2011-10-04 19:31:21.080647618 +0200
 @@ -103,20 +103,24 @@
  	user_langs = cc_common_language_get_initial_languages ();
  
@@ -97,9 +97,9 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-3.1.90//panels/common/cc-lang
  
          g_hash_table_destroy (user_langs);
  }
-diff -Nur -x '*.orig' -x '*~' gnome-control-center-3.1.90//panels/common/gdm-languages.c gnome-control-center-3.1.90.new//panels/common/gdm-languages.c
---- gnome-control-center-3.1.90//panels/common/gdm-languages.c	2011-08-29 20:50:12.000000000 +0200
-+++ gnome-control-center-3.1.90.new//panels/common/gdm-languages.c	2011-08-30 16:40:30.006132313 +0200
+diff -Nur -x '*.orig' -x '*~' gnome-control-center-3.2.0//panels/common/gdm-languages.c gnome-control-center-3.2.0.new//panels/common/gdm-languages.c
+--- gnome-control-center-3.2.0//panels/common/gdm-languages.c	2011-08-23 10:23:42.000000000 +0200
++++ gnome-control-center-3.2.0.new//panels/common/gdm-languages.c	2011-10-04 19:34:14.385506992 +0200
 @@ -1123,6 +1123,7 @@
          char *langinfo_codeset;
          char *translated_language;
@@ -123,6 +123,15 @@ diff -Nur -x '*.orig' -x '*~' gnome-control-center-3.1.90//panels/common/gdm-lan
  
          if (language_code == NULL) {
                  goto out;
+@@ -1176,7 +1178,7 @@
+                                         translated_territory);
+         }
+ 
+-        language_name_get_codeset_details (name, &langinfo_codeset, &is_utf8);
++//        language_name_get_codeset_details (name, &langinfo_codeset, &is_utf8);
+ 
+         if (codeset_code == NULL && langinfo_codeset != NULL) {
+             codeset_code = g_strdup (langinfo_codeset);
 @@ -1188,6 +1190,10 @@
                                          codeset_code);
          }
