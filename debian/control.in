@@ -3,12 +3,12 @@ Section: gnome
 Priority: optional
 Maintainer: Debian GNOME Maintainers <pkg-gnome-maintainers@lists.alioth.debian.org>
 Uploaders: @GNOME_TEAM@
-Standards-Version: 3.9.1
+Standards-Version: 3.9.2
 Build-Depends: cdbs (>= 0.4.41),
                gnome-pkg-tools (>= 0.10),
                dh-autoreconf,
                gnome-common,
-               debhelper (>= 5.0.0),
+               debhelper (>= 8),
                docbook-to-man,
                docbook-xml,
                autotools-dev,
@@ -38,12 +38,12 @@ Build-Depends: cdbs (>= 0.4.41),
                libcups2-dev,
                libgtop2-dev,
                libpulse-dev,
-               libnm-glib-dev (>= 0.8.992),
-               libnm-util-dev (>= 0.8.992),
-               network-manager-dev (>= 0.8.992),
+               libnm-glib-dev (>= 0.8.992) [linux-any],
+               libnm-util-dev (>= 0.8.992) [linux-any],
+               network-manager-dev (>= 0.8.992) [linux-any],
                locales
-Vcs-Svn: svn://svn.debian.org/svn/pkg-gnome/desktop/experimental/gnome-control-center/
-Vcs-Browser: http://svn.debian.org/viewsvn/pkg-gnome/desktop/unstable/gnome-control-center/
+Vcs-Svn: svn://anonscm.debian.org/svn/pkg-gnome/desktop/unstable/gnome-control-center/
+Vcs-Browser: http://anonscm.debian.org/viewvc/pkg-gnome/desktop/unstable/gnome-control-center/
 
 Package: gnome-control-center
 Architecture: any
@@ -54,7 +54,7 @@ Depends: ${shlibs:Depends},
          gnome-control-center-data (<< ${gnome:NextVersion}),
          gnome-settings-daemon (>= 3.0.0),
          gnome-menus (>= 2.12.0),
-         gnome-desktop-data,
+         gnome-desktop3-data,
          gnome-icon-theme (>= 2.24),
          gnome-icon-theme-symbolic,
          desktop-file-utils,
@@ -96,7 +96,14 @@ Depends: ${misc:Depends}
 Recommends: gnome-control-center (>= ${source:Version})
 Provides: capplets-data
 Conflicts: capplets-data
-Replaces: capplets-data, gnome-media-common (<< 2.91)
+Replaces: capplets-data,
+          gnome-media-common (<< 2.91),
+          gdm3 (<< 3.0),
+          gdm (<< 3.0),
+          gnome-settings-daemon (<< 3.0)
+Breaks: gdm3 (<< 3.0),
+        gdm (<< 3.0),
+        gnome-settings-daemon (<< 3.0)
 Description: configuration applets for GNOME - data files
  This package contains data files (icons, pixmaps, locales files) needed by
  the configuration applets in the gnome-control-center package.
