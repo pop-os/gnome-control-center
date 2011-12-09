@@ -1,0 +1,130 @@
+Index: gnome-control-center-3.2.2/panels/background/cc-background-panel.c
+===================================================================
+--- gnome-control-center-3.2.2.orig/panels/background/cc-background-panel.c	2011-12-09 10:32:09.811814407 -0500
++++ gnome-control-center-3.2.2/panels/background/cc-background-panel.c	2011-12-09 10:35:08.131816294 -0500
+@@ -522,6 +522,85 @@
+ }
+ 
+ static void
++set_accountsservice_background (const gchar *background)
++{
++  GDBusProxy *proxy = NULL;
++  GDBusProxy *user = NULL;
++  GVariant *variant = NULL;
++  GError *error = NULL;
++  gchar *object_path = NULL;
++
++  proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
++                                         G_DBUS_PROXY_FLAGS_NONE,
++                                         NULL,
++                                         "org.freedesktop.Accounts",
++                                         "/org/freedesktop/Accounts",
++                                         "org.freedesktop.Accounts",
++                                         NULL,
++                                         &error);
++
++  if (proxy == NULL) {
++    g_warning ("Failed to contact accounts service: %s", error->message);
++    g_error_free (error);
++    return;
++  }
++
++  variant = g_dbus_proxy_call_sync (proxy,
++                                    "FindUserByName",
++                                    g_variant_new ("(s)", g_get_user_name ()),
++                                    G_DBUS_CALL_FLAGS_NONE,
++                                    -1,
++                                    NULL,
++                                    &error);
++
++  if (variant == NULL) {
++    g_warning ("Could not contact accounts service to look up '%s': %s",
++               g_get_user_name (), error->message);
++    g_error_free (error);
++    goto bail;
++  }
++
++  g_variant_get (variant, "(o)", &object_path);
++  user = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
++                                        G_DBUS_PROXY_FLAGS_NONE,
++                                        NULL,
++                                        "org.freedesktop.Accounts",
++                                        object_path,
++                                        "org.freedesktop.Accounts.User",
++                                        NULL,
++                                        &error);
++  g_free (object_path);
++
++  if (user == NULL) {
++    g_warning ("Could not create proxy for user '%s': %s",
++               g_variant_get_string (variant, NULL), error->message);
++    g_error_free (error);
++    goto bail;
++  }
++  g_variant_unref (variant);
++
++  variant = g_dbus_proxy_call_sync (user,
++                                    "SetBackgroundFile",
++                                    g_variant_new ("(s)", background),
++                                    G_DBUS_CALL_FLAGS_NONE,
++                                    -1,
++                                    NULL,
++                                    &error);
++
++  if (variant == NULL) {
++    g_warning ("Failed to set the background '%s': %s", background, error->message);
++    g_error_free (error);
++    goto bail;
++  }
++
++bail:
++  if (proxy != NULL)
++    g_object_unref (proxy);
++  if (variant != NULL)
++    g_variant_unref (variant);
++}
++
++static void
+ backgrounds_changed_cb (GtkIconView       *icon_view,
+                         CcBackgroundPanel *panel)
+ {
+@@ -554,6 +633,7 @@
+     {
+       g_settings_set_enum (priv->settings, WP_OPTIONS_KEY, G_DESKTOP_BACKGROUND_STYLE_NONE);
+       g_settings_set_string (priv->settings, WP_URI_KEY, "");
++      set_accountsservice_background ("");
+     }
+   else if (cc_background_item_get_source_url (item) != NULL &&
+ 	   cc_background_item_get_needs_download (item))
+@@ -585,7 +665,6 @@
+       gdk_pixbuf_fill (pixbuf, 0x00000000);
+       gdk_pixbuf_save (pixbuf, dest_path, "png", NULL, NULL);
+       g_object_unref (pixbuf);
+-      g_free (dest_path);
+ 
+       if (priv->copy_cancellable)
+         {
+@@ -619,6 +698,10 @@
+       g_object_unref (dest);
+ 
+       g_settings_set_string (priv->settings, WP_URI_KEY, dest_uri);
++
++      set_accountsservice_background (dest_path);
++      g_free (dest_path);
++
+       g_object_set (G_OBJECT (item),
+ 		    "uri", dest_uri,
+ 		    "needs-download", FALSE,
+@@ -633,6 +716,12 @@
+   else
+     {
+       g_settings_set_string (priv->settings, WP_URI_KEY, uri);
++
++      GFile *file = g_file_new_for_uri (uri);
++      char *path = g_file_get_path (file);
++      set_accountsservice_background (path);
++      g_free (path);
++      g_object_unref (file);
+     }
+ 
+   /* Also set the placement if we have a URI and the previous value was none */
