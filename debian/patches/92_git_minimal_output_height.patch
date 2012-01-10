@@ -1,0 +1,26 @@
+From d453a9841d21314f826aa8b1be2efdb9e389669b Mon Sep 17 00:00:00 2001
+From: Bastien Nocera <hadess@hadess.net>
+Date: Mon, 24 Oct 2011 13:41:44 +0000
+Subject: sound: Add a minimum height for the output list
+
+Combined with the changes to the output list to only
+use a single line instead of multi-line status, this should
+make it easier to see multiple devices listed.
+
+https://bugzilla.gnome.org/show_bug.cgi?id=660582
+---
+diff --git a/panels/sound/gvc-mixer-dialog.c b/panels/sound/gvc-mixer-dialog.c
+index ec26d8b..c7c2614 100644
+--- a/panels/sound/gvc-mixer-dialog.c
++++ b/panels/sound/gvc-mixer-dialog.c
+@@ -1791,6 +1791,7 @@ gvc_mixer_dialog_constructor (GType                  type,
+         gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (box),
+                                              GTK_SHADOW_IN);
+         gtk_container_add (GTK_CONTAINER (box), self->priv->output_treeview);
++        gtk_scrolled_window_set_min_content_height (GTK_SCROLLED_WINDOW (box), 150);
+         gtk_container_add (GTK_CONTAINER (alignment), box);
+ 
+         box = gtk_frame_new (_("Settings for the selected device:"));
+--
+cgit v0.9.0.2
+
