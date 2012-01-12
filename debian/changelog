@@ -1,540 +1,185 @@
-gnome-control-center (1:3.2.2-0ubuntu7) precise; urgency=low
-
-  * debian/patches/90_git_sound_tab_order.patch: reorder the tabs, the sound 
-    effect one is the less used and shouldn't be first in the list
-
- -- Sebastien Bacher <seb128@ubuntu.com>  Thu, 12 Jan 2012 16:12:28 +0100
-
-gnome-control-center (1:3.2.2-0ubuntu6) precise; urgency=low
-
-  * debian/patches/91_git_build_use_fontconfig.patch:
-    - git patch to fix the build of the region capplet
-  * debian/patches/92_git_minimal_output_height.patch:
-    - set a minimal height on the output list (lp: #850032)
-
- -- Sebastien Bacher <seb128@ubuntu.com>  Tue, 10 Jan 2012 18:04:09 +0100
-
-gnome-control-center (1:3.2.2-0ubuntu5) precise; urgency=low
-
-  * debian/patches/10_keyboard_layout_on_unity.patch,
-    debian/patches/53_use_ubuntu_help.patch:
-    - handle cases where XDG_CURRENT_DESKTOP is not set 
-      (i.e users not using gnome-session) (lp: #902780)
-
- -- Sebastien Bacher <seb128@ubuntu.com>  Wed, 14 Dec 2011 16:40:27 +0100
-
-gnome-control-center (1:3.2.2-0ubuntu4) precise; urgency=low
-
-  * debian/patches/91_set_accountsservice_background.patch:
-    - Drop.  gnome-settings-daemon will sync to accountsservice for us in
-      a more robust way.  Thanks to Chris Coulson for the idea.
-  * debian/control.in:
-    - Lower required version of accountsservice again.
-
- -- Michael Terry <mterry@ubuntu.com>  Fri, 09 Dec 2011 16:54:14 -0500
-
-gnome-control-center (1:3.2.2-0ubuntu3) precise; urgency=low
-
-  * debian/patches/91_set_accountsservice_background.patch:
-    - When the user changes wallpapers, tell accountsservice about it.
-      LP: #844081
-  * debian/control.in:
-    - Bump required version of accountsservice to one that supports setting
-      BackgroundFile
-  * debian/rules:
-    - Pass --without-cheese so that when building locally with libcheese
-      headers installed, the build doesn't automatically add support for it
-
- -- Michael Terry <mterry@ubuntu.com>  Fri, 09 Dec 2011 13:35:15 -0500
-
-gnome-control-center (1:3.2.2-0ubuntu2) precise; urgency=low
-
-  * Upload for Precise
-
- -- Rodrigo Moya <rodrigo.moya@canonical.com>  Tue, 15 Nov 2011 13:01:50 +0100
-
-gnome-control-center (1:3.2.2-0ubuntu1) oneiric-proposed; urgency=low
-
-  * New upstream release (LP: #888526)
-
- -- Rodrigo Moya <rodrigo.moya@canonical.com>  Thu, 10 Nov 2011 13:42:38 +0100
-
-gnome-control-center (1:3.2.1-0ubuntu1) oneiric-proposed; urgency=low
-
-  [ Gunnar Hjalmarsson ]
-  * debian/patches/52_ubuntu_language_list_mods.patch:
-    Don't mess with non-utf8 locales, or else the language chooser in
-    the User Accounts UI may display confusing info (LP: #864618).
-
-  [ Rodrigo Moya ]
-  * New upstream release
-  * debian/patches/00git_show_search_view.patch:
-  * debian/patches/00git_show_section_labels.patch:
-  * debian/patches/00git_use_correct_sleep_timeout_when_disabled.patch:
-  * debian/patches/00git_use_gtk_widget_show.patch:
-    - Remove upstreamed patches
-  * debian/patches/08_dont_crash_on_null_territories.patch:
-    - Don't crash on locales with no territory code (LP: #841280)
-  * debian/patches/12_add_never_turn_screen_off.patch:
-    - Remove translations from patch, as they are now imported to LP
-  * debian/patches/52_ubuntu_language_list_mods.patch:
-    - Rebased patch
-
- -- Rodrigo Moya <rodrigo.moya@canonical.com>  Tue, 18 Oct 2011 11:39:14 +0200
-
-gnome-control-center (1:3.2.0-0ubuntu6) oneiric; urgency=low
-
-  * debian/patches/00git_use_correct_sleep_timeout_when_disabled.patch:
-    - Don't set gnome-session's idle-delay to 1 never (LP: #863038)
-
- -- Rodrigo Moya <rodrigo.moya@canonical.com>  Thu, 06 Oct 2011 12:19:58 +0200
-
-gnome-control-center (1:3.2.0-0ubuntu5) oneiric; urgency=low
-
-  [ Jeremy Bicha ]
-  * 57_use_nonsymbolic_keyboard_icon.patch: Use the non-monochrome
-    icon for the Keyboard panel (LP: #862027)
-
- -- Rodrigo Moya <rodrigo.moya@canonical.com>  Tue, 04 Oct 2011 17:19:40 +0200
-
-gnome-control-center (1:3.2.0-0ubuntu4) oneiric; urgency=low
-
-  * debian/control:
-    - Build-Depend on the libnm-gtk version that has the missing .pc file
-  * debian/patches/53_use_ubuntu_help.patch:
-    - Remove extra '\' in Description: line 
-  * debian/patches/12_add_never_turn_screen_off.patch:
-    - Remove a code check that was preventing the 'Never turn off screen'
-      option to be selected in the combo box (LP: #863038)
-
- -- Rodrigo Moya <rodrigo.moya@canonical.com>  Thu, 29 Sep 2011 14:01:11 +0200
-
-gnome-control-center (1:3.2.0-0ubuntu3) oneiric; urgency=low
-
-  [ Rodrigo Moya ]
-  * debian/patches/00git_show_search_view.patch:
-    - Make sure we gtk_widget_show the search view (LP: #860950) 
-  * debian/UbuntuLogo.png:
-    - Use the correct version of the icon (LP: #860497)
-  * debian/control:
-    - Add missing NetworkManager build dependencies (LP: #861443)
-  * debian/patches/12_add_never_turn_screen_off.patch:
-    - Add back the "never turn screen off" option (LP: #862154)
-
-  [ Jeremy Bicha ]
-  * debian/patches/53_use_ubuntu_help.patch: Use gnome-help when running
-    GNOME or GNOME Fallback (LP: #852911)
-
- -- Rodrigo Moya <rodrigo.moya@canonical.com>  Thu, 29 Sep 2011 12:47:53 +0200
-
-gnome-control-center (1:3.2.0-0ubuntu2) oneiric; urgency=low
-
-  [ Martin Pitt ]
-  * 11_power-configure_lid_action.patch: Only show the lid action widgets if
-    there actually is a lid. (LP: #854525)
-
-  [ Rodrigo Moya ]
-  * debian/patches/00git_use_correct_sleep_timeout_when_disabled.patch:
-    - Use the correct item in the combo boxes when sleep-when-inactive is
-      disabled (LP: #860485)
-  * debian/gnome-control-center-data.install:
-  * debian/source/include-binaries:
-    - Install UbuntuLogo.png
-    - Remove missing files from Debian
-  * debian/patches/56_use_ubuntu_info_branding.patch:
-    - Use Ubuntu branding in System info panel (LP: #860497)
-  * debian/patches/01_revert_dependency_on_libnm_gtk.patch:
-    - Remove patch that reverted the dependency on libnm-gtk
-  * debian/control:
-    - Build-depend on libnm-gtk-dev
-
- -- Rodrigo Moya <rodrigo.moya@canonical.com>  Tue, 27 Sep 2011 16:11:12 +0200
-
-gnome-control-center (1:3.2.0-0ubuntu1) oneiric; urgency=low
-
-  * New upstream release
-  * debian/patches/00git_handle_media_dialog_close.patch:
-    - Handle media dialog closing consistently
-
- -- Rodrigo Moya <rodrigo.moya@canonical.com>  Mon, 26 Sep 2011 18:26:08 +0200
-
-gnome-control-center (1:3.1.92-0ubuntu6) oneiric; urgency=low
-
-  * debian/patches/90_force_fallback.patch: 
-    - Debian patch, disable the “forced fallback mode” switch, since 
-      we already provide a xsession file for it in gnome-session-fallback.
-      The option is also incompatible with how sessions rare started in 
-      Debian or Ubuntu (using gnome-session --session) (lp: #825250)
-
-  [ Jeremy Bicha ]
-  * debian/patches/10_keyboard_layout_on_unity.patch: Fix capitalization
-  [ Rodrigo Moya ]
-  * debian/patches/10_keyboard_layout_on_unity.patch:
-    - Use a different icon for region panel, since it was the same than
-      language-selector 
-  * debian/patches/04_add_theme_selection.patch:
-    - Ignore not-installed themes (LP: #856824) 
-    - Add Adwaita to the list of available themes (only shown if installed)  
-
- -- Sebastien Bacher <seb128@ubuntu.com>  Fri, 23 Sep 2011 18:07:49 +0200
-
-gnome-control-center (1:3.1.92-0ubuntu2) oneiric; urgency=low
-
-  [ Rodrigo Moya ]
-  * debian/patches/00git_use_gtk_widget_show.patch:
-    - Use gtk_widget_show instead of _show_all in gnome_control_center_show
-      (LP: #854544) 
-  * debian/patches/00git_show_section_labels.patch:
-    - Show the label for the category sections, which was being shown because
-      of the gtk_widget_show_all replaced in previous commit
-
-  [ Jeremy Bicha ]
-  * debian/patches/04_add_theme_selection.patch: Use correct High Contrast
-    theme names
-  * debian/patches/53_use_ubuntu_help.patch: Replaced
-
-  [ Michael Terry ]
-  * debian/patches/55_user_accounts_hide_controls.patch:
-    - When not using GDM, hide certain controls in the User Accounts
-      panel that only apply to it.  (LP: #821766, LP: #821771)
-    - When a user is using an ecryptfs home directory, do not allow
-      the user to log in without a password
-
- -- Michael Terry <mterry@ubuntu.com>  Thu, 22 Sep 2011 11:25:29 -0400
-
-gnome-control-center (1:3.1.92-0ubuntu1) oneiric; urgency=low
-
-  * New upstream release
-  * debian/patches/01_revert_dependency_on_libnm_gtk.patch:
-    - Revert git commit that makes it depend on (unreleased) libnm-gtk
-  * debian/patches/00git_disable_button_if_gcm_viewer_not_installed.patch:
-  * debian/patches/00git_fix_gcm_viewer_spawn.patch:
-  * debian/patches/53_use_ubuntu_help.patch:
-  * debian/patches/54_set_contrast_theme.patch:
-    - Remove upstream patches
-  * debian/patches/07_make_window_wider.patch:
-  * debian/patches/50_ubuntu_systemwide_prefs.patch:
-    - Rebased
-
- -- Rodrigo Moya <rodrigo.moya@canonical.com>  Mon, 19 Sep 2011 22:41:30 +0200
-
-gnome-control-center (1:3.1.91-0ubuntu8) oneiric; urgency=low
-
-  * Add 11_power-configure_lid_action.patch: Add back configuration for lid
-    action. (LP: #792636, GNOME#659045)
-
- -- Martin Pitt <martin.pitt@ubuntu.com>  Thu, 15 Sep 2011 10:49:49 +0200
-
-gnome-control-center (1:3.1.91-0ubuntu7) oneiric; urgency=low
-
-  * debian/patches/00git_fix_gcm_viewer_spawn.patch:
-    - Fix spawning of gcm-viewer
-  * debian/patches/00git_disable_button_if_gcm_viewer_not_installed.patch:
-    - Disable 'View details' button if gcm-viewer is not installed (LP: #843548)
-
- -- Rodrigo Moya <rodrigo.moya@canonical.com>  Wed, 14 Sep 2011 13:45:16 +0200
-
-gnome-control-center (1:3.1.91-0ubuntu6) oneiric; urgency=low
-
-  * debian/patches/54_set_contrast_theme.patch:
-    - Set contrast combo when universal access panel starts
-      (LP: #834958)
-
- -- Michael Terry <mterry@ubuntu.com>  Tue, 13 Sep 2011 16:57:33 -0400
-
-gnome-control-center (1:3.1.91-0ubuntu5) oneiric; urgency=low
-
-  * debian/source_gnome-control-center.py:
-    - reassign segfaults directly to the source shipping the corresponding code
-
- -- Sebastien Bacher <seb128@ubuntu.com>  Fri, 09 Sep 2011 13:02:48 +0200
-
-gnome-control-center (1:3.1.91-0ubuntu4) oneiric; urgency=low
-
-  * debian/patches/03_show_wacom_under_unity.patch:
-    - show the wacom panel under unity (lp: #840555)
-
-  [ Jeremy Bicha ]
-  * debian/control.in:
-    - Dropped accountsservice recommends since it's already a depends
-    - Depend on ubuntu-docs instead of gnome-user-guide
-  * debian/patches/53_use_ubuntu_help.patch:
-    - Use pre-installed Ubuntu Desktop Guide instead of GNOME help
-
- -- Sebastien Bacher <seb128@ubuntu.com>  Tue, 06 Sep 2011 23:15:42 +0200
-
-gnome-control-center (1:3.1.91-0ubuntu3) oneiric; urgency=low
-
-  * debian/control:
-    - Replace gnome-power-manager (<< 3.1.90) (LP: #842072) 
-
- -- Rodrigo Moya <rodrigo.moya@canonical.com>  Tue, 06 Sep 2011 12:26:52 +0200
-
-gnome-control-center (1:3.1.91-0ubuntu2) oneiric; urgency=low
-
-  * debian/patches/04_add_theme_selection.patch:
-    - Add missing inline style to toolbar 
-
- -- Rodrigo Moya <rodrigo.moya@canonical.com>  Tue, 06 Sep 2011 11:59:33 +0200
-
-gnome-control-center (1:3.1.91-0ubuntu1) oneiric; urgency=low
-
-  * New upstream release
-  * debian/patches/50_ubuntu_systemwide_prefs.patch:
-    - Rebased
-
- -- Rodrigo Moya <rodrigo.moya@canonical.com>  Mon, 05 Sep 2011 17:07:49 +0200
-
-gnome-control-center (1:3.1.90-0ubuntu2) oneiric; urgency=low
-
-  * debian/patches/10_keyboard_layout_on_unity.patch:
-    - Show keyboard layout bits on Unity (LP: #834523)
-  * debian/patches/50_ubuntu_systemwide_prefs.patch:
-    - Add back system-wide proxy settings (LP: #795519)
-  * debian/patches/04_add_theme_selection.patch:
-    - Only connect to "changed" signal after the initial selection (LP: #834240)
-
- -- Rodrigo Moya <rodrigo.moya@canonical.com>  Wed, 31 Aug 2011 12:55:13 +0200
-
-gnome-control-center (1:3.1.90-0ubuntu1) oneiric; urgency=low
-
-  [ Rodrigo Moya ]
-  * New upstream release
-  * debian/patches/03_dont_show_region_panel_in_unity.patch:
-    - Remove upstreamed patch
-  * debian/patches/04_add_theme_selection.patch:
-    - Set the metacity theme also
-
-  [ Gunnar Hjalmarsson ]
-  * debian/patches/52_ubuntu_language_list_mods.patch:
-    - Change the list of options, when setting language from User
-      Accounts, to items representing available translations, and with
-      that make it similar to the language list in language-selector.
-    - Make items representing language @variants be displayed as such.
-  * debian/control.in:
-    - accountsservice (>= 0.6.13-1ubuntu2) added to dependency list.
-
- -- Rodrigo Moya <rodrigo.moya@canonical.com>  Tue, 30 Aug 2011 12:24:44 +0200
-
-gnome-control-center (1:3.1.5-0ubuntu5) oneiric; urgency=low
-
-  * debian/patches/07_make_window_wider.patch
-    - Make the System Settings window a bit wider to reduce need for scrolling
-
- -- Jeremy Bicha <jbicha@ubuntu.com>  Mon, 29 Aug 2011 01:28:14 -0400
-
-gnome-control-center (1:3.1.5-0ubuntu4) oneiric; urgency=low
-
-  * debian/patches/04_add_theme_selection.patch:
-    - Add theme selection to Background panel
-
- -- Rodrigo Moya <rodrigo.moya@canonical.com>  Thu, 25 Aug 2011 16:33:51 +0200
-
-gnome-control-center (1:3.1.5-0ubuntu3) oneiric; urgency=low
-
-  * debian/control:
-    - Add missing libnotify-dev build dependency
-
- -- Rodrigo Moya <rodrigo.moya@canonical.com>  Wed, 24 Aug 2011 17:35:38 +0200
-
-gnome-control-center (1:3.1.5-0ubuntu2) oneiric; urgency=low
-
-  * debian/patches/03_dont_show_region_panel_in_unity.patch:
-    - Don't show region panel in Unity, as it has its own language selector
-
- -- Rodrigo Moya <rodrigo.moya@canonical.com>  Wed, 24 Aug 2011 17:05:25 +0200
-
-gnome-control-center (1:3.1.5-0ubuntu1) oneiric; urgency=low
-
-  * New upstream release
-  * debian/control:
-    - Build depend on libgnome-menu-3-dev
-  * debian/patches/hostname-retrieval.patch:
-    - Remove upstreamed patch
-
- -- Rodrigo Moya <rodrigo.moya@canonical.com>  Thu, 18 Aug 2011 12:14:03 +0200
-
-gnome-control-center (1:3.1.4-0ubuntu6) oneiric; urgency=low
-
-  * debian/control:
-  * debian/patches/series:
-  * debian/patches/03_disable_some_panels.patch:
-    - Enable building of color plugin (LP: #788108)
-
- -- Rodrigo Moya <rodrigo.moya@canonical.com>  Thu, 11 Aug 2011 14:03:50 +0200
-
-gnome-control-center (1:3.1.4-0ubuntu5) oneiric; urgency=low
-
-  * debian/patches/hostname-retrieval.patch: watch out for GDbus errors before
-    checking the return values from the GDbus call. (LP: #822722)
-  * debian/libgnome-control-center1.symbols: add the new symbols from 3.1.4.
-
- -- Mathieu Trudel-Lapierre <mathieu-tl@ubuntu.com>  Mon, 08 Aug 2011 13:48:07 -0400
-
-gnome-control-center (1:3.1.4-0ubuntu4) oneiric; urgency=low
-
-  * debian/control.in: g-c-c-data replaces gdm (<< 2.91) (lp: #818480)
-
- -- Sebastien Bacher <seb128@ubuntu.com>  Mon, 01 Aug 2011 13:40:28 +0200
-
-gnome-control-center (1:3.1.4-0ubuntu3) oneiric; urgency=low
-
-  * debian/control: 
-    - build-depends on libgoa-1.0-dev and recommends gnome-online-accounts
-  * debian/gnome-control-center-data.install:
-    - install the pixmaps directory as well
-
- -- Sebastien Bacher <seb128@ubuntu.com>  Fri, 29 Jul 2011 17:16:45 +0200
-
-gnome-control-center (1:3.1.4-0ubuntu2) oneiric; urgency=low
-
-  * debian/patches/01_allow_external_panels.patch:
-    - Fix cut-off line to avoid header being installed into a directory
-      named 'libgn'
-
- -- Michael Terry <mterry@ubuntu.com>  Wed, 27 Jul 2011 11:12:04 -0400
-
-gnome-control-center (1:3.1.4-0ubuntu1) oneiric; urgency=low
-
-  * New upstream release
-  * debian/control:
-    - Bump glib build dependency
-  * debian/patches/01_git_kill_warnings.patch:
-  * debian/patches/04_git_avoid_multiple_dbus_calls.patch:
-    - Remove upstreamed patches
-  * debian/patches/03_disable_some_panels.patch:
-    - Rebased
-  * debian/patches/01_allow_external_panels.patch:
-    - Update to re-add installation of libgnome-control-center
-
- -- Rodrigo Moya <rodrigo.moya@canonical.com>  Mon, 25 Jul 2011 21:51:25 +0200
-
-gnome-control-center (1:3.1.3-0ubuntu5) oneiric; urgency=low
-
-  * Fix LP: #607357 - cannot cope with incorrect current password under
-    LDAP backend. Add patch based on original patch to gnome-about-me from
-    Ryan Tandy
-    - add debian/patches/06_handle_passwd_with_ldap.patch
-    - update debian/patches/series
-
- -- Chris Coulson <chris.coulson@canonical.com>  Mon, 11 Jul 2011 23:13:29 +0100
-
-gnome-control-center (1:3.1.3-0ubuntu4) oneiric; urgency=low
-
-  * debian/patches/01_allow_external_panels.patch:
-    - Simplified
-  * debian/libgnome-control-center1.symbols:
-    - Remove symbols added by previous version of 01_allow_external_panels.patch
-
- -- Rodrigo Moya <rodrigo.moya@canonical.com>  Fri, 08 Jul 2011 18:08:51 +0200
-
-gnome-control-center (1:3.1.3-0ubuntu3) oneiric; urgency=low
-
-  * debian/patches/05_run_update_manager.patch:
-    - Run update-manager instead of PackageKit updater (LP: #801335)
-
- -- Rodrigo Moya <rodrigo.moya@canonical.com>  Tue, 05 Jul 2011 18:08:07 +0200
-
-gnome-control-center (1:3.1.3-0ubuntu2) oneiric; urgency=low
-
-  * debian/patches/04_git_avoid_multiple_dbus_calls.patch:
-    - Avoid making lots of DBus calls to set the brightness when the slider
-      change too quickly (LP: #805473)
-
- -- Rodrigo Moya <rodrigo.moya@canonical.com>  Tue, 05 Jul 2011 16:46:03 +0200
-
-gnome-control-center (1:3.1.3-0ubuntu1) oneiric; urgency=low
-
-  * New upstream release
-  * debian/control:
-    - Bump gsettings-desktop-schemas-dev build dependency
-  * debian/libgnome-control-center1.symbols:
-    - Updated symbols
-  * debian/patches/01_allow_external_panels.patch:
-    - Allow running not-embedded panels (aka externals) (LP: #787694)
-  * debian/patches/03_disable_some_panels.patch:
-    - Disable color and online-accounts panels
-  * debian/patches/01_git_kill_warnings.patch:
-    - Kill compilation warnings
-  * debian/patches/show_in_unity.patch:
-    - Remove upstreamed patch
-
- -- Rodrigo Moya <rodrigo.moya@canonical.com>  Tue, 05 Jul 2011 12:25:48 +0200
-
-gnome-control-center (1:3.0.2-1ubuntu7) oneiric; urgency=low
-
-  * debian/patches/02_no_assert_on_null_streams.patch:
-    - Temporary patch to not assert on NULL streams (LP: #741155)
-
- -- Rodrigo Moya <rodrigo.moya@canonical.com>  Thu, 30 Jun 2011 12:52:09 +0200
-
-gnome-control-center (1:3.0.2-1ubuntu6) oneiric; urgency=low
-
-  * debian/patches/show_in_unity.patch:
-    - Add Unity to many OnlyShowIn values (LP: #803519)
-
- -- Michael Terry <mterry@ubuntu.com>  Wed, 29 Jun 2011 17:32:28 +0100
-
-gnome-control-center (1:3.0.2-1ubuntu5) oneiric; urgency=low
-
-  * No-change rebuild against libgnome-desktop-3-2.
-
- -- Steve Langasek <steve.langasek@ubuntu.com>  Fri, 24 Jun 2011 23:08:16 -0700
-
-gnome-control-center (1:3.0.2-1ubuntu4) oneiric; urgency=low
-
-  * debian/control:
-    - Add build dependency on libnm*-dev (>= 0.8.992) for the Network panel
-  * debian/patches/00_disable-nm.patch:
-    - Re-enable NM now that the needed version is in oneiric
-
- -- Rodrigo Moya <rodrigo.moya@canonical.com>  Fri, 03 Jun 2011 13:11:49 +0200
-
-gnome-control-center (1:3.0.2-1ubuntu3) oneiric; urgency=low
-
-  [ Micah Gersten ]
-  * debian/control:
-    - Add reaks/Replaces on g-s-d (<< 3.0~) for gnome-control-center-data (LP: #786417)
-
-  [ Rodrigo Moya ]
-  * New upstream release
-  * debian/watch:
-    - Switch to .bz2, as this is what is used in ftp.gnome.org now
-  * debian/patches/01_git_remove_gettext_calls.patch
-  * debian/patches/01_git_kill_warning.patch:
-    - Remove upstreamed patches
-
- -- Rodrigo Moya <rodrigo.moya@canonical.com>  Tue, 24 May 2011 10:55:28 +0200
-
-gnome-control-center (1:3.0.1.1-1ubuntu1) oneiric; urgency=low
+gnome-control-center (1:3.2.2-2ubuntu1) UNRELEASED; urgency=low
 
   * Rebase on Debian, remaining Ubuntu changes:
   * debian/control:
     - Build-Depend on hardening-wrapper, dpkg-dev and dh-autoreconf
     - Add dependency on ubuntu-system-service
     - Remove dependency on gnome-icon-theme-symbolic
-    - Move dependency on apg, gnome-icon-theme-symbolic and accountsservice to
-      be a Recommends: until we get them in main
+    - Don't depend on cheese, cups-pk-helper, libsocialweb, or mesa-utils
+      since they're in universe
+    - Depend on ubuntu-docs instead of gnome-user-guide
   * debian/rules:
-    - Use autoreconf
     - Add binary-post-install rule for gnome-control-center-data
-    - Run dh-autoreconf
+    - Don't build with cheese or libsocialweb
+  * debian/gnome-control-center-data.install:
+  * debian/source/include-binaries:
+    - Install UbuntuLogo.png & apport hook
   * debian/gnome-control-center.dirs:
   * debian/gnome-control-center.links:
     - Add a link to the control center shell for indicators
-  * debian/patches/00_disable-nm.patch:
-    - Temporary patch to disable building with NetworkManager until we get
-      the new one in the archive
-  * debian/patches/01_git_remove_gettext_calls.patch:
-    - Remove calls to AM_GNU_GETTEXT, IT_PROG_INTLTOOL should be enough
-  * debian/patches/01_git_kill_warning.patch:
-    - Kill warning
+  * debian/patches/01_allow_external_panels.patch:
+    - Allow running external (non-embedded) panels (LP: #787694)
+  * debian/patches/02_no_assert_on_null_streams.patch:
+    - Temporary patch to not assert on NULL streams (LP: #741155)
+  * debian/patches/03_show_wacom_under_unity.patch:
+    - show the wacom panel under unity (lp: #840555)
+  * debian/patches/04_add_theme_selection.patch:
+    - Add theme selection to Background panel
+  * debian/patches/05_run_update_manager.patch:
+    - Run update-manager instead of PackageKit updater (LP: #801335)
+  * debian/patches/07_make_window_wider.patch
+    - Make the System Settings window a bit wider to reduce need for scrolling
+  * debian/patches/10_keyboard_layout_on_unity.patch:
+    - Show keyboard layout bits on Unity (LP: #834523)
+  * Add 11_power-configure_lid_action.patch: Add back configuration for lid
+    action. (LP: #792636, GNOME#659045)
+  * debian/patches/12_add_never_turn_screen_off.patch:
+    - Add back the "never turn screen off" option (LP: #862154)
   * debian/patches/50_ubuntu_systemwide_prefs.patch:
-    - Ubuntu specific proxy preferences
-  * debian/patches/51_ubuntu_system_keyboard.patch:
-    - Implement the global keyboard spec at https://wiki.ubuntu.com/DefaultKeyboardSettings
+    - Add back system-wide proxy settings (LP: #795519)
+  * debian/patches/52_ubuntu_language_list_mods.patch:
+    - Change the list of options, when setting language from User
+      Accounts, to items representing available translations, and with
+      that make it similar to the language list in language-selector.
+    - Make items representing language @variants be displayed as such.
+  * debian/patches/53_use_ubuntu_help.patch: Use gnome-help when running
+    GNOME or GNOME Fallback (LP: #852911)
+  * debian/patches/55_user_accounts_hide_controls.patch:
+    - When not using GDM, hide certain controls in the User Accounts
+      panel that only apply to it.  (LP: #821766, LP: #821771)
+    - When a user is using an ecryptfs home directory, do not allow
+      the user to log in without a password
+  * debian/patches/56_use_ubuntu_info_branding.patch:
+    - Use Ubuntu branding in System info panel (LP: #860497)
+  * debian/patches/57_use_nonsymbolic_keyboard_icon.patch: Use the non-monochrome
+    icon for the Keyboard panel (LP: #862027)
+  * debian/patches/90_git_sound_tab_order.patch: Reorder the tabs, the sound 
+    effect one is the less used and shouldn't be first in the list
+  * debian/patches/91_git_build_use_fontconfig.patch:
+    - git patch to fix the build of the region capplet
+  * debian/patches/92_git_minimal_output_height.patch:
+    - set a minimal height on the output list (lp: #850032)
 
- -- Rodrigo Moya <rodrigo.moya@canonical.com>  Tue, 17 May 2011 10:47:27 +0200
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Thu, 12 Jan 2012 15:09:33 -0500
+
+gnome-control-center (1:3.2.2-2) unstable; urgency=low
+
+  [ Josselin Mouette ]
+  * Recommend cups-pk-helper. Closes: #622688.
+
+  [ Michael Biebl ]
+  * Add Recommends on mesa-utils. The glxinfo utilitity is required to show
+    details about the graphics card.
+  * Upload to unstable.
+
+ -- Michael Biebl <biebl@debian.org>  Fri, 16 Dec 2011 23:55:34 +0100
+
+gnome-control-center (1:3.2.2-1) experimental; urgency=low
+
+  [ Laurent Bigonville ]
+  * debian/control.in: Bump libgnome-desktop-3-dev build-dependency
+    (Closes: #647954)
+
+  [ Josselin Mouette ]
+  * Breaks/Replaces g-p-m < 3.2. Closes: #648410.
+
+  [ Michael Biebl ]
+  * New upstream release.
+  * Refresh debian/patches/91_configure_cheese.patch.
+  * debian/control.in:
+    - Mark Build-Depends on libnm-gtk-dev as linux-any.
+    - Bump Build-Depends on libnotify-dev to (>= 0.7.3).
+    - Bump Depends on gsettings-desktop-schemas to (>= 3.0.2).
+  * Remove debian/libgnome-control-center-dev.install, obsolete.
+  * Remove debian/libgnome-control-center1.symbols and instead add a strict
+    dependency between gnome-control-center and libgnome-control-center1.
+
+ -- Michael Biebl <biebl@debian.org>  Wed, 16 Nov 2011 00:45:49 +0100
+
+gnome-control-center (1:3.2.1-1) experimental; urgency=low
+
+  * New upstream release
+  * Sync with Ubuntu
+    + debian/libgnome-control-center1.symbols: Update symbols
+    + debian/patches/90_force_fallback.patch: Updated
+    + debian/patches/06_handle_passwd_with_ldap.patch: Added
+    + debian/patches/08_dont_crash_on_null_territories.patch: Added
+  * debian/patches/02_https.patch: Removed, fixed upstream
+  * debian/patches/03_ppd_h.patch: Removed, fixed upstream
+  * debian/patches/91_configure_cheese.patch: Include cheese pkg-config flags
+    as symbols of it are being used
+  * debian/control.in: Remove libgnome-control-center-dev package
+  * debian/control.in: Add build-dependency on libgoa-1.0-dev, libcolord-dev,
+    and libnotify-dev
+  * debian/control.in: Tighten libgtk-3-dev build-dependency
+  * debian/control.in: Add libnm-gtk-dev b-d for network panel
+  * debian/control.in: Add libcheese-gtk-dev b-d to take account pictures
+  * debian/control.in: Add libsocialweb-client-dev b-d to use flickr background
+     service
+
+ -- Sjoerd Simons <sjoerd@debian.org>  Sat, 05 Nov 2011 00:46:41 +0000
+
+gnome-control-center (1:3.0.2-3) unstable; urgency=low
+
+  * debian/control.in:
+    - Also add Breaks/Replaces against gdm (<< 3.0). Closes: #645400
+    - Update Depends on gnome-desktop-data to gnome-desktop3-data.
+  * Rename control-center2.xpm to gnome-control-center.xpm and refresh the
+    icon based on what's currently shipped in gnome-icon-theme.
+    Update the menu file accordingly.
+
+ -- Michael Biebl <biebl@debian.org>  Sat, 15 Oct 2011 20:49:56 +0200
+
+gnome-control-center (1:3.0.2-2) unstable; urgency=low
+
+  [ Josselin Mouette ]
+  * Drop useless gst-alsa | gst-audiosink suggstion; suggest 
+    gst-pulseaudio instead.
+
+  [ Michael Biebl ]
+  * Upload to unstable.
+  * debian/watch:
+    - Switch to .xz tarballs.
+    - Track stable releases.
+  * Bump debhelper compatibility level to 8.
+    - Update Build-Depends on debhelper.
+    - Strip debian/tmp/ from .install files.
+  * debian/control.in:
+    - Update Vcs-* URLs.
+    - Bump Standards-Version to 3.9.2. No further changes.
+    - Change network-manager build-dependencies to linux-any.
+    - Add Breaks/Replaces against gdm3 (<< 3.0) which shipped the faces
+      in previous versions.
+    - Add Breaks/Replaces against gnome-settings-daemon (<< 3.0).
+      Closes: #625783
+  * Refresh patches.
+  * debian/gnome-control-center-data.install
+    - Install face pictures.
+
+ -- Michael Biebl <biebl@debian.org>  Fri, 14 Oct 2011 16:13:54 +0200
+
+gnome-control-center (1:3.0.2-1) experimental; urgency=low
+
+  [ Josselin Mouette ]
+  * Break glib < 2.28.6-2 for x-scheme-handler support.
+
+  [ Sjoerd Simons ]
+  * New upstream release
+
+  [ Josselin Mouette ]
+  * Break gnome-session < 3.0 because of the sound-applet startup.
+  * 01_menu_category.patch: new patch. Put g-c-c.desktop in the Settings 
+    menu instead of the System one.
+  * 90_force_fallback.patch: new patch. Disable the “forced fallback 
+    mode” switch, since we already provide a xsession file for it in 
+    gnome-session-fallback.
+  * Break gnome-power-manager < 3.0 because of the power panel.
+  * 02_https.patch: patch from upstream git. Correctly register https 
+    scheme together with http.
+  * 03_ppd_h.patch: patch from upstream git. Include ppd.h explicitly.
+  * Use dh-autoreconf to go with this patch.
+
+ -- Josselin Mouette <joss@debian.org>  Sun, 04 Sep 2011 19:15:55 +0200
 
 gnome-control-center (1:3.0.1.1-1) experimental; urgency=low
 

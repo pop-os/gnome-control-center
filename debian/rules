@@ -9,9 +9,7 @@ include /usr/share/cdbs/1/class/gnome.mk
 include /usr/share/gnome-pkg-tools/1/rules/uploaders.mk
 include /usr/share/gnome-pkg-tools/1/rules/gnome-version.mk
 include /usr/share/gnome-pkg-tools/1/rules/clean-la.mk
--include /usr/share/gnome-pkg-tools/1/rules/gnome-get-source.mk
-
-GNOME_MODULE := gnome-control-center
+include /usr/share/gnome-pkg-tools/1/rules/gnome-get-source.mk
 
 LDFLAGS += -Wl,-z,defs -Wl,-O1 -Wl,--as-needed
 
@@ -36,3 +34,5 @@ binary-post-install/gnome-control-center-data::
 	rm -rf debian/capplets-data/usr/share/applications/mimeinfo.cache
 	rm -rf debian/capplets-data/usr/share/pkgconfig
 	dh_installmime -p$(cdbs_curpkg)
+
+common-binary-post-install-arch:: list-missing
