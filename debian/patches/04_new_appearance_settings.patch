@@ -1,7 +1,7 @@
 Index: gnome-control-center-3.2.2/configure.ac
 ===================================================================
---- gnome-control-center-3.2.2.orig/configure.ac	2012-01-25 17:41:14.568157964 +0100
-+++ gnome-control-center-3.2.2/configure.ac	2012-01-25 17:41:14.676158514 +0100
+--- gnome-control-center-3.2.2.orig/configure.ac	2012-01-25 18:30:21.062768851 +0100
++++ gnome-control-center-3.2.2/configure.ac	2012-01-26 08:29:39.832143977 +0100
 @@ -91,7 +91,7 @@
  PKG_CHECK_MODULES(LIBSHORTCUTS, $COMMON_MODULES x11)
  PKG_CHECK_MODULES(SHELL, $COMMON_MODULES libgnome-menu-3.0 gio-unix-2.0)
@@ -14,7 +14,7 @@ Index: gnome-control-center-3.2.2/configure.ac
 Index: gnome-control-center-3.2.2/panels/background/background.ui
 ===================================================================
 --- gnome-control-center-3.2.2.orig/panels/background/background.ui	2011-11-08 21:20:01.000000000 +0100
-+++ gnome-control-center-3.2.2/panels/background/background.ui	2012-01-25 17:41:14.680158538 +0100
++++ gnome-control-center-3.2.2/panels/background/background.ui	2012-01-25 18:30:21.146769261 +0100
 @@ -1,7 +1,6 @@
 -<?xml version="1.0"?>
 +<?xml version="1.0" encoding="UTF-8"?>
@@ -1072,7 +1072,7 @@ Index: gnome-control-center-3.2.2/panels/background/background.ui
 Index: gnome-control-center-3.2.2/panels/background/cc-background-panel.c
 ===================================================================
 --- gnome-control-center-3.2.2.orig/panels/background/cc-background-panel.c	2011-11-08 21:20:01.000000000 +0100
-+++ gnome-control-center-3.2.2/panels/background/cc-background-panel.c	2012-01-25 17:41:36.956268983 +0100
++++ gnome-control-center-3.2.2/panels/background/cc-background-panel.c	2012-01-26 10:14:05.075211641 +0100
 @@ -24,6 +24,7 @@
  #include <string.h>
  #include <glib/gi18n-lib.h>
@@ -1081,15 +1081,25 @@ Index: gnome-control-center-3.2.2/panels/background/cc-background-panel.c
  
  #include "cc-background-panel.h"
  #include "bg-wallpapers-source.h"
-@@ -69,6 +70,7 @@
+@@ -69,6 +70,8 @@
  #endif
  
    GSettings *settings;
 +  GSettings *interface_settings;
++  GSettings *unity2d_settings;
  
    GnomeDesktopThumbnailFactory *thumb_factory;
  
-@@ -93,6 +95,12 @@
+@@ -81,6 +84,8 @@
+ 
+   GdkPixbuf *display_base;
+   GdkPixbuf *display_overlay;
++
++  GSList *gconf_notify_id;
+ };
+ 
+ enum
+@@ -93,6 +98,12 @@
  #endif
  };
  
@@ -1102,7 +1112,18 @@ Index: gnome-control-center-3.2.2/panels/background/cc-background-panel.c
  
  #define WID(y) (GtkWidget *) gtk_builder_get_object (priv->builder, y)
  
-@@ -167,6 +175,12 @@
+@@ -126,6 +137,10 @@
+ cc_background_panel_dispose (GObject *object)
+ {
+   CcBackgroundPanelPrivate *priv = CC_BACKGROUND_PANEL (object)->priv;
++  GConfClient *client;
++  GSList* iter;
++
++  client = gconf_client_get_default ();
+ 
+   if (priv->builder)
+     {
+@@ -167,6 +182,18 @@
        priv->settings = NULL;
      }
  
@@ -1112,10 +1133,33 @@ Index: gnome-control-center-3.2.2/panels/background/cc-background-panel.c
 +      priv->interface_settings = NULL;
 +    }
 +
++  if (priv->unity2d_settings)
++    {
++      g_object_unref (priv->unity2d_settings);
++      priv->unity2d_settings = NULL;
++    }
++
    if (priv->copy_cancellable)
      {
        /* cancel any copy operation */
-@@ -341,11 +355,13 @@
+@@ -194,6 +221,16 @@
+       priv->display_overlay = NULL;
+     }
+ 
++  iter = priv->gconf_notify_id;
++  while (iter != NULL)
++    {
++      gconf_client_notify_remove(client, (guint) iter->data);
++      iter = g_slist_next (iter);
++    }
++  g_object_unref (client);
++  g_slist_free (priv->gconf_notify_id);
++  priv->gconf_notify_id = NULL;
++
+   G_OBJECT_CLASS (cc_background_panel_parent_class)->dispose (object);
+ }
+ 
+@@ -341,11 +378,13 @@
      {
        GdkColor pcolor, scolor;
  
@@ -1131,7 +1175,7 @@ Index: gnome-control-center-3.2.2/panels/background/cc-background-panel.c
  
        gdk_color_parse (cc_background_item_get_pcolor (priv->current_background), &pcolor);
        gdk_color_parse (cc_background_item_get_scolor (priv->current_background), &scolor);
-@@ -1136,12 +1152,386 @@
+@@ -1136,12 +1175,412 @@
      g_object_set (G_OBJECT (scrolled), "height-request", 280, NULL);
  }
  
@@ -1209,7 +1253,7 @@ Index: gnome-control-center-3.2.2/panels/background/cc-background-panel.c
 +}
 +
 +static void
-+setup_theme_selector (CcBackgroundPanel *self)
++setup_theme_selector (CcBackgroundPanel *self, gboolean init)
 +{
 +  gchar *current_gtk_theme;
 +  gint i, current_theme_index = 0;
@@ -1232,7 +1276,8 @@ Index: gnome-control-center-3.2.2/panels/background/cc-background-panel.c
 +          continue;
 +        }
 +
-+      gtk_combo_box_text_append (GTK_COMBO_BOX_TEXT (widget), themes[i], themes[i]);
++      if (init)
++        gtk_combo_box_text_append (GTK_COMBO_BOX_TEXT (widget), themes[i], themes[i]);
 +
 +      if (g_strcmp0 (gtk_theme, current_gtk_theme) == 0)
 +        {
@@ -1246,8 +1291,9 @@ Index: gnome-control-center-3.2.2/panels/background/cc-background-panel.c
 +      g_free (cursor_theme);
 +    }
 +
-+  g_signal_connect (G_OBJECT (widget), "changed",
-+		    G_CALLBACK (theme_selection_changed), self);
++  if (init)
++    g_signal_connect (G_OBJECT (widget), "changed",
++		      G_CALLBACK (theme_selection_changed), self);
 +}
 +
 +static void
@@ -1295,7 +1341,7 @@ Index: gnome-control-center-3.2.2/panels/background/cc-background-panel.c
 +  gconf_client_set_string (client, "/desktop/gnome/shell/windows/theme",  current_gtk_theme, NULL);
 +  gconf_client_set_string (client, "/apps/metacity/general/theme", current_gtk_theme, NULL);
 +
-+  setup_theme_selector(self);
++  setup_theme_selector(self, FALSE);
 +
 +  /* Unity launcher icon size (if visible) */
 +  if (gtk_widget_get_visible (GTK_WIDGET (WID ("unity-iconsize-box"))))
@@ -1310,6 +1356,7 @@ Index: gnome-control-center-3.2.2/panels/background/cc-background-panel.c
 +  update_preview (priv, NULL);
 +
 +  shows style-combobox style-pcolor and style-combobox items.*/
++  gtk_combo_box_set_active (GTK_COMBO_BOX (WID ("sources-combobox")), 0);
 +  path = gtk_tree_path_new_from_string ("1");
 +  gtk_icon_view_select_path (GTK_ICON_VIEW (WID ("backgrounds-iconview")), path);
 +  gtk_tree_path_free (path);
@@ -1333,7 +1380,6 @@ Index: gnome-control-center-3.2.2/panels/background/cc-background-panel.c
 +  CcBackgroundPanelPrivate *priv = self->priv;
 +  gint value = gconf_client_get_int (gconf_client_get_default (), UNITY_LAUNCHERHIDE_KEY, NULL);
 +  gboolean autohide;
-+  GSettings *settings;
 +
 +  autohide = (value != 0);
 +  gtk_switch_set_active (GTK_SWITCH (WID ("unity_launcher_autohide")), autohide);
@@ -1341,11 +1387,12 @@ Index: gnome-control-center-3.2.2/panels/background/cc-background-panel.c
 +  /* 2d (which doesn't have value = 3). We have to refresh 2d there, because maybe
 +     someone changed in ccsm (and so, no on_hidelauncher_changed if 2 -> 1 for instance
 +     and we need to refreshed it */
-+  settings = g_settings_new (UNITY2D_GSETTINGS_LAUNCHER);
-+  if (value > 2)
-+    value = 2;
-+  g_settings_set_int (settings, "hide-mode", value);
-+  g_object_unref (settings);
++  if (priv->unity2d_settings)
++    {
++      if (value > 2)
++        value = 2;
++      g_settings_set_int (priv->unity2d_settings, "hide-mode", value);
++    }
 +
 +  hidelauncher_set_sensitivity_reveal (self, autohide);
 +}
@@ -1431,7 +1478,8 @@ Index: gnome-control-center-3.2.2/panels/background/cc-background-panel.c
 +on_restore_defaults_page2_clicked (GtkButton *button, gpointer user_data)
 +{
 +  GConfClient *client;
-+  GSettings *settings;
++  CcBackgroundPanel *self = CC_BACKGROUND_PANEL (user_data);
++  CcBackgroundPanelPrivate *priv = self->priv;
 +
 +  client = gconf_client_get_default ();
 +
@@ -1439,8 +1487,8 @@ Index: gnome-control-center-3.2.2/panels/background/cc-background-panel.c
 +  gconf_client_unset (client, UNITY_LAUNCHERHIDE_KEY, NULL);
 +  gconf_client_unset (client, UNITY_LAUNCHERREVEAL_KEY, NULL);
 +
-+  settings = g_settings_new (UNITY2D_GSETTINGS_LAUNCHER);
-+  g_settings_reset (settings, "hide-mode");
++  if (priv->unity2d_settings)
++    g_settings_reset (priv->unity2d_settings, "hide-mode");
 +}
 +
 +static gboolean
@@ -1464,9 +1512,23 @@ Index: gnome-control-center-3.2.2/panels/background/cc-background-panel.c
 +  GConfClient *client;
 +  GtkAdjustment* iconsize_adj;
 +  GtkScale* iconsize_scale;
++  const gchar * const *schemas;
 +
 +  client = gconf_client_get_default ();
 +  gconf_client_add_dir (client, UNITY_KEYS, 0, NULL);
++  priv->gconf_notify_id = NULL;
++
++  /* Only use the unity-2d schema if it's installed */
++  schemas = g_settings_list_schemas ();
++  while (*schemas != NULL)
++    {
++      if (g_strcmp0 (*schemas, UNITY2D_GSETTINGS_LAUNCHER) == 0)
++        {
++          priv->unity2d_settings = g_settings_new (UNITY2D_GSETTINGS_LAUNCHER);
++          break;
++        }
++      schemas++;
++    }
 +
 +  /* Icon size change (Not supported in unity-2d) */
 +  if (g_strcmp0(g_getenv("DESKTOP_SESSION"), "ubuntu-2d") != 0)
@@ -1474,9 +1536,11 @@ Index: gnome-control-center-3.2.2/panels/background/cc-background-panel.c
 +      iconsize_adj = gtk_adjustment_new (48, 32, 64, 1, 5, 0);
 +      iconsize_scale = GTK_SCALE (WID ("unity-iconsize-scale"));
 +      gtk_range_set_adjustment (GTK_RANGE (iconsize_scale), iconsize_adj);
-+      gconf_client_notify_add (client, UNITY_ICONSIZE_KEY,
-+                               ext_iconsize_changed_callback, iconsize_adj,
-+                               NULL, NULL);
++      priv->gconf_notify_id = g_slist_append (priv->gconf_notify_id,
++                                              GINT_TO_POINTER (
++                                              gconf_client_notify_add (client, UNITY_ICONSIZE_KEY,
++                                                       ext_iconsize_changed_callback, iconsize_adj,
++                                                       NULL, NULL)));
 +      g_signal_connect (iconsize_adj, "value_changed",
 +                        G_CALLBACK (on_iconsize_changed), NULL);
 +      iconsize_widget_refresh (iconsize_adj);
@@ -1485,15 +1549,21 @@ Index: gnome-control-center-3.2.2/panels/background/cc-background-panel.c
 +    hide_unity2d_not_supportted (self);
 +
 +  /* Autohide launcher setting */
-+  gconf_client_notify_add (client, UNITY_LAUNCHERHIDE_KEY,
-+                           ext_hidelauncher_changed_callback, self, NULL, NULL);
++  priv->gconf_notify_id = g_slist_append (priv->gconf_notify_id,
++                                          GINT_TO_POINTER (
++                                          gconf_client_notify_add (client, UNITY_LAUNCHERHIDE_KEY,
++                                                   ext_hidelauncher_changed_callback, self,
++                                                   NULL, NULL)));
 +  g_signal_connect (WID ("unity_launcher_autohide"), "notify::active",
 +                    G_CALLBACK (on_hidelauncher_changed), self);
 +  hidelauncher_widget_refresh (self);
 +
 +  /* Reveal spot setting */
-+  gconf_client_notify_add (client, UNITY_LAUNCHERREVEAL_KEY,
-+                           ext_reveallauncher_changed_callback, self, NULL, NULL);
++  priv->gconf_notify_id = g_slist_append (priv->gconf_notify_id,
++                                          GINT_TO_POINTER (
++                                          gconf_client_notify_add (client, UNITY_LAUNCHERREVEAL_KEY,
++                                                   ext_reveallauncher_changed_callback, self,
++                                                   NULL, NULL)));
 +  g_signal_connect (WID ("unity_reveal_spot_topleft"), "toggled",
 +                     G_CALLBACK (on_reveallauncher_changed), self);
 +  g_signal_connect (WID ("unity_reveal_spot_left"), "toggled",
@@ -1518,7 +1588,7 @@ Index: gnome-control-center-3.2.2/panels/background/cc-background-panel.c
    GError *err = NULL;
    GtkWidget *widget;
    GtkListStore *store;
-@@ -1151,9 +1541,14 @@
+@@ -1151,9 +1590,14 @@
  
    priv->builder = gtk_builder_new ();
  
@@ -1536,7 +1606,7 @@ Index: gnome-control-center-3.2.2/panels/background/cc-background-panel.c
  
    if (err)
      {
-@@ -1204,7 +1599,10 @@
+@@ -1204,7 +1648,10 @@
  
  
    /* add the top level widget */
@@ -1548,13 +1618,13 @@ Index: gnome-control-center-3.2.2/panels/background/cc-background-panel.c
  
    gtk_container_add (GTK_CONTAINER (self), widget);
    gtk_widget_show_all (GTK_WIDGET (self));
-@@ -1267,6 +1665,20 @@
+@@ -1267,6 +1714,20 @@
  
    /* Setup the edit box with our current settings */
    source_update_edit_box (priv, TRUE);
 +
 +  /* Setup theme selector */
-+  setup_theme_selector (self);
++  setup_theme_selector (self, TRUE);
 +
 +  /* Setup unity settings */
 +  if (background_is_unity_session ())
@@ -1572,7 +1642,7 @@ Index: gnome-control-center-3.2.2/panels/background/cc-background-panel.c
 Index: gnome-control-center-3.2.2/panels/background/gnome-background-panel.desktop.in.in
 ===================================================================
 --- gnome-control-center-3.2.2.orig/panels/background/gnome-background-panel.desktop.in.in	2011-09-01 12:01:00.000000000 +0200
-+++ gnome-control-center-3.2.2/panels/background/gnome-background-panel.desktop.in.in	2012-01-25 17:41:14.680158538 +0100
++++ gnome-control-center-3.2.2/panels/background/gnome-background-panel.desktop.in.in	2012-01-25 18:30:21.146769261 +0100
 @@ -1,6 +1,6 @@
  [Desktop Entry]
 -_Name=Background
