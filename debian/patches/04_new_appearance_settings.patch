@@ -1,7 +1,7 @@
 Index: gnome-control-center-3.2.2/configure.ac
 ===================================================================
---- gnome-control-center-3.2.2.orig/configure.ac	2012-01-25 18:30:21.062768851 +0100
-+++ gnome-control-center-3.2.2/configure.ac	2012-01-26 08:29:39.832143977 +0100
+--- gnome-control-center-3.2.2.orig/configure.ac	2012-01-27 14:32:09.000000000 +0100
++++ gnome-control-center-3.2.2/configure.ac	2012-01-27 14:34:14.113805550 +0100
 @@ -91,7 +91,7 @@
  PKG_CHECK_MODULES(LIBSHORTCUTS, $COMMON_MODULES x11)
  PKG_CHECK_MODULES(SHELL, $COMMON_MODULES libgnome-menu-3.0 gio-unix-2.0)
@@ -14,7 +14,7 @@ Index: gnome-control-center-3.2.2/configure.ac
 Index: gnome-control-center-3.2.2/panels/background/background.ui
 ===================================================================
 --- gnome-control-center-3.2.2.orig/panels/background/background.ui	2011-11-08 21:20:01.000000000 +0100
-+++ gnome-control-center-3.2.2/panels/background/background.ui	2012-01-25 18:30:21.146769261 +0100
++++ gnome-control-center-3.2.2/panels/background/background.ui	2012-01-27 14:45:55.557283817 +0100
 @@ -1,7 +1,6 @@
 -<?xml version="1.0"?>
 +<?xml version="1.0" encoding="UTF-8"?>
@@ -24,7 +24,7 @@ Index: gnome-control-center-3.2.2/panels/background/background.ui
    <object class="GtkListStore" id="sources-liststore">
      <columns>
        <!-- column-name source-name -->
-@@ -12,305 +11,821 @@
+@@ -12,305 +11,820 @@
        <column type="gpointer"/>
      </columns>
    </object>
@@ -92,7 +92,6 @@ Index: gnome-control-center-3.2.2/panels/background/background.ui
 -          </packing>
 -        </child>
 +        <property name="can_focus">True</property>
-+        <property name="margin_left">14</property>
          <child>
 -          <object class="GtkScrolledWindow" id="scrolledwindow1">
 -            <property name="width_request">220</property>
@@ -380,7 +379,7 @@ Index: gnome-control-center-3.2.2/panels/background/background.ui
 +                    </child>
 +                    <child>
 +                      <object class="GtkScrolledWindow" id="scrolledwindow1">
-+                        <property name="width_request">220</property>
++                        <property name="width_request">265</property>
 +                        <property name="height_request">380</property>
 +                        <property name="visible">True</property>
 +                        <property name="can_focus">True</property>
@@ -1030,7 +1029,7 @@ Index: gnome-control-center-3.2.2/panels/background/background.ui
      </child>
    </object>
    <object class="GtkSizeGroup" id="sizegroup">
-@@ -322,38 +837,4 @@
+@@ -322,38 +836,4 @@
        <widget name="strut"/>
      </widgets>
    </object>
@@ -1072,7 +1071,7 @@ Index: gnome-control-center-3.2.2/panels/background/background.ui
 Index: gnome-control-center-3.2.2/panels/background/cc-background-panel.c
 ===================================================================
 --- gnome-control-center-3.2.2.orig/panels/background/cc-background-panel.c	2011-11-08 21:20:01.000000000 +0100
-+++ gnome-control-center-3.2.2/panels/background/cc-background-panel.c	2012-01-26 10:14:05.075211641 +0100
++++ gnome-control-center-3.2.2/panels/background/cc-background-panel.c	2012-01-27 14:32:09.000000000 +0100
 @@ -24,6 +24,7 @@
  #include <string.h>
  #include <glib/gi18n-lib.h>
@@ -1099,7 +1098,7 @@ Index: gnome-control-center-3.2.2/panels/background/cc-background-panel.c
  };
  
  enum
-@@ -93,6 +98,12 @@
+@@ -93,6 +98,15 @@
  #endif
  };
  
@@ -1109,10 +1108,13 @@ Index: gnome-control-center-3.2.2/panels/background/cc-background-panel.c
 +#define UNITY_LAUNCHERHIDE_KEY UNITY_GCONF_OPTION_PATH"/launcher_hide_mode"
 +#define UNITY_LAUNCHERREVEAL_KEY UNITY_GCONF_OPTION_PATH"/launcher_reveal_edge"
 +#define UNITY2D_GSETTINGS_LAUNCHER "com.canonical.Unity2d.Launcher"
++
++#define MIN_ICONSIZE 32.0
++#define MAX_ICONSIZE 64.0
  
  #define WID(y) (GtkWidget *) gtk_builder_get_object (priv->builder, y)
  
-@@ -126,6 +137,10 @@
+@@ -126,6 +140,10 @@
  cc_background_panel_dispose (GObject *object)
  {
    CcBackgroundPanelPrivate *priv = CC_BACKGROUND_PANEL (object)->priv;
@@ -1123,7 +1125,7 @@ Index: gnome-control-center-3.2.2/panels/background/cc-background-panel.c
  
    if (priv->builder)
      {
-@@ -167,6 +182,18 @@
+@@ -167,6 +185,18 @@
        priv->settings = NULL;
      }
  
@@ -1142,7 +1144,7 @@ Index: gnome-control-center-3.2.2/panels/background/cc-background-panel.c
    if (priv->copy_cancellable)
      {
        /* cancel any copy operation */
-@@ -194,6 +221,16 @@
+@@ -194,6 +224,16 @@
        priv->display_overlay = NULL;
      }
  
@@ -1159,7 +1161,7 @@ Index: gnome-control-center-3.2.2/panels/background/cc-background-panel.c
    G_OBJECT_CLASS (cc_background_panel_parent_class)->dispose (object);
  }
  
-@@ -341,11 +378,13 @@
+@@ -341,11 +381,13 @@
      {
        GdkColor pcolor, scolor;
  
@@ -1175,7 +1177,7 @@ Index: gnome-control-center-3.2.2/panels/background/cc-background-panel.c
  
        gdk_color_parse (cc_background_item_get_pcolor (priv->current_background), &pcolor);
        gdk_color_parse (cc_background_item_get_scolor (priv->current_background), &scolor);
-@@ -1136,12 +1175,412 @@
+@@ -1136,12 +1178,445 @@
      g_object_set (G_OBJECT (scrolled), "height-request", 280, NULL);
  }
  
@@ -1505,6 +1507,37 @@ Index: gnome-control-center-3.2.2/panels/background/cc-background-panel.c
 +  gtk_widget_hide (GTK_WIDGET (WID ("unity-iconsize-box")));
 +}
 +
++/* hack to have scrolling in the right direction (nothing in GTK) */
++static gboolean
++on_scale_scroll_event (GtkWidget      *widget,
++                       GdkEventScroll *event,
++                       GtkScale* iconsize_scale)
++{
++  gdouble value;
++  gdouble delta = MAX_ICONSIZE - MIN_ICONSIZE;
++
++  value = gtk_adjustment_get_value (iconsize_scale);
++
++  if (event->direction == GDK_SCROLL_UP)
++    {
++      if (value + delta/8 > MAX_ICONSIZE)
++        value = MAX_ICONSIZE;
++      else
++        value = value + delta/8;
++      gtk_adjustment_set_value (iconsize_scale, value);
++    }
++  else if (event->direction == GDK_SCROLL_DOWN)
++    {
++      if (value - delta/100.0 < MIN_ICONSIZE)
++        value = MIN_ICONSIZE;
++      else
++        value = value - delta/8;
++      gtk_adjustment_set_value (iconsize_scale, value);
++    }
++
++  return TRUE;
++}
++
 +static void
 +setup_unity_settings (CcBackgroundPanel *self)
 +{
@@ -1533,7 +1566,7 @@ Index: gnome-control-center-3.2.2/panels/background/cc-background-panel.c
 +  /* Icon size change (Not supported in unity-2d) */
 +  if (g_strcmp0(g_getenv("DESKTOP_SESSION"), "ubuntu-2d") != 0)
 +    {
-+      iconsize_adj = gtk_adjustment_new (48, 32, 64, 1, 5, 0);
++      iconsize_adj = gtk_adjustment_new (48, MIN_ICONSIZE, MAX_ICONSIZE, 1, 5, 0);
 +      iconsize_scale = GTK_SCALE (WID ("unity-iconsize-scale"));
 +      gtk_range_set_adjustment (GTK_RANGE (iconsize_scale), iconsize_adj);
 +      priv->gconf_notify_id = g_slist_append (priv->gconf_notify_id,
@@ -1543,6 +1576,8 @@ Index: gnome-control-center-3.2.2/panels/background/cc-background-panel.c
 +                                                       NULL, NULL)));
 +      g_signal_connect (iconsize_adj, "value_changed",
 +                        G_CALLBACK (on_iconsize_changed), NULL);
++      g_signal_connect (G_OBJECT (WID ("unity-iconsize-scale")), "scroll-event",
++                        G_CALLBACK (on_scale_scroll_event), iconsize_adj);
 +      iconsize_widget_refresh (iconsize_adj);
 +    }
 +  else
@@ -1588,7 +1623,7 @@ Index: gnome-control-center-3.2.2/panels/background/cc-background-panel.c
    GError *err = NULL;
    GtkWidget *widget;
    GtkListStore *store;
-@@ -1151,9 +1590,14 @@
+@@ -1151,9 +1626,14 @@
  
    priv->builder = gtk_builder_new ();
  
@@ -1606,7 +1641,7 @@ Index: gnome-control-center-3.2.2/panels/background/cc-background-panel.c
  
    if (err)
      {
-@@ -1204,7 +1648,10 @@
+@@ -1204,7 +1684,10 @@
  
  
    /* add the top level widget */
@@ -1618,7 +1653,7 @@ Index: gnome-control-center-3.2.2/panels/background/cc-background-panel.c
  
    gtk_container_add (GTK_CONTAINER (self), widget);
    gtk_widget_show_all (GTK_WIDGET (self));
-@@ -1267,6 +1714,20 @@
+@@ -1267,6 +1750,20 @@
  
    /* Setup the edit box with our current settings */
    source_update_edit_box (priv, TRUE);
@@ -1642,7 +1677,7 @@ Index: gnome-control-center-3.2.2/panels/background/cc-background-panel.c
 Index: gnome-control-center-3.2.2/panels/background/gnome-background-panel.desktop.in.in
 ===================================================================
 --- gnome-control-center-3.2.2.orig/panels/background/gnome-background-panel.desktop.in.in	2011-09-01 12:01:00.000000000 +0200
-+++ gnome-control-center-3.2.2/panels/background/gnome-background-panel.desktop.in.in	2012-01-25 18:30:21.146769261 +0100
++++ gnome-control-center-3.2.2/panels/background/gnome-background-panel.desktop.in.in	2012-01-27 14:32:09.000000000 +0100
 @@ -1,6 +1,6 @@
  [Desktop Entry]
 -_Name=Background
