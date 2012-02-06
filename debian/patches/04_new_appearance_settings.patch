@@ -1,7 +1,7 @@
 Index: gnome-control-center-3.2.2/configure.ac
 ===================================================================
---- gnome-control-center-3.2.2.orig/configure.ac	2012-01-27 14:32:09.000000000 +0100
-+++ gnome-control-center-3.2.2/configure.ac	2012-01-27 14:34:14.113805550 +0100
+--- gnome-control-center-3.2.2.orig/configure.ac	2012-02-06 15:59:09.430323926 +0100
++++ gnome-control-center-3.2.2/configure.ac	2012-02-06 15:59:34.462448055 +0100
 @@ -91,7 +91,7 @@
  PKG_CHECK_MODULES(LIBSHORTCUTS, $COMMON_MODULES x11)
  PKG_CHECK_MODULES(SHELL, $COMMON_MODULES libgnome-menu-3.0 gio-unix-2.0)
@@ -14,7 +14,7 @@ Index: gnome-control-center-3.2.2/configure.ac
 Index: gnome-control-center-3.2.2/panels/background/background.ui
 ===================================================================
 --- gnome-control-center-3.2.2.orig/panels/background/background.ui	2011-11-08 21:20:01.000000000 +0100
-+++ gnome-control-center-3.2.2/panels/background/background.ui	2012-01-27 14:45:55.557283817 +0100
++++ gnome-control-center-3.2.2/panels/background/background.ui	2012-02-06 16:02:24.735292392 +0100
 @@ -1,7 +1,6 @@
 -<?xml version="1.0"?>
 +<?xml version="1.0" encoding="UTF-8"?>
@@ -24,7 +24,7 @@ Index: gnome-control-center-3.2.2/panels/background/background.ui
    <object class="GtkListStore" id="sources-liststore">
      <columns>
        <!-- column-name source-name -->
-@@ -12,305 +11,820 @@
+@@ -12,305 +11,901 @@
        <column type="gpointer"/>
      </columns>
    </object>
@@ -65,6 +65,14 @@ Index: gnome-control-center-3.2.2/panels/background/background.ui
 +        <col id="1">6</col>
 +      </row>
 +    </data>
++  </object>
++  <object class="GtkListStore" id="theme-list-store">
++    <columns>
++      <!-- column-name THEME_ID -->
++      <column type="gchararray"/>
++      <!-- column-name THEME_NAME -->
++      <column type="gchararray"/>
++    </columns>
 +  </object>
 +  <object class="GtkWindow" id="window1">
 +    <property name="can_focus">False</property>
@@ -380,7 +388,7 @@ Index: gnome-control-center-3.2.2/panels/background/background.ui
 +                    <child>
 +                      <object class="GtkScrolledWindow" id="scrolledwindow1">
 +                        <property name="width_request">265</property>
-+                        <property name="height_request">380</property>
++                        <property name="height_request">260</property>
 +                        <property name="visible">True</property>
 +                        <property name="can_focus">True</property>
 +                        <property name="shadow_type">in</property>
@@ -457,6 +465,23 @@ Index: gnome-control-center-3.2.2/panels/background/background.ui
 +                      </object>
 +                      <packing>
 +                        <property name="expand">False</property>
++                        <property name="fill">True</property>
++                        <property name="position">2</property>
++                      </packing>
++                    </child>
++                    <child>
++                      <object class="GtkCheckButton" id="add_wallpaper_dots">
++                        <property name="label" translatable="yes">Add dots</property>
++                        <property name="use_action_appearance">False</property>
++                        <property name="visible">True</property>
++                        <property name="can_focus">True</property>
++                        <property name="receives_default">False</property>
++                        <property name="use_action_appearance">False</property>
++                        <property name="xalign">0</property>
++                        <property name="draw_indicator">True</property>
++                      </object>
++                      <packing>
++                        <property name="expand">True</property>
 +                        <property name="fill">True</property>
 +                        <property name="position">3</property>
 +                      </packing>
@@ -576,12 +601,18 @@ Index: gnome-control-center-3.2.2/panels/background/background.ui
 +                  </packing>
 +                </child>
 +                <child>
-+                  <object class="GtkComboBoxText" id="theme-selector">
++                  <object class="GtkComboBox" id="theme-selector">
 +                    <property name="width_request">220</property>
 +                    <property name="visible">True</property>
 +                    <property name="can_focus">False</property>
-+                    <property name="entry_text_column">0</property>
-+                    <property name="id_column">1</property>
++                    <property name="model">theme-list-store</property>
++                    <property name="id_column">0</property>
++                    <child>
++                      <object class="GtkCellRendererText" id="theme-name-renderer"/>
++                      <attributes>
++                        <attribute name="markup">1</attribute>
++                      </attributes>
++                    </child>
 +                  </object>
 +                  <packing>
 +                    <property name="expand">False</property>
@@ -695,66 +726,15 @@ Index: gnome-control-center-3.2.2/panels/background/background.ui
 +                <property name="expand">False</property>
 +                <property name="fill">True</property>
 +                <property name="position">4</property>
-+              </packing>
-+            </child>
-+            <child>
-+              <object class="GtkSeparator" id="separator2">
-+                <property name="visible">True</property>
-+                <property name="can_focus">False</property>
-+                <property name="margin_left">5</property>
-+                <property name="margin_right">5</property>
-+              </object>
-+              <packing>
-+                <property name="expand">False</property>
-+                <property name="fill">True</property>
-+                <property name="position">5</property>
                </packing>
              </child>
-             <child>
--              <object class="GtkHBox" id="edit-hbox">
-+              <object class="GtkBox" id="box2">
-+                <property name="height_request">36</property>
-                 <property name="visible">True</property>
--                <property name="spacing">6</property>
-+                <property name="can_focus">False</property>
-                 <child>
--                  <object class="GtkColorButton" id="style-pcolor">
-+                  <object class="GtkButton" id="button-restore">
-+                    <property name="label" translatable="yes">Restore defaults</property>
-+                    <property name="use_action_appearance">False</property>
-+                    <property name="width_request">136</property>
-                     <property name="visible">True</property>
-                     <property name="can_focus">True</property>
-                     <property name="receives_default">True</property>
--                    <property name="color">#000000000000</property>
-+                    <property name="use_action_appearance">False</property>
-                   </object>
-                   <packing>
-                     <property name="expand">False</property>
--                    <property name="fill">False</property>
-+                    <property name="fill">True</property>
-+                    <property name="padding">10</property>
-                     <property name="position">0</property>
-                   </packing>
-                 </child>
-                 <child>
--                  <object class="GtkButton" id="swap-color-button">
-+                  <placeholder/>
-+                </child>
-+              </object>
-+              <packing>
-+                <property name="expand">False</property>
-+                <property name="fill">True</property>
-+                <property name="position">6</property>
-+              </packing>
-+            </child>
 +          </object>
 +        </child>
 +        <child type="tab">
 +          <object class="GtkLabel" id="appearance_label">
 +            <property name="visible">True</property>
 +            <property name="can_focus">False</property>
-+            <property name="label" translatable="yes">Appearance</property>
++            <property name="label" translatable="yes">Look</property>
 +          </object>
 +          <packing>
 +            <property name="tab_fill">False</property>
@@ -768,62 +748,49 @@ Index: gnome-control-center-3.2.2/panels/background/background.ui
 +            <property name="margin_bottom">3</property>
 +            <property name="orientation">vertical</property>
 +            <property name="spacing">3</property>
-+            <child>
-+              <object class="GtkBox" id="box3">
-+                <property name="visible">True</property>
+             <child>
+-              <object class="GtkHBox" id="edit-hbox">
++              <object class="GtkBox" id="box1">
+                 <property name="visible">True</property>
+-                <property name="spacing">6</property>
+-                <child>
+-                  <object class="GtkColorButton" id="style-pcolor">
+-                    <property name="visible">True</property>
+-                    <property name="can_focus">True</property>
+-                    <property name="receives_default">True</property>
+-                    <property name="color">#000000000000</property>
+-                  </object>
+-                  <packing>
+-                    <property name="expand">False</property>
+-                    <property name="fill">False</property>
+-                    <property name="position">0</property>
+-                  </packing>
+-                </child>
 +                <property name="can_focus">False</property>
-+                <property name="border_width">10</property>
-+                <property name="spacing">12</property>
-+                <child>
-+                  <object class="GtkBox" id="box4">
++                <property name="orientation">vertical</property>
+                 <child>
+-                  <object class="GtkButton" id="swap-color-button">
++                  <object class="GtkBox" id="box3">
                      <property name="visible">True</property>
 -                    <property name="can_focus">True</property>
 -                    <property name="receives_default">True</property>
 -                    <property name="use_action_appearance">False</property>
 +                    <property name="can_focus">False</property>
-+                    <property name="orientation">vertical</property>
++                    <property name="border_width">10</property>
++                    <property name="spacing">12</property>
 +                    <child>
-+                      <object class="GtkLabel" id="label4">
++                      <object class="GtkBox" id="box4">
 +                        <property name="visible">True</property>
 +                        <property name="can_focus">False</property>
-+                        <property name="xalign">0</property>
-+                        <property name="label" translatable="yes">&lt;b&gt;Auto-hide the Launcher&lt;/b&gt;</property>
-+                        <property name="use_markup">True</property>
-+                      </object>
-+                      <packing>
-+                        <property name="expand">False</property>
-+                        <property name="fill">True</property>
-+                        <property name="position">0</property>
-+                      </packing>
-+                    </child>
-+                    <child>
-+                      <object class="GtkLabel" id="label2">
-+                        <property name="visible">True</property>
-+                        <property name="can_focus">False</property>
-+                        <property name="label" translatable="yes">&lt;span size="small"&gt;The launcher will reveal when moving the pointer to the defined hot spot.&lt;/span&gt;</property>
-+                        <property name="use_markup">True</property>
-+                      </object>
-+                      <packing>
-+                        <property name="expand">False</property>
-+                        <property name="fill">True</property>
-+                        <property name="position">1</property>
-+                      </packing>
-+                    </child>
-                     <child>
--                      <object class="GtkImage" id="image1">
-+                      <object class="GtkBox" id="box1">
-                         <property name="visible">True</property>
-                         <property name="can_focus">False</property>
--                        <property name="icon_name">object-flip-horizontal-symbolic</property>
-+                        <property name="margin_left">10</property>
-+                        <property name="margin_top">17</property>
 +                        <property name="orientation">vertical</property>
++                        <property name="spacing">2</property>
 +                        <child>
-+                          <object class="GtkLabel" id="unity_reveal_label">
++                          <object class="GtkLabel" id="label4">
 +                            <property name="visible">True</property>
 +                            <property name="can_focus">False</property>
 +                            <property name="xalign">0</property>
-+                            <property name="label" translatable="yes">Reveal spot:</property>
++                            <property name="label" translatable="yes">&lt;b&gt;Auto-hide the Launcher&lt;/b&gt;</property>
++                            <property name="use_markup">True</property>
 +                          </object>
 +                          <packing>
 +                            <property name="expand">False</property>
@@ -832,16 +799,12 @@ Index: gnome-control-center-3.2.2/panels/background/background.ui
 +                          </packing>
 +                        </child>
 +                        <child>
-+                          <object class="GtkRadioButton" id="unity_reveal_spot_left">
-+                            <property name="label" translatable="yes">Left side</property>
-+                            <property name="use_action_appearance">False</property>
++                          <object class="GtkLabel" id="label2">
 +                            <property name="visible">True</property>
-+                            <property name="can_focus">True</property>
-+                            <property name="receives_default">False</property>
-+                            <property name="use_action_appearance">False</property>
++                            <property name="can_focus">False</property>
 +                            <property name="xalign">0</property>
-+                            <property name="active">True</property>
-+                            <property name="draw_indicator">True</property>
++                            <property name="label" translatable="yes">&lt;span size="small"&gt;The launcher will reveal when moving the pointer to the defined hot spot.&lt;/span&gt;</property>
++                            <property name="use_markup">True</property>
 +                          </object>
 +                          <packing>
 +                            <property name="expand">False</property>
@@ -850,17 +813,80 @@ Index: gnome-control-center-3.2.2/panels/background/background.ui
 +                          </packing>
 +                        </child>
 +                        <child>
-+                          <object class="GtkRadioButton" id="unity_reveal_spot_topleft">
-+                            <property name="label" translatable="yes">Top left corner</property>
-+                            <property name="use_action_appearance">False</property>
++                          <object class="GtkBox" id="box2">
 +                            <property name="visible">True</property>
-+                            <property name="can_focus">True</property>
-+                            <property name="receives_default">False</property>
-+                            <property name="use_action_appearance">False</property>
-+                            <property name="xalign">0</property>
-+                            <property name="active">True</property>
-+                            <property name="draw_indicator">True</property>
-+                            <property name="group">unity_reveal_spot_left</property>
++                            <property name="can_focus">False</property>
++                            <property name="margin_left">10</property>
++                            <property name="margin_top">9</property>
++                            <property name="orientation">vertical</property>
++                            <child>
++                              <object class="GtkLabel" id="unity_reveal_label">
++                                <property name="visible">True</property>
++                                <property name="can_focus">False</property>
++                                <property name="xalign">0</property>
++                                <property name="label" translatable="yes">Reveal location:</property>
++                              </object>
++                              <packing>
++                                <property name="expand">False</property>
++                                <property name="fill">True</property>
++                                <property name="position">0</property>
++                              </packing>
++                            </child>
++                            <child>
++                              <object class="GtkRadioButton" id="unity_reveal_spot_left">
++                                <property name="label" translatable="yes">Left side</property>
++                                <property name="use_action_appearance">False</property>
++                                <property name="visible">True</property>
++                                <property name="can_focus">True</property>
++                                <property name="receives_default">False</property>
++                                <property name="use_action_appearance">False</property>
++                                <property name="xalign">0</property>
++                                <property name="active">True</property>
++                                <property name="draw_indicator">True</property>
++                              </object>
++                              <packing>
++                                <property name="expand">False</property>
++                                <property name="fill">True</property>
++                                <property name="position">1</property>
++                              </packing>
++                            </child>
++                            <child>
++                              <object class="GtkRadioButton" id="unity_reveal_spot_topleft">
++                                <property name="label" translatable="yes">Top left corner</property>
++                                <property name="use_action_appearance">False</property>
++                                <property name="visible">True</property>
++                                <property name="can_focus">True</property>
++                                <property name="receives_default">False</property>
++                                <property name="use_action_appearance">False</property>
++                                <property name="xalign">0</property>
++                                <property name="active">True</property>
++                                <property name="draw_indicator">True</property>
++                                <property name="group">unity_reveal_spot_left</property>
++                              </object>
++                              <packing>
++                                <property name="expand">False</property>
++                                <property name="fill">True</property>
++                                <property name="position">2</property>
++                              </packing>
++                            </child>
++                            <child>
++                              <object class="GtkRadioButton" id="unity_reveal_spot_otheroption">
++                                <property name="label" translatable="yes">Other reveal option</property>
++                                <property name="use_action_appearance">False</property>
++                                <property name="can_focus">True</property>
++                                <property name="receives_default">False</property>
++                                <property name="no_show_all">True</property>
++                                <property name="use_action_appearance">False</property>
++                                <property name="xalign">0</property>
++                                <property name="draw_indicator">True</property>
++                                <property name="group">unity_reveal_spot_left</property>
++                              </object>
++                              <packing>
++                                <property name="expand">False</property>
++                                <property name="fill">True</property>
++                                <property name="position">3</property>
++                              </packing>
++                            </child>
 +                          </object>
 +                          <packing>
 +                            <property name="expand">False</property>
@@ -869,16 +895,65 @@ Index: gnome-control-center-3.2.2/panels/background/background.ui
 +                          </packing>
 +                        </child>
 +                        <child>
-+                          <object class="GtkRadioButton" id="unity_reveal_spot_otheroption">
-+                            <property name="label" translatable="yes">Other reveal option</property>
-+                            <property name="use_action_appearance">False</property>
-+                            <property name="can_focus">True</property>
-+                            <property name="receives_default">False</property>
-+                            <property name="no_show_all">True</property>
-+                            <property name="use_action_appearance">False</property>
-+                            <property name="xalign">0</property>
-+                            <property name="draw_indicator">True</property>
-+                            <property name="group">unity_reveal_spot_left</property>
++                          <object class="GtkBox" id="box6">
++                            <property name="visible">True</property>
++                            <property name="can_focus">False</property>
++                            <property name="spacing">6</property>
++                            <child>
++                              <object class="GtkLabel" id="unity-launcher-sensitivity-label">
++                                <property name="visible">True</property>
++                                <property name="can_focus">False</property>
++                                <property name="label" translatable="yes">Reveal sensitivity</property>
++                              </object>
++                              <packing>
++                                <property name="expand">False</property>
++                                <property name="fill">True</property>
++                                <property name="position">0</property>
++                              </packing>
++                            </child>
++                            <child>
++                              <object class="GtkLabel" id="unity-launcher-sensitivity-low-label">
++                                <property name="visible">True</property>
++                                <property name="can_focus">False</property>
++                                <property name="margin_left">5</property>
++                                <property name="label" translatable="yes">&lt;small&gt;Low&lt;/small&gt;</property>
++                                <property name="use_markup">True</property>
++                              </object>
++                              <packing>
++                                <property name="expand">False</property>
++                                <property name="fill">True</property>
++                                <property name="position">1</property>
++                              </packing>
++                            </child>
++                            <child>
++                              <object class="GtkScale" id="unity-launcher-sensitivity">
++                                <property name="width_request">300</property>
++                                <property name="visible">True</property>
++                                <property name="can_focus">True</property>
++                                <property name="round_digits">0</property>
++                                <property name="digits">0</property>
++                                <property name="draw_value">False</property>
++                              </object>
++                              <packing>
++                                <property name="expand">False</property>
++                                <property name="fill">True</property>
++                                <property name="padding">9</property>
++                                <property name="position">2</property>
++                              </packing>
++                            </child>
++                            <child>
++                              <object class="GtkLabel" id="unity-launcher-sensitivity-high-label">
++                                <property name="visible">True</property>
++                                <property name="can_focus">False</property>
++                                <property name="label" translatable="yes">&lt;small&gt;High&lt;/small&gt;</property>
++                                <property name="use_markup">True</property>
++                              </object>
++                              <packing>
++                                <property name="expand">False</property>
++                                <property name="fill">True</property>
++                                <property name="position">3</property>
++                              </packing>
++                            </child>
 +                          </object>
 +                          <packing>
 +                            <property name="expand">False</property>
@@ -886,11 +961,44 @@ Index: gnome-control-center-3.2.2/panels/background/background.ui
 +                            <property name="position">3</property>
 +                          </packing>
 +                        </child>
-                       </object>
++                      </object>
 +                      <packing>
 +                        <property name="expand">False</property>
 +                        <property name="fill">True</property>
-+                        <property name="position">2</property>
++                        <property name="padding">5</property>
++                        <property name="position">0</property>
++                      </packing>
++                    </child>
+                     <child>
+-                      <object class="GtkImage" id="image1">
++                      <object class="GtkBox" id="box7">
+                         <property name="visible">True</property>
+                         <property name="can_focus">False</property>
+-                        <property name="icon_name">object-flip-horizontal-symbolic</property>
++                        <property name="orientation">vertical</property>
++                        <child>
++                          <object class="GtkSwitch" id="unity_launcher_autohide">
++                            <property name="use_action_appearance">False</property>
++                            <property name="visible">True</property>
++                            <property name="can_focus">True</property>
++                            <property name="use_action_appearance">False</property>
++                            <property name="active">True</property>
++                          </object>
++                          <packing>
++                            <property name="expand">False</property>
++                            <property name="fill">True</property>
++                            <property name="position">0</property>
++                          </packing>
++                        </child>
++                        <child>
++                          <placeholder/>
++                        </child>
+                       </object>
++                      <packing>
++                        <property name="expand">False</property>
++                        <property name="fill">False</property>
++                        <property name="pack_type">end</property>
++                        <property name="position">1</property>
 +                      </packing>
                      </child>
                    </object>
@@ -899,45 +1007,33 @@ Index: gnome-control-center-3.2.2/panels/background/background.ui
 -                    <property name="fill">False</property>
 -                    <property name="position">1</property>
 +                    <property name="fill">True</property>
-+                    <property name="padding">5</property>
 +                    <property name="position">0</property>
                    </packing>
                  </child>
                  <child>
 -                  <object class="GtkComboBox" id="style-combobox">
-+                  <object class="GtkBox" id="box6">
-                     <property name="visible">True</property>
+-                    <property name="visible">True</property>
 -                    <property name="model">style-liststore</property>
 -                    <property name="active">0</property>
-+                    <property name="can_focus">False</property>
-+                    <property name="orientation">vertical</property>
-+                    <child>
-+                      <object class="GtkSwitch" id="unity_launcher_autohide">
-+                        <property name="use_action_appearance">False</property>
-+                        <property name="visible">True</property>
-+                        <property name="can_focus">True</property>
-+                        <property name="use_action_appearance">False</property>
-+                        <property name="active">True</property>
-+                      </object>
-+                      <packing>
-+                        <property name="expand">False</property>
-+                        <property name="fill">True</property>
-+                        <property name="position">0</property>
-+                      </packing>
-+                    </child>
-                     <child>
+-                    <child>
 -                      <object class="GtkCellRendererText" id="cellrenderertext1"/>
 -                      <attributes>
 -                        <attribute name="text">0</attribute>
 -                      </attributes>
-+                      <placeholder/>
-                     </child>
+-                    </child>
++                  <object class="GtkLabel" id="unity-label-external-tool">
++                    <property name="can_focus">False</property>
++                    <property name="xalign">0</property>
++                    <property name="xpad">12</property>
++                    <property name="label" translatable="yes">Some settings have been overriden by an external program, press "Restore defaults behaviors"  to reset the behavior and return control to this panel.</property>
++                    <property name="wrap">True</property>
                    </object>
                    <packing>
                      <property name="expand">False</property>
-                     <property name="fill">False</property>
-                     <property name="pack_type">end</property>
+-                    <property name="fill">False</property>
+-                    <property name="pack_type">end</property>
 -                    <property name="position">3</property>
++                    <property name="fill">True</property>
 +                    <property name="position">1</property>
                    </packing>
                  </child>
@@ -967,7 +1063,7 @@ Index: gnome-control-center-3.2.2/panels/background/background.ui
                  <child>
 -                  <object class="GtkColorButton" id="style-scolor">
 +                  <object class="GtkButton" id="button-restore-unitybehavior">
-+                    <property name="label" translatable="yes">Restore defaults</property>
++                    <property name="label" translatable="yes">Restore default behaviors</property>
 +                    <property name="use_action_appearance">False</property>
 +                    <property name="width_request">136</property>
                      <property name="visible">True</property>
@@ -1029,7 +1125,7 @@ Index: gnome-control-center-3.2.2/panels/background/background.ui
      </child>
    </object>
    <object class="GtkSizeGroup" id="sizegroup">
-@@ -322,38 +836,4 @@
+@@ -322,38 +917,4 @@
        <widget name="strut"/>
      </widgets>
    </object>
@@ -1071,7 +1167,7 @@ Index: gnome-control-center-3.2.2/panels/background/background.ui
 Index: gnome-control-center-3.2.2/panels/background/cc-background-panel.c
 ===================================================================
 --- gnome-control-center-3.2.2.orig/panels/background/cc-background-panel.c	2011-11-08 21:20:01.000000000 +0100
-+++ gnome-control-center-3.2.2/panels/background/cc-background-panel.c	2012-01-27 14:32:09.000000000 +0100
++++ gnome-control-center-3.2.2/panels/background/cc-background-panel.c	2012-02-06 15:59:10.334328409 +0100
 @@ -24,6 +24,7 @@
  #include <string.h>
  #include <glib/gi18n-lib.h>
@@ -1098,23 +1194,34 @@ Index: gnome-control-center-3.2.2/panels/background/cc-background-panel.c
  };
  
  enum
-@@ -93,6 +98,15 @@
+@@ -93,6 +98,26 @@
  #endif
  };
  
-+#define UNITY_KEYS "/apps/compiz-1/plugins/unityshell"
-+#define UNITY_ICONSIZE_KEY UNITY_KEYS"/screen0/options/icon_size"
 +#define UNITY_GCONF_OPTION_PATH "/apps/compiz-1/plugins/unityshell/screen0/options"
++#define UNITY_ICONSIZE_KEY UNITY_GCONF_OPTION_PATH"/icon_size"
++#define UNITY_LAUNCHERSENSITIVITY_KEY UNITY_GCONF_OPTION_PATH"/edge_responsiveness"
 +#define UNITY_LAUNCHERHIDE_KEY UNITY_GCONF_OPTION_PATH"/launcher_hide_mode"
 +#define UNITY_LAUNCHERREVEAL_KEY UNITY_GCONF_OPTION_PATH"/launcher_reveal_edge"
 +#define UNITY2D_GSETTINGS_LAUNCHER "com.canonical.Unity2d.Launcher"
 +
 +#define MIN_ICONSIZE 32.0
 +#define MAX_ICONSIZE 64.0
++
++#define MIN_LAUNCHER_SENSIVITY 0.2
++#define MAX_LAUNCHER_SENSIVITY 8.0
++
++typedef struct
++{
++  gdouble min;
++  gdouble max;
++} MinMax;
++static MinMax iconsize_values;
++static MinMax launchersensitivity_values;
  
  #define WID(y) (GtkWidget *) gtk_builder_get_object (priv->builder, y)
  
-@@ -126,6 +140,10 @@
+@@ -126,6 +151,10 @@
  cc_background_panel_dispose (GObject *object)
  {
    CcBackgroundPanelPrivate *priv = CC_BACKGROUND_PANEL (object)->priv;
@@ -1125,7 +1232,7 @@ Index: gnome-control-center-3.2.2/panels/background/cc-background-panel.c
  
    if (priv->builder)
      {
-@@ -167,6 +185,18 @@
+@@ -167,6 +196,18 @@
        priv->settings = NULL;
      }
  
@@ -1144,7 +1251,7 @@ Index: gnome-control-center-3.2.2/panels/background/cc-background-panel.c
    if (priv->copy_cancellable)
      {
        /* cancel any copy operation */
-@@ -194,6 +224,16 @@
+@@ -194,6 +235,16 @@
        priv->display_overlay = NULL;
      }
  
@@ -1161,7 +1268,7 @@ Index: gnome-control-center-3.2.2/panels/background/cc-background-panel.c
    G_OBJECT_CLASS (cc_background_panel_parent_class)->dispose (object);
  }
  
-@@ -341,11 +381,13 @@
+@@ -341,11 +392,13 @@
      {
        GdkColor pcolor, scolor;
  
@@ -1177,11 +1284,12 @@ Index: gnome-control-center-3.2.2/panels/background/cc-background-panel.c
  
        gdk_color_parse (cc_background_item_get_pcolor (priv->current_background), &pcolor);
        gdk_color_parse (cc_background_item_get_scolor (priv->current_background), &scolor);
-@@ -1136,12 +1178,445 @@
+@@ -1136,12 +1189,492 @@
      g_object_set (G_OBJECT (scrolled), "height-request", 280, NULL);
  }
  
-+static gchar *themes[] = { "Adwaita", "Ambiance", "Radiance", "HighContrast", "HighContrastInverse" };
++static gchar *themes_id[] = { "Adwaita", "Ambiance", "Radiance", "HighContrast", "HighContrastInverse" };
++static gchar *themes_name[] = { "Adwaita", "Ambiance", "Radiance", "High Contrast", "High Contrast Inverse" };
 +
 +static gboolean
 +get_theme_data (const gchar *theme_name,
@@ -1228,7 +1336,7 @@ Index: gnome-control-center-3.2.2/panels/background/cc-background-panel.c
 +  GConfClient *client;
 +
 +  active = gtk_combo_box_get_active (combo);
-+  g_return_if_fail (active >= 0 && active < G_N_ELEMENTS (themes));
++  g_return_if_fail (active >= 0 && active < G_N_ELEMENTS (themes_id));
 +
 +  if (!get_theme_data (gtk_combo_box_get_active_id (combo),
 +                       &gtk_theme, &icon_theme, &window_theme, &cursor_theme))
@@ -1255,45 +1363,60 @@ Index: gnome-control-center-3.2.2/panels/background/cc-background-panel.c
 +}
 +
 +static void
-+setup_theme_selector (CcBackgroundPanel *self, gboolean init)
++setup_theme_selector (CcBackgroundPanel *self)
 +{
 +  gchar *current_gtk_theme;
++  gchar *default_gtk_theme;
 +  gint i, current_theme_index = 0;
 +  GtkWidget *widget;
++  GtkWidget *liststore;
 +  CcBackgroundPanelPrivate *priv = self->priv;
++  GSettings *defaults_settings = g_settings_new ("org.gnome.desktop.interface");
 +
 +  priv->interface_settings = g_settings_new ("org.gnome.desktop.interface");
 +  current_gtk_theme = g_settings_get_string (priv->interface_settings, "gtk-theme");
 +
++  /* gettint the default for the theme */
++  g_settings_delay (defaults_settings);
++  g_settings_reset (defaults_settings, "gtk-theme");
++  default_gtk_theme = g_settings_get_string (defaults_settings, "gtk-theme");
++  g_object_unref (defaults_settings);
++
 +  widget = WID ("theme-selector");
-+  gtk_combo_box_set_id_column (GTK_COMBO_BOX (widget), 0);
++  liststore = WID ("theme-list-store");
 +
-+  for (i = 0; i < G_N_ELEMENTS (themes); i++, current_theme_index++)
++  for (i = 0; i < G_N_ELEMENTS (themes_id); i++, current_theme_index++)
 +    {
-+      gchar *gtk_theme, *icon_theme, *window_theme, *cursor_theme;
++      gchar *gtk_theme, *icon_theme, *window_theme, *cursor_theme, *new_theme_name;
++      GtkTreeIter iter;
 +
-+      if (!get_theme_data (themes[i], &gtk_theme, &icon_theme, &window_theme, &cursor_theme))
++      if (!get_theme_data (themes_id[i], &gtk_theme, &icon_theme, &window_theme, &cursor_theme))
 +        {
 +          current_theme_index--;
 +          continue;
 +        }
 +
-+      if (init)
-+        gtk_combo_box_text_append (GTK_COMBO_BOX_TEXT (widget), themes[i], themes[i]);
++      if (g_strcmp0 (gtk_theme, default_gtk_theme) == 0)
++        new_theme_name = g_strdup_printf ("%s <small><i>(default)</i></small>", themes_name[i]);
++      else
++        new_theme_name = g_strdup (themes_name[i]);
++
++      gtk_list_store_append (GTK_LIST_STORE (liststore), &iter);
++      gtk_list_store_set (GTK_LIST_STORE (liststore), &iter, 0, themes_id[i], 1, new_theme_name, -1);
 +
 +      if (g_strcmp0 (gtk_theme, current_gtk_theme) == 0)
-+        {
 +	  /* This is the current theme, so select item in the combo box */
 +         gtk_combo_box_set_active (GTK_COMBO_BOX (widget), current_theme_index);
-+	}
 +
 +      g_free (gtk_theme);
++      g_free (new_theme_name);
 +      g_free (icon_theme);
 +      g_free (window_theme);
 +      g_free (cursor_theme);
 +    }
++    g_free (current_gtk_theme);
++    g_free (default_gtk_theme);
 +
-+  if (init)
 +    g_signal_connect (G_OBJECT (widget), "changed",
 +		      G_CALLBACK (theme_selection_changed), self);
 +}
@@ -1321,50 +1444,19 @@ Index: gnome-control-center-3.2.2/panels/background/cc-background-panel.c
 +}
 +
 +static void
-+on_restore_defaults_page1_clicked (GtkButton *button, gpointer user_data)
++refresh_was_modified_by_external_tool (CcBackgroundPanel *self)
 +{
-+  CcBackgroundPanel *self = CC_BACKGROUND_PANEL (user_data);
 +  CcBackgroundPanelPrivate *priv = self->priv;
-+  GConfClient *client;
-+  gchar *current_gtk_theme;
-+  GtkTreePath *path;
++  gboolean modified_ext_tool = FALSE;
 +
-+  /* icon theme */
-+  g_settings_delay (priv->interface_settings);
-+  g_settings_reset (priv->interface_settings, "gtk-theme");
-+  g_settings_reset (priv->interface_settings, "icon-theme");
-+  g_settings_reset (priv->interface_settings, "cursor-theme");
++  // reveal side
++  modified_ext_tool = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (WID ("unity_reveal_spot_otheroption")));
 +
-+  g_settings_apply (priv->interface_settings);
++  // autohide mode
++  if (!modified_ext_tool && (!gtk_widget_get_sensitive (WID ("unity_launcher_autohide"))))
++    modified_ext_tool = TRUE;
 +
-+  /* For metacity, we use GConf (don't unset because there is no defaut set) */
-+  current_gtk_theme = g_settings_get_string (priv->interface_settings, "gtk-theme");
-+  client = gconf_client_get_default ();
-+  gconf_client_set_string (client, "/desktop/gnome/shell/windows/theme",  current_gtk_theme, NULL);
-+  gconf_client_set_string (client, "/apps/metacity/general/theme", current_gtk_theme, NULL);
-+
-+  setup_theme_selector(self, FALSE);
-+
-+  /* Unity launcher icon size (if visible) */
-+  if (gtk_widget_get_visible (GTK_WIDGET (WID ("unity-iconsize-box"))))
-+    gconf_client_unset (client, UNITY_ICONSIZE_KEY, NULL);
-+
-+  /* reload default bg */
-+  /*FIXME: should be:
-+  g_settings_reset (priv->settings, WP_URI_KEY);
-+  g_settings_apply (priv->settings);
-+  gtk_icon_view_unselect_all (GTK_ICON_VIEW (WID ("backgrounds-iconview")));
-+  load_current_bg (self);
-+  update_preview (priv, NULL);
-+
-+  shows style-combobox style-pcolor and style-combobox items.*/
-+  gtk_combo_box_set_active (GTK_COMBO_BOX (WID ("sources-combobox")), 0);
-+  path = gtk_tree_path_new_from_string ("1");
-+  gtk_icon_view_select_path (GTK_ICON_VIEW (WID ("backgrounds-iconview")), path);
-+  gtk_tree_path_free (path);
-+
-+  g_object_unref (client);
-+  g_free (current_gtk_theme);
++  gtk_widget_set_visible (WID ("unity-label-external-tool"), modified_ext_tool);
 +}
 +
 +static void
@@ -1374,6 +1466,11 @@ Index: gnome-control-center-3.2.2/panels/background/cc-background-panel.c
 +  gtk_widget_set_sensitive (WID ("unity_reveal_label"), autohide);
 +  gtk_widget_set_sensitive (WID ("unity_reveal_spot_topleft"), autohide);
 +  gtk_widget_set_sensitive (WID ("unity_reveal_spot_left"), autohide);
++  gtk_widget_set_sensitive (WID ("unity-launcher-sensitivity"), autohide);
++  gtk_widget_set_sensitive (WID ("unity-launcher-sensitivity-label"), autohide);
++  gtk_widget_set_sensitive (WID ("unity-launcher-sensitivity-low-label"), autohide);
++  gtk_widget_set_sensitive (WID ("unity-launcher-sensitivity-high-label"), autohide);
++  gtk_widget_set_sensitive (WID ("unity-launcher-sensitivity-high-label"), autohide);
 +}
 +
 +static void
@@ -1381,22 +1478,22 @@ Index: gnome-control-center-3.2.2/panels/background/cc-background-panel.c
 +{
 +  CcBackgroundPanelPrivate *priv = self->priv;
 +  gint value = gconf_client_get_int (gconf_client_get_default (), UNITY_LAUNCHERHIDE_KEY, NULL);
-+  gboolean autohide;
++  gboolean autohide = (value != 0);
 +
-+  autohide = (value != 0);
-+  gtk_switch_set_active (GTK_SWITCH (WID ("unity_launcher_autohide")), autohide);
-+
-+  /* 2d (which doesn't have value = 3). We have to refresh 2d there, because maybe
-+     someone changed in ccsm (and so, no on_hidelauncher_changed if 2 -> 1 for instance
-+     and we need to refreshed it */
-+  if (priv->unity2d_settings)
++  // handle not supported value
++  if (value != 0 && value != 1)
 +    {
-+      if (value > 2)
-+        value = 2;
++      gtk_widget_set_sensitive (WID ("unity_launcher_autohide"), FALSE);
++    }
++  else
++    {
++      gtk_widget_set_sensitive (WID ("unity_launcher_autohide"), TRUE);
++      gtk_switch_set_active (GTK_SWITCH (WID ("unity_launcher_autohide")), autohide);
 +      g_settings_set_int (priv->unity2d_settings, "hide-mode", value);
 +    }
 +
 +  hidelauncher_set_sensitivity_reveal (self, autohide);
++  refresh_was_modified_by_external_tool (self);
 +}
 +
 +static void
@@ -1421,7 +1518,7 @@ Index: gnome-control-center-3.2.2/panels/background/cc-background-panel.c
 +      /* change value to "active" if activation isn't due to gconf switching to any value */
 +      if (gconf_autohide_enabled)
 +        return;
-+      value = 2;
++      value = 1;
 +    }
 +
 +  /* 3d */
@@ -1442,6 +1539,8 @@ Index: gnome-control-center-3.2.2/panels/background/cc-background-panel.c
 +  else
 +    /* this is a hidden spot when another option is selected (through ccsm) */
 +    gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (WID ("unity_reveal_spot_otheroption")), TRUE);
++
++  refresh_was_modified_by_external_tool (self);
 +
 +  g_free (value);
 +}
@@ -1477,6 +1576,28 @@ Index: gnome-control-center-3.2.2/panels/background/cc-background-panel.c
 +}
 +
 +static void
++launcher_sensitivity_widget_refresh (GtkAdjustment *launcher_sensitivity_adj)
++{
++  gdouble value = gconf_client_get_float (gconf_client_get_default (), UNITY_LAUNCHERSENSITIVITY_KEY, NULL);
++  gtk_adjustment_set_value (launcher_sensitivity_adj, (gdouble)value);
++}
++
++static void
++ext_launchersensitivity_changed_callback (GConfClient* client,
++                                          guint cnxn_id,
++                                          GConfEntry *entry,
++                                          gpointer user_data)
++{
++  launcher_sensitivity_widget_refresh (GTK_ADJUSTMENT (user_data));
++}
++
++static void
++on_launchersensitivity_changed (GtkAdjustment *adj, gpointer user_data)
++{
++  gconf_client_set_float (gconf_client_get_default (), UNITY_LAUNCHERSENSITIVITY_KEY, gtk_adjustment_get_value (adj), NULL);
++}
++
++static void
 +on_restore_defaults_page2_clicked (GtkButton *button, gpointer user_data)
 +{
 +  GConfClient *client;
@@ -1487,52 +1608,61 @@ Index: gnome-control-center-3.2.2/panels/background/cc-background-panel.c
 +
 +  /* reset defaut for the profile and get the default */
 +  gconf_client_unset (client, UNITY_LAUNCHERHIDE_KEY, NULL);
-+  gconf_client_unset (client, UNITY_LAUNCHERREVEAL_KEY, NULL);
 +
 +  if (priv->unity2d_settings)
 +    g_settings_reset (priv->unity2d_settings, "hide-mode");
++
++  /* reset 3D settings only if in a 3D session */
++  if (g_strcmp0 (g_getenv("DESKTOP_SESSION"), "ubuntu-2d") != 0)
++    {
++      gconf_client_unset (client, UNITY_LAUNCHERREVEAL_KEY, NULL);
++      gconf_client_unset (client, UNITY_LAUNCHERSENSITIVITY_KEY, NULL);
++    }
 +}
 +
 +static gboolean
 +background_is_unity_session (void)
 +{
-+  return (g_strcmp0(g_getenv("XDG_CURRENT_DESKTOP"), "Unity") == 0);
++  return (g_strcmp0 (g_getenv("XDG_CURRENT_DESKTOP"), "Unity") == 0);
 +}
 +
 +static void
-+hide_unity2d_not_supportted (CcBackgroundPanel *self)
++hide_unity2d_not_supported (CcBackgroundPanel *self)
 +{
 +  CcBackgroundPanelPrivate *priv = self->priv;
 +  gtk_widget_hide (GTK_WIDGET (WID ("unity-separator1")));
 +  gtk_widget_hide (GTK_WIDGET (WID ("unity-iconsize-box")));
++  gtk_widget_hide (GTK_WIDGET (WID ("unity-launcher-sensitivity")));
 +}
 +
 +/* hack to have scrolling in the right direction (nothing in GTK) */
 +static gboolean
 +on_scale_scroll_event (GtkWidget      *widget,
 +                       GdkEventScroll *event,
-+                       GtkScale* iconsize_scale)
++                       gpointer *data)
 +{
 +  gdouble value;
-+  gdouble delta = MAX_ICONSIZE - MIN_ICONSIZE;
++  GtkAdjustment *adj = gtk_range_get_adjustment (GTK_RANGE (widget));
++  MinMax *iconsize_values = (MinMax *) data;
++  gdouble delta = iconsize_values->max - iconsize_values->min;
 +
-+  value = gtk_adjustment_get_value (iconsize_scale);
++  value = gtk_adjustment_get_value (adj);
 +
 +  if (event->direction == GDK_SCROLL_UP)
 +    {
-+      if (value + delta/8 > MAX_ICONSIZE)
-+        value = MAX_ICONSIZE;
++      if (value + delta/8 > iconsize_values->max)
++        value = iconsize_values->max;
 +      else
 +        value = value + delta/8;
-+      gtk_adjustment_set_value (iconsize_scale, value);
++      gtk_adjustment_set_value (adj, value);
 +    }
 +  else if (event->direction == GDK_SCROLL_DOWN)
 +    {
-+      if (value - delta/100.0 < MIN_ICONSIZE)
-+        value = MIN_ICONSIZE;
++      if (value - delta/8 < iconsize_values->min)
++        value = iconsize_values->min;
 +      else
 +        value = value - delta/8;
-+      gtk_adjustment_set_value (iconsize_scale, value);
++      gtk_adjustment_set_value (adj, value);
 +    }
 +
 +  return TRUE;
@@ -1544,11 +1674,13 @@ Index: gnome-control-center-3.2.2/panels/background/cc-background-panel.c
 +  CcBackgroundPanelPrivate *priv = self->priv;
 +  GConfClient *client;
 +  GtkAdjustment* iconsize_adj;
++  GtkAdjustment* launcher_sensitivity_adj;
 +  GtkScale* iconsize_scale;
++  GtkScale* launcher_sensitivity_scale;
 +  const gchar * const *schemas;
 +
 +  client = gconf_client_get_default ();
-+  gconf_client_add_dir (client, UNITY_KEYS, 0, NULL);
++  gconf_client_add_dir (client, UNITY_GCONF_OPTION_PATH, 0, NULL);
 +  priv->gconf_notify_id = NULL;
 +
 +  /* Only use the unity-2d schema if it's installed */
@@ -1563,12 +1695,16 @@ Index: gnome-control-center-3.2.2/panels/background/cc-background-panel.c
 +      schemas++;
 +    }
 +
-+  /* Icon size change (Not supported in unity-2d) */
++  /* Option not supported in unity-2d */
 +  if (g_strcmp0(g_getenv("DESKTOP_SESSION"), "ubuntu-2d") != 0)
 +    {
-+      iconsize_adj = gtk_adjustment_new (48, MIN_ICONSIZE, MAX_ICONSIZE, 1, 5, 0);
++      /* Icon size change */
++      iconsize_values.min = MIN_ICONSIZE;
++      iconsize_values.max = MAX_ICONSIZE;
++      iconsize_adj = gtk_adjustment_new (48, iconsize_values.min, iconsize_values.max, 1, 5, 0);
 +      iconsize_scale = GTK_SCALE (WID ("unity-iconsize-scale"));
 +      gtk_range_set_adjustment (GTK_RANGE (iconsize_scale), iconsize_adj);
++      gtk_scale_add_mark (iconsize_scale, 48, GTK_POS_BOTTOM, NULL);
 +      priv->gconf_notify_id = g_slist_append (priv->gconf_notify_id,
 +                                              GINT_TO_POINTER (
 +                                              gconf_client_notify_add (client, UNITY_ICONSIZE_KEY,
@@ -1576,12 +1712,30 @@ Index: gnome-control-center-3.2.2/panels/background/cc-background-panel.c
 +                                                       NULL, NULL)));
 +      g_signal_connect (iconsize_adj, "value_changed",
 +                        G_CALLBACK (on_iconsize_changed), NULL);
-+      g_signal_connect (G_OBJECT (WID ("unity-iconsize-scale")), "scroll-event",
-+                        G_CALLBACK (on_scale_scroll_event), iconsize_adj);
++      g_signal_connect (G_OBJECT (iconsize_scale), "scroll-event",
++                        G_CALLBACK (on_scale_scroll_event), &iconsize_values);
 +      iconsize_widget_refresh (iconsize_adj);
++
++      /* Launcher reveal */
++      launchersensitivity_values.min = MIN_LAUNCHER_SENSIVITY;
++      launchersensitivity_values.max = MAX_LAUNCHER_SENSIVITY;
++      launcher_sensitivity_adj = gtk_adjustment_new (1, launchersensitivity_values.min, launchersensitivity_values.max, 0.1, 1, 0);
++      launcher_sensitivity_scale = GTK_SCALE (WID ("unity-launcher-sensitivity"));
++      gtk_range_set_adjustment (GTK_RANGE (launcher_sensitivity_scale), launcher_sensitivity_adj);
++      gtk_scale_add_mark (launcher_sensitivity_scale, 1, GTK_POS_BOTTOM, NULL);
++      priv->gconf_notify_id = g_slist_append (priv->gconf_notify_id,
++                                              GINT_TO_POINTER (
++                                              gconf_client_notify_add (client, UNITY_LAUNCHERSENSITIVITY_KEY,
++                                                       ext_launchersensitivity_changed_callback, launcher_sensitivity_adj,
++                                                       NULL, NULL)));
++      g_signal_connect (launcher_sensitivity_adj, "value_changed",
++                        G_CALLBACK (on_launchersensitivity_changed), NULL);
++      g_signal_connect (G_OBJECT (launcher_sensitivity_scale), "scroll-event",
++                        G_CALLBACK (on_scale_scroll_event), &launchersensitivity_values);
++      launcher_sensitivity_widget_refresh (launcher_sensitivity_adj);
 +    }
 +  else
-+    hide_unity2d_not_supportted (self);
++    hide_unity2d_not_supported (self);
 +
 +  /* Autohide launcher setting */
 +  priv->gconf_notify_id = g_slist_append (priv->gconf_notify_id,
@@ -1617,13 +1771,14 @@ Index: gnome-control-center-3.2.2/panels/background/cc-background-panel.c
  {
    CcBackgroundPanelPrivate *priv;
    gchar *objects[] = { "style-liststore",
-       "sources-liststore", "background-panel", "sizegroup", NULL };
+-      "sources-liststore", "background-panel", "sizegroup", NULL };
++      "sources-liststore", "theme-list-store", "background-panel", "sizegroup", NULL };
 +  gchar *objects_unity[] = { "style-liststore",
-+      "sources-liststore", "main-notebook", "sizegroup", NULL };
++      "sources-liststore", "theme-list-store", "main-notebook", "sizegroup", NULL };
    GError *err = NULL;
    GtkWidget *widget;
    GtkListStore *store;
-@@ -1151,9 +1626,14 @@
+@@ -1151,9 +1684,14 @@
  
    priv->builder = gtk_builder_new ();
  
@@ -1641,7 +1796,7 @@ Index: gnome-control-center-3.2.2/panels/background/cc-background-panel.c
  
    if (err)
      {
-@@ -1204,7 +1684,10 @@
+@@ -1204,7 +1742,10 @@
  
  
    /* add the top level widget */
@@ -1653,23 +1808,19 @@ Index: gnome-control-center-3.2.2/panels/background/cc-background-panel.c
  
    gtk_container_add (GTK_CONTAINER (self), widget);
    gtk_widget_show_all (GTK_WIDGET (self));
-@@ -1267,6 +1750,20 @@
+@@ -1267,6 +1808,16 @@
  
    /* Setup the edit box with our current settings */
    source_update_edit_box (priv, TRUE);
 +
 +  /* Setup theme selector */
-+  setup_theme_selector (self, TRUE);
++  setup_theme_selector (self);
 +
 +  /* Setup unity settings */
 +  if (background_is_unity_session ())
 +    setup_unity_settings (self);
 +  else
-+    hide_unity2d_not_supportted (self);
-+
-+  /* Restore default on first page */
-+  g_signal_connect (WID ("button-restore"), "clicked",
-+                    G_CALLBACK (on_restore_defaults_page1_clicked), self);
++    hide_unity2d_not_supported (self);
 +
  }
  
@@ -1677,12 +1828,12 @@ Index: gnome-control-center-3.2.2/panels/background/cc-background-panel.c
 Index: gnome-control-center-3.2.2/panels/background/gnome-background-panel.desktop.in.in
 ===================================================================
 --- gnome-control-center-3.2.2.orig/panels/background/gnome-background-panel.desktop.in.in	2011-09-01 12:01:00.000000000 +0200
-+++ gnome-control-center-3.2.2/panels/background/gnome-background-panel.desktop.in.in	2012-01-27 14:32:09.000000000 +0100
++++ gnome-control-center-3.2.2/panels/background/gnome-background-panel.desktop.in.in	2012-02-06 16:00:32.930737983 +0100
 @@ -1,6 +1,6 @@
  [Desktop Entry]
 -_Name=Background
 -_Comment=Change the background
-+_Name=User Interface
++_Name=Appearance
 +_Comment=Change the background and theme
  Exec=gnome-control-center background
  Icon=preferences-desktop-wallpaper
