@@ -128,10 +128,42 @@
  CcShellItemView* cc_shell_category_view_get_item_view (CcShellCategoryView *self);
  
 
+=== modified file 'shell/cc-shell-model.c'
+--- old/shell/cc-shell-model.c	2012-01-19 14:14:30 +0000
++++ new/shell/cc-shell-model.c	2012-02-06 16:50:49 +0000
+@@ -43,7 +43,7 @@
+   theme = gtk_icon_theme_get_default ();
+ 
+   icon_info = gtk_icon_theme_lookup_by_gicon (theme, icon,
+-                                              32, GTK_ICON_LOOKUP_FORCE_SIZE);
++                                              48, GTK_ICON_LOOKUP_FORCE_SIZE);
+   if (icon_info)
+     {
+       pixbuf = gtk_icon_info_load_icon (icon_info, &err);
+
 === modified file 'shell/gnome-control-center.c'
 --- old/shell/gnome-control-center.c	2012-01-19 14:14:30 +0000
-+++ new/shell/gnome-control-center.c	2012-01-24 16:25:58 +0000
-@@ -303,7 +303,8 @@
++++ new/shell/gnome-control-center.c	2012-02-06 16:51:44 +0000
+@@ -48,7 +48,8 @@
+  * for the user than resizing vertically
+  * Both sizes are defined in https://live.gnome.org/Design/SystemSettings/ */
+ #define FIXED_WIDTH 740
+-#define FIXED_HEIGHT 530
++#define FIXED_HEIGHT 618
++#define SMALL_SCREEN_FIXED_HEIGHT 500
+ 
+ #define MIN_ICON_VIEW_HEIGHT 300
+ 
+@@ -85,6 +86,8 @@
+ 
+   gchar *default_window_title;
+   gchar *default_window_icon;
++
++  gboolean small_screen;
+ };
+ 
+ static const gchar *
+@@ -303,7 +306,8 @@
    res = NULL;
    for (l = list; l; l = l->next)
      {
@@ -141,7 +173,26 @@
      }
  
    g_list_free (list);
-@@ -643,7 +644,8 @@
+@@ -576,6 +580,8 @@
+ static void
+ setup_search (GnomeControlCenter *shell)
+ {
++  int margin = 12;
++  int spacing = 6;
+   GtkWidget *search_scrolled, *search_view, *widget;
+   GnomeControlCenterPrivate *priv = shell->priv;
+ 
+@@ -594,7 +600,8 @@
+   priv->search_view = search_view = cc_shell_item_view_new ();
+   gtk_icon_view_set_item_orientation (GTK_ICON_VIEW (search_view),
+                                       GTK_ORIENTATION_HORIZONTAL);
+-  gtk_icon_view_set_spacing (GTK_ICON_VIEW (search_view), 6);
++  gtk_icon_view_set_margin (GTK_ICON_VIEW (search_view), margin);
++  gtk_icon_view_set_spacing (GTK_ICON_VIEW (search_view), spacing);
+   gtk_icon_view_set_model (GTK_ICON_VIEW (search_view),
+                            GTK_TREE_MODEL (priv->search_filter));
+   gtk_icon_view_set_pixbuf_column (GTK_ICON_VIEW (search_view), COL_PIXBUF);
+@@ -643,7 +650,8 @@
  
  static void
  maybe_add_category_view (GnomeControlCenter *shell,
@@ -151,7 +202,7 @@
  {
    GtkTreeModel *filter;
    GtkWidget *categoryview;
-@@ -651,6 +653,15 @@
+@@ -651,6 +659,16 @@
    if (g_hash_table_lookup (shell->priv->category_views, name) != NULL)
      return;
  
@@ -159,6 +210,7 @@
 +    {
 +      GtkWidget *separator;
 +      separator = gtk_separator_new (GTK_ORIENTATION_HORIZONTAL);
++      gtk_widget_set_margin_top (separator, 11);
 +      gtk_widget_set_margin_bottom (separator, 10);
 +      gtk_box_pack_start (GTK_BOX (shell->priv->main_vbox), separator, FALSE, FALSE, 0);
 +      gtk_widget_show (separator);
@@ -167,7 +219,7 @@
    /* create new category view for this category */
    filter = gtk_tree_model_filter_new (GTK_TREE_MODEL (shell->priv->store),
                                        NULL);
-@@ -658,7 +669,7 @@
+@@ -658,7 +676,7 @@
                                            (GtkTreeModelFilterVisibleFunc) category_filter_func,
                                            g_strdup (name), g_free);
  
@@ -176,7 +228,7 @@
    gtk_box_pack_start (GTK_BOX (shell->priv->main_vbox), categoryview, FALSE, TRUE, 0);
  
    g_signal_connect (cc_shell_category_view_get_item_view (CC_SHELL_CATEGORY_VIEW (categoryview)),
-@@ -706,13 +717,15 @@
+@@ -706,13 +724,15 @@
          {
            GMenuTreeDirectory *subdir;
            const gchar *dir_name;
@@ -193,4 +245,118 @@
  
            /* add the items from this category to the model */
            sub_iter = gmenu_tree_directory_iter (subdir);
+@@ -749,7 +769,10 @@
+ {
+   GnomeControlCenterPrivate *priv = shell->priv;
+ 
+-  gtk_container_set_border_width (GTK_CONTAINER (shell->priv->main_vbox), 10);
++  gtk_widget_set_margin_top( shell->priv->main_vbox, 8);
++  gtk_widget_set_margin_bottom( shell->priv->main_vbox, 8);
++  gtk_widget_set_margin_left( shell->priv->main_vbox, 12);
++  gtk_widget_set_margin_right( shell->priv->main_vbox, 12);
+   gtk_container_set_focus_vadjustment (GTK_CONTAINER (shell->priv->main_vbox),
+                                        gtk_scrolled_window_get_vadjustment (GTK_SCROLLED_WINDOW (shell->priv->scrolled_window)));
+ 
+@@ -806,7 +829,10 @@
+       gtk_widget_hide (W (priv->builder, "home-button"));
+       gtk_widget_show (W (priv->builder, "search-entry"));
+       gtk_widget_hide (W (priv->builder, "lock-button"));
+-      gtk_scrolled_window_set_min_content_height (GTK_SCROLLED_WINDOW (priv->scrolled_window), FIXED_HEIGHT - 50);
++      gtk_scrolled_window_set_min_content_height (GTK_SCROLLED_WINDOW (priv->scrolled_window),
++        (priv->small_screen
++        ? SMALL_SCREEN_FIXED_HEIGHT
++        : FIXED_HEIGHT) - 50 );
+     }
+   else
+     {
+@@ -1068,6 +1094,23 @@
+   return retval;
+ }
+ 
++static gint
++get_monitor_height (void)
++{
++  GdkScreen *screen;
++  gint x, y;
++  GdkRectangle rect;
++  GdkDisplay *display = gdk_display_get_default ();
++  GdkDeviceManager *device_manager = gdk_display_get_device_manager (display);
++  GdkDevice *device = gdk_device_manager_get_client_pointer (device_manager);
++
++  gdk_device_get_position (device, &screen, &x, &y);
++
++  gint monitor = gdk_screen_get_monitor_at_point (screen, x, y);
++  gdk_screen_get_monitor_geometry (screen, monitor, &rect);
++  return rect.height;
++}
++
+ static void
+ gnome_control_center_init (GnomeControlCenter *self)
+ {
+@@ -1077,6 +1120,8 @@
+ 
+   priv = self->priv = CONTROL_CENTER_PRIVATE (self);
+ 
++  priv->small_screen = get_monitor_height() <= FIXED_HEIGHT;
++
+   /* load the user interface */
+   priv->builder = gtk_builder_new ();
+ 
+@@ -1090,6 +1135,8 @@
+ 
+   /* connect various signals */
+   priv->window = W (priv->builder, "main-window");
++  if (priv->small_screen)
++    gtk_window_set_resizable (GTK_WINDOW (priv->window), TRUE);
+   g_signal_connect_swapped (priv->window, "delete-event", G_CALLBACK (g_object_unref), self);
+   g_signal_connect (priv->window, "key_press_event",
+                     G_CALLBACK (window_key_press_event), self);
+@@ -1136,6 +1183,9 @@
+ void
+ gnome_control_center_present (GnomeControlCenter *center)
+ {
++  if (center->priv->small_screen) {
++    gtk_window_maximize (GTK_WINDOW (center->priv->window));
++  }
+   gtk_window_present (GTK_WINDOW (center->priv->window));
+ }
+ 
+
+=== modified file 'shell/shell-search-renderer.c'
+--- old/shell/shell-search-renderer.c	2012-01-19 14:14:30 +0000
++++ new/shell/shell-search-renderer.c	2012-02-06 16:51:44 +0000
+@@ -212,7 +212,7 @@
+ 
+   shell_search_renderer_set_layout (SHELL_SEARCH_RENDERER (cell), widget);
+ 
+-  pango_layout_set_width (priv->layout, PANGO_SCALE * 180);
++  pango_layout_set_width (priv->layout, PANGO_SCALE * 164);
+   pango_layout_get_pixel_extents (priv->layout, NULL, &rect);
+ 
+   if (width) *width = rect.width;
+@@ -278,6 +278,8 @@
+   ShellSearchRendererPrivate *priv = SHELL_SEARCH_RENDERER (cell)->priv;
+   PangoRectangle rect;
+   GtkStyleContext *context;
++  gint layout_height;
++  gint vcenter_offset;
+ 
+   context = gtk_widget_get_style_context (widget);
+ 
+@@ -285,11 +287,14 @@
+ 
+   pango_layout_get_pixel_extents (priv->layout, NULL, &rect);
+ 
++  pango_layout_get_pixel_size (priv->layout, NULL, &layout_height);
++  vcenter_offset = (cell_area->height - layout_height) / 2;
++
+   cairo_save (cr);
+ 
+   gtk_render_layout (context, cr,
+                      cell_area->x,
+-                     cell_area->y,
++                     cell_area->y + vcenter_offset,
+                      priv->layout);
+ 
+   cairo_restore (cr);
 
