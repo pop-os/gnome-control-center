@@ -6608,8 +6608,8 @@ Index: gnome-control-center/panels/sound-nua/gvc-mixer-control-private.h
 Index: gnome-control-center/panels/sound-nua/gvc-mixer-control.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center/panels/sound-nua/gvc-mixer-control.c	2012-02-08 00:23:01.261727471 -0500
-@@ -0,0 +1,3280 @@
++++ gnome-control-center/panels/sound-nua/gvc-mixer-control.c	2012-02-09 16:15:03.128966789 -0500
+@@ -0,0 +1,3303 @@
 +/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 8 -*-
 + *
 + * Copyright (C) 2006-2008 Lennart Poettering
@@ -7099,11 +7099,12 @@ Index: gnome-control-center/panels/sound-nua/gvc-mixer-control.c
 +        }
 +        g_print ("\n Trying to move to profile %s \n", profile);
 +        GvcMixerCard *card;
-+        card = gvc_mixer_control_lookup_card_id (control, card_id);
-+        
-+        //control->priv->cached_desired_output_id = gvc_mixer_ui_device_get_id (output);
-+
-+        return gvc_mixer_card_change_profile (card, profile);
++        card = gvc_mixer_control_lookup_card_id (control, card_id);        
++        if (gvc_mixer_card_change_profile (card, profile)) {
++                gvc_mixer_ui_device_set_user_preferred_profile (device, profile);
++                return TRUE;
++        }
++        return FALSE;
 +}                                                     
 +
 +// TODO refactor - this should return a boolean determining as much as it can the success of the change
@@ -7127,22 +7128,25 @@ Index: gnome-control-center/panels/sound-nua/gvc-mixer-control.c
 +                g_object_get ( G_OBJECT(output), "card-id", &card_id, NULL);
 +                
 +                if (card_id == GVC_MIXER_UI_DEVICE_INVALID){
-+                        g_warning ("gvc_mixer_control_change_output -no stream => different profile but cant find a valid card id ?");
++                        g_warning ("gvc_mixer_control_change_output - no stream => different profile but cant find a valid card id ?");
 +                        return;
 +                }
-+                const GList *profiles;
-+                profiles = gvc_mixer_ui_device_get_supported_profiles (output);
-+                GList *last;
-+                last = g_list_last (profiles);
-+                GvcMixerCardProfile *profile;
-+                profile = last->data;
-+                g_print ("\n Trying to move to profile %s \n", profile->profile);
++
++                const gchar* profile_name = NULL;
++                profile_name = gvc_mixer_ui_device_get_user_preferred_profile (output);
++
++                if (profile_name == NULL){
++                        // Otherwise move to the highest priority profile on that device
++                        profile_name = gvc_mixer_ui_device_get_top_priority_profile (output);
++                }
++
++                g_print ("\n Trying to move to profile %s \n", profile_name);
 +                GvcMixerCard *card;
 +                card = gvc_mixer_control_lookup_card_id (control, card_id);
 +                
 +                control->priv->cached_desired_output_id = gvc_mixer_ui_device_get_id (output);
 +
-+                gvc_mixer_card_change_profile (card, profile->profile);
++                gvc_mixer_card_change_profile (card, profile_name);
 +                return;
 +        }
 +
@@ -7216,19 +7220,21 @@ Index: gnome-control-center/panels/sound-nua/gvc-mixer-control.c
 +                        return;
 +                }
 +
-+                const GList *profiles;
-+                profiles = gvc_mixer_ui_device_get_supported_profiles (input);
-+                GList *last;
-+                last = g_list_last (profiles);
-+                GvcMixerCardProfile *profile;
-+                profile = last->data;
-+                g_print ("\n trying to move to profile %s \n", profile->profile);
++                const gchar* profile_name = NULL;
++                profile_name = gvc_mixer_ui_device_get_user_preferred_profile (input);
++
++                if (profile_name == NULL){
++                        // Otherwise move to the highest priority profile on that device
++                        profile_name = gvc_mixer_ui_device_get_top_priority_profile (input);
++                }
++
++                g_print ("\n trying to move to profile %s \n", profile_name);
 +                GvcMixerCard *card;
 +                card = gvc_mixer_control_lookup_card_id (control, card_id);
 +                
 +                control->priv->cached_desired_input_id = gvc_mixer_ui_device_get_id (input);
 +
-+                gvc_mixer_card_change_profile (card, profile->profile);
++                gvc_mixer_card_change_profile (card, profile_name);
 +                return;
 +        }
 +
@@ -7839,14 +7845,35 @@ Index: gnome-control-center/panels/sound-nua/gvc-mixer-control.c
 +        if (g_list_length (stream_ports) == 0){                       
 +                g_print (" \n \n !!! Just found a %s without ports - creating a UI device \n", is_output ? "sink" : "source");
 +                GObject *object;
++
 +                object = g_object_new (GVC_TYPE_MIXER_UI_DEVICE,
 +                                       "stream-id", (gint)gvc_mixer_stream_get_id (stream),
 +                                       "description", gvc_mixer_stream_get_description (stream),
-+                                       "origin", "", /* gvc_mixer_stream_get_name (stream), */
++                                       "origin", "", /*Leave it empty for these special cases*/
 +                                       "port-name", NULL,
 +                                       "port-available", TRUE,
 +                                       NULL);
 +                GvcMixerUIDevice* out = GVC_MIXER_UI_DEVICE (object);
++
++                if (gvc_mixer_stream_get_card_index (stream) != PA_INVALID_INDEX) {
++                        // Detecting bluetooth device !
++                        g_object_set ( object,
++                                      "card-id",
++                                       gvc_mixer_stream_get_card_index (stream), NULL);
++                        GvcMixerCard* card = NULL;
++                        card = gvc_mixer_control_lookup_card_id (control,
++                                                                 gvc_mixer_stream_get_card_index (stream));
++                        const GList *profiles = NULL;
++                        profiles = gvc_mixer_card_get_profiles (card);
++                        if (profiles == NULL){
++                                g_warning ("Card has no profiles");
++                        }
++                        else{
++                                g_print ("\n Is this a bluetooth device, portless yet a card with profiles \n");
++                                gvc_mixer_ui_device_set_profiles (out, profiles);                        
++                        }
++                }
++
 +                g_hash_table_insert (is_output ? control->priv->ui_outputs : control->priv->ui_inputs,
 +                                     GUINT_TO_POINTER (gvc_mixer_ui_device_get_id (out)),
 +                                     g_object_ref (out));
@@ -8608,7 +8635,6 @@ Index: gnome-control-center/panels/sound-nua/gvc-mixer-control.c
 +                                     g_object_ref (card));
 +        }
 +        
-+        gint card_port_count = 0;		
 +        const GList *card_ports = NULL;
 +        const GList *m = NULL;
 +        
@@ -9100,27 +9126,24 @@ Index: gnome-control-center/panels/sound-nua/gvc-mixer-control.c
 +                                 g_hash_table_get_values (control->priv->ui_outputs));
 +
 +        GList                   *d;
-+
 +        GvcMixerUIDevice *device;
 +
-+        for (d = devices; d != NULL; d = d->next) {             
++        for (d = devices; d != NULL; d = d->next) {
 +                gint card_id = GVC_MIXER_UI_DEVICE_INVALID;
 +                device = d->data;
 +                g_object_get (G_OBJECT (device),
 +                             "card-id", &card_id,
 +                              NULL);
 +                if (card_id == index) {
-+                        if (gvc_mixer_ui_device_is_output (device)) {                         
++                        if (gvc_mixer_ui_device_is_output (device)) {          
 +                                g_signal_emit (G_OBJECT (control),
 +                                               signals[OUTPUT_REMOVED],
 +                                               0,
 +                                               gvc_mixer_ui_device_get_id (device));
-+
 +                                g_print ("\n Card removal remove output device %s \n",
 +                                         gvc_mixer_ui_device_get_description (device)); 
 +                                g_hash_table_remove (control->priv->ui_outputs,
 +                                                     GUINT_TO_POINTER (gvc_mixer_ui_device_get_id (device)));
-+
 +                        }
 +                        else{
 +                                g_signal_emit (G_OBJECT (control),
@@ -10037,8 +10060,8 @@ Index: gnome-control-center/panels/sound-nua/gvc-mixer-control.h
 Index: gnome-control-center/panels/sound-nua/gvc-mixer-dialog.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center/panels/sound-nua/gvc-mixer-dialog.c	2012-02-08 00:21:13.853662000 -0500
-@@ -0,0 +1,2189 @@
++++ gnome-control-center/panels/sound-nua/gvc-mixer-dialog.c	2012-02-09 16:15:03.140966792 -0500
+@@ -0,0 +1,2190 @@
 +/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 8 -*-
 + *
 + * Copyright (C) 2008 William Jon McCann
@@ -10227,6 +10250,7 @@ Index: gnome-control-center/panels/sound-nua/gvc-mixer-dialog.c
 +        g_print ("profile_selection_changed - %s", profile);
 +        GvcMixerUIDevice *out;
 +        out = g_object_get_data (G_OBJECT (combo_box), "uidevice");
++        
 +        if (out == NULL) {
 +                g_warning ("Could not find Output for profile combo box");
 +                return;
@@ -10234,7 +10258,7 @@ Index: gnome-control-center/panels/sound-nua/gvc-mixer-dialog.c
 +
 +        if (gvc_mixer_control_change_profile_on_selected_device (dialog->priv->mixer_control, out, profile) == FALSE) {
 +                g_warning ("Could not change profile on device %s",
-+                gvc_mixer_ui_device_get_description (out));
++                           gvc_mixer_ui_device_get_description (out));
 +        }
 +}
 +
@@ -10820,8 +10844,8 @@ Index: gnome-control-center/panels/sound-nua/gvc-mixer-dialog.c
 +                                    -1);
 +
 +                if (is_selected && id == gvc_mixer_ui_device_get_id (active_output)) {
-+                        g_print ("\n\n unneccessary active output update \n\n");
-+                        return;        
++                        g_print ("\n\n unneccessary active output update unless it was a profile change on the same device ? \n\n");
++                        //return;        
 +                }
 +
 +                is_selected = id == gvc_mixer_ui_device_get_id (active_output);
@@ -14682,8 +14706,8 @@ Index: gnome-control-center/panels/sound-nua/gvc-mixer-stream.h
 Index: gnome-control-center/panels/sound-nua/gvc-mixer-ui-device.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center/panels/sound-nua/gvc-mixer-ui-device.c	2012-02-08 00:21:13.853662000 -0500
-@@ -0,0 +1,569 @@
++++ gnome-control-center/panels/sound-nua/gvc-mixer-ui-device.c	2012-02-09 16:15:03.140966793 -0500
+@@ -0,0 +1,603 @@
 +/* -*- Mode: C; indent-tabs-mode: t; c-basic-offset: 4; tab-width: 4 -*- */
 +/*
 + * gvc-mixer-ui-device.c
@@ -14721,9 +14745,10 @@ Index: gnome-control-center/panels/sound-nua/gvc-mixer-ui-device.c
 +	guint	     		id;
 +	gboolean     		port_available;
 +	GList*       		supported_profiles;
-+	UiDeviceDirection 	type;	
-+	GHashTable* 		profiles;	
-+	gboolean 		disable_profile_swapping;
++	UiDeviceDirection 	type;
++	GHashTable* 		profiles;
++	gboolean 			disable_profile_swapping;
++	gchar* 				user_preferred_profile;
 +};
 +
 +enum
@@ -14866,6 +14891,7 @@ Index: gnome-control-center/panels/sound-nua/gvc-mixer-ui-device.c
 +	self->priv->card_id = GVC_MIXER_UI_DEVICE_INVALID;
 +	self->priv->port_name = NULL;
 +	self->priv->disable_profile_swapping = FALSE;
++	self->priv->user_preferred_profile = NULL;
 +        return object;
 +}
 +
@@ -14900,7 +14926,11 @@ Index: gnome-control-center/panels/sound-nua/gvc-mixer-ui-device.c
 +		g_hash_table_destroy (device->priv->profiles);
 +		device->priv->profiles = NULL;
 +	}
-+        G_OBJECT_CLASS (gvc_mixer_ui_device_parent_class)->dispose (object);	
++	if (device->priv->user_preferred_profile != NULL){
++		g_free (device->priv->user_preferred_profile);
++		device->priv->user_preferred_profile = NULL;
++	}
++    G_OBJECT_CLASS (gvc_mixer_ui_device_parent_class)->dispose (object);	
 +}
 +
 +static void
@@ -14975,10 +15005,10 @@ Index: gnome-control-center/panels/sound-nua/gvc-mixer-ui-device.c
 +	pspec = g_param_spec_uint ("type",
 +				   "ui-device type",
 +				   "determine whether its an input and output",
-+     				   0,
-+				   1,
-+				   0,
-+				   G_PARAM_READWRITE);
++     				0,
++				    1,
++				    0,
++				    G_PARAM_READWRITE);
 +	g_object_class_install_property (object_class,
 +					 PROP_UI_DEVICE_TYPE,
 +					 pspec);
@@ -14996,9 +15026,10 @@ Index: gnome-control-center/panels/sound-nua/gvc-mixer-ui-device.c
 +}
 +
 +// TODO
-+// Optimise so as on the first pass you can 'choose' which profiles to hold on to which are essentially duplicates
++// Optimise so as on the first pass you can 'choose' which profiles to hold on to and
++// which are useles because they are essentially duplicates.
 +void
-+gvc_mixer_ui_device_set_profiles (GvcMixerUIDevice *device, GList *in_profiles)
++gvc_mixer_ui_device_set_profiles (GvcMixerUIDevice *device, const GList *in_profiles)
 +{
 +	gint profile_count;
 +	GList* t;
@@ -15008,14 +15039,13 @@ Index: gnome-control-center/panels/sound-nua/gvc-mixer-ui-device.c
 +		
 +	profile_count = g_list_length (in_profiles);
 +	profile_descriptions = g_hash_table_new_full (g_str_hash,
-+						 					      g_str_equal,
-+						 					      g_free,
-+						 					      g_free);
++	 					      g_str_equal,
++	 					      g_free,
++	 					      g_free);
 +
 +	//debug
 +	gboolean is_input = device->priv->type != UiDeviceOutput;
 +	gboolean is_output = device->priv->type == UiDeviceOutput;
-+	//g_print ("\n\n\n gvc_mixer_ui_device_set_profiles - profile count = %i for %s", profile_count, gvc_mixer_ui_device_get_description (device));
 +
 +	// Store each profile in a hash with the shortened relevant string as the key
 +	for (t = in_profiles; t != NULL; t = t->next) {
@@ -15024,7 +15054,7 @@ Index: gnome-control-center/panels/sound-nua/gvc-mixer-ui-device.c
 +		p = t->data;
 +
 +
-+		g_print ("\n check if this %s has already passed %i", p->profile, g_hash_table_contains (profile_descriptions, p->profile));
++		//g_print ("\n check if this %s has already passed %i", p->profile, g_hash_table_contains (profile_descriptions, p->profile));
 +
 +		gchar** modified;
 +
@@ -15111,8 +15141,10 @@ Index: gnome-control-center/panels/sound-nua/gvc-mixer-ui-device.c
 +				l = x->data;
 +				gchar* other_modified;
 +								
-+				if (g_strcmp0 (p->profile, l->profile) == 0)
++				if (g_strcmp0 (p->profile, "off") == 0){
++					g_print ("\n\n Bluetooth off profile - ignore it");
 +					continue;
++				}
 +				
 +				if (g_hash_table_contains (device->priv->profiles, short_name) == TRUE){
 +					g_print ("\n\n SHORT NAME already populated move on - %s \n\n", p->profile);
@@ -15167,7 +15199,7 @@ Index: gnome-control-center/panels/sound-nua/gvc-mixer-ui-device.c
 +			p = g_list_last (in_profiles)->data;
 +			g_hash_table_insert (device->priv->profiles, 
 +					     "tmp",
-+					     p);				
++					     p);			
 +		}
 +	}
 +
@@ -15175,7 +15207,7 @@ Index: gnome-control-center/panels/sound-nua/gvc-mixer-ui-device.c
 +	GList* final_keys;
 +	final_keys = g_hash_table_get_keys (device->priv->profiles);
 +	GList* o;
-+	g_print ("\n\n FOR DEVICE %s", gvc_mixer_ui_device_get_description (device));
++	g_print ("\n\n Profile population \n FOR DEVICE %s", gvc_mixer_ui_device_get_description (device));
 +	for (o = final_keys; o != NULL; o = o->next){
 +		gchar* key;
 +		key = o->data;
@@ -15236,6 +15268,32 @@ Index: gnome-control-center/panels/sound-nua/gvc-mixer-ui-device.c
 +}
 +
 +const gchar*
++gvc_mixer_ui_device_get_user_preferred_profile (GvcMixerUIDevice *dev)
++{
++	return dev->priv->user_preferred_profile;
++}
++
++const gchar*
++gvc_mixer_ui_device_get_top_priority_profile (GvcMixerUIDevice *dev)
++{
++	GList *last;
++	last = g_list_last (dev->priv->supported_profiles);
++	GvcMixerCardProfile *profile;
++	profile = last->data;                        
++	return profile->profile;
++}
++
++void 
++gvc_mixer_ui_device_set_user_preferred_profile (GvcMixerUIDevice *device, const gchar* profile)
++{
++	if (device->priv->user_preferred_profile != NULL){
++		g_free (device->priv->user_preferred_profile);
++		device->priv->user_preferred_profile = NULL;
++	}
++	device->priv->user_preferred_profile = g_strdup (profile);
++}
++
++const gchar*
 +gvc_mixer_ui_device_get_port (GvcMixerUIDevice *op)
 +{
 +	return op->priv->port_name;
@@ -15256,8 +15314,8 @@ Index: gnome-control-center/panels/sound-nua/gvc-mixer-ui-device.c
 Index: gnome-control-center/panels/sound-nua/gvc-mixer-ui-device.h
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center/panels/sound-nua/gvc-mixer-ui-device.h	2012-02-08 00:21:13.853662000 -0500
-@@ -0,0 +1,72 @@
++++ gnome-control-center/panels/sound-nua/gvc-mixer-ui-device.h	2012-02-09 16:15:03.140966793 -0500
+@@ -0,0 +1,74 @@
 +/* -*- Mode: C; indent-tabs-mode: t; c-basic-offset: 4; tab-width: 4 -*- */
 +/*
 + * Copyright (C) Conor Curran 2011 <conor.curran@canonical.com>
@@ -15318,13 +15376,15 @@ Index: gnome-control-center/panels/sound-nua/gvc-mixer-ui-device.h
 +const gchar*			gvc_mixer_ui_device_get_description          		(GvcMixerUIDevice *dev);
 +const gchar*			gvc_mixer_ui_device_get_origin				 		(GvcMixerUIDevice *dev);
 +const gchar*			gvc_mixer_ui_device_get_port				 		(GvcMixerUIDevice *dev);
++const gchar* 			gvc_mixer_ui_device_get_user_preferred_profile		(GvcMixerUIDevice *dev);
++const gchar* 			gvc_mixer_ui_device_get_top_priority_profile		(GvcMixerUIDevice *dev);
 +GList*					gvc_mixer_ui_device_get_profiles 			 		(GvcMixerUIDevice *dev);
 +GList*					gvc_mixer_ui_device_get_supported_profiles			(GvcMixerUIDevice *device);
 +gboolean	    		gvc_mixer_ui_device_determine_profile_sensitivity 	(GvcMixerUIDevice *device);
-+void					gvc_mixer_ui_device_set_profiles			 		(GvcMixerUIDevice *device, GList *profiles);
++void					gvc_mixer_ui_device_set_profiles			 		(GvcMixerUIDevice *device, const GList *profiles);
++void 					gvc_mixer_ui_device_set_user_preferred_profile 		(GvcMixerUIDevice *device, const gchar *profile);
 +void					gvc_mixer_ui_device_invalidate_stream		 		(GvcMixerUIDevice *dev);
 +gboolean				gvc_mixer_ui_device_is_software_stream		 		(GvcMixerUIDevice *dev);
-+gboolean				gvc_mixer_ui_device_change_profile 					(GvcMixerUIDevice *device, const gchar* profile);						     
 +
 +
 +G_END_DECLS
