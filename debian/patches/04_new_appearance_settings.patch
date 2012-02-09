@@ -1,7 +1,7 @@
 Index: gnome-control-center-3.2.2/configure.ac
 ===================================================================
---- gnome-control-center-3.2.2.orig/configure.ac	2012-02-07 12:52:35.730640134 +0100
-+++ gnome-control-center-3.2.2/configure.ac	2012-02-07 12:52:49.266707259 +0100
+--- gnome-control-center-3.2.2.orig/configure.ac	2012-02-09 07:58:19.582085006 +0100
++++ gnome-control-center-3.2.2/configure.ac	2012-02-09 08:09:14.297331561 +0100
 @@ -91,7 +91,7 @@
  PKG_CHECK_MODULES(LIBSHORTCUTS, $COMMON_MODULES x11)
  PKG_CHECK_MODULES(SHELL, $COMMON_MODULES libgnome-menu-3.0 gio-unix-2.0)
@@ -14,7 +14,7 @@ Index: gnome-control-center-3.2.2/configure.ac
 Index: gnome-control-center-3.2.2/panels/background/background.ui
 ===================================================================
 --- gnome-control-center-3.2.2.orig/panels/background/background.ui	2011-11-08 21:20:01.000000000 +0100
-+++ gnome-control-center-3.2.2/panels/background/background.ui	2012-02-07 13:05:26.986464581 +0100
++++ gnome-control-center-3.2.2/panels/background/background.ui	2012-02-09 08:09:37.101444645 +0100
 @@ -1,7 +1,6 @@
 -<?xml version="1.0"?>
 +<?xml version="1.0" encoding="UTF-8"?>
@@ -1025,7 +1025,7 @@ Index: gnome-control-center-3.2.2/panels/background/background.ui
 +                    <property name="can_focus">False</property>
 +                    <property name="xalign">0</property>
 +                    <property name="xpad">12</property>
-+                    <property name="label" translatable="yes">Some settings have been overriden by an external program, press "Restore defaults behaviors"  to reset the behavior and return control to this panel.</property>
++                    <property name="label" translatable="yes">Some settings have been overriden by an external program, press "Restore default behaviors"  to reset the behavior and return control to this panel.</property>
 +                    <property name="wrap">True</property>
                    </object>
                    <packing>
@@ -1167,7 +1167,7 @@ Index: gnome-control-center-3.2.2/panels/background/background.ui
 Index: gnome-control-center-3.2.2/panels/background/cc-background-panel.c
 ===================================================================
 --- gnome-control-center-3.2.2.orig/panels/background/cc-background-panel.c	2011-11-08 21:20:01.000000000 +0100
-+++ gnome-control-center-3.2.2/panels/background/cc-background-panel.c	2012-02-07 12:52:36.590644397 +0100
++++ gnome-control-center-3.2.2/panels/background/cc-background-panel.c	2012-02-09 08:10:20.821661440 +0100
 @@ -24,6 +24,7 @@
  #include <string.h>
  #include <glib/gi18n-lib.h>
@@ -1719,10 +1719,10 @@ Index: gnome-control-center-3.2.2/panels/background/cc-background-panel.c
 +      /* Launcher reveal */
 +      launchersensitivity_values.min = MIN_LAUNCHER_SENSIVITY;
 +      launchersensitivity_values.max = MAX_LAUNCHER_SENSIVITY;
-+      launcher_sensitivity_adj = gtk_adjustment_new (1, launchersensitivity_values.min, launchersensitivity_values.max, 0.1, 1, 0);
++      launcher_sensitivity_adj = gtk_adjustment_new (2, launchersensitivity_values.min, launchersensitivity_values.max, 0.1, 1, 0);
 +      launcher_sensitivity_scale = GTK_SCALE (WID ("unity-launcher-sensitivity"));
 +      gtk_range_set_adjustment (GTK_RANGE (launcher_sensitivity_scale), launcher_sensitivity_adj);
-+      gtk_scale_add_mark (launcher_sensitivity_scale, 1, GTK_POS_BOTTOM, NULL);
++      gtk_scale_add_mark (launcher_sensitivity_scale, 2, GTK_POS_BOTTOM, NULL);
 +      priv->gconf_notify_id = g_slist_append (priv->gconf_notify_id,
 +                                              GINT_TO_POINTER (
 +                                              gconf_client_notify_add (client, UNITY_LAUNCHERSENSITIVITY_KEY,
@@ -1828,7 +1828,7 @@ Index: gnome-control-center-3.2.2/panels/background/cc-background-panel.c
 Index: gnome-control-center-3.2.2/panels/background/gnome-background-panel.desktop.in.in
 ===================================================================
 --- gnome-control-center-3.2.2.orig/panels/background/gnome-background-panel.desktop.in.in	2011-09-01 12:01:00.000000000 +0200
-+++ gnome-control-center-3.2.2/panels/background/gnome-background-panel.desktop.in.in	2012-02-07 12:52:36.590644397 +0100
++++ gnome-control-center-3.2.2/panels/background/gnome-background-panel.desktop.in.in	2012-02-09 07:58:20.514089622 +0100
 @@ -1,6 +1,6 @@
  [Desktop Entry]
 -_Name=Background
