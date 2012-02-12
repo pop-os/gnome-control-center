@@ -1,20 +1,20 @@
-Index: gnome-control-center-3.2.2/configure.ac
+Index: gnome-control-center-3.3.5/configure.ac
 ===================================================================
---- gnome-control-center-3.2.2.orig/configure.ac	2012-02-09 07:58:19.582085006 +0100
-+++ gnome-control-center-3.2.2/configure.ac	2012-02-09 08:09:14.297331561 +0100
-@@ -91,7 +91,7 @@
+--- gnome-control-center-3.3.5.orig/configure.ac	2012-02-12 13:01:10.789224493 -0500
++++ gnome-control-center-3.3.5/configure.ac	2012-02-12 13:01:13.057235735 -0500
+@@ -96,7 +96,7 @@
  PKG_CHECK_MODULES(LIBSHORTCUTS, $COMMON_MODULES x11)
  PKG_CHECK_MODULES(SHELL, $COMMON_MODULES libgnome-menu-3.0 gio-unix-2.0)
  PKG_CHECK_MODULES(BACKGROUND_PANEL, $COMMON_MODULES libxml-2.0 gnome-desktop-3.0
 -                  gdk-pixbuf-2.0 >= $GDKPIXBUF_REQUIRED_VERSION)
 +                  gdk-pixbuf-2.0 >= $GDKPIXBUF_REQUIRED_VERSION gconf-2.0)
- PKG_CHECK_MODULES(DATETIME_PANEL, $COMMON_MODULES dbus-glib-1
+ PKG_CHECK_MODULES(DATETIME_PANEL, $COMMON_MODULES
+                   gnome-desktop-3.0 >= $GNOME_DESKTOP_REQUIRED_VERSION
                    polkit-gobject-1 >= $POLKIT_REQUIRED_VERSION
-                   gdk-pixbuf-2.0 >= $GDKPIXBUF_REQUIRED_VERSION)
-Index: gnome-control-center-3.2.2/panels/background/background.ui
+Index: gnome-control-center-3.3.5/panels/background/background.ui
 ===================================================================
---- gnome-control-center-3.2.2.orig/panels/background/background.ui	2011-11-08 21:20:01.000000000 +0100
-+++ gnome-control-center-3.2.2/panels/background/background.ui	2012-02-09 08:09:37.101444645 +0100
+--- gnome-control-center-3.3.5.orig/panels/background/background.ui	2012-02-12 13:01:06.909205250 -0500
++++ gnome-control-center-3.3.5/panels/background/background.ui	2012-02-12 13:05:08.466403070 -0500
 @@ -1,7 +1,6 @@
 -<?xml version="1.0"?>
 +<?xml version="1.0" encoding="UTF-8"?>
@@ -24,7 +24,7 @@ Index: gnome-control-center-3.2.2/panels/background/background.ui
    <object class="GtkListStore" id="sources-liststore">
      <columns>
        <!-- column-name source-name -->
-@@ -12,305 +11,901 @@
+@@ -12,321 +11,917 @@
        <column type="gpointer"/>
      </columns>
    </object>
@@ -271,6 +271,11 @@ Index: gnome-control-center-3.2.2/panels/background/background.ui
 +                                <property name="receives_default">True</property>
 +                                <property name="use_action_appearance">False</property>
 +                                <property name="color">#000000000000</property>
++                                <child internal-child="accessible">
++                                  <object class="AtkObject" id="style-pcolor-a11y">
++                                    <property name="accessible-name" translatable="yes">Primary Color</property>
++                                  </object>
++                                </child>
 +                              </object>
 +                              <packing>
 +                                <property name="expand">False</property>
@@ -285,6 +290,11 @@ Index: gnome-control-center-3.2.2/panels/background/background.ui
 +                                <property name="can_focus">True</property>
 +                                <property name="receives_default">True</property>
 +                                <property name="use_action_appearance">False</property>
++                                <child internal-child="accessible">
++                                  <object class="AtkObject" id="swap-color-a11y">
++                                    <property name="accessible-name" translatable="yes">Swap colors</property>
++                                  </object>
++                                </child>
 +                                <child>
 +                                  <object class="GtkImage" id="image1">
 +                                    <property name="visible">True</property>
@@ -307,6 +317,11 @@ Index: gnome-control-center-3.2.2/panels/background/background.ui
 +                                <property name="receives_default">True</property>
 +                                <property name="use_action_appearance">False</property>
 +                                <property name="color">#000000000000</property>
++                                <child internal-child="accessible">
++                                  <object class="AtkObject" id="style-scolor-a11y">
++                                    <property name="accessible-name" translatable="yes">Secondary color</property>
++                                  </object>
++                                </child>
 +                              </object>
 +                              <packing>
 +                                <property name="expand">False</property>
@@ -428,6 +443,7 @@ Index: gnome-control-center-3.2.2/panels/background/background.ui
 +                        <property name="visible">True</property>
 +                        <property name="can_focus">False</property>
 +                        <property name="icon_size">1</property>
++                        <property name="toolbar-style">icons</property>
 +                        <style>
 +                          <class name="inline-toolbar"/>
 +                        </style>
@@ -510,6 +526,7 @@ Index: gnome-control-center-3.2.2/panels/background/background.ui
 -            <property name="visible">True</property>
 -            <property name="can_focus">False</property>
 -            <property name="icon_size">1</property>
+-            <property name="toolbar-style">icons</property>
 -            <style>
 -              <class name="inline-toolbar"/>
 -            </style>
@@ -759,6 +776,11 @@ Index: gnome-control-center-3.2.2/panels/background/background.ui
 -                    <property name="can_focus">True</property>
 -                    <property name="receives_default">True</property>
 -                    <property name="color">#000000000000</property>
+-                    <child internal-child="accessible">
+-                      <object class="AtkObject" id="style-pcolor-a11y">
+-                        <property name="accessible-name" translatable="yes">Primary Color</property>
+-                      </object>
+-                    </child>
 -                  </object>
 -                  <packing>
 -                    <property name="expand">False</property>
@@ -775,6 +797,9 @@ Index: gnome-control-center-3.2.2/panels/background/background.ui
 -                    <property name="can_focus">True</property>
 -                    <property name="receives_default">True</property>
 -                    <property name="use_action_appearance">False</property>
+-                    <child internal-child="accessible">
+-                      <object class="AtkObject" id="swap-color-a11y">
+-                        <property name="accessible-name" translatable="yes">Swap colors</property>
 +                    <property name="can_focus">False</property>
 +                    <property name="border_width">10</property>
 +                    <property name="spacing">12</property>
@@ -961,14 +986,14 @@ Index: gnome-control-center-3.2.2/panels/background/background.ui
 +                            <property name="position">3</property>
 +                          </packing>
 +                        </child>
-+                      </object>
+                       </object>
 +                      <packing>
 +                        <property name="expand">False</property>
 +                        <property name="fill">True</property>
 +                        <property name="padding">5</property>
 +                        <property name="position">0</property>
 +                      </packing>
-+                    </child>
+                     </child>
                      <child>
 -                      <object class="GtkImage" id="image1">
 +                      <object class="GtkBox" id="box7">
@@ -1071,6 +1096,11 @@ Index: gnome-control-center-3.2.2/panels/background/background.ui
                      <property name="receives_default">True</property>
                      <property name="use_action_appearance">False</property>
 -                    <property name="color">#000000000000</property>
+-                    <child internal-child="accessible">
+-                      <object class="AtkObject" id="style-scolor-a11y">
+-                        <property name="accessible-name" translatable="yes">Secondary color</property>
+-                      </object>
+-                    </child>
                    </object>
                    <packing>
                      <property name="expand">False</property>
@@ -1125,7 +1155,7 @@ Index: gnome-control-center-3.2.2/panels/background/background.ui
      </child>
    </object>
    <object class="GtkSizeGroup" id="sizegroup">
-@@ -322,38 +917,4 @@
+@@ -338,38 +933,4 @@
        <widget name="strut"/>
      </widgets>
    </object>
@@ -1164,10 +1194,10 @@ Index: gnome-control-center-3.2.2/panels/background/background.ui
 -    </data>
 -  </object>
  </interface>
-Index: gnome-control-center-3.2.2/panels/background/cc-background-panel.c
+Index: gnome-control-center-3.3.5/panels/background/cc-background-panel.c
 ===================================================================
---- gnome-control-center-3.2.2.orig/panels/background/cc-background-panel.c	2011-11-08 21:20:01.000000000 +0100
-+++ gnome-control-center-3.2.2/panels/background/cc-background-panel.c	2012-02-09 08:10:20.821661440 +0100
+--- gnome-control-center-3.3.5.orig/panels/background/cc-background-panel.c	2012-02-12 13:01:06.933205369 -0500
++++ gnome-control-center-3.3.5/panels/background/cc-background-panel.c	2012-02-12 13:01:13.057235735 -0500
 @@ -24,6 +24,7 @@
  #include <string.h>
  #include <glib/gi18n-lib.h>
@@ -1284,8 +1314,8 @@ Index: gnome-control-center-3.2.2/panels/background/cc-background-panel.c
  
        gdk_color_parse (cc_background_item_get_pcolor (priv->current_background), &pcolor);
        gdk_color_parse (cc_background_item_get_scolor (priv->current_background), &scolor);
-@@ -1136,12 +1189,492 @@
-     g_object_set (G_OBJECT (scrolled), "height-request", 280, NULL);
+@@ -1162,12 +1215,492 @@
+   g_strfreev(uris);
  }
  
 +static gchar *themes_id[] = { "Adwaita", "Ambiance", "Radiance", "HighContrast", "HighContrastInverse" };
@@ -1778,7 +1808,7 @@ Index: gnome-control-center-3.2.2/panels/background/cc-background-panel.c
    GError *err = NULL;
    GtkWidget *widget;
    GtkListStore *store;
-@@ -1151,9 +1684,14 @@
+@@ -1177,9 +1710,14 @@
  
    priv->builder = gtk_builder_new ();
  
@@ -1796,7 +1826,7 @@ Index: gnome-control-center-3.2.2/panels/background/cc-background-panel.c
  
    if (err)
      {
-@@ -1204,7 +1742,10 @@
+@@ -1230,7 +1768,10 @@
  
  
    /* add the top level widget */
@@ -1808,7 +1838,7 @@ Index: gnome-control-center-3.2.2/panels/background/cc-background-panel.c
  
    gtk_container_add (GTK_CONTAINER (self), widget);
    gtk_widget_show_all (GTK_WIDGET (self));
-@@ -1267,6 +1808,16 @@
+@@ -1301,6 +1842,16 @@
  
    /* Setup the edit box with our current settings */
    source_update_edit_box (priv, TRUE);
@@ -1825,10 +1855,10 @@ Index: gnome-control-center-3.2.2/panels/background/cc-background-panel.c
  }
  
  void
-Index: gnome-control-center-3.2.2/panels/background/gnome-background-panel.desktop.in.in
+Index: gnome-control-center-3.3.5/panels/background/gnome-background-panel.desktop.in.in
 ===================================================================
---- gnome-control-center-3.2.2.orig/panels/background/gnome-background-panel.desktop.in.in	2011-09-01 12:01:00.000000000 +0200
-+++ gnome-control-center-3.2.2/panels/background/gnome-background-panel.desktop.in.in	2012-02-09 07:58:20.514089622 +0100
+--- gnome-control-center-3.3.5.orig/panels/background/gnome-background-panel.desktop.in.in	2012-02-12 13:01:06.969205542 -0500
++++ gnome-control-center-3.3.5/panels/background/gnome-background-panel.desktop.in.in	2012-02-12 13:01:13.057235735 -0500
 @@ -1,6 +1,6 @@
  [Desktop Entry]
 -_Name=Background
@@ -1842,5 +1872,5 @@ Index: gnome-control-center-3.2.2/panels/background/gnome-background-panel.deskt
  OnlyShowIn=GNOME;Unity;
  X-GNOME-Settings-Panel=background
  # Translators: those are keywords for the background control-center panel
--_X-GNOME-Keywords=Wallpaper;Screen;Desktop;
-+_X-GNOME-Keywords=Wallpaper;Screen;Desktop;Theme;Appearance;Launcher;Unity;Menus;
+-_Keywords=Wallpaper;Screen;Desktop;
++_Keywords=Wallpaper;Screen;Desktop;Theme;Appearance;Launcher;Unity;Menus;
