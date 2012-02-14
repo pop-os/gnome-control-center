@@ -10099,8 +10099,8 @@ Index: gnome-control-center/panels/sound-nua/gvc-mixer-control.h
 Index: gnome-control-center/panels/sound-nua/gvc-mixer-dialog.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center/panels/sound-nua/gvc-mixer-dialog.c	2012-02-10 14:40:47.385282961 -0500
-@@ -0,0 +1,2194 @@
++++ gnome-control-center/panels/sound-nua/gvc-mixer-dialog.c	2012-02-14 13:55:14.673130208 -0500
+@@ -0,0 +1,2209 @@
 +/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 8 -*-
 + *
 + * Copyright (C) 2008 William Jon McCann
@@ -10186,9 +10186,10 @@ Index: gnome-control-center/panels/sound-nua/gvc-mixer-dialog.c
 +        GtkWidget       *click_feedback_button;
 +        GtkWidget       *audible_bell_button;
 +        GtkSizeGroup    *size_group;
-+        GtkWidget	*selected_output_label;
++        GtkWidget       *selected_output_label;
 +        GtkWidget       *selected_input_label;
-+        GtkWidget	*test_output_button;
++        GtkWidget       *test_output_button;
++        GSettings       *indicator_settings;
 +
 +        gdouble          last_input_peak;
 +        guint            num_apps;
@@ -11788,6 +11789,7 @@ Index: gnome-control-center/panels/sound-nua/gvc-mixer-dialog.c
 +{
 +        GObject          *object;
 +        GvcMixerDialog   *self;
++        GtkWidget        *w;
 +        GtkWidget        *main_vbox;
 +        GtkWidget        *label;
 +        GtkWidget        *alignment;
@@ -12105,6 +12107,17 @@ Index: gnome-control-center/panels/sound-nua/gvc-mixer-dialog.c
 +        gtk_box_pack_start (GTK_BOX (self->priv->output_stream_box),
 +                            self->priv->output_bar, TRUE, FALSE, 12);
 +
++        /* Indicator visibility toggle */
++        w = gtk_check_button_new_with_mnemonic(_( "_Show sound volume in the menu bar"));
++        alignment = gtk_alignment_new (0, 0, 1, 1);
++        gtk_alignment_set_padding (GTK_ALIGNMENT (alignment), 3, 3, 5, 5);
++        gtk_container_add (GTK_CONTAINER (alignment), w);
++        self->priv->indicator_settings = g_settings_new ("com.canonical.indicator.sound");
++        g_settings_bind (self->priv->indicator_settings, "visible", w, "active", G_SETTINGS_BIND_DEFAULT);
++        gtk_box_pack_start (GTK_BOX (main_vbox),
++                            alignment,
++                            FALSE, FALSE, 0);
++
 +        gtk_widget_show_all (main_vbox);
 +
 +        g_signal_connect (self->priv->mixer_control,
@@ -12169,6 +12182,8 @@ Index: gnome-control-center/panels/sound-nua/gvc-mixer-dialog.c
 +gvc_mixer_dialog_dispose (GObject *object)
 +{
 +        GvcMixerDialog *dialog = GVC_MIXER_DIALOG (object);
++
++        g_clear_object (&dialog->priv->indicator_settings);
 +
 +        if (dialog->priv->mixer_control != NULL) {
 +                g_signal_handlers_disconnect_by_func (dialog->priv->mixer_control,
@@ -15484,7 +15499,7 @@ Index: gnome-control-center/panels/sound-nua/gvc-pulseaudio-fake.h
 Index: gnome-control-center/panels/sound-nua/gvc-sound-theme-chooser.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center/panels/sound-nua/gvc-sound-theme-chooser.c	2012-02-10 14:39:56.993601000 -0500
++++ gnome-control-center/panels/sound-nua/gvc-sound-theme-chooser.c	2012-02-14 13:55:14.677130208 -0500
 @@ -0,0 +1,856 @@
 +/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 8 -*-
 + *
@@ -15556,7 +15571,7 @@ Index: gnome-control-center/panels/sound-nua/gvc-sound-theme-chooser.c
 +#define DEFAULT_ALERT_ID        "__default"
 +#define CUSTOM_THEME_NAME       "__custom"
 +#define NO_SOUNDS_THEME_NAME    "__no_sounds"
-+#define DEFAULT_THEME           "freedesktop"
++#define DEFAULT_THEME           "ubuntu"
 +
 +enum {
 +        THEME_DISPLAY_COL,
