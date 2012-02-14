@@ -1,0 +1,164 @@
+--- a/panels/power/cc-power-panel.c
++++ b/panels/power/cc-power-panel.c
+@@ -39,6 +39,7 @@
+ {
+   GSettings     *lock_settings;
+   GSettings     *gsd_settings;
++  GSettings     *indicator_settings;
+   GCancellable  *cancellable;
+   GtkBuilder    *builder;
+   GDBusProxy    *proxy;
+@@ -83,6 +84,8 @@
+ {
+   CcPowerPanelPrivate *priv = CC_POWER_PANEL (object)->priv;
+ 
++  g_clear_object (&priv->indicator_settings);
++
+   if (priv->gsd_settings)
+     {
+       g_object_unref (priv->gsd_settings);
+@@ -566,6 +569,80 @@
+   gtk_widget_set_visible (widget, has_batteries && has_lid);
+ }
+ 
++/* these keys are from com.canonical.indicator.power */
++static const char * icon_policy_keys[] = { "present", "charge", "never" };
++static const int icon_policy_key_count = G_N_ELEMENTS(icon_policy_keys);
++
++static gboolean
++icon_policy_map_settings_to_value (GValue   * value,
++                                   GVariant * variant,
++                                   gpointer   user_data G_GNUC_UNUSED)
++{
++  int i;
++  int index;
++  const char * needle;
++
++  index = -1;
++  needle = g_variant_get_string (variant, NULL);
++  for (i=0; i<icon_policy_key_count; ++i)
++    if (!g_strcmp0 (needle, icon_policy_keys[i]))
++      index = i;
++
++  g_value_set_int (value, index);
++  return TRUE;
++}
++
++static GVariant*
++icon_policy_map_value_to_settings (const GValue       * value,
++                                   const GVariantType * expected_type,
++                                   gpointer             user_data G_GNUC_UNUSED)
++{
++  GVariant * ret;
++
++  const int i = g_value_get_int (value);
++  if (0<=i && i<icon_policy_key_count)
++    ret = g_variant_new_string (icon_policy_keys[i]);
++  else
++    ret = NULL;
++
++  return ret;
++}
++
++static gboolean
++schema_exists (const char * name)
++{
++  int i;
++  const char * const * schemas = g_settings_list_schemas ();
++
++  for (i=0; schemas && schemas[i]; i++)
++    if (!g_strcmp0 (name, schemas[i]))
++      return TRUE;
++
++  return FALSE;
++}
++
++static void
++icon_policy_init (CcPowerPanel *self)
++{
++  const char * schema = "com.canonical.indicator.power";
++
++  if (schema_exists (schema))
++    {
++      GtkWidget * widget = WID (self->priv->builder, "combobox_icon_policy");
++      self->priv->indicator_settings = g_settings_new (schema);
++      g_settings_bind_with_mapping (self->priv->indicator_settings, "icon-policy",
++                                    widget, "active",
++                                    G_SETTINGS_BIND_DEFAULT,
++                                    icon_policy_map_settings_to_value,
++                                    icon_policy_map_value_to_settings,
++                                    NULL, NULL);
++    }
++  else
++    {
++      gtk_widget_hide (WID (self->priv->builder, "row_icon_policy"));
++    }
++}
++
+ static void
+ cc_power_panel_init (CcPowerPanel *self)
+ {
+@@ -664,6 +741,8 @@
+ 
+   widget = WID (self->priv->builder, "vbox_power");
+   gtk_widget_reparent (widget, (GtkWidget *) self);
++
++  icon_policy_init (self);
+ }
+ 
+ void
+--- a/panels/power/power.ui
++++ b/panels/power/power.ui
+@@ -432,6 +432,52 @@
+             <property name="position">1</property>
+           </packing>
+         </child>
++        <child>
++          <object class="GtkBox" id="row_icon_policy">
++            <property name="visible">True</property>
++            <property name="can_focus">False</property>
++            <property name="spacing">9</property>
++            <child>
++              <object class="GtkLabel" id="label_icon_policy">
++                <property name="visible">True</property>
++                <property name="can_focus">False</property>
++                <property name="xalign">1</property>
++                <property name="label" translatable="yes">Show battery status in the _menu bar:</property>
++                <property name="mnemonic_widget">combobox_icon_policy</property>
++                <property name="use_underline">True</property>
++                <property name="track_visited_links">False</property>
++              </object>
++              <packing>
++                <property name="expand">False</property>
++                <property name="fill">False</property>
++                <property name="position">0</property>
++              </packing>
++            </child>
++            <child>
++              <object class="GtkComboBoxText" id="combobox_icon_policy">
++                <property name="visible">True</property>
++                <property name="can_focus">False</property>
++                <property name="entry_text_column">0</property>
++                <property name="id_column">1</property>
++                <items>
++                  <item translatable="yes">When a battery is present</item>
++                  <item translatable="yes">When a battery is charging / in use</item>
++                  <item translatable="yes">Never</item>
++                </items>
++              </object>
++              <packing>
++                <property name="expand">False</property>
++                <property name="fill">True</property>
++                <property name="position">1</property>
++              </packing>
++            </child>
++          </object>
++          <packing>
++            <property name="expand">False</property>
++            <property name="fill">True</property>
++            <property name="position">2</property>
++          </packing>
++        </child>
+       </object>
+     </child>
+   </object>
