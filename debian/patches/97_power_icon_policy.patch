@@ -17,7 +17,7 @@
    if (priv->gsd_settings)
      {
        g_object_unref (priv->gsd_settings);
-@@ -566,6 +569,45 @@
+@@ -566,6 +569,80 @@
    gtk_widget_set_visible (widget, has_batteries && has_lid);
  }
  
@@ -60,23 +60,50 @@
 +  return ret;
 +}
 +
++static gboolean
++schema_exists (const char * name)
++{
++  int i;
++  const char * const * schemas = g_settings_list_schemas ();
++
++  for (i=0; schemas && schemas[i]; i++)
++    if (!g_strcmp0 (name, schemas[i]))
++      return TRUE;
++
++  return FALSE;
++}
++
++static void
++icon_policy_init (CcPowerPanel *self)
++{
++  const char * schema = "com.canonical.indicator.power";
++
++  if (schema_exists (schema))
++    {
++      GtkWidget * widget = WID (self->priv->builder, "combobox_icon_policy");
++      self->priv->indicator_settings = g_settings_new (schema);
++      g_settings_bind_with_mapping (self->priv->indicator_settings, "icon-policy",
++                                    widget, "active",
++                                    G_SETTINGS_BIND_DEFAULT,
++                                    icon_policy_map_settings_to_value,
++                                    icon_policy_map_value_to_settings,
++                                    NULL, NULL);
++    }
++  else
++    {
++      gtk_widget_hide (WID (self->priv->builder, "row_icon_policy"));
++    }
++}
++
  static void
  cc_power_panel_init (CcPowerPanel *self)
  {
-@@ -664,6 +706,16 @@
+@@ -664,6 +741,8 @@
  
    widget = WID (self->priv->builder, "vbox_power");
    gtk_widget_reparent (widget, (GtkWidget *) self);
 +
-+  /* indicator-power's icon policy */
-+  widget = WID (self->priv->builder, "combobox_icon_policy");
-+  self->priv->indicator_settings = g_settings_new ("com.canonical.indicator.power");
-+  g_settings_bind_with_mapping (self->priv->indicator_settings, "icon-policy",
-+                                widget, "active",
-+                                G_SETTINGS_BIND_DEFAULT,
-+                                icon_policy_map_settings_to_value,
-+                                icon_policy_map_value_to_settings,
-+                                NULL, NULL);
++  icon_policy_init (self);
  }
  
  void
@@ -87,7 +114,7 @@
            </packing>
          </child>
 +        <child>
-+          <object class="GtkBox" id="box5">
++          <object class="GtkBox" id="row_icon_policy">
 +            <property name="visible">True</property>
 +            <property name="can_focus">False</property>
 +            <property name="spacing">9</property>
