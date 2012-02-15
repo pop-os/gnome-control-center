@@ -1,0 +1,188 @@
+Index: gnome-control-center-3.2.2/panels/power/cc-power-panel.c
+===================================================================
+--- gnome-control-center-3.2.2.orig/panels/power/cc-power-panel.c	2012-02-08 19:36:18.299575134 -0500
++++ gnome-control-center-3.2.2/panels/power/cc-power-panel.c	2012-02-08 19:36:47.047574842 -0500
+@@ -39,6 +39,7 @@
+ {
+   GSettings     *lock_settings;
+   GSettings     *gsd_settings;
++  GSettings     *power_settings;
+   GCancellable  *cancellable;
+   GtkBuilder    *builder;
+   GDBusProxy    *proxy;
+@@ -88,6 +89,11 @@
+       g_object_unref (priv->gsd_settings);
+       priv->gsd_settings = NULL;
+     }
++  if (priv->power_settings)
++    {
++      g_object_unref (priv->power_settings);
++      priv->power_settings = NULL;
++    }
+   if (priv->cancellable != NULL)
+     {
+       g_object_unref (priv->cancellable);
+@@ -221,7 +227,11 @@
+       return;
+     }
+ 
+-  gtk_widget_show (status_box);
++  /* Unity doesn't use the status box */
++  if (g_strcmp0 (g_getenv ("XDG_CURRENT_DESKTOP"), "Unity") != 0)
++    {
++      gtk_widget_show (status_box);
++    }
+ 
+   /* set the icon and text */
+   g_variant_get (result,
+@@ -664,6 +674,150 @@
+ 
+   widget = WID (self->priv->builder, "vbox_power");
+   gtk_widget_reparent (widget, (GtkWidget *) self);
++
++  /* Set up Unity-specific controls */
++  /* References:
++   *  https://wiki.ubuntu.com/Power
++   *  https://docs.google.com/document/d/1ILTJDiDCd25Npt2AmgzF8aOnZZECxTfM0hvsbWT2BxA/edit?pli=1#heading=h.i5lg1g344bsb
++   */
++  if (g_strcmp0 (g_getenv ("XDG_CURRENT_DESKTOP"), "Unity") == 0)
++    {
++      GtkWidget *separator, *label, *combo, *vbox_power;
++      GtkSizeGroup *label_group;
++      GtkGrid *grid;
++      gchar *label_str;
++      int row;
++
++      vbox_power = WID (self->priv->builder, "vbox_power");
++
++      /* Add a header for the suspend/hibernate section */
++      label_str = g_strdup_printf ("<b>%s</b>", _("Suspending and hibernating"));
++      widget = gtk_label_new ("");
++      gtk_label_set_markup (GTK_LABEL (widget), label_str);
++      g_free (label_str);
++      gtk_misc_set_alignment (GTK_MISC (widget), 0.0, 0.5);
++      gtk_widget_show (widget);
++      gtk_box_pack_start (GTK_BOX (vbox_power), widget, FALSE, TRUE, 0);
++      gtk_box_reorder_child (GTK_BOX (vbox_power), widget, 0); /* right before box1 */
++
++      /* Move widgets from boxes to grid.  This lets us create combos that
++         span the right length and is generally easier.  Makes integration
++         with upstream code more prickly though.  For example, we shouldn't
++         touch box_header because upstream code references it. */
++      grid = gtk_grid_new ();
++      gtk_grid_set_row_spacing (grid, 9);
++      gtk_grid_set_column_spacing (grid, 9);
++      gtk_widget_show (GTK_WIDGET (grid));
++      widget = WID (self->priv->builder, "box1");
++      gtk_box_pack_start (GTK_BOX (widget), GTK_WIDGET (grid), FALSE, TRUE, 0);
++      gtk_box_reorder_child (GTK_BOX (widget), GTK_WIDGET (grid), 1); /* right after box_header */
++
++      row = 0;
++
++      /* Spacer widget to push rest of widgets right */
++      widget = gtk_label_new ("");
++      gtk_widget_show (widget);
++      g_object_set (widget, "hexpand", TRUE, NULL);
++      gtk_grid_attach (grid, widget, 0, row, 1, 1);
++
++      /* Right-align headers, but left-align the labels */
++      widget = WID (self->priv->builder, "box_header");
++      g_object_set (widget, "halign", GTK_ALIGN_END, NULL);
++      widget = WID (self->priv->builder, "label_header_battery");
++      gtk_misc_set_alignment (GTK_MISC (widget), 0.0, 0.5);
++      widget = WID (self->priv->builder, "label_header_ac");
++      gtk_misc_set_alignment (GTK_MISC (widget), 0.0, 0.5);
++
++      /* Finally, actually move the widgets over */
++
++      widget = WID (self->priv->builder, "label7");
++      g_object_ref (widget);
++      gtk_container_remove (GTK_CONTAINER (gtk_widget_get_parent (widget)), widget);
++      gtk_grid_attach (grid, widget, 1, row, 1, 1);
++      g_object_unref (widget);
++
++      widget = WID (self->priv->builder, "combobox_sleep_battery");
++      g_object_ref (widget);
++      gtk_container_remove (GTK_CONTAINER (gtk_widget_get_parent (widget)), widget);
++      gtk_grid_attach (grid, widget, 2, row, 1, 1);
++      g_object_unref (widget);
++
++      widget = WID (self->priv->builder, "combobox_sleep_ac");
++      g_object_ref (widget);
++      gtk_container_remove (GTK_CONTAINER (gtk_widget_get_parent (widget)), widget);
++      gtk_grid_attach (grid, widget, 3, row, 1, 1);
++      g_object_unref (widget);
++
++      row++;
++
++      widget = WID (self->priv->builder, "label_lid_action");
++      g_object_ref (widget);
++      gtk_container_remove (GTK_CONTAINER (gtk_widget_get_parent (widget)), widget);
++      gtk_grid_attach (grid, widget, 1, row, 1, 1);
++      g_object_unref (widget);
++
++      widget = WID (self->priv->builder, "combobox_lid_battery");
++      g_object_ref (widget);
++      gtk_container_remove (GTK_CONTAINER (gtk_widget_get_parent (widget)), widget);
++      gtk_grid_attach (grid, widget, 2, row, 1, 1);
++      g_object_unref (widget);
++
++      widget = WID (self->priv->builder, "combobox_lid_ac");
++      g_object_ref (widget);
++      gtk_container_remove (GTK_CONTAINER (gtk_widget_get_parent (widget)), widget);
++      gtk_grid_attach (grid, widget, 3, row, 1, 1);
++      g_object_unref (widget);
++
++      row++;
++
++      widget = WID (self->priv->builder, "label5");
++      g_object_ref (widget);
++      gtk_container_remove (GTK_CONTAINER (gtk_widget_get_parent (widget)), widget);
++      gtk_grid_attach (grid, widget, 1, row, 1, 1);
++      g_object_unref (widget);
++      /* Hide, as the design mockups don't include this widget */
++      gtk_widget_hide (widget);
++
++      widget = WID (self->priv->builder, "combobox_critical");
++      g_object_ref (widget);
++      gtk_container_remove (GTK_CONTAINER (gtk_widget_get_parent (widget)), widget);
++      gtk_grid_attach (grid, widget, 2, row, 1, 1);
++      g_object_unref (widget);
++      /* Hide, as the design mockups don't include this widget */
++      gtk_widget_hide (widget);
++
++      row++;
++
++      /* OK, we're done re-arranging upstream's widgets.  Now let's add our own. */
++
++      separator = gtk_separator_new (GTK_ORIENTATION_HORIZONTAL);
++      gtk_widget_show (separator);
++      gtk_grid_attach (grid, separator, 0, row, 4, 1);
++
++      row++;
++
++      label = gtk_label_new_with_mnemonic (_("Show battery status in the _menu bar:"));
++      g_object_set (G_OBJECT (label), "halign", GTK_ALIGN_END, NULL);
++      label_group = GTK_SIZE_GROUP (gtk_builder_get_object (self->priv->builder, "sizegroup_labels"));
++      gtk_size_group_add_widget (label_group, label);
++      gtk_widget_show (label);
++      gtk_grid_attach (grid, label, 1, row, 1, 1);
++
++      combo = gtk_combo_box_text_new ();
++      gtk_combo_box_text_append (GTK_COMBO_BOX_TEXT (combo), "present",
++                                 _("When battery is present"));
++      gtk_combo_box_text_append (GTK_COMBO_BOX_TEXT (combo), "charge",
++                                 _("When battery is charging/in use"));
++      gtk_combo_box_text_append (GTK_COMBO_BOX_TEXT (combo), "never",
++                                 _("Never"));
++      gtk_widget_show (combo);
++      gtk_grid_attach (grid, combo, 2, row, 2, 1);
++      gtk_label_set_mnemonic_widget (GTK_LABEL (label), combo);
++
++      self->priv->power_settings = g_settings_new ("com.canonical.indicator.power");
++      g_settings_bind (self->priv->power_settings, "icon-policy",
++                       combo, "active-id", G_SETTINGS_BIND_DEFAULT);
++    }
+ }
+ 
+ void
