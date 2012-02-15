@@ -1,5 +1,19 @@
 gnome-control-center (1:3.3.5-0ubuntu1) UNRELEASED; urgency=low
 
+  [ Sebastien Bacher ]
+  * debian/patches/revert_git_datetime_port.patch:
+    - revert use of datetimed, we don't use systemd and ubuntu-system-service 
+      doesn't support it yet
+  * debian/patches/revert_git_drop_library.patch:
+    - consolidate "01_allow_external_panels.patch", don't drop the library
+      we use it from other components on ubuntu, the patch will be improved
+      later to not use a copy of files like it does in that version
+  * debian/patches/revert_git_stop_using_gconf.patch,
+    debian/patches/revert_ua_gsettings.patch,
+    debian/patches/revert_git_keyboard_gsettings.patch:
+    - revert keyboard porting to gsettings, compiz still use gconf and we
+      didn't update gnome-shell to the new serie (yet)
+
   [ Jeremy Bicha ]
   * New upstream release (Thanks Rico Tzchichholz!)
   * debian/control.in:
@@ -24,7 +38,7 @@ gnome-control-center (1:3.3.5-0ubuntu1) UNRELEASED; urgency=low
     - 95_git_ctrlw_shortcut.patch
     - git_extra_keywords.patch
 
- -- Jeremy Bicha <jbicha@ubuntu.com>  Sun, 12 Feb 2012 10:52:47 -0500
+ -- Sebastien Bacher <seb128@ubuntu.com>  Wed, 15 Feb 2012 16:20:36 +0100
 
 gnome-control-center (1:3.2.2-2ubuntu10) precise; urgency=low
 

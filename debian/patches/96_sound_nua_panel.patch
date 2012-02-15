@@ -1,9 +1,19 @@
 === modified file 'configure.ac'
-Index: gnome-control-center/configure.ac
+Index: gnome-control-center-3.3.5/configure.ac
 ===================================================================
---- gnome-control-center.orig/configure.ac	2012-02-10 14:39:56.993601000 -0500
-+++ gnome-control-center/configure.ac	2012-02-10 14:39:56.993601000 -0500
-@@ -337,6 +337,9 @@
+--- gnome-control-center-3.3.5.orig/configure.ac	2012-02-15 17:41:30.118735029 +0100
++++ gnome-control-center-3.3.5/configure.ac	2012-02-15 17:42:10.638736990 +0100
+@@ -123,7 +123,8 @@
+                   libcanberra-gtk3 >= $CANBERRA_REQUIRED_VERSION
+                   libpulse >= $PA_REQUIRED_VERSION
+                   libpulse-mainloop-glib >= $PA_REQUIRED_VERSION
+-                  gsettings-desktop-schemas >= $SCHEMAS_REQUIRED_VERSION)
++                  gsettings-desktop-schemas >= $SCHEMAS_REQUIRED_VERSION
++                  gconf-2.0)
+ PKG_CHECK_MODULES(UNIVERSAL_ACCESS_PANEL, $COMMON_MODULES gsettings-desktop-schemas >= $SCHEMAS_REQUIRED_VERSION)
+ PKG_CHECK_MODULES(USER_ACCOUNTS_PANEL, $COMMON_MODULES dbus-glib-1
+                   polkit-gobject-1 >= $POLKIT_REQUIRED_VERSION
+@@ -349,6 +350,9 @@
  panels/online-accounts/icons/32x32/Makefile
  panels/online-accounts/icons/48x48/Makefile
  panels/online-accounts/icons/256x256/Makefile
@@ -13,11 +23,11 @@ Index: gnome-control-center/configure.ac
  panels/sound/Makefile
  panels/sound/data/Makefile
  panels/sound/data/gnome-sound-panel.desktop.in
-Index: gnome-control-center/panels/Makefile.am
+Index: gnome-control-center-3.3.5/panels/Makefile.am
 ===================================================================
---- gnome-control-center.orig/panels/Makefile.am	2012-02-10 14:39:56.993601000 -0500
-+++ gnome-control-center/panels/Makefile.am	2012-02-10 14:39:56.993601000 -0500
-@@ -11,6 +11,7 @@
+--- gnome-control-center-3.3.5.orig/panels/Makefile.am	2012-01-30 15:13:19.000000000 +0100
++++ gnome-control-center-3.3.5/panels/Makefile.am	2012-02-15 17:41:30.138735031 +0100
+@@ -10,6 +10,7 @@
  	region \
  	info \
  	sound \
@@ -25,10 +35,10 @@ Index: gnome-control-center/panels/Makefile.am
  	keyboard \
  	universal-access \
  	user-accounts \
-Index: gnome-control-center/panels/sound-nua/Makefile.am
+Index: gnome-control-center-3.3.5/panels/sound-nua/Makefile.am
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center/panels/sound-nua/Makefile.am	2012-02-10 14:39:56.993601000 -0500
++++ gnome-control-center-3.3.5/panels/sound-nua/Makefile.am	2012-02-15 17:41:30.138735031 +0100
 @@ -0,0 +1,93 @@
 +SUBDIRS = data
 +
@@ -123,10 +133,10 @@ Index: gnome-control-center/panels/sound-nua/Makefile.am
 +        Makefile.in
 +
 +-include $(top_srcdir)/git.mk
-Index: gnome-control-center/panels/sound-nua/applet-main.c
+Index: gnome-control-center-3.3.5/panels/sound-nua/applet-main.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center/panels/sound-nua/applet-main.c	2012-02-10 14:39:56.993601000 -0500
++++ gnome-control-center-3.3.5/panels/sound-nua/applet-main.c	2012-02-15 17:41:30.138735031 +0100
 @@ -0,0 +1,110 @@
 +/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 8 -*-
 + *
@@ -238,10 +248,10 @@ Index: gnome-control-center/panels/sound-nua/applet-main.c
 +
 +        return 0;
 +}
-Index: gnome-control-center/panels/sound-nua/cc-sound-panel.c
+Index: gnome-control-center-3.3.5/panels/sound-nua/cc-sound-panel.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center/panels/sound-nua/cc-sound-panel.c	2012-02-10 14:39:56.993601000 -0500
++++ gnome-control-center-3.3.5/panels/sound-nua/cc-sound-panel.c	2012-02-15 17:41:30.142735031 +0100
 @@ -0,0 +1,141 @@
 +/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 8 -*-
 + *
@@ -384,10 +394,10 @@ Index: gnome-control-center/panels/sound-nua/cc-sound-panel.c
 +{
 +}
 +
-Index: gnome-control-center/panels/sound-nua/cc-sound-panel.h
+Index: gnome-control-center-3.3.5/panels/sound-nua/cc-sound-panel.h
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center/panels/sound-nua/cc-sound-panel.h	2012-02-10 14:39:56.993601000 -0500
++++ gnome-control-center-3.3.5/panels/sound-nua/cc-sound-panel.h	2012-02-15 17:41:30.142735031 +0100
 @@ -0,0 +1,60 @@
 +/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 8 -*-
 + *
@@ -449,10 +459,10 @@ Index: gnome-control-center/panels/sound-nua/cc-sound-panel.h
 +
 +#endif /* _CC_SOUND_PANEL_H */
 +
-Index: gnome-control-center/panels/sound-nua/data/Makefile.am
+Index: gnome-control-center-3.3.5/panels/sound-nua/data/Makefile.am
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center/panels/sound-nua/data/Makefile.am	2012-02-10 14:39:56.993601000 -0500
++++ gnome-control-center-3.3.5/panels/sound-nua/data/Makefile.am	2012-02-15 17:41:30.142735031 +0100
 @@ -0,0 +1,17 @@
 +NULL =
 +
@@ -471,10 +481,10 @@ Index: gnome-control-center/panels/sound-nua/data/Makefile.am
 +	$(NULL)
 +
 +-include $(top_srcdir)/git.mk
-Index: gnome-control-center/panels/sound-nua/data/gnome-sound-nua-panel.desktop.in.in
+Index: gnome-control-center-3.3.5/panels/sound-nua/data/gnome-sound-nua-panel.desktop.in.in
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center/panels/sound-nua/data/gnome-sound-nua-panel.desktop.in.in	2012-02-10 14:39:56.993601000 -0500
++++ gnome-control-center-3.3.5/panels/sound-nua/data/gnome-sound-nua-panel.desktop.in.in	2012-02-15 17:41:30.142735031 +0100
 @@ -0,0 +1,17 @@
 +[Desktop Entry]
 +_Name=Sound
@@ -493,10 +503,10 @@ Index: gnome-control-center/panels/sound-nua/data/gnome-sound-nua-panel.desktop.
 +X-GNOME-Settings-Panel=sound-nua
 +# Translators: those are keywords for the sound control-center panel
 +_X-GNOME-Keywords=Card;Microphone;Volume;Fade;Balance;Bluetooth;Headset;
-Index: gnome-control-center/panels/sound-nua/gvc-applet.c
+Index: gnome-control-center-3.3.5/panels/sound-nua/gvc-applet.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center/panels/sound-nua/gvc-applet.c	2012-02-10 14:39:56.993601000 -0500
++++ gnome-control-center-3.3.5/panels/sound-nua/gvc-applet.c	2012-02-15 17:41:30.142735031 +0100
 @@ -0,0 +1,305 @@
 +/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 8 -*-
 + *
@@ -803,10 +813,10 @@ Index: gnome-control-center/panels/sound-nua/gvc-applet.c
 +
 +        return GVC_APPLET (applet);
 +}
-Index: gnome-control-center/panels/sound-nua/gvc-applet.h
+Index: gnome-control-center-3.3.5/panels/sound-nua/gvc-applet.h
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center/panels/sound-nua/gvc-applet.h	2012-02-10 14:39:56.993601000 -0500
++++ gnome-control-center-3.3.5/panels/sound-nua/gvc-applet.h	2012-02-15 17:41:30.146735030 +0100
 @@ -0,0 +1,55 @@
 +/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 8 -*-
 + *
@@ -863,10 +873,10 @@ Index: gnome-control-center/panels/sound-nua/gvc-applet.h
 +G_END_DECLS
 +
 +#endif /* __GVC_APPLET_H */
-Index: gnome-control-center/panels/sound-nua/gvc-balance-bar.c
+Index: gnome-control-center-3.3.5/panels/sound-nua/gvc-balance-bar.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center/panels/sound-nua/gvc-balance-bar.c	2012-02-10 14:39:56.993601000 -0500
++++ gnome-control-center-3.3.5/panels/sound-nua/gvc-balance-bar.c	2012-02-15 17:41:30.146735030 +0100
 @@ -0,0 +1,556 @@
 +/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 8 -*-
 + *
@@ -1424,10 +1434,10 @@ Index: gnome-control-center/panels/sound-nua/gvc-balance-bar.c
 +
 +        return GTK_WIDGET (bar);
 +}
-Index: gnome-control-center/panels/sound-nua/gvc-balance-bar.h
+Index: gnome-control-center-3.3.5/panels/sound-nua/gvc-balance-bar.h
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center/panels/sound-nua/gvc-balance-bar.h	2012-02-10 14:39:56.993601000 -0500
++++ gnome-control-center-3.3.5/panels/sound-nua/gvc-balance-bar.h	2012-02-15 17:41:30.146735030 +0100
 @@ -0,0 +1,70 @@
 +/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 8 -*-
 + *
@@ -1499,10 +1509,10 @@ Index: gnome-control-center/panels/sound-nua/gvc-balance-bar.h
 +G_END_DECLS
 +
 +#endif /* __GVC_BALANCE_BAR_H */
-Index: gnome-control-center/panels/sound-nua/gvc-channel-bar.c
+Index: gnome-control-center-3.3.5/panels/sound-nua/gvc-channel-bar.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center/panels/sound-nua/gvc-channel-bar.c	2012-02-10 14:39:56.993601000 -0500
++++ gnome-control-center-3.3.5/panels/sound-nua/gvc-channel-bar.c	2012-02-15 17:41:30.150735030 +0100
 @@ -0,0 +1,963 @@
 +/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 8 -*-
 + *
@@ -2467,10 +2477,10 @@ Index: gnome-control-center/panels/sound-nua/gvc-channel-bar.c
 +                            NULL);
 +        return GTK_WIDGET (bar);
 +}
-Index: gnome-control-center/panels/sound-nua/gvc-channel-bar.h
+Index: gnome-control-center-3.3.5/panels/sound-nua/gvc-channel-bar.h
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center/panels/sound-nua/gvc-channel-bar.h	2012-02-10 14:39:56.993601000 -0500
++++ gnome-control-center-3.3.5/panels/sound-nua/gvc-channel-bar.h	2012-02-15 17:41:30.150735030 +0100
 @@ -0,0 +1,89 @@
 +/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 8 -*-
 + *
@@ -2561,10 +2571,10 @@ Index: gnome-control-center/panels/sound-nua/gvc-channel-bar.h
 +G_END_DECLS
 +
 +#endif /* __GVC_CHANNEL_BAR_H */
-Index: gnome-control-center/panels/sound-nua/gvc-channel-map-private.h
+Index: gnome-control-center-3.3.5/panels/sound-nua/gvc-channel-map-private.h
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center/panels/sound-nua/gvc-channel-map-private.h	2012-02-10 14:39:56.993601000 -0500
++++ gnome-control-center-3.3.5/panels/sound-nua/gvc-channel-map-private.h	2012-02-15 17:41:30.150735030 +0100
 @@ -0,0 +1,39 @@
 +/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 8 -*-
 + *
@@ -2605,10 +2615,10 @@ Index: gnome-control-center/panels/sound-nua/gvc-channel-map-private.h
 +G_END_DECLS
 +
 +#endif /* __GVC_CHANNEL_MAP_PRIVATE_H */
-Index: gnome-control-center/panels/sound-nua/gvc-channel-map.c
+Index: gnome-control-center-3.3.5/panels/sound-nua/gvc-channel-map.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center/panels/sound-nua/gvc-channel-map.c	2012-02-10 14:39:56.993601000 -0500
++++ gnome-control-center-3.3.5/panels/sound-nua/gvc-channel-map.c	2012-02-15 17:41:30.150735030 +0100
 @@ -0,0 +1,254 @@
 +/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 8 -*-
 + *
@@ -2864,10 +2874,10 @@ Index: gnome-control-center/panels/sound-nua/gvc-channel-map.c
 +
 +        return GVC_CHANNEL_MAP (map);
 +}
-Index: gnome-control-center/panels/sound-nua/gvc-channel-map.h
+Index: gnome-control-center-3.3.5/panels/sound-nua/gvc-channel-map.h
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center/panels/sound-nua/gvc-channel-map.h	2012-02-10 14:39:56.993601000 -0500
++++ gnome-control-center-3.3.5/panels/sound-nua/gvc-channel-map.h	2012-02-15 17:41:30.150735030 +0100
 @@ -0,0 +1,73 @@
 +/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 8 -*-
 + *
@@ -2942,10 +2952,10 @@ Index: gnome-control-center/panels/sound-nua/gvc-channel-map.h
 +G_END_DECLS
 +
 +#endif /* __GVC_CHANNEL_MAP_H */
-Index: gnome-control-center/panels/sound-nua/gvc-combo-box.c
+Index: gnome-control-center-3.3.5/panels/sound-nua/gvc-combo-box.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center/panels/sound-nua/gvc-combo-box.c	2012-02-10 14:39:56.993601000 -0500
++++ gnome-control-center-3.3.5/panels/sound-nua/gvc-combo-box.c	2012-02-15 17:41:30.150735030 +0100
 @@ -0,0 +1,398 @@
 +/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 8 -*-
 + *
@@ -3345,10 +3355,10 @@ Index: gnome-control-center/panels/sound-nua/gvc-combo-box.c
 +        return GTK_WIDGET (combo_box);
 +}
 +
-Index: gnome-control-center/panels/sound-nua/gvc-combo-box.h
+Index: gnome-control-center-3.3.5/panels/sound-nua/gvc-combo-box.h
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center/panels/sound-nua/gvc-combo-box.h	2012-02-10 14:39:56.993601000 -0500
++++ gnome-control-center-3.3.5/panels/sound-nua/gvc-combo-box.h	2012-02-15 17:41:30.154735031 +0100
 @@ -0,0 +1,66 @@
 +/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 8 -*-
 + *
@@ -3416,10 +3426,10 @@ Index: gnome-control-center/panels/sound-nua/gvc-combo-box.h
 +G_END_DECLS
 +
 +#endif /* __GVC_COMBO_BOX_H */
-Index: gnome-control-center/panels/sound-nua/gvc-level-bar.c
+Index: gnome-control-center-3.3.5/panels/sound-nua/gvc-level-bar.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center/panels/sound-nua/gvc-level-bar.c	2012-02-10 14:39:56.993601000 -0500
++++ gnome-control-center-3.3.5/panels/sound-nua/gvc-level-bar.c	2012-02-15 17:41:30.154735031 +0100
 @@ -0,0 +1,770 @@
 +/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 8 -*-
 + *
@@ -4191,10 +4201,10 @@ Index: gnome-control-center/panels/sound-nua/gvc-level-bar.c
 +                            NULL);
 +        return GTK_WIDGET (bar);
 +}
-Index: gnome-control-center/panels/sound-nua/gvc-level-bar.h
+Index: gnome-control-center-3.3.5/panels/sound-nua/gvc-level-bar.h
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center/panels/sound-nua/gvc-level-bar.h	2012-02-10 14:39:56.993601000 -0500
++++ gnome-control-center-3.3.5/panels/sound-nua/gvc-level-bar.h	2012-02-15 17:41:30.154735031 +0100
 @@ -0,0 +1,75 @@
 +/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 8 -*-
 + *
@@ -4271,10 +4281,10 @@ Index: gnome-control-center/panels/sound-nua/gvc-level-bar.h
 +G_END_DECLS
 +
 +#endif /* __GVC_LEVEL_BAR_H */
-Index: gnome-control-center/panels/sound-nua/gvc-log.c
+Index: gnome-control-center-3.3.5/panels/sound-nua/gvc-log.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center/panels/sound-nua/gvc-log.c	2012-02-10 14:39:56.993601000 -0500
++++ gnome-control-center-3.3.5/panels/sound-nua/gvc-log.c	2012-02-15 17:41:30.154735031 +0100
 @@ -0,0 +1,64 @@
 +/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 8 -*-
 + *
@@ -4340,10 +4350,10 @@ Index: gnome-control-center/panels/sound-nua/gvc-log.c
 +                log_levels &= ~ (G_LOG_LEVEL_DEBUG | G_LOG_LEVEL_INFO);
 +        }
 +}
-Index: gnome-control-center/panels/sound-nua/gvc-log.h
+Index: gnome-control-center-3.3.5/panels/sound-nua/gvc-log.h
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center/panels/sound-nua/gvc-log.h	2012-02-10 14:39:56.993601000 -0500
++++ gnome-control-center-3.3.5/panels/sound-nua/gvc-log.h	2012-02-15 17:41:30.154735031 +0100
 @@ -0,0 +1,35 @@
 +/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 8 -*-
 + *
@@ -4380,10 +4390,10 @@ Index: gnome-control-center/panels/sound-nua/gvc-log.h
 +G_END_DECLS
 +
 +#endif /* __GVC_LOG_H */
-Index: gnome-control-center/panels/sound-nua/gvc-mixer-card-private.h
+Index: gnome-control-center-3.3.5/panels/sound-nua/gvc-mixer-card-private.h
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center/panels/sound-nua/gvc-mixer-card-private.h	2012-02-10 14:39:56.993601000 -0500
++++ gnome-control-center-3.3.5/panels/sound-nua/gvc-mixer-card-private.h	2012-02-15 17:41:30.154735031 +0100
 @@ -0,0 +1,35 @@
 +/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 8 -*-
 + *
@@ -4420,10 +4430,10 @@ Index: gnome-control-center/panels/sound-nua/gvc-mixer-card-private.h
 +G_END_DECLS
 +
 +#endif /* __GVC_MIXER_CARD_PRIVATE_H */
-Index: gnome-control-center/panels/sound-nua/gvc-mixer-card.c
+Index: gnome-control-center-3.3.5/panels/sound-nua/gvc-mixer-card.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center/panels/sound-nua/gvc-mixer-card.c	2012-02-10 14:39:56.993601000 -0500
++++ gnome-control-center-3.3.5/panels/sound-nua/gvc-mixer-card.c	2012-02-15 17:41:30.154735031 +0100
 @@ -0,0 +1,549 @@
 +/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 8 -*-
 + *
@@ -4974,10 +4984,10 @@ Index: gnome-control-center/panels/sound-nua/gvc-mixer-card.c
 +        G_OBJECT_CLASS (gvc_mixer_card_parent_class)->finalize (object);
 +}
 +
-Index: gnome-control-center/panels/sound-nua/gvc-mixer-card.h
+Index: gnome-control-center-3.3.5/panels/sound-nua/gvc-mixer-card.h
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center/panels/sound-nua/gvc-mixer-card.h	2012-02-10 14:39:56.993601000 -0500
++++ gnome-control-center-3.3.5/panels/sound-nua/gvc-mixer-card.h	2012-02-15 17:41:30.154735031 +0100
 @@ -0,0 +1,108 @@
 +/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 8 -*-
 + *
@@ -5087,10 +5097,10 @@ Index: gnome-control-center/panels/sound-nua/gvc-mixer-card.h
 +G_END_DECLS
 +
 +#endif /* __GVC_MIXER_CARD_H */
-Index: gnome-control-center/panels/sound-nua/gvc-mixer-control-private.h
+Index: gnome-control-center-3.3.5/panels/sound-nua/gvc-mixer-control-private.h
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center/panels/sound-nua/gvc-mixer-control-private.h	2012-02-10 14:39:56.993601000 -0500
++++ gnome-control-center-3.3.5/panels/sound-nua/gvc-mixer-control-private.h	2012-02-15 17:41:30.158735031 +0100
 @@ -0,0 +1,35 @@
 +/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 8 -*-
 + *
@@ -5127,10 +5137,10 @@ Index: gnome-control-center/panels/sound-nua/gvc-mixer-control-private.h
 +G_END_DECLS
 +
 +#endif /* __GVC_MIXER_CONTROL_PRIVATE_H */
-Index: gnome-control-center/panels/sound-nua/gvc-mixer-control.c
+Index: gnome-control-center-3.3.5/panels/sound-nua/gvc-mixer-control.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center/panels/sound-nua/gvc-mixer-control.c	2012-02-10 14:40:47.385282961 -0500
++++ gnome-control-center-3.3.5/panels/sound-nua/gvc-mixer-control.c	2012-02-15 17:41:30.162735031 +0100
 @@ -0,0 +1,3342 @@
 +/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 8 -*-
 + *
@@ -8474,10 +8484,10 @@ Index: gnome-control-center/panels/sound-nua/gvc-mixer-control.c
 +{
 +	return (gdouble) PA_VOLUME_UI_MAX;
 +}
-Index: gnome-control-center/panels/sound-nua/gvc-mixer-control.h
+Index: gnome-control-center-3.3.5/panels/sound-nua/gvc-mixer-control.h
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center/panels/sound-nua/gvc-mixer-control.h	2012-02-10 14:39:56.993601000 -0500
++++ gnome-control-center-3.3.5/panels/sound-nua/gvc-mixer-control.h	2012-02-15 17:41:30.162735031 +0100
 @@ -0,0 +1,139 @@
 +/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 8 -*-
 + *
@@ -8618,10 +8628,10 @@ Index: gnome-control-center/panels/sound-nua/gvc-mixer-control.h
 +G_END_DECLS
 +
 +#endif /* __GVC_MIXER_CONTROL_H */
-Index: gnome-control-center/panels/sound-nua/gvc-mixer-dialog.c
+Index: gnome-control-center-3.3.5/panels/sound-nua/gvc-mixer-dialog.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center/panels/sound-nua/gvc-mixer-dialog.c	2012-02-14 13:55:14.673130208 -0500
++++ gnome-control-center-3.3.5/panels/sound-nua/gvc-mixer-dialog.c	2012-02-15 17:41:30.166735031 +0100
 @@ -0,0 +1,2209 @@
 +/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 8 -*-
 + *
@@ -10832,10 +10842,10 @@ Index: gnome-control-center/panels/sound-nua/gvc-mixer-dialog.c
 +
 +        return TRUE;
 +}
-Index: gnome-control-center/panels/sound-nua/gvc-mixer-dialog.h
+Index: gnome-control-center-3.3.5/panels/sound-nua/gvc-mixer-dialog.h
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center/panels/sound-nua/gvc-mixer-dialog.h	2012-02-10 14:39:56.993601000 -0500
++++ gnome-control-center-3.3.5/panels/sound-nua/gvc-mixer-dialog.h	2012-02-15 17:41:30.166735031 +0100
 @@ -0,0 +1,56 @@
 +/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 8 -*-
 + *
@@ -10893,10 +10903,10 @@ Index: gnome-control-center/panels/sound-nua/gvc-mixer-dialog.h
 +G_END_DECLS
 +
 +#endif /* __GVC_MIXER_DIALOG_H */
-Index: gnome-control-center/panels/sound-nua/gvc-mixer-event-role.c
+Index: gnome-control-center-3.3.5/panels/sound-nua/gvc-mixer-event-role.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center/panels/sound-nua/gvc-mixer-event-role.c	2012-02-10 14:39:56.993601000 -0500
++++ gnome-control-center-3.3.5/panels/sound-nua/gvc-mixer-event-role.c	2012-02-15 17:41:30.166735031 +0100
 @@ -0,0 +1,231 @@
 +/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 8 -*-
 + *
@@ -11129,10 +11139,10 @@ Index: gnome-control-center/panels/sound-nua/gvc-mixer-event-role.c
 +
 +        return GVC_MIXER_STREAM (object);
 +}
-Index: gnome-control-center/panels/sound-nua/gvc-mixer-event-role.h
+Index: gnome-control-center-3.3.5/panels/sound-nua/gvc-mixer-event-role.h
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center/panels/sound-nua/gvc-mixer-event-role.h	2012-02-10 14:39:56.993601000 -0500
++++ gnome-control-center-3.3.5/panels/sound-nua/gvc-mixer-event-role.h	2012-02-15 17:41:30.166735031 +0100
 @@ -0,0 +1,57 @@
 +/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 8 -*-
 + *
@@ -11191,10 +11201,10 @@ Index: gnome-control-center/panels/sound-nua/gvc-mixer-event-role.h
 +G_END_DECLS
 +
 +#endif /* __GVC_MIXER_EVENT_ROLE_H */
-Index: gnome-control-center/panels/sound-nua/gvc-mixer-sink-input.c
+Index: gnome-control-center-3.3.5/panels/sound-nua/gvc-mixer-sink-input.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center/panels/sound-nua/gvc-mixer-sink-input.c	2012-02-10 14:39:56.993601000 -0500
++++ gnome-control-center-3.3.5/panels/sound-nua/gvc-mixer-sink-input.c	2012-02-15 17:41:30.166735031 +0100
 @@ -0,0 +1,166 @@
 +/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 8 -*-
 + *
@@ -11362,10 +11372,10 @@ Index: gnome-control-center/panels/sound-nua/gvc-mixer-sink-input.c
 +
 +        return GVC_MIXER_STREAM (object);
 +}
-Index: gnome-control-center/panels/sound-nua/gvc-mixer-sink-input.h
+Index: gnome-control-center-3.3.5/panels/sound-nua/gvc-mixer-sink-input.h
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center/panels/sound-nua/gvc-mixer-sink-input.h	2012-02-10 14:39:56.993601000 -0500
++++ gnome-control-center-3.3.5/panels/sound-nua/gvc-mixer-sink-input.h	2012-02-15 17:41:30.166735031 +0100
 @@ -0,0 +1,57 @@
 +/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 8 -*-
 + *
@@ -11424,10 +11434,10 @@ Index: gnome-control-center/panels/sound-nua/gvc-mixer-sink-input.h
 +G_END_DECLS
 +
 +#endif /* __GVC_MIXER_SINK_INPUT_H */
-Index: gnome-control-center/panels/sound-nua/gvc-mixer-sink.c
+Index: gnome-control-center-3.3.5/panels/sound-nua/gvc-mixer-sink.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center/panels/sound-nua/gvc-mixer-sink.c	2012-02-10 14:39:56.993601000 -0500
++++ gnome-control-center-3.3.5/panels/sound-nua/gvc-mixer-sink.c	2012-02-15 17:41:30.166735031 +0100
 @@ -0,0 +1,196 @@
 +/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 8 -*-
 + *
@@ -11625,10 +11635,10 @@ Index: gnome-control-center/panels/sound-nua/gvc-mixer-sink.c
 +
 +        return GVC_MIXER_STREAM (object);
 +}
-Index: gnome-control-center/panels/sound-nua/gvc-mixer-sink.h
+Index: gnome-control-center-3.3.5/panels/sound-nua/gvc-mixer-sink.h
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center/panels/sound-nua/gvc-mixer-sink.h	2012-02-10 14:39:56.993601000 -0500
++++ gnome-control-center-3.3.5/panels/sound-nua/gvc-mixer-sink.h	2012-02-15 17:41:30.166735031 +0100
 @@ -0,0 +1,57 @@
 +/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 8 -*-
 + *
@@ -11687,10 +11697,10 @@ Index: gnome-control-center/panels/sound-nua/gvc-mixer-sink.h
 +G_END_DECLS
 +
 +#endif /* __GVC_MIXER_SINK_H */
-Index: gnome-control-center/panels/sound-nua/gvc-mixer-source-output.c
+Index: gnome-control-center-3.3.5/panels/sound-nua/gvc-mixer-source-output.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center/panels/sound-nua/gvc-mixer-source-output.c	2012-02-10 14:39:56.993601000 -0500
++++ gnome-control-center-3.3.5/panels/sound-nua/gvc-mixer-source-output.c	2012-02-15 17:41:30.166735031 +0100
 @@ -0,0 +1,121 @@
 +/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 8 -*-
 + *
@@ -11813,10 +11823,10 @@ Index: gnome-control-center/panels/sound-nua/gvc-mixer-source-output.c
 +
 +        return GVC_MIXER_STREAM (object);
 +}
-Index: gnome-control-center/panels/sound-nua/gvc-mixer-source-output.h
+Index: gnome-control-center-3.3.5/panels/sound-nua/gvc-mixer-source-output.h
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center/panels/sound-nua/gvc-mixer-source-output.h	2012-02-10 14:39:56.993601000 -0500
++++ gnome-control-center-3.3.5/panels/sound-nua/gvc-mixer-source-output.h	2012-02-15 17:41:30.166735031 +0100
 @@ -0,0 +1,57 @@
 +/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 8 -*-
 + *
@@ -11875,10 +11885,10 @@ Index: gnome-control-center/panels/sound-nua/gvc-mixer-source-output.h
 +G_END_DECLS
 +
 +#endif /* __GVC_MIXER_SOURCE_OUTPUT_H */
-Index: gnome-control-center/panels/sound-nua/gvc-mixer-source.c
+Index: gnome-control-center-3.3.5/panels/sound-nua/gvc-mixer-source.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center/panels/sound-nua/gvc-mixer-source.c	2012-02-10 14:39:56.993601000 -0500
++++ gnome-control-center-3.3.5/panels/sound-nua/gvc-mixer-source.c	2012-02-15 17:41:30.170735031 +0100
 @@ -0,0 +1,196 @@
 +/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 8 -*-
 + *
@@ -12076,10 +12086,10 @@ Index: gnome-control-center/panels/sound-nua/gvc-mixer-source.c
 +
 +        return GVC_MIXER_STREAM (object);
 +}
-Index: gnome-control-center/panels/sound-nua/gvc-mixer-source.h
+Index: gnome-control-center-3.3.5/panels/sound-nua/gvc-mixer-source.h
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center/panels/sound-nua/gvc-mixer-source.h	2012-02-10 14:39:56.993601000 -0500
++++ gnome-control-center-3.3.5/panels/sound-nua/gvc-mixer-source.h	2012-02-15 17:41:30.170735031 +0100
 @@ -0,0 +1,57 @@
 +/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 8 -*-
 + *
@@ -12138,10 +12148,10 @@ Index: gnome-control-center/panels/sound-nua/gvc-mixer-source.h
 +G_END_DECLS
 +
 +#endif /* __GVC_MIXER_SOURCE_H */
-Index: gnome-control-center/panels/sound-nua/gvc-mixer-stream-private.h
+Index: gnome-control-center-3.3.5/panels/sound-nua/gvc-mixer-stream-private.h
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center/panels/sound-nua/gvc-mixer-stream-private.h	2012-02-10 14:39:56.993601000 -0500
++++ gnome-control-center-3.3.5/panels/sound-nua/gvc-mixer-stream-private.h	2012-02-15 17:41:30.170735031 +0100
 @@ -0,0 +1,34 @@
 +/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 8 -*-
 + *
@@ -12177,10 +12187,10 @@ Index: gnome-control-center/panels/sound-nua/gvc-mixer-stream-private.h
 +G_END_DECLS
 +
 +#endif /* __GVC_MIXER_STREAM_PRIVATE_H */
-Index: gnome-control-center/panels/sound-nua/gvc-mixer-stream.c
+Index: gnome-control-center-3.3.5/panels/sound-nua/gvc-mixer-stream.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center/panels/sound-nua/gvc-mixer-stream.c	2012-02-10 14:39:56.993601000 -0500
++++ gnome-control-center-3.3.5/panels/sound-nua/gvc-mixer-stream.c	2012-02-15 17:41:30.170735031 +0100
 @@ -0,0 +1,968 @@
 +/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 8 -*-
 + *
@@ -13150,10 +13160,10 @@ Index: gnome-control-center/panels/sound-nua/gvc-mixer-stream.c
 +
 +        G_OBJECT_CLASS (gvc_mixer_stream_parent_class)->finalize (object);
 +}
-Index: gnome-control-center/panels/sound-nua/gvc-mixer-stream.h
+Index: gnome-control-center-3.3.5/panels/sound-nua/gvc-mixer-stream.h
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center/panels/sound-nua/gvc-mixer-stream.h	2012-02-10 14:39:56.993601000 -0500
++++ gnome-control-center-3.3.5/panels/sound-nua/gvc-mixer-stream.h	2012-02-15 17:41:30.170735031 +0100
 @@ -0,0 +1,128 @@
 +/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 8 -*-
 + *
@@ -13283,10 +13293,10 @@ Index: gnome-control-center/panels/sound-nua/gvc-mixer-stream.h
 +G_END_DECLS
 +
 +#endif /* __GVC_MIXER_STREAM_H */
-Index: gnome-control-center/panels/sound-nua/gvc-mixer-ui-device.c
+Index: gnome-control-center-3.3.5/panels/sound-nua/gvc-mixer-ui-device.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center/panels/sound-nua/gvc-mixer-ui-device.c	2012-02-10 14:40:47.385282961 -0500
++++ gnome-control-center-3.3.5/panels/sound-nua/gvc-mixer-ui-device.c	2012-02-15 17:41:30.174735032 +0100
 @@ -0,0 +1,612 @@
 +/* -*- Mode: C; indent-tabs-mode: t; c-basic-offset: 4; tab-width: 4 -*- */
 +/*
@@ -13900,10 +13910,10 @@ Index: gnome-control-center/panels/sound-nua/gvc-mixer-ui-device.c
 +	return dev->priv->type == UiDeviceOutput;	
 +}
 +
-Index: gnome-control-center/panels/sound-nua/gvc-mixer-ui-device.h
+Index: gnome-control-center-3.3.5/panels/sound-nua/gvc-mixer-ui-device.h
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center/panels/sound-nua/gvc-mixer-ui-device.h	2012-02-10 14:39:56.993601000 -0500
++++ gnome-control-center-3.3.5/panels/sound-nua/gvc-mixer-ui-device.h	2012-02-15 17:41:30.174735032 +0100
 @@ -0,0 +1,74 @@
 +/* -*- Mode: C; indent-tabs-mode: t; c-basic-offset: 4; tab-width: 4 -*- */
 +/*
@@ -13979,10 +13989,10 @@ Index: gnome-control-center/panels/sound-nua/gvc-mixer-ui-device.h
 +G_END_DECLS
 +
 +#endif /* _GVC_MIXER_UI_DEVICE_H_ */
-Index: gnome-control-center/panels/sound-nua/gvc-pulseaudio-fake.h
+Index: gnome-control-center-3.3.5/panels/sound-nua/gvc-pulseaudio-fake.h
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center/panels/sound-nua/gvc-pulseaudio-fake.h	2012-02-10 14:39:56.993601000 -0500
++++ gnome-control-center-3.3.5/panels/sound-nua/gvc-pulseaudio-fake.h	2012-02-15 17:41:30.174735032 +0100
 @@ -0,0 +1,34 @@
 +/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 8 -*-
 + *
@@ -14018,10 +14028,10 @@ Index: gnome-control-center/panels/sound-nua/gvc-pulseaudio-fake.h
 +#endif /* WITH_INTROSPECTION */
 +
 +#endif /* __GVC_PULSEAUDIO_FAKE_H */
-Index: gnome-control-center/panels/sound-nua/gvc-sound-theme-chooser.c
+Index: gnome-control-center-3.3.5/panels/sound-nua/gvc-sound-theme-chooser.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center/panels/sound-nua/gvc-sound-theme-chooser.c	2012-02-14 13:55:14.677130208 -0500
++++ gnome-control-center-3.3.5/panels/sound-nua/gvc-sound-theme-chooser.c	2012-02-15 17:41:30.174735032 +0100
 @@ -0,0 +1,856 @@
 +/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 8 -*-
 + *
@@ -14879,10 +14889,10 @@ Index: gnome-control-center/panels/sound-nua/gvc-sound-theme-chooser.c
 +                                NULL);
 +        return GTK_WIDGET (chooser);
 +}
-Index: gnome-control-center/panels/sound-nua/gvc-sound-theme-chooser.h
+Index: gnome-control-center-3.3.5/panels/sound-nua/gvc-sound-theme-chooser.h
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center/panels/sound-nua/gvc-sound-theme-chooser.h	2012-02-10 14:39:56.993601000 -0500
++++ gnome-control-center-3.3.5/panels/sound-nua/gvc-sound-theme-chooser.h	2012-02-15 17:41:30.174735032 +0100
 @@ -0,0 +1,54 @@
 +/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 8 -*-
 + *
@@ -14938,10 +14948,10 @@ Index: gnome-control-center/panels/sound-nua/gvc-sound-theme-chooser.h
 +G_END_DECLS
 +
 +#endif /* __GVC_SOUND_THEME_CHOOSER_H */
-Index: gnome-control-center/panels/sound-nua/gvc-speaker-test.c
+Index: gnome-control-center-3.3.5/panels/sound-nua/gvc-speaker-test.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center/panels/sound-nua/gvc-speaker-test.c	2012-02-10 14:39:56.993601000 -0500
++++ gnome-control-center-3.3.5/panels/sound-nua/gvc-speaker-test.c	2012-02-15 17:41:30.174735032 +0100
 @@ -0,0 +1,531 @@
 +/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 8 -*-
 + *
@@ -15474,10 +15484,10 @@ Index: gnome-control-center/panels/sound-nua/gvc-speaker-test.c
 +        return GTK_WIDGET (speaker_test);
 +}
 +
-Index: gnome-control-center/panels/sound-nua/gvc-speaker-test.h
+Index: gnome-control-center-3.3.5/panels/sound-nua/gvc-speaker-test.h
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center/panels/sound-nua/gvc-speaker-test.h	2012-02-10 14:39:56.993601000 -0500
++++ gnome-control-center-3.3.5/panels/sound-nua/gvc-speaker-test.h	2012-02-15 17:41:30.174735032 +0100
 @@ -0,0 +1,57 @@
 +/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 8 -*-
 + *
@@ -15536,10 +15546,10 @@ Index: gnome-control-center/panels/sound-nua/gvc-speaker-test.h
 +G_END_DECLS
 +
 +#endif /* __GVC_SPEAKER_TEST_H */
-Index: gnome-control-center/panels/sound-nua/gvc-stream-status-icon.c
+Index: gnome-control-center-3.3.5/panels/sound-nua/gvc-stream-status-icon.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center/panels/sound-nua/gvc-stream-status-icon.c	2012-02-10 14:39:56.993601000 -0500
++++ gnome-control-center-3.3.5/panels/sound-nua/gvc-stream-status-icon.c	2012-02-15 17:41:30.178735032 +0100
 @@ -0,0 +1,780 @@
 +/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 8 -*-
 + *
@@ -16321,10 +16331,10 @@ Index: gnome-control-center/panels/sound-nua/gvc-stream-status-icon.c
 +                             NULL);
 +        return GVC_STREAM_STATUS_ICON (icon);
 +}
-Index: gnome-control-center/panels/sound-nua/gvc-stream-status-icon.h
+Index: gnome-control-center-3.3.5/panels/sound-nua/gvc-stream-status-icon.h
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center/panels/sound-nua/gvc-stream-status-icon.h	2012-02-10 14:39:56.993601000 -0500
++++ gnome-control-center-3.3.5/panels/sound-nua/gvc-stream-status-icon.h	2012-02-15 17:41:30.178735032 +0100
 @@ -0,0 +1,63 @@
 +/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 8 -*-
 + *
@@ -16389,10 +16399,10 @@ Index: gnome-control-center/panels/sound-nua/gvc-stream-status-icon.h
 +G_END_DECLS
 +
 +#endif /* __GVC_STREAM_STATUS_ICON_H */
-Index: gnome-control-center/panels/sound-nua/sound-theme-file-utils.c
+Index: gnome-control-center-3.3.5/panels/sound-nua/sound-theme-file-utils.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center/panels/sound-nua/sound-theme-file-utils.c	2012-02-10 14:39:56.993601000 -0500
++++ gnome-control-center-3.3.5/panels/sound-nua/sound-theme-file-utils.c	2012-02-15 17:41:30.178735032 +0100
 @@ -0,0 +1,305 @@
 +/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 8 -*-
 + * Copyright (C) 2008 Bastien Nocera <hadess@hadess.net>
@@ -16699,10 +16709,10 @@ Index: gnome-control-center/panels/sound-nua/sound-theme-file-utils.c
 +
 +        custom_theme_update_time ();
 +}
-Index: gnome-control-center/panels/sound-nua/sound-theme-file-utils.h
+Index: gnome-control-center-3.3.5/panels/sound-nua/sound-theme-file-utils.h
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center/panels/sound-nua/sound-theme-file-utils.h	2012-02-10 14:39:56.993601000 -0500
++++ gnome-control-center-3.3.5/panels/sound-nua/sound-theme-file-utils.h	2012-02-15 17:41:30.178735032 +0100
 @@ -0,0 +1,37 @@
 +/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 8 -*-
 + * Copyright (C) 2008 Bastien Nocera <hadess@hadess.net>
@@ -16741,10 +16751,10 @@ Index: gnome-control-center/panels/sound-nua/sound-theme-file-utils.h
 +void custom_theme_update_time (void);
 +
 +#endif /* __SOUND_THEME_FILE_UTILS_HH__ */
-Index: gnome-control-center/panels/sound/data/gnome-sound-panel.desktop.in.in
+Index: gnome-control-center-3.3.5/panels/sound/data/gnome-sound-panel.desktop.in.in
 ===================================================================
---- gnome-control-center.orig/panels/sound/data/gnome-sound-panel.desktop.in.in	2012-02-10 14:39:56.993601000 -0500
-+++ gnome-control-center/panels/sound/data/gnome-sound-panel.desktop.in.in	2012-02-10 14:39:56.993601000 -0500
+--- gnome-control-center-3.3.5.orig/panels/sound/data/gnome-sound-panel.desktop.in.in	2012-01-30 15:13:20.000000000 +0100
++++ gnome-control-center-3.3.5/panels/sound/data/gnome-sound-panel.desktop.in.in	2012-02-15 17:41:30.178735032 +0100
 @@ -7,7 +7,7 @@
  Type=Application
  StartupNotify=true

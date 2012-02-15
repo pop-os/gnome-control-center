@@ -1,8 +1,8 @@
-Index: gnome-control-center-3.3.5/shell/gnome-control-center.c
+Index: gnome-control-center-3.1.4/shell/gnome-control-center.c
 ===================================================================
---- gnome-control-center-3.3.5.orig/shell/gnome-control-center.c	2012-02-12 13:38:38.596370763 -0500
-+++ gnome-control-center-3.3.5/shell/gnome-control-center.c	2012-02-12 13:38:45.092402986 -0500
-@@ -197,7 +197,23 @@
+--- gnome-control-center-3.1.4.orig/shell/gnome-control-center.c	2011-07-08 12:10:36.000000000 -0400
++++ gnome-control-center-3.1.4/shell/gnome-control-center.c	2011-07-27 11:11:05.678459013 -0400
+@@ -167,7 +167,23 @@
          }
        else
          {
@@ -27,10 +27,52 @@ Index: gnome-control-center-3.3.5/shell/gnome-control-center.c
          }
      }
  }
-Index: gnome-control-center-3.3.5/shell/libgnome-control-center.pc.in
+Index: gnome-control-center-3.1.4/configure.ac
+===================================================================
+--- gnome-control-center-3.1.4.orig/configure.ac	2011-07-25 14:50:52.000000000 -0400
++++ gnome-control-center-3.1.4/configure.ac	2011-07-27 11:11:05.682459013 -0400
+@@ -303,6 +303,7 @@
+ Makefile
+ help/Makefile
+ libgnome-control-center/Makefile
++libgnome-control-center/libgnome-control-center.pc
+ panels/Makefile
+ panels/common/Makefile
+ panels/background/Makefile
+Index: gnome-control-center-3.1.4/libgnome-control-center/Makefile.am
+===================================================================
+--- gnome-control-center-3.1.4.orig/libgnome-control-center/Makefile.am	2011-07-20 06:53:14.000000000 -0400
++++ gnome-control-center-3.1.4/libgnome-control-center/Makefile.am	2011-07-27 11:11:25.346459221 -0400
+@@ -11,6 +11,11 @@
+ 
+ lib_LTLIBRARIES = libgnome-control-center.la
+ 
++libgnome_control_center_include_HEADERS =      \
++	cc-panel.h                              \
++	cc-shell.h                              \
++	$(NULL)
++
+ libgnome_control_center_la_SOURCES =		\
+ 	cc-panel.c				\
+ 	cc-panel.h				\
+@@ -31,4 +36,13 @@
+ 
+ libgnome_control_center_la_LIBTOOLFLAGS = --tag=disable-static
+ 
++libgnome_control_center_includedir = $(includedir)/gnome-control-center-1/libgnome-control-center
++
++pkgconfigdir=$(libdir)/pkgconfig
++pkgconfig_DATA=libgnome-control-center.pc
++
++EXTRA_DIST =                                   \
++	libgnome-control-center.pc.in  \
++	$(NULL)
++
+ -include $(top_srcdir)/git.mk
+Index: gnome-control-center-3.1.4/libgnome-control-center/libgnome-control-center.pc.in
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center-3.3.5/shell/libgnome-control-center.pc.in	2012-02-12 13:38:45.092402986 -0500
++++ gnome-control-center-3.1.4/libgnome-control-center/libgnome-control-center.pc.in	2011-07-27 11:11:05.682459013 -0400
 @@ -0,0 +1,12 @@
 +prefix=@prefix@
 +exec_prefix=@exec_prefix@
@@ -44,49 +86,3 @@ Index: gnome-control-center-3.3.5/shell/libgnome-control-center.pc.in
 +Requires: glib-2.0 gio-2.0 gtk+-3.0
 +Libs: -L${libdir} -lgnome-control-center
 +Cflags: -I${includedir}/gnome-control-center-1
-Index: gnome-control-center-3.3.5/configure.ac
-===================================================================
---- gnome-control-center-3.3.5.orig/configure.ac	2012-02-12 13:38:38.352369553 -0500
-+++ gnome-control-center-3.3.5/configure.ac	2012-02-12 13:42:22.037478751 -0500
-@@ -417,6 +417,7 @@
- panels/wacom/calibrator/Makefile
- panels/wacom/gnome-wacom-panel.desktop.in
- po/Makefile.in
-+shell/libgnome-control-center.pc
- shell/Makefile
- shell/gnome-control-center.desktop.in
- ])
-Index: gnome-control-center-3.3.5/shell/Makefile.am
-===================================================================
---- gnome-control-center-3.3.5.orig/shell/Makefile.am	2012-01-30 09:13:20.000000000 -0500
-+++ gnome-control-center-3.3.5/shell/Makefile.am	2012-02-12 13:41:25.009195956 -0500
-@@ -35,6 +35,11 @@
- 	cc-shell.h				\
- 	$(MARSHAL_FILES)
- 
-+libgnome_control_center_include_HEADERS =		\
-+	cc-panel.h				\
-+	cc-shell.h				\
-+	$(NULL)
-+
- gnome_control_center_LDADD =			\
- 	$(SHELL_LIBS)
- 
-@@ -65,11 +70,17 @@
- directory_DATA = $(directory_in_files:.directory.in=.directory)
- @INTLTOOL_DIRECTORY_RULE@
- 
-+libgnome_control_center_includedir = $(includedir)/gnome-control-center-1/shell
-+
-+pkgconfigdir=$(libdir)/pkgconfig
-+pkgconfig_DATA=libgnome-control-center.pc
-+
- EXTRA_DIST =					\
- 	$(ui_DATA)				\
- 	gnome-control-center.desktop.in.in	\
- 	gnomecc.directory.in			\
- 	gnomecc.menu.in				\
-+	libgnome-control-center.pc.in		\
- 	cc-shell-marshal.list
- 
- DISTCLEANFILES = gnome-control-center.desktop gnome-control-center.desktop.in gnomecc.directory gnomecc.menu
