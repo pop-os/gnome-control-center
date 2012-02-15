@@ -1,7 +1,7 @@
-diff --git a/panels/color/cc-color-panel.c b/panels/color/cc-color-panel.c
-index 5e31479..e6a823e 100644
---- a/panels/color/cc-color-panel.c
-+++ b/panels/color/cc-color-panel.c
+Index: gnome-control-center-3.3.5/panels/color/cc-color-panel.c
+===================================================================
+--- gnome-control-center-3.3.5.orig/panels/color/cc-color-panel.c	2012-02-12 11:50:31.588203434 -0500
++++ gnome-control-center-3.3.5/panels/color/cc-color-panel.c	2012-02-12 11:51:38.468535067 -0500
 @@ -25,6 +25,7 @@
  #include <colord.h>
  #include <gtk/gtk.h>
@@ -10,17 +10,17 @@ index 5e31479..e6a823e 100644
  
  #include "cc-color-panel.h"
  
-@@ -234,32 +235,148 @@ gcm_prefs_file_chooser_get_icc_profile (CcColorPanel *prefs)
+@@ -260,32 +261,148 @@
  }
  
  static void
 -gcm_prefs_calibrate_cb (GtkWidget *widget, CcColorPanel *prefs)
 +gcm_packagekit_finished_cb (GObject *source, GAsyncResult *res, gpointer user_data)
- {
++{
 +  GPtrArray *argv = (GPtrArray *)user_data;
 +  GVariant *reply;
 +  GError *error = NULL;
-   gboolean ret;
++  gboolean ret;
 +
 +  reply = g_dbus_proxy_call_finish (G_DBUS_PROXY (source), res, &error);
 +  g_variant_unref (reply);
@@ -56,7 +56,7 @@ index 5e31479..e6a823e 100644
 +    (struct gcm_packagekit_closure_data *)user_data;
 +  GDBusProxy *session_installer;
 +  GVariantBuilder *builder;
-   GError *error = NULL;
++  GError *error = NULL;
 +
 +  session_installer = g_dbus_proxy_new_for_bus_finish (res, &error);
 +  if (error != NULL)
@@ -112,9 +112,9 @@ index 5e31479..e6a823e 100644
 +
 +static void
 +gcm_prefs_run_maybe_install (guint xid, gchar *filename, GPtrArray *argv)
-+{
-+  gboolean ret;
-+  GError *error = NULL;
+ {
+   gboolean ret;
+   GError *error = NULL;
 +
 +  ret = g_spawn_async (NULL, (gchar**) argv->pdata, NULL, 0,
 +                       NULL, NULL, NULL, &error);
@@ -168,7 +168,7 @@ index 5e31479..e6a823e 100644
    g_ptr_array_unref (argv);
  }
  
-@@ -551,10 +668,9 @@ gcm_prefs_profile_view_cb (GtkWidget *widget, CcColorPanel *prefs)
+@@ -621,10 +738,9 @@
    GtkTreeModel *model;
    GtkTreeSelection *selection;
    gchar *options = NULL;
@@ -180,7 +180,7 @@ index 5e31479..e6a823e 100644
    CcColorPanelPrivate *priv = prefs->priv;
  
    /* get the selected row */
-@@ -572,21 +688,17 @@ gcm_prefs_profile_view_cb (GtkWidget *widget, CcColorPanel *prefs)
+@@ -642,21 +758,17 @@
    /* get xid */
    xid = gdk_x11_window_get_xid (gtk_widget_get_window (GTK_WIDGET (priv->main_window)));
  
@@ -204,9 +204,9 @@ index 5e31479..e6a823e 100644
 +
 +  gcm_prefs_run_maybe_install (xid, viewer_filename, argv);
  
-   if (argv != NULL)
-     g_ptr_array_unref (argv);
-@@ -896,7 +1008,6 @@ gcm_prefs_profile_clicked (CcColorPanel *prefs, CdProfile *profile, CdDevice *de
+   g_ptr_array_unref (argv);
+   g_free (options);
+@@ -965,7 +1077,6 @@
  {
    GtkWidget *widget;
    CdDeviceRelation relation;
@@ -214,7 +214,7 @@ index 5e31479..e6a823e 100644
    CcColorPanelPrivate *priv = prefs->priv;
  
    /* get profile */
-@@ -927,13 +1038,7 @@ gcm_prefs_profile_clicked (CcColorPanel *prefs, CdProfile *profile, CdDevice *de
+@@ -996,13 +1107,7 @@
    /* allow getting profile info */
    widget = GTK_WIDGET (gtk_builder_get_object (priv->builder,
                 "toolbutton_profile_view"));
