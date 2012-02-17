@@ -1,4 +1,4 @@
-import os, apport.packaging
+import os, apport.packaging, re
 from apport.hookutils import *
 
 def add_info(report):
@@ -8,7 +8,9 @@ def add_info(report):
 			if words.startswith("/usr/lib/control-center-1"):
 			    if apport.packaging.get_file_package(words) != 'gnome-control-center':
     				report.add_package_info(apport.packaging.get_file_package(words))
-    				return
+    				return    				
+			    sofile = re.compile("lib(\w*).so").search(words).groups(1)[0]
+			    report['Title'] = '[%s]: %s' % (sofile, report.get('Title', report.standard_title()))
 
 	# collect informations on the /usr/lib/control-center-1 components 
 	plugin_packages = set()
