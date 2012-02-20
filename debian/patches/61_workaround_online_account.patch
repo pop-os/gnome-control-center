@@ -1,0 +1,43 @@
+# Description: workaround for the lts, we don't want to expose 
+#  gnome-online-accounts to users in Unity but we still want to be able to
+#  open it from softwares which have an account configured
+# Upstream: the change is ubuntu specific
+Index: gnome-control-center-3.3.5/shell/gnome-control-center.c
+===================================================================
+--- gnome-control-center-3.3.5.orig/shell/gnome-control-center.c	2012-02-20 10:28:52.795502424 +0100
++++ gnome-control-center-3.3.5/shell/gnome-control-center.c	2012-02-20 10:28:53.987502432 +0100
+@@ -926,6 +926,21 @@
+                                              &iter);
+     }
+ 
++  if (!name && g_strcmp0(start_id, "online-accounts") == 0)
++    {
++        char *desktop = "/usr/share/applications/gnome-online-accounts-panel.desktop";
++        if (!g_file_test (desktop, G_FILE_TEST_EXISTS)) 
++          {
++            g_warning ("Could not find settings panel \"%s\"", start_id);
++            return FALSE;
++          }
++        GAppInfo*appinfo = g_desktop_app_info_new_from_filename (desktop);
++        const gchar *name = g_app_info_get_name (appinfo);
++        GIcon       *icon = g_app_info_get_icon (appinfo);
++        activate_panel (GNOME_CONTROL_CENTER (shell), start_id, argv, desktop, name, icon);
++        g_object_unref(appinfo);
++    }
++
+   if (!name)
+     {
+       g_warning ("Could not find settings panel \"%s\"", start_id);
+Index: gnome-control-center-3.3.5/panels/online-accounts/gnome-online-accounts-panel.desktop.in.in
+===================================================================
+--- gnome-control-center-3.3.5.orig/panels/online-accounts/gnome-online-accounts-panel.desktop.in.in	2012-01-30 15:13:20.000000000 +0100
++++ gnome-control-center-3.3.5/panels/online-accounts/gnome-online-accounts-panel.desktop.in.in	2012-02-20 10:28:52.819502424 +0100
+@@ -7,7 +7,7 @@
+ Type=Application
+ StartupNotify=true
+ Categories=GNOME;GTK;Settings;DesktopSettings;X-GNOME-Settings-Panel;X-GNOME-PersonalSettings;
+-OnlyShowIn=GNOME;Unity;
++OnlyShowIn=GNOME;
+ X-GNOME-Bugzilla-Bugzilla=GNOME
+ X-GNOME-Bugzilla-Product=gnome-control-center
+ X-GNOME-Bugzilla-Component=Online Accounts
