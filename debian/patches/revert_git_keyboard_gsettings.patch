@@ -1,7 +1,7 @@
-Index: gnome-control-center-3.3.5/configure.ac
+Index: gnome-control-center-3.3.90/configure.ac
 ===================================================================
---- gnome-control-center-3.3.5.orig/configure.ac	2012-02-15 23:16:10.559706866 +0100
-+++ gnome-control-center-3.3.5/configure.ac	2012-02-15 23:16:10.579706867 +0100
+--- gnome-control-center-3.3.90.orig/configure.ac	2012-02-21 13:34:43.711097698 +0100
++++ gnome-control-center-3.3.90/configure.ac	2012-02-21 13:34:43.731097699 +0100
 @@ -112,7 +112,7 @@
  PKG_CHECK_MODULES(DISPLAY_PANEL, $COMMON_MODULES gnome-desktop-3.0 >= 3.1.0)
  PKG_CHECK_MODULES(INFO_PANEL, $COMMON_MODULES libgtop-2.0
@@ -11,10 +11,10 @@ Index: gnome-control-center-3.3.5/configure.ac
  PKG_CHECK_MODULES(MEDIA_PANEL, $COMMON_MODULES)
  PKG_CHECK_MODULES(MOUSE_PANEL, $COMMON_MODULES xi >= 1.2
                    gnome-settings-daemon >= $GSD_REQUIRED_VERSION x11)
-Index: gnome-control-center-3.3.5/panels/keyboard/cc-keyboard-item.c
+Index: gnome-control-center-3.3.90/panels/keyboard/cc-keyboard-item.c
 ===================================================================
---- gnome-control-center-3.3.5.orig/panels/keyboard/cc-keyboard-item.c	2012-01-30 15:13:20.000000000 +0100
-+++ gnome-control-center-3.3.5/panels/keyboard/cc-keyboard-item.c	2012-02-15 23:16:10.583706867 +0100
+--- gnome-control-center-3.3.90.orig/panels/keyboard/cc-keyboard-item.c	2012-02-20 11:22:59.000000000 +0100
++++ gnome-control-center-3.3.90/panels/keyboard/cc-keyboard-item.c	2012-02-21 13:34:43.735097698 +0100
 @@ -27,12 +27,12 @@
  #include <gio/gio.h>
  #include <glib/gi18n-lib.h>
@@ -30,7 +30,7 @@ Index: gnome-control-center-3.3.5/panels/keyboard/cc-keyboard-item.c
  struct CcKeyboardItemPrivate
  {
    /* properties */
-@@ -143,7 +143,29 @@
+@@ -150,7 +150,29 @@
    if (set_backend == FALSE)
      return;
  
@@ -61,7 +61,7 @@ Index: gnome-control-center-3.3.5/panels/keyboard/cc-keyboard-item.c
  }
  
  const char *
-@@ -314,6 +336,7 @@
+@@ -321,6 +343,7 @@
  cc_keyboard_item_finalize (GObject *object)
  {
    CcKeyboardItem *item;
@@ -69,7 +69,7 @@ Index: gnome-control-center-3.3.5/panels/keyboard/cc-keyboard-item.c
  
    g_return_if_fail (object != NULL);
    g_return_if_fail (CC_IS_KEYBOARD_ITEM (object));
-@@ -322,15 +345,35 @@
+@@ -329,15 +352,35 @@
  
    g_return_if_fail (item->priv != NULL);
  
@@ -106,7 +106,7 @@ Index: gnome-control-center-3.3.5/panels/keyboard/cc-keyboard-item.c
    g_free (item->schema);
    g_free (item->key);
  
-@@ -349,6 +392,48 @@
+@@ -356,6 +399,48 @@
    return CC_KEYBOARD_ITEM (object);
  }
  
@@ -155,7 +155,7 @@ Index: gnome-control-center-3.3.5/panels/keyboard/cc-keyboard-item.c
  /* wrapper around g_settings_get_str[ing|v] */
  static char *
  settings_get_binding (GSettings  *settings,
-@@ -387,34 +472,118 @@
+@@ -394,34 +479,118 @@
  }
  
  gboolean
@@ -297,7 +297,7 @@ Index: gnome-control-center-3.3.5/panels/keyboard/cc-keyboard-item.c
  
    return TRUE;
  }
-@@ -452,8 +621,10 @@
+@@ -459,8 +628,10 @@
      return FALSE;
    switch (a->type)
      {
@@ -310,10 +310,10 @@ Index: gnome-control-center-3.3.5/panels/keyboard/cc-keyboard-item.c
        case CC_KEYBOARD_ITEM_TYPE_GSETTINGS:
  	return (g_str_equal (a->schema, b->schema) &&
  		g_str_equal (a->key, b->key));
-Index: gnome-control-center-3.3.5/panels/keyboard/cc-keyboard-item.h
+Index: gnome-control-center-3.3.90/panels/keyboard/cc-keyboard-item.h
 ===================================================================
---- gnome-control-center-3.3.5.orig/panels/keyboard/cc-keyboard-item.h	2012-01-30 15:13:20.000000000 +0100
-+++ gnome-control-center-3.3.5/panels/keyboard/cc-keyboard-item.h	2012-02-15 23:16:10.583706867 +0100
+--- gnome-control-center-3.3.90.orig/panels/keyboard/cc-keyboard-item.h	2012-02-20 11:22:59.000000000 +0100
++++ gnome-control-center-3.3.90/panels/keyboard/cc-keyboard-item.h	2012-02-21 13:34:43.735097698 +0100
 @@ -41,7 +41,8 @@
  
  typedef enum {
@@ -370,10 +370,10 @@ Index: gnome-control-center-3.3.5/panels/keyboard/cc-keyboard-item.h
  gboolean cc_keyboard_item_load_from_gsettings (CcKeyboardItem *item,
  					       const char *description,
  					       const char *schema,
-Index: gnome-control-center-3.3.5/panels/keyboard/keyboard-shortcuts.c
+Index: gnome-control-center-3.3.90/panels/keyboard/keyboard-shortcuts.c
 ===================================================================
---- gnome-control-center-3.3.5.orig/panels/keyboard/keyboard-shortcuts.c	2012-01-30 15:13:20.000000000 +0100
-+++ gnome-control-center-3.3.5/panels/keyboard/keyboard-shortcuts.c	2012-02-15 23:16:10.587706867 +0100
+--- gnome-control-center-3.3.90.orig/panels/keyboard/keyboard-shortcuts.c	2012-02-20 11:22:59.000000000 +0100
++++ gnome-control-center-3.3.90/panels/keyboard/keyboard-shortcuts.c	2012-02-21 13:34:43.739097698 +0100
 @@ -22,12 +22,13 @@
  #include <config.h>
  
@@ -401,15 +401,15 @@ Index: gnome-control-center-3.3.5/panels/keyboard/keyboard-shortcuts.c
  } KeyListEntry;
  
  enum
-@@ -69,7 +70,6 @@
+@@ -67,7 +68,6 @@
+   SECTION_N_COLUMNS
+ };
  
- static guint maybe_block_accels_id = 0;
- static gboolean block_accels = FALSE;
 -static GSettings *settings = NULL;
  static GtkWidget *custom_shortcut_dialog = NULL;
  static GtkWidget *custom_shortcut_name_entry = NULL;
  static GtkWidget *custom_shortcut_command_entry = NULL;
-@@ -133,13 +133,8 @@
+@@ -131,13 +131,8 @@
          {
            CcKeyboardItem *item = g_ptr_array_index (keys, i);
  
@@ -425,7 +425,7 @@ Index: gnome-control-center-3.3.5/panels/keyboard/keyboard-shortcuts.c
          }
      }
  
-@@ -175,7 +170,6 @@
+@@ -173,7 +168,6 @@
    gtk_tree_model_foreach (item->model, (GtkTreeModelForeachFunc) keybinding_key_changed_foreach, item);
  }
  
@@ -433,7 +433,7 @@ Index: gnome-control-center-3.3.5/panels/keyboard/keyboard-shortcuts.c
  static void
  append_section (GtkBuilder         *builder,
                  const gchar        *title,
-@@ -211,14 +205,17 @@
+@@ -209,14 +203,17 @@
        CcKeyboardItem *item;
        gboolean ret;
  
@@ -454,7 +454,7 @@ Index: gnome-control-center-3.3.5/panels/keyboard/keyboard-shortcuts.c
            break;
  	case CC_KEYBOARD_ITEM_TYPE_GSETTINGS:
  	  ret = cc_keyboard_item_load_from_gsettings (item,
-@@ -395,14 +392,12 @@
+@@ -393,14 +390,12 @@
    if (name == NULL)
      return;
  
@@ -474,7 +474,7 @@ Index: gnome-control-center-3.3.5/panels/keyboard/keyboard-shortcuts.c
    key.description = g_strdup (description);
    key.gettext_package = g_strdup (keylist->package);
    key.schema = schema ? g_strdup (schema) : g_strdup (keylist->schema);
-@@ -518,29 +513,35 @@
+@@ -516,29 +511,35 @@
  }
  
  static void
@@ -519,7 +519,7 @@ Index: gnome-control-center-3.3.5/panels/keyboard/keyboard-shortcuts.c
  
    if (entries->len > 0)
      {
-@@ -658,7 +659,7 @@
+@@ -656,7 +657,7 @@
    g_strfreev (wm_keybindings);
  
    /* Load custom keybindings */
@@ -528,7 +528,7 @@ Index: gnome-control-center-3.3.5/panels/keyboard/keyboard-shortcuts.c
  
    /* Select the first item */
    gtk_tree_model_get_iter_first (sort_model, &iter);
-@@ -806,41 +807,33 @@
+@@ -797,41 +798,33 @@
  edit_custom_shortcut (CcKeyboardItem *item)
  {
    gint result;
@@ -581,7 +581,7 @@ Index: gnome-control-center-3.3.5/panels/keyboard/keyboard-shortcuts.c
    gtk_widget_hide (custom_shortcut_dialog);
  
    return ret;
-@@ -849,36 +842,37 @@
+@@ -840,36 +833,37 @@
  static gboolean
  remove_custom_shortcut (GtkTreeModel *model, GtkTreeIter *iter)
  {
@@ -638,7 +638,7 @@ Index: gnome-control-center-3.3.5/panels/keyboard/keyboard-shortcuts.c
    keys_array = g_hash_table_lookup (get_hash_for_group (BINDING_GROUP_USER), _("Custom Shortcuts"));
    g_ptr_array_remove (keys_array, item);
  
-@@ -896,7 +890,7 @@
+@@ -887,7 +881,7 @@
                        DETAIL_KEYENTRY_COLUMN, &item,
                        -1);
  
@@ -647,7 +647,7 @@ Index: gnome-control-center-3.3.5/panels/keyboard/keyboard-shortcuts.c
  
    edit_custom_shortcut (item);
    if (item->command == NULL || item->command[0] == '\0')
-@@ -905,8 +899,17 @@
+@@ -896,8 +890,17 @@
      }
    else
      {
@@ -665,7 +665,7 @@ Index: gnome-control-center-3.3.5/panels/keyboard/keyboard-shortcuts.c
      }
  }
  
-@@ -1030,6 +1033,40 @@
+@@ -991,6 +994,40 @@
      }
  }
  
@@ -706,7 +706,7 @@ Index: gnome-control-center-3.3.5/panels/keyboard/keyboard-shortcuts.c
  static const guint forbidden_keyvals[] = {
    /* Navigation keys */
    GDK_KEY_Home,
-@@ -1077,6 +1114,24 @@
+@@ -1038,6 +1075,24 @@
    return FALSE;
  }
  
@@ -731,7 +731,7 @@ Index: gnome-control-center-3.3.5/panels/keyboard/keyboard-shortcuts.c
  typedef struct {
    CcKeyboardItem *orig_item;
    CcKeyboardItem *conflict_item;
-@@ -1326,30 +1381,34 @@
+@@ -1268,30 +1323,34 @@
  }
  
  static gchar *
@@ -783,7 +783,7 @@ Index: gnome-control-center-3.3.5/panels/keyboard/keyboard-shortcuts.c
    return dir;
  }
  
-@@ -1359,15 +1418,31 @@
+@@ -1301,15 +1360,31 @@
  {
    CcKeyboardItem *item;
    GtkTreePath *path;
@@ -820,7 +820,7 @@ Index: gnome-control-center-3.3.5/panels/keyboard/keyboard-shortcuts.c
  
    if (edit_custom_shortcut (item) &&
        item->command && item->command[0])
-@@ -1375,9 +1450,19 @@
+@@ -1317,9 +1392,19 @@
        GPtrArray *keys_array;
        GtkTreeIter iter;
        GHashTable *hash;
@@ -843,7 +843,7 @@ Index: gnome-control-center-3.3.5/panels/keyboard/keyboard-shortcuts.c
  
        hash = get_hash_for_group (BINDING_GROUP_USER);
        keys_array = g_hash_table_lookup (hash, _("Custom Shortcuts"));
-@@ -1392,14 +1477,6 @@
+@@ -1334,14 +1419,6 @@
        gtk_list_store_append (GTK_LIST_STORE (model), &iter);
        gtk_list_store_set (GTK_LIST_STORE (model), &iter, DETAIL_KEYENTRY_COLUMN, item, -1);
  
@@ -858,7 +858,7 @@ Index: gnome-control-center-3.3.5/panels/keyboard/keyboard-shortcuts.c
        /* make the new shortcut visible */
        path = gtk_tree_model_get_path (model, &iter);
        gtk_tree_view_expand_to_path (tree_view, path);
-@@ -1604,6 +1681,7 @@
+@@ -1546,6 +1623,7 @@
  static void
  setup_dialog (CcPanel *panel, GtkBuilder *builder)
  {
@@ -866,7 +866,7 @@ Index: gnome-control-center-3.3.5/panels/keyboard/keyboard-shortcuts.c
    GtkCellRenderer *renderer;
    GtkTreeViewColumn *column;
    GtkWidget *widget;
-@@ -1663,7 +1741,7 @@
+@@ -1605,7 +1683,7 @@
    treeview = GTK_TREE_VIEW (gtk_builder_get_object (builder,
                                                      "shortcut_treeview"));
  
@@ -875,7 +875,7 @@ Index: gnome-control-center-3.3.5/panels/keyboard/keyboard-shortcuts.c
  
    g_signal_connect (treeview, "button_press_event",
                      G_CALLBACK (start_editing_cb), builder);
-@@ -1673,6 +1751,10 @@
+@@ -1615,6 +1693,10 @@
    renderer = gtk_cell_renderer_text_new ();
    g_object_set (G_OBJECT (renderer), "ellipsize", PANGO_ELLIPSIZE_END, NULL);
  
@@ -885,8 +885,8 @@ Index: gnome-control-center-3.3.5/panels/keyboard/keyboard-shortcuts.c
 +
    column = gtk_tree_view_column_new_with_attributes (_("Action"),
                                                       renderer,
-                                                      "text", DETAIL_DESCRIPTION_COLUMN,
-@@ -1704,6 +1786,9 @@
+                                                      NULL);
+@@ -1645,6 +1727,9 @@
    gtk_tree_view_append_column (treeview, column);
    gtk_tree_view_column_set_sort_column_id (column, DETAIL_KEYENTRY_COLUMN);
  

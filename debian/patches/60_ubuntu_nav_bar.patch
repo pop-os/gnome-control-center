@@ -1,6 +1,8 @@
 === modified file 'shell/Makefile.am'
---- a/shell/Makefile.am	2012-02-16 14:27:27 +0000
-+++ b/shell/Makefile.am	2012-02-16 15:30:33 +0000
+Index: gnome-control-center-3.3.90/shell/Makefile.am
+===================================================================
+--- gnome-control-center-3.3.90.orig/shell/Makefile.am	2012-02-20 11:22:59.000000000 +0100
++++ gnome-control-center-3.3.90/shell/Makefile.am	2012-02-21 13:34:48.671097886 +0100
 @@ -27,6 +27,8 @@
  	cc-shell-item-view.h			\
  	cc-shell-model.c			\
@@ -9,18 +11,18 @@
 +	cc-shell-nav-bar.h			\
  	cc-editable-entry.c			\
  	cc-editable-entry.h			\
- 	cc-panel.c				\
-
-=== modified file 'shell/cc-shell-marshal.list'
---- a/shell/cc-shell-marshal.list	2012-02-16 09:44:01 +0000
-+++ b/shell/cc-shell-marshal.list	2012-02-16 12:51:50 +0000
-@@ -1,1 +1,2 @@
+ 	cc-strength-bar.c			\
+Index: gnome-control-center-3.3.90/shell/cc-shell-marshal.list
+===================================================================
+--- gnome-control-center-3.3.90.orig/shell/cc-shell-marshal.list	2011-09-17 22:00:34.000000000 +0200
++++ gnome-control-center-3.3.90/shell/cc-shell-marshal.list	2012-02-21 13:34:43.511097690 +0100
+@@ -1 +1,2 @@
  VOID:STRING,STRING,STRING
 +VOID:VOID
-
-=== added file 'shell/cc-shell-nav-bar.c'
---- a/shell/cc-shell-nav-bar.c	1970-01-01 00:00:00 +0000
-+++ b/shell/cc-shell-nav-bar.c	2012-02-16 13:44:14 +0000
+Index: gnome-control-center-3.3.90/shell/cc-shell-nav-bar.c
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ gnome-control-center-3.3.90/shell/cc-shell-nav-bar.c	2012-02-21 13:34:43.511097690 +0100
 @@ -0,0 +1,150 @@
 +/*
 + * Copyright 2012 Canonical
@@ -172,10 +174,10 @@
 +{
 +  gtk_widget_hide (bar->priv->detail_button);
 +}
-
-=== added file 'shell/cc-shell-nav-bar.h'
---- a/shell/cc-shell-nav-bar.h	1970-01-01 00:00:00 +0000
-+++ b/shell/cc-shell-nav-bar.h	2012-02-16 12:51:54 +0000
+Index: gnome-control-center-3.3.90/shell/cc-shell-nav-bar.h
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ gnome-control-center-3.3.90/shell/cc-shell-nav-bar.h	2012-02-21 13:34:43.511097690 +0100
 @@ -0,0 +1,76 @@
 +/*
 + * Copyright 2012 Canonical
@@ -253,10 +255,10 @@
 +G_END_DECLS
 +
 +#endif /* _CC_SHELL_NAV_BAR_H */
-
-=== modified file 'shell/gnome-control-center.c'
---- a/shell/gnome-control-center.c	2012-02-16 15:39:10 +0000
-+++ b/shell/gnome-control-center.c	2012-02-16 15:39:20 +0000
+Index: gnome-control-center-3.3.90/shell/gnome-control-center.c
+===================================================================
+--- gnome-control-center-3.3.90.orig/shell/gnome-control-center.c	2012-02-21 13:34:43.467097689 +0100
++++ gnome-control-center-3.3.90/shell/gnome-control-center.c	2012-02-21 13:34:54.451098106 +0100
 @@ -36,6 +36,7 @@
  #include "shell-search-renderer.h"
  #include "cc-shell-category-view.h"
@@ -291,7 +293,7 @@
    if (!cc_shell_set_active_panel_from_id (CC_SHELL (shell), id, NULL, &err))
      {
        /* TODO: show message to user */
-@@ -838,11 +844,8 @@
+@@ -837,11 +843,8 @@
                           gint                       page_num,
                           GnomeControlCenterPrivate *priv)
  {
@@ -303,7 +305,7 @@
        gtk_widget_show (W (priv->builder, "search-entry"));
        gtk_widget_hide (W (priv->builder, "lock-button"));
        gtk_scrolled_window_set_min_content_height (GTK_SCROLLED_WINDOW (priv->scrolled_window),
-@@ -852,7 +855,6 @@
+@@ -851,7 +854,6 @@
      }
    else
      {
@@ -311,7 +313,7 @@
        gtk_widget_hide (W (priv->builder, "search-entry"));
        gtk_scrolled_window_set_min_content_height (GTK_SCROLLED_WINDOW (priv->scrolled_window), MIN_ICON_VIEW_HEIGHT);
      }
-@@ -1141,6 +1143,7 @@
+@@ -1140,6 +1142,7 @@
  {
    GError *err = NULL;
    GnomeControlCenterPrivate *priv;
@@ -319,7 +321,7 @@
  
    priv = self->priv = CONTROL_CENTER_PRIVATE (self);
  
-@@ -1172,8 +1175,14 @@
+@@ -1171,8 +1174,14 @@
    g_signal_connect (priv->notebook, "switch-page",
                      G_CALLBACK (notebook_switch_page_cb), priv);
  
@@ -336,10 +338,10 @@
  
    /* keep a list of custom widgets to unload on panel change */
    priv->custom_widgets = g_ptr_array_new_with_free_func ((GDestroyNotify) g_object_unref);
-
-=== modified file 'shell/shell.ui'
---- a/shell/shell.ui	2012-02-16 14:27:27 +0000
-+++ b/shell/shell.ui	2012-02-16 15:47:55 +0000
+Index: gnome-control-center-3.3.90/shell/shell.ui
+===================================================================
+--- gnome-control-center-3.3.90.orig/shell/shell.ui	2012-02-20 11:22:59.000000000 +0100
++++ gnome-control-center-3.3.90/shell/shell.ui	2012-02-21 13:34:43.515097690 +0100
 @@ -34,25 +34,6 @@
                        <object class="GtkHBox" id="hbox1">
                          <property name="visible">True</property>
@@ -375,4 +377,3 @@
                            </packing>
                          </child>
                        </object>
-

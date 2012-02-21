@@ -1,10 +1,10 @@
 From: Mathieu Trudel-Lapierre <mathieu.trudel-lapierre@canonical.com>
 Subject: Provide a way to show/hide nm-applet from the menu panel.
 
-Index: gnome-control-center-3.3.5/panels/network/cc-network-panel.c
+Index: gnome-control-center-3.3.90/panels/network/cc-network-panel.c
 ===================================================================
---- gnome-control-center-3.3.5.orig/panels/network/cc-network-panel.c	2012-02-21 09:58:54.971382857 -0500
-+++ gnome-control-center-3.3.5/panels/network/cc-network-panel.c	2012-02-21 10:02:37.223377898 -0500
+--- gnome-control-center-3.3.90.orig/panels/network/cc-network-panel.c	2012-02-21 22:04:38.928261165 +0100
++++ gnome-control-center-3.3.90/panels/network/cc-network-panel.c	2012-02-21 22:04:39.608261191 +0100
 @@ -27,6 +27,7 @@
  #include <unistd.h>
  #include <gio/gio.h>
@@ -41,7 +41,7 @@ Index: gnome-control-center-3.3.5/panels/network/cc-network-panel.c
          if (priv->cancellable != NULL) {
                  g_cancellable_cancel (priv->cancellable);
                  g_object_unref (priv->cancellable);
-@@ -3389,6 +3397,19 @@
+@@ -3485,6 +3493,19 @@
  }
  
  static void
@@ -61,7 +61,7 @@ Index: gnome-control-center-3.3.5/panels/network/cc-network-panel.c
  cc_network_panel_init (CcNetworkPanel *panel)
  {
          DBusGConnection *bus = NULL;
-@@ -3403,6 +3424,7 @@
+@@ -3499,6 +3520,7 @@
          GtkTreeSortable *sortable;
          GtkWidget *widget;
          GtkWidget *toplevel;
@@ -69,7 +69,7 @@ Index: gnome-control-center-3.3.5/panels/network/cc-network-panel.c
  
          panel->priv = NETWORK_PANEL_PRIVATE (panel);
  
-@@ -3677,6 +3699,19 @@
+@@ -3774,12 +3796,29 @@
          toplevel = gtk_widget_get_toplevel (GTK_WIDGET (panel));
          g_signal_connect_after (toplevel, "map", G_CALLBACK (on_toplevel_map), panel);
  
@@ -89,24 +89,25 @@ Index: gnome-control-center-3.3.5/panels/network/cc-network-panel.c
          /* hide implementation details */
          widget = GTK_WIDGET (gtk_builder_get_object (panel->priv->builder,
                                                       "notebook_types"));
-@@ -3686,6 +3721,9 @@
-         widget = GTK_WIDGET (gtk_builder_get_object (panel->priv->builder,
-                                                      "button_unlock"));
-         gtk_widget_hide (widget);
-+        widget = GTK_WIDGET (gtk_builder_get_object (panel->priv->builder,
-+                                                     "hbox54"));
-+        gtk_widget_hide (widget);
+         gtk_notebook_set_show_tabs (GTK_NOTEBOOK (widget), FALSE);
  
          widget = GTK_WIDGET (gtk_builder_get_object (panel->priv->builder,
++                                                     "hbox54"));
++        gtk_widget_hide (widget);
++
++        widget = GTK_WIDGET (gtk_builder_get_object (panel->priv->builder,
                                                       "vbox1"));
-Index: gnome-control-center-3.3.5/panels/network/network.ui
+         gtk_widget_reparent (widget, (GtkWidget *) panel);
+ 
+Index: gnome-control-center-3.3.90/panels/network/network.ui
 ===================================================================
---- gnome-control-center-3.3.5.orig/panels/network/network.ui	2012-02-21 09:58:54.975382857 -0500
-+++ gnome-control-center-3.3.5/panels/network/network.ui	2012-02-21 09:58:55.543382845 -0500
-@@ -2327,6 +2327,35 @@
+--- gnome-control-center-3.3.90.orig/panels/network/network.ui	2012-02-21 22:04:38.932261166 +0100
++++ gnome-control-center-3.3.90/panels/network/network.ui	2012-02-21 22:04:39.616261192 +0100
+@@ -2376,6 +2376,35 @@
+             <property name="position">0</property>
            </packing>
          </child>
-         <child>
++        <child>
 +          <object class="GtkBox" id="box_show_applet">
 +            <property name="visible">True</property>
 +            <property name="can_focus">False</property>
@@ -135,23 +136,13 @@ Index: gnome-control-center-3.3.5/panels/network/network.ui
 +            <property name="position">1</property>
 +          </packing>
 +        </child>
-+        <child>
-           <object class="GtkHBox" id="hbox54">
-             <property name="visible">True</property>
-             <property name="can_focus">False</property>
-@@ -2348,7 +2377,7 @@
-           <packing>
-             <property name="expand">False</property>
-             <property name="fill">True</property>
--            <property name="position">1</property>
-+            <property name="position">2</property>
-           </packing>
-         </child>
        </object>
-Index: gnome-control-center-3.3.5/configure.ac
+     </child>
+   </object>
+Index: gnome-control-center-3.3.90/configure.ac
 ===================================================================
---- gnome-control-center-3.3.5.orig/configure.ac	2012-02-21 09:58:55.511382845 -0500
-+++ gnome-control-center-3.3.5/configure.ac	2012-02-21 09:58:55.543382845 -0500
+--- gnome-control-center-3.3.90.orig/configure.ac	2012-02-21 22:04:39.576261191 +0100
++++ gnome-control-center-3.3.90/configure.ac	2012-02-21 22:04:39.616261192 +0100
 @@ -116,7 +116,7 @@
  PKG_CHECK_MODULES(MEDIA_PANEL, $COMMON_MODULES)
  PKG_CHECK_MODULES(MOUSE_PANEL, $COMMON_MODULES xi >= 1.2

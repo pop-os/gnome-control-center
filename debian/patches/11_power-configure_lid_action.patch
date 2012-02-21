@@ -1,20 +1,11 @@
-From df74f2bd0ee6d2e8d992479010317daf5bcda6c7 Mon Sep 17 00:00:00 2001
-From: Martin Pitt <martin.pitt@ubuntu.com>
-Date: Wed, 14 Sep 2011 14:54:00 +0200
 Subject: [PATCH] power: Add configuration for lid action
-
 Bug: https://bugzilla.gnome.org/show_bug.cgi?id=659045
 Bug-Ubuntu: https://bugs.launchpad.net/bugs/792636
----
- panels/power/cc-power-panel.c |   33 ++++++++++++++++
- panels/power/power.ui         |   82 ++++++++++++++++++++++++++++++++++++++++-
- 2 files changed, 114 insertions(+), 1 deletions(-)
-
-diff --git a/panels/power/cc-power-panel.c b/panels/power/cc-power-panel.c
-index c069187..65b4b73 100644
---- a/panels/power/cc-power-panel.c
-+++ b/panels/power/cc-power-panel.c
-@@ -511,6 +511,7 @@ static void
+Index: gnome-control-center-3.3.90/panels/power/cc-power-panel.c
+===================================================================
+--- gnome-control-center-3.3.90.orig/panels/power/cc-power-panel.c	2012-02-21 16:17:17.399468609 +0100
++++ gnome-control-center-3.3.90/panels/power/cc-power-panel.c	2012-02-21 16:17:17.527468614 +0100
+@@ -922,6 +922,7 @@
  set_ac_battery_ui_mode (CcPowerPanel *self)
  {
    gboolean has_batteries = FALSE;
@@ -22,7 +13,7 @@ index c069187..65b4b73 100644
    gboolean ret;
    GError *error = NULL;
    GPtrArray *devices;
-@@ -544,6 +545,9 @@ set_ac_battery_ui_mode (CcPowerPanel *self)
+@@ -954,7 +955,13 @@
          }
      }
    g_ptr_array_unref (devices);
@@ -30,26 +21,14 @@ index c069187..65b4b73 100644
 +  has_lid = up_client_get_lid_is_present (self->priv->up_client);
 +
  out:
-   widget = GTK_WIDGET (gtk_builder_get_object (priv->builder,
-                                                "box_header"));
-@@ -551,6 +555,15 @@ out:
-   widget = GTK_WIDGET (gtk_builder_get_object (priv->builder,
-                                                "combobox_sleep_battery"));
-   gtk_widget_set_visible (widget, has_batteries);
-+  widget = GTK_WIDGET (gtk_builder_get_object (priv->builder,
-+                                               "combobox_lid_ac"));
-+  gtk_widget_set_visible (widget, has_lid);
-+  widget = GTK_WIDGET (gtk_builder_get_object (priv->builder,
-+                                               "label_lid_action"));
-+  gtk_widget_set_visible (widget, has_lid);
-+  widget = GTK_WIDGET (gtk_builder_get_object (priv->builder,
-+                                               "combobox_lid_battery"));
-+  gtk_widget_set_visible (widget, has_batteries && has_lid);
- }
- 
- static void
-@@ -629,6 +642,26 @@ cc_power_panel_init (CcPowerPanel *self)
-                     G_CALLBACK (combo_enum_changed_cb),
++  gtk_widget_set_visible (WID (priv->builder, "combobox_lid_ac"), has_lid);
++  gtk_widget_set_visible (WID (priv->builder, "label_lid_action"), has_lid);
++  gtk_widget_set_visible (WID (priv->builder, "combobox_lid_battery"), has_batteries && has_lid);    
+   gtk_widget_set_visible (WID (priv->builder, "label_header_battery"), has_batteries);
+   gtk_widget_set_visible (WID (priv->builder, "label_header_ac"), has_batteries);
+   gtk_widget_set_visible (WID (priv->builder, "combobox_sleep_battery"), has_batteries);
+@@ -1083,6 +1090,26 @@
+                     G_CALLBACK (activate_link_cb),
                      self);
  
 +  value = g_settings_get_enum (self->priv->gsd_settings, "lid-close-ac-action");
@@ -75,11 +54,11 @@ index c069187..65b4b73 100644
    widget = WID (self->priv->builder, "vbox_power");
    gtk_widget_reparent (widget, (GtkWidget *) self);
  }
-diff --git a/panels/power/power.ui b/panels/power/power.ui
-index 3d71281..c1758f1 100644
---- a/panels/power/power.ui
-+++ b/panels/power/power.ui
-@@ -112,6 +112,33 @@
+Index: gnome-control-center-3.3.90/panels/power/power.ui
+===================================================================
+--- gnome-control-center-3.3.90.orig/panels/power/power.ui	2012-02-21 16:17:17.419468610 +0100
++++ gnome-control-center-3.3.90/panels/power/power.ui	2012-02-21 16:17:17.527468614 +0100
+@@ -53,6 +53,33 @@
        </row>
      </data>
    </object>
@@ -113,89 +92,65 @@ index 3d71281..c1758f1 100644
    <object class="GtkWindow" id="window_power">
      <property name="can_focus">False</property>
      <property name="resizable">False</property>
-@@ -225,6 +252,56 @@
+@@ -172,6 +199,48 @@
+                 <property name="top_attach">2</property>
                </packing>
              </child>
-             <child>
-+              <object class="GtkBox" id="box4">
++            <child>
++              <object class="GtkLabel" id="label_lid_action">
 +                <property name="visible">True</property>
 +                <property name="can_focus">False</property>
-+                <property name="spacing">9</property>
-+                <child>
-+                  <object class="GtkLabel" id="label_lid_action">
-+                    <property name="visible">True</property>
-+                    <property name="can_focus">False</property>
-+                    <property name="xalign">1</property>
-+                    <property name="label" translatable="yes">When the lid is closed:</property>
-+                  </object>
-+                  <packing>
-+                    <property name="expand">False</property>
-+                    <property name="fill">True</property>
-+                    <property name="position">0</property>
-+                  </packing>
-+                </child>
-+                <child>
-+                  <object class="GtkComboBox" id="combobox_lid_battery">
-+                    <property name="visible">True</property>
-+                    <property name="can_focus">False</property>
-+                    <property name="model">liststore_lid</property>
-+                  </object>
-+                  <packing>
-+                    <property name="expand">False</property>
-+                    <property name="fill">True</property>
-+                    <property name="position">1</property>
-+                  </packing>
-+                </child>
-+                <child>
-+                  <object class="GtkComboBox" id="combobox_lid_ac">
-+                    <property name="width_request">150</property>
-+                    <property name="visible">True</property>
-+                    <property name="can_focus">False</property>
-+                    <property name="model">liststore_lid</property>
-+                  </object>
-+                  <packing>
-+                    <property name="expand">False</property>
-+                    <property name="fill">True</property>
-+                    <property name="position">2</property>
-+                  </packing>
-+                </child>
++                <property name="halign">end</property>
++                <property name="label" translatable="yes">When the lid is closed</property>
 +              </object>
 +              <packing>
-+                <property name="expand">False</property>
-+                <property name="fill">True</property>
-+                <property name="position">2</property>
++                <property name="left_attach">0</property>
++                <property name="top_attach">3</property>
 +              </packing>
 +            </child>
 +            <child>
-               <object class="GtkBox" id="box2">
-                 <property name="visible">True</property>
-                 <property name="can_focus">False</property>
-@@ -260,7 +337,7 @@
-               <packing>
-                 <property name="expand">False</property>
-                 <property name="fill">True</property>
--                <property name="position">2</property>
-+                <property name="position">3</property>
-               </packing>
-             </child>
++              <object class="GtkComboBox" id="combobox_lid_battery">
++                <property name="visible">True</property>
++                <property name="can_focus">False</property>
++                <property name="model">liststore_lid</property>
++                <property name="hexpand">True</property>
++                <accessibility>
++                  <relation type="labelled-by" target="label_lid_action"/>
++                </accessibility>
++              </object>
++              <packing>
++                <property name="left_attach">1</property>
++                <property name="top_attach">3</property>
++              </packing>
++            </child>
++            <child>
++              <object class="GtkComboBox" id="combobox_lid_ac">
++                <property name="visible">True</property>
++                <property name="can_focus">False</property>
++                <property name="model">liststore_lid</property>
++                <property name="hexpand">True</property>
++                <accessibility>
++                  <relation type="labelled-by" target="label_lid_action"/>
++                </accessibility>
++              </object>
++              <packing>
++                <property name="left_attach">2</property>
++                <property name="top_attach">3</property>
++              </packing>
++            </child>
            </object>
-@@ -363,6 +440,8 @@
+           <packing>
+             <property name="expand">False</property>
+@@ -352,9 +421,12 @@
+   </object>
+   <object class="GtkSizeGroup" id="sizegroup_combos">
+     <widgets>
++      <widget name="combobox_lid_battery"/>
++      <widget name="combobox_lid_ac"/>    
        <widget name="combobox_critical"/>
        <widget name="combobox_sleep_battery"/>
        <widget name="combobox_sleep_ac"/>
-+      <widget name="combobox_lid_battery"/>
-+      <widget name="combobox_lid_ac"/>
-       <widget name="label_header_battery"/>
-       <widget name="label_header_ac"/>
++      <widget name="combobox_sleep_ac"/>
      </widgets>
-@@ -371,6 +450,7 @@
-     <property name="ignore_hidden">True</property>
-     <widgets>
-       <widget name="label5"/>
-+      <widget name="label_lid_action"/>
-       <widget name="label7"/>
-       <widget name="label_header_padding"/>
-     </widgets>
--- 
-1.7.5.4
-
+   </object>
+ </interface>
