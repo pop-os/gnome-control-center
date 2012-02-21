@@ -9,8 +9,10 @@ def add_info(report):
 			    if apport.packaging.get_file_package(words) != 'gnome-control-center':
     				report.add_package_info(apport.packaging.get_file_package(words))
     				return    				
-			    sofile = re.compile("lib(\w*).so").search(words).groups(1)[0]
-			    report['Title'] = '[%s]: %s' % (sofile, report.get('Title', report.standard_title()))
+			    component = re.compile("lib(\w*).so").search(words).groups(1)[0]
+			    report['Title'] = '[%s]: %s' % (component, report.get('Title', report.standard_title()))
+			    report['Tags'] += component
+			    break # Stop on the first .so that's the interesting one
 
 	# collect informations on the /usr/lib/control-center-1 components 
 	plugin_packages = set()
