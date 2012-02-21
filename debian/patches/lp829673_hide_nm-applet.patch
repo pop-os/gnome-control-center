@@ -1,0 +1,163 @@
+From: Mathieu Trudel-Lapierre <mathieu.trudel-lapierre@canonical.com>
+Subject: Provide a way to show/hide nm-applet from the menu panel.
+
+Index: gnome-control-center-3.3.5/panels/network/cc-network-panel.c
+===================================================================
+--- gnome-control-center-3.3.5.orig/panels/network/cc-network-panel.c	2012-02-21 09:58:54.971382857 -0500
++++ gnome-control-center-3.3.5/panels/network/cc-network-panel.c	2012-02-21 10:02:37.223377898 -0500
+@@ -27,6 +27,7 @@
+ #include <unistd.h>
+ #include <gio/gio.h>
+ #include <gdesktop-enums.h>
++#include <gconf/gconf-client.h>
+ 
+ #include "cc-network-panel.h"
+ 
+@@ -62,6 +63,8 @@
+ #define NETWORK_PANEL_PRIVATE(o) \
+         (G_TYPE_INSTANCE_GET_PRIVATE ((o), CC_TYPE_NETWORK_PANEL, CcNetworkPanelPrivate))
+ 
++#define NM_APPLET_SHOW_APPLET_GCONF_KEY "/apps/nm-applet/show-applet"
++
+ typedef enum {
+         OPERATION_NULL,
+         OPERATION_SHOW_DEVICE,
+@@ -75,6 +78,7 @@
+ {
+         GCancellable     *cancellable;
+         GSettings        *proxy_settings;
++        GConfClient      *gconf_client;
+         GtkBuilder       *builder;
+         NMClient         *client;
+         NMRemoteSettings *remote_settings;
+@@ -193,6 +197,10 @@
+                 g_object_unref (priv->proxy_settings);
+                 priv->proxy_settings = NULL;
+         }
++        if (priv->gconf_client) {
++                g_object_unref (priv->gconf_client);
++                priv->gconf_client = NULL;
++        }
+         if (priv->cancellable != NULL) {
+                 g_cancellable_cancel (priv->cancellable);
+                 g_object_unref (priv->cancellable);
+@@ -3389,6 +3397,19 @@
+ }
+ 
+ static void
++applet_show_toggled (GtkWidget *widget, CcNetworkPanel *panel)
++{
++        gboolean visible;
++
++        visible = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (widget));
++
++        gconf_client_set_bool (panel->priv->gconf_client,
++                               NM_APPLET_SHOW_APPLET_GCONF_KEY,
++                               visible,
++                               NULL);
++}
++
++static void
+ cc_network_panel_init (CcNetworkPanel *panel)
+ {
+         DBusGConnection *bus = NULL;
+@@ -3403,6 +3424,7 @@
+         GtkTreeSortable *sortable;
+         GtkWidget *widget;
+         GtkWidget *toplevel;
++        gboolean visible;
+ 
+         panel->priv = NETWORK_PANEL_PRIVATE (panel);
+ 
+@@ -3677,6 +3699,19 @@
+         toplevel = gtk_widget_get_toplevel (GTK_WIDGET (panel));
+         g_signal_connect_after (toplevel, "map", G_CALLBACK (on_toplevel_map), panel);
+ 
++        /* add the show/hide checkbox to toggle displaying nm-applet in the panel */
++        widget = GTK_WIDGET (gtk_builder_get_object (panel->priv->builder,
++                                                     "checkbutton_show_applet"));
++
++        panel->priv->gconf_client = gconf_client_get_default ();
++        visible = gconf_client_get_bool (panel->priv->gconf_client,
++                                         NM_APPLET_SHOW_APPLET_GCONF_KEY,
++                                         NULL);
++        gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (widget), visible);
++        g_signal_connect (widget, "toggled",
++                          G_CALLBACK (applet_show_toggled),
++                          panel);
++
+         /* hide implementation details */
+         widget = GTK_WIDGET (gtk_builder_get_object (panel->priv->builder,
+                                                      "notebook_types"));
+@@ -3686,6 +3721,9 @@
+         widget = GTK_WIDGET (gtk_builder_get_object (panel->priv->builder,
+                                                      "button_unlock"));
+         gtk_widget_hide (widget);
++        widget = GTK_WIDGET (gtk_builder_get_object (panel->priv->builder,
++                                                     "hbox54"));
++        gtk_widget_hide (widget);
+ 
+         widget = GTK_WIDGET (gtk_builder_get_object (panel->priv->builder,
+                                                      "vbox1"));
+Index: gnome-control-center-3.3.5/panels/network/network.ui
+===================================================================
+--- gnome-control-center-3.3.5.orig/panels/network/network.ui	2012-02-21 09:58:54.975382857 -0500
++++ gnome-control-center-3.3.5/panels/network/network.ui	2012-02-21 09:58:55.543382845 -0500
+@@ -2327,6 +2327,35 @@
+           </packing>
+         </child>
+         <child>
++          <object class="GtkBox" id="box_show_applet">
++            <property name="visible">True</property>
++            <property name="can_focus">False</property>
++            <child>
++              <object class="GtkCheckButton" id="checkbutton_show_applet">
++                <property name="label" translatable="yes">_Show Network status in the menu bar</property>
++                <property name="use_action_appearance">False</property>
++                <property name="visible">True</property>
++                <property name="can_focus">True</property>
++                <property name="receives_default">False</property>
++                <property name="use_action_appearance">False</property>
++                <property name="use_underline">True</property>
++                <property name="xalign">0</property>
++                <property name="draw_indicator">True</property>
++              </object>
++              <packing>
++                <property name="expand">False</property>
++                <property name="fill">True</property>
++                <property name="position">0</property>
++              </packing>
++            </child>
++          </object>
++          <packing>
++            <property name="expand">False</property>
++            <property name="fill">True</property>
++            <property name="position">1</property>
++          </packing>
++        </child>
++        <child>
+           <object class="GtkHBox" id="hbox54">
+             <property name="visible">True</property>
+             <property name="can_focus">False</property>
+@@ -2348,7 +2377,7 @@
+           <packing>
+             <property name="expand">False</property>
+             <property name="fill">True</property>
+-            <property name="position">1</property>
++            <property name="position">2</property>
+           </packing>
+         </child>
+       </object>
+Index: gnome-control-center-3.3.5/configure.ac
+===================================================================
+--- gnome-control-center-3.3.5.orig/configure.ac	2012-02-21 09:58:55.511382845 -0500
++++ gnome-control-center-3.3.5/configure.ac	2012-02-21 09:58:55.543382845 -0500
+@@ -116,7 +116,7 @@
+ PKG_CHECK_MODULES(MEDIA_PANEL, $COMMON_MODULES)
+ PKG_CHECK_MODULES(MOUSE_PANEL, $COMMON_MODULES xi >= 1.2
+                   gnome-settings-daemon >= $GSD_REQUIRED_VERSION x11)
+-PKG_CHECK_MODULES(NETWORK_PANEL, $COMMON_MODULES)
++PKG_CHECK_MODULES(NETWORK_PANEL, $COMMON_MODULES gconf-2.0)
+ PKG_CHECK_MODULES(ONLINE_ACCOUNTS_PANEL, $COMMON_MODULES goa-1.0 goa-backend-1.0)
+ PKG_CHECK_MODULES(POWER_PANEL, $COMMON_MODULES upower-glib >= 0.9.1
+                   gnome-settings-daemon >= $GSD_REQUIRED_VERSION)
