@@ -1,7 +1,7 @@
 Index: gnome-control-center-3.3.5/configure.ac
 ===================================================================
---- gnome-control-center-3.3.5.orig/configure.ac	2012-02-12 13:01:10.789224493 -0500
-+++ gnome-control-center-3.3.5/configure.ac	2012-02-12 13:01:13.057235735 -0500
+--- gnome-control-center-3.3.5.orig/configure.ac	2012-02-07 19:41:46.000000000 +0100
++++ gnome-control-center-3.3.5/configure.ac	2012-02-21 12:03:28.421673893 +0100
 @@ -96,7 +96,7 @@
  PKG_CHECK_MODULES(LIBSHORTCUTS, $COMMON_MODULES x11)
  PKG_CHECK_MODULES(SHELL, $COMMON_MODULES libgnome-menu-3.0 gio-unix-2.0)
@@ -13,8 +13,8 @@ Index: gnome-control-center-3.3.5/configure.ac
                    polkit-gobject-1 >= $POLKIT_REQUIRED_VERSION
 Index: gnome-control-center-3.3.5/panels/background/background.ui
 ===================================================================
---- gnome-control-center-3.3.5.orig/panels/background/background.ui	2012-02-12 13:01:06.909205250 -0500
-+++ gnome-control-center-3.3.5/panels/background/background.ui	2012-02-12 13:05:08.466403070 -0500
+--- gnome-control-center-3.3.5.orig/panels/background/background.ui	2012-01-30 15:13:19.000000000 +0100
++++ gnome-control-center-3.3.5/panels/background/background.ui	2012-02-21 12:55:09.465051137 +0100
 @@ -1,7 +1,6 @@
 -<?xml version="1.0"?>
 +<?xml version="1.0" encoding="UTF-8"?>
@@ -24,7 +24,7 @@ Index: gnome-control-center-3.3.5/panels/background/background.ui
    <object class="GtkListStore" id="sources-liststore">
      <columns>
        <!-- column-name source-name -->
-@@ -12,321 +11,917 @@
+@@ -12,321 +11,920 @@
        <column type="gpointer"/>
      </columns>
    </object>
@@ -124,6 +124,7 @@ Index: gnome-control-center-3.3.5/panels/background/background.ui
 -                <property name="column_spacing">0</property>
 -                <property name="margin">0</property>
 +                <property name="can_focus">False</property>
++                <property name="margin_right">4</property>
 +                <property name="border_width">10</property>
 +                <property name="spacing">12</property>
                  <child>
@@ -402,7 +403,7 @@ Index: gnome-control-center-3.3.5/panels/background/background.ui
 +                    </child>
 +                    <child>
 +                      <object class="GtkScrolledWindow" id="scrolledwindow1">
-+                        <property name="width_request">265</property>
++                        <property name="width_request">262</property>
 +                        <property name="height_request">260</property>
 +                        <property name="visible">True</property>
 +                        <property name="can_focus">True</property>
@@ -556,7 +557,7 @@ Index: gnome-control-center-3.3.5/panels/background/background.ui
 -                <property name="sensitive">False</property>
 +                <property name="can_focus">False</property>
 +                <property name="margin_left">5</property>
-+                <property name="margin_right">5</property>
++                <property name="margin_right">13</property>
                </object>
                <packing>
                  <property name="expand">False</property>
@@ -619,9 +620,10 @@ Index: gnome-control-center-3.3.5/panels/background/background.ui
 +                </child>
 +                <child>
 +                  <object class="GtkComboBox" id="theme-selector">
-+                    <property name="width_request">220</property>
++                    <property name="width_request">268</property>
 +                    <property name="visible">True</property>
 +                    <property name="can_focus">False</property>
++                    <property name="margin_right">1</property>
 +                    <property name="model">theme-list-store</property>
 +                    <property name="id_column">0</property>
 +                    <child>
@@ -655,7 +657,7 @@ Index: gnome-control-center-3.3.5/panels/background/background.ui
 -                <property name="label">1280x700px</property>
 +                <property name="can_focus">False</property>
 +                <property name="margin_left">5</property>
-+                <property name="margin_right">5</property>
++                <property name="margin_right">13</property>
                </object>
                <packing>
 -                <property name="position">1</property>
@@ -721,10 +723,11 @@ Index: gnome-control-center-3.3.5/panels/background/background.ui
                  <child>
 -                  <object class="GtkLabel" id="strut">
 +                  <object class="GtkScale" id="unity-iconsize-scale">
-+                    <property name="width_request">250</property>
++                    <property name="width_request">264</property>
                      <property name="visible">True</property>
 -                    <property name="label" translatable="no"> </property>
 +                    <property name="can_focus">True</property>
++                    <property name="margin_right">2</property>
 +                    <property name="round_digits">0</property>
 +                    <property name="digits">0</property>
 +                    <property name="value_pos">left</property>
@@ -839,8 +842,8 @@ Index: gnome-control-center-3.3.5/panels/background/background.ui
 +                        </child>
 +                        <child>
 +                          <object class="GtkBox" id="box2">
-+                            <property name="visible">True</property>
 +                            <property name="can_focus">False</property>
++                            <property name="no_show_all">True</property>
 +                            <property name="margin_left">10</property>
 +                            <property name="margin_top">9</property>
 +                            <property name="orientation">vertical</property>
@@ -1155,7 +1158,7 @@ Index: gnome-control-center-3.3.5/panels/background/background.ui
      </child>
    </object>
    <object class="GtkSizeGroup" id="sizegroup">
-@@ -338,38 +933,4 @@
+@@ -338,38 +936,4 @@
        <widget name="strut"/>
      </widgets>
    </object>
@@ -1196,8 +1199,8 @@ Index: gnome-control-center-3.3.5/panels/background/background.ui
  </interface>
 Index: gnome-control-center-3.3.5/panels/background/cc-background-panel.c
 ===================================================================
---- gnome-control-center-3.3.5.orig/panels/background/cc-background-panel.c	2012-02-12 13:01:06.933205369 -0500
-+++ gnome-control-center-3.3.5/panels/background/cc-background-panel.c	2012-02-12 13:01:13.057235735 -0500
+--- gnome-control-center-3.3.5.orig/panels/background/cc-background-panel.c	2012-01-30 15:13:19.000000000 +0100
++++ gnome-control-center-3.3.5/panels/background/cc-background-panel.c	2012-02-21 12:03:22.657645317 +0100
 @@ -24,6 +24,7 @@
  #include <string.h>
  #include <glib/gi18n-lib.h>
@@ -1314,7 +1317,7 @@ Index: gnome-control-center-3.3.5/panels/background/cc-background-panel.c
  
        gdk_color_parse (cc_background_item_get_pcolor (priv->current_background), &pcolor);
        gdk_color_parse (cc_background_item_get_scolor (priv->current_background), &scolor);
-@@ -1162,12 +1215,492 @@
+@@ -1162,12 +1215,493 @@
    g_strfreev(uris);
  }
  
@@ -1480,7 +1483,8 @@ Index: gnome-control-center-3.3.5/panels/background/cc-background-panel.c
 +  gboolean modified_ext_tool = FALSE;
 +
 +  // reveal side
-+  modified_ext_tool = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (WID ("unity_reveal_spot_otheroption")));
++  /* COMMENTED FOR NOW AS LONG AS UPSTREAM DON'T SUPPORT IT
++modified_ext_tool = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (WID ("unity_reveal_spot_otheroption"))); */
 +
 +  // autohide mode
 +  if (!modified_ext_tool && (!gtk_widget_get_sensitive (WID ("unity_launcher_autohide"))))
@@ -1808,7 +1812,7 @@ Index: gnome-control-center-3.3.5/panels/background/cc-background-panel.c
    GError *err = NULL;
    GtkWidget *widget;
    GtkListStore *store;
-@@ -1177,9 +1710,14 @@
+@@ -1177,9 +1711,14 @@
  
    priv->builder = gtk_builder_new ();
  
@@ -1826,7 +1830,7 @@ Index: gnome-control-center-3.3.5/panels/background/cc-background-panel.c
  
    if (err)
      {
-@@ -1230,7 +1768,10 @@
+@@ -1230,7 +1769,10 @@
  
  
    /* add the top level widget */
@@ -1838,7 +1842,7 @@ Index: gnome-control-center-3.3.5/panels/background/cc-background-panel.c
  
    gtk_container_add (GTK_CONTAINER (self), widget);
    gtk_widget_show_all (GTK_WIDGET (self));
-@@ -1301,6 +1842,16 @@
+@@ -1301,6 +1843,16 @@
  
    /* Setup the edit box with our current settings */
    source_update_edit_box (priv, TRUE);
@@ -1857,8 +1861,8 @@ Index: gnome-control-center-3.3.5/panels/background/cc-background-panel.c
  void
 Index: gnome-control-center-3.3.5/panels/background/gnome-background-panel.desktop.in.in
 ===================================================================
---- gnome-control-center-3.3.5.orig/panels/background/gnome-background-panel.desktop.in.in	2012-02-12 13:01:06.969205542 -0500
-+++ gnome-control-center-3.3.5/panels/background/gnome-background-panel.desktop.in.in	2012-02-12 13:01:13.057235735 -0500
+--- gnome-control-center-3.3.5.orig/panels/background/gnome-background-panel.desktop.in.in	2012-01-30 15:13:19.000000000 +0100
++++ gnome-control-center-3.3.5/panels/background/gnome-background-panel.desktop.in.in	2012-02-21 12:03:22.657645317 +0100
 @@ -1,6 +1,6 @@
  [Desktop Entry]
 -_Name=Background
