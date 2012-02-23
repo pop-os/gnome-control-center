@@ -1,7 +1,7 @@
 Index: gnome-control-center-3.3.90/configure.ac
 ===================================================================
 --- gnome-control-center-3.3.90.orig/configure.ac	2012-02-21 10:32:45.000000000 +0100
-+++ gnome-control-center-3.3.90/configure.ac	2012-02-23 12:24:25.265120043 +0100
++++ gnome-control-center-3.3.90/configure.ac	2012-02-23 14:35:29.636117351 +0100
 @@ -96,7 +96,7 @@
  PKG_CHECK_MODULES(LIBSHORTCUTS, $COMMON_MODULES x11)
  PKG_CHECK_MODULES(SHELL, $COMMON_MODULES libgnome-menu-3.0 gio-unix-2.0 x11)
@@ -14,7 +14,7 @@ Index: gnome-control-center-3.3.90/configure.ac
 Index: gnome-control-center-3.3.90/panels/background/background.ui
 ===================================================================
 --- gnome-control-center-3.3.90.orig/panels/background/background.ui	2012-02-20 11:22:59.000000000 +0100
-+++ gnome-control-center-3.3.90/panels/background/background.ui	2012-02-23 12:24:12.869058581 +0100
++++ gnome-control-center-3.3.90/panels/background/background.ui	2012-02-23 14:35:19.880068974 +0100
 @@ -1,7 +1,6 @@
 -<?xml version="1.0"?>
 +<?xml version="1.0" encoding="UTF-8"?>
@@ -1200,7 +1200,7 @@ Index: gnome-control-center-3.3.90/panels/background/background.ui
 Index: gnome-control-center-3.3.90/panels/background/cc-background-panel.c
 ===================================================================
 --- gnome-control-center-3.3.90.orig/panels/background/cc-background-panel.c	2012-02-20 11:22:59.000000000 +0100
-+++ gnome-control-center-3.3.90/panels/background/cc-background-panel.c	2012-02-23 12:31:15.875156155 +0100
++++ gnome-control-center-3.3.90/panels/background/cc-background-panel.c	2012-02-23 14:35:49.100213892 +0100
 @@ -24,6 +24,7 @@
  #include <string.h>
  #include <glib/gi18n-lib.h>
@@ -1317,7 +1317,7 @@ Index: gnome-control-center-3.3.90/panels/background/cc-background-panel.c
  
        gdk_color_parse (cc_background_item_get_pcolor (priv->current_background), &pcolor);
        gdk_color_parse (cc_background_item_get_scolor (priv->current_background), &scolor);
-@@ -1162,12 +1215,485 @@
+@@ -1162,12 +1215,527 @@
    g_strfreev(uris);
  }
  
@@ -1661,7 +1661,9 @@ Index: gnome-control-center-3.3.90/panels/background/cc-background-panel.c
 +  gtk_widget_hide (GTK_WIDGET (WID ("unity-launcher-sensitivity")));
 +}
 +
-+/* hack to have scrolling in the right direction (nothing in GTK) */
++/* <hacks> */
++
++/* Get scrolling in the right direction */
 +static gboolean
 +on_scale_scroll_event (GtkWidget      *widget,
 +                       GdkEventScroll *event,
@@ -1693,6 +1695,36 @@ Index: gnome-control-center-3.3.90/panels/background/cc-background-panel.c
 +
 +  return TRUE;
 +}
++
++static gboolean
++on_scale_button_press_event (GtkWidget      *widget,
++                             GdkEventButton *event,
++                             gpointer       *data)
++{
++  /* HACK: we want the behaviour you get with the middle button, so we
++  * mangle the event.  clicking with other buttons moves the slider in
++  * step increments, clicking with the middle button moves the slider to
++  * the location of the click.
++  */
++  if (event->button == 1)
++    event->button = 2;
++
++  return FALSE;
++}
++
++static gboolean
++on_scale_button_release_event (GtkWidget      *widget,
++                               GdkEventButton *event,
++                               gpointer       *data)
++{
++  /* HACK: see on_scale_button_press_event() */
++  if (event->button == 1)
++    event->button = 2;
++
++  return FALSE;
++}
++
++/* </hacks> */
 +
 +static void
 +setup_unity_settings (CcBackgroundPanel *self)
@@ -1736,10 +1768,16 @@ Index: gnome-control-center-3.3.90/panels/background/cc-background-panel.c
 +                                              gconf_client_notify_add (client, UNITY_ICONSIZE_KEY,
 +                                                       ext_iconsize_changed_callback, iconsize_adj,
 +                                                       NULL, NULL)));
++
 +      g_signal_connect (iconsize_adj, "value_changed",
 +                        G_CALLBACK (on_iconsize_changed), NULL);
++      g_signal_connect (G_OBJECT (iconsize_scale), "button-press-event",
++                  G_CALLBACK (on_scale_button_press_event), NULL);
++      g_signal_connect (G_OBJECT (iconsize_scale), "button-release-event",
++                  G_CALLBACK (on_scale_button_release_event), NULL);
 +      g_signal_connect (G_OBJECT (iconsize_scale), "scroll-event",
 +                        G_CALLBACK (on_scale_scroll_event), &iconsize_values);
++
 +      iconsize_widget_refresh (iconsize_adj);
 +
 +      /* Launcher reveal */
@@ -1756,6 +1794,10 @@ Index: gnome-control-center-3.3.90/panels/background/cc-background-panel.c
 +                                                       NULL, NULL)));
 +      g_signal_connect (launcher_sensitivity_adj, "value_changed",
 +                        G_CALLBACK (on_launchersensitivity_changed), NULL);
++      g_signal_connect (G_OBJECT (launcher_sensitivity_scale), "button-press-event",
++            G_CALLBACK (on_scale_button_press_event), NULL);
++      g_signal_connect (G_OBJECT (launcher_sensitivity_scale), "button-release-event",
++            G_CALLBACK (on_scale_button_release_event), NULL);
 +      g_signal_connect (G_OBJECT (launcher_sensitivity_scale), "scroll-event",
 +                        G_CALLBACK (on_scale_scroll_event), &launchersensitivity_values);
 +      launcher_sensitivity_widget_refresh (launcher_sensitivity_adj);
@@ -1804,7 +1846,7 @@ Index: gnome-control-center-3.3.90/panels/background/cc-background-panel.c
    GError *err = NULL;
    GtkWidget *widget;
    GtkListStore *store;
-@@ -1177,9 +1703,14 @@
+@@ -1177,9 +1745,14 @@
  
    priv->builder = gtk_builder_new ();
  
@@ -1822,7 +1864,7 @@ Index: gnome-control-center-3.3.90/panels/background/cc-background-panel.c
  
    if (err)
      {
-@@ -1230,7 +1761,10 @@
+@@ -1230,7 +1803,10 @@
  
  
    /* add the top level widget */
@@ -1834,7 +1876,7 @@ Index: gnome-control-center-3.3.90/panels/background/cc-background-panel.c
  
    gtk_container_add (GTK_CONTAINER (self), widget);
    gtk_widget_show_all (GTK_WIDGET (self));
-@@ -1301,6 +1835,16 @@
+@@ -1301,6 +1877,16 @@
  
    /* Setup the edit box with our current settings */
    source_update_edit_box (priv, TRUE);
@@ -1854,7 +1896,7 @@ Index: gnome-control-center-3.3.90/panels/background/cc-background-panel.c
 Index: gnome-control-center-3.3.90/panels/background/gnome-background-panel.desktop.in.in
 ===================================================================
 --- gnome-control-center-3.3.90.orig/panels/background/gnome-background-panel.desktop.in.in	2012-02-20 11:22:59.000000000 +0100
-+++ gnome-control-center-3.3.90/panels/background/gnome-background-panel.desktop.in.in	2012-02-23 12:24:13.013059291 +0100
++++ gnome-control-center-3.3.90/panels/background/gnome-background-panel.desktop.in.in	2012-02-23 14:35:19.884068995 +0100
 @@ -1,6 +1,6 @@
  [Desktop Entry]
 -_Name=Background
