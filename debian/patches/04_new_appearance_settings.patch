@@ -1,7 +1,7 @@
-Index: gnome-control-center-3.3.5/configure.ac
+Index: gnome-control-center-3.3.90/configure.ac
 ===================================================================
---- gnome-control-center-3.3.5.orig/configure.ac	2012-02-07 19:41:46.000000000 +0100
-+++ gnome-control-center-3.3.5/configure.ac	2012-02-21 12:03:28.421673893 +0100
+--- gnome-control-center-3.3.90.orig/configure.ac	2012-02-21 10:32:45.000000000 +0100
++++ gnome-control-center-3.3.90/configure.ac	2012-02-23 12:24:25.265120043 +0100
 @@ -96,7 +96,7 @@
  PKG_CHECK_MODULES(LIBSHORTCUTS, $COMMON_MODULES x11)
  PKG_CHECK_MODULES(SHELL, $COMMON_MODULES libgnome-menu-3.0 gio-unix-2.0 x11)
@@ -11,10 +11,10 @@ Index: gnome-control-center-3.3.5/configure.ac
  PKG_CHECK_MODULES(DATETIME_PANEL, $COMMON_MODULES
                    gnome-desktop-3.0 >= $GNOME_DESKTOP_REQUIRED_VERSION
                    polkit-gobject-1 >= $POLKIT_REQUIRED_VERSION
-Index: gnome-control-center-3.3.5/panels/background/background.ui
+Index: gnome-control-center-3.3.90/panels/background/background.ui
 ===================================================================
---- gnome-control-center-3.3.5.orig/panels/background/background.ui	2012-01-30 15:13:19.000000000 +0100
-+++ gnome-control-center-3.3.5/panels/background/background.ui	2012-02-21 12:55:09.465051137 +0100
+--- gnome-control-center-3.3.90.orig/panels/background/background.ui	2012-02-20 11:22:59.000000000 +0100
++++ gnome-control-center-3.3.90/panels/background/background.ui	2012-02-23 12:24:12.869058581 +0100
 @@ -1,7 +1,6 @@
 -<?xml version="1.0"?>
 +<?xml version="1.0" encoding="UTF-8"?>
@@ -842,8 +842,8 @@ Index: gnome-control-center-3.3.5/panels/background/background.ui
 +                        </child>
 +                        <child>
 +                          <object class="GtkBox" id="box2">
++                            <property name="visible">True</property>
 +                            <property name="can_focus">False</property>
-+                            <property name="no_show_all">True</property>
 +                            <property name="margin_left">10</property>
 +                            <property name="margin_top">9</property>
 +                            <property name="orientation">vertical</property>
@@ -1197,10 +1197,10 @@ Index: gnome-control-center-3.3.5/panels/background/background.ui
 -    </data>
 -  </object>
  </interface>
-Index: gnome-control-center-3.3.5/panels/background/cc-background-panel.c
+Index: gnome-control-center-3.3.90/panels/background/cc-background-panel.c
 ===================================================================
---- gnome-control-center-3.3.5.orig/panels/background/cc-background-panel.c	2012-01-30 15:13:19.000000000 +0100
-+++ gnome-control-center-3.3.5/panels/background/cc-background-panel.c	2012-02-21 12:03:22.657645317 +0100
+--- gnome-control-center-3.3.90.orig/panels/background/cc-background-panel.c	2012-02-20 11:22:59.000000000 +0100
++++ gnome-control-center-3.3.90/panels/background/cc-background-panel.c	2012-02-23 12:31:15.875156155 +0100
 @@ -24,6 +24,7 @@
  #include <string.h>
  #include <glib/gi18n-lib.h>
@@ -1235,7 +1235,7 @@ Index: gnome-control-center-3.3.5/panels/background/cc-background-panel.c
 +#define UNITY_ICONSIZE_KEY UNITY_GCONF_OPTION_PATH"/icon_size"
 +#define UNITY_LAUNCHERSENSITIVITY_KEY UNITY_GCONF_OPTION_PATH"/edge_responsiveness"
 +#define UNITY_LAUNCHERHIDE_KEY UNITY_GCONF_OPTION_PATH"/launcher_hide_mode"
-+#define UNITY_LAUNCHERREVEAL_KEY UNITY_GCONF_OPTION_PATH"/launcher_reveal_edge"
++#define UNITY_LAUNCHERREVEAL_KEY UNITY_GCONF_OPTION_PATH"/reveal_trigger"
 +#define UNITY2D_GSETTINGS_LAUNCHER "com.canonical.Unity2d.Launcher"
 +
 +#define MIN_ICONSIZE 32.0
@@ -1317,7 +1317,7 @@ Index: gnome-control-center-3.3.5/panels/background/cc-background-panel.c
  
        gdk_color_parse (cc_background_item_get_pcolor (priv->current_background), &pcolor);
        gdk_color_parse (cc_background_item_get_scolor (priv->current_background), &scolor);
-@@ -1162,12 +1215,493 @@
+@@ -1162,12 +1215,485 @@
    g_strfreev(uris);
  }
  
@@ -1483,8 +1483,7 @@ Index: gnome-control-center-3.3.5/panels/background/cc-background-panel.c
 +  gboolean modified_ext_tool = FALSE;
 +
 +  // reveal side
-+  /* COMMENTED FOR NOW AS LONG AS UPSTREAM DON'T SUPPORT IT
-+modified_ext_tool = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (WID ("unity_reveal_spot_otheroption"))); */
++  modified_ext_tool = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (WID ("unity_reveal_spot_otheroption")));
 +
 +  // autohide mode
 +  if (!modified_ext_tool && (!gtk_widget_get_sensitive (WID ("unity_launcher_autohide"))))
@@ -1564,19 +1563,17 @@ Index: gnome-control-center-3.3.5/panels/background/cc-background-panel.c
 +reveallauncher_widget_refresh (CcBackgroundPanel *self)
 +{
 +  CcBackgroundPanelPrivate *priv = self->priv;
-+  gchar *value = gconf_client_get_string (gconf_client_get_default (), UNITY_LAUNCHERREVEAL_KEY, NULL);
++  gint value = gconf_client_get_int (gconf_client_get_default (), UNITY_LAUNCHERREVEAL_KEY, NULL);
 +
-+  if (g_strcmp0 (value, "TopLeft") == 0)
++  if (value == 1)
 +    gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (WID ("unity_reveal_spot_topleft")), TRUE);
-+  else if (g_strcmp0 (value, "Left") == 0)
++  else if (value == 0)
 +    gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (WID ("unity_reveal_spot_left")), TRUE);
 +  else
 +    /* this is a hidden spot when another option is selected (through ccsm) */
 +    gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (WID ("unity_reveal_spot_otheroption")), TRUE);
 +
 +  refresh_was_modified_by_external_tool (self);
-+
-+  g_free (value);
 +}
 +
 +static void
@@ -1593,19 +1590,14 @@ Index: gnome-control-center-3.3.5/panels/background/cc-background-panel.c
 +{
 +  CcBackgroundPanel *self = CC_BACKGROUND_PANEL (user_data);
 +  CcBackgroundPanelPrivate *priv = self->priv;
-+  char *reveal_spot = NULL;
++  gint reveal_spot = 0;
 +
 +  if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (WID ("unity_reveal_spot_topleft"))))
-+    reveal_spot = g_strdup ("TopLeft");
++    reveal_spot = 1;
 +  if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (WID ("unity_reveal_spot_left"))))
-+    reveal_spot = g_strdup ("Left");
++    reveal_spot = 0;
 +
-+  if (reveal_spot)
-+    {
-+      gconf_client_set_string (gconf_client_get_default (), UNITY_LAUNCHERREVEAL_KEY, reveal_spot, NULL);
-+      g_free (reveal_spot);
-+    }
-+
++  gconf_client_set_int (gconf_client_get_default (), UNITY_LAUNCHERREVEAL_KEY, reveal_spot, NULL);
 +  reveallauncher_widget_refresh (self);
 +}
 +
@@ -1812,7 +1804,7 @@ Index: gnome-control-center-3.3.5/panels/background/cc-background-panel.c
    GError *err = NULL;
    GtkWidget *widget;
    GtkListStore *store;
-@@ -1177,9 +1711,14 @@
+@@ -1177,9 +1703,14 @@
  
    priv->builder = gtk_builder_new ();
  
@@ -1830,7 +1822,7 @@ Index: gnome-control-center-3.3.5/panels/background/cc-background-panel.c
  
    if (err)
      {
-@@ -1230,7 +1769,10 @@
+@@ -1230,7 +1761,10 @@
  
  
    /* add the top level widget */
@@ -1842,7 +1834,7 @@ Index: gnome-control-center-3.3.5/panels/background/cc-background-panel.c
  
    gtk_container_add (GTK_CONTAINER (self), widget);
    gtk_widget_show_all (GTK_WIDGET (self));
-@@ -1301,6 +1843,16 @@
+@@ -1301,6 +1835,16 @@
  
    /* Setup the edit box with our current settings */
    source_update_edit_box (priv, TRUE);
@@ -1859,10 +1851,10 @@ Index: gnome-control-center-3.3.5/panels/background/cc-background-panel.c
  }
  
  void
-Index: gnome-control-center-3.3.5/panels/background/gnome-background-panel.desktop.in.in
+Index: gnome-control-center-3.3.90/panels/background/gnome-background-panel.desktop.in.in
 ===================================================================
---- gnome-control-center-3.3.5.orig/panels/background/gnome-background-panel.desktop.in.in	2012-01-30 15:13:19.000000000 +0100
-+++ gnome-control-center-3.3.5/panels/background/gnome-background-panel.desktop.in.in	2012-02-21 12:03:22.657645317 +0100
+--- gnome-control-center-3.3.90.orig/panels/background/gnome-background-panel.desktop.in.in	2012-02-20 11:22:59.000000000 +0100
++++ gnome-control-center-3.3.90/panels/background/gnome-background-panel.desktop.in.in	2012-02-23 12:24:13.013059291 +0100
 @@ -1,6 +1,6 @@
  [Desktop Entry]
 -_Name=Background
