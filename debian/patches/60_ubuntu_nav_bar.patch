@@ -5,7 +5,7 @@
 Index: gnome-control-center-3.3.90/shell/Makefile.am
 ===================================================================
 --- gnome-control-center-3.3.90.orig/shell/Makefile.am	2012-02-20 11:22:59.000000000 +0100
-+++ gnome-control-center-3.3.90/shell/Makefile.am	2012-02-21 13:34:48.671097886 +0100
++++ gnome-control-center-3.3.90/shell/Makefile.am	2012-02-23 19:59:15.815160152 +0100
 @@ -27,6 +27,8 @@
  	cc-shell-item-view.h			\
  	cc-shell-model.c			\
@@ -18,14 +18,14 @@ Index: gnome-control-center-3.3.90/shell/Makefile.am
 Index: gnome-control-center-3.3.90/shell/cc-shell-marshal.list
 ===================================================================
 --- gnome-control-center-3.3.90.orig/shell/cc-shell-marshal.list	2011-09-17 22:00:34.000000000 +0200
-+++ gnome-control-center-3.3.90/shell/cc-shell-marshal.list	2012-02-21 13:34:43.511097690 +0100
++++ gnome-control-center-3.3.90/shell/cc-shell-marshal.list	2012-02-23 19:59:09.583159850 +0100
 @@ -1 +1,2 @@
  VOID:STRING,STRING,STRING
 +VOID:VOID
 Index: gnome-control-center-3.3.90/shell/cc-shell-nav-bar.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center-3.3.90/shell/cc-shell-nav-bar.c	2012-02-21 13:34:43.511097690 +0100
++++ gnome-control-center-3.3.90/shell/cc-shell-nav-bar.c	2012-02-23 19:59:09.587159851 +0100
 @@ -0,0 +1,150 @@
 +/*
 + * Copyright 2012 Canonical
@@ -180,7 +180,7 @@ Index: gnome-control-center-3.3.90/shell/cc-shell-nav-bar.c
 Index: gnome-control-center-3.3.90/shell/cc-shell-nav-bar.h
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center-3.3.90/shell/cc-shell-nav-bar.h	2012-02-21 13:34:43.511097690 +0100
++++ gnome-control-center-3.3.90/shell/cc-shell-nav-bar.h	2012-02-23 19:59:09.587159851 +0100
 @@ -0,0 +1,76 @@
 +/*
 + * Copyright 2012 Canonical
@@ -260,8 +260,8 @@ Index: gnome-control-center-3.3.90/shell/cc-shell-nav-bar.h
 +#endif /* _CC_SHELL_NAV_BAR_H */
 Index: gnome-control-center-3.3.90/shell/gnome-control-center.c
 ===================================================================
---- gnome-control-center-3.3.90.orig/shell/gnome-control-center.c	2012-02-21 13:34:43.467097689 +0100
-+++ gnome-control-center-3.3.90/shell/gnome-control-center.c	2012-02-21 13:34:54.451098106 +0100
+--- gnome-control-center-3.3.90.orig/shell/gnome-control-center.c	2012-02-23 19:59:09.543159848 +0100
++++ gnome-control-center-3.3.90/shell/gnome-control-center.c	2012-02-23 19:59:17.471160232 +0100
 @@ -36,6 +36,7 @@
  #include "shell-search-renderer.h"
  #include "cc-shell-category-view.h"
@@ -278,7 +278,7 @@ Index: gnome-control-center-3.3.90/shell/gnome-control-center.c
  
    GMenuTree  *menu_tree;
    GtkListStore *store;
-@@ -176,6 +177,7 @@
+@@ -175,6 +177,7 @@
            /* switch to the new panel */
            gtk_widget_show (box);
            gtk_notebook_set_current_page (GTK_NOTEBOOK (priv->notebook), i);
@@ -286,7 +286,7 @@ Index: gnome-control-center-3.3.90/shell/gnome-control-center.c
  
            /* set the title of the window */
            icon_name = get_icon_name_from_g_icon (gicon);
-@@ -246,6 +248,8 @@
+@@ -246,6 +249,8 @@
  
    /* clear any custom widgets */
    _shell_remove_all_custom_widgets (priv);
@@ -295,7 +295,7 @@ Index: gnome-control-center-3.3.90/shell/gnome-control-center.c
  }
  
  void
-@@ -837,11 +843,8 @@
+@@ -837,11 +842,8 @@
                           gint                       page_num,
                           GnomeControlCenterPrivate *priv)
  {
@@ -307,7 +307,7 @@ Index: gnome-control-center-3.3.90/shell/gnome-control-center.c
        gtk_widget_show (W (priv->builder, "search-entry"));
        gtk_widget_hide (W (priv->builder, "lock-button"));
        gtk_scrolled_window_set_min_content_height (GTK_SCROLLED_WINDOW (priv->scrolled_window),
-@@ -851,7 +854,6 @@
+@@ -851,7 +853,6 @@
      }
    else
      {
@@ -315,7 +315,7 @@ Index: gnome-control-center-3.3.90/shell/gnome-control-center.c
        gtk_widget_hide (W (priv->builder, "search-entry"));
        gtk_scrolled_window_set_min_content_height (GTK_SCROLLED_WINDOW (priv->scrolled_window), MIN_ICON_VIEW_HEIGHT);
      }
-@@ -1140,6 +1142,7 @@
+@@ -1140,6 +1141,7 @@
  {
    GError *err = NULL;
    GnomeControlCenterPrivate *priv;
@@ -323,7 +323,7 @@ Index: gnome-control-center-3.3.90/shell/gnome-control-center.c
  
    priv = self->priv = CONTROL_CENTER_PRIVATE (self);
  
-@@ -1171,8 +1174,14 @@
+@@ -1171,8 +1173,14 @@
    g_signal_connect (priv->notebook, "switch-page",
                      G_CALLBACK (notebook_switch_page_cb), priv);
  
@@ -343,7 +343,7 @@ Index: gnome-control-center-3.3.90/shell/gnome-control-center.c
 Index: gnome-control-center-3.3.90/shell/shell.ui
 ===================================================================
 --- gnome-control-center-3.3.90.orig/shell/shell.ui	2012-02-20 11:22:59.000000000 +0100
-+++ gnome-control-center-3.3.90/shell/shell.ui	2012-02-21 13:34:43.515097690 +0100
++++ gnome-control-center-3.3.90/shell/shell.ui	2012-02-23 20:00:06.807162620 +0100
 @@ -34,25 +34,6 @@
                        <object class="GtkHBox" id="hbox1">
                          <property name="visible">True</property>
@@ -379,3 +379,17 @@ Index: gnome-control-center-3.3.90/shell/shell.ui
                            </packing>
                          </child>
                        </object>
+@@ -169,13 +150,6 @@
+       <column type="gchararray"/>
+     </columns>
+   </object>
+-  <object class="GtkSizeGroup" id="sizegroup">
+-    <property name="mode">vertical</property>
+-    <widgets>
+-      <widget name="home-button"/>
+-      <widget name="entry-alignment"/>
+-    </widgets>
+-  </object>
+   <object class="GtkImage" id="image1">
+     <property name="visible">True</property>
+     <property name="can_focus">False</property>
