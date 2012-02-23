@@ -1,3 +1,6 @@
+# Description: set a navigation bar in the g-c-c shell
+# UbuntuSpecific: yes
+#
 === modified file 'shell/Makefile.am'
 Index: gnome-control-center-3.3.90/shell/Makefile.am
 ===================================================================
@@ -49,7 +52,7 @@ Index: gnome-control-center-3.3.90/shell/cc-shell-nav-bar.c
 +
 +#include <glib/gi18n.h>
 +
-+G_DEFINE_TYPE (CcShellNavBar, cc_shell_nav_bar, GTK_TYPE_BUTTON_BOX)
++G_DEFINE_TYPE (CcShellNavBar, cc_shell_nav_bar, GTK_TYPE_GRID)
 +
 +#define SHELL_NAV_BAR_PRIVATE(o) \
 +  (G_TYPE_INSTANCE_GET_PRIVATE ((o), CC_TYPE_SHELL_NAV_BAR, CcShellNavBarPrivate))
@@ -143,8 +146,8 @@ Index: gnome-control-center-3.3.90/shell/cc-shell-nav-bar.c
 +  self->priv->home_button = gtk_button_new_with_mnemonic (_("_All Settings"));
 +  self->priv->detail_button = gtk_button_new();
 +
-+  gtk_box_pack_start (GTK_BOX(self), self->priv->home_button, FALSE, FALSE, 0);
-+  gtk_box_pack_start (GTK_BOX(self), self->priv->detail_button, FALSE, FALSE, 0);
++  gtk_container_add (GTK_GRID(self), self->priv->home_button);
++  gtk_container_add (GTK_GRID(self), self->priv->detail_button);
 +
 +  gtk_widget_show (self->priv->home_button);
 +
@@ -234,14 +237,14 @@ Index: gnome-control-center-3.3.90/shell/cc-shell-nav-bar.h
 +
 +struct _CcShellNavBar
 +{
-+  GtkButtonBox parent;
++  GtkGrid parent;
 +
 +  CcShellNavBarPrivate *priv;
 +};
 +
 +struct _CcShellNavBarClass
 +{
-+  GtkButtonBoxClass parent_class;
++  GtkGridClass parent_class;
 +};
 +
 +GType cc_shell_nav_bar_get_type (void) G_GNUC_CONST;
@@ -275,6 +278,14 @@ Index: gnome-control-center-3.3.90/shell/gnome-control-center.c
  
    GMenuTree  *menu_tree;
    GtkListStore *store;
+@@ -176,6 +177,7 @@
+           /* switch to the new panel */
+           gtk_widget_show (box);
+           gtk_notebook_set_current_page (GTK_NOTEBOOK (priv->notebook), i);
++          cc_shell_nav_bar_show_detail_button (CC_SHELL_NAV_BAR(shell->priv->nav_bar), name);
+ 
+           /* set the title of the window */
+           icon_name = get_icon_name_from_g_icon (gicon);
 @@ -246,6 +248,8 @@
  
    /* clear any custom widgets */
@@ -284,15 +295,6 @@ Index: gnome-control-center-3.3.90/shell/gnome-control-center.c
  }
  
  void
-@@ -263,6 +267,8 @@
- {
-   GError *err = NULL;
- 
-+  cc_shell_nav_bar_show_detail_button (CC_SHELL_NAV_BAR(shell->priv->nav_bar), name);
-+
-   if (!cc_shell_set_active_panel_from_id (CC_SHELL (shell), id, NULL, &err))
-     {
-       /* TODO: show message to user */
 @@ -837,11 +843,8 @@
                           gint                       page_num,
                           GnomeControlCenterPrivate *priv)
