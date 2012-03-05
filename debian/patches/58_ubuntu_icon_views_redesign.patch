@@ -164,6 +164,16 @@
  };
  
  static const gchar *
+@@ -303,7 +306,8 @@
+   res = NULL;
+   for (l = list; l; l = l->next)
+     {
+-      res = g_list_append (res, cc_shell_category_view_get_item_view (CC_SHELL_CATEGORY_VIEW (l->data)));
++      if (CC_IS_SHELL_CATEGORY_VIEW (l->data))
++        res = g_list_append (res, cc_shell_category_view_get_item_view (CC_SHELL_CATEGORY_VIEW (l->data)));
+     }
+ 
+   g_list_free (list);
 @@ -583,6 +586,8 @@
  static void
  setup_search (GnomeControlCenter *shell)
