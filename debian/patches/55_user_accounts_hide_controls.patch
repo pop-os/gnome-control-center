@@ -1,7 +1,7 @@
-Index: gnome-control-center-3.1.92/panels/user-accounts/um-password-dialog.c
+Index: gnome-control-center-3.3.91/panels/user-accounts/um-password-dialog.c
 ===================================================================
---- gnome-control-center-3.1.92.orig/panels/user-accounts/um-password-dialog.c	2011-09-22 10:46:12.000000000 -0400
-+++ gnome-control-center-3.1.92/panels/user-accounts/um-password-dialog.c	2011-09-22 10:46:12.000000000 -0400
+--- gnome-control-center-3.3.91.orig/panels/user-accounts/um-password-dialog.c	2012-03-06 17:52:14.739082997 +0100
++++ gnome-control-center-3.3.91/panels/user-accounts/um-password-dialog.c	2012-03-06 17:52:14.755082995 +0100
 @@ -56,6 +56,7 @@
          GtkWidget *ok_button;
  
@@ -49,7 +49,7 @@ Index: gnome-control-center-3.1.92/panels/user-accounts/um-password-dialog.c
  UmPasswordDialog *
  um_password_dialog_new (void)
  {
-@@ -722,6 +755,13 @@
+@@ -727,6 +760,13 @@
                            G_CALLBACK (entry_size_changed), widget);
          um->normal_hint_label = widget;
  
@@ -63,7 +63,7 @@ Index: gnome-control-center-3.1.92/panels/user-accounts/um-password-dialog.c
          um->strength_indicator = (GtkWidget *) gtk_builder_get_object (builder, "strength-indicator");
  
          um->strength_indicator_label = (GtkWidget *) gtk_builder_get_object (builder, "strength-indicator-label");
-@@ -758,6 +798,12 @@
+@@ -763,6 +803,12 @@
  
                  gtk_tree_model_get (model, iter, 1, &mode, -1);
  
@@ -76,7 +76,7 @@ Index: gnome-control-center-3.1.92/panels/user-accounts/um-password-dialog.c
                  if (mode == 3 && locked)
                          return FALSE;
  
-@@ -784,6 +830,8 @@
+@@ -789,6 +835,8 @@
          if (user) {
                  um->user = g_object_ref (user);
  
@@ -85,11 +85,11 @@ Index: gnome-control-center-3.1.92/panels/user-accounts/um-password-dialog.c
                  pixbuf = um_user_render_icon (user, FALSE, 48);
                  gtk_image_set_from_pixbuf (GTK_IMAGE (um->user_icon), pixbuf);
                  g_object_unref (pixbuf);
-Index: gnome-control-center-3.1.92/panels/user-accounts/um-user-panel.c
+Index: gnome-control-center-3.3.91/panels/user-accounts/um-user-panel.c
 ===================================================================
---- gnome-control-center-3.1.92.orig/panels/user-accounts/um-user-panel.c	2011-08-29 10:08:11.000000000 -0400
-+++ gnome-control-center-3.1.92/panels/user-accounts/um-user-panel.c	2011-09-22 11:00:46.700702071 -0400
-@@ -586,6 +586,17 @@
+--- gnome-control-center-3.3.91.orig/panels/user-accounts/um-user-panel.c	2012-03-05 15:04:55.000000000 +0100
++++ gnome-control-center-3.3.91/panels/user-accounts/um-user-panel.c	2012-03-06 17:52:14.759082997 +0100
+@@ -584,6 +584,17 @@
  
          gtk_widget_set_sensitive (widget, !um_user_get_locked (user));
  
@@ -107,10 +107,10 @@ Index: gnome-control-center-3.1.92/panels/user-accounts/um-user-panel.c
          widget = get_widget (d, "account-language-combo");
          model = um_editable_combo_get_model (UM_EDITABLE_COMBO (widget));
          cc_add_user_languages (model);
-Index: gnome-control-center-3.1.92/panels/user-accounts/um-utils.c
+Index: gnome-control-center-3.3.91/panels/user-accounts/um-utils.c
 ===================================================================
---- gnome-control-center-3.1.92.orig/panels/user-accounts/um-utils.c	2011-07-27 07:15:40.000000000 -0400
-+++ gnome-control-center-3.1.92/panels/user-accounts/um-utils.c	2011-09-22 10:46:12.000000000 -0400
+--- gnome-control-center-3.3.91.orig/panels/user-accounts/um-utils.c	2011-09-01 12:01:01.000000000 +0200
++++ gnome-control-center-3.3.91/panels/user-accounts/um-utils.c	2012-03-06 17:52:14.759082997 +0100
 @@ -746,3 +746,27 @@
          g_string_free (item3, TRUE);
          g_string_free (item4, TRUE);
@@ -139,10 +139,10 @@ Index: gnome-control-center-3.1.92/panels/user-accounts/um-utils.c
 +
 +        return using_ecryptfs;
 +}
-Index: gnome-control-center-3.1.92/panels/user-accounts/um-utils.h
+Index: gnome-control-center-3.3.91/panels/user-accounts/um-utils.h
 ===================================================================
---- gnome-control-center-3.1.92.orig/panels/user-accounts/um-utils.h	2011-07-27 07:15:40.000000000 -0400
-+++ gnome-control-center-3.1.92/panels/user-accounts/um-utils.h	2011-09-22 10:46:12.000000000 -0400
+--- gnome-control-center-3.3.91.orig/panels/user-accounts/um-utils.h	2011-09-01 12:01:01.000000000 +0200
++++ gnome-control-center-3.3.91/panels/user-accounts/um-utils.h	2012-03-06 17:52:14.763082998 +0100
 @@ -65,6 +65,8 @@
  void     generate_username_choices        (const gchar     *name,
                                             GtkListStore    *store);

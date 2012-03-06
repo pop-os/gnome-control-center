@@ -1,7 +1,7 @@
-Index: gnome-control-center-3.3.90/configure.ac
+Index: gnome-control-center-3.3.91/configure.ac
 ===================================================================
---- gnome-control-center-3.3.90.orig/configure.ac	2012-02-21 13:34:43.575097692 +0100
-+++ gnome-control-center-3.3.90/configure.ac	2012-02-21 13:34:47.543097844 +0100
+--- gnome-control-center-3.3.91.orig/configure.ac	2012-03-06 17:52:15.275083022 +0100
++++ gnome-control-center-3.3.91/configure.ac	2012-03-06 17:52:19.743083237 +0100
 @@ -19,6 +19,14 @@
  LT_PREREQ([2.2])
  LT_INIT
@@ -14,10 +14,10 @@ Index: gnome-control-center-3.3.90/configure.ac
 +AC_SUBST(LIBGNOMECONTROLCENTER_REVISION)
 +AC_SUBST(LIBGNOMECONTROLCENTER_AGE)
 +
- # Use the GNOME documentation framework
- GNOME_DOC_INIT
+ # Internationalization support
  
-@@ -232,7 +240,7 @@
+ IT_PROG_INTLTOOL([0.40.1])
+@@ -229,7 +237,7 @@
  PANEL_CFLAGS="-I\$(top_srcdir)/ -DG_LOG_DOMAIN=\"\\\"\$(cappletname)-cc-panel\\\"\""
  AC_SUBST(PANEL_CFLAGS)
  
@@ -26,19 +26,19 @@ Index: gnome-control-center-3.3.90/configure.ac
  AC_SUBST(PANEL_LIBS)
  
  PANEL_LDFLAGS="-export_dynamic -avoid-version -module -no-undefined -export-symbols-regex '^g_io_module_(load|unload)'"
-@@ -323,6 +331,8 @@
+@@ -319,6 +327,8 @@
+ 
  AC_OUTPUT([
  Makefile
- help/Makefile
 +libgnome-control-center/Makefile
 +libgnome-control-center/libgnome-control-center.pc
  panels/Makefile
  panels/common/Makefile
  panels/background/Makefile
-Index: gnome-control-center-3.3.90/libgnome-control-center/cc-editable-entry.c
+Index: gnome-control-center-3.3.91/libgnome-control-center/cc-editable-entry.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center-3.3.90/libgnome-control-center/cc-editable-entry.c	2012-02-21 13:34:43.659097696 +0100
++++ gnome-control-center-3.3.91/libgnome-control-center/cc-editable-entry.c	2012-03-06 17:52:15.327083023 +0100
 @@ -0,0 +1,546 @@
 +/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 8 -*-
 + *
@@ -586,10 +586,10 @@ Index: gnome-control-center-3.3.90/libgnome-control-center/cc-editable-entry.c
 +{
 +        return (GtkWidget *) g_object_new (CC_TYPE_EDITABLE_ENTRY, NULL);
 +}
-Index: gnome-control-center-3.3.90/libgnome-control-center/cc-editable-entry.h
+Index: gnome-control-center-3.3.91/libgnome-control-center/cc-editable-entry.h
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center-3.3.90/libgnome-control-center/cc-editable-entry.h	2012-02-21 13:34:43.659097696 +0100
++++ gnome-control-center-3.3.91/libgnome-control-center/cc-editable-entry.h	2012-03-06 17:52:15.327083023 +0100
 @@ -0,0 +1,75 @@
 +/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 8 -*-
 + *
@@ -666,10 +666,10 @@ Index: gnome-control-center-3.3.90/libgnome-control-center/cc-editable-entry.h
 +G_END_DECLS
 +
 +#endif /* _CC_EDITABLE_ENTRY_H_ */
-Index: gnome-control-center-3.3.90/libgnome-control-center/cc-panel.c
+Index: gnome-control-center-3.3.91/libgnome-control-center/cc-panel.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center-3.3.90/libgnome-control-center/cc-panel.c	2012-02-21 13:34:43.659097696 +0100
++++ gnome-control-center-3.3.91/libgnome-control-center/cc-panel.c	2012-03-06 17:52:15.331083024 +0100
 @@ -0,0 +1,248 @@
 +/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*-
 + *
@@ -919,10 +919,10 @@ Index: gnome-control-center-3.3.90/libgnome-control-center/cc-panel.c
 +
 +  return NULL;
 +}
-Index: gnome-control-center-3.3.90/libgnome-control-center/cc-panel.h
+Index: gnome-control-center-3.3.91/libgnome-control-center/cc-panel.h
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center-3.3.90/libgnome-control-center/cc-panel.h	2012-02-21 13:34:43.659097696 +0100
++++ gnome-control-center-3.3.91/libgnome-control-center/cc-panel.h	2012-03-06 17:52:15.331083024 +0100
 @@ -0,0 +1,81 @@
 +/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*-
 + *
@@ -1005,10 +1005,10 @@ Index: gnome-control-center-3.3.90/libgnome-control-center/cc-panel.h
 +G_END_DECLS
 +
 +#endif /* __CC_PANEL_H */
-Index: gnome-control-center-3.3.90/libgnome-control-center/cc-shell.c
+Index: gnome-control-center-3.3.91/libgnome-control-center/cc-shell.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center-3.3.90/libgnome-control-center/cc-shell.c	2012-02-21 13:34:43.663097697 +0100
++++ gnome-control-center-3.3.91/libgnome-control-center/cc-shell.c	2012-03-06 17:52:15.331083024 +0100
 @@ -0,0 +1,259 @@
 +/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*-
 + *
@@ -1269,10 +1269,10 @@ Index: gnome-control-center-3.3.90/libgnome-control-center/cc-shell.c
 +      return class->embed_widget_in_header (shell, widget);
 +    }
 +}
-Index: gnome-control-center-3.3.90/libgnome-control-center/cc-shell.h
+Index: gnome-control-center-3.3.91/libgnome-control-center/cc-shell.h
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center-3.3.90/libgnome-control-center/cc-shell.h	2012-02-21 13:34:43.663097697 +0100
++++ gnome-control-center-3.3.91/libgnome-control-center/cc-shell.h	2012-03-06 17:52:15.331083024 +0100
 @@ -0,0 +1,112 @@
 +/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*-
 + *
@@ -1386,10 +1386,10 @@ Index: gnome-control-center-3.3.90/libgnome-control-center/cc-shell.h
 +G_END_DECLS
 +
 +#endif /* _CC_SHELL_H */
-Index: gnome-control-center-3.3.90/libgnome-control-center/libgnome-control-center.pc.in
+Index: gnome-control-center-3.3.91/libgnome-control-center/libgnome-control-center.pc.in
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center-3.3.90/libgnome-control-center/libgnome-control-center.pc.in	2012-02-21 13:34:43.663097697 +0100
++++ gnome-control-center-3.3.91/libgnome-control-center/libgnome-control-center.pc.in	2012-03-06 17:52:15.331083024 +0100
 @@ -0,0 +1,12 @@
 +prefix=@prefix@
 +exec_prefix=@exec_prefix@
@@ -1403,10 +1403,10 @@ Index: gnome-control-center-3.3.90/libgnome-control-center/libgnome-control-cent
 +Requires: glib-2.0 gio-2.0 gtk+-3.0
 +Libs: -L${libdir} -lgnome-control-center
 +Cflags: -I${includedir}/gnome-control-center-1
-Index: gnome-control-center-3.3.90/libgnome-control-center/Makefile.am
+Index: gnome-control-center-3.3.91/libgnome-control-center/Makefile.am
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center-3.3.90/libgnome-control-center/Makefile.am	2012-02-21 13:34:43.663097697 +0100
++++ gnome-control-center-3.3.91/libgnome-control-center/Makefile.am	2012-03-06 17:52:15.335083024 +0100
 @@ -0,0 +1,48 @@
 +NULL =
 +
@@ -1456,24 +1456,24 @@ Index: gnome-control-center-3.3.90/libgnome-control-center/Makefile.am
 +	$(NULL)
 +
 +-include $(top_srcdir)/git.mk
-Index: gnome-control-center-3.3.90/Makefile.am
+Index: gnome-control-center-3.3.91/Makefile.am
 ===================================================================
---- gnome-control-center-3.3.90.orig/Makefile.am	2012-02-20 11:22:59.000000000 +0100
-+++ gnome-control-center-3.3.90/Makefile.am	2012-02-21 13:34:43.663097697 +0100
+--- gnome-control-center-3.3.91.orig/Makefile.am	2012-03-05 15:04:55.000000000 +0100
++++ gnome-control-center-3.3.91/Makefile.am	2012-03-06 17:52:15.335083024 +0100
 @@ -1,7 +1,7 @@
  ACLOCAL_AMFLAGS = -I m4 ${ACLOCAL_FLAGS}
  
--SUBDIRS = po shell panels help
--DIST_SUBDIRS = po help shell panels
-+SUBDIRS = po libgnome-control-center shell panels help
-+DIST_SUBDIRS = po help shell panels libgnome-control-center
+-SUBDIRS = po shell panels
+-DIST_SUBDIRS = po shell panels
++SUBDIRS = po libgnome-control-center shell panels
++DIST_SUBDIRS = po shell panels libgnome-control-center
  
- DISTCLEANFILES = \
- 	gnome-doc-utils.make
-Index: gnome-control-center-3.3.90/panels/common/Makefile.am
+ MAINTAINERCLEANFILES = \
+ 	$(srcdir)/INSTALL \
+Index: gnome-control-center-3.3.91/panels/common/Makefile.am
 ===================================================================
---- gnome-control-center-3.3.90.orig/panels/common/Makefile.am	2012-02-20 11:22:59.000000000 +0100
-+++ gnome-control-center-3.3.90/panels/common/Makefile.am	2012-02-21 13:34:43.667097697 +0100
+--- gnome-control-center-3.3.91.orig/panels/common/Makefile.am	2012-03-05 15:04:55.000000000 +0100
++++ gnome-control-center-3.3.91/panels/common/Makefile.am	2012-03-06 17:52:15.335083024 +0100
 @@ -23,9 +23,10 @@
  	cc-language-chooser.h
  
@@ -1486,10 +1486,10 @@ Index: gnome-control-center-3.3.90/panels/common/Makefile.am
  
  list_languages_SOURCES = list-languages.c
  list_languages_LDADD = liblanguage.la
-Index: gnome-control-center-3.3.90/shell/gnome-control-center.h
+Index: gnome-control-center-3.3.91/shell/gnome-control-center.h
 ===================================================================
---- gnome-control-center-3.3.90.orig/shell/gnome-control-center.h	2012-02-20 11:22:59.000000000 +0100
-+++ gnome-control-center-3.3.90/shell/gnome-control-center.h	2012-02-21 13:34:43.667097697 +0100
+--- gnome-control-center-3.3.91.orig/shell/gnome-control-center.h	2012-03-05 15:04:56.000000000 +0100
++++ gnome-control-center-3.3.91/shell/gnome-control-center.h	2012-03-06 17:52:15.335083024 +0100
 @@ -22,7 +22,7 @@
  #define _GNOME_CONTROL_CENTER_H
  
@@ -1499,10 +1499,10 @@ Index: gnome-control-center-3.3.90/shell/gnome-control-center.h
  
  G_BEGIN_DECLS
  
-Index: gnome-control-center-3.3.90/shell/Makefile.am
+Index: gnome-control-center-3.3.91/shell/Makefile.am
 ===================================================================
---- gnome-control-center-3.3.90.orig/shell/Makefile.am	2012-02-21 13:34:43.507097690 +0100
-+++ gnome-control-center-3.3.90/shell/Makefile.am	2012-02-21 13:34:43.667097697 +0100
+--- gnome-control-center-3.3.91.orig/shell/Makefile.am	2012-03-06 17:52:14.867083001 +0100
++++ gnome-control-center-3.3.91/shell/Makefile.am	2012-03-06 17:52:15.335083024 +0100
 @@ -1,5 +1,6 @@
  INCLUDES =					\
  	-I$(top_srcdir)				\
@@ -1529,11 +1529,11 @@ Index: gnome-control-center-3.3.90/shell/Makefile.am
  	$(SHELL_LIBS)
  
  gnome_control_center_LDFLAGS = -export-dynamic
-Index: gnome-control-center-3.3.90/shell/gnome-control-center.c
+Index: gnome-control-center-3.3.91/shell/gnome-control-center.c
 ===================================================================
---- gnome-control-center-3.3.90.orig/shell/gnome-control-center.c	2012-02-21 13:34:43.535097691 +0100
-+++ gnome-control-center-3.3.90/shell/gnome-control-center.c	2012-02-21 13:34:43.667097697 +0100
-@@ -202,7 +202,23 @@
+--- gnome-control-center-3.3.91.orig/shell/gnome-control-center.c	2012-03-06 17:52:14.907083003 +0100
++++ gnome-control-center-3.3.91/shell/gnome-control-center.c	2012-03-06 17:52:15.339083024 +0100
+@@ -203,7 +203,23 @@
          }
        else
          {

@@ -1,6 +1,8 @@
 === modified file 'shell/cc-shell-category-view.c'
---- a/shell/cc-shell-category-view.c	2012-02-16 14:27:27 +0000
-+++ b/shell/cc-shell-category-view.c	2012-02-16 15:10:00 +0000
+Index: gnome-control-center-3.3.91/shell/cc-shell-category-view.c
+===================================================================
+--- gnome-control-center-3.3.91.orig/shell/cc-shell-category-view.c	2012-03-05 15:04:56.000000000 +0100
++++ gnome-control-center-3.3.91/shell/cc-shell-category-view.c	2012-03-06 17:52:14.823082999 +0100
 @@ -31,12 +31,14 @@
  enum
  {
@@ -114,10 +116,10 @@
                         "model", model, NULL);
  }
  
-
-=== modified file 'shell/cc-shell-category-view.h'
---- a/shell/cc-shell-category-view.h	2012-02-16 09:44:01 +0000
-+++ b/shell/cc-shell-category-view.h	2012-02-16 12:32:37 +0000
+Index: gnome-control-center-3.3.91/shell/cc-shell-category-view.h
+===================================================================
+--- gnome-control-center-3.3.91.orig/shell/cc-shell-category-view.h	2011-11-07 18:22:02.000000000 +0100
++++ gnome-control-center-3.3.91/shell/cc-shell-category-view.h	2012-03-06 17:52:14.823082999 +0100
 @@ -68,6 +68,7 @@
  GType cc_shell_category_view_get_type (void) G_GNUC_CONST;
  
@@ -126,10 +128,10 @@
                                         GtkTreeModel *model);
  CcShellItemView* cc_shell_category_view_get_item_view (CcShellCategoryView *self);
  
-
-=== modified file 'shell/cc-shell-model.c'
---- a/shell/cc-shell-model.c	2012-02-16 14:27:27 +0000
-+++ b/shell/cc-shell-model.c	2012-02-16 14:49:19 +0000
+Index: gnome-control-center-3.3.91/shell/cc-shell-model.c
+===================================================================
+--- gnome-control-center-3.3.91.orig/shell/cc-shell-model.c	2012-03-05 15:04:56.000000000 +0100
++++ gnome-control-center-3.3.91/shell/cc-shell-model.c	2012-03-06 17:52:14.823082999 +0100
 @@ -43,7 +43,7 @@
    theme = gtk_icon_theme_get_default ();
  
@@ -139,11 +141,11 @@
    if (icon_info)
      {
        pixbuf = gtk_icon_info_load_icon (icon_info, &err);
-
-=== modified file 'shell/gnome-control-center.c'
---- a/shell/gnome-control-center.c	2012-02-16 15:37:06 +0000
-+++ b/shell/gnome-control-center.c	2012-02-16 16:09:58 +0000
-@@ -48,8 +48,9 @@
+Index: gnome-control-center-3.3.91/shell/gnome-control-center.c
+===================================================================
+--- gnome-control-center-3.3.91.orig/shell/gnome-control-center.c	2012-03-05 15:04:56.000000000 +0100
++++ gnome-control-center-3.3.91/shell/gnome-control-center.c	2012-03-06 17:52:28.087083642 +0100
+@@ -47,8 +47,9 @@
  /* Use a fixed width for the shell, since resizing horizontally is more awkward
   * for the user than resizing vertically
   * Both sizes are defined in https://live.gnome.org/Design/SystemSettings/ */
@@ -154,7 +156,7 @@
 +#define SMALL_SCREEN_FIXED_HEIGHT 500
  
  #define MIN_ICON_VIEW_HEIGHT 300
-
+ 
 @@ -86,6 +87,8 @@
  
    gchar *default_window_title;
@@ -164,7 +166,7 @@
  };
  
  static const gchar *
-@@ -303,7 +306,8 @@
+@@ -310,7 +313,8 @@
    res = NULL;
    for (l = list; l; l = l->next)
      {
@@ -174,7 +176,7 @@
      }
  
    g_list_free (list);
-@@ -583,6 +586,8 @@
+@@ -583,6 +587,8 @@
  static void
  setup_search (GnomeControlCenter *shell)
  {
@@ -183,7 +185,7 @@
    GtkWidget *search_scrolled, *search_view, *widget;
    GtkCellRenderer *renderer;
    GnomeControlCenterPrivate *priv = shell->priv;
-@@ -602,7 +607,8 @@
+@@ -602,7 +608,8 @@
    priv->search_view = search_view = cc_shell_item_view_new ();
    gtk_icon_view_set_item_orientation (GTK_ICON_VIEW (search_view),
                                        GTK_ORIENTATION_HORIZONTAL);
@@ -193,7 +195,7 @@
    gtk_icon_view_set_model (GTK_ICON_VIEW (search_view),
                             GTK_TREE_MODEL (priv->search_filter));
  
-@@ -659,7 +665,8 @@
+@@ -659,7 +666,8 @@
  
  static void
  maybe_add_category_view (GnomeControlCenter *shell,
@@ -203,7 +205,7 @@
  {
    GtkTreeModel *filter;
    GtkWidget *categoryview;
-@@ -667,6 +674,16 @@
+@@ -667,6 +675,16 @@
    if (g_hash_table_lookup (shell->priv->category_views, name) != NULL)
      return;
  
@@ -220,7 +222,7 @@
    /* create new category view for this category */
    filter = gtk_tree_model_filter_new (GTK_TREE_MODEL (shell->priv->store),
                                        NULL);
-@@ -674,7 +691,7 @@
+@@ -674,7 +692,7 @@
                                            (GtkTreeModelFilterVisibleFunc) category_filter_func,
                                            g_strdup (name), g_free);
  
@@ -229,7 +231,7 @@
    gtk_box_pack_start (GTK_BOX (shell->priv->main_vbox), categoryview, FALSE, TRUE, 0);
  
    g_signal_connect (cc_shell_category_view_get_item_view (CC_SHELL_CATEGORY_VIEW (categoryview)),
-@@ -722,13 +739,15 @@
+@@ -722,13 +740,15 @@
          {
            GMenuTreeDirectory *subdir;
            const gchar *dir_name;
@@ -246,7 +248,7 @@
  
            /* add the items from this category to the model */
            sub_iter = gmenu_tree_directory_iter (subdir);
-@@ -765,7 +784,10 @@
+@@ -765,7 +785,10 @@
  {
    GnomeControlCenterPrivate *priv = shell->priv;
  
@@ -258,7 +260,7 @@
    gtk_container_set_focus_vadjustment (GTK_CONTAINER (shell->priv->main_vbox),
                                         gtk_scrolled_window_get_vadjustment (GTK_SCROLLED_WINDOW (shell->priv->scrolled_window)));
  
-@@ -822,7 +844,10 @@
+@@ -822,7 +845,10 @@
        gtk_widget_hide (W (priv->builder, "home-button"));
        gtk_widget_show (W (priv->builder, "search-entry"));
        gtk_widget_hide (W (priv->builder, "lock-button"));
@@ -270,7 +272,7 @@
      }
    else
      {
-@@ -1093,6 +1118,23 @@
+@@ -1093,6 +1119,23 @@
    return retval;
  }
  
@@ -294,7 +296,7 @@
  static void
  gnome_control_center_init (GnomeControlCenter *self)
  {
-@@ -1101,6 +1143,8 @@
+@@ -1101,6 +1144,8 @@
  
    priv = self->priv = CONTROL_CENTER_PRIVATE (self);
  
@@ -303,7 +305,7 @@
    /* load the user interface */
    priv->builder = gtk_builder_new ();
  
-@@ -1114,6 +1158,8 @@
+@@ -1114,6 +1159,8 @@
  
    /* connect various signals */
    priv->window = W (priv->builder, "main-window");
@@ -312,7 +314,7 @@
    g_signal_connect_swapped (priv->window, "delete-event", G_CALLBACK (g_object_unref), self);
    g_signal_connect (priv->window, "key_press_event",
                      G_CALLBACK (window_key_press_event), self);
-@@ -1158,6 +1204,9 @@
+@@ -1158,6 +1205,9 @@
  void
  gnome_control_center_present (GnomeControlCenter *center)
  {
@@ -322,10 +324,10 @@
    gtk_window_present (GTK_WINDOW (center->priv->window));
  }
  
-
-=== modified file 'shell/shell-search-renderer.c'
---- a/shell/shell-search-renderer.c	2012-02-16 14:27:27 +0000
-+++ b/shell/shell-search-renderer.c	2012-02-16 14:49:19 +0000
+Index: gnome-control-center-3.3.91/shell/shell-search-renderer.c
+===================================================================
+--- gnome-control-center-3.3.91.orig/shell/shell-search-renderer.c	2012-03-05 15:04:56.000000000 +0100
++++ gnome-control-center-3.3.91/shell/shell-search-renderer.c	2012-03-06 17:52:14.831082999 +0100
 @@ -215,7 +215,7 @@
  
    shell_search_renderer_set_layout (SHELL_SEARCH_RENDERER (cell), widget);
@@ -360,4 +362,3 @@
                       priv->layout);
  
    cairo_restore (cr);
-
