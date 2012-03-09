@@ -1,0 +1,25 @@
+--- gnome-control-center-3.3.91.orig/panels/universal-access/cc-ua-panel.c
++++ gnome-control-center-3.3.91/panels/universal-access/cc-ua-panel.c
+@@ -475,11 +475,21 @@ contrast_combobox_changed_cb (GtkComboBo
+ 
+   if (g_strcmp0 (theme_name, ""))
+     {
++      /* disable overlay scrollbars for a11y */
++      if (g_strcmp0 (theme_name, "HighContrast") == 0 ||
++          g_strcmp0 (theme_name, "HighContrastInverse") == 0)
++        g_settings_set_boolean (priv->interface_settings, "ubuntu-overlay-scrollbars", FALSE);
++      else
++        g_settings_reset (priv->interface_settings, "ubuntu-overlay-scrollbars");
++
+       g_settings_set_string (priv->interface_settings, GTK_THEME_KEY, theme_name);
+       g_settings_set_string (priv->interface_settings, ICON_THEME_KEY, theme_name);
+     }
+   else
+     {
++      /* reset overlay scrollbars key */
++      g_settings_reset (priv->interface_settings, "ubuntu-overlay-scrollbars");
++
+       g_settings_reset (priv->interface_settings, GTK_THEME_KEY);
+       g_settings_reset (priv->interface_settings, ICON_THEME_KEY);
+     }
+
