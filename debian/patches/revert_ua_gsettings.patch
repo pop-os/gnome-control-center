@@ -1,7 +1,7 @@
-Index: gnome-control-center-3.3.91/panels/universal-access/cc-ua-panel.c
+Index: gnome-control-center-3.3.92/panels/universal-access/cc-ua-panel.c
 ===================================================================
---- gnome-control-center-3.3.91.orig/panels/universal-access/cc-ua-panel.c	2012-03-05 15:04:55.000000000 +0100
-+++ gnome-control-center-3.3.91/panels/universal-access/cc-ua-panel.c	2012-03-06 17:52:15.375083026 +0100
+--- gnome-control-center-3.3.92.orig/panels/universal-access/cc-ua-panel.c	2012-03-19 18:48:34.622584967 +0100
++++ gnome-control-center-3.3.92/panels/universal-access/cc-ua-panel.c	2012-03-19 18:48:34.838584969 +0100
 @@ -25,10 +25,12 @@
  #include <config.h>
  
@@ -26,16 +26,16 @@ Index: gnome-control-center-3.3.91/panels/universal-access/cc-ua-panel.c
    GSettings *interface_settings;
    GSettings *kb_settings;
    GSettings *mouse_settings;
-@@ -50,6 +52,8 @@
-   GSettings *mediakeys_settings;
+@@ -51,6 +53,8 @@
  
    ZoomOptions *zoom_options;
+   guint shell_watch_id;
 +
 +  GSList *notify_list;
  };
  
  
-@@ -83,6 +87,21 @@
+@@ -84,6 +88,21 @@
  cc_ua_panel_dispose (GObject *object)
  {
    CcUaPanelPrivate *priv = CC_UA_PANEL (object)->priv;
@@ -55,9 +55,9 @@ Index: gnome-control-center-3.3.91/panels/universal-access/cc-ua-panel.c
 +    }
 +
  
-   if (priv->builder)
+   if (priv->shell_watch_id)
      {
-@@ -90,10 +109,10 @@
+@@ -97,10 +116,10 @@
        priv->builder = NULL;
      }
  
@@ -71,7 +71,7 @@ Index: gnome-control-center-3.3.91/panels/universal-access/cc-ua-panel.c
      }
  
    if (priv->interface_settings)
-@@ -252,6 +271,46 @@
+@@ -259,6 +278,46 @@
    g_settings_bind (settings, key, widget, "active", G_SETTINGS_BIND_DEFAULT);
  }
  
@@ -118,7 +118,7 @@ Index: gnome-control-center-3.3.91/panels/universal-access/cc-ua-panel.c
  /* seeing section */
  #define GTK_THEME_KEY "gtk-theme"
  #define ICON_THEME_KEY "icon-theme"
-@@ -504,16 +563,19 @@
+@@ -549,16 +608,19 @@
  
  /* hearing/sound section */
  static void
@@ -143,7 +143,7 @@ Index: gnome-control-center-3.3.91/panels/universal-access/cc-ua-panel.c
      widget = WID (panel->priv->builder, "hearing_flash_window_title_button");
    else
      widget = WID (panel->priv->builder, "hearing_flash_screen_button");
-@@ -525,16 +587,15 @@
+@@ -570,16 +632,15 @@
  visual_bell_type_toggle_cb (GtkWidget *button,
                              CcUaPanel *panel)
  {
@@ -166,7 +166,7 @@ Index: gnome-control-center-3.3.91/panels/universal-access/cc-ua-panel.c
  }
  
  static gboolean
-@@ -554,16 +615,32 @@
+@@ -599,16 +660,32 @@
  {
    CcUaPanelPrivate *priv = self->priv;
    GtkWidget *w;
@@ -205,7 +205,7 @@ Index: gnome-control-center-3.3.91/panels/universal-access/cc-ua-panel.c
    g_signal_connect (WID (priv->builder, "hearing_flash_window_title_button"),
                      "toggled", G_CALLBACK (visual_bell_type_toggle_cb), self);
  
-@@ -736,12 +813,13 @@
+@@ -781,12 +858,13 @@
        return;
      }
  
@@ -220,10 +220,10 @@ Index: gnome-control-center-3.3.91/panels/universal-access/cc-ua-panel.c
    priv->kb_settings = g_settings_new ("org.gnome.desktop.a11y.keyboard");
    priv->mouse_settings = g_settings_new ("org.gnome.desktop.a11y.mouse");
    priv->application_settings = g_settings_new ("org.gnome.desktop.a11y.applications");
-Index: gnome-control-center-3.3.91/panels/universal-access/gconf-property-editor.c
+Index: gnome-control-center-3.3.92/panels/universal-access/gconf-property-editor.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center-3.3.91/panels/universal-access/gconf-property-editor.c	2012-03-06 17:52:15.383083026 +0100
++++ gnome-control-center-3.3.92/panels/universal-access/gconf-property-editor.c	2012-03-19 18:48:34.842584969 +0100
 @@ -0,0 +1,1869 @@
 +/* -*- mode: c; style: linux -*- */
 +
@@ -2094,10 +2094,10 @@ Index: gnome-control-center-3.3.91/panels/universal-access/gconf-property-editor
 +
 +	return peditor;
 +}
-Index: gnome-control-center-3.3.91/panels/universal-access/gconf-property-editor.h
+Index: gnome-control-center-3.3.92/panels/universal-access/gconf-property-editor.h
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center-3.3.91/panels/universal-access/gconf-property-editor.h	2012-03-06 17:52:15.383083026 +0100
++++ gnome-control-center-3.3.92/panels/universal-access/gconf-property-editor.h	2012-03-19 18:48:34.842584969 +0100
 @@ -0,0 +1,164 @@
 +/* -*- mode: c; style: linux -*- */
 +
@@ -2263,10 +2263,10 @@ Index: gnome-control-center-3.3.91/panels/universal-access/gconf-property-editor
 +G_END_DECLS
 +
 +#endif /* __GCONF_PROPERTY_EDITOR_H */
-Index: gnome-control-center-3.3.91/configure.ac
+Index: gnome-control-center-3.3.92/configure.ac
 ===================================================================
---- gnome-control-center-3.3.91.orig/configure.ac	2012-03-06 17:52:15.355083025 +0100
-+++ gnome-control-center-3.3.91/configure.ac	2012-03-06 17:52:18.111083158 +0100
+--- gnome-control-center-3.3.92.orig/configure.ac	2012-03-19 18:48:34.818584969 +0100
++++ gnome-control-center-3.3.92/configure.ac	2012-03-19 18:48:37.990584991 +0100
 @@ -130,7 +130,7 @@
                    libpulse-mainloop-glib >= $PA_REQUIRED_VERSION
                    gsettings-desktop-schemas >= $SCHEMAS_REQUIRED_VERSION
@@ -2276,10 +2276,10 @@ Index: gnome-control-center-3.3.91/configure.ac
  PKG_CHECK_MODULES(USER_ACCOUNTS_PANEL, $COMMON_MODULES
                    polkit-gobject-1 >= $POLKIT_REQUIRED_VERSION
                    gnome-desktop-3.0
-Index: gnome-control-center-3.3.91/panels/universal-access/Makefile.am
+Index: gnome-control-center-3.3.92/panels/universal-access/Makefile.am
 ===================================================================
---- gnome-control-center-3.3.91.orig/panels/universal-access/Makefile.am	2012-03-05 15:04:55.000000000 +0100
-+++ gnome-control-center-3.3.91/panels/universal-access/Makefile.am	2012-03-06 17:52:15.383083026 +0100
+--- gnome-control-center-3.3.92.orig/panels/universal-access/Makefile.am	2012-02-14 11:13:17.000000000 +0100
++++ gnome-control-center-3.3.92/panels/universal-access/Makefile.am	2012-03-19 18:48:34.842584969 +0100
 @@ -16,6 +16,8 @@
  	universal-access-module.c		\
  	cc-ua-panel.c				\
