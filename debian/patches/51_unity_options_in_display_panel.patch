@@ -1,7 +1,7 @@
-Index: gnome-control-center-3.3.91/configure.ac
+Index: gnome-control-center-3.3.92/configure.ac
 ===================================================================
---- gnome-control-center-3.3.91.orig/configure.ac	2012-03-19 10:17:46.298146834 +0100
-+++ gnome-control-center-3.3.91/configure.ac	2012-03-19 10:32:02.018390129 +0100
+--- gnome-control-center-3.3.92.orig/configure.ac	2012-03-21 15:32:01.277658076 +0100
++++ gnome-control-center-3.3.92/configure.ac	2012-03-21 15:36:57.915129015 +0100
 @@ -98,7 +98,7 @@
                    gnome-desktop-3.0 >= $GNOME_DESKTOP_REQUIRED_VERSION
                    polkit-gobject-1 >= $POLKIT_REQUIRED_VERSION
@@ -11,10 +11,10 @@ Index: gnome-control-center-3.3.91/configure.ac
  PKG_CHECK_MODULES(INFO_PANEL, $COMMON_MODULES libgtop-2.0
  		  polkit-gobject-1 >= $POLKIT_REQUIRED_VERSION)
  PKG_CHECK_MODULES(KEYBOARD_PANEL, $COMMON_MODULES x11)
-Index: gnome-control-center-3.3.91/panels/display/cc-display-panel.c
+Index: gnome-control-center-3.3.92/panels/display/cc-display-panel.c
 ===================================================================
---- gnome-control-center-3.3.91.orig/panels/display/cc-display-panel.c	2012-03-05 15:04:55.000000000 +0100
-+++ gnome-control-center-3.3.91/panels/display/cc-display-panel.c	2012-03-21 12:54:50.198891885 +0100
+--- gnome-control-center-3.3.92.orig/panels/display/cc-display-panel.c	2012-03-08 11:16:46.000000000 +0100
++++ gnome-control-center-3.3.92/panels/display/cc-display-panel.c	2012-03-21 15:38:36.207616424 +0100
 @@ -36,6 +36,7 @@
  #include <X11/Xlib.h>
  #include <glib/gi18n.h>
@@ -36,7 +36,7 @@ Index: gnome-control-center-3.3.91/panels/display/cc-display-panel.c
  enum {
    TEXT_COL,
    WIDTH_COL,
-@@ -71,6 +78,8 @@
+@@ -72,6 +79,8 @@
    GnomeRROutputInfo         *current_output;
  
    GSettings      *clock_settings;
@@ -45,7 +45,7 @@ Index: gnome-control-center-3.3.91/panels/display/cc-display-panel.c
    GtkBuilder     *builder;
    guint           focus_id;
  
-@@ -94,6 +103,8 @@
+@@ -95,6 +104,8 @@
  
    /* These are used while we are waiting for the ApplyConfiguration method to be executed over D-bus */
    GDBusProxy *proxy;
@@ -54,7 +54,7 @@ Index: gnome-control-center-3.3.91/panels/display/cc-display-panel.c
  };
  
  typedef struct
-@@ -118,6 +129,8 @@
+@@ -119,6 +130,8 @@
  					      guint                  n_properties,
  					      GObjectConstructParam *properties);
  static void on_screen_changed (GnomeRRScreen *scr, gpointer data);
@@ -63,7 +63,7 @@ Index: gnome-control-center-3.3.91/panels/display/cc-display-panel.c
  
  static void
  cc_display_panel_get_property (GObject    *object,
-@@ -157,6 +170,7 @@
+@@ -158,6 +171,7 @@
    CcDisplayPanel *self;
    CcShell *shell;
    GtkWidget *toplevel;
@@ -71,7 +71,7 @@ Index: gnome-control-center-3.3.91/panels/display/cc-display-panel.c
  
    self = CC_DISPLAY_PANEL (object);
  
-@@ -167,6 +181,11 @@
+@@ -168,6 +182,11 @@
    if (self->priv->clock_settings != NULL)
      g_object_unref (self->priv->clock_settings);
  
@@ -83,7 +83,7 @@ Index: gnome-control-center-3.3.91/panels/display/cc-display-panel.c
    shell = cc_panel_get_shell (CC_PANEL (self));
    toplevel = cc_shell_get_toplevel (shell);
    g_signal_handler_disconnect (G_OBJECT (toplevel),
-@@ -175,6 +194,14 @@
+@@ -176,6 +195,14 @@
    gnome_rr_labeler_hide (self->priv->labeler);
    g_object_unref (self->priv->labeler);
  
@@ -98,7 +98,7 @@ Index: gnome-control-center-3.3.91/panels/display/cc-display-panel.c
    G_OBJECT_CLASS (cc_display_panel_parent_class)->finalize (object);
  }
  
-@@ -222,6 +249,12 @@
+@@ -223,6 +250,12 @@
  }
  
  static gboolean
@@ -111,7 +111,7 @@ Index: gnome-control-center-3.3.91/panels/display/cc-display-panel.c
  should_show_resolution (gint output_width,
                          gint output_height,
                          gint width,
-@@ -261,6 +294,9 @@
+@@ -262,6 +295,9 @@
       gnome_rr_labeler_show (self->priv->labeler);
  
    select_current_output_from_dialog_position (self);
@@ -121,7 +121,7 @@ Index: gnome-control-center-3.3.91/panels/display/cc-display-panel.c
  }
  
  static void
-@@ -601,6 +637,10 @@
+@@ -599,6 +635,10 @@
    gtk_widget_set_sensitive (self->priv->clone_checkbox, mirror_is_supported);
    gtk_widget_set_sensitive (self->priv->clone_label, mirror_is_supported);
  
@@ -132,7 +132,7 @@ Index: gnome-control-center-3.3.91/panels/display/cc-display-panel.c
    g_signal_handlers_unblock_by_func (self->priv->clone_checkbox, G_CALLBACK (on_clone_changed), self);
  }
  
-@@ -840,6 +880,7 @@
+@@ -838,6 +878,7 @@
    rebuild_on_off_radios (self);
    rebuild_resolution_combo (self);
    rebuild_rotation_combo (self);
@@ -140,7 +140,7 @@ Index: gnome-control-center-3.3.91/panels/display/cc-display-panel.c
  
    self->priv->ignore_gui_changes = FALSE;
  }
-@@ -1724,6 +1765,9 @@
+@@ -1722,6 +1763,9 @@
    outputs = gnome_rr_config_get_outputs (self->priv->current_configuration);
    for (i = 0; outputs[i] != NULL; ++i)
      gnome_rr_output_info_set_primary (outputs[i], outputs[i] == output);
@@ -150,7 +150,7 @@ Index: gnome-control-center-3.3.91/panels/display/cc-display-panel.c
  }
  
  static void
-@@ -2075,7 +2119,38 @@
+@@ -2073,7 +2117,38 @@
    g_object_unref (layout);
    cairo_restore (cr);
  
@@ -190,7 +190,7 @@ Index: gnome-control-center-3.3.91/panels/display/cc-display-panel.c
      {
        const char *clock_format;
        char *text;
-@@ -2127,7 +2202,7 @@
+@@ -2125,7 +2200,7 @@
  
        pango_cairo_show_layout (cr, layout);
        g_object_unref (layout);
@@ -199,7 +199,7 @@ Index: gnome-control-center-3.3.91/panels/display/cc-display-panel.c
  
    cairo_restore (cr);
  }
-@@ -2558,6 +2633,228 @@
+@@ -2556,6 +2631,228 @@
  }
  
  static void
@@ -369,7 +369,7 @@ Index: gnome-control-center-3.3.91/panels/display/cc-display-panel.c
 +        if (!gnome_rr_output_info_is_active (output))
 +          continue;
 +
-+        if ((active == i) && !gnome_rr_output_info_get_primary (output))
++        if ((active == index_on_combo) && !gnome_rr_output_info_get_primary (output))
 +          {
 +            set_primary_output (self, output);
 +            break;
@@ -428,7 +428,7 @@ Index: gnome-control-center-3.3.91/panels/display/cc-display-panel.c
  cc_display_panel_init (CcDisplayPanel *self)
  {
  }
-@@ -2574,7 +2871,7 @@
+@@ -2572,7 +2869,7 @@
    CcDisplayPanel *self;
    CcShell *shell;
    GtkWidget *toplevel;
@@ -437,7 +437,7 @@ Index: gnome-control-center-3.3.91/panels/display/cc-display-panel.c
  
    obj = G_OBJECT_CLASS (cc_display_panel_parent_class)->constructor (gtype, n_properties, properties);
    self = CC_DISPLAY_PANEL (obj);
-@@ -2663,6 +2960,17 @@
+@@ -2661,6 +2958,17 @@
    g_signal_connect_swapped (WID ("apply_button"),
                              "clicked", G_CALLBACK (apply), self);
  
@@ -455,15 +455,15 @@ Index: gnome-control-center-3.3.91/panels/display/cc-display-panel.c
    gtk_widget_show (self->priv->panel);
    gtk_container_add (GTK_CONTAINER (self), self->priv->panel);
  
-@@ -2677,4 +2985,3 @@
+@@ -2675,4 +2983,3 @@
                                    CC_TYPE_DISPLAY_PANEL,
                                    "display", 0);
  }
 -
-Index: gnome-control-center-3.3.91/panels/display/display-capplet.ui
+Index: gnome-control-center-3.3.92/panels/display/display-capplet.ui
 ===================================================================
---- gnome-control-center-3.3.91.orig/panels/display/display-capplet.ui	2012-03-05 15:04:55.000000000 +0100
-+++ gnome-control-center-3.3.91/panels/display/display-capplet.ui	2012-03-20 15:06:12.389637820 +0100
+--- gnome-control-center-3.3.92.orig/panels/display/display-capplet.ui	2012-02-14 11:13:17.000000000 +0100
++++ gnome-control-center-3.3.92/panels/display/display-capplet.ui	2012-03-21 15:32:01.449658918 +0100
 @@ -1,6 +1,14 @@
  <?xml version="1.0"?>
  <interface>
