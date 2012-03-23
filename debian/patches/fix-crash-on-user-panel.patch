@@ -1,0 +1,27 @@
+Index: gnome-control-center-3.3.92/panels/user-accounts/um-user.c
+===================================================================
+--- gnome-control-center-3.3.92.orig/panels/user-accounts/um-user.c	2012-02-14 05:13:17.000000000 -0500
++++ gnome-control-center-3.3.92/panels/user-accounts/um-user.c	2012-03-23 15:24:39.927716261 -0400
+@@ -1061,6 +1061,8 @@
+         GVariant *result;
+         GError *error = NULL;
+ 
++        g_return_if_fail (UM_IS_USER (user));
++
+         result = g_dbus_proxy_call_sync (user->proxy, "SetAutomaticLogin", g_variant_new ("(b)", enabled), G_DBUS_CALL_FLAGS_NONE, -1, NULL, &error);
+         if (!result) {
+                 g_warning ("SetAutomaticLogin call failed: %s", error->message);
+Index: gnome-control-center-3.3.92/panels/user-accounts/um-user-panel.c
+===================================================================
+--- gnome-control-center-3.3.92.orig/panels/user-accounts/um-user-panel.c	2012-03-23 15:12:25.079738947 -0400
++++ gnome-control-center-3.3.92/panels/user-accounts/um-user-panel.c	2012-03-23 15:25:56.455713898 -0400
+@@ -525,6 +525,9 @@
+ 
+         active = gtk_switch_get_active (GTK_SWITCH (object));
+         user = get_selected_user (d);
++        if (user == NULL) {
++                return;
++        }
+ 
+         if (active != um_user_get_automatic_login (user)) {
+                 um_user_set_automatic_login (user, active);
