@@ -1,7 +1,7 @@
 Index: gnome-control-center-3.4.0/configure.ac
 ===================================================================
---- gnome-control-center-3.4.0.orig/configure.ac	2012-03-28 12:35:13.836241841 +0200
-+++ gnome-control-center-3.4.0/configure.ac	2012-03-28 12:36:57.160754198 +0200
+--- gnome-control-center-3.4.0.orig/configure.ac	2012-03-28 12:40:08.345702239 +0200
++++ gnome-control-center-3.4.0/configure.ac	2012-03-28 12:40:39.229855384 +0200
 @@ -98,7 +98,7 @@
                    gnome-desktop-3.0 >= $GNOME_DESKTOP_REQUIRED_VERSION
                    polkit-gobject-1 >= $POLKIT_REQUIRED_VERSION
@@ -13,8 +13,8 @@ Index: gnome-control-center-3.4.0/configure.ac
  PKG_CHECK_MODULES(KEYBOARD_PANEL, $COMMON_MODULES x11)
 Index: gnome-control-center-3.4.0/panels/display/cc-display-panel.c
 ===================================================================
---- gnome-control-center-3.4.0.orig/panels/display/cc-display-panel.c	2012-03-28 12:35:13.868241996 +0200
-+++ gnome-control-center-3.4.0/panels/display/cc-display-panel.c	2012-03-28 12:36:57.160754198 +0200
+--- gnome-control-center-3.4.0.orig/panels/display/cc-display-panel.c	2012-03-08 11:16:46.000000000 +0100
++++ gnome-control-center-3.4.0/panels/display/cc-display-panel.c	2012-03-28 12:42:53.410520742 +0200
 @@ -36,6 +36,7 @@
  #include <X11/Xlib.h>
  #include <glib/gi18n.h>
@@ -150,22 +150,14 @@ Index: gnome-control-center-3.4.0/panels/display/cc-display-panel.c
  }
  
  static void
-@@ -2073,7 +2117,38 @@
+@@ -2073,7 +2117,30 @@
    g_object_unref (layout);
    cairo_restore (cr);
  
 -  if (gnome_rr_output_info_get_primary (output))
-+  /* top bar for unity settings */
++  /* Only display a launcher on all or primary monitor */
 +  if (is_unity_session ())
 +    {
-+      cairo_rectangle (cr, x, y, w * scale + 0.5, TOP_BAR_HEIGHT - 5);
-+      cairo_set_source_rgb (cr, 0, 0, 0);
-+      foo_scroll_area_add_input_from_fill (FOO_SCROLL_AREA (self->priv->area),
-+                                           cr,
-+                                           (FooScrollAreaEventFunc) on_top_bar_event,
-+                                           self);
-+      cairo_fill (cr);
-+      /* launcher on all or primary monitor only */
 +      if (gnome_rr_output_info_is_active (output) && (unity_launcher_on_all_monitors () || gnome_rr_output_info_get_primary (output)))
 +        {
 +          cairo_rectangle (cr, x, y, 10, h * scale + 0.5);
@@ -190,7 +182,7 @@ Index: gnome-control-center-3.4.0/panels/display/cc-display-panel.c
      {
        const char *clock_format;
        char *text;
-@@ -2125,7 +2200,7 @@
+@@ -2125,7 +2192,7 @@
  
        pango_cairo_show_layout (cr, layout);
        g_object_unref (layout);
@@ -199,7 +191,7 @@ Index: gnome-control-center-3.4.0/panels/display/cc-display-panel.c
  
    cairo_restore (cr);
  }
-@@ -2556,6 +2631,228 @@
+@@ -2556,6 +2623,228 @@
  }
  
  static void
@@ -428,7 +420,7 @@ Index: gnome-control-center-3.4.0/panels/display/cc-display-panel.c
  cc_display_panel_init (CcDisplayPanel *self)
  {
  }
-@@ -2572,7 +2869,7 @@
+@@ -2572,7 +2861,7 @@
    CcDisplayPanel *self;
    CcShell *shell;
    GtkWidget *toplevel;
@@ -437,7 +429,7 @@ Index: gnome-control-center-3.4.0/panels/display/cc-display-panel.c
  
    obj = G_OBJECT_CLASS (cc_display_panel_parent_class)->constructor (gtype, n_properties, properties);
    self = CC_DISPLAY_PANEL (obj);
-@@ -2661,6 +2958,17 @@
+@@ -2661,6 +2950,17 @@
    g_signal_connect_swapped (WID ("apply_button"),
                              "clicked", G_CALLBACK (apply), self);
  
@@ -455,15 +447,15 @@ Index: gnome-control-center-3.4.0/panels/display/cc-display-panel.c
    gtk_widget_show (self->priv->panel);
    gtk_container_add (GTK_CONTAINER (self), self->priv->panel);
  
-@@ -2675,4 +2983,3 @@
+@@ -2675,4 +2975,3 @@
                                    CC_TYPE_DISPLAY_PANEL,
                                    "display", 0);
  }
 -
 Index: gnome-control-center-3.4.0/panels/display/display-capplet.ui
 ===================================================================
---- gnome-control-center-3.4.0.orig/panels/display/display-capplet.ui	2012-03-28 12:35:13.848241907 +0200
-+++ gnome-control-center-3.4.0/panels/display/display-capplet.ui	2012-03-28 12:37:30.412919088 +0200
+--- gnome-control-center-3.4.0.orig/panels/display/display-capplet.ui	2012-02-14 11:13:17.000000000 +0100
++++ gnome-control-center-3.4.0/panels/display/display-capplet.ui	2012-03-28 12:40:08.601703504 +0200
 @@ -1,6 +1,14 @@
  <?xml version="1.0"?>
  <interface>
