@@ -1,7 +1,7 @@
 Index: gnome-control-center-3.4.0/configure.ac
 ===================================================================
---- gnome-control-center-3.4.0.orig/configure.ac	2012-03-29 08:27:07.554156228 +0200
-+++ gnome-control-center-3.4.0/configure.ac	2012-03-29 09:28:18.092357444 +0200
+--- gnome-control-center-3.4.0.orig/configure.ac	2012-03-29 09:59:04.577513669 +0200
++++ gnome-control-center-3.4.0/configure.ac	2012-03-29 10:01:23.522202655 +0200
 @@ -98,7 +98,7 @@
                    gnome-desktop-3.0 >= $GNOME_DESKTOP_REQUIRED_VERSION
                    polkit-gobject-1 >= $POLKIT_REQUIRED_VERSION
@@ -14,7 +14,7 @@ Index: gnome-control-center-3.4.0/configure.ac
 Index: gnome-control-center-3.4.0/panels/display/cc-display-panel.c
 ===================================================================
 --- gnome-control-center-3.4.0.orig/panels/display/cc-display-panel.c	2012-03-08 11:16:46.000000000 +0100
-+++ gnome-control-center-3.4.0/panels/display/cc-display-panel.c	2012-03-29 09:54:09.300049470 +0200
++++ gnome-control-center-3.4.0/panels/display/cc-display-panel.c	2012-03-29 10:07:34.104040267 +0200
 @@ -36,6 +36,7 @@
  #include <X11/Xlib.h>
  #include <glib/gi18n.h>
@@ -140,17 +140,18 @@ Index: gnome-control-center-3.4.0/panels/display/cc-display-panel.c
  
    self->priv->ignore_gui_changes = FALSE;
  }
-@@ -1722,6 +1763,9 @@
+@@ -1722,6 +1763,10 @@
    outputs = gnome_rr_config_get_outputs (self->priv->current_configuration);
    for (i = 0; outputs[i] != NULL; ++i)
      gnome_rr_output_info_set_primary (outputs[i], outputs[i] == output);
 +
++  gtk_widget_queue_draw (WID ("self->priv->area"));
 +  /* refresh the combobox */
 +  refresh_unity_launcher_placement (self);
  }
  
  static void
-@@ -2073,7 +2117,30 @@
+@@ -2073,7 +2118,30 @@
    g_object_unref (layout);
    cairo_restore (cr);
  
@@ -182,7 +183,7 @@ Index: gnome-control-center-3.4.0/panels/display/cc-display-panel.c
      {
        const char *clock_format;
        char *text;
-@@ -2125,7 +2192,7 @@
+@@ -2125,7 +2193,7 @@
  
        pango_cairo_show_layout (cr, layout);
        g_object_unref (layout);
@@ -191,7 +192,7 @@ Index: gnome-control-center-3.4.0/panels/display/cc-display-panel.c
  
    cairo_restore (cr);
  }
-@@ -2556,6 +2623,228 @@
+@@ -2556,6 +2624,228 @@
  }
  
  static void
@@ -420,7 +421,7 @@ Index: gnome-control-center-3.4.0/panels/display/cc-display-panel.c
  cc_display_panel_init (CcDisplayPanel *self)
  {
  }
-@@ -2572,7 +2861,7 @@
+@@ -2572,7 +2862,7 @@
    CcDisplayPanel *self;
    CcShell *shell;
    GtkWidget *toplevel;
@@ -429,7 +430,7 @@ Index: gnome-control-center-3.4.0/panels/display/cc-display-panel.c
  
    obj = G_OBJECT_CLASS (cc_display_panel_parent_class)->constructor (gtype, n_properties, properties);
    self = CC_DISPLAY_PANEL (obj);
-@@ -2661,6 +2950,18 @@
+@@ -2661,6 +2951,18 @@
    g_signal_connect_swapped (WID ("apply_button"),
                              "clicked", G_CALLBACK (apply), self);
  
@@ -448,7 +449,7 @@ Index: gnome-control-center-3.4.0/panels/display/cc-display-panel.c
    gtk_widget_show (self->priv->panel);
    gtk_container_add (GTK_CONTAINER (self), self->priv->panel);
  
-@@ -2675,4 +2976,3 @@
+@@ -2675,4 +2977,3 @@
                                    CC_TYPE_DISPLAY_PANEL,
                                    "display", 0);
  }
@@ -456,7 +457,7 @@ Index: gnome-control-center-3.4.0/panels/display/cc-display-panel.c
 Index: gnome-control-center-3.4.0/panels/display/display-capplet.ui
 ===================================================================
 --- gnome-control-center-3.4.0.orig/panels/display/display-capplet.ui	2012-02-14 11:13:17.000000000 +0100
-+++ gnome-control-center-3.4.0/panels/display/display-capplet.ui	2012-03-29 09:47:13.353986894 +0200
++++ gnome-control-center-3.4.0/panels/display/display-capplet.ui	2012-03-29 09:59:04.805514795 +0200
 @@ -1,6 +1,14 @@
  <?xml version="1.0"?>
  <interface>
