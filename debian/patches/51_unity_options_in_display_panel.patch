@@ -1,7 +1,7 @@
 Index: gnome-control-center-3.4.0/configure.ac
 ===================================================================
---- gnome-control-center-3.4.0.orig/configure.ac	2012-03-28 12:40:08.345702239 +0200
-+++ gnome-control-center-3.4.0/configure.ac	2012-03-28 12:40:39.229855384 +0200
+--- gnome-control-center-3.4.0.orig/configure.ac	2012-03-29 08:27:07.554156228 +0200
++++ gnome-control-center-3.4.0/configure.ac	2012-03-29 09:28:18.092357444 +0200
 @@ -98,7 +98,7 @@
                    gnome-desktop-3.0 >= $GNOME_DESKTOP_REQUIRED_VERSION
                    polkit-gobject-1 >= $POLKIT_REQUIRED_VERSION
@@ -14,7 +14,7 @@ Index: gnome-control-center-3.4.0/configure.ac
 Index: gnome-control-center-3.4.0/panels/display/cc-display-panel.c
 ===================================================================
 --- gnome-control-center-3.4.0.orig/panels/display/cc-display-panel.c	2012-03-08 11:16:46.000000000 +0100
-+++ gnome-control-center-3.4.0/panels/display/cc-display-panel.c	2012-03-28 12:42:53.410520742 +0200
++++ gnome-control-center-3.4.0/panels/display/cc-display-panel.c	2012-03-29 09:54:09.300049470 +0200
 @@ -36,6 +36,7 @@
  #include <X11/Xlib.h>
  #include <glib/gi18n.h>
@@ -429,7 +429,7 @@ Index: gnome-control-center-3.4.0/panels/display/cc-display-panel.c
  
    obj = G_OBJECT_CLASS (cc_display_panel_parent_class)->constructor (gtype, n_properties, properties);
    self = CC_DISPLAY_PANEL (obj);
-@@ -2661,6 +2950,17 @@
+@@ -2661,6 +2950,18 @@
    g_signal_connect_swapped (WID ("apply_button"),
                              "clicked", G_CALLBACK (apply), self);
  
@@ -438,6 +438,7 @@ Index: gnome-control-center-3.4.0/panels/display/cc-display-panel.c
 +    setup_unity_settings (self);
 +  else
 +    {
++      gtk_widget_hide (WID ("unity_launcher_placement_sep"));
 +      gtk_widget_hide (WID ("launcher_placement_label"));
 +      gtk_widget_hide (WID ("sticky_edge_label"));
 +      gtk_widget_hide (WID ("launcher_placement_combo"));
@@ -447,7 +448,7 @@ Index: gnome-control-center-3.4.0/panels/display/cc-display-panel.c
    gtk_widget_show (self->priv->panel);
    gtk_container_add (GTK_CONTAINER (self), self->priv->panel);
  
-@@ -2675,4 +2975,3 @@
+@@ -2675,4 +2976,3 @@
                                    CC_TYPE_DISPLAY_PANEL,
                                    "display", 0);
  }
@@ -455,7 +456,7 @@ Index: gnome-control-center-3.4.0/panels/display/cc-display-panel.c
 Index: gnome-control-center-3.4.0/panels/display/display-capplet.ui
 ===================================================================
 --- gnome-control-center-3.4.0.orig/panels/display/display-capplet.ui	2012-02-14 11:13:17.000000000 +0100
-+++ gnome-control-center-3.4.0/panels/display/display-capplet.ui	2012-03-28 12:40:08.601703504 +0200
++++ gnome-control-center-3.4.0/panels/display/display-capplet.ui	2012-03-29 09:47:13.353986894 +0200
 @@ -1,6 +1,14 @@
  <?xml version="1.0"?>
  <interface>
@@ -471,79 +472,113 @@ Index: gnome-control-center-3.4.0/panels/display/display-capplet.ui
    <!-- interface-naming-policy toplevel-contextual -->
    <object class="GtkWindow" id="window1">
      <child>
-@@ -96,27 +104,11 @@
+@@ -96,56 +104,89 @@
                      <child>
                        <object class="GtkTable" id="table1">
                          <property name="visible">True</property>
 -                        <property name="n_rows">3</property>
-+                        <property name="n_rows">4</property>
++                        <property name="n_rows">5</property>
                          <property name="n_columns">2</property>
                          <property name="column_spacing">12</property>
                          <property name="row_spacing">6</property>
                          <child>
 -                          <object class="GtkAlignment" id="alignment4">
--                            <property name="visible">True</property>
++                          <object class="GtkLabel" id="label2">
++                            <property name="visible">True</property>
++                            <property name="xalign">1</property>
++                            <property name="label" translatable="yes">_Resolution</property>
++                            <property name="use_underline">True</property>
++                            <property name="mnemonic_widget">resolution_combo</property>
++                            <style>
++                              <class name="dim-label"/>
++                            </style>
++                          </object>
++                          <packing>
++                            <property name="x_options">GTK_FILL</property>
++                            <property name="y_options"></property>
++                          </packing>
++                        </child>
++                        <child>
++                          <object class="GtkLabel" id="label5">
++                            <property name="visible">True</property>
++                            <property name="xalign">1</property>
++                            <property name="label" translatable="yes">R_otation</property>
++                            <property name="mnemonic_widget">rotation_combo</property>
++                            <property name="use_underline">True</property>
++                            <style>
++                              <class name="dim-label"/>
++                            </style>
++                          </object>
++                          <packing>
++                            <property name="top_attach">1</property>
++                            <property name="bottom_attach">2</property>
++                            <property name="x_options">GTK_FILL</property>
++                            <property name="y_options"></property>
++                          </packing>
++                        </child>
++                        <child>
++                          <object class="GtkSeparator" id="unity_launcher_placement_sep">
+                             <property name="visible">True</property>
 -                            <child>
 -                              <placeholder/>
 -                            </child>
--                          </object>
--                          <packing>
+                           </object>
+                           <packing>
 -                            <property name="left_attach">1</property>
 -                            <property name="right_attach">2</property>
--                            <property name="top_attach">2</property>
--                            <property name="bottom_attach">3</property>
+                             <property name="top_attach">2</property>
+                             <property name="bottom_attach">3</property>
 -                            <property name="x_options"></property>
--                            <property name="y_options"></property>
--                          </packing>
--                        </child>
--                        <child>
-                           <object class="GtkLabel" id="label2">
-                             <property name="visible">True</property>
-                             <property name="xalign">1</property>
-@@ -151,6 +143,42 @@
++                            <property name="left_attach">0</property>
++						    <property name="right_attach">2</property>
++                            <property name="x_options">GTK_FILL</property>
+                             <property name="y_options"></property>
                            </packing>
                          </child>
                          <child>
+-                          <object class="GtkLabel" id="label2">
 +                          <object class="GtkLabel" id="launcher_placement_label">
-+                            <property name="visible">True</property>
-+                            <property name="xalign">1</property>
+                             <property name="visible">True</property>
+                             <property name="xalign">1</property>
+-                            <property name="label" translatable="yes">_Resolution</property>
 +                            <property name="label" translatable="yes">L_auncher placement</property>
 +                            <property name="mnemonic_widget">launcher_placement_combo</property>
-+                            <property name="use_underline">True</property>
-+                            <style>
-+                              <class name="dim-label"/>
-+                            </style>
-+                          </object>
-+                          <packing>
-+                            <property name="top_attach">2</property>
-+                            <property name="bottom_attach">3</property>
-+                            <property name="x_options">GTK_FILL</property>
-+                            <property name="y_options"></property>
-+                          </packing>
-+                        </child>
-+                        <child>
-+                          <object class="GtkLabel" id="sticky_edge_label">
-+                            <property name="visible">True</property>
-+                            <property name="xalign">1</property>
-+                            <property name="label" translatable="yes">S_ticky edges</property>
-+                            <property name="mnemonic_widget">stickyedge_switch</property>
-+                            <property name="use_underline">True</property>
-+                            <style>
-+                              <class name="dim-label"/>
-+                            </style>
-+                          </object>
-+                          <packing>
+                             <property name="use_underline">True</property>
+-                            <property name="mnemonic_widget">resolution_combo</property>
+                             <style>
+                               <class name="dim-label"/>
+                             </style>
+                           </object>
+                           <packing>
 +                            <property name="top_attach">3</property>
 +                            <property name="bottom_attach">4</property>
-+                            <property name="x_options">GTK_FILL</property>
-+                            <property name="y_options"></property>
-+                          </packing>
-+                        </child>
-+                        <child>
-                           <object class="GtkComboBox" id="resolution_combo">
+                             <property name="x_options">GTK_FILL</property>
+                             <property name="y_options"></property>
+                           </packing>
+                         </child>
+                         <child>
+-                          <object class="GtkLabel" id="label5">
++                          <object class="GtkLabel" id="sticky_edge_label">
                              <property name="visible">True</property>
+                             <property name="xalign">1</property>
+-                            <property name="label" translatable="yes">R_otation</property>
+-                            <property name="mnemonic_widget">rotation_combo</property>
++                            <property name="label" translatable="yes">S_ticky edges</property>
++                            <property name="mnemonic_widget">stickyedge_switch</property>
+                             <property name="use_underline">True</property>
+                             <style>
+                               <class name="dim-label"/>
+                             </style>
                            </object>
-@@ -179,6 +207,63 @@
+                           <packing>
+-                            <property name="top_attach">1</property>
+-                            <property name="bottom_attach">2</property>
++                            <property name="top_attach">4</property>
++                            <property name="bottom_attach">5</property>
+                             <property name="x_options">GTK_FILL</property>
+                             <property name="y_options"></property>
+                           </packing>
+@@ -179,6 +220,63 @@
                            </packing>
                          </child>
                          <child>
@@ -568,8 +603,8 @@ Index: gnome-control-center-3.4.0/panels/display/display-capplet.ui
 +                          <packing>
 +                            <property name="left_attach">1</property>
 +                            <property name="right_attach">2</property>
-+                            <property name="top_attach">2</property>
-+                            <property name="bottom_attach">3</property>
++                            <property name="top_attach">3</property>
++                            <property name="bottom_attach">4</property>
 +                            <property name="y_options"></property>
 +                          </packing>
 +                        </child>
@@ -595,8 +630,8 @@ Index: gnome-control-center-3.4.0/panels/display/display-capplet.ui
 +                          <packing>
 +                            <property name="left_attach">1</property>
 +                            <property name="right_attach">2</property>
-+                            <property name="top_attach">3</property>
-+                            <property name="bottom_attach">4</property>
++                            <property name="top_attach">4</property>
++                            <property name="bottom_attach">5</property>
 +                            <property name="y_options"></property>
 +                            <property name="expand">False</property>
 +                            <property name="fill">False</property>
