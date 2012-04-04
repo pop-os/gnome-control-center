@@ -1,7 +1,7 @@
 Index: gnome-control-center-3.4.0/configure.ac
 ===================================================================
 --- gnome-control-center-3.4.0.orig/configure.ac	2012-03-26 18:52:56.000000000 +0200
-+++ gnome-control-center-3.4.0/configure.ac	2012-04-04 10:50:01.979537012 +0200
++++ gnome-control-center-3.4.0/configure.ac	2012-04-04 17:48:16.323973143 +0200
 @@ -93,7 +93,7 @@
  PKG_CHECK_MODULES(LIBSHORTCUTS, $COMMON_MODULES x11)
  PKG_CHECK_MODULES(SHELL, $COMMON_MODULES libgnome-menu-3.0 gio-unix-2.0 x11)
@@ -14,7 +14,7 @@ Index: gnome-control-center-3.4.0/configure.ac
 Index: gnome-control-center-3.4.0/panels/background/background.ui
 ===================================================================
 --- gnome-control-center-3.4.0.orig/panels/background/background.ui	2012-02-14 11:13:17.000000000 +0100
-+++ gnome-control-center-3.4.0/panels/background/background.ui	2012-04-04 10:33:28.134608809 +0200
++++ gnome-control-center-3.4.0/panels/background/background.ui	2012-04-04 17:41:58.270098486 +0200
 @@ -1,7 +1,6 @@
 -<?xml version="1.0"?>
 +<?xml version="1.0" encoding="UTF-8"?>
@@ -1201,7 +1201,7 @@ Index: gnome-control-center-3.4.0/panels/background/background.ui
 Index: gnome-control-center-3.4.0/panels/background/cc-background-panel.c
 ===================================================================
 --- gnome-control-center-3.4.0.orig/panels/background/cc-background-panel.c	2012-02-14 11:12:23.000000000 +0100
-+++ gnome-control-center-3.4.0/panels/background/cc-background-panel.c	2012-04-04 10:58:15.421983867 +0200
++++ gnome-control-center-3.4.0/panels/background/cc-background-panel.c	2012-04-04 17:51:19.024879114 +0200
 @@ -24,6 +24,7 @@
  #include <string.h>
  #include <glib/gi18n-lib.h>
@@ -1267,7 +1267,7 @@ Index: gnome-control-center-3.4.0/panels/background/cc-background-panel.c
  
    if (priv->builder)
      {
-@@ -167,6 +197,18 @@
+@@ -167,6 +197,24 @@
        priv->settings = NULL;
      }
  
@@ -1275,6 +1275,12 @@ Index: gnome-control-center-3.4.0/panels/background/cc-background-panel.c
 +    {
 +      g_object_unref (priv->interface_settings);
 +      priv->interface_settings = NULL;
++    }
++
++  if (priv->wm_theme_settings)
++    {
++      g_object_unref (priv->wm_theme_settings);
++      priv->wm_theme_settings = NULL;
 +    }
 +
 +  if (priv->unity2d_settings)
@@ -1286,7 +1292,7 @@ Index: gnome-control-center-3.4.0/panels/background/cc-background-panel.c
    if (priv->copy_cancellable)
      {
        /* cancel any copy operation */
-@@ -194,6 +236,16 @@
+@@ -194,6 +242,16 @@
        priv->display_overlay = NULL;
      }
  
@@ -1303,7 +1309,7 @@ Index: gnome-control-center-3.4.0/panels/background/cc-background-panel.c
    G_OBJECT_CLASS (cc_background_panel_parent_class)->dispose (object);
  }
  
-@@ -340,12 +392,21 @@
+@@ -340,12 +398,21 @@
    if (priv->current_background)
      {
        GdkColor pcolor, scolor;
@@ -1327,7 +1333,7 @@ Index: gnome-control-center-3.4.0/panels/background/cc-background-panel.c
  
        gdk_color_parse (cc_background_item_get_pcolor (priv->current_background), &pcolor);
        gdk_color_parse (cc_background_item_get_scolor (priv->current_background), &scolor);
-@@ -1162,12 +1223,505 @@
+@@ -1162,12 +1229,505 @@
    g_strfreev(uris);
  }
  
@@ -1834,7 +1840,7 @@ Index: gnome-control-center-3.4.0/panels/background/cc-background-panel.c
    GError *err = NULL;
    GtkWidget *widget;
    GtkListStore *store;
-@@ -1177,9 +1731,14 @@
+@@ -1177,9 +1737,14 @@
  
    priv->builder = gtk_builder_new ();
  
@@ -1852,7 +1858,7 @@ Index: gnome-control-center-3.4.0/panels/background/cc-background-panel.c
  
    if (err)
      {
-@@ -1230,7 +1789,10 @@
+@@ -1230,7 +1795,10 @@
  
  
    /* add the top level widget */
@@ -1864,7 +1870,7 @@ Index: gnome-control-center-3.4.0/panels/background/cc-background-panel.c
  
    gtk_container_add (GTK_CONTAINER (self), widget);
    gtk_widget_show_all (GTK_WIDGET (self));
-@@ -1301,6 +1863,18 @@
+@@ -1301,6 +1869,18 @@
  
    /* Setup the edit box with our current settings */
    source_update_edit_box (priv, TRUE);
@@ -1886,7 +1892,7 @@ Index: gnome-control-center-3.4.0/panels/background/cc-background-panel.c
 Index: gnome-control-center-3.4.0/panels/background/gnome-background-panel.desktop.in.in
 ===================================================================
 --- gnome-control-center-3.4.0.orig/panels/background/gnome-background-panel.desktop.in.in	2012-02-14 11:13:17.000000000 +0100
-+++ gnome-control-center-3.4.0/panels/background/gnome-background-panel.desktop.in.in	2012-04-04 10:33:28.558610912 +0200
++++ gnome-control-center-3.4.0/panels/background/gnome-background-panel.desktop.in.in	2012-04-04 17:42:03.118122526 +0200
 @@ -1,6 +1,6 @@
  [Desktop Entry]
 -_Name=Background
