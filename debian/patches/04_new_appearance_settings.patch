@@ -1,7 +1,7 @@
 Index: gnome-control-center-3.4.0/configure.ac
 ===================================================================
---- gnome-control-center-3.4.0.orig/configure.ac	2012-04-01 22:24:25.156280102 -0400
-+++ gnome-control-center-3.4.0/configure.ac	2012-04-01 22:24:28.064294519 -0400
+--- gnome-control-center-3.4.0.orig/configure.ac	2012-03-26 18:52:56.000000000 +0200
++++ gnome-control-center-3.4.0/configure.ac	2012-04-04 10:50:01.979537012 +0200
 @@ -93,7 +93,7 @@
  PKG_CHECK_MODULES(LIBSHORTCUTS, $COMMON_MODULES x11)
  PKG_CHECK_MODULES(SHELL, $COMMON_MODULES libgnome-menu-3.0 gio-unix-2.0 x11)
@@ -13,8 +13,8 @@ Index: gnome-control-center-3.4.0/configure.ac
                    polkit-gobject-1 >= $POLKIT_REQUIRED_VERSION
 Index: gnome-control-center-3.4.0/panels/background/background.ui
 ===================================================================
---- gnome-control-center-3.4.0.orig/panels/background/background.ui	2012-04-01 22:24:25.180280218 -0400
-+++ gnome-control-center-3.4.0/panels/background/background.ui	2012-04-01 22:24:28.068294532 -0400
+--- gnome-control-center-3.4.0.orig/panels/background/background.ui	2012-02-14 11:13:17.000000000 +0100
++++ gnome-control-center-3.4.0/panels/background/background.ui	2012-04-04 10:33:28.134608809 +0200
 @@ -1,7 +1,6 @@
 -<?xml version="1.0"?>
 +<?xml version="1.0" encoding="UTF-8"?>
@@ -1200,8 +1200,8 @@ Index: gnome-control-center-3.4.0/panels/background/background.ui
  </interface>
 Index: gnome-control-center-3.4.0/panels/background/cc-background-panel.c
 ===================================================================
---- gnome-control-center-3.4.0.orig/panels/background/cc-background-panel.c	2012-04-01 22:24:25.192280274 -0400
-+++ gnome-control-center-3.4.0/panels/background/cc-background-panel.c	2012-04-01 22:27:19.657145393 -0400
+--- gnome-control-center-3.4.0.orig/panels/background/cc-background-panel.c	2012-02-14 11:12:23.000000000 +0100
++++ gnome-control-center-3.4.0/panels/background/cc-background-panel.c	2012-04-04 10:58:15.421983867 +0200
 @@ -24,6 +24,7 @@
  #include <string.h>
  #include <glib/gi18n-lib.h>
@@ -1322,12 +1322,12 @@ Index: gnome-control-center-3.4.0/panels/background/cc-background-panel.c
 +          gtk_label_set_text (GTK_LABEL (WID ("size_label")), markup);
 +          g_free (markup);
 +       }
-+      else 
++      else
 +          gtk_label_set_text (GTK_LABEL (WID ("size_label")), "");
  
        gdk_color_parse (cc_background_item_get_pcolor (priv->current_background), &pcolor);
        gdk_color_parse (cc_background_item_get_scolor (priv->current_background), &scolor);
-@@ -1162,12 +1223,510 @@
+@@ -1162,12 +1223,505 @@
    g_strfreev(uris);
  }
  
@@ -1618,6 +1618,8 @@ Index: gnome-control-center-3.4.0/panels/background/cc-background-panel.c
 +    reveal_spot = 0;
 +
 +  gconf_client_set_int (gconf_client_get_default (), UNITY_LAUNCHERREVEAL_KEY, reveal_spot, NULL);
++  if (priv->unity2d_settings)
++    g_settings_set_int (priv->unity2d_settings, "reveal-mode", value);
 +  reveallauncher_widget_refresh (self);
 +}
 +
@@ -1677,15 +1679,6 @@ Index: gnome-control-center-3.4.0/panels/background/cc-background-panel.c
 +background_is_unity_session (void)
 +{
 +  return (g_strcmp0 (g_getenv("XDG_CURRENT_DESKTOP"), "Unity") == 0);
-+}
-+
-+static void
-+hide_unity2d_not_supported (CcBackgroundPanel *self)
-+{
-+  CcBackgroundPanelPrivate *priv = self->priv;
-+  gtk_widget_hide (GTK_WIDGET (WID ("unity-separator1")));
-+  gtk_widget_hide (GTK_WIDGET (WID ("unity-iconsize-box")));
-+  gtk_widget_hide (GTK_WIDGET (WID ("reveal_location_box")));
 +}
 +
 +/* <hacks> */
@@ -1774,23 +1767,25 @@ Index: gnome-control-center-3.4.0/panels/background/cc-background-panel.c
 +                        G_CALLBACK (on_iconsize_changed), NULL);
 +      g_signal_connect (G_OBJECT (iconsize_scale), "scroll-event",
 +                        G_CALLBACK (on_scale_scroll_event), &iconsize_values);
-+
 +      iconsize_widget_refresh (iconsize_adj);
-+
-+      /* Reveal spot setting */
-+      priv->gconf_notify_id = g_slist_append (priv->gconf_notify_id,
-+                                              GINT_TO_POINTER (
-+                                              gconf_client_notify_add (client, UNITY_LAUNCHERREVEAL_KEY,
-+                                                       ext_reveallauncher_changed_callback, self,
-+                                                       NULL, NULL)));
-+      g_signal_connect (WID ("unity_reveal_spot_topleft"), "toggled",
-+                         G_CALLBACK (on_reveallauncher_changed), self);
-+      g_signal_connect (WID ("unity_reveal_spot_left"), "toggled",
-+                         G_CALLBACK (on_reveallauncher_changed), self);
-+      reveallauncher_widget_refresh (self);
 +    }
 +  else
-+    hide_unity2d_not_supported (self);
++    {
++      gtk_widget_hide (GTK_WIDGET (WID ("unity-separator1")));
++      gtk_widget_hide (GTK_WIDGET (WID ("unity-iconsize-box")));
++    }
++
++  /* Reveal spot setting */
++  priv->gconf_notify_id = g_slist_append (priv->gconf_notify_id,
++                                          GINT_TO_POINTER (
++                                          gconf_client_notify_add (client, UNITY_LAUNCHERREVEAL_KEY,
++                                                   ext_reveallauncher_changed_callback, self,
++                                                   NULL, NULL)));
++  g_signal_connect (WID ("unity_reveal_spot_topleft"), "toggled",
++                     G_CALLBACK (on_reveallauncher_changed), self);
++  g_signal_connect (WID ("unity_reveal_spot_left"), "toggled",
++                     G_CALLBACK (on_reveallauncher_changed), self);
++  reveallauncher_widget_refresh (self);
 +
 +  /* Launcher reveal */
 +  launchersensitivity_values.min = MIN_LAUNCHER_SENSIVITY;
@@ -1839,7 +1834,7 @@ Index: gnome-control-center-3.4.0/panels/background/cc-background-panel.c
    GError *err = NULL;
    GtkWidget *widget;
    GtkListStore *store;
-@@ -1177,9 +1736,14 @@
+@@ -1177,9 +1731,14 @@
  
    priv->builder = gtk_builder_new ();
  
@@ -1857,7 +1852,7 @@ Index: gnome-control-center-3.4.0/panels/background/cc-background-panel.c
  
    if (err)
      {
-@@ -1230,7 +1794,10 @@
+@@ -1230,7 +1789,10 @@
  
  
    /* add the top level widget */
@@ -1869,7 +1864,7 @@ Index: gnome-control-center-3.4.0/panels/background/cc-background-panel.c
  
    gtk_container_add (GTK_CONTAINER (self), widget);
    gtk_widget_show_all (GTK_WIDGET (self));
-@@ -1301,6 +1868,18 @@
+@@ -1301,6 +1863,18 @@
  
    /* Setup the edit box with our current settings */
    source_update_edit_box (priv, TRUE);
@@ -1890,8 +1885,8 @@ Index: gnome-control-center-3.4.0/panels/background/cc-background-panel.c
  void
 Index: gnome-control-center-3.4.0/panels/background/gnome-background-panel.desktop.in.in
 ===================================================================
---- gnome-control-center-3.4.0.orig/panels/background/gnome-background-panel.desktop.in.in	2012-04-01 22:24:25.208280356 -0400
-+++ gnome-control-center-3.4.0/panels/background/gnome-background-panel.desktop.in.in	2012-04-01 22:24:28.068294532 -0400
+--- gnome-control-center-3.4.0.orig/panels/background/gnome-background-panel.desktop.in.in	2012-02-14 11:13:17.000000000 +0100
++++ gnome-control-center-3.4.0/panels/background/gnome-background-panel.desktop.in.in	2012-04-04 10:33:28.558610912 +0200
 @@ -1,6 +1,6 @@
  [Desktop Entry]
 -_Name=Background
