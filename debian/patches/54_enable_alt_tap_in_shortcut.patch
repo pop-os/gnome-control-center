@@ -1,0 +1,65 @@
+Index: gnome-control-center-3.4.0/panels/keyboard/keyboard-shortcuts.c
+===================================================================
+--- gnome-control-center-3.4.0.orig/panels/keyboard/keyboard-shortcuts.c	2012-04-05 11:13:01.452650912 +0200
++++ gnome-control-center-3.4.0/panels/keyboard/keyboard-shortcuts.c	2012-04-05 11:13:01.476651031 +0200
+@@ -1708,7 +1708,7 @@
+   gtk_tree_view_column_set_sort_column_id (column, DETAIL_DESCRIPTION_COLUMN);
+ 
+   renderer = (GtkCellRenderer *) g_object_new (GTK_TYPE_CELL_RENDERER_ACCEL,
+-                                               "accel-mode", GTK_CELL_RENDERER_ACCEL_MODE_OTHER,
++                                               "accel-mode", GTK_CELL_RENDERER_ACCEL_MODE_MODIFIER_TAP,
+                                                NULL);
+ 
+   g_signal_connect (renderer, "accel_edited",
+Index: gnome-control-center-3.4.0/panels/keyboard/cc-keyboard-item.c
+===================================================================
+--- gnome-control-center-3.4.0.orig/panels/keyboard/cc-keyboard-item.c	2012-04-05 11:13:01.448650897 +0200
++++ gnome-control-center-3.4.0/panels/keyboard/cc-keyboard-item.c	2012-04-05 11:21:58.787315407 +0200
+@@ -143,6 +143,10 @@
+               const char     *value,
+ 	      gboolean        set_backend)
+ {
++  /* don't reassign <Alt_L> or <Alt> key in the callback to the binding itself (as it's invalid for the cell renderer)*/
++  if ((g_strcmp0 (value, "<Alt_L>") == 0) || (g_strcmp0 (value, "<Alt>") == 0))
++    return;
++
+   g_free (item->binding);
+   item->binding = g_strdup (value);
+   binding_from_string (item->binding, &item->keyval, &item->keycode, &item->mask);
+@@ -156,18 +160,23 @@
+       GConfClient *client;
+       GError *err = NULL;
+       const char *key;
++      char *cheated_modifier = NULL;
++      if (g_strcmp0 (item->binding, "Alt_L") == 0)
++        cheated_modifier = g_strdup_printf ("<%s>", item->binding);
+ 
+       client = gconf_client_get_default ();
+       if (item->type == CC_KEYBOARD_ITEM_TYPE_GCONF)
+ 	key = item->gconf_key;
+       else
+ 	key = item->binding_gconf_key;
+-      gconf_client_set_string (client, key, item->binding, &err);
++      gconf_client_set_string (client, key, cheated_modifier ? cheated_modifier: item->binding, &err);
+       if (err != NULL)
+         {
+ 	  g_warning ("Failed to set '%s' to '%s': %s", key, item->binding, err->message);
+ 	  g_error_free (err);
+ 	}
++      if (cheated_modifier != NULL)
++        g_free (cheated_modifier);
+     }
+   else if (item->type == CC_KEYBOARD_ITEM_TYPE_GSETTINGS)
+     {
+@@ -529,6 +538,11 @@
+                                               (GConfClientNotifyFunc) &keybinding_key_changed,
+                                               item, NULL, NULL);
+   item->binding = gconf_client_get_string (client, item->gconf_key, NULL);
++  if ((g_strcmp0 (item->binding, "<Alt>") == 0) || (g_strcmp0 (item->binding, "<Alt_L>") == 0))
++    {
++       g_free (item->binding);
++       item->binding = g_strdup ("Alt_L");
++    }
+   binding_from_string (item->binding, &item->keyval, &item->keycode, &item->mask);
+ 
+   gconf_entry_free (entry);
