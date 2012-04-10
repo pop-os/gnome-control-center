@@ -1,0 +1,30 @@
+From 80fdb0bee20af5c3f718bd09dccb2b34dad0aeba Mon Sep 17 00:00:00 2001
+From: Gabor Kelemen <kelemeng@gnome.hu>
+Date: Mon, 09 Apr 2012 06:20:31 +0000
+Subject: display: Translate the rotation drop-down again
+
+The rotation combo box items on the Displays panel do not appear
+translated.  This is because the items got translation context support
+in 5a5a037d09787da48f3c8b60ca5ce6dcb5ebcbf3, but to get the localized
+strings, one needs to use g_dpgettext2()[1], not gettext().
+
+https://bugzilla.gnome.org/show_bug.cgi?id=673766
+---
+diff --git a/panels/display/cc-display-panel.c b/panels/display/cc-display-panel.c
+index a7ccf13..ec14a35 100644
+--- a/panels/display/cc-display-panel.c
++++ b/panels/display/cc-display-panel.c
+@@ -499,10 +499,10 @@ rebuild_rotation_combo (CcDisplayPanel *self)
+       /* NULL-GError --- FIXME: we should say why this rotation is not available! */
+       if (gnome_rr_config_applicable (self->priv->current_configuration, self->priv->screen, NULL))
+         {
+-          add_key (gtk_combo_box_get_model (GTK_COMBO_BOX (self->priv->rotation_combo)), _(info->name), FALSE, 0, 0, 0, info->rotation);
++          add_key (gtk_combo_box_get_model (GTK_COMBO_BOX (self->priv->rotation_combo)), g_dpgettext2 (NULL, "display panel, rotation", info->name), FALSE, 0, 0, 0, info->rotation);
+ 
+           if (info->rotation == current)
+-            selection = _(info->name);
++            selection = g_dpgettext2 (NULL, "display panel, rotation", info->name);
+         }
+     }
+ 
+
