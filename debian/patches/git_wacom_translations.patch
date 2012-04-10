@@ -1,0 +1,35 @@
+From d3edb2fa43ed8f3319ab8b01b67652835b115d07 Mon Sep 17 00:00:00 2001
+From: Sebastien Bacher <seb128@ubuntu.com>
+Date: Tue, 10 Apr 2012 19:31:44 +0200
+Subject: [PATCH] [wacom]: mark extra strings as translatable
+
+(Closes: #673854)
+---
+ panels/wacom/cc-wacom-mapping-panel.c |    4 ++--
+ 1 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/panels/wacom/cc-wacom-mapping-panel.c b/panels/wacom/cc-wacom-mapping-panel.c
+index 7ade535..0ecc6e2 100644
+--- a/panels/wacom/cc-wacom-mapping-panel.c
++++ b/panels/wacom/cc-wacom-mapping-panel.c
+@@ -232,7 +232,7 @@ cc_wacom_mapping_panel_init (CcWacomMappingPanel *self)
+ 
+ 	/* Output Combobox */
+ 	hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
+-	priv->label = gtk_label_new ("Output:");
++	priv->label = gtk_label_new (_("Output:"));
+ 	priv->combobox = gtk_combo_box_new ();
+ 	g_signal_connect (G_OBJECT (priv->combobox), "changed",
+ 	                      G_CALLBACK (combobox_changed_cb), self);
+@@ -245,7 +245,7 @@ cc_wacom_mapping_panel_init (CcWacomMappingPanel *self)
+ 				FALSE, FALSE, 0);
+ 
+ 	/* Whole-desktop checkbox */
+-	priv->checkbutton = gtk_check_button_new_with_label ("Map to single monitor");
++	priv->checkbutton = gtk_check_button_new_with_label (_("Map to single monitor"));
+ 	gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (priv->checkbutton), FALSE);
+ 	g_signal_connect (G_OBJECT (priv->checkbutton), "toggled",
+                       G_CALLBACK (checkbutton_toggled_cb), self);
+-- 
+1.7.9.1
+
