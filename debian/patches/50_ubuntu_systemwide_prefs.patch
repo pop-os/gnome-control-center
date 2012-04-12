@@ -1,7 +1,7 @@
 Index: gnome-control-center-3.4.0/panels/network/cc-network-panel.c
 ===================================================================
---- gnome-control-center-3.4.0.orig/panels/network/cc-network-panel.c	2012-04-05 18:54:00.199794197 -0400
-+++ gnome-control-center-3.4.0/panels/network/cc-network-panel.c	2012-04-05 20:47:48.921656001 -0400
+--- gnome-control-center-3.4.0.orig/panels/network/cc-network-panel.c	2012-03-26 18:48:44.000000000 +0200
++++ gnome-control-center-3.4.0/panels/network/cc-network-panel.c	2012-04-12 15:04:42.414238811 +0200
 @@ -23,6 +23,10 @@
  #include <arpa/inet.h>
  #include <netinet/ether.h>
@@ -13,25 +13,15 @@ Index: gnome-control-center-3.4.0/panels/network/cc-network-panel.c
  
  #include "cc-network-panel.h"
  
-@@ -3372,6 +3376,135 @@
+@@ -3372,6 +3376,139 @@
          return FALSE;
  }
  
 +static gboolean
-+is_admin ()
++is_in_admin_group (int id_group)
 +{
 +        gid_t groups [1024];
-+        int i, ngroups;
-+        struct group *admin;
-+        struct group *sudo;
-+
-+        admin = getgrnam ("admin");
-+        if (admin == NULL)
-+                return FALSE;
-+
-+        sudo = getgrnam ("sudo");
-+        if (sudo == NULL)
-+                return FALSE;
++       int i, ngroups;
 +
 +        ngroups = getgroups (1024, groups);
 +        if (ngroups < 0) {
@@ -40,11 +30,25 @@ Index: gnome-control-center-3.4.0/panels/network/cc-network-panel.c
 +        }
 +
 +        for (i = 0; i < ngroups; ++i) {
-+                if (groups[i] == admin->gr_gid)
-+                        return TRUE;
-+                else if (groups[i] == sudo->gr_gid)
++                if (groups[i] == id_group)
 +                        return TRUE;
 +        }
++
++        return FALSE;
++}
++
++static gboolean
++is_admin ()
++{
++        struct group *admin_group;
++
++        admin_group = getgrnam ("admin");
++        if (admin_group != NULL && is_in_admin_group (admin_group->gr_gid))
++                return TRUE;
++
++        admin_group = getgrnam ("sudo");
++        if (admin_group != NULL && is_in_admin_group (admin_group->gr_gid))
++                return TRUE;
 +
 +        return FALSE;
 +}
@@ -149,7 +153,7 @@ Index: gnome-control-center-3.4.0/panels/network/cc-network-panel.c
  static void
  cc_network_panel_init (CcNetworkPanel *panel)
  {
-@@ -3507,6 +3640,13 @@
+@@ -3507,6 +3644,13 @@
          /* add the virtual proxy device */
          panel_add_proxy_device (panel);
  
@@ -165,8 +169,8 @@ Index: gnome-control-center-3.4.0/panels/network/cc-network-panel.c
                                                            "combobox_wireless_network_name"));
 Index: gnome-control-center-3.4.0/panels/network/network.ui
 ===================================================================
---- gnome-control-center-3.4.0.orig/panels/network/network.ui	2012-04-05 18:54:00.223794316 -0400
-+++ gnome-control-center-3.4.0/panels/network/network.ui	2012-04-05 18:54:07.555830676 -0400
+--- gnome-control-center-3.4.0.orig/panels/network/network.ui	2012-03-01 08:56:37.000000000 +0100
++++ gnome-control-center-3.4.0/panels/network/network.ui	2012-04-12 14:23:34.181999513 +0200
 @@ -2311,6 +2311,20 @@
                              <property name="position">0</property>
                            </packing>
