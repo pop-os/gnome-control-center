@@ -1,0 +1,33 @@
+From: Dan Williams <dcbw@redhat.com>
+Subject: Avoid crashing when SSIDs are NULL.
+Bug-Ubuntu: https://bugs.launchpad.net/ubuntu/+source/gnome-control-center/+bug/908670
+Bug: https://bugzilla.gnome.org/show_bug.cgi?id=672922
+
+---
+ panels/network/cc-network-panel.c |    6 ++++++
+ 1 file changed, 6 insertions(+)
+
+Index: b/panels/network/cc-network-panel.c
+===================================================================
+--- a/panels/network/cc-network-panel.c
++++ b/panels/network/cc-network-panel.c
+@@ -1118,13 +1118,19 @@ panel_get_strongest_unique_aps (const GP
+         if (aps != NULL)
+                 for (i = 0; i < aps->len; i++) {
+                         ap = NM_ACCESS_POINT (g_ptr_array_index (aps, i));
++
++                        /* Hidden SSIDs don't get shown in the list */
+                         ssid = nm_access_point_get_ssid (ap);
++                        if (!ssid)
++                                continue;
++
+                         add_ap = TRUE;
+ 
+                         /* get already added list */
+                         for (j=0; j<aps_unique->len; j++) {
+                                 ap_tmp = NM_ACCESS_POINT (g_ptr_array_index (aps_unique, j));
+                                 ssid_tmp = nm_access_point_get_ssid (ap_tmp);
++                                g_assert (ssid_tmp);
+         
+                                 /* is this the same type and data? */
+                                 if (nm_utils_same_ssid (ssid, ssid_tmp, TRUE)) {
