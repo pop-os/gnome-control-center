@@ -1,0 +1,17 @@
+Author: Rodrigo Moya <rodrigo.moya@canonical.com>
+Description: Temporary patch to not assert on NULL streams (LP: #741155)
+
+Index: gnome-control-center-3.3.91/panels/sound/gvc-speaker-test.c
+===================================================================
+--- gnome-control-center-3.3.91.orig/panels/sound/gvc-speaker-test.c	2012-03-05 15:04:55.000000000 +0100
++++ gnome-control-center-3.3.91/panels/sound/gvc-speaker-test.c	2012-03-06 17:52:14.175082968 +0100
+@@ -393,7 +393,8 @@
+         }
+         g_slist_free (sinks);
+ 
+-        g_assert (stream);
++        if (stream == NULL)
++		return NULL;
+ 
+         g_debug ("Found stream '%s' for card '%s'",
+                  gvc_mixer_stream_get_name (stream),
