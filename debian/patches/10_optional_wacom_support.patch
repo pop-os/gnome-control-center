@@ -1,0 +1,59 @@
+Description: Build Wacom panel conditionally
+ to support plattforms were libwacom-dev is not available (like non-Linux)
+Author: Michael Biebl <biebl@debian.org>
+Bug: https://bugzilla.gnome.org/show_bug.cgi?id=676360
+Index: gnome-control-center-3.4.2/configure.ac
+===================================================================
+--- gnome-control-center-3.4.2.orig/configure.ac	2012-05-15 12:19:58.000000000 +0200
++++ gnome-control-center-3.4.2/configure.ac	2012-05-19 03:51:32.866375610 +0200
+@@ -130,7 +130,12 @@
+ PKG_CHECK_MODULES(WACOM_PANEL, $COMMON_MODULES
+                   gnome-settings-daemon >= $GSD_REQUIRED_VERSION
+                   xi >= 1.2 x11 libwacom >= $LIBWACOM_REQUIRED_VERSION
+-                  gnome-desktop-3.0 >= $GNOME_DESKTOP_REQUIRED_VERSION)
++                  gnome-desktop-3.0 >= $GNOME_DESKTOP_REQUIRED_VERSION,
++                  [have_wacom=yes], have_wacom=no)
++if test "x$have_wacom" = xno ; then
++        AC_MSG_WARN(*** Wacom panel will not be built (libwacom not found) ***)
++fi
++AM_CONDITIONAL(BUILD_WACOM, [test x$have_wacom = xyes])
+ 
+ GDESKTOP_PREFIX=`$PKG_CONFIG --variable prefix gsettings-desktop-schemas`
+ AC_SUBST(GDESKTOP_PREFIX)
+@@ -423,6 +428,11 @@
+ else
+ 	AC_MSG_NOTICE([   Network panel disabled])
+ fi
++if test "x$have_wacom" = "xyes"; then
++	AC_MSG_NOTICE([** libwacom (Wacom panel)])
++else
++	AC_MSG_NOTICE([   Wacom panel disabled])
++fi
+ if test "x$have_bluetooth" = "xyes"; then
+ 	AC_MSG_NOTICE([** gnome-bluetooth (Bluetooth panel)])
+ else
+Index: gnome-control-center-3.4.2/panels/Makefile.am
+===================================================================
+--- gnome-control-center-3.4.2.orig/panels/Makefile.am	2012-03-05 15:04:55.000000000 +0100
++++ gnome-control-center-3.4.2/panels/Makefile.am	2012-05-19 03:50:45.194377300 +0200
+@@ -13,8 +13,7 @@
+ 	keyboard \
+ 	universal-access \
+ 	user-accounts \
+-	datetime \
+-	wacom
++	datetime
+ 
+ if BUILD_PRINTERS
+ SUBDIRS += printers
+@@ -24,6 +23,10 @@
+ SUBDIRS += network
+ endif
+ 
++if BUILD_WACOM
++SUBDIRS += wacom
++endif
++
+ if BUILD_BLUETOOTH
+ SUBDIRS += bluetooth
+ endif
