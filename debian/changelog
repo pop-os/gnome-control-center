@@ -1,3 +1,46 @@
+gnome-control-center (1:3.4.2-1) experimental; urgency=low
+
+  [ Sjoerd Simons ]
+  * New upstream release
+  * Sync with Ubuntu:
+    + debian/control.in: Update build-depends
+    + debian/patches/02_no_assert_on_null_streams.patch:
+      - Don't crash on null streams (bgo: #633728, LP: #741155)
+    + debian/patches/90_force_fallback.patch:
+      - Refreshed
+    + debian/patches/06_handle_passwd_with_ldap.patch:
+      - Refreshed
+    + debian/patches/revert_git_datetime_port.patch:
+      - Added, don't switch to systemd for datetime functionality just yet.
+  * Drop libgnome-control-center1 package, gnome-control-center no longer
+    builds a library.
+  * debian/patches/00git_handle_media_dialog_close.patch,
+    debian/patches/91_configure_cheese.patch,
+    debian/patches/08_dont_crash_on_null_territories.patch,
+    debian/patches/92_link_language_chooser_against_fontconfig.patch:
+    + All removed, fixed upstream
+  * debian/rules: Don't use -Wl,-z,defs as it cause the panel plugins to fail
+    to build
+  * debian/gnome-control-center-data.install: gnome-control-center no longer
+    ships a manual.
+
+  [ Michael Biebl ]
+  * Add Build-Depends on libwacom-dev and libxi-dev for the Wacom panel and
+    libgnome-bluetooth-dev for the Bluetooth panel.
+  * Mark libwacom-dev and libgnome-bluetooth-dev as linux-any.
+  * Update Build-Depends according to configure.ac.
+  * Add Breaks/Replaces: gnome-bluetooth (<< 3.4) as the Bluetooth panel moved
+    into gnome-control-center.
+  * debian/patches/10_optional_wacom_support.patch: Build the Wacom panel
+    conditionally to support plattforms where libwacom-dev is not available.
+  * Bump Standards-Version to 3.9.3.
+  * Add Breaks against libgnome-bluetooth8 since loading booth
+    libgnome-bluetooth8 and libgnome-bluetooth10 will lead to crashes when
+    using the Bluetooth panel. Eventually we should use versioned directories
+    for the gnome-bluetooth plugins but for now the Breaks will do.
+
+ -- Michael Biebl <biebl@debian.org>  Sat, 19 May 2012 23:57:55 +0200
+
 gnome-control-center (1:3.2.2-3) unstable; urgency=low
 
   * debian/patches/92_link_language_chooser_against_fontconfig.patch: Link
