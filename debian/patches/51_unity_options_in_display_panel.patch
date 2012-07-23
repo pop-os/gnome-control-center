@@ -1,77 +1,41 @@
-Index: gnome-control-center-3.4.0/configure.ac
+Index: gnome-control-center-3.4.2/panels/display/cc-display-panel.c
 ===================================================================
---- gnome-control-center-3.4.0.orig/configure.ac	2012-03-29 09:59:04.577513669 +0200
-+++ gnome-control-center-3.4.0/configure.ac	2012-03-29 10:01:23.522202655 +0200
-@@ -98,7 +98,7 @@
-                   gnome-desktop-3.0 >= $GNOME_DESKTOP_REQUIRED_VERSION
-                   polkit-gobject-1 >= $POLKIT_REQUIRED_VERSION
-                   gdk-pixbuf-2.0 >= $GDKPIXBUF_REQUIRED_VERSION)
--PKG_CHECK_MODULES(DISPLAY_PANEL, $COMMON_MODULES gnome-desktop-3.0 >= 3.1.0)
-+PKG_CHECK_MODULES(DISPLAY_PANEL, $COMMON_MODULES gnome-desktop-3.0 >= 3.1.0 gconf-2.0)
- PKG_CHECK_MODULES(INFO_PANEL, $COMMON_MODULES libgtop-2.0
- 		  polkit-gobject-1 >= $POLKIT_REQUIRED_VERSION)
- PKG_CHECK_MODULES(KEYBOARD_PANEL, $COMMON_MODULES x11)
-Index: gnome-control-center-3.4.0/panels/display/cc-display-panel.c
-===================================================================
---- gnome-control-center-3.4.0.orig/panels/display/cc-display-panel.c	2012-03-08 11:16:46.000000000 +0100
-+++ gnome-control-center-3.4.0/panels/display/cc-display-panel.c	2012-03-29 10:07:34.104040267 +0200
-@@ -36,6 +36,7 @@
- #include <X11/Xlib.h>
- #include <glib/gi18n.h>
- #include <gdesktop-enums.h>
-+#include <gconf/gconf-client.h>
- 
- G_DEFINE_DYNAMIC_TYPE (CcDisplayPanel, cc_display_panel, CC_TYPE_PANEL)
- 
-@@ -54,6 +55,12 @@
+--- gnome-control-center-3.4.2.orig/panels/display/cc-display-panel.c	2012-05-15 12:18:30.000000000 +0200
++++ gnome-control-center-3.4.2/panels/display/cc-display-panel.c	2012-07-23 10:26:57.281976435 +0200
+@@ -54,6 +54,13 @@
  #define MINIMUM_WIDTH 675
  #define MINIMUM_HEIGHT 530
  
-+#define UNITY_GCONF_OPTION_PATH "/apps/compiz-1/plugins/unityshell/screen0/options"
-+#define UNITY_LAUNCHER_ALL_MONITORS_KEY UNITY_GCONF_OPTION_PATH"/num_launchers"
-+#define UNITY_STICKY_EDGE_KEY UNITY_GCONF_OPTION_PATH"/launcher_capture_mouse"
++#define UNITY_GSETTINGS_SCHEMA "org.compiz.unityshell"
++#define UNITY_GSETTINGS_PATH "/org/compiz/unityshell/"
++#define UNITY_LAUNCHER_ALL_MONITORS_KEY "num-launchers"
++#define UNITY_STICKY_EDGE_KEY "launcher-capture-mouse"
 +#define UNITY2D_GSETTINGS_MAIN "com.canonical.Unity2d"
 +#define UNITY2D_GSETTINGS_LAUNCHER "com.canonical.Unity2d.Launcher"
 +
  enum {
    TEXT_COL,
    WIDTH_COL,
-@@ -72,6 +79,8 @@
+@@ -72,6 +79,9 @@
    GnomeRROutputInfo         *current_output;
  
    GSettings      *clock_settings;
++  GSettings      *unity_settings;
 +  GSettings      *unity2d_settings_main;
 +  GSettings      *unity2d_settings_launcher;
    GtkBuilder     *builder;
    guint           focus_id;
  
-@@ -95,6 +104,8 @@
- 
-   /* These are used while we are waiting for the ApplyConfiguration method to be executed over D-bus */
-   GDBusProxy *proxy;
-+
-+  GSList *gconf_notify_id;
- };
- 
- typedef struct
-@@ -119,6 +130,8 @@
+@@ -119,6 +129,8 @@
  					      guint                  n_properties,
  					      GObjectConstructParam *properties);
  static void on_screen_changed (GnomeRRScreen *scr, gpointer data);
 +static void refresh_unity_launcher_placement (CcDisplayPanel *self);
-+static gboolean unity_launcher_on_all_monitors (void);
++static gboolean unity_launcher_on_all_monitors (GSettings *settings);
  
  static void
  cc_display_panel_get_property (GObject    *object,
-@@ -158,6 +171,7 @@
-   CcDisplayPanel *self;
-   CcShell *shell;
-   GtkWidget *toplevel;
-+  GSList* iter;
- 
-   self = CC_DISPLAY_PANEL (object);
- 
-@@ -168,6 +182,11 @@
+@@ -168,6 +180,13 @@
    if (self->priv->clock_settings != NULL)
      g_object_unref (self->priv->clock_settings);
  
@@ -79,26 +43,13 @@ Index: gnome-control-center-3.4.0/panels/display/cc-display-panel.c
 +    g_object_unref (self->priv->unity2d_settings_main);
 +  if (self->priv->unity2d_settings_launcher != NULL)
 +    g_object_unref (self->priv->unity2d_settings_launcher);
++  if (self->priv->unity_settings != NULL)
++    g_object_unref (self->priv->unity_settings);
 +
    shell = cc_panel_get_shell (CC_PANEL (self));
    toplevel = cc_shell_get_toplevel (shell);
    g_signal_handler_disconnect (G_OBJECT (toplevel),
-@@ -176,6 +195,14 @@
-   gnome_rr_labeler_hide (self->priv->labeler);
-   g_object_unref (self->priv->labeler);
- 
-+  iter = self->priv->gconf_notify_id;
-+  while (iter != NULL)
-+    {
-+      gconf_client_notify_remove(gconf_client_get_default (), (guint) iter->data);
-+      iter = g_slist_next (iter);
-+    }
-+  g_slist_free (self->priv->gconf_notify_id);
-+
-   G_OBJECT_CLASS (cc_display_panel_parent_class)->finalize (object);
- }
- 
-@@ -223,6 +250,12 @@
+@@ -223,6 +242,12 @@
  }
  
  static gboolean
@@ -111,7 +62,7 @@ Index: gnome-control-center-3.4.0/panels/display/cc-display-panel.c
  should_show_resolution (gint output_width,
                          gint output_height,
                          gint width,
-@@ -262,6 +295,9 @@
+@@ -262,6 +287,9 @@
       gnome_rr_labeler_show (self->priv->labeler);
  
    select_current_output_from_dialog_position (self);
@@ -121,7 +72,7 @@ Index: gnome-control-center-3.4.0/panels/display/cc-display-panel.c
  }
  
  static void
-@@ -599,6 +635,10 @@
+@@ -599,6 +627,10 @@
    gtk_widget_set_sensitive (self->priv->clone_checkbox, mirror_is_supported);
    gtk_widget_set_sensitive (self->priv->clone_label, mirror_is_supported);
  
@@ -132,7 +83,7 @@ Index: gnome-control-center-3.4.0/panels/display/cc-display-panel.c
    g_signal_handlers_unblock_by_func (self->priv->clone_checkbox, G_CALLBACK (on_clone_changed), self);
  }
  
-@@ -838,6 +878,7 @@
+@@ -838,6 +870,7 @@
    rebuild_on_off_radios (self);
    rebuild_resolution_combo (self);
    rebuild_rotation_combo (self);
@@ -140,7 +91,7 @@ Index: gnome-control-center-3.4.0/panels/display/cc-display-panel.c
  
    self->priv->ignore_gui_changes = FALSE;
  }
-@@ -1722,6 +1763,10 @@
+@@ -1722,6 +1755,10 @@
    outputs = gnome_rr_config_get_outputs (self->priv->current_configuration);
    for (i = 0; outputs[i] != NULL; ++i)
      gnome_rr_output_info_set_primary (outputs[i], outputs[i] == output);
@@ -151,7 +102,7 @@ Index: gnome-control-center-3.4.0/panels/display/cc-display-panel.c
  }
  
  static void
-@@ -2073,7 +2118,30 @@
+@@ -2073,7 +2110,30 @@
    g_object_unref (layout);
    cairo_restore (cr);
  
@@ -159,7 +110,7 @@ Index: gnome-control-center-3.4.0/panels/display/cc-display-panel.c
 +  /* Only display a launcher on all or primary monitor */
 +  if (is_unity_session ())
 +    {
-+      if (gnome_rr_output_info_is_active (output) && (unity_launcher_on_all_monitors () || gnome_rr_output_info_get_primary (output)))
++      if (gnome_rr_output_info_is_active (output) && (unity_launcher_on_all_monitors (self->priv->unity_settings) || gnome_rr_output_info_get_primary (output)))
 +        {
 +          cairo_rectangle (cr, x, y, 10, h * scale + 0.5);
 +          cairo_set_source_rgb (cr, 0, 0, 0);
@@ -183,33 +134,23 @@ Index: gnome-control-center-3.4.0/panels/display/cc-display-panel.c
      {
        const char *clock_format;
        char *text;
-@@ -2125,7 +2193,7 @@
- 
-       pango_cairo_show_layout (cr, layout);
-       g_object_unref (layout);
--    }
-+}
- 
-   cairo_restore (cr);
- }
-@@ -2556,6 +2624,228 @@
+@@ -2556,6 +2616,233 @@
  }
  
  static void
-+stickyedge_widget_refresh (GtkSwitch *switcher)
++stickyedge_widget_refresh (GtkSwitch *switcher, GSettings *settings)
 +{
-+  gboolean stickyedge_enabled = gconf_client_get_bool (gconf_client_get_default (), UNITY_STICKY_EDGE_KEY, NULL);
++  gboolean stickyedge_enabled = g_settings_get_boolean (settings, UNITY_STICKY_EDGE_KEY);
 +
 +  gtk_switch_set_active (switcher, stickyedge_enabled);
 +}
 +
 +static void
-+ext_stickyedge_changed_callback (GConfClient* client,
-+                                 guint cnxn_id,
-+                                 GConfEntry *entry,
++ext_stickyedge_changed_callback (GSettings* settings,
++                                 guint key,
 +                                 gpointer user_data)
 +{
-+  stickyedge_widget_refresh (GTK_SWITCH (user_data));
++  stickyedge_widget_refresh (GTK_SWITCH (user_data), settings);
 +}
 +
 +static void
@@ -219,16 +160,16 @@ Index: gnome-control-center-3.4.0/panels/display/cc-display-panel.c
 +  gboolean enabled = gtk_switch_get_active (GTK_SWITCH (switcher));
 +
 +  /* 3d */
-+  gconf_client_set_bool (gconf_client_get_default (), UNITY_STICKY_EDGE_KEY, enabled, NULL);
++  g_settings_set_boolean (self->priv->unity_settings, UNITY_STICKY_EDGE_KEY, enabled);
 +  /* 2d */
 +  if (self->priv->unity2d_settings_main)
 +    g_settings_set_boolean (self->priv->unity2d_settings_main, "sticky-edges", enabled);
 +}
 +
 +static gboolean
-+unity_launcher_on_all_monitors ()
++unity_launcher_on_all_monitors (GSettings *settings)
 +{
-+  gint value = gconf_client_get_int (gconf_client_get_default (), UNITY_LAUNCHER_ALL_MONITORS_KEY, NULL);
++  gint value = g_settings_get_int (settings, UNITY_LAUNCHER_ALL_MONITORS_KEY);
 +  return (value == 0);
 +}
 +
@@ -270,7 +211,7 @@ Index: gnome-control-center-3.4.0/panels/display/cc-display-panel.c
 +  GtkTreeIter iter;
 +  GList *connected_outputs = NULL;
 +  GList *list;
-+  gboolean launcher_on_all_monitors = unity_launcher_on_all_monitors ();
++  gboolean launcher_on_all_monitors = unity_launcher_on_all_monitors (self->priv->unity_settings);
 +  gint index_of_primary_screen = 0;
 +  gint i;
 +
@@ -323,19 +264,19 @@ Index: gnome-control-center-3.4.0/panels/display/cc-display-panel.c
 +}
 +
 +static void
-+ext_launcher_placement_changed_callback (GConfClient* client,
-+                                         guint cnxn_id,
-+                                         GConfEntry *entry,
++ext_launcher_placement_changed_callback (GSettings* settings,
++                                         guint key,
 +                                         gpointer user_data)
 +{
 +  // add some crazyness as 2d/3d are not using the same keys
 +  CcDisplayPanel *self = CC_DISPLAY_PANEL (user_data);
-+  gint launcher_gconf_value = 0;
++  gint launcher_unity_value = 0;
 +
++  // two options support: all monitors (0)i or just primary desktop (hence set to 1, not any other number)
 +  if (! switcher_set_to_launcher_on_all_monitors (self))
-+    launcher_gconf_value = 1;
++    launcher_unity_value = 1;
 +
-+  if (gconf_client_get_int (gconf_client_get_default (), UNITY_LAUNCHER_ALL_MONITORS_KEY, NULL) != launcher_gconf_value)
++  if (g_settings_get_int (settings, UNITY_LAUNCHER_ALL_MONITORS_KEY) != launcher_unity_value)
 +    refresh_unity_launcher_placement (self);
 +}
 +
@@ -372,7 +313,8 @@ Index: gnome-control-center-3.4.0/panels/display/cc-display-panel.c
 +  }
 +
 +  /* 3d */
-+  gconf_client_set_int (gconf_client_get_default (), UNITY_LAUNCHER_ALL_MONITORS_KEY, value, NULL);
++  if (self->priv->unity_settings)
++    g_settings_set_int (self->priv->unity_settings, UNITY_LAUNCHER_ALL_MONITORS_KEY, value);
 +  /* 2d */
 +  if (self->priv->unity2d_settings_launcher)
 +    g_settings_set_boolean (self->priv->unity2d_settings_launcher, "only-one-launcher", !on_all_monitors);
@@ -382,7 +324,6 @@ Index: gnome-control-center-3.4.0/panels/display/cc-display-panel.c
 +setup_unity_settings (CcDisplayPanel *self)
 +{
 +  const gchar * const *schemas;
-+  self->priv->gconf_notify_id = NULL;
 +
 +  /* Only use the unity-2d schema if it's installed */
 +  schemas = g_settings_list_schemas ();
@@ -396,32 +337,38 @@ Index: gnome-control-center-3.4.0/panels/display/cc-display-panel.c
 +        }
 +      schemas++;
 +    }
-+  gconf_client_add_dir (gconf_client_get_default (), UNITY_GCONF_OPTION_PATH, 0, NULL);
++  schemas = g_settings_list_relocatable_schemas ();
++  while (*schemas != NULL)
++    {
++      if (g_strcmp0 (*schemas, UNITY_GSETTINGS_SCHEMA) == 0)
++        {
++          self->priv->unity_settings = g_settings_new_with_path (UNITY_GSETTINGS_SCHEMA, UNITY_GSETTINGS_PATH);
++          break;
++        }
++      schemas++;
++    }
++
++  if (!self->priv->unity_settings)
++    return;
 +
 +  GtkWidget *sticky_edge_switch = WID ("stickyedge_switch");
 +  g_signal_connect (sticky_edge_switch, "notify::active",
 +                    G_CALLBACK (on_stickyedge_changed), self);
-+  self->priv->gconf_notify_id = g_slist_append (self->priv->gconf_notify_id,
-+                                              GINT_TO_POINTER (
-+                                              gconf_client_notify_add (gconf_client_get_default (), UNITY_STICKY_EDGE_KEY,
-+                                                       ext_stickyedge_changed_callback, sticky_edge_switch,
-+                                                       NULL, NULL)));
-+  stickyedge_widget_refresh (GTK_SWITCH (sticky_edge_switch));
++  g_signal_connect (self->priv->unity_settings, "changed::" UNITY_STICKY_EDGE_KEY,
++                    G_CALLBACK (ext_stickyedge_changed_callback), sticky_edge_switch);
++  stickyedge_widget_refresh (GTK_SWITCH (sticky_edge_switch), self->priv->unity_settings);
 +
 +  g_signal_connect (G_OBJECT (WID ("launcher_placement_combo")), "changed",
 +              G_CALLBACK (on_launcher_placement_combo_changed), self);
-+  self->priv->gconf_notify_id = g_slist_append (self->priv->gconf_notify_id,
-+                                            GINT_TO_POINTER (
-+                                            gconf_client_notify_add (gconf_client_get_default (), UNITY_LAUNCHER_ALL_MONITORS_KEY,
-+                                                     ext_launcher_placement_changed_callback, self,
-+                                                     NULL, NULL)));
++  g_signal_connect (self->priv->unity_settings, "changed::" UNITY_LAUNCHER_ALL_MONITORS_KEY,
++                    G_CALLBACK (ext_launcher_placement_changed_callback), self);
 +}
 +
 +static void
  cc_display_panel_init (CcDisplayPanel *self)
  {
  }
-@@ -2572,7 +2862,7 @@
+@@ -2572,7 +2859,7 @@
    CcDisplayPanel *self;
    CcShell *shell;
    GtkWidget *toplevel;
@@ -430,7 +377,7 @@ Index: gnome-control-center-3.4.0/panels/display/cc-display-panel.c
  
    obj = G_OBJECT_CLASS (cc_display_panel_parent_class)->constructor (gtype, n_properties, properties);
    self = CC_DISPLAY_PANEL (obj);
-@@ -2661,6 +2951,18 @@
+@@ -2661,6 +2948,18 @@
    g_signal_connect_swapped (WID ("apply_button"),
                              "clicked", G_CALLBACK (apply), self);
  
@@ -449,15 +396,15 @@ Index: gnome-control-center-3.4.0/panels/display/cc-display-panel.c
    gtk_widget_show (self->priv->panel);
    gtk_container_add (GTK_CONTAINER (self), self->priv->panel);
  
-@@ -2675,4 +2977,3 @@
+@@ -2675,4 +2974,3 @@
                                    CC_TYPE_DISPLAY_PANEL,
                                    "display", 0);
  }
 -
-Index: gnome-control-center-3.4.0/panels/display/display-capplet.ui
+Index: gnome-control-center-3.4.2/panels/display/display-capplet.ui
 ===================================================================
---- gnome-control-center-3.4.0.orig/panels/display/display-capplet.ui	2012-02-14 11:13:17.000000000 +0100
-+++ gnome-control-center-3.4.0/panels/display/display-capplet.ui	2012-03-29 09:59:04.805514795 +0200
+--- gnome-control-center-3.4.2.orig/panels/display/display-capplet.ui	2012-03-05 15:04:55.000000000 +0100
++++ gnome-control-center-3.4.2/panels/display/display-capplet.ui	2012-07-23 10:26:45.805976846 +0200
 @@ -1,6 +1,14 @@
  <?xml version="1.0"?>
  <interface>
