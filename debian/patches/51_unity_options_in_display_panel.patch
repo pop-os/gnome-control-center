@@ -235,13 +235,13 @@ Index: gnome-control-center-3.4.0/panels/display/cc-display-panel.c
 +static GdkPixbuf*
 +get_monitor_pixbuf (CcDisplayPanel *self, GnomeRROutputInfo *output)
 +{
-+  GdkColor color;
++  GdkRGBA color;
 +  cairo_surface_t *cairo_surface;
 +  cairo_t *cr;
 +  int monitor_width = 30;
 +  int monitor_height = 15;
 +
-+  gnome_rr_labeler_get_color_for_output (self->priv->labeler, output, &color);
++  gnome_rr_labeler_get_rgba_for_output (self->priv->labeler, output, &color);
 +
 +  cairo_surface = cairo_image_surface_create (CAIRO_FORMAT_RGB24, monitor_width, monitor_height);
 +  cr = cairo_create (cairo_surface);
@@ -250,7 +250,7 @@ Index: gnome-control-center-3.4.0/panels/display/cc-display-panel.c
 +  cairo_paint (cr);
 +
 +  cairo_set_operator (cr, CAIRO_OPERATOR_OVER);
-+  cairo_set_source_rgb (cr, color.red / 65535.0, color.green / 65535.0, color.blue / 65535.0);
++  cairo_set_source_rgb (cr, color.red, color.green, color.blue);
 +  cairo_rectangle (cr, 0.5, 0.5, monitor_width - 1, monitor_height - 1);
 +  cairo_fill (cr);
 +
