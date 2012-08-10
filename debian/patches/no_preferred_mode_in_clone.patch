@@ -1,0 +1,30 @@
+From 15bcc03b4063bad9c3f338ca5fd37e21c0ced779 Mon Sep 17 00:00:00 2001
+From: Cyrus Lien <cyrus.lien@canonical.com>
+Date: Tue, 07 Aug 2012 06:23:21 +0000
+Subject: display: Do not add preferred mode to drop down in clone mode.
+
+Use preferred resolution to switch to mirror mode will popup error
+messages if preferred resolution is not a common resolution.
+
+https://bugzilla.gnome.org/show_bug.cgi?id=680969
+---
+diff --git a/panels/display/cc-display-panel.c b/panels/display/cc-display-panel.c
+index e2b2a29..b7a92dc 100644
+--- a/panels/display/cc-display-panel.c
++++ b/panels/display/cc-display-panel.c
+@@ -808,8 +808,10 @@ rebuild_resolution_combo (CcDisplayPanel *self)
+   for (i = 0; modes[i] != NULL; ++i)
+     add_mode (self, modes[i], output_width, output_height, preferred_id);
+ 
+-  /* And force the preferred mode in the drop-down */
+-  add_mode (self, mode, output_width, output_height, preferred_id);
++  /* And force the preferred mode in the drop-down (when not in clone mode)
++   * https://bugzilla.gnome.org/show_bug.cgi?id=680969 */
++  if (!gnome_rr_config_get_clone (self->priv->current_configuration))
++   add_mode (self, mode, output_width, output_height, preferred_id);
+ 
+   current = make_resolution_string (output_width, output_height);
+ 
+--
+cgit v0.9.0.2
+
