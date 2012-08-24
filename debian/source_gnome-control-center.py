@@ -3,7 +3,7 @@ from apport.hookutils import *
 
 def add_info(report):
 	# the issue is not in the gnome-control-center code so reassign
-	if report.has_key("Stacktrace") and "/usr/lib/control-center-1" in report["Stacktrace"]:
+	if "Stacktrace" in report and "/usr/lib/control-center-1" in report["Stacktrace"]:
 		for words in report["Stacktrace"].split():
 			if words.startswith("/usr/lib/control-center-1"):
 			    if apport.packaging.get_file_package(words) != 'gnome-control-center':

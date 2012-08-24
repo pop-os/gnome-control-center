@@ -1,0 +1,194 @@
+From bb531687ca957072470a5851c499993fe056ea85 Mon Sep 17 00:00:00 2001
+From: Matthias Clasen <mclasen@redhat.com>
+Date: Mon, 19 Mar 2012 22:11:00 +0000
+Subject: sound: Fix mouse scrolls on sliders
+
+Use gdk_event_get_scroll_deltas() to get the scroll direction.
+
+https://bugzilla.gnome.org/show_bug.cgi?id=671724
+---
+diff --git a/panels/sound/gvc-balance-bar.c b/panels/sound/gvc-balance-bar.c
+index bae395d..a24174a 100644
+--- a/panels/sound/gvc-balance-bar.c
++++ b/panels/sound/gvc-balance-bar.c
+@@ -425,32 +425,51 @@ on_scale_scroll_event (GtkWidget      *widget,
+                        GvcBalanceBar  *bar)
+ {
+         gdouble value;
++        gdouble dx, dy;
+ 
+         value = gtk_adjustment_get_value (bar->priv->adjustment);
+ 
++        if (!gdk_event_get_scroll_deltas ((GdkEvent*)event, &dx, &dy)) {
++                dx = 0.0;
++                dy = 0.0;
++
++                switch (event->direction) {
++                case GDK_SCROLL_UP:
++                case GDK_SCROLL_RIGHT:
++                        dy = 1.0;
++                        break;
++                case GDK_SCROLL_DOWN:
++                case GDK_SCROLL_LEFT:
++                        dy = -1.0;
++                        break;
++                default:
++                        ;
++                }
++        }
++
+         if (bar->priv->btype == BALANCE_TYPE_LFE) {
+-                if (event->direction == GDK_SCROLL_UP) {
+-                        if (value + ADJUSTMENT_MAX_NORMAL/100.0 > ADJUSTMENT_MAX_NORMAL)
++                if (dy > 0) {
++                        if (value + dy * ADJUSTMENT_MAX_NORMAL/100.0 > ADJUSTMENT_MAX_NORMAL)
+                                 value = ADJUSTMENT_MAX_NORMAL;
+                         else
+-                                value = value + ADJUSTMENT_MAX_NORMAL/100.0;
+-                } else if (event->direction == GDK_SCROLL_DOWN) {
+-                        if (value - ADJUSTMENT_MAX_NORMAL/100.0 < 0)
++                                value = value + dy * ADJUSTMENT_MAX_NORMAL/100.0;
++                } else if (dy < 0) {
++                        if (value + dy * ADJUSTMENT_MAX_NORMAL/100.0 < 0)
+                                 value = 0.0;
+                         else
+-                                value = value - ADJUSTMENT_MAX_NORMAL/100.0;
++                                value = value + dy * ADJUSTMENT_MAX_NORMAL/100.0;
+                 }
+         } else {
+-                if (event->direction == GDK_SCROLL_UP) {
+-                        if (value + 0.01 > 1.0)
++                if (dy > 0) {
++                        if (value + dy * 0.01 > 1.0)
+                                 value = 1.0;
+                         else
+-                                value = value + 0.01;
+-                } else if (event->direction == GDK_SCROLL_DOWN) {
+-                        if (value - 0.01 < -1.0)
++                                value = value + dy * 0.01;
++                } else if (dy < 0) {
++                        if (value + dy * 0.01 < -1.0)
+                                 value = -1.0;
+                         else
+-                                value = value - 0.01;
++                                value = value + dy * 0.01;
+                 }
+         }
+         gtk_adjustment_set_value (bar->priv->adjustment, value);
+diff --git a/panels/sound/gvc-channel-bar.c b/panels/sound/gvc-channel-bar.c
+index ef12640..3d854c9 100644
+--- a/panels/sound/gvc-channel-bar.c
++++ b/panels/sound/gvc-channel-bar.c
+@@ -416,16 +416,20 @@ on_scale_button_release_event (GtkWidget      *widget,
+ }
+ 
+ gboolean
+-gvc_channel_bar_scroll (GvcChannelBar *bar, GdkScrollDirection direction)
++gvc_channel_bar_scroll (GvcChannelBar *bar, GdkEventScroll *event)
+ {
+         GtkAdjustment *adj;
+         gdouble value;
++        GdkScrollDirection direction;
++        gdouble dx, dy;
+ 
+         g_return_val_if_fail (bar != NULL, FALSE);
+         g_return_val_if_fail (GVC_IS_CHANNEL_BAR (bar), FALSE);
+ 
++        direction = event->direction;
++
+         if (bar->priv->orientation == GTK_ORIENTATION_VERTICAL) {
+-                if (direction != GDK_SCROLL_UP && direction != GDK_SCROLL_DOWN)
++                if (direction == GDK_SCROLL_LEFT || direction == GDK_SCROLL_RIGHT)
+                         return FALSE;
+         } else {
+                 /* Switch direction for RTL */
+@@ -442,25 +446,43 @@ gvc_channel_bar_scroll (GvcChannelBar *bar, GdkScrollDirection direction)
+                         direction = GDK_SCROLL_DOWN;
+         }
+ 
++	if (!gdk_event_get_scroll_deltas ((GdkEvent*)event, &dx, &dy)) {
++		dx = 0.0;
++		dy = 0.0;
++
++		switch (direction) {
++		case GDK_SCROLL_UP:
++		case GDK_SCROLL_LEFT:
++			dy = 1.0;
++			break;
++		case GDK_SCROLL_DOWN:
++		case GDK_SCROLL_RIGHT:
++			dy = -1.0;
++			break;
++		default:
++			;
++		}
++	}
++
+         adj = gtk_range_get_adjustment (GTK_RANGE (bar->priv->scale));
+         if (adj == bar->priv->zero_adjustment) {
+-                if (direction == GDK_SCROLL_UP)
++                if (dy > 0)
+                         gvc_channel_bar_set_is_muted (bar, FALSE);
+                 return TRUE;
+         }
+ 
+         value = gtk_adjustment_get_value (adj);
+ 
+-        if (direction == GDK_SCROLL_UP) {
+-                if (value + SCROLLSTEP > ADJUSTMENT_MAX)
++        if (dy > 0) {
++                if (value + dy * SCROLLSTEP > ADJUSTMENT_MAX)
+                         value = ADJUSTMENT_MAX;
+                 else
+-                        value = value + SCROLLSTEP;
+-        } else if (direction == GDK_SCROLL_DOWN) {
+-                if (value - SCROLLSTEP < 0)
++                        value = value + dy * SCROLLSTEP;
++        } else if (dy < 0) {
++                if (value + dy * SCROLLSTEP < 0)
+                         value = 0.0;
+                 else
+-                        value = value - SCROLLSTEP;
++                        value = value + dy * SCROLLSTEP;
+         }
+ 
+         gvc_channel_bar_set_is_muted (bar, (value == 0.0));
+@@ -475,7 +497,7 @@ on_scale_scroll_event (GtkWidget      *widget,
+                        GdkEventScroll *event,
+                        GvcChannelBar  *bar)
+ {
+-        return gvc_channel_bar_scroll (bar, event->direction);
++        return gvc_channel_bar_scroll (bar, event);
+ }
+ 
+ static void
+diff --git a/panels/sound/gvc-channel-bar.h b/panels/sound/gvc-channel-bar.h
+index 6d3402d..0b607e8 100644
+--- a/panels/sound/gvc-channel-bar.h
++++ b/panels/sound/gvc-channel-bar.h
+@@ -81,8 +81,8 @@ gboolean            gvc_channel_bar_get_ellipsize       (GvcChannelBar *bar);
+ void                gvc_channel_bar_set_ellipsize       (GvcChannelBar *bar,
+                                                          gboolean       ellipsized);
+ 
+-gboolean            gvc_channel_bar_scroll              (GvcChannelBar *bar,
+-                                                         GdkScrollDirection direction);
++gboolean            gvc_channel_bar_scroll              (GvcChannelBar  *bar,
++                                                         GdkEventScroll *event);
+ 
+ G_END_DECLS
+ 
+diff --git a/panels/sound/gvc-stream-status-icon.c b/panels/sound/gvc-stream-status-icon.c
+index 1f02613..88d5198 100644
+--- a/panels/sound/gvc-stream-status-icon.c
++++ b/panels/sound/gvc-stream-status-icon.c
+@@ -293,7 +293,7 @@ on_status_icon_scroll_event (GtkStatusIcon       *status_icon,
+                              GdkEventScroll      *event,
+                              GvcStreamStatusIcon *icon)
+ {
+-        return gvc_channel_bar_scroll (GVC_CHANNEL_BAR (icon->priv->bar), event->direction);
++        return gvc_channel_bar_scroll (GVC_CHANNEL_BAR (icon->priv->bar), event);
+ }
+ 
+ static void
+--
+cgit v0.9.0.2
