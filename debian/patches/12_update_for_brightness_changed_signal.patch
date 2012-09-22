@@ -1,0 +1,48 @@
+commit 570478bcae6c872a4903118fdae25cb72cb5a027
+Author: Giovanni Campagna <gcampagna@src.gnome.org>
+Date:   Fri Jun 8 23:01:10 2012 +0200
+
+    screen: Fix for gnome-settings-daemon changes
+    
+    g-s-d changed its DBus interface, and that made all
+    external changes to brightness invisible to the panel. Update
+    accordingly.
+    
+    https://bugzilla.gnome.org/show_bug.cgi?id=662117
+
+diff --git a/panels/screen/cc-screen-panel.c b/panels/screen/cc-screen-panel.c
+index 339cb29..1a0d740 100644
+--- a/panels/screen/cc-screen-panel.c
++++ b/panels/screen/cc-screen-panel.c
+@@ -177,21 +177,21 @@ on_signal (GDBusProxy *proxy,
+ {
+   CcScreenPanel *self = CC_SCREEN_PANEL (user_data);
+ 
+-  if (g_strcmp0 (signal_name, "BrightnessChanged") == 0)
++  if (g_strcmp0 (signal_name, "Changed") == 0)
+     {
+-      guint brightness;
+-      GtkRange *range;
+-
+       /* changed, but ignoring */
+       if (self->priv->setting_brightness)
+         return;
+ 
+-      /* update the bar */
+-      g_variant_get (parameters,
+-                     "(u)",
+-                     &brightness);
+-      range = GTK_RANGE (WID ("screen_brightness_hscale"));
+-      gtk_range_set_value (range, brightness);
++      /* retrieve the value again from g-s-d */
++      g_dbus_proxy_call (self->priv->proxy,
++                         "GetPercentage",
++                         NULL,
++                         G_DBUS_CALL_FLAGS_NONE,
++                         200, /* we don't want to randomly move the bar */
++                         self->priv->cancellable,
++                         get_brightness_cb,
++                         user_data);
+     }
+ }
+ 
