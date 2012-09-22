@@ -1,0 +1,73 @@
+commit b758c6dbb0dc29aa87cc32f9120528b4a7a2520c
+Author: Bastien Nocera <hadess@hadess.net>
+Date:   Tue Aug 28 16:27:19 2012 +0100
+
+    bluetooth: Don't break the custom widgets on connect
+    
+    We used to destroy and recreate the custom widgets whenever any of
+    the properties changed. Now we make sure that the custom widgets are
+    only destroyed and recreated when the device selected is a different one.
+    
+    This fixes NetworkManager's Bluetooth plugins getting destroyed
+    because the Connected property changed, as it was trying to connect to
+    the device.
+    
+    https://bugzilla.gnome.org/show_bug.cgi?id=681456
+
+diff --git a/panels/bluetooth/cc-bluetooth-panel.c b/panels/bluetooth/cc-bluetooth-panel.c
+index 3758776..f1d44f5 100644
+--- a/panels/bluetooth/cc-bluetooth-panel.c
++++ b/panels/bluetooth/cc-bluetooth-panel.c
+@@ -50,6 +50,7 @@ G_DEFINE_DYNAMIC_TYPE (CcBluetoothPanel, cc_bluetooth_panel, CC_TYPE_PANEL)
+ struct CcBluetoothPanelPrivate {
+ 	GtkBuilder          *builder;
+ 	GtkWidget           *chooser;
++	char                *selected_bdaddr;
+ 	BluetoothClient     *client;
+ 	BluetoothKillswitch *killswitch;
+ 	gboolean             debug;
+@@ -104,6 +105,8 @@ cc_bluetooth_panel_finalize (GObject *object)
+ 		self->priv->client = NULL;
+ 	}
+ 
++	g_clear_pointer (&self->priv->selected_bdaddr, g_free);
++
+ 	G_OBJECT_CLASS (cc_bluetooth_panel_parent_class)->finalize (object);
+ }
+ 
+@@ -251,10 +254,12 @@ cc_bluetooth_panel_update_properties (CcBluetoothPanel *self)
+ 	gtk_widget_hide (WID ("browse_box"));
+ 	gtk_widget_hide (WID ("send_box"));
+ 
++	bdaddr = bluetooth_chooser_get_selected_device (BLUETOOTH_CHOOSER (self->priv->chooser));
++
+ 	/* Remove the extra setup widgets */
+-	remove_extra_setup_widgets (self);
++	if (g_strcmp0 (self->priv->selected_bdaddr, bdaddr) != 0)
++		remove_extra_setup_widgets (self);
+ 
+-	bdaddr = bluetooth_chooser_get_selected_device (BLUETOOTH_CHOOSER (self->priv->chooser));
+ 	if (bdaddr == NULL) {
+ 		gtk_widget_set_sensitive (WID ("properties_vbox"), FALSE);
+ 		gtk_switch_set_active (button, FALSE);
+@@ -325,15 +330,18 @@ cc_bluetooth_panel_update_properties (CcBluetoothPanel *self)
+ 		}
+ 
+ 		/* Extra widgets */
+-		add_extra_setup_widgets (self, bdaddr);
++		if (g_strcmp0 (self->priv->selected_bdaddr, bdaddr) != 0)
++			add_extra_setup_widgets (self, bdaddr);
+ 
+ 		gtk_label_set_text (GTK_LABEL (WID ("address_label")), bdaddr);
+-		g_free (bdaddr);
+ 
+ 		gtk_widget_set_sensitive (WID ("button_delete"), TRUE);
+ 		set_notebook_page (self, NOTEBOOK_PAGE_PROPS);
+ 	}
+ 
++	g_free (self->priv->selected_bdaddr);
++	self->priv->selected_bdaddr = bdaddr;
++
+ 	g_signal_handlers_unblock_by_func (button, switch_connected_active_changed, self);
+ }
+ 
