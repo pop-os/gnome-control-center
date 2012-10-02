@@ -1,7 +1,7 @@
 Index: gnome-control-center-3.4.2/panels/background/background.ui
 ===================================================================
---- gnome-control-center-3.4.2.orig/panels/background/background.ui	2012-03-05 15:04:55.000000000 +0100
-+++ gnome-control-center-3.4.2/panels/background/background.ui	2012-08-10 11:35:50.051594403 +0200
+--- gnome-control-center-3.4.2.orig/panels/background/background.ui	2012-10-02 18:27:44.970788642 +0200
++++ gnome-control-center-3.4.2/panels/background/background.ui	2012-10-02 18:27:47.246788561 +0200
 @@ -1,7 +1,6 @@
 -<?xml version="1.0"?>
 +<?xml version="1.0" encoding="UTF-8"?>
@@ -1187,8 +1187,8 @@ Index: gnome-control-center-3.4.2/panels/background/background.ui
  </interface>
 Index: gnome-control-center-3.4.2/panels/background/cc-background-panel.c
 ===================================================================
---- gnome-control-center-3.4.2.orig/panels/background/cc-background-panel.c	2012-03-05 15:04:55.000000000 +0100
-+++ gnome-control-center-3.4.2/panels/background/cc-background-panel.c	2012-08-10 11:36:36.623592756 +0200
+--- gnome-control-center-3.4.2.orig/panels/background/cc-background-panel.c	2012-10-02 18:27:44.970788642 +0200
++++ gnome-control-center-3.4.2/panels/background/cc-background-panel.c	2012-10-02 18:29:33.198784812 +0200
 @@ -69,6 +69,10 @@
  #endif
  
@@ -1283,7 +1283,7 @@ Index: gnome-control-center-3.4.2/panels/background/cc-background-panel.c
  
        gdk_color_parse (cc_background_item_get_pcolor (priv->current_background), &pcolor);
        gdk_color_parse (cc_background_item_get_scolor (priv->current_background), &scolor);
-@@ -1162,12 +1220,486 @@
+@@ -1162,12 +1220,485 @@
    g_strfreev(uris);
  }
  
@@ -1490,7 +1490,6 @@ Index: gnome-control-center-3.4.2/panels/background/cc-background-panel.c
 +    {
 +      gtk_widget_set_sensitive (WID ("unity_launcher_autohide"), TRUE);
 +      gtk_switch_set_active (GTK_SWITCH (WID ("unity_launcher_autohide")), autohide);
-+      g_settings_set_int (priv->unity2d_settings, "hide-mode", value);
 +    }
 +
 +  hidelauncher_set_sensitivity_reveal (self, autohide);
@@ -1771,7 +1770,7 @@ Index: gnome-control-center-3.4.2/panels/background/cc-background-panel.c
    GError *err = NULL;
    GtkWidget *widget;
    GtkListStore *store;
-@@ -1177,9 +1709,14 @@
+@@ -1177,9 +1708,14 @@
  
    priv->builder = gtk_builder_new ();
  
@@ -1789,7 +1788,7 @@ Index: gnome-control-center-3.4.2/panels/background/cc-background-panel.c
  
    if (err)
      {
-@@ -1230,7 +1767,10 @@
+@@ -1230,7 +1766,10 @@
  
  
    /* add the top level widget */
@@ -1801,7 +1800,7 @@ Index: gnome-control-center-3.4.2/panels/background/cc-background-panel.c
  
    gtk_container_add (GTK_CONTAINER (self), widget);
    gtk_widget_show_all (GTK_WIDGET (self));
-@@ -1301,6 +1841,18 @@
+@@ -1301,6 +1840,18 @@
  
    /* Setup the edit box with our current settings */
    source_update_edit_box (priv, TRUE);
@@ -1822,8 +1821,8 @@ Index: gnome-control-center-3.4.2/panels/background/cc-background-panel.c
  void
 Index: gnome-control-center-3.4.2/panels/background/gnome-background-panel.desktop.in.in
 ===================================================================
---- gnome-control-center-3.4.2.orig/panels/background/gnome-background-panel.desktop.in.in	2012-03-05 15:04:55.000000000 +0100
-+++ gnome-control-center-3.4.2/panels/background/gnome-background-panel.desktop.in.in	2012-08-10 11:35:50.055594403 +0200
+--- gnome-control-center-3.4.2.orig/panels/background/gnome-background-panel.desktop.in.in	2012-10-02 18:27:44.970788642 +0200
++++ gnome-control-center-3.4.2/panels/background/gnome-background-panel.desktop.in.in	2012-10-02 18:27:47.250788561 +0200
 @@ -1,6 +1,6 @@
  [Desktop Entry]
 -_Name=Background
