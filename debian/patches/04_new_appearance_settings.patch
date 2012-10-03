@@ -1,7 +1,7 @@
 Index: gnome-control-center-3.4.2/panels/background/background.ui
 ===================================================================
---- gnome-control-center-3.4.2.orig/panels/background/background.ui	2012-03-05 15:04:55.000000000 +0100
-+++ gnome-control-center-3.4.2/panels/background/background.ui	2012-10-02 18:44:29.464859121 +0200
+--- gnome-control-center-3.4.2.orig/panels/background/background.ui	2012-10-03 18:22:42.180575065 +0200
++++ gnome-control-center-3.4.2/panels/background/background.ui	2012-10-03 18:22:44.832575073 +0200
 @@ -1,7 +1,6 @@
 -<?xml version="1.0"?>
 +<?xml version="1.0" encoding="UTF-8"?>
@@ -1187,8 +1187,8 @@ Index: gnome-control-center-3.4.2/panels/background/background.ui
  </interface>
 Index: gnome-control-center-3.4.2/panels/background/cc-background-panel.c
 ===================================================================
---- gnome-control-center-3.4.2.orig/panels/background/cc-background-panel.c	2012-03-05 15:04:55.000000000 +0100
-+++ gnome-control-center-3.4.2/panels/background/cc-background-panel.c	2012-10-02 18:45:42.788862671 +0200
+--- gnome-control-center-3.4.2.orig/panels/background/cc-background-panel.c	2012-10-03 18:22:42.180575065 +0200
++++ gnome-control-center-3.4.2/panels/background/cc-background-panel.c	2012-10-03 18:31:18.932576619 +0200
 @@ -69,6 +69,11 @@
  #endif
  
@@ -1201,7 +1201,7 @@ Index: gnome-control-center-3.4.2/panels/background/cc-background-panel.c
  
    GnomeDesktopThumbnailFactory *thumb_factory;
  
-@@ -93,6 +98,27 @@
+@@ -93,6 +98,28 @@
  #endif
  };
  
@@ -1212,6 +1212,7 @@ Index: gnome-control-center-3.4.2/panels/background/cc-background-panel.c
 +#define UNITY_LAUNCHERHIDE_KEY "launcher-hide-mode"
 +#define UNITY_LAUNCHERREVEAL_KEY "reveal-trigger"
 +#define UNITY2D_GSETTINGS_LAUNCHER "com.canonical.Unity2d.Launcher"
++#define CANONICAL_DESKTOP_INTERFACE "com.canonical.desktop.interface"
 +
 +#define MIN_ICONSIZE 32.0
 +#define MAX_ICONSIZE 64.0
@@ -1229,7 +1230,7 @@ Index: gnome-control-center-3.4.2/panels/background/cc-background-panel.c
  
  #define WID(y) (GtkWidget *) gtk_builder_get_object (priv->builder, y)
  
-@@ -167,6 +193,36 @@
+@@ -167,6 +194,36 @@
        priv->settings = NULL;
      }
  
@@ -1266,7 +1267,7 @@ Index: gnome-control-center-3.4.2/panels/background/cc-background-panel.c
    if (priv->copy_cancellable)
      {
        /* cancel any copy operation */
-@@ -340,12 +396,21 @@
+@@ -340,12 +397,21 @@
    if (priv->current_background)
      {
        GdkColor pcolor, scolor;
@@ -1290,7 +1291,7 @@ Index: gnome-control-center-3.4.2/panels/background/cc-background-panel.c
  
        gdk_color_parse (cc_background_item_get_pcolor (priv->current_background), &pcolor);
        gdk_color_parse (cc_background_item_get_scolor (priv->current_background), &scolor);
-@@ -1162,12 +1227,488 @@
+@@ -1162,12 +1228,503 @@
    g_strfreev(uris);
  }
  
@@ -1356,15 +1357,18 @@ Index: gnome-control-center-3.4.2/panels/background/cc-background-panel.c
 +  g_settings_set_string (self->priv->wm_theme_settings, "theme", window_theme);
 +
 +
-+  /* disable overlay scrollbars for a11y */
-+  if (g_strcmp0 (gtk_theme, "HighContrast") == 0 ||
-+      g_strcmp0 (gtk_theme, "HighContrastInverse") == 0)
-+    g_settings_set_string (self->priv->canonical_interface_settings, "scrollbar-mode", "normal");
-+  else
-+    g_settings_reset (self->priv->canonical_interface_settings, "scrollbar-mode");
++  /* disable overlay scrollbars for a11y if installed*/
++  if (self->priv->canonical_interface_settings)
++    {
++      if (g_strcmp0 (gtk_theme, "HighContrast") == 0 ||
++          g_strcmp0 (gtk_theme, "HighContrastInverse") == 0)
++        g_settings_set_string (self->priv->canonical_interface_settings, "scrollbar-mode", "normal");
++      else
++        g_settings_reset (self->priv->canonical_interface_settings, "scrollbar-mode");
++      g_settings_apply (self->priv->canonical_interface_settings);
++    }
 +
 +  g_settings_apply (self->priv->interface_settings);
-+  g_settings_apply (self->priv->canonical_interface_settings);
 +
 +  g_free (gtk_theme);
 +  g_free (icon_theme);
@@ -1380,11 +1384,23 @@ Index: gnome-control-center-3.4.2/panels/background/cc-background-panel.c
 +  gint i, current_theme_index = 0;
 +  GtkWidget *widget;
 +  GtkWidget *liststore;
++  const gchar * const *schemas;
 +  CcBackgroundPanelPrivate *priv = self->priv;
 +  GSettings *defaults_settings = g_settings_new ("org.gnome.desktop.interface");
-+  
++
 +  priv->interface_settings = g_settings_new ("org.gnome.desktop.interface");
-+  priv->canonical_interface_settings = g_settings_new ("com.canonical.desktop.interface");
++
++  schemas = g_settings_list_schemas ();
++  while (*schemas != NULL)
++    {
++      if (g_strcmp0 (*schemas, CANONICAL_DESKTOP_INTERFACE) == 0)
++        {
++          priv->canonical_interface_settings = g_settings_new (CANONICAL_DESKTOP_INTERFACE);
++          break;
++        }
++      schemas++;
++    }
++
 +  priv->wm_theme_settings = g_settings_new ("org.gnome.desktop.wm.preferences");
 +  current_gtk_theme = g_settings_get_string (priv->interface_settings, "gtk-theme");
 +
@@ -1780,7 +1796,7 @@ Index: gnome-control-center-3.4.2/panels/background/cc-background-panel.c
    GError *err = NULL;
    GtkWidget *widget;
    GtkListStore *store;
-@@ -1177,9 +1718,14 @@
+@@ -1177,9 +1734,14 @@
  
    priv->builder = gtk_builder_new ();
  
@@ -1798,7 +1814,7 @@ Index: gnome-control-center-3.4.2/panels/background/cc-background-panel.c
  
    if (err)
      {
-@@ -1230,7 +1776,10 @@
+@@ -1230,7 +1792,10 @@
  
  
    /* add the top level widget */
@@ -1810,7 +1826,7 @@ Index: gnome-control-center-3.4.2/panels/background/cc-background-panel.c
  
    gtk_container_add (GTK_CONTAINER (self), widget);
    gtk_widget_show_all (GTK_WIDGET (self));
-@@ -1301,6 +1850,18 @@
+@@ -1301,6 +1866,18 @@
  
    /* Setup the edit box with our current settings */
    source_update_edit_box (priv, TRUE);
@@ -1831,8 +1847,8 @@ Index: gnome-control-center-3.4.2/panels/background/cc-background-panel.c
  void
 Index: gnome-control-center-3.4.2/panels/background/gnome-background-panel.desktop.in.in
 ===================================================================
---- gnome-control-center-3.4.2.orig/panels/background/gnome-background-panel.desktop.in.in	2012-03-05 15:04:55.000000000 +0100
-+++ gnome-control-center-3.4.2/panels/background/gnome-background-panel.desktop.in.in	2012-10-02 18:44:29.500859122 +0200
+--- gnome-control-center-3.4.2.orig/panels/background/gnome-background-panel.desktop.in.in	2012-10-03 18:22:42.180575065 +0200
++++ gnome-control-center-3.4.2/panels/background/gnome-background-panel.desktop.in.in	2012-10-03 18:22:44.836575073 +0200
 @@ -1,6 +1,6 @@
  [Desktop Entry]
 -_Name=Background
