@@ -1,7 +1,7 @@
 Index: gnome-control-center-3.4.2/panels/background/background.ui
 ===================================================================
---- gnome-control-center-3.4.2.orig/panels/background/background.ui	2012-10-03 18:22:42.180575065 +0200
-+++ gnome-control-center-3.4.2/panels/background/background.ui	2012-10-03 18:22:44.832575073 +0200
+--- gnome-control-center-3.4.2.orig/panels/background/background.ui	2012-10-25 10:02:13.498331007 -0400
++++ gnome-control-center-3.4.2/panels/background/background.ui	2012-10-25 10:03:38.154335105 -0400
 @@ -1,7 +1,6 @@
 -<?xml version="1.0"?>
 +<?xml version="1.0" encoding="UTF-8"?>
@@ -1187,8 +1187,8 @@ Index: gnome-control-center-3.4.2/panels/background/background.ui
  </interface>
 Index: gnome-control-center-3.4.2/panels/background/cc-background-panel.c
 ===================================================================
---- gnome-control-center-3.4.2.orig/panels/background/cc-background-panel.c	2012-10-03 18:22:42.180575065 +0200
-+++ gnome-control-center-3.4.2/panels/background/cc-background-panel.c	2012-10-03 18:31:18.932576619 +0200
+--- gnome-control-center-3.4.2.orig/panels/background/cc-background-panel.c	2012-10-25 10:02:13.498331007 -0400
++++ gnome-control-center-3.4.2/panels/background/cc-background-panel.c	2012-10-25 10:10:48.714355945 -0400
 @@ -69,6 +69,11 @@
  #endif
  
@@ -1291,7 +1291,7 @@ Index: gnome-control-center-3.4.2/panels/background/cc-background-panel.c
  
        gdk_color_parse (cc_background_item_get_pcolor (priv->current_background), &pcolor);
        gdk_color_parse (cc_background_item_get_scolor (priv->current_background), &scolor);
-@@ -1162,12 +1228,503 @@
+@@ -1162,12 +1228,498 @@
    g_strfreev(uris);
  }
  
@@ -1349,7 +1349,9 @@ Index: gnome-control-center-3.4.2/panels/background/cc-background-panel.c
 +    return;
 +
 +  g_settings_delay (self->priv->interface_settings);
-+  g_settings_delay (self->priv->canonical_interface_settings);
++
++  if (self->priv->canonical_interface_settings != NULL)
++    g_settings_delay (self->priv->canonical_interface_settings);
 +
 +  g_settings_set_string (self->priv->interface_settings, "gtk-theme", gtk_theme);
 +  g_settings_set_string (self->priv->interface_settings, "icon-theme", icon_theme);
@@ -1384,22 +1386,15 @@ Index: gnome-control-center-3.4.2/panels/background/cc-background-panel.c
 +  gint i, current_theme_index = 0;
 +  GtkWidget *widget;
 +  GtkWidget *liststore;
-+  const gchar * const *schemas;
++  GSettingsSchemaSource *source;
 +  CcBackgroundPanelPrivate *priv = self->priv;
 +  GSettings *defaults_settings = g_settings_new ("org.gnome.desktop.interface");
 +
 +  priv->interface_settings = g_settings_new ("org.gnome.desktop.interface");
 +
-+  schemas = g_settings_list_schemas ();
-+  while (*schemas != NULL)
-+    {
-+      if (g_strcmp0 (*schemas, CANONICAL_DESKTOP_INTERFACE) == 0)
-+        {
-+          priv->canonical_interface_settings = g_settings_new (CANONICAL_DESKTOP_INTERFACE);
-+          break;
-+        }
-+      schemas++;
-+    }
++  source = g_settings_schema_source_get_default ();
++  if (source != NULL && g_settings_schema_source_lookup (source, CANONICAL_DESKTOP_INTERFACE, TRUE) != NULL)
++    priv->canonical_interface_settings = g_settings_new (CANONICAL_DESKTOP_INTERFACE);
 +
 +  priv->wm_theme_settings = g_settings_new ("org.gnome.desktop.wm.preferences");
 +  current_gtk_theme = g_settings_get_string (priv->interface_settings, "gtk-theme");
@@ -1796,7 +1791,7 @@ Index: gnome-control-center-3.4.2/panels/background/cc-background-panel.c
    GError *err = NULL;
    GtkWidget *widget;
    GtkListStore *store;
-@@ -1177,9 +1734,14 @@
+@@ -1177,9 +1729,14 @@
  
    priv->builder = gtk_builder_new ();
  
@@ -1814,7 +1809,7 @@ Index: gnome-control-center-3.4.2/panels/background/cc-background-panel.c
  
    if (err)
      {
-@@ -1230,7 +1792,10 @@
+@@ -1230,7 +1787,10 @@
  
  
    /* add the top level widget */
@@ -1826,7 +1821,7 @@ Index: gnome-control-center-3.4.2/panels/background/cc-background-panel.c
  
    gtk_container_add (GTK_CONTAINER (self), widget);
    gtk_widget_show_all (GTK_WIDGET (self));
-@@ -1301,6 +1866,18 @@
+@@ -1301,6 +1861,18 @@
  
    /* Setup the edit box with our current settings */
    source_update_edit_box (priv, TRUE);
@@ -1847,8 +1842,8 @@ Index: gnome-control-center-3.4.2/panels/background/cc-background-panel.c
  void
 Index: gnome-control-center-3.4.2/panels/background/gnome-background-panel.desktop.in.in
 ===================================================================
---- gnome-control-center-3.4.2.orig/panels/background/gnome-background-panel.desktop.in.in	2012-10-03 18:22:42.180575065 +0200
-+++ gnome-control-center-3.4.2/panels/background/gnome-background-panel.desktop.in.in	2012-10-03 18:22:44.836575073 +0200
+--- gnome-control-center-3.4.2.orig/panels/background/gnome-background-panel.desktop.in.in	2012-10-25 10:02:13.498331007 -0400
++++ gnome-control-center-3.4.2/panels/background/gnome-background-panel.desktop.in.in	2012-10-25 10:03:38.158335105 -0400
 @@ -1,6 +1,6 @@
  [Desktop Entry]
 -_Name=Background
