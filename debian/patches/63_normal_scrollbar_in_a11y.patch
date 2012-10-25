@@ -1,8 +1,19 @@
 Index: gnome-control-center-3.4.2/panels/universal-access/cc-ua-panel.c
 ===================================================================
---- gnome-control-center-3.4.2.orig/panels/universal-access/cc-ua-panel.c	2012-04-10 17:01:29.000000000 +0200
-+++ gnome-control-center-3.4.2/panels/universal-access/cc-ua-panel.c	2012-10-02 18:07:53.320752834 +0200
-@@ -44,6 +44,7 @@
+--- gnome-control-center-3.4.2.orig/panels/universal-access/cc-ua-panel.c	2012-10-25 10:02:11.890330931 -0400
++++ gnome-control-center-3.4.2/panels/universal-access/cc-ua-panel.c	2012-10-25 10:21:20.182386505 -0400
+@@ -31,8 +31,9 @@
+ 
+ #include "zoom-options.h"
+ 
+-#define WID(b, w) (GtkWidget *) gtk_builder_get_object (b, w)
++#define CANONICAL_DESKTOP_INTERFACE "com.canonical.desktop.interface"
+ 
++#define WID(b, w) (GtkWidget *) gtk_builder_get_object (b, w)
+ 
+ G_DEFINE_DYNAMIC_TYPE (CcUaPanel, cc_ua_panel, CC_TYPE_PANEL)
+ 
+@@ -44,6 +45,7 @@
    GtkBuilder *builder;
    GSettings *wm_settings;
    GSettings *interface_settings;
@@ -10,7 +21,7 @@ Index: gnome-control-center-3.4.2/panels/universal-access/cc-ua-panel.c
    GSettings *kb_settings;
    GSettings *mouse_settings;
    GSettings *application_settings;
-@@ -109,6 +110,12 @@
+@@ -109,6 +111,12 @@
        priv->interface_settings = NULL;
      }
  
@@ -23,16 +34,19 @@ Index: gnome-control-center-3.4.2/panels/universal-access/cc-ua-panel.c
    if (priv->kb_settings)
      {
        g_object_unref (priv->kb_settings);
-@@ -423,11 +430,21 @@
+@@ -423,11 +431,25 @@
  
    if (g_strcmp0 (theme_name, ""))
      {
 +      /* disable overlay scrollbars for a11y */
-+      if (g_strcmp0 (theme_name, "HighContrast") == 0 ||
-+          g_strcmp0 (theme_name, "HighContrastInverse") == 0)
-+        g_settings_set_string (priv->canonical_interface_settings, "scrollbar-mode", "normal");
-+      else
-+        g_settings_reset (priv->canonical_interface_settings, "scrollbar-mode");
++      if (priv->canonical_interface_settings != NULL)
++        {
++          if (g_strcmp0 (theme_name, "HighContrast") == 0 ||
++              g_strcmp0 (theme_name, "HighContrastInverse") == 0)
++            g_settings_set_string (priv->canonical_interface_settings, "scrollbar-mode", "normal");
++          else
++            g_settings_reset (priv->canonical_interface_settings, "scrollbar-mode");
++        }
 +
        g_settings_set_string (priv->interface_settings, GTK_THEME_KEY, theme_name);
        g_settings_set_string (priv->interface_settings, ICON_THEME_KEY, theme_name);
@@ -40,16 +54,28 @@ Index: gnome-control-center-3.4.2/panels/universal-access/cc-ua-panel.c
    else
      {
 +      /* reset overlay scrollbars key */
-+      g_settings_reset (priv->canonical_interface_settings, "scrollbar-mode");
++      if (priv->canonical_interface_settings != NULL)
++        g_settings_reset (priv->canonical_interface_settings, "scrollbar-mode");
 +
        g_settings_reset (priv->interface_settings, GTK_THEME_KEY);
        g_settings_reset (priv->interface_settings, ICON_THEME_KEY);
      }
-@@ -772,6 +789,7 @@
-     }
- 
-   priv->interface_settings = g_settings_new ("org.gnome.desktop.interface");
-+  priv->canonical_interface_settings = g_settings_new ("com.canonical.desktop.interface");
-   g_signal_connect (priv->interface_settings, "changed",
+@@ -738,6 +760,7 @@
+ static void
+ cc_ua_panel_init (CcUaPanel *self)
+ {
++  GSettingsSchemaSource *source;
+   CcUaPanelPrivate *priv;
+   GtkWidget *widget;
+   GError *err = NULL;
+@@ -776,6 +799,10 @@
                      G_CALLBACK (interface_settings_changed_cb), self);
    interface_settings_changed_cb (priv->interface_settings, "gtk-theme", self);
+ 
++  source = g_settings_schema_source_get_default ();
++  if (source != NULL && g_settings_schema_source_lookup (source, CANONICAL_DESKTOP_INTERFACE, TRUE) != NULL)
++    priv->canonical_interface_settings = g_settings_new (CANONICAL_DESKTOP_INTERFACE);
++
+   priv->wm_settings = g_settings_new ("org.gnome.desktop.wm.preferences");
+   priv->kb_settings = g_settings_new ("org.gnome.desktop.a11y.keyboard");
+   priv->mouse_settings = g_settings_new ("org.gnome.desktop.a11y.mouse");
