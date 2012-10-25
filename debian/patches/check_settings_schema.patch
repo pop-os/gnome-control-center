@@ -1,0 +1,66 @@
+Index: gnome-control-center-3.4.2/panels/universal-access/cc-ua-panel.c
+===================================================================
+--- gnome-control-center-3.4.2.orig/panels/universal-access/cc-ua-panel.c	2012-10-24 23:19:42.628020047 -0400
++++ gnome-control-center-3.4.2/panels/universal-access/cc-ua-panel.c	2012-10-24 23:34:57.364064315 -0400
+@@ -33,6 +33,7 @@
+ 
+ #define WID(b, w) (GtkWidget *) gtk_builder_get_object (b, w)
+ 
++#define CANONICAL_INTERFACE_SETTINGS_SCHEMA "com.canonical.desktop.interface"
+ 
+ G_DEFINE_DYNAMIC_TYPE (CcUaPanel, cc_ua_panel, CC_TYPE_PANEL)
+ 
+@@ -431,11 +432,14 @@
+   if (g_strcmp0 (theme_name, ""))
+     {
+       /* disable overlay scrollbars for a11y */
+-      if (g_strcmp0 (theme_name, "HighContrast") == 0 ||
+-          g_strcmp0 (theme_name, "HighContrastInverse") == 0)
+-        g_settings_set_string (priv->canonical_interface_settings, "scrollbar-mode", "normal");
+-      else
+-        g_settings_reset (priv->canonical_interface_settings, "scrollbar-mode");
++      if (priv->canonical_interface_settings != NULL)
++        {
++          if (g_strcmp0 (theme_name, "HighContrast") == 0 ||
++              g_strcmp0 (theme_name, "HighContrastInverse") == 0)
++            g_settings_set_string (priv->canonical_interface_settings, "scrollbar-mode", "normal");
++          else
++            g_settings_reset (priv->canonical_interface_settings, "scrollbar-mode");
++        }
+ 
+       g_settings_set_string (priv->interface_settings, GTK_THEME_KEY, theme_name);
+       g_settings_set_string (priv->interface_settings, ICON_THEME_KEY, theme_name);
+@@ -443,7 +447,8 @@
+   else
+     {
+       /* reset overlay scrollbars key */
+-      g_settings_reset (priv->canonical_interface_settings, "scrollbar-mode");
++      if (priv->canonical_interface_settings != NULL)
++        g_settings_reset (priv->canonical_interface_settings, "scrollbar-mode");
+ 
+       g_settings_reset (priv->interface_settings, GTK_THEME_KEY);
+       g_settings_reset (priv->interface_settings, ICON_THEME_KEY);
+@@ -758,6 +763,7 @@
+ static void
+ cc_ua_panel_init (CcUaPanel *self)
+ {
++  GSettingsSchemaSource *source;
+   CcUaPanelPrivate *priv;
+   GtkWidget *widget;
+   GError *err = NULL;
+@@ -792,11 +798,14 @@
+     }
+ 
+   priv->interface_settings = g_settings_new ("org.gnome.desktop.interface");
+-  priv->canonical_interface_settings = g_settings_new ("com.canonical.desktop.interface");
+   g_signal_connect (priv->interface_settings, "changed",
+                     G_CALLBACK (interface_settings_changed_cb), self);
+   interface_settings_changed_cb (priv->interface_settings, "gtk-theme", self);
+ 
++  source = g_settings_schema_source_get_default ();
++  if (source != NULL && g_settings_schema_source_lookup (source, CANONICAL_INTERFACE_SETTINGS_SCHEMA, TRUE) != NULL)
++    priv->canonical_interface_settings = g_settings_new (CANONICAL_INTERFACE_SETTINGS_SCHEMA);
++
+   priv->wm_settings = g_settings_new ("org.gnome.desktop.wm.preferences");
+   priv->kb_settings = g_settings_new ("org.gnome.desktop.a11y.keyboard");
+   priv->mouse_settings = g_settings_new ("org.gnome.desktop.a11y.mouse");
