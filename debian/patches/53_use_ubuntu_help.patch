@@ -1,10 +1,10 @@
 Description: Use pre-installed Ubuntu Desktop Guide instead of GNOME help 
 Forwarded: not-needed
 Author: Jeremy Bicha <jbicha@ubuntu.com>
-Index: gnome-control-center-3.3.91/panels/color/color.ui
+Index: gnome-control-center-3.6.0/panels/color/color.ui
 ===================================================================
---- gnome-control-center-3.3.91.orig/panels/color/color.ui	2012-03-05 15:04:55.000000000 +0100
-+++ gnome-control-center-3.3.91/panels/color/color.ui	2012-03-06 17:52:14.735082997 +0100
+--- gnome-control-center-3.6.0.orig/panels/color/color.ui	2012-09-30 14:06:41.819911600 -0400
++++ gnome-control-center-3.6.0/panels/color/color.ui	2012-09-30 14:06:47.823911350 -0400
 @@ -174,7 +174,7 @@
                  <property name="use_action_appearance">False</property>
                  <property name="relief">none</property>
@@ -14,11 +14,11 @@ Index: gnome-control-center-3.3.91/panels/color/color.ui
                </object>
                <packing>
                  <property name="expand">False</property>
-Index: gnome-control-center-3.3.91/panels/user-accounts/um-password-dialog.c
+Index: gnome-control-center-3.6.0/panels/user-accounts/um-password-dialog.c
 ===================================================================
---- gnome-control-center-3.3.91.orig/panels/user-accounts/um-password-dialog.c	2012-03-05 15:04:55.000000000 +0100
-+++ gnome-control-center-3.3.91/panels/user-accounts/um-password-dialog.c	2012-03-06 17:52:31.887083824 +0100
-@@ -654,9 +654,14 @@
+--- gnome-control-center-3.6.0.orig/panels/user-accounts/um-password-dialog.c	2012-09-30 14:06:41.819911600 -0400
++++ gnome-control-center-3.6.0/panels/user-accounts/um-password-dialog.c	2012-09-30 14:06:55.543911026 -0400
+@@ -523,9 +523,14 @@
  
          widget = (GtkWidget *) gtk_builder_get_object (builder, "password-normal-strength-hints-label");
          old_label = gtk_label_get_label (GTK_LABEL (widget));
@@ -35,4 +35,17 @@ Index: gnome-control-center-3.3.91/panels/user-accounts/um-password-dialog.c
 +                                  old_label);
          gtk_label_set_markup (GTK_LABEL (widget), label);
          g_free (label);
+ 
+Index: gnome-control-center-3.6.0/shell/control-center.c
+===================================================================
+--- gnome-control-center-3.6.0.orig/shell/control-center.c	2012-09-24 11:39:34.000000000 -0400
++++ gnome-control-center-3.6.0/shell/control-center.c	2012-09-30 14:08:36.043906824 -0400
+@@ -177,7 +177,7 @@
+     uri = cc_panel_get_help_uri (panel);
+ 
+   gtk_show_uri (gtk_widget_get_screen (window),
+-                uri ? uri : "help:gnome-help/prefs",
++                uri ? uri : "help:ubuntu-help/prefs",
+                 GDK_CURRENT_TIME, NULL);
+ }
  

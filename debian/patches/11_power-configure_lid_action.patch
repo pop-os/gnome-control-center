@@ -1,11 +1,11 @@
 Subject: [PATCH] power: Add configuration for lid action
 Bug: https://bugzilla.gnome.org/show_bug.cgi?id=659045
 Bug-Ubuntu: https://bugs.launchpad.net/bugs/792636
-Index: gnome-control-center-3.3.91/panels/power/cc-power-panel.c
+Index: b/panels/power/cc-power-panel.c
 ===================================================================
---- gnome-control-center-3.3.91.orig/panels/power/cc-power-panel.c	2012-03-05 15:04:55.000000000 +0100
-+++ gnome-control-center-3.3.91/panels/power/cc-power-panel.c	2012-03-06 17:52:23.007083396 +0100
-@@ -922,6 +922,7 @@
+--- a/panels/power/cc-power-panel.c
++++ b/panels/power/cc-power-panel.c
+@@ -931,6 +931,7 @@
  set_ac_battery_ui_mode (CcPowerPanel *self)
  {
    gboolean has_batteries = FALSE;
@@ -13,7 +13,7 @@ Index: gnome-control-center-3.3.91/panels/power/cc-power-panel.c
    gboolean ret;
    GError *error = NULL;
    GPtrArray *devices;
-@@ -954,7 +955,13 @@
+@@ -963,7 +964,13 @@
          }
      }
    g_ptr_array_unref (devices);
@@ -27,7 +27,7 @@ Index: gnome-control-center-3.3.91/panels/power/cc-power-panel.c
    gtk_widget_set_visible (WID (priv->builder, "label_header_battery"), has_batteries);
    gtk_widget_set_visible (WID (priv->builder, "label_header_ac"), has_batteries);
    gtk_widget_set_visible (WID (priv->builder, "combobox_sleep_battery"), has_batteries);
-@@ -1083,6 +1090,26 @@
+@@ -1086,6 +1093,26 @@
                      G_CALLBACK (activate_link_cb),
                      self);
  
@@ -54,10 +54,10 @@ Index: gnome-control-center-3.3.91/panels/power/cc-power-panel.c
    widget = WID (self->priv->builder, "vbox_power");
    gtk_widget_reparent (widget, (GtkWidget *) self);
  }
-Index: gnome-control-center-3.3.91/panels/power/power.ui
+Index: b/panels/power/power.ui
 ===================================================================
---- gnome-control-center-3.3.91.orig/panels/power/power.ui	2012-03-05 15:04:55.000000000 +0100
-+++ gnome-control-center-3.3.91/panels/power/power.ui	2012-03-06 17:52:23.023083396 +0100
+--- a/panels/power/power.ui
++++ b/panels/power/power.ui
 @@ -53,6 +53,33 @@
        </row>
      </data>

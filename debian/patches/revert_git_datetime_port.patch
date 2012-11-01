@@ -1,8 +1,8 @@
-Index: gnome-control-center-3.3.91/configure.ac
+Index: b/configure.ac
 ===================================================================
---- gnome-control-center-3.3.91.orig/configure.ac	2012-03-06 17:52:14.963083006 +0100
-+++ gnome-control-center-3.3.91/configure.ac	2012-03-06 17:52:20.779083287 +0100
-@@ -94,7 +94,7 @@
+--- a/configure.ac
++++ b/configure.ac
+@@ -97,7 +97,7 @@
  PKG_CHECK_MODULES(SHELL, $COMMON_MODULES libgnome-menu-3.0 gio-unix-2.0 x11)
  PKG_CHECK_MODULES(BACKGROUND_PANEL, $COMMON_MODULES libxml-2.0 gnome-desktop-3.0
                    gdk-pixbuf-2.0 >= $GDKPIXBUF_REQUIRED_VERSION)
@@ -11,10 +11,10 @@ Index: gnome-control-center-3.3.91/configure.ac
                    gnome-desktop-3.0 >= $GNOME_DESKTOP_REQUIRED_VERSION
                    polkit-gobject-1 >= $POLKIT_REQUIRED_VERSION
                    gdk-pixbuf-2.0 >= $GDKPIXBUF_REQUIRED_VERSION)
-Index: gnome-control-center-3.3.91/panels/datetime/cc-datetime-panel.c
+Index: b/panels/datetime/cc-datetime-panel.c
 ===================================================================
---- gnome-control-center-3.3.91.orig/panels/datetime/cc-datetime-panel.c	2012-03-05 15:04:55.000000000 +0100
-+++ gnome-control-center-3.3.91/panels/datetime/cc-datetime-panel.c	2012-03-06 17:52:15.275083022 +0100
+--- a/panels/datetime/cc-datetime-panel.c
++++ b/panels/datetime/cc-datetime-panel.c
 @@ -24,7 +24,7 @@
  
  #include <sys/time.h>
@@ -33,7 +33,7 @@ Index: gnome-control-center-3.3.91/panels/datetime/cc-datetime-panel.c
    GCancellable *cancellable;
  
    GPermission *permission;
-@@ -300,9 +300,9 @@
+@@ -307,9 +307,9 @@
    GError *error;
  
    error = NULL;
@@ -46,7 +46,7 @@ Index: gnome-control-center-3.3.91/panels/datetime/cc-datetime-panel.c
      {
        /* TODO: display any error in a user friendly way */
        g_warning ("Could not set system time: %s", error->message);
-@@ -323,9 +323,9 @@
+@@ -330,9 +330,9 @@
    GError *error;
  
    error = NULL;
@@ -59,7 +59,7 @@ Index: gnome-control-center-3.3.91/panels/datetime/cc-datetime-panel.c
      {
        /* TODO: display any error in a user friendly way */
        g_warning ("Could not set system timezone: %s", error->message);
-@@ -342,9 +342,9 @@
+@@ -349,9 +349,9 @@
    GError *error;
  
    error = NULL;
@@ -72,7 +72,7 @@ Index: gnome-control-center-3.3.91/panels/datetime/cc-datetime-panel.c
      {
        /* TODO: display any error in a user friendly way */
        g_warning ("Could not set system to use NTP: %s", error->message);
-@@ -357,16 +357,14 @@
+@@ -364,16 +364,14 @@
  {
    gint64 unixtime;
  
@@ -95,7 +95,7 @@ Index: gnome-control-center-3.3.91/panels/datetime/cc-datetime-panel.c
  }
  
  static void
-@@ -377,12 +375,11 @@
+@@ -384,12 +382,11 @@
    /* for now just do it */
    using_ntp = gtk_switch_get_active (GTK_SWITCH (W("network_time_switch")));
  
@@ -113,7 +113,7 @@ Index: gnome-control-center-3.3.91/panels/datetime/cc-datetime-panel.c
  }
  
  static void
-@@ -391,12 +388,11 @@
+@@ -398,12 +395,11 @@
    /* for now just do it */
    if (self->priv->current_location)
      {
@@ -131,7 +131,7 @@ Index: gnome-control-center-3.3.91/panels/datetime/cc-datetime-panel.c
      }
  }
  
-@@ -553,23 +549,46 @@
+@@ -560,23 +556,46 @@
  }
  
  static void
@@ -190,7 +190,7 @@ Index: gnome-control-center-3.3.91/panels/datetime/cc-datetime-panel.c
  }
  
  /* load region and city tree models */
-@@ -700,13 +719,9 @@
+@@ -707,13 +726,9 @@
                               gboolean         using_ntp)
  {
    CcDateTimePanelPrivate *priv = panel->priv;
@@ -206,7 +206,7 @@ Index: gnome-control-center-3.3.91/panels/datetime/cc-datetime-panel.c
  }
  
  static void
-@@ -815,82 +830,7 @@
+@@ -822,82 +837,7 @@
    gtk_widget_set_sensitive (W("map-vbox"), allowed);
    gtk_widget_set_sensitive (W("hbox2"), allowed);
    gtk_widget_set_sensitive (W("alignment2"), allowed);
@@ -290,7 +290,7 @@ Index: gnome-control-center-3.3.91/panels/datetime/cc-datetime-panel.c
  }
  
  static void
-@@ -941,6 +881,8 @@
+@@ -948,6 +888,8 @@
    GtkTreeModelFilter *city_modelfilter;
    GtkTreeModelSort *city_modelsort;
    guint i, num_days;
@@ -299,7 +299,7 @@ Index: gnome-control-center-3.3.91/panels/datetime/cc-datetime-panel.c
    int ret;
    DateEndianess endianess;
    GError *error;
-@@ -949,12 +891,12 @@
+@@ -956,12 +898,12 @@
  
    priv->cancellable = g_cancellable_new ();
    error = NULL;
@@ -318,7 +318,7 @@ Index: gnome-control-center-3.3.91/panels/datetime/cc-datetime-panel.c
    if (priv->dtm == NULL) {
          g_warning ("could not get proxy for DateTimeMechanism: %s", error->message);
          g_error_free (error);
-@@ -974,8 +916,20 @@
+@@ -981,8 +923,20 @@
      }
  
    /* set up network time button */
@@ -341,7 +341,7 @@ Index: gnome-control-center-3.3.91/panels/datetime/cc-datetime-panel.c
    g_signal_connect (W("network_time_switch"), "notify::active",
                      G_CALLBACK (change_ntp), self);
  
-@@ -1066,37 +1020,17 @@
+@@ -1073,37 +1027,17 @@
  
    /* After the initial setup, so we can be sure that
     * the model is filled up */
@@ -385,10 +385,10 @@ Index: gnome-control-center-3.3.91/panels/datetime/cc-datetime-panel.c
        return;
      }
  
-Index: gnome-control-center-3.3.91/panels/datetime/dtm.c
+Index: b/panels/datetime/dtm.c
 ===================================================================
---- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center-3.3.91/panels/datetime/dtm.c	2012-03-06 17:52:15.287083021 +0100
+--- /dev/null
++++ b/panels/datetime/dtm.c
 @@ -0,0 +1,3066 @@
 +/*
 + * Generated by gdbus-codegen 2.29.5. DO NOT EDIT.
@@ -3456,10 +3456,10 @@ Index: gnome-control-center-3.3.91/panels/datetime/dtm.c
 +  return DATE_TIME_MECHANISM (g_object_new (TYPE_DATE_TIME_MECHANISM_SKELETON, NULL));
 +}
 +
-Index: gnome-control-center-3.3.91/panels/datetime/dtm.h
+Index: b/panels/datetime/dtm.h
 ===================================================================
---- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center-3.3.91/panels/datetime/dtm.h	2012-03-06 17:52:15.299083022 +0100
+--- /dev/null
++++ b/panels/datetime/dtm.h
 @@ -0,0 +1,475 @@
 +/*
 + * Generated by gdbus-codegen 2.29.5. DO NOT EDIT.
@@ -3936,10 +3936,10 @@ Index: gnome-control-center-3.3.91/panels/datetime/dtm.h
 +G_END_DECLS
 +
 +#endif /* __DTM_H__ */
-Index: gnome-control-center-3.3.91/panels/datetime/Makefile.am
+Index: b/panels/datetime/Makefile.am
 ===================================================================
---- gnome-control-center-3.3.91.orig/panels/datetime/Makefile.am	2012-03-05 15:04:55.000000000 +0100
-+++ gnome-control-center-3.3.91/panels/datetime/Makefile.am	2012-03-06 17:52:15.299083022 +0100
+--- a/panels/datetime/Makefile.am
++++ b/panels/datetime/Makefile.am
 @@ -98,24 +98,11 @@
  ccpanelsdir = $(PANELS_DIR)
  ccpanels_LTLIBRARIES = libdate_time.la
@@ -4015,10 +4015,10 @@ Index: gnome-control-center-3.3.91/panels/datetime/Makefile.am
  
  -include $(top_srcdir)/git.mk
 +
-Index: gnome-control-center-3.3.91/panels/datetime/org.gnome.controlcenter.datetime.policy.in
+Index: b/panels/datetime/org.gnome.controlcenter.datetime.policy.in
 ===================================================================
---- gnome-control-center-3.3.91.orig/panels/datetime/org.gnome.controlcenter.datetime.policy.in	2012-03-05 15:04:55.000000000 +0100
-+++ /dev/null	1970-01-01 00:00:00.000000000 +0000
+--- a/panels/datetime/org.gnome.controlcenter.datetime.policy.in
++++ /dev/null
 @@ -1,21 +0,0 @@
 -<?xml version="1.0" encoding="UTF-8"?>
 -<!DOCTYPE policyconfig PUBLIC
@@ -4041,10 +4041,10 @@ Index: gnome-control-center-3.3.91/panels/datetime/org.gnome.controlcenter.datet
 -  </action>
 -
 -</policyconfig>
-Index: gnome-control-center-3.3.91/panels/datetime/set-timezone.c
+Index: b/panels/datetime/set-timezone.c
 ===================================================================
---- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center-3.3.91/panels/datetime/set-timezone.c	2012-03-06 17:52:15.303083022 +0100
+--- /dev/null
++++ b/panels/datetime/set-timezone.c
 @@ -0,0 +1,479 @@
 +/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 8 -*-
 + *
@@ -4525,10 +4525,10 @@ Index: gnome-control-center-3.3.91/panels/datetime/set-timezone.c
 +	set_time_async (data);
 +	free_data (data);
 +}
-Index: gnome-control-center-3.3.91/panels/datetime/set-timezone.h
+Index: b/panels/datetime/set-timezone.h
 ===================================================================
---- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center-3.3.91/panels/datetime/set-timezone.h	2012-03-06 17:52:15.307083022 +0100
+--- /dev/null
++++ b/panels/datetime/set-timezone.h
 @@ -0,0 +1,57 @@
 +/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 8 -*-
 + *
@@ -4587,10 +4587,10 @@ Index: gnome-control-center-3.3.91/panels/datetime/set-timezone.h
 +                                      gpointer        data,
 +                                      GDestroyNotify  notify);
 +#endif
-Index: gnome-control-center-3.3.91/panels/datetime/timedated1-interface.xml
+Index: b/panels/datetime/timedated1-interface.xml
 ===================================================================
---- gnome-control-center-3.3.91.orig/panels/datetime/timedated1-interface.xml	2012-03-05 15:04:55.000000000 +0100
-+++ /dev/null	1970-01-01 00:00:00.000000000 +0000
+--- a/panels/datetime/timedated1-interface.xml
++++ /dev/null
 @@ -1,27 +0,0 @@
 -<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN"
 -"http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
@@ -4619,10 +4619,10 @@ Index: gnome-control-center-3.3.91/panels/datetime/timedated1-interface.xml
 -  </method>
 - </interface>
 -</node>
-Index: gnome-control-center-3.3.91/po/POTFILES.in
+Index: b/po/POTFILES.in
 ===================================================================
---- gnome-control-center-3.3.91.orig/po/POTFILES.in	2012-03-06 17:52:14.923083004 +0100
-+++ gnome-control-center-3.3.91/po/POTFILES.in	2012-03-06 17:52:15.307083022 +0100
+--- a/po/POTFILES.in
++++ b/po/POTFILES.in
 @@ -18,7 +18,6 @@
  [type: gettext/glade]panels/common/language-chooser.ui
  [type: gettext/glade]panels/datetime/datetime.ui

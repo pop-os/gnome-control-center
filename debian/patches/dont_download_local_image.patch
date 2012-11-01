@@ -13,18 +13,16 @@ https://bugzilla.gnome.org/show_bug.cgi?id=672405
  panels/background/bg-pictures-source.c |    2 +-
  1 files changed, 1 insertions(+), 1 deletions(-)
 
-diff --git a/panels/background/bg-pictures-source.c b/panels/background/bg-pictures-source.c
-index 228803a..a4387ed 100644
+Index: b/panels/background/bg-pictures-source.c
+===================================================================
 --- a/panels/background/bg-pictures-source.c
 +++ b/panels/background/bg-pictures-source.c
-@@ -255,7 +255,7 @@ add_single_file (BgPicturesSource *bg_source,
- 		    "shading", G_DESKTOP_BACKGROUND_SHADING_SOLID,
- 		    "placement", G_DESKTOP_BACKGROUND_STYLE_ZOOM,
- 		    NULL);
--      if (source_uri != NULL)
-+      if (source_uri != NULL && !g_file_is_native (file))
-         g_object_set (G_OBJECT (item), "source-url", source_uri, NULL);
+@@ -335,7 +335,7 @@
+ 		"shading", G_DESKTOP_BACKGROUND_SHADING_SOLID,
+ 		"placement", G_DESKTOP_BACKGROUND_STYLE_ZOOM,
+ 		NULL);
+-  if (source_uri != NULL)
++  if (source_uri != NULL && !g_file_is_native (file))
+     g_object_set (G_OBJECT (item), "source-url", source_uri, NULL);
  
-       g_object_set_data (G_OBJECT (file), "item", item);
--- 
-1.7.9.1
+   g_object_set_data (G_OBJECT (file), "item", item);

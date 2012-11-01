@@ -1,7 +1,7 @@
-Index: gnome-control-center-3.3.91/configure.ac
+Index: b/configure.ac
 ===================================================================
---- gnome-control-center-3.3.91.orig/configure.ac	2012-03-08 15:31:02.612050241 +0100
-+++ gnome-control-center-3.3.91/configure.ac	2012-03-08 15:31:22.052049354 +0100
+--- a/configure.ac
++++ b/configure.ac
 @@ -19,6 +19,14 @@
  LT_PREREQ([2.2])
  LT_INIT
@@ -17,7 +17,7 @@ Index: gnome-control-center-3.3.91/configure.ac
  # Internationalization support
  
  IT_PROG_INTLTOOL([0.40.1])
-@@ -229,7 +237,7 @@
+@@ -265,7 +273,7 @@
  PANEL_CFLAGS="-I\$(top_srcdir)/ -DG_LOG_DOMAIN=\"\\\"\$(cappletname)-cc-panel\\\"\""
  AC_SUBST(PANEL_CFLAGS)
  
@@ -26,7 +26,7 @@ Index: gnome-control-center-3.3.91/configure.ac
  AC_SUBST(PANEL_LIBS)
  
  PANEL_LDFLAGS="-export_dynamic -avoid-version -module -no-undefined -export-symbols-regex '^g_io_module_(load|unload)'"
-@@ -319,6 +327,7 @@
+@@ -368,6 +376,7 @@
  
  AC_OUTPUT([
  Makefile
@@ -34,10 +34,10 @@ Index: gnome-control-center-3.3.91/configure.ac
  panels/Makefile
  panels/common/Makefile
  panels/background/Makefile
-Index: gnome-control-center-3.3.91/shell/libgnome-control-center.pc.in
+Index: b/shell/libgnome-control-center.pc.in
 ===================================================================
---- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center-3.3.91/shell/libgnome-control-center.pc.in	2012-03-08 15:31:22.052049354 +0100
+--- /dev/null
++++ b/shell/libgnome-control-center.pc.in
 @@ -0,0 +1,12 @@
 +prefix=@prefix@
 +exec_prefix=@exec_prefix@
@@ -51,10 +51,10 @@ Index: gnome-control-center-3.3.91/shell/libgnome-control-center.pc.in
 +Requires: glib-2.0 gio-2.0 gtk+-3.0
 +Libs: -L${libdir} -lgnome-control-center
 +Cflags: -I${includedir}/gnome-control-center-1
-Index: gnome-control-center-3.3.91/panels/common/Makefile.am
+Index: b/panels/common/Makefile.am
 ===================================================================
---- gnome-control-center-3.3.91.orig/panels/common/Makefile.am	2012-03-08 15:31:02.588050242 +0100
-+++ gnome-control-center-3.3.91/panels/common/Makefile.am	2012-03-08 15:31:22.052049354 +0100
+--- a/panels/common/Makefile.am
++++ b/panels/common/Makefile.am
 @@ -23,9 +23,10 @@
  	cc-language-chooser.h
  
@@ -67,15 +67,15 @@ Index: gnome-control-center-3.3.91/panels/common/Makefile.am
  
  list_languages_SOURCES = list-languages.c
  list_languages_LDADD = liblanguage.la
-Index: gnome-control-center-3.3.91/shell/gnome-control-center.c
+Index: b/shell/gnome-control-center.c
 ===================================================================
---- gnome-control-center-3.3.91.orig/shell/gnome-control-center.c	2012-03-08 15:31:02.560050243 +0100
-+++ gnome-control-center-3.3.91/shell/gnome-control-center.c	2012-03-08 15:31:22.056049353 +0100
-@@ -203,7 +203,23 @@
-         }
-       else
-         {
--          g_warning ("Could not find the loadable module for panel '%s'", id);
+--- a/shell/gnome-control-center.c
++++ b/shell/gnome-control-center.c
+@@ -155,7 +155,23 @@
+ 
+   if (panel_type == G_TYPE_INVALID)
+     {
+-      g_warning ("Could not find the loadable module for panel '%s'", id);
 +	  GKeyFile *key_file;
 +
 +	  /* It might be an external panel */
@@ -93,21 +93,19 @@ Index: gnome-control-center-3.3.91/shell/gnome-control-center.c
 +	    }
 +
 +	  g_key_file_free (key_file);
-         }
+       return FALSE;
      }
- }
-Index: gnome-control-center-3.3.91/shell/Makefile.am
+ 
+Index: b/shell/Makefile.am
 ===================================================================
---- gnome-control-center-3.3.91.orig/shell/Makefile.am	2012-03-08 15:31:02.572050243 +0100
-+++ gnome-control-center-3.3.91/shell/Makefile.am	2012-03-08 15:36:44.024034652 +0100
-@@ -29,21 +29,49 @@
+--- a/shell/Makefile.am
++++ b/shell/Makefile.am
+@@ -27,20 +27,48 @@
+ 	cc-shell-item-view.h			\
+ 	cc-shell-model.c			\
  	cc-shell-model.h			\
- 	cc-shell-nav-bar.c			\
- 	cc-shell-nav-bar.h			\
 -	cc-editable-entry.c			\
 -	cc-editable-entry.h			\
- 	cc-strength-bar.c			\
- 	cc-strength-bar.h			\
 -	cc-panel.c				\
 -	cc-panel.h				\
 -	cc-shell.c				\
@@ -115,8 +113,9 @@ Index: gnome-control-center-3.3.91/shell/Makefile.am
  	$(MARSHAL_FILES)
  
  gnome_control_center_LDADD =			\
-+   libgnome-control-center.la \
- 	$(SHELL_LIBS)
++	libgnome-control-center.la		\
+ 	$(SHELL_LIBS)				\
+ 	$(CHEESE_LIBS)
  
  gnome_control_center_LDFLAGS = -export-dynamic
  
@@ -156,7 +155,7 @@ Index: gnome-control-center-3.3.91/shell/Makefile.am
  AM_CPPFLAGS =							\
  	-DGNOMELOCALEDIR="\"$(datadir)/locale\""		\
  	-DUIDIR="\"$(uidir)\""					\
-@@ -74,6 +102,7 @@
+@@ -77,6 +105,7 @@
  	gnome-control-center.desktop.in.in	\
  	gnomecc.directory.in			\
  	gnomecc.menu.in				\
