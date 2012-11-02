@@ -1,7 +1,7 @@
-Index: gnome-control-center-3.6.1/panels/universal-access/cc-ua-panel.c
+Index: gnome-control-center-3.6.2/panels/universal-access/cc-ua-panel.c
 ===================================================================
---- gnome-control-center-3.6.1.orig/panels/universal-access/cc-ua-panel.c	2012-10-01 05:39:00.000000000 -0400
-+++ gnome-control-center-3.6.1/panels/universal-access/cc-ua-panel.c	2012-11-01 05:01:09.228520016 -0400
+--- gnome-control-center-3.6.2.orig/panels/universal-access/cc-ua-panel.c	2012-11-01 21:35:40.969941331 -0400
++++ gnome-control-center-3.6.2/panels/universal-access/cc-ua-panel.c	2012-11-01 21:38:59.325933035 -0400
 @@ -31,6 +31,8 @@
  
  #include "zoom-options.h"
@@ -32,18 +32,14 @@ Index: gnome-control-center-3.6.1/panels/universal-access/cc-ua-panel.c
    if (priv->kb_settings)
      {
        g_object_unref (priv->kb_settings);
-@@ -385,11 +394,25 @@
+@@ -385,11 +394,21 @@
    hc = g_value_get_boolean (value);
    if (hc)
      {
 +      /* disable overlay scrollbars for a11y */
 +      if (priv->canonical_interface_settings != NULL)
 +        {
-+          if (g_strcmp0 (theme_name, "HighContrast") == 0 ||
-+              g_strcmp0 (theme_name, "HighContrastInverse") == 0)
-+            g_settings_set_string (priv->canonical_interface_settings, "scrollbar-mode", "normal");
-+          else
-+            g_settings_reset (priv->canonical_interface_settings, "scrollbar-mode");
++          g_settings_set_string (priv->canonical_interface_settings, "scrollbar-mode", "normal");
 +        }
 +
        ret = g_variant_new_string (HIGH_CONTRAST_THEME);
@@ -52,13 +48,13 @@ Index: gnome-control-center-3.6.1/panels/universal-access/cc-ua-panel.c
    else
      {
 +      /* reset overlay scrollbars key */
-+      if (priv->canonical_interface_settings != NULL)
++      if (canonical_interface != NULL)
 +        g_settings_reset (priv->canonical_interface_settings, "scrollbar-mode");
 +
        g_settings_reset (settings, KEY_GTK_THEME);
        g_settings_reset (settings, KEY_ICON_THEME);
      }
-@@ -634,6 +657,7 @@
+@@ -634,6 +653,7 @@
  static void
  cc_ua_panel_init (CcUaPanel *self)
  {
@@ -66,7 +62,7 @@ Index: gnome-control-center-3.6.1/panels/universal-access/cc-ua-panel.c
    CcUaPanelPrivate *priv;
    GtkWidget *widget;
    GError *err = NULL;
-@@ -667,6 +691,10 @@
+@@ -667,6 +687,10 @@
        return;
      }
  

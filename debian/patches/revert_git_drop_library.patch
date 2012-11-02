@@ -1,7 +1,7 @@
-Index: b/configure.ac
+Index: gnome-control-center-3.6.2/configure.ac
 ===================================================================
---- a/configure.ac
-+++ b/configure.ac
+--- gnome-control-center-3.6.2.orig/configure.ac	2012-11-01 14:29:04.930946814 -0400
++++ gnome-control-center-3.6.2/configure.ac	2012-11-01 14:29:06.466946750 -0400
 @@ -19,6 +19,14 @@
  LT_PREREQ([2.2])
  LT_INIT
@@ -17,7 +17,7 @@ Index: b/configure.ac
  # Internationalization support
  
  IT_PROG_INTLTOOL([0.40.1])
-@@ -265,7 +273,7 @@
+@@ -295,7 +303,7 @@
  PANEL_CFLAGS="-I\$(top_srcdir)/ -DG_LOG_DOMAIN=\"\\\"\$(cappletname)-cc-panel\\\"\""
  AC_SUBST(PANEL_CFLAGS)
  
@@ -26,18 +26,18 @@ Index: b/configure.ac
  AC_SUBST(PANEL_LIBS)
  
  PANEL_LDFLAGS="-export_dynamic -avoid-version -module -no-undefined -export-symbols-regex '^g_io_module_(load|unload)'"
-@@ -368,6 +376,7 @@
+@@ -398,6 +406,7 @@
  
  AC_OUTPUT([
  Makefile
 +shell/libgnome-control-center.pc
  panels/Makefile
  panels/common/Makefile
- panels/background/Makefile
-Index: b/shell/libgnome-control-center.pc.in
+ panels/appearance/Makefile
+Index: gnome-control-center-3.6.2/shell/libgnome-control-center.pc.in
 ===================================================================
---- /dev/null
-+++ b/shell/libgnome-control-center.pc.in
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ gnome-control-center-3.6.2/shell/libgnome-control-center.pc.in	2012-11-01 14:29:06.466946750 -0400
 @@ -0,0 +1,12 @@
 +prefix=@prefix@
 +exec_prefix=@exec_prefix@
@@ -51,10 +51,10 @@ Index: b/shell/libgnome-control-center.pc.in
 +Requires: glib-2.0 gio-2.0 gtk+-3.0
 +Libs: -L${libdir} -lgnome-control-center
 +Cflags: -I${includedir}/gnome-control-center-1
-Index: b/panels/common/Makefile.am
+Index: gnome-control-center-3.6.2/panels/common/Makefile.am
 ===================================================================
---- a/panels/common/Makefile.am
-+++ b/panels/common/Makefile.am
+--- gnome-control-center-3.6.2.orig/panels/common/Makefile.am	2012-11-01 14:29:04.930946814 -0400
++++ gnome-control-center-3.6.2/panels/common/Makefile.am	2012-11-01 14:29:06.466946750 -0400
 @@ -23,9 +23,10 @@
  	cc-language-chooser.h
  
@@ -67,11 +67,11 @@ Index: b/panels/common/Makefile.am
  
  list_languages_SOURCES = list-languages.c
  list_languages_LDADD = liblanguage.la
-Index: b/shell/gnome-control-center.c
+Index: gnome-control-center-3.6.2/shell/gnome-control-center.c
 ===================================================================
---- a/shell/gnome-control-center.c
-+++ b/shell/gnome-control-center.c
-@@ -155,7 +155,23 @@
+--- gnome-control-center-3.6.2.orig/shell/gnome-control-center.c	2012-11-01 14:29:04.930946814 -0400
++++ gnome-control-center-3.6.2/shell/gnome-control-center.c	2012-11-01 14:29:06.470946749 -0400
+@@ -214,7 +214,23 @@
  
    if (panel_type == G_TYPE_INVALID)
      {
@@ -96,11 +96,11 @@ Index: b/shell/gnome-control-center.c
        return FALSE;
      }
  
-Index: b/shell/Makefile.am
+Index: gnome-control-center-3.6.2/shell/Makefile.am
 ===================================================================
---- a/shell/Makefile.am
-+++ b/shell/Makefile.am
-@@ -27,20 +27,48 @@
+--- gnome-control-center-3.6.2.orig/shell/Makefile.am	2012-11-01 14:29:04.930946814 -0400
++++ gnome-control-center-3.6.2/shell/Makefile.am	2012-11-01 14:29:06.470946749 -0400
+@@ -26,20 +26,48 @@
  	cc-shell-item-view.h			\
  	cc-shell-model.c			\
  	cc-shell-model.h			\
@@ -155,7 +155,7 @@ Index: b/shell/Makefile.am
  AM_CPPFLAGS =							\
  	-DGNOMELOCALEDIR="\"$(datadir)/locale\""		\
  	-DUIDIR="\"$(uidir)\""					\
-@@ -77,6 +105,7 @@
+@@ -70,6 +98,7 @@
  	gnome-control-center.desktop.in.in	\
  	gnomecc.directory.in			\
  	gnomecc.menu.in				\

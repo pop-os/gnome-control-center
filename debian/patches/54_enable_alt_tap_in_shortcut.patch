@@ -1,20 +1,20 @@
-Index: gnome-control-center-3.4.2/panels/keyboard/keyboard-shortcuts.c
+Index: gnome-control-center-3.6.2/panels/keyboard/keyboard-shortcuts.c
 ===================================================================
---- gnome-control-center-3.4.2.orig/panels/keyboard/keyboard-shortcuts.c	2012-03-05 15:04:55.000000000 +0100
-+++ gnome-control-center-3.4.2/panels/keyboard/keyboard-shortcuts.c	2012-08-10 09:21:37.691879095 +0200
-@@ -1626,7 +1626,7 @@
-   gtk_tree_view_column_set_sort_column_id (column, DETAIL_DESCRIPTION_COLUMN);
+--- gnome-control-center-3.6.2.orig/panels/keyboard/keyboard-shortcuts.c	2012-10-22 10:11:15.000000000 -0400
++++ gnome-control-center-3.6.2/panels/keyboard/keyboard-shortcuts.c	2012-11-01 21:42:10.377925045 -0400
+@@ -1716,7 +1716,7 @@
+   gtk_tree_view_append_column (treeview, column);
  
    renderer = (GtkCellRenderer *) g_object_new (GTK_TYPE_CELL_RENDERER_ACCEL,
 -                                               "accel-mode", GTK_CELL_RENDERER_ACCEL_MODE_OTHER,
 +                                               "accel-mode", GTK_CELL_RENDERER_ACCEL_MODE_MODIFIER_TAP,
                                                 NULL);
  
-   g_signal_connect (renderer, "accel_edited",
-Index: gnome-control-center-3.4.2/panels/keyboard/cc-keyboard-item.c
+   g_signal_connect (treeview, "button_press_event",
+Index: gnome-control-center-3.6.2/panels/keyboard/cc-keyboard-item.c
 ===================================================================
---- gnome-control-center-3.4.2.orig/panels/keyboard/cc-keyboard-item.c	2012-03-05 15:04:55.000000000 +0100
-+++ gnome-control-center-3.4.2/panels/keyboard/cc-keyboard-item.c	2012-08-10 09:21:37.695879095 +0200
+--- gnome-control-center-3.6.2.orig/panels/keyboard/cc-keyboard-item.c	2012-05-24 10:20:10.000000000 -0400
++++ gnome-control-center-3.6.2/panels/keyboard/cc-keyboard-item.c	2012-11-01 21:42:10.377925045 -0400
 @@ -143,14 +143,25 @@
                const char     *value,
  	      gboolean        set_backend)
