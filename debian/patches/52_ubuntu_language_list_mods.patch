@@ -2,11 +2,11 @@ Description: Makes the language list in User Accounts similar to the language li
 Forwarded: not-needed
 Author: Gunnar Hjalmarsson <ubuntu@gunnar.cc>
 
-Index: b/panels/common/cc-common-language.c
+Index: gnome-control-center-3.6.2/panels/common/cc-common-language.c
 ===================================================================
---- a/panels/common/cc-common-language.c
-+++ b/panels/common/cc-common-language.c
-@@ -520,6 +520,7 @@
+--- gnome-control-center-3.6.2.orig/panels/common/cc-common-language.c	2012-11-02 23:12:06.522757962 -0400
++++ gnome-control-center-3.6.2/panels/common/cc-common-language.c	2012-11-02 23:15:53.826748455 -0400
+@@ -530,6 +530,7 @@
          ht = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
  
          /* Add some common languages first */
@@ -14,7 +14,7 @@ Index: b/panels/common/cc-common-language.c
          g_hash_table_insert (ht, g_strdup ("en_US.utf8"), g_strdup (_("English")));
          if (gdm_language_has_translations ("en_GB"))
                  g_hash_table_insert (ht, g_strdup ("en_GB.utf8"), g_strdup (_("British English")));
-@@ -534,11 +535,12 @@
+@@ -550,9 +551,9 @@
          if (gdm_language_has_translations ("ar") ||
              gdm_language_has_translations ("ar_EG"))
                  g_hash_table_insert (ht, g_strdup ("ar_EG.utf8"), g_strdup (_("Arabic")));
@@ -25,16 +25,11 @@ Index: b/panels/common/cc-common-language.c
 +//        add_other_users_language (ht);
  
          /* Add current locale */
-+/*
          name = cc_common_language_get_current_language ();
-         if (g_hash_table_lookup (ht, name) == NULL) {
-                 language = gdm_get_language_from_name (name, NULL);
-@@ -546,6 +548,36 @@
-         } else {
+@@ -563,6 +564,35 @@
                  g_free (name);
          }
-+*/
-+
+ 
 +        gchar  *command[] = { "/usr/share/language-tools/language-options", NULL };
 +        GError *error = NULL;
 +        gchar  *avail_languages;
@@ -63,13 +58,14 @@ Index: b/panels/common/cc-common-language.c
 +        g_free (avail_languages);
 +        g_free (name);
 +        g_free (language);
- 
++
          return ht;
  }
-Index: b/panels/common/cc-language-chooser.c
+ 
+Index: gnome-control-center-3.6.2/panels/common/cc-language-chooser.c
 ===================================================================
---- a/panels/common/cc-language-chooser.c
-+++ b/panels/common/cc-language-chooser.c
+--- gnome-control-center-3.6.2.orig/panels/common/cc-language-chooser.c	2012-11-02 23:12:06.522757962 -0400
++++ gnome-control-center-3.6.2/panels/common/cc-language-chooser.c	2012-11-02 23:12:20.550757375 -0400
 @@ -106,20 +106,24 @@
  	user_langs = cc_common_language_get_initial_languages ();
  
@@ -100,10 +96,10 @@ Index: b/panels/common/cc-language-chooser.c
  
          g_hash_table_destroy (user_langs);
  }
-Index: b/panels/common/gdm-languages.c
+Index: gnome-control-center-3.6.2/panels/common/gdm-languages.c
 ===================================================================
---- a/panels/common/gdm-languages.c
-+++ b/panels/common/gdm-languages.c
+--- gnome-control-center-3.6.2.orig/panels/common/gdm-languages.c	2012-11-02 23:12:06.522757962 -0400
++++ gnome-control-center-3.6.2/panels/common/gdm-languages.c	2012-11-02 23:12:20.550757375 -0400
 @@ -1131,6 +1131,7 @@
          char *langinfo_codeset;
          char *translated_language;
