@@ -1,22 +1,24 @@
-gnome-control-center (1:3.4.2-3) UNRELEASED; urgency=low
+gnome-control-center (1:3.4.2+git20121016.29d7c0-1) unstable; urgency=low
 
   [ Josselin Mouette ]
   * Add missing epoch on libxi build-dependency.
 
   [ Michael Biebl ]
   * Rebuild with xz compression. Closes: #687279
-  * debian/patches/11_escape_wallpaper_filename_before_display.patch: Escape
-    wallpaper filename before display. Patch cherry-picked from upstream Git.
-  * debian/patches/12_update_for_brightness_changed_signal.patch:
-    gnome-settings-daemon changed its D-Bus interface for brightness changes
-    so external changes were invisible to the panel. Update accordingly.
-    Patch cherry-picked from upstream Git.
-  * debian/patches/13_bluetooth_dont_destroy_custom_widgets_on_changes.patch:
-    Don't destroy and recreate custom widgets whenever any of the properties
-    changes since this breaks the NetworkManager Bluetooth plugin. Patch
-    cherry-picked from upstream Git.
 
- -- Michael Biebl <biebl@debian.org>  Sat, 22 Sep 2012 20:20:00 +0200
+  [ Josselin Mouette ]
+  * New upstream git snapshot from the stable branch (which will not be 
+    released despite the amount of useful bug fixes).
+    + Features loads of wacom-related fixes. Closes: #689868.
+    + Escape wallpaper filename before display.
+    + Update for a changed DBus interface in g-s-d.
+    + Fix the NetworkManager Bluetooth plugin.
+  * Bump build-dependency on libwacom according to upstream. (This is 
+    not a real requirement, it was put here to force some bugfixes.)
+  * 11_revert_printer_class.patch: revert an unfortunate change that 
+    leads to an undefined symbol.
+
+ -- Josselin Mouette <joss@debian.org>  Wed, 07 Nov 2012 19:02:25 +0100
 
 gnome-control-center (1:3.4.2-2) unstable; urgency=low
 
