@@ -1,33 +1,6 @@
-# Description: workaround for the lts, we don't want to expose 
-#  gnome-online-accounts to users in Unity but we still want to be able to
-#  open it from softwares which have an account configured
+# Description: Don't show goa in Unity, we use uoa there
 # Upstream: the change is ubuntu specific
-Index: b/shell/gnome-control-center.c
-===================================================================
---- a/shell/gnome-control-center.c
-+++ b/shell/gnome-control-center.c
-@@ -942,6 +942,21 @@
-                                              &iter);
-     }
- 
-+  if (!name && g_strcmp0(start_id, "online-accounts") == 0)
-+    {
-+        char *desktop = "/usr/share/applications/gnome-online-accounts-panel.desktop";
-+        if (!g_file_test (desktop, G_FILE_TEST_EXISTS)) 
-+          {
-+            g_warning ("Could not find settings panel \"%s\"", start_id);
-+            return FALSE;
-+          }
-+        GAppInfo*appinfo = g_desktop_app_info_new_from_filename (desktop);
-+        const gchar *name = g_app_info_get_name (appinfo);
-+        GIcon       *icon = g_app_info_get_icon (appinfo);
-+        activate_panel (GNOME_CONTROL_CENTER (shell), start_id, argv, desktop, name, icon);
-+        g_object_unref(appinfo);
-+    }
-+
-   if (!name)
-     {
-       g_warning ("Could not find settings panel \"%s\"", start_id);
+#
 Index: gnome-control-center-3.3.91/panels/online-accounts/gnome-online-accounts-panel.desktop.in.in
 ===================================================================
 --- gnome-control-center-3.3.91.orig/panels/online-accounts/gnome-online-accounts-panel.desktop.in.in   2012-03-05 15:04:55.000000000 +0100

@@ -79,22 +79,6 @@ Index: gnome-control-center-3.6.2/panels/display/cc-display-panel.c
  }
  
  static void
-Index: gnome-control-center-3.6.2/panels/keyboard/cc-keyboard-panel.c
-===================================================================
---- gnome-control-center-3.6.2.orig/panels/keyboard/cc-keyboard-panel.c	2012-11-02 19:29:55.031315523 -0400
-+++ gnome-control-center-3.6.2/panels/keyboard/cc-keyboard-panel.c	2012-11-02 19:29:57.643315414 -0400
-@@ -138,7 +138,10 @@
- static const char *
- cc_keyboard_panel_get_help_uri (CcPanel *panel)
- {
--  return "help:gnome-help/keyboard";
-+  if (!g_strcmp0(g_getenv("XDG_CURRENT_DESKTOP"), "Unity"))
-+    return "help:ubuntu-help/keyboard";
-+  else
-+    return "help:gnome-help/keyboard";
- }
- 
- static void
 Index: gnome-control-center-3.6.2/panels/mouse/cc-mouse-panel.c
 ===================================================================
 --- gnome-control-center-3.6.2.orig/panels/mouse/cc-mouse-panel.c	2012-11-02 19:29:55.031315523 -0400
@@ -172,22 +156,6 @@ Index: gnome-control-center-3.6.2/panels/printers/cc-printers-panel.c
 +    return "help:ubuntu-help/printing";
 +  else
 +    return "help:gnome-help/printing";
- }
- 
- static void
-Index: gnome-control-center-3.6.2/panels/region/cc-region-panel.c
-===================================================================
---- gnome-control-center-3.6.2.orig/panels/region/cc-region-panel.c	2012-11-02 19:29:55.031315523 -0400
-+++ gnome-control-center-3.6.2/panels/region/cc-region-panel.c	2012-11-02 19:29:57.647315413 -0400
-@@ -110,7 +110,10 @@
- static const char *
- cc_region_panel_get_help_uri (CcPanel *panel)
- {
--  return "help:gnome-help/prefs-language";
-+  if (!g_strcmp0(g_getenv("XDG_CURRENT_DESKTOP"), "Unity"))
-+    return "help:ubuntu-help/prefs-language";
-+  else
-+    return "help:gnome-help/prefs-language";
  }
  
  static void

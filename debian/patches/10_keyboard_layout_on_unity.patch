@@ -1,8 +1,8 @@
-Index: gnome-control-center-3.6.2/panels/region/cc-region-panel.c
+Index: gnome-control-center-3.3.91/panels/region/cc-region-panel.c
 ===================================================================
---- gnome-control-center-3.6.2.orig/panels/region/cc-region-panel.c	2012-11-03 12:01:32.653777515 -0400
-+++ gnome-control-center-3.6.2/panels/region/cc-region-panel.c	2012-11-03 12:01:37.581777309 -0400
-@@ -134,10 +134,13 @@
+--- gnome-control-center-3.3.91.orig/panels/region/cc-region-panel.c	2011-09-08 18:24:08.000000000 +0200
++++ gnome-control-center-3.3.91/panels/region/cc-region-panel.c	2012-03-06 17:52:14.351082976 +0100
+@@ -130,10 +130,13 @@
  {
  	CcRegionPanelPrivate *priv;
  	GtkWidget *prefs_widget;
@@ -16,25 +16,25 @@ Index: gnome-control-center-3.6.2/panels/region/cc-region-panel.c
  	priv->builder = gtk_builder_new ();
  
  	gtk_builder_add_from_file (priv->builder,
-@@ -149,16 +152,24 @@
+@@ -145,16 +148,24 @@
  		return;
  	}
  
 -	prefs_widget = (GtkWidget *) gtk_builder_get_object (priv->builder,
 -							     "region_notebook");
-+	if (!g_strcmp0 (desktop, "Unity")) {
-+		prefs_widget = (GtkWidget *) gtk_builder_get_object (priv->builder,
-+								     "vbox5");
-+	} else {
++	if (!g_strcmp0 (desktop, "GNOME")) {
 +		prefs_widget = (GtkWidget *) gtk_builder_get_object (priv->builder,
 +								     "region_notebook");
++	} else {
++		prefs_widget = (GtkWidget *) gtk_builder_get_object (priv->builder,
++								     "vbox1");
 +	}
 +
  	gtk_widget_set_size_request (GTK_WIDGET (prefs_widget), -1, 400);
  
  	gtk_widget_reparent (prefs_widget, GTK_WIDGET (self));
  
-         setup_input_tabs (priv->builder, self);
+ 	setup_xkb_tabs (priv->builder);
 -	setup_language (priv->builder);
 -	setup_formats (priv->builder);
 -	setup_system (priv->builder);
@@ -46,50 +46,24 @@ Index: gnome-control-center-3.6.2/panels/region/cc-region-panel.c
  }
  
  void
-Index: gnome-control-center-3.6.2/panels/region/ubuntu-region-panel.desktop.in.in
+Index: gnome-control-center-3.3.91/panels/region/gnome-region-panel.desktop.in.in
 ===================================================================
---- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center-3.6.2/panels/region/ubuntu-region-panel.desktop.in.in	2012-11-03 12:02:27.681775212 -0400
-@@ -0,0 +1,17 @@
-+[Desktop Entry]
+--- gnome-control-center-3.3.91.orig/panels/region/gnome-region-panel.desktop.in.in	2012-03-05 15:04:55.000000000 +0100
++++ gnome-control-center-3.3.91/panels/region/gnome-region-panel.desktop.in.in	2012-03-06 17:52:14.355082976 +0100
+@@ -1,13 +1,13 @@
+ [Desktop Entry]
+-_Name=Region & Language
 +_Name=Keyboard Layout
-+_Comment=Change your keyboard layout
-+Exec=gnome-control-center region
+ _Comment=Change your region and language settings
+ Exec=gnome-control-center region
+-Icon=preferences-desktop-locale
 +Icon=key_bindings
-+Terminal=false
-+Type=Application
-+StartupNotify=true
-+Categories=GNOME;GTK;Settings;DesktopSettings;X-GNOME-Settings-Panel;X-GNOME-PersonalSettings
-+OnlyShowIn=Unity;
-+X-GNOME-Bugzilla-Bugzilla=GNOME
-+X-GNOME-Bugzilla-Product=gnome-control-center
-+X-GNOME-Bugzilla-Component=region
-+X-GNOME-Bugzilla-Version=@VERSION@
-+X-GNOME-Settings-Panel=region
-+# Translators: those are keywords for the region control-center panel
-+_Keywords=Language;Layout;Keyboard;
-Index: gnome-control-center-3.6.2/panels/region/Makefile.am
-===================================================================
---- gnome-control-center-3.6.2.orig/panels/region/Makefile.am	2012-11-03 12:01:32.653777515 -0400
-+++ gnome-control-center-3.6.2/panels/region/Makefile.am	2012-11-03 12:01:37.581777309 -0400
-@@ -40,7 +40,7 @@
- 	$(NULL)
- 
- desktopdir = $(datadir)/applications
--Desktop_in_files = gnome-region-panel.desktop.in
-+Desktop_in_files = gnome-region-panel.desktop.in ubuntu-region-panel.desktop.in
- desktop_DATA = $(Desktop_in_files:.desktop.in=.desktop)
- 
- CLEANFILES = $(Desktop_in_files) $(desktop_DATA)
-Index: gnome-control-center-3.6.2/configure.ac
-===================================================================
---- gnome-control-center-3.6.2.orig/configure.ac	2012-11-03 12:01:34.765777426 -0400
-+++ gnome-control-center-3.6.2/configure.ac	2012-11-03 12:01:37.585777308 -0400
-@@ -418,6 +418,7 @@
- panels/keyboard/gnome-keybindings.pc
- panels/region/Makefile
- panels/region/gnome-region-panel.desktop.in
-+panels/region/ubuntu-region-panel.desktop.in
- panels/mouse/Makefile
- panels/mouse/gnome-mouse-panel.desktop.in
- panels/online-accounts/Makefile
+ Terminal=false
+ Type=Application
+ StartupNotify=true
+ Categories=GNOME;GTK;Settings;DesktopSettings;X-GNOME-Settings-Panel;X-GNOME-PersonalSettings
+-OnlyShowIn=GNOME;Unity;
++OnlyShowIn=GNOME;Unity;
+ X-GNOME-Bugzilla-Bugzilla=GNOME
+ X-GNOME-Bugzilla-Product=gnome-control-center
+ X-GNOME-Bugzilla-Component=region
