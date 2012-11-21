@@ -2,11 +2,11 @@
 # UbuntuSpecific: yes
 #
 === modified file 'shell/Makefile.am'
-Index: gnome-control-center-3.4.2/shell/Makefile.am
+Index: gnome-control-center-3.6.3/shell/Makefile.am
 ===================================================================
---- gnome-control-center-3.4.2.orig/shell/Makefile.am	2012-05-15 22:18:31.000000000 +1200
-+++ gnome-control-center-3.4.2/shell/Makefile.am	2012-05-22 12:13:23.270181054 +1200
-@@ -27,6 +27,8 @@
+--- gnome-control-center-3.6.3.orig/shell/Makefile.am	2012-10-01 11:39:00.000000000 +0200
++++ gnome-control-center-3.6.3/shell/Makefile.am	2012-11-21 21:24:06.407276357 +0100
+@@ -26,6 +26,8 @@
  	cc-shell-item-view.h			\
  	cc-shell-model.c			\
  	cc-shell-model.h			\
@@ -14,18 +14,18 @@ Index: gnome-control-center-3.4.2/shell/Makefile.am
 +	cc-shell-nav-bar.h			\
  	cc-editable-entry.c			\
  	cc-editable-entry.h			\
- 	cc-strength-bar.c			\
-Index: gnome-control-center-3.4.2/shell/cc-shell-marshal.list
+ 	cc-panel.c				\
+Index: gnome-control-center-3.6.3/shell/cc-shell-marshal.list
 ===================================================================
---- gnome-control-center-3.4.2.orig/shell/cc-shell-marshal.list	2011-11-08 06:22:02.000000000 +1300
-+++ gnome-control-center-3.4.2/shell/cc-shell-marshal.list	2012-05-22 12:13:23.270181054 +1200
+--- gnome-control-center-3.6.3.orig/shell/cc-shell-marshal.list	2011-11-07 18:22:02.000000000 +0100
++++ gnome-control-center-3.6.3/shell/cc-shell-marshal.list	2012-11-21 21:24:05.507276313 +0100
 @@ -1 +1,2 @@
  VOID:STRING,STRING,STRING
 +VOID:VOID
-Index: gnome-control-center-3.4.2/shell/cc-shell-nav-bar.c
+Index: gnome-control-center-3.6.3/shell/cc-shell-nav-bar.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center-3.4.2/shell/cc-shell-nav-bar.c	2012-05-22 12:13:23.270181054 +1200
++++ gnome-control-center-3.6.3/shell/cc-shell-nav-bar.c	2012-11-21 21:24:05.507276313 +0100
 @@ -0,0 +1,150 @@
 +/*
 + * Copyright 2012 Canonical
@@ -177,10 +177,10 @@ Index: gnome-control-center-3.4.2/shell/cc-shell-nav-bar.c
 +{
 +  gtk_widget_hide (bar->priv->detail_button);
 +}
-Index: gnome-control-center-3.4.2/shell/cc-shell-nav-bar.h
+Index: gnome-control-center-3.6.3/shell/cc-shell-nav-bar.h
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ gnome-control-center-3.4.2/shell/cc-shell-nav-bar.h	2012-05-22 12:13:23.270181054 +1200
++++ gnome-control-center-3.6.3/shell/cc-shell-nav-bar.h	2012-11-21 21:24:05.511276314 +0100
 @@ -0,0 +1,76 @@
 +/*
 + * Copyright 2012 Canonical
@@ -258,19 +258,19 @@ Index: gnome-control-center-3.4.2/shell/cc-shell-nav-bar.h
 +G_END_DECLS
 +
 +#endif /* _CC_SHELL_NAV_BAR_H */
-Index: gnome-control-center-3.4.2/shell/gnome-control-center.c
+Index: gnome-control-center-3.6.3/shell/gnome-control-center.c
 ===================================================================
---- gnome-control-center-3.4.2.orig/shell/gnome-control-center.c	2012-05-22 12:13:20.794181020 +1200
-+++ gnome-control-center-3.4.2/shell/gnome-control-center.c	2012-05-22 12:13:23.270181054 +1200
-@@ -36,6 +36,7 @@
- #include "shell-search-renderer.h"
+--- gnome-control-center-3.6.3.orig/shell/gnome-control-center.c	2012-11-21 21:24:05.467276311 +0100
++++ gnome-control-center-3.6.3/shell/gnome-control-center.c	2012-11-21 21:24:06.407276357 +0100
+@@ -38,6 +38,7 @@
+ #include "cc-shell.h"
  #include "cc-shell-category-view.h"
  #include "cc-shell-model.h"
 +#include "cc-shell-nav-bar.h"
  
  G_DEFINE_TYPE (GnomeControlCenter, gnome_control_center, CC_TYPE_SHELL)
  
-@@ -71,6 +72,7 @@
+@@ -75,6 +76,7 @@
    GtkWidget  *search_entry;
    GtkWidget  *lock_button;
    GPtrArray  *custom_widgets;
@@ -278,15 +278,15 @@ Index: gnome-control-center-3.4.2/shell/gnome-control-center.c
  
    GMenuTree  *menu_tree;
    GtkListStore *store;
-@@ -175,6 +177,7 @@
-           /* switch to the new panel */
-           gtk_widget_show (box);
-           gtk_notebook_set_current_page (GTK_NOTEBOOK (priv->notebook), i);
-+          cc_shell_nav_bar_show_detail_button (CC_SHELL_NAV_BAR(shell->priv->nav_bar), name);
+@@ -237,6 +239,7 @@
+   /* switch to the new panel */
+   gtk_widget_show (box);
+   notebook_select_page (priv->notebook, box);
++  cc_shell_nav_bar_show_detail_button (CC_SHELL_NAV_BAR(shell->priv->nav_bar), name);
  
-           /* set the title of the window */
-           icon_name = get_icon_name_from_g_icon (gicon);
-@@ -246,6 +249,8 @@
+   /* set the title of the window */
+   icon_name = get_icon_name_from_g_icon (gicon);
+@@ -299,6 +302,8 @@
  
    /* clear any custom widgets */
    _shell_remove_all_custom_widgets (priv);
@@ -295,37 +295,37 @@ Index: gnome-control-center-3.4.2/shell/gnome-control-center.c
  }
  
  void
-@@ -838,11 +843,8 @@
-                          gint                       page_num,
-                          GnomeControlCenterPrivate *priv)
- {
+@@ -902,11 +907,8 @@
+ 
+   child = notebook_get_selected_page (GTK_WIDGET (notebook));
+ 
 -  /* make sure the home button is shown on all pages except the overview page */
 -
-   if (page_num == OVERVIEW_PAGE || page_num == SEARCH_PAGE)
+   if (child == priv->scrolled_window || child == priv->search_scrolled)
      {
 -      gtk_widget_hide (W (priv->builder, "home-button"));
        gtk_widget_show (W (priv->builder, "search-entry"));
        gtk_widget_hide (W (priv->builder, "lock-button"));
-       gtk_scrolled_window_set_min_content_height (GTK_SCROLLED_WINDOW (priv->scrolled_window),
-@@ -852,7 +854,6 @@
+ 
+@@ -917,7 +919,6 @@
      }
    else
      {
 -      gtk_widget_show (W (priv->builder, "home-button"));
        gtk_widget_hide (W (priv->builder, "search-entry"));
-       gtk_scrolled_window_set_min_content_height (GTK_SCROLLED_WINDOW (priv->scrolled_window), MIN_ICON_VIEW_HEIGHT);
-     }
-@@ -1141,6 +1142,7 @@
- {
+       /* set the scrolled window small so that it doesn't force
+          the window to be larger than this panel */
+@@ -1332,6 +1333,7 @@
    GError *err = NULL;
    GnomeControlCenterPrivate *priv;
+   GdkScreen *screen;
 +  GtkWidget *widget;
  
    priv = self->priv = CONTROL_CENTER_PRIVATE (self);
  
-@@ -1172,8 +1174,14 @@
-   g_signal_connect (priv->notebook, "switch-page",
-                     G_CALLBACK (notebook_switch_page_cb), priv);
+@@ -1378,8 +1380,14 @@
+   g_signal_connect (priv->notebook, "notify::page",
+                     G_CALLBACK (notebook_page_notify_cb), priv);
  
 -  g_signal_connect (gtk_builder_get_object (priv->builder, "home-button"),
 -                    "clicked", G_CALLBACK (home_button_clicked_cb), self);
@@ -340,24 +340,27 @@ Index: gnome-control-center-3.4.2/shell/gnome-control-center.c
  
    /* keep a list of custom widgets to unload on panel change */
    priv->custom_widgets = g_ptr_array_new_with_free_func ((GDestroyNotify) g_object_unref);
-Index: gnome-control-center-3.4.2/shell/shell.ui
+Index: gnome-control-center-3.6.3/shell/shell.ui
 ===================================================================
---- gnome-control-center-3.4.2.orig/shell/shell.ui	2012-05-15 22:18:31.000000000 +1200
-+++ gnome-control-center-3.4.2/shell/shell.ui	2012-05-22 12:13:23.270181054 +1200
-@@ -34,25 +34,6 @@
-                       <object class="GtkHBox" id="hbox1">
-                         <property name="visible">True</property>
-                         <child>
--                          <object class="GtkButton" id="home-button">
--                            <property name="can_focus">True</property>
--                            <property name="receives_default">True</property>
--                            <property name="no_show_all">True</property>
--                            <property name="use_underline">True</property>
--                            <property name="use_action_appearance">False</property>
--                            <property name="image">image1</property>
--                            <child internal-child="accessible">
--                              <object class="AtkObject" id="home-button-atkobject">
--                                <property name="AtkObject::accessible-name" translatable="yes">All Settings</property>
+--- gnome-control-center-3.6.3.orig/shell/shell.ui	2012-11-14 12:42:44.000000000 +0100
++++ gnome-control-center-3.6.3/shell/shell.ui	2012-11-21 21:24:05.511276314 +0100
+@@ -42,28 +42,6 @@
+ 			    <property name="shadow-type">none</property>
+ 			    <property name="obey-child">False</property>
+                             <child>
+-                              <object class="GtkButton" id="home-button">
+-                                <property name="use_action_appearance">False</property>
+-                                <property name="can_focus">True</property>
+-                                <property name="receives_default">True</property>
+-                                <property name="no_show_all">True</property>
+-                                <property name="use_action_appearance">False</property>
+-                                <property name="image">image1</property>
+-                                <property name="use_underline">True</property>
+-                                <child internal-child="accessible">
+-                                  <object class="AtkObject" id="home-button-atkobject">
+-                                    <property name="AtkObject::accessible-name" translatable="yes">All Settings</property>
+-                                  </object>
+-                                </child>
 -                              </object>
 -                            </child>
 -                          </object>
@@ -370,7 +373,7 @@ Index: gnome-control-center-3.4.2/shell/shell.ui
                            <object class="GtkAlignment" id="entry-alignment">
                              <property name="visible">True</property>
                              <property name="xalign">1</property>
-@@ -82,7 +63,7 @@
+@@ -93,7 +71,7 @@
                              </child>
                            </object>
                            <packing>
@@ -379,7 +382,7 @@ Index: gnome-control-center-3.4.2/shell/shell.ui
                            </packing>
                          </child>
                        </object>
-@@ -169,13 +150,6 @@
+@@ -172,13 +150,6 @@
        <column type="gchararray"/>
      </columns>
    </object>
