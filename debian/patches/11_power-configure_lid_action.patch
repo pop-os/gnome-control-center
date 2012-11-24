@@ -1,11 +1,11 @@
 Subject: [PATCH] power: Add configuration for lid action
 Bug: https://bugzilla.gnome.org/show_bug.cgi?id=659045
 Bug-Ubuntu: https://bugs.launchpad.net/bugs/792636
-Index: b/panels/power/cc-power-panel.c
+Index: gnome-control-center-3.6.3/panels/power/cc-power-panel.c
 ===================================================================
---- a/panels/power/cc-power-panel.c
-+++ b/panels/power/cc-power-panel.c
-@@ -931,6 +931,7 @@
+--- gnome-control-center-3.6.3.orig/panels/power/cc-power-panel.c	2012-11-23 18:22:00.580034015 -0500
++++ gnome-control-center-3.6.3/panels/power/cc-power-panel.c	2012-11-23 18:22:09.132033658 -0500
+@@ -932,6 +932,7 @@
  set_ac_battery_ui_mode (CcPowerPanel *self)
  {
    gboolean has_batteries = FALSE;
@@ -13,7 +13,7 @@ Index: b/panels/power/cc-power-panel.c
    gboolean ret;
    GError *error = NULL;
    GPtrArray *devices;
-@@ -963,7 +964,13 @@
+@@ -964,7 +965,13 @@
          }
      }
    g_ptr_array_unref (devices);
@@ -27,7 +27,7 @@ Index: b/panels/power/cc-power-panel.c
    gtk_widget_set_visible (WID (priv->builder, "label_header_battery"), has_batteries);
    gtk_widget_set_visible (WID (priv->builder, "label_header_ac"), has_batteries);
    gtk_widget_set_visible (WID (priv->builder, "combobox_sleep_battery"), has_batteries);
-@@ -1086,6 +1093,26 @@
+@@ -1080,6 +1087,26 @@
                      G_CALLBACK (activate_link_cb),
                      self);
  
@@ -54,10 +54,10 @@ Index: b/panels/power/cc-power-panel.c
    widget = WID (self->priv->builder, "vbox_power");
    gtk_widget_reparent (widget, (GtkWidget *) self);
  }
-Index: b/panels/power/power.ui
+Index: gnome-control-center-3.6.3/panels/power/power.ui
 ===================================================================
---- a/panels/power/power.ui
-+++ b/panels/power/power.ui
+--- gnome-control-center-3.6.3.orig/panels/power/power.ui	2012-11-23 18:22:00.580034015 -0500
++++ gnome-control-center-3.6.3/panels/power/power.ui	2012-11-23 18:59:32.479939834 -0500
 @@ -53,6 +53,33 @@
        </row>
      </data>
@@ -92,7 +92,7 @@ Index: b/panels/power/power.ui
    <object class="GtkWindow" id="window_power">
      <property name="can_focus">False</property>
      <property name="resizable">False</property>
-@@ -172,6 +199,48 @@
+@@ -172,6 +199,50 @@
                  <property name="top_attach">2</property>
                </packing>
              </child>
@@ -115,6 +115,7 @@ Index: b/panels/power/power.ui
 +                <property name="model">liststore_lid</property>
 +                <property name="hexpand">True</property>
 +                <accessibility>
++                  <relation type="labelled-by" target="label_header_battery"/>
 +                  <relation type="labelled-by" target="label_lid_action"/>
 +                </accessibility>
 +              </object>
@@ -130,6 +131,7 @@ Index: b/panels/power/power.ui
 +                <property name="model">liststore_lid</property>
 +                <property name="hexpand">True</property>
 +                <accessibility>
++                  <relation type="labelled-by" target="label_header_ac"/>
 +                  <relation type="labelled-by" target="label_lid_action"/>
 +                </accessibility>
 +              </object>
@@ -141,7 +143,7 @@ Index: b/panels/power/power.ui
            </object>
            <packing>
              <property name="expand">False</property>
-@@ -352,9 +421,12 @@
+@@ -352,9 +423,12 @@
    </object>
    <object class="GtkSizeGroup" id="sizegroup_combos">
      <widgets>
