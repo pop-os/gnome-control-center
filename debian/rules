@@ -20,17 +20,7 @@ DEB_CONFIGURE_EXTRA_FLAGS += --disable-scrollkeeper \
                              --without-cheese \
                              --with-clutter
 
-DEB_INSTALL_MANPAGES_gnome-control-center += debian/gnome-control-center.1
-
 DEB_DH_MAKESHLIBS_ARGS_gnome-control-center = --no-act
-
-build/gnome-control-center:: $(DEB_INSTALL_MANPAGES_gnome-control-center)
-
-%.1: %.sgml
-	/usr/bin/docbook-to-man $< >$@
-
-clean::
-	rm -f $(DEB_INSTALL_MANPAGES_gnome-control-center)
 
 binary-post-install/gnome-control-center-data::
 	rm -rf debian/capplets-data/usr/share/applications/mimeinfo.cache
