@@ -1,0 +1,50 @@
+From c6f49c2872dcd3a4bbf0ce2d9b315faff3ea9656 Mon Sep 17 00:00:00 2001
+From: Matthias Clasen <mclasen@redhat.com>
+Date: Wed, 27 Jun 2012 23:02:02 -0400
+Subject: [PATCH] network: avoid crashes due to leftover signal handlers
+
+The libnm objects can survive the disposal of the network panel.
+If we don't disconnect the signal handlers on them, bad things
+can happen. Use g_signal_connect_object to tie the life-cycle
+of the signal handlers to the panel.
+https://bugzilla.gnome.org/show_bug.cgi?id=677969
+---
+ panels/network/cc-network-panel.c |   16 ++++++----------
+ 1 file changed, 6 insertions(+), 10 deletions(-)
+
+diff --git a/panels/network/cc-network-panel.c b/panels/network/cc-network-panel.c
+index 6cd7298..ca527d9 100644
+--- a/panels/network/cc-network-panel.c
++++ b/panels/network/cc-network-panel.c
+@@ -647,14 +647,10 @@ object_removed_cb (NetObject *object, CcNetworkPanel *panel)
+ static void
+ register_object_interest (CcNetworkPanel *panel, NetObject *object)
+ {
+-        g_signal_connect (object,
+-                          "changed",
+-                          G_CALLBACK (object_changed_cb),
+-                          panel);
+-        g_signal_connect (object,
+-                          "removed",
+-                          G_CALLBACK (object_removed_cb),
+-                          panel);
++        g_signal_connect_object (object, "changed",
++                                 G_CALLBACK (object_changed_cb), panel, 0);
++        g_signal_connect_object (object, "removed",
++                                 G_CALLBACK (object_removed_cb), panel, 0);
+ }
+ 
+ static void
+@@ -729,8 +725,8 @@ panel_add_device (CcNetworkPanel *panel, NMDevice *device)
+         g_debug ("device %s type %i",
+                  nm_device_get_udi (device),
+                  nm_device_get_device_type (device));
+-        g_signal_connect (G_OBJECT (device), "notify::state",
+-                          (GCallback) device_state_notify_changed_cb, panel);
++        g_signal_connect_object (G_OBJECT (device), "notify::state",
++                                 (GCallback) device_state_notify_changed_cb, panel, 0);
+ 
+         /* do we have to get additonal data from ModemManager */
+         if (type == NM_DEVICE_TYPE_MODEM) {
+-- 
+1.7.10.4
