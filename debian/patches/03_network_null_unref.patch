@@ -1,0 +1,25 @@
+From 160697df6ca870efc153c77d32f42ffb05359c1d Mon Sep 17 00:00:00 2001
+From: Richard Hughes <richard@hughsie.com>
+Date: Wed, 30 May 2012 11:39:48 +0000
+Subject: network: Do not print a critical warning when NetworkManager is restarted
+
+Resolves: https://bugzilla.gnome.org/show_bug.cgi?id=676369
+---
+(limited to 'panels/network/cc-network-panel.c')
+
+diff --git a/panels/network/cc-network-panel.c b/panels/network/cc-network-panel.c
+index 50fa7b3..4e82677 100644
+--- a/panels/network/cc-network-panel.c
++++ b/panels/network/cc-network-panel.c
+@@ -693,7 +693,8 @@ panel_refresh_killswitch_visibility (CcNetworkPanel *panel)
+                                 break;
+                         }
+                 }
+-                g_object_unref (object_tmp);
++                if (object_tmp != NULL)
++                        g_object_unref (object_tmp);
+         } while (!show_flight_toggle && gtk_tree_model_iter_next (model, &iter));
+ 
+         /* only show toggle if there are wireless devices */
+--
+cgit v0.9.0.2
