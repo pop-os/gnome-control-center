@@ -1,0 +1,171 @@
+Index: gnome-control-center-3.4.3.1/panels/network/network-dialogs.c
+===================================================================
+--- gnome-control-center-3.4.3.1.orig/panels/network/network-dialogs.c	2012-12-10 15:38:41.000000000 +0100
++++ gnome-control-center-3.4.3.1/panels/network/network-dialogs.c	2013-01-03 16:19:34.732481478 +0100
+@@ -233,6 +233,14 @@ show_wireless_dialog (CcNetworkPanel   *
+         gtk_widget_show (dialog);
+ }
+ 
++gboolean
++cc_network_panel_default_to_private_connection (NMClient *client)
++{
++        NMClientPermissionResult perms;
++        perms = nm_client_get_permission_result (client, NM_CLIENT_PERMISSION_SETTINGS_MODIFY_SYSTEM);
++        return (perms != NM_CLIENT_PERMISSION_RESULT_YES);
++}
++
+ void
+ cc_network_panel_create_wifi_network (CcNetworkPanel   *panel,
+ 				      NMClient         *client,
+@@ -306,6 +314,10 @@ cc_network_panel_connect_to_8021x_networ
+         g_object_set (s_8021x, NM_SETTING_802_1X_PHASE2_AUTH, "mschapv2", NULL);
+         nm_connection_add_setting (connection, NM_SETTING (s_8021x));
+ 
++        if (cc_network_panel_default_to_private_connection (client)) {
++                nm_setting_connection_add_permission (s_con, "user", g_get_user_name(), NULL);
++        }
++
+         dialog = nma_wireless_dialog_new (client, settings, connection, device, ap, FALSE);
+         show_wireless_dialog (panel, client, settings, dialog);
+ }
+@@ -359,6 +371,7 @@ cdma_mobile_wizard_done (NMAMobileWizard
+ 		              NM_SETTING_CDMA_NUMBER, "#777",
+ 		              NM_SETTING_CDMA_USERNAME, method->username,
+ 		              NM_SETTING_CDMA_PASSWORD, method->password,
++		              NM_SETTING_CDMA_PASSWORD_FLAGS, NM_SETTING_SECRET_FLAG_AGENT_OWNED,
+ 		              NULL);
+ 		nm_connection_add_setting (connection, setting);
+ 
+@@ -388,6 +401,7 @@ cdma_mobile_wizard_done (NMAMobileWizard
+ 		              NULL);
+ 		g_free (uuid);
+ 		g_free (id);
++		nm_setting_connection_add_permission (setting, "user", g_get_user_name (), NULL);
+ 		nm_connection_add_setting (connection, setting);
+ 	}
+ 
+@@ -421,6 +435,7 @@ gsm_mobile_wizard_done (NMAMobileWizard
+ 		              NM_SETTING_GSM_NUMBER, "*99#",
+ 		              NM_SETTING_GSM_USERNAME, method->username,
+ 		              NM_SETTING_GSM_PASSWORD, method->password,
++		              NM_SETTING_GSM_PASSWORD_FLAGS, NM_SETTING_SECRET_FLAG_AGENT_OWNED,
+ 		              NM_SETTING_GSM_APN, method->gsm_apn,
+ 		              NULL);
+ 		nm_connection_add_setting (connection, setting);
+@@ -451,6 +466,7 @@ gsm_mobile_wizard_done (NMAMobileWizard
+ 		              NULL);
+ 		g_free (uuid);
+ 		g_free (id);
++		nm_setting_connection_add_permission ((NMSettingConnection *) setting, "user", g_get_user_name (), NULL);
+ 		nm_connection_add_setting (connection, setting);
+ 	}
+ 
+Index: gnome-control-center-3.4.3.1/panels/network/network-dialogs.h
+===================================================================
+--- gnome-control-center-3.4.3.1.orig/panels/network/network-dialogs.h	2012-12-10 15:38:41.000000000 +0100
++++ gnome-control-center-3.4.3.1/panels/network/network-dialogs.h	2013-01-03 15:24:42.300385989 +0100
+@@ -23,6 +23,8 @@
+ #include <nm-access-point.h>
+ #include "cc-network-panel.h"
+ 
++gboolean cc_network_panel_default_to_private_connection (NMClient *client);
++
+ void cc_network_panel_create_wifi_network (CcNetworkPanel   *panel,
+ 					   NMClient         *client,
+ 					   NMRemoteSettings *settings);
+Index: gnome-control-center-3.4.3.1/panels/network/cc-network-panel.c
+===================================================================
+--- gnome-control-center-3.4.3.1.orig/panels/network/cc-network-panel.c	2013-01-03 15:24:42.212385560 +0100
++++ gnome-control-center-3.4.3.1/panels/network/cc-network-panel.c	2013-01-03 16:17:34.419893694 +0100
+@@ -924,20 +924,16 @@ get_access_point_security (NMAccessPoint
+         wpa_flags = nm_access_point_get_wpa_flags (ap);
+         rsn_flags = nm_access_point_get_rsn_flags (ap);
+ 
+-        if (!(flags & NM_802_11_AP_FLAGS_PRIVACY) &&
+-            wpa_flags == NM_802_11_AP_SEC_NONE &&
+-            rsn_flags == NM_802_11_AP_SEC_NONE)
+-                type = NM_AP_SEC_NONE;
+-        else if ((flags & NM_802_11_AP_FLAGS_PRIVACY) &&
+-                 wpa_flags == NM_802_11_AP_SEC_NONE &&
+-                 rsn_flags == NM_802_11_AP_SEC_NONE)
++        if ((rsn_flags & NM_802_11_AP_SEC_KEY_MGMT_PSK) ||
++            (wpa_flags & NM_802_11_AP_SEC_KEY_MGMT_PSK))
++                type = NM_AP_SEC_WPA_PSK;
++        else if (rsn_flags != NM_802_11_AP_SEC_NONE ||
++                 wpa_flags != NM_802_11_AP_SEC_NONE)
++                type = NM_AP_SEC_WPA_OTHER;
++        else if (flags & NM_802_11_AP_FLAGS_PRIVACY)
+                 type = NM_AP_SEC_WEP;
+-        else if (!(flags & NM_802_11_AP_FLAGS_PRIVACY) &&
+-                 wpa_flags != NM_802_11_AP_SEC_NONE &&
+-                 rsn_flags != NM_802_11_AP_SEC_NONE)
+-                type = NM_AP_SEC_WPA;
+         else
+-                type = NM_AP_SEC_WPA2;
++                type = NM_AP_SEC_NONE;
+ 
+         return type;
+ }
+@@ -2823,6 +2819,7 @@ wireless_ap_changed_cb (GtkComboBox *com
+         gboolean ret;
+         gchar *object_path = NULL;
+         gchar *ssid_target = NULL;
++        NMAccessPointSecurity security = NM_AP_SEC_UNKNOWN;
+         GSList *list, *l;
+         GSList *filtered;
+         GtkTreeIter iter;
+@@ -2830,6 +2827,7 @@ wireless_ap_changed_cb (GtkComboBox *com
+         NetObject *object;
+         NMConnection *connection;
+         NMConnection *connection_activate = NULL;
++        NMConnection *connection_partial = NULL;
+         NMDevice *device;
+         NMSettingWireless *setting_wireless;
+ 
+@@ -2853,6 +2851,7 @@ wireless_ap_changed_cb (GtkComboBox *com
+         gtk_tree_model_get (model, &iter,
+                             PANEL_WIRELESS_COLUMN_ID, &object_path,
+                             PANEL_WIRELESS_COLUMN_TITLE, &ssid_target,
++                            PANEL_WIRELESS_COLUMN_SECURITY, &security,
+                             -1);
+         g_debug ("try to connect to WIFI network %s [%s]",
+                  ssid_target, object_path);
+@@ -2900,8 +2899,22 @@ wireless_ap_changed_cb (GtkComboBox *com
+         /* create one, as it's missing */
+         g_debug ("no existing connection found for %s, creating",
+                  ssid_target);
++        if (cc_network_panel_default_to_private_connection (panel->priv->client)) {
++                NMSettingConnection *s_con;
++
++                connection_partial = nm_connection_new ();
++                s_con = (NMSettingConnection *) nm_setting_connection_new ();
++                nm_setting_connection_add_permission (s_con, "user", g_get_user_name(), NULL);
++                nm_connection_add_setting (connection_partial, NM_SETTING (s_con));
++
++                if (security == NM_AP_SEC_WPA_PSK) {
++                        NMSettingWirelessSecurity *s_wsec = (NMSettingWirelessSecurity *) nm_setting_wireless_security_new ();
++                        g_object_set (s_wsec, NM_SETTING_WIRELESS_SECURITY_PSK_FLAGS, NM_SETTING_SECRET_FLAG_AGENT_OWNED, NULL);
++                        nm_connection_add_setting (connection_partial, NM_SETTING (s_wsec));
++                }
++        }
+         nm_client_add_and_activate_connection (panel->priv->client,
+-                                               NULL,
++                                               connection_partial,
+                                                device, object_path,
+                                                connection_add_activate_cb, panel);
+ out:
+Index: gnome-control-center-3.4.3.1/panels/network/panel-cell-renderer-security.h
+===================================================================
+--- gnome-control-center-3.4.3.1.orig/panels/network/panel-cell-renderer-security.h	2011-08-25 17:09:31.000000000 +0200
++++ gnome-control-center-3.4.3.1/panels/network/panel-cell-renderer-security.h	2013-01-03 15:48:09.483263614 +0100
+@@ -44,8 +44,8 @@ typedef enum {
+   NM_AP_SEC_UNKNOWN,
+   NM_AP_SEC_NONE,
+   NM_AP_SEC_WEP,
+-  NM_AP_SEC_WPA,
+-  NM_AP_SEC_WPA2
++  NM_AP_SEC_WPA_PSK,
++  NM_AP_SEC_WPA_OTHER
+ } NMAccessPointSecurity;
+ 
+ struct _PanelCellRendererSecurity

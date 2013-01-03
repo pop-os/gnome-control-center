@@ -6,6 +6,16 @@ gnome-control-center (1:3.4.3.1-1) UNRELEASED; urgency=low
     warning caused by g_object_unref (NULL).
   * 04_network_crash_signals.patch: patch from upstream git. Correctly 
     disconnect signal handlers to avoid crashes.
+  * 11_network_user_connections.patch: new patch, similar to nm-applet 
+    (also requires the changes in libnm-gtk). Set passwords as 
+    agent-owned when they need to, to allow users without root 
+    permissions to easily configure their connections.
+    + CDMA and GSM connections are always user-owned.
+    + WEP/WPA connections are system-owned if user has the permissions
+      (with NM’s config, that is netdev or sudo membership), user-owned
+      otherwise. The password is stored in the keyring for WPA, not for
+      WEP.
+    + WiMax / Wired connections are always system-owned.
 
  -- Josselin Mouette <joss@debian.org>  Mon, 17 Dec 2012 23:22:21 +0100
 
