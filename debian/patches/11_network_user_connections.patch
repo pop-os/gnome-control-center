@@ -1,7 +1,7 @@
 Index: gnome-control-center-3.4.3.1/panels/network/network-dialogs.c
 ===================================================================
---- gnome-control-center-3.4.3.1.orig/panels/network/network-dialogs.c	2012-12-10 15:38:41.000000000 +0100
-+++ gnome-control-center-3.4.3.1/panels/network/network-dialogs.c	2013-01-03 16:19:34.732481478 +0100
+--- gnome-control-center-3.4.3.1.orig/panels/network/network-dialogs.c	2013-01-16 11:36:36.752877943 +0100
++++ gnome-control-center-3.4.3.1/panels/network/network-dialogs.c	2013-01-16 11:36:36.748877908 +0100
 @@ -233,6 +233,14 @@ show_wireless_dialog (CcNetworkPanel   *
          gtk_widget_show (dialog);
  }
@@ -62,8 +62,8 @@ Index: gnome-control-center-3.4.3.1/panels/network/network-dialogs.c
  
 Index: gnome-control-center-3.4.3.1/panels/network/network-dialogs.h
 ===================================================================
---- gnome-control-center-3.4.3.1.orig/panels/network/network-dialogs.h	2012-12-10 15:38:41.000000000 +0100
-+++ gnome-control-center-3.4.3.1/panels/network/network-dialogs.h	2013-01-03 15:24:42.300385989 +0100
+--- gnome-control-center-3.4.3.1.orig/panels/network/network-dialogs.h	2013-01-16 11:36:36.752877943 +0100
++++ gnome-control-center-3.4.3.1/panels/network/network-dialogs.h	2013-01-16 11:36:36.752877943 +0100
 @@ -23,6 +23,8 @@
  #include <nm-access-point.h>
  #include "cc-network-panel.h"
@@ -75,8 +75,8 @@ Index: gnome-control-center-3.4.3.1/panels/network/network-dialogs.h
  					   NMRemoteSettings *settings);
 Index: gnome-control-center-3.4.3.1/panels/network/cc-network-panel.c
 ===================================================================
---- gnome-control-center-3.4.3.1.orig/panels/network/cc-network-panel.c	2013-01-03 15:24:42.212385560 +0100
-+++ gnome-control-center-3.4.3.1/panels/network/cc-network-panel.c	2013-01-03 16:17:34.419893694 +0100
+--- gnome-control-center-3.4.3.1.orig/panels/network/cc-network-panel.c	2013-01-16 11:36:36.752877943 +0100
++++ gnome-control-center-3.4.3.1/panels/network/cc-network-panel.c	2013-01-16 11:36:36.752877943 +0100
 @@ -924,20 +924,16 @@ get_access_point_security (NMAccessPoint
          wpa_flags = nm_access_point_get_wpa_flags (ap);
          rsn_flags = nm_access_point_get_rsn_flags (ap);
@@ -130,7 +130,7 @@ Index: gnome-control-center-3.4.3.1/panels/network/cc-network-panel.c
                              -1);
          g_debug ("try to connect to WIFI network %s [%s]",
                   ssid_target, object_path);
-@@ -2900,8 +2899,22 @@ wireless_ap_changed_cb (GtkComboBox *com
+@@ -2900,8 +2899,27 @@ wireless_ap_changed_cb (GtkComboBox *com
          /* create one, as it's missing */
          g_debug ("no existing connection found for %s, creating",
                   ssid_target);
@@ -147,6 +147,11 @@ Index: gnome-control-center-3.4.3.1/panels/network/cc-network-panel.c
 +                        g_object_set (s_wsec, NM_SETTING_WIRELESS_SECURITY_PSK_FLAGS, NM_SETTING_SECRET_FLAG_AGENT_OWNED, NULL);
 +                        nm_connection_add_setting (connection_partial, NM_SETTING (s_wsec));
 +                }
++                if (security == NM_AP_SEC_WEP) {
++                        NMSettingWirelessSecurity *s_wsec = (NMSettingWirelessSecurity *) nm_setting_wireless_security_new ();
++                        g_object_set (s_wsec, NM_SETTING_WIRELESS_SECURITY_WEP_KEY_FLAGS, NM_SETTING_SECRET_FLAG_AGENT_OWNED, NULL);
++                        nm_connection_add_setting (connection_partial, NM_SETTING (s_wsec));
++                }
 +        }
          nm_client_add_and_activate_connection (panel->priv->client,
 -                                               NULL,
@@ -156,8 +161,8 @@ Index: gnome-control-center-3.4.3.1/panels/network/cc-network-panel.c
  out:
 Index: gnome-control-center-3.4.3.1/panels/network/panel-cell-renderer-security.h
 ===================================================================
---- gnome-control-center-3.4.3.1.orig/panels/network/panel-cell-renderer-security.h	2011-08-25 17:09:31.000000000 +0200
-+++ gnome-control-center-3.4.3.1/panels/network/panel-cell-renderer-security.h	2013-01-03 15:48:09.483263614 +0100
+--- gnome-control-center-3.4.3.1.orig/panels/network/panel-cell-renderer-security.h	2013-01-16 11:36:36.752877943 +0100
++++ gnome-control-center-3.4.3.1/panels/network/panel-cell-renderer-security.h	2013-01-16 11:36:36.752877943 +0100
 @@ -44,8 +44,8 @@ typedef enum {
    NM_AP_SEC_UNKNOWN,
    NM_AP_SEC_NONE,
