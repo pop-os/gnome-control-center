@@ -1,15 +1,17 @@
---- gnome-control-center-3.6.3.org/panels/info/cc-info-panel.c	2013-03-11 15:44:47.000000000 +0100
-+++ gnome-control-center-3.6.3/panels/info/cc-info-panel.c	2013-03-12 15:16:47.492370880 +0100
-@@ -36,6 +36,8 @@
- #include <glibtop/mem.h>
- #include <glibtop/sysinfo.h>
+Index: gnome-control-center-3.6.3/panels/info/cc-info-panel.c
+===================================================================
+--- gnome-control-center-3.6.3.orig/panels/info/cc-info-panel.c	2013-03-25 17:49:26.608472653 +0100
++++ gnome-control-center-3.6.3/panels/info/cc-info-panel.c	2013-03-25 17:49:26.600472653 +0100
+@@ -40,6 +40,8 @@
+ #include <GL/gl.h>
+ #include <GL/glx.h>
  
 +#include <webkit/webkit.h>
 +
  #include "hostname-helper.h"
  #include "gsd-disk-space-helper.h"
  
-@@ -900,6 +902,40 @@
+@@ -909,6 +911,40 @@
    gtk_label_set_mnemonic_widget (GTK_LABEL (widget), GTK_WIDGET (sw));
  }
  
@@ -50,7 +52,7 @@
  static void
  default_app_changed (GtkAppChooserButton *button,
                       CcInfoPanel         *self)
-@@ -1533,6 +1569,14 @@
+@@ -1542,6 +1578,14 @@
                        _("Graphics"),
                        -1);
  
@@ -65,7 +67,7 @@
    g_signal_connect (selection, "changed",
                      G_CALLBACK (on_section_changed), self);
    on_section_changed (selection, self);
-@@ -2023,6 +2067,8 @@
+@@ -2032,6 +2076,8 @@
    info_panel_setup_default_apps (self);
    info_panel_setup_media (self);
    info_panel_setup_graphics (self);
@@ -74,12 +76,14 @@
  }
  
  void
---- gnome-control-center-3.6.3.org/configure.ac	2013-03-11 15:44:47.000000000 +0100
-+++ gnome-control-center-3.6.3/configure.ac	2013-03-12 15:18:17.760373886 +0100
+Index: gnome-control-center-3.6.3/configure.ac
+===================================================================
+--- gnome-control-center-3.6.3.orig/configure.ac	2013-03-25 17:49:26.608472653 +0100
++++ gnome-control-center-3.6.3/configure.ac	2013-03-25 17:49:26.604472653 +0100
 @@ -121,7 +121,7 @@
                    gdk-pixbuf-2.0 >= $GDKPIXBUF_REQUIRED_VERSION)
  PKG_CHECK_MODULES(DISPLAY_PANEL, $COMMON_MODULES gnome-desktop-3.0 >= 3.1.0)
- PKG_CHECK_MODULES(INFO_PANEL, $COMMON_MODULES libgtop-2.0
+ PKG_CHECK_MODULES(INFO_PANEL, $COMMON_MODULES libgtop-2.0 gl x11
 -		  polkit-gobject-1 >= $POLKIT_REQUIRED_VERSION)
 +		  polkit-gobject-1 >= $POLKIT_REQUIRED_VERSION webkitgtk-3.0)
  PKG_CHECK_MODULES(KEYBOARD_PANEL, $COMMON_MODULES x11)
