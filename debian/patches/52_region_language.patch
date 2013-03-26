@@ -1,7 +1,7 @@
 Description: Adapts the region capplet and the language chooser in the user accounts capplet
-Forwarded: not-needed
+Forwarded: https://bugzilla.gnome.org/695939, https://bugzilla.gnome.org/695940
 Author: Gunnar Hjalmarsson <gunnarhj@ubuntu.com>
-Last-Update: 2013-03-15
+Last-Update: 2013-03-21
 
  Some background that explains the need for this patch:
 
@@ -47,8 +47,8 @@ Last-Update: 2013-03-15
 Index: gnome-control-center-3.6.3/panels/common/cc-common-language.c
 ===================================================================
 --- gnome-control-center-3.6.3.orig/panels/common/cc-common-language.c	2013-03-15 17:20:48.939849976 +0100
-+++ gnome-control-center-3.6.3/panels/common/cc-common-language.c	2013-03-15 17:20:48.903849975 +0100
-@@ -326,6 +326,61 @@
++++ gnome-control-center-3.6.3/panels/common/cc-common-language.c	2013-03-21 14:22:09.358586554 +0100
+@@ -326,6 +326,66 @@
          return language;
  }
  
@@ -86,6 +86,11 @@ Index: gnome-control-center-3.6.3/panels/common/cc-common-language.c
 +	if (!properties) {
 +		g_warning ("Error calling GetAll() when retrieving properties for %s: %s", user_path, error->message);
 +		g_error_free (error);
++                /* g_hash_table_lookup() is not NULL-safe, so don't return NULL */
++                if (g_strcmp0 (prop_name, "Language") == 0)
++                        ret = g_strdup ("en");
++                else
++                        ret = g_strdup ("en_US.UTF-8");
 +		goto out;
 +	}
 +
@@ -110,7 +115,7 @@ Index: gnome-control-center-3.6.3/panels/common/cc-common-language.c
  static void
  languages_foreach_cb (gpointer key,
  		      gpointer value,
-@@ -407,7 +462,7 @@
+@@ -407,7 +467,7 @@
  	char *lang;
  	gboolean found;
  
@@ -119,7 +124,7 @@ Index: gnome-control-center-3.6.3/panels/common/cc-common-language.c
  	g_debug ("Trying to select lang '%s' in treeview", lang);
  	model = gtk_tree_view_get_model (treeview);
  	found = FALSE;
-@@ -440,6 +495,7 @@
+@@ -440,6 +500,7 @@
  		g_warning ("Could not find current language '%s' in the treeview", lang);
  }
  
@@ -127,7 +132,7 @@ Index: gnome-control-center-3.6.3/panels/common/cc-common-language.c
  static void
  add_other_users_language (GHashTable *ht)
  {
-@@ -519,6 +575,7 @@
+@@ -519,6 +580,7 @@
  
          g_object_unref (proxy);
  }
@@ -135,7 +140,7 @@ Index: gnome-control-center-3.6.3/panels/common/cc-common-language.c
  
  GHashTable *
  cc_common_language_get_initial_languages (void)
-@@ -530,6 +587,7 @@
+@@ -530,6 +592,7 @@
          ht = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
  
          /* Add some common languages first */
@@ -143,7 +148,7 @@ Index: gnome-control-center-3.6.3/panels/common/cc-common-language.c
          g_hash_table_insert (ht, g_strdup ("en_US.utf8"), g_strdup (_("English")));
          if (gdm_language_has_translations ("en_GB"))
                  g_hash_table_insert (ht, g_strdup ("en_GB.utf8"), g_strdup (_("British English")));
-@@ -550,12 +608,29 @@
+@@ -550,12 +613,29 @@
          if (gdm_language_has_translations ("ar") ||
              gdm_language_has_translations ("ar_EG"))
                  g_hash_table_insert (ht, g_strdup ("ar_EG.utf8"), g_strdup (_("Arabic")));
