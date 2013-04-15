@@ -8,10 +8,8 @@ programs. We can get the same informations by querying the driver directly.
 
 https://bugzilla.gnome.org/show_bug.cgi?id=691613
 ---
-Index: gnome-control-center-3.6.3/configure.ac
-===================================================================
---- gnome-control-center-3.6.3.orig/configure.ac	2013-03-25 17:49:48.060473367 +0100
-+++ gnome-control-center-3.6.3/configure.ac	2013-03-25 17:49:48.000000000 +0100
+--- a/configure.ac
++++ b/configure.ac
 @@ -120,7 +120,7 @@
                    polkit-gobject-1 >= $POLKIT_REQUIRED_VERSION
                    gdk-pixbuf-2.0 >= $GDKPIXBUF_REQUIRED_VERSION)
@@ -21,10 +19,8 @@ Index: gnome-control-center-3.6.3/configure.ac
  		  polkit-gobject-1 >= $POLKIT_REQUIRED_VERSION)
  PKG_CHECK_MODULES(KEYBOARD_PANEL, $COMMON_MODULES x11)
  PKG_CHECK_MODULES(MEDIA_PANEL, $COMMON_MODULES)
-Index: gnome-control-center-3.6.3/panels/info/cc-info-panel.c
-===================================================================
---- gnome-control-center-3.6.3.orig/panels/info/cc-info-panel.c	2013-03-25 17:49:48.060473367 +0100
-+++ gnome-control-center-3.6.3/panels/info/cc-info-panel.c	2013-03-25 17:49:48.000000000 +0100
+--- a/panels/info/cc-info-panel.c
++++ b/panels/info/cc-info-panel.c
 @@ -36,6 +36,10 @@
  #include <glibtop/mem.h>
  #include <glibtop/sysinfo.h>
@@ -36,7 +32,7 @@ Index: gnome-control-center-3.6.3/panels/info/cc-info-panel.c
  #include "hostname-helper.h"
  #include "gsd-disk-space-helper.h"
  
-@@ -301,54 +305,59 @@
+@@ -301,54 +305,68 @@
  }
  
  static char *
@@ -99,6 +95,8 @@ Index: gnome-control-center-3.6.3/panels/info/cc-info-panel.c
 +  GLXFBConfig *config;
 +  GLXWindow glxwin;
 +  GLXContext context;
++  XSetWindowAttributes win_attributes;
++  XVisualInfo *visualInfo;
 +  char *renderer;
 +
 +  gdk_error_trap_push ();
@@ -113,15 +111,21 @@ Index: gnome-control-center-3.6.3/panels/info/cc-info-panel.c
 +    gdk_error_trap_pop_ignored ();
 +    return NULL;
 +  }
++  visualInfo = glXGetVisualFromFBConfig (display, *config);
++  win_attributes.colormap = XCreateColormap (display, DefaultRootWindow(display),
++                                        visualInfo->visual, AllocNone );
 +
-+  window = XCreateSimpleWindow (display, DefaultRootWindow (display),
++  window = XCreateWindow (display, DefaultRootWindow (display),
 +                                0, 0, /* x, y */
 +                                1, 1, /* width, height */
-+                                0, 0, 0  /* border_width, border, background */);
++                                0,   /* border_width */
++                                visualInfo->depth, InputOutput,
++                                visualInfo->visual, CWColormap, &win_attributes);
 +  glxwin = glXCreateWindow (display, *config, window, NULL);
 +
 +  context = glXCreateNewContext (display, *config, GLX_RGBA_TYPE,
 +                                 NULL, TRUE);
++  XFree (config);
 +
 +  glXMakeContextCurrent (display, glxwin, glxwin, context);
 +  renderer = (char *) glGetString (GL_RENDERER);
@@ -131,6 +135,7 @@ Index: gnome-control-center-3.6.3/panels/info/cc-info-panel.c
 +  glXDestroyContext (display, context);
 +  glXDestroyWindow (display, glxwin);
 +  XDestroyWindow (display, window);
++  XFree (visualInfo);
 +
 +  if (gdk_error_trap_pop () != Success) {
 +    g_warning ("Failed to get OpenGL driver info");
