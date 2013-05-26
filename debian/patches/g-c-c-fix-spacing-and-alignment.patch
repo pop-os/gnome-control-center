@@ -1,0 +1,42 @@
+From d6092763436100b22dcba7dbd9d90b8f4680b405 Mon Sep 17 00:00:00 2001
+From: Debarshi Ray <debarshir@gnome.org>
+Date: Mon, 12 Mar 2012 19:28:11 +0000
+Subject: online-accounts: Fix spacing and alignment when showing accounts
+
+Implemented design:
+http://ur1.ca/8m05c
+https://live.gnome.org/Design/SystemSettings/OnlineAccounts
+
+Fixes: https://bugzilla.gnome.org/671980
+---
+--- a/panels/online-accounts/cc-online-accounts-panel.c
++++ b/panels/online-accounts/cc-online-accounts-panel.c
+@@ -336,6 +336,7 @@
+ {
+   GList *children;
+   GList *l;
++  GtkWidget *alignment;
+   GtkWidget *table;
+   GtkWidget *bar;
+   GtkWidget *label;
+@@ -371,8 +372,7 @@
+ 
+   table = gtk_table_new (3, 2, FALSE);
+   gtk_table_set_row_spacings (GTK_TABLE (table), 0);
+-  gtk_table_set_col_spacings (GTK_TABLE (table), 4);
+-  gtk_box_pack_start (GTK_BOX (panel->accounts_vbox), table, FALSE, TRUE, 0);
++  gtk_table_set_col_spacings (GTK_TABLE (table), 12);
+ 
+   if (provider != NULL)
+     {
+@@ -383,6 +383,10 @@
+                                  GTK_TABLE (table));
+     }
+ 
++  alignment = gtk_alignment_new (0.5, 0.0, 0.0, 0.0);
++  gtk_container_add (GTK_CONTAINER (alignment), table);
++  gtk_box_pack_start (GTK_BOX (panel->accounts_vbox), alignment, FALSE, TRUE, 0);
++
+   gtk_widget_show_all (panel->accounts_vbox);
+ 
+   if (provider != NULL)
