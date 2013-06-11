@@ -1,0 +1,63 @@
+https://bugzilla.gnome.org/show_bug.cgi?id=693261
+---
+diff --git a/panels/online-accounts/cc-online-accounts-model.c b/panels/online-accounts/cc-online-accounts-model.c
+index 34a3abd..981dc00 100644
+--- a/panels/online-accounts/cc-online-accounts-model.c
++++ b/panels/online-accounts/cc-online-accounts-model.c
+@@ -330,8 +330,8 @@ set_values (GoaPanelAccountsModel  *model,
+   icon = g_icon_new_for_string (goa_account_get_provider_icon (account), &error);
+   if (icon == NULL)
+     {
+-      goa_warning ("Error creating GIcon for account: %s (%s, %d)",
+-                   error->message, g_quark_to_string (error->domain), error->code);
++      g_warning ("Error creating GIcon for account: %s (%s, %d)",
++                 error->message, g_quark_to_string (error->domain), error->code);
+       g_error_free (error);
+     }
+ 
+@@ -370,7 +370,7 @@ remove_account (GoaPanelAccountsModel  *model,
+   GtkTreeIter iter;
+   if (!find_iter_for_object (model, object, &iter))
+     {
+-      goa_warning ("Error removing object %s - not in tree", g_dbus_object_get_object_path (G_DBUS_OBJECT (object)));
++      g_warning ("Error removing object %s - not in tree", g_dbus_object_get_object_path (G_DBUS_OBJECT (object)));
+     }
+   else
+     {
+@@ -385,7 +385,7 @@ update_account (GoaPanelAccountsModel  *model,
+   GtkTreeIter iter;
+   if (!find_iter_for_object (model, object, &iter))
+     {
+-      goa_warning ("Error updating object %s - not in tree", g_dbus_object_get_object_path (G_DBUS_OBJECT (object)));
++      g_warning ("Error updating object %s - not in tree", g_dbus_object_get_object_path (G_DBUS_OBJECT (object)));
+     }
+   else
+     {
+diff --git a/panels/online-accounts/cc-online-accounts-panel.c b/panels/online-accounts/cc-online-accounts-panel.c
+index 9078008..42f89cf 100644
+--- a/panels/online-accounts/cc-online-accounts-panel.c
++++ b/panels/online-accounts/cc-online-accounts-panel.c
+@@ -153,8 +153,8 @@ cc_goa_panel_init (CcGoaPanel *panel)
+                                      "/org/gnome/control-center/online-accounts/online-accounts.ui",
+                                      &error) == 0)
+     {
+-      goa_warning ("Error loading UI file: %s (%s, %d)",
+-                   error->message, g_quark_to_string (error->domain), error->code);
++      g_warning ("Error loading UI file: %s (%s, %d)",
++                 error->message, g_quark_to_string (error->domain), error->code);
+       g_error_free (error);
+       goto out;
+     }
+@@ -201,8 +201,8 @@ cc_goa_panel_init (CcGoaPanel *panel)
+   panel->client = goa_client_new_sync (NULL /* GCancellable */, &error);
+   if (panel->client == NULL)
+     {
+-      goa_warning ("Error getting a GoaClient: %s (%s, %d)",
+-                   error->message, g_quark_to_string (error->domain), error->code);
++      g_warning ("Error getting a GoaClient: %s (%s, %d)",
++                 error->message, g_quark_to_string (error->domain), error->code);
+       w = GTK_WIDGET (gtk_builder_get_object (panel->builder, "goa-top-widget"));
+       gtk_widget_set_sensitive (w, FALSE);
+       g_error_free (error);
+--
+cgit v0.9.2
