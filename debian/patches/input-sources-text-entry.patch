@@ -1,0 +1,3798 @@
+--- a/panels/region/gnome-region-panel.ui
++++ b/panels/region/gnome-region-panel.ui
+@@ -154,7 +154,6 @@
+                         </child>
+                         <child>
+                           <object class="GtkToolbar" id="language-toolbar">
+-                            <property name="visible">False</property>
+                             <property name="can_focus">False</property>
+                             <property name="toolbar_style">icons</property>
+                             <property name="show_arrow">False</property>
+@@ -162,15 +161,11 @@
+                             <style>
+                               <class name="inline-toolbar"/>
+                             </style>
+-                            <style>
+-                              <class name="inline-toolbar"/>
+-                            </style>
+                             <child>
+                               <object class="GtkToolButton" id="language_add">
+-                                <property name="use_action_appearance">False</property>
+                                 <property name="visible">True</property>
+-                                <property name="label" translatable="yes">Add Language</property>
+                                 <property name="can_focus">False</property>
++                                <property name="label" translatable="yes">Add Language</property>
+                                 <property name="use_underline">True</property>
+                                 <property name="icon_name">list-add-symbolic</property>
+                               </object>
+@@ -193,8 +188,8 @@
+                               <object class="GtkLabel" id="label23">
+                                 <property name="visible">True</property>
+                                 <property name="can_focus">False</property>
+-                                <property name="use_underline">True</property>
+                                 <property name="label" translatable="yes">Add Language</property>
++                                <property name="use_underline">True</property>
+                               </object>
+                               <packing>
+                                 <property name="expand">True</property>
+@@ -297,19 +292,19 @@
+                         </child>
+                         <child>
+                           <object class="GtkToolbar" id="region-toolbar">
++                            <property name="visible">True</property>
++                            <property name="can_focus">False</property>
+                             <property name="toolbar_style">icons</property>
+                             <property name="show_arrow">False</property>
+                             <property name="icon_size">1</property>
+-                            <property name="visible">True</property>
+                             <style>
+                               <class name="inline-toolbar"/>
+                             </style>
+                             <child>
+                               <object class="GtkToolButton" id="region_add">
+-                                <property name="use_action_appearance">False</property>
+-                                <property name="label" translatable="yes">Add Region</property>
+                                 <property name="visible">True</property>
+                                 <property name="can_focus">False</property>
++                                <property name="label" translatable="yes">Add Region</property>
+                                 <property name="use_underline">True</property>
+                                 <property name="icon_name">list-add-symbolic</property>
+                               </object>
+@@ -320,11 +315,10 @@
+                             </child>
+                             <child>
+                               <object class="GtkToolButton" id="region_remove">
+-                                <property name="use_action_appearance">False</property>
+                                 <property name="visible">True</property>
+-                                <property name="label" translatable="yes">Remove Region</property>
+                                 <property name="sensitive">False</property>
+                                 <property name="can_focus">False</property>
++                                <property name="label" translatable="yes">Remove Region</property>
+                                 <property name="use_underline">True</property>
+                                 <property name="icon_name">list-remove-symbolic</property>
+                               </object>
+@@ -366,6 +360,18 @@
+                                 <property name="n_rows">9</property>
+                                 <property name="n_columns">2</property>
+                                 <child>
++                                  <placeholder/>
++                                </child>
++                                <child>
++                                  <placeholder/>
++                                </child>
++                                <child>
++                                  <placeholder/>
++                                </child>
++                                <child>
++                                  <placeholder/>
++                                </child>
++                                <child>
+                                   <object class="GtkLabel" id="label7">
+                                     <property name="visible">True</property>
+                                     <property name="can_focus">False</property>
+@@ -607,12 +613,6 @@
+                         <property name="height">1</property>
+                       </packing>
+                     </child>
+-                    <child>
+-                      <placeholder/>
+-                    </child>
+-                    <child>
+-                      <placeholder/>
+-                    </child>
+                   </object>
+                   <packing>
+                     <property name="position">1</property>
+@@ -636,19 +636,6 @@
+                     <property name="border_width">12</property>
+                     <property name="spacing">12</property>
+                     <child>
+-                      <object class="GtkLabel" id="label24">
+-                        <property name="visible">True</property>
+-                        <property name="can_focus">False</property>
+-                        <property name="xalign">0</property>
+-                        <property name="label" translatable="yes">Select keyboards or other input sources</property>
+-                      </object>
+-                      <packing>
+-                        <property name="expand">False</property>
+-                        <property name="fill">False</property>
+-                        <property name="position">0</property>
+-                      </packing>
+-                    </child>
+-                    <child>
+                       <object class="GtkHBox" id="hbox3">
+                         <property name="visible">True</property>
+                         <property name="can_focus">False</property>
+@@ -657,6 +644,21 @@
+                           <object class="GtkVBox" id="vbox6">
+                             <property name="visible">True</property>
+                             <property name="can_focus">False</property>
++                            <property name="margin_right">5</property>
++                            <child>
++                              <object class="GtkLabel" id="label2">
++                                <property name="visible">True</property>
++                                <property name="can_focus">False</property>
++                                <property name="margin_bottom">5</property>
++                                <property name="xalign">0</property>
++                                <property name="label" translatable="yes">Input sources to use:</property>
++                              </object>
++                              <packing>
++                                <property name="expand">False</property>
++                                <property name="fill">True</property>
++                                <property name="position">0</property>
++                              </packing>
++                            </child>
+                             <child>
+                               <object class="GtkScrolledWindow" id="input_sources_swindow">
+                                 <property name="visible">True</property>
+@@ -667,13 +669,16 @@
+                                     <property name="visible">True</property>
+                                     <property name="can_focus">True</property>
+                                     <property name="headers_visible">False</property>
++                                    <child internal-child="selection">
++                                      <object class="GtkTreeSelection" id="treeview-selection3"/>
++                                    </child>
+                                   </object>
+                                 </child>
+                               </object>
+                               <packing>
+                                 <property name="expand">True</property>
+                                 <property name="fill">True</property>
+-                                <property name="position">0</property>
++                                <property name="position">1</property>
+                               </packing>
+                             </child>
+                             <child>
+@@ -689,169 +694,195 @@
+                                 <child>
+                                   <object class="GtkToolItem" id="i_s_ar_item">
+                                     <property name="visible">True</property>
++                                    <property name="can_focus">False</property>
+                                     <child>
+                                       <object class="GtkBox" id="i_s_ar_box">
+                                         <property name="visible">True</property>
++                                        <property name="can_focus">False</property>
+                                         <child>
+-                                           <object class="GtkButton" id="input_source_add">
+-                                             <property name="visible">True</property>
+-                                             <child internal-child="accessible">
+-                                               <object class="AtkObject" id="i_s_a_a11y">
+-                                                 <property name="accessible-name" translatable="yes">Add Input Source</property>
+-                                               </object>
+-                                             </child>
+-                                             <child>
+-                                                <object class="GtkImage" id="i_s_a_image">
+-
+-                                                  <property name="visible">True</property>
+-                                                  <property name="icon-name">list-add-symbolic</property>
+-                                                  <property name="icon-size">1</property>
+-                                                </object>
+-                                             </child>
+-                                           </object>
++                                          <object class="GtkButton" id="input_source_add">
++                                            <property name="visible">True</property>
++                                            <property name="can_focus">False</property>
++                                            <property name="receives_default">False</property>
++                                            <child>
++                                              <object class="GtkImage" id="i_s_a_image">
++                                                <property name="visible">True</property>
++                                                <property name="can_focus">False</property>
++                                                <property name="icon_name">list-add-symbolic</property>
++                                                <property name="icon-size">1</property>
++                                              </object>
++                                            </child>
++                                          </object>
++                                          <packing>
++                                            <property name="expand">False</property>
++                                            <property name="fill">True</property>
++                                            <property name="position">0</property>
++                                          </packing>
+                                         </child>
+                                         <child>
+-                                           <object class="GtkButton" id="input_source_remove">
+-                                             <property name="visible">True</property>
+-                                             <child internal-child="accessible">
+-                                               <object class="AtkObject" id="i_s_r_a11y">
+-                                                 <property name="accessible-name" translatable="yes">Remove Input Source</property>
+-                                               </object>
+-                                             </child>
+-                                             <child>
+-                                                <object class="GtkImage" id="i_s_r_image">
+-                                                  <property name="visible">True</property>
+-                                                  <property name="icon-name">list-remove-symbolic</property>
+-                                                  <property name="icon-size">1</property>
+-                                                </object>
+-                                             </child>
+-                                           </object>
++                                          <object class="GtkButton" id="input_source_remove">
++                                            <property name="visible">True</property>
++                                            <property name="can_focus">False</property>
++                                            <property name="receives_default">False</property>
++                                            <child>
++                                              <object class="GtkImage" id="i_s_r_image">
++                                                <property name="visible">True</property>
++                                                <property name="can_focus">False</property>
++                                                <property name="icon_name">list-remove-symbolic</property>
++                                                <property name="icon-size">1</property>
++                                              </object>
++                                            </child>
++                                          </object>
++                                          <packing>
++                                            <property name="expand">False</property>
++                                            <property name="fill">True</property>
++                                            <property name="position">1</property>
++                                          </packing>
+                                         </child>
+                                       </object>
+                                     </child>
+                                   </object>
++                                  <packing>
++                                    <property name="expand">False</property>
++                                  </packing>
+                                 </child>
+-
+                                 <child>
+                                   <object class="GtkSeparatorToolItem" id="sep1">
+                                     <property name="visible">True</property>
++                                    <property name="can_focus">False</property>
+                                     <property name="draw">False</property>
+                                   </object>
+                                   <packing>
+                                     <property name="expand">True</property>
+                                   </packing>
+                                 </child>
+-
+                                 <child>
+                                   <object class="GtkToolItem" id="i_s_ud_item">
+                                     <property name="visible">True</property>
++                                    <property name="can_focus">False</property>
+                                     <child>
+                                       <object class="GtkBox" id="i_s_ud_box">
+                                         <property name="visible">True</property>
++                                        <property name="can_focus">False</property>
+                                         <child>
+-                                           <object class="GtkButton" id="input_source_move_up">
+-                                             <property name="visible">True</property>
+-                                             <child internal-child="accessible">
+-                                               <object class="AtkObject" id="i_s_u_a11y">
+-                                                 <property name="accessible-name" translatable="yes">Move Input Source Up</property>
+-                                               </object>
+-                                             </child>
+-                                             <child>
+-                                                <object class="GtkImage" id="i_s_u_image">
+-
+-                                                  <property name="visible">True</property>
+-                                                  <property name="icon-name">go-up-symbolic</property>
+-                                                  <property name="icon-size">1</property>
+-                                                </object>
+-                                             </child>
+-                                           </object>
++                                          <object class="GtkButton" id="input_source_move_up">
++                                            <property name="visible">True</property>
++                                            <property name="can_focus">False</property>
++                                            <property name="receives_default">False</property>
++                                            <child>
++                                              <object class="GtkImage" id="i_s_u_image">
++                                                <property name="visible">True</property>
++                                                <property name="can_focus">False</property>
++                                                <property name="icon_name">go-up-symbolic</property>
++                                                <property name="icon-size">1</property>
++                                              </object>
++                                            </child>
++                                          </object>
++                                          <packing>
++                                            <property name="expand">False</property>
++                                            <property name="fill">True</property>
++                                            <property name="position">0</property>
++                                          </packing>
+                                         </child>
+                                         <child>
+-                                           <object class="GtkButton" id="input_source_move_down">
+-                                             <property name="visible">True</property>
+-                                             <child internal-child="accessible">
+-                                               <object class="AtkObject" id="i_s_d_a11y">
+-                                                 <property name="accessible-name" translatable="yes">Move Input Source Down</property>
+-                                               </object>
+-                                             </child>
+-                                             <child>
+-                                                <object class="GtkImage" id="i_s_d_image">
+-                                                  <property name="visible">True</property>
+-                                                  <property name="icon-name">go-down-symbolic</property>
+-                                                  <property name="icon-size">1</property>
+-                                                </object>
+-                                             </child>
+-                                           </object>
++                                          <object class="GtkButton" id="input_source_move_down">
++                                            <property name="visible">True</property>
++                                            <property name="can_focus">False</property>
++                                            <property name="receives_default">False</property>
++                                            <child>
++                                              <object class="GtkImage" id="i_s_d_image">
++                                                <property name="visible">True</property>
++                                                <property name="can_focus">False</property>
++                                                <property name="icon_name">go-down-symbolic</property>
++                                                <property name="icon-size">1</property>
++                                              </object>
++                                            </child>
++                                          </object>
++                                          <packing>
++                                            <property name="expand">False</property>
++                                            <property name="fill">True</property>
++                                            <property name="position">1</property>
++                                          </packing>
+                                         </child>
+                                       </object>
+                                     </child>
+                                   </object>
++                                  <packing>
++                                    <property name="expand">False</property>
++                                  </packing>
+                                 </child>
+-
+                                 <child>
+                                   <object class="GtkSeparatorToolItem" id="sep2">
+                                     <property name="visible">True</property>
+-                                    <property name="draw">False</property>
++                                    <property name="can_focus">False</property>
+                                     <property name="hexpand">True</property>
++                                    <property name="draw">False</property>
+                                   </object>
+                                   <packing>
+                                     <property name="expand">True</property>
+                                   </packing>
+                                 </child>
+-
+                                 <child>
+                                   <object class="GtkToolItem" id="i_s_sp_item">
+                                     <property name="visible">True</property>
++                                    <property name="can_focus">False</property>
+                                     <child>
+                                       <object class="GtkBox" id="i_s_sp_box">
+                                         <property name="visible">True</property>
++                                        <property name="can_focus">False</property>
+                                         <child>
+-                                           <object class="GtkButton" id="input_source_settings">
+-                                             <property name="visible">True</property>
+-                                             <child internal-child="accessible">
+-                                               <object class="AtkObject" id="i_s_s_a11y">
+-                                                 <property name="accessible-name" translatable="yes">Input Source Settings</property>
+-                                               </object>
+-                                             </child>
+-                                             <child>
+-                                                <object class="GtkImage" id="i_s_s_image">
+-
+-                                                  <property name="visible">True</property>
+-                                                  <property name="icon_name">preferences-system-symbolic</property>
+-                                                  <property name="icon_size">1</property>
+-                                                  <property name="pixel_size">16</property>
+-                                                </object>
+-                                             </child>
+-                                           </object>
++                                          <object class="GtkButton" id="input_source_settings">
++                                            <property name="visible">True</property>
++                                            <property name="can_focus">False</property>
++                                            <property name="receives_default">False</property>
++                                            <child>
++                                              <object class="GtkImage" id="i_s_s_image">
++                                                <property name="visible">True</property>
++                                                <property name="can_focus">False</property>
++                                                <property name="pixel_size">16</property>
++                                                <property name="icon_name">preferences-system-symbolic</property>
++                                                <property name="icon-size">1</property>
++                                              </object>
++                                            </child>
++                                          </object>
++                                          <packing>
++                                            <property name="expand">False</property>
++                                            <property name="fill">True</property>
++                                            <property name="position">0</property>
++                                          </packing>
+                                         </child>
+                                         <child>
+-                                           <object class="GtkButton" id="input_source_show">
+-                                             <property name="visible">True</property>
+-                                             <child internal-child="accessible">
+-                                               <object class="AtkObject" id="i_s_p_a11y">
+-                                                 <property name="accessible-name" translatable="yes">Show Keyboard Layout</property>
+-                                               </object>
+-                                             </child>
+-                                             <child>
+-                                                <object class="GtkImage" id="i_s_p_image">
+-
+-                                                  <property name="visible">True</property>
+-                                                  <property name="icon_name">input-keyboard-symbolic</property>
+-                                                  <property name="icon-size">1</property>
+-                                                </object>
+-                                             </child>
+-                                           </object>
++                                          <object class="GtkButton" id="input_source_show">
++                                            <property name="visible">True</property>
++                                            <property name="can_focus">False</property>
++                                            <property name="receives_default">False</property>
++                                            <child>
++                                              <object class="GtkImage" id="i_s_p_image">
++                                                <property name="visible">True</property>
++                                                <property name="can_focus">False</property>
++                                                <property name="icon_name">input-keyboard-symbolic</property>
++                                                <property name="icon-size">1</property>
++                                              </object>
++                                            </child>
++                                          </object>
++                                          <packing>
++                                            <property name="expand">False</property>
++                                            <property name="fill">True</property>
++                                            <property name="position">1</property>
++                                          </packing>
+                                         </child>
+                                       </object>
+                                     </child>
+                                   </object>
++                                  <packing>
++                                    <property name="expand">False</property>
++                                  </packing>
+                                 </child>
+-
+                               </object>
+                               <packing>
+                                 <property name="expand">False</property>
+                                 <property name="fill">True</property>
+-                                <property name="position">1</property>
++                                <property name="position">2</property>
+                               </packing>
+                             </child>
+                           </object>
+@@ -862,111 +893,214 @@
+                           </packing>
+                         </child>
+                         <child>
+-                          <object class="GtkFrame" id="frame4">
++                          <object class="GtkBox" id="box2">
+                             <property name="visible">True</property>
+                             <property name="can_focus">False</property>
+-                            <property name="label_xalign">0</property>
+-                            <property name="shadow_type">none</property>
++                            <property name="orientation">vertical</property>
++                            <child>
++                              <object class="GtkLabel" id="label22">
++                                <property name="visible">True</property>
++                                <property name="can_focus">False</property>
++                                <property name="margin_bottom">5</property>
++                                <property name="xalign">0</property>
++                                <property name="label" translatable="yes">Switch to next source using:</property>
++                              </object>
++                              <packing>
++                                <property name="expand">False</property>
++                                <property name="fill">True</property>
++                                <property name="position">0</property>
++                              </packing>
++                            </child>
++                            <child>
++                              <object class="GtkEntryAccel" id="next-source-entry">
++                                <property name="visible">True</property>
++                                <property name="can_focus">True</property>
++                                <property name="margin_bottom">5</property>
++                                <property name="invisible_char">•</property>
++                              </object>
++                              <packing>
++                                <property name="expand">False</property>
++                                <property name="fill">True</property>
++                                <property name="position">1</property>
++                              </packing>
++                            </child>
++                            <child>
++                              <object class="GtkLabel" id="label24">
++                                <property name="visible">True</property>
++                                <property name="can_focus">False</property>
++                                <property name="margin_bottom">5</property>
++                                <property name="xalign">0</property>
++                                <property name="label" translatable="yes">Switch to previous source using:</property>
++                              </object>
++                              <packing>
++                                <property name="expand">False</property>
++                                <property name="fill">True</property>
++                                <property name="position">2</property>
++                              </packing>
++                            </child>
++                            <child>
++                              <object class="GtkEntryAccel" id="prev-source-entry">
++                                <property name="visible">True</property>
++                                <property name="can_focus">True</property>
++                                <property name="margin_bottom">15</property>
++                                <property name="invisible_char">•</property>
++                              </object>
++                              <packing>
++                                <property name="expand">False</property>
++                                <property name="fill">True</property>
++                                <property name="position">3</property>
++                              </packing>
++                            </child>
++                            <child>
++                              <object class="GtkRadioButton" id="same-source-radio">
++                                <property name="label" translatable="yes">Use the same source for all windows</property>
++                                <property name="visible">True</property>
++                                <property name="can_focus">False</property>
++                                <property name="receives_default">False</property>
++                                <property name="xalign">0</property>
++                                <property name="active">True</property>
++                                <property name="draw_indicator">True</property>
++                              </object>
++                              <packing>
++                                <property name="expand">False</property>
++                                <property name="fill">True</property>
++                                <property name="position">4</property>
++                              </packing>
++                            </child>
++                            <child>
++                              <object class="GtkRadioButton" id="different-source-radio">
++                                <property name="label" translatable="yes">Allow different sources for each window</property>
++                                <property name="visible">True</property>
++                                <property name="can_focus">False</property>
++                                <property name="receives_default">False</property>
++                                <property name="xalign">0</property>
++                                <property name="active">True</property>
++                                <property name="draw_indicator">True</property>
++                                <property name="group">same-source-radio</property>
++                              </object>
++                              <packing>
++                                <property name="expand">False</property>
++                                <property name="fill">True</property>
++                                <property name="position">5</property>
++                              </packing>
++                            </child>
++                            <child>
++                              <object class="GtkRadioButton" id="default-source-radio">
++                                <property name="label" translatable="yes">New windows use the default source</property>
++                                <property name="visible">True</property>
++                                <property name="can_focus">False</property>
++                                <property name="receives_default">False</property>
++                                <property name="margin_left">25</property>
++                                <property name="xalign">0</property>
++                                <property name="active">True</property>
++                                <property name="draw_indicator">True</property>
++                              </object>
++                              <packing>
++                                <property name="expand">False</property>
++                                <property name="fill">True</property>
++                                <property name="position">6</property>
++                              </packing>
++                            </child>
++                            <child>
++                              <object class="GtkRadioButton" id="current-source-radio">
++                                <property name="label" translatable="yes">New windows use the current source</property>
++                                <property name="visible">True</property>
++                                <property name="can_focus">False</property>
++                                <property name="receives_default">False</property>
++                                <property name="margin_left">25</property>
++                                <property name="margin_bottom">15</property>
++                                <property name="xalign">0</property>
++                                <property name="active">True</property>
++                                <property name="draw_indicator">True</property>
++                                <property name="group">default-source-radio</property>
++                              </object>
++                              <packing>
++                                <property name="expand">False</property>
++                                <property name="fill">True</property>
++                                <property name="position">7</property>
++                              </packing>
++                            </child>
+                             <child>
+-                              <object class="GtkAlignment" id="alignment3">
++                              <object class="GtkGrid" id="grid1">
+                                 <property name="visible">True</property>
+                                 <property name="can_focus">False</property>
+-                                <property name="left_padding">12</property>
+                                 <child>
+-                                  <object class="GtkGrid" id="shortcuts-grid">
++                                  <object class="GtkLabel" id="label25">
+                                     <property name="visible">True</property>
+                                     <property name="can_focus">False</property>
+-                                    <property name="margin_top">6</property>
+-                                    <property name="row_spacing">6</property>
+-                                    <property name="column_spacing">6</property>
+-                                    <child>
+-                                      <object class="GtkLabel" id="prev-source-label">
+-                                        <property name="visible">True</property>
+-                                        <property name="can_focus">False</property>
+-                                        <property name="xalign">0</property>
+-                                        <property name="label" translatable="yes">Switch to previous source</property>
+-                                      </object>
+-                                      <packing>
+-                                        <property name="left_attach">0</property>
+-                                        <property name="top_attach">0</property>
+-                                        <property name="width">1</property>
+-                                        <property name="height">1</property>
+-                                      </packing>
+-                                    </child>
+-                                    <child>
+-                                      <object class="GtkLabel" id="prev-source-shortcut-label">
+-                                        <property name="visible">True</property>
+-                                        <property name="can_focus">False</property>
+-                                        <property name="halign">end</property>
+-                                        <property name="hexpand">True</property>
+-                                        <property name="label" translatable="yes">Ctrl+Alt+Space</property>
+-                                        <style><class name="dim-label"/></style>
+-                                      </object>
+-                                      <packing>
+-                                        <property name="left_attach">1</property>
+-                                        <property name="top_attach">0</property>
+-                                        <property name="width">1</property>
+-                                        <property name="height">1</property>
+-                                      </packing>
+-                                    </child>
+-                                    <child>
+-                                      <object class="GtkLabel" id="next-source-label">
+-                                        <property name="visible">True</property>
+-                                        <property name="can_focus">False</property>
+-                                        <property name="xalign">0</property>
+-                                        <property name="label" translatable="yes">Switch to next source</property>
+-                                      </object>
+-                                      <packing>
+-                                        <property name="left_attach">0</property>
+-                                        <property name="top_attach">1</property>
+-                                        <property name="width">1</property>
+-                                        <property name="height">1</property>
+-                                      </packing>
+-                                    </child>
+-                                    <child>
+-                                      <object class="GtkLabel" id="next-source-shortcut-label">
+-                                        <property name="visible">True</property>
+-                                        <property name="can_focus">False</property>
+-                                        <property name="halign">end</property>
+-                                        <property name="hexpand">True</property>
+-                                        <property name="label" translatable="yes">Ctrl+Alt+Shift+Space</property>
+-                                        <style><class name="dim-label"/></style>
+-                                      </object>
+-                                      <packing>
+-                                        <property name="left_attach">1</property>
+-                                        <property name="top_attach">1</property>
+-                                        <property name="width">1</property>
+-                                        <property name="height">1</property>
+-                                      </packing>
+-                                    </child>
+-                                    <child>
+-                                      <object class="GtkLinkButton" id="jump-to-shortcuts">
+-                                        <property name="visible">True</property>
+-                                        <property name="can_focus">True</property>
+-                                        <property name="label" translatable="yes">Shortcut Settings</property>
+-                                        <property name="halign">end</property>
+-                                      </object>
+-                                      <packing>
+-                                        <property name="left_attach">1</property>
+-                                        <property name="top_attach">2</property>
+-                                        <property name="width">1</property>
+-                                        <property name="height">1</property>
+-                                      </packing>
+-                                    </child>
++                                    <property name="halign">end</property>
++                                    <property name="margin_right">10</property>
++                                    <property name="margin_bottom">10</property>
++                                    <property name="hexpand">True</property>
++                                    <property name="label" translatable="yes">Show input candidates:</property>
++                                  </object>
++                                  <packing>
++                                    <property name="left_attach">0</property>
++                                    <property name="top_attach">0</property>
++                                    <property name="width">1</property>
++                                    <property name="height">1</property>
++                                  </packing>
++                                </child>
++                                <child>
++                                  <object class="GtkComboBoxText" id="orientation-combo">
++                                    <property name="visible">True</property>
++                                    <property name="can_focus">False</property>
++                                    <property name="margin_bottom">10</property>
++                                    <property name="entry_text_column">0</property>
++                                    <property name="id_column">1</property>
++                                    <items>
++                                      <item translatable="yes">Horizontally</item>
++                                      <item translatable="yes">Vertically</item>
++                                    </items>
+                                   </object>
++                                  <packing>
++                                    <property name="left_attach">1</property>
++                                    <property name="top_attach">0</property>
++                                    <property name="width">1</property>
++                                    <property name="height">1</property>
++                                  </packing>
++                                </child>
++                                <child>
++                                  <object class="GtkFontButton" id="custom-font-button">
++                                    <property name="visible">True</property>
++                                    <property name="can_focus">False</property>
++                                    <property name="receives_default">True</property>
++                                    <property name="font">Sans 12</property>
++                                    <property name="preview_text"/>
++                                    <property name="show_preview_entry">False</property>
++                                  </object>
++                                  <packing>
++                                    <property name="left_attach">1</property>
++                                    <property name="top_attach">1</property>
++                                    <property name="width">1</property>
++                                    <property name="height">1</property>
++                                  </packing>
++                                </child>
++                                <child>
++                                  <object class="GtkCheckButton" id="custom-font-check">
++                                    <property name="label" translatable="yes">Using custom font:</property>
++                                    <property name="visible">True</property>
++                                    <property name="can_focus">False</property>
++                                    <property name="receives_default">False</property>
++                                    <property name="halign">end</property>
++                                    <property name="margin_right">10</property>
++                                    <property name="hexpand">True</property>
++                                    <property name="xalign">0</property>
++                                    <property name="draw_indicator">True</property>
++                                  </object>
++                                  <packing>
++                                    <property name="left_attach">0</property>
++                                    <property name="top_attach">1</property>
++                                    <property name="width">1</property>
++                                    <property name="height">1</property>
++                                  </packing>
+                                 </child>
+                               </object>
+-                            </child>
+-                            <child type="label">
+-                              <object class="GtkLabel" id="shortcuts-frame-label">
+-                                <property name="visible">True</property>
+-                                <property name="can_focus">False</property>
+-                                <property name="label" translatable="yes">Shortcuts</property>
+-                                <property name="use_markup">True</property>
+-                                <attributes>
+-                                  <attribute name="weight" value="bold"/>
+-                                </attributes>
+-                              </object>
++                              <packing>
++                                <property name="expand">False</property>
++                                <property name="fill">True</property>
++                                <property name="position">8</property>
++                              </packing>
+                             </child>
+                           </object>
+                           <packing>
+@@ -979,6 +1113,50 @@
+                       <packing>
+                         <property name="expand">True</property>
+                         <property name="fill">True</property>
++                        <property name="position">0</property>
++                      </packing>
++                    </child>
++                    <child>
++                      <object class="GtkBox" id="box1">
++                        <property name="visible">True</property>
++                        <property name="can_focus">False</property>
++                        <property name="valign">end</property>
++                        <child>
++                          <object class="GtkCheckButton" id="show-indicator-check">
++                            <property name="label" translatable="yes">Show current input source in the menu bar</property>
++                            <property name="visible">True</property>
++                            <property name="can_focus">False</property>
++                            <property name="receives_default">False</property>
++                            <property name="hexpand">True</property>
++                            <property name="xalign">0</property>
++                            <property name="draw_indicator">True</property>
++                          </object>
++                          <packing>
++                            <property name="expand">False</property>
++                            <property name="fill">True</property>
++                            <property name="position">0</property>
++                          </packing>
++                        </child>
++                        <child>
++                          <object class="GtkLinkButton" id="jump-to-shortcuts">
++                            <property name="label" translatable="yes">Keyboard Settings...</property>
++                            <property name="visible">True</property>
++                            <property name="can_focus">True</property>
++                            <property name="receives_default">True</property>
++                            <property name="has_tooltip">True</property>
++                            <property name="halign">end</property>
++                            <property name="relief">none</property>
++                          </object>
++                          <packing>
++                            <property name="expand">False</property>
++                            <property name="fill">True</property>
++                            <property name="position">1</property>
++                          </packing>
++                        </child>
++                      </object>
++                      <packing>
++                        <property name="expand">True</property>
++                        <property name="fill">True</property>
+                         <property name="position">1</property>
+                       </packing>
+                     </child>
+@@ -991,7 +1169,7 @@
+                   <object class="GtkLabel" id="label13">
+                     <property name="visible">True</property>
+                     <property name="can_focus">False</property>
+-                    <property name="label" translatable="yes">Input Sources</property>
++                    <property name="label" translatable="yes">Text Entry</property>
+                   </object>
+                   <packing>
+                     <property name="position">3</property>
+@@ -1007,6 +1185,9 @@
+                     <property name="column_spacing">12</property>
+                     <property name="row_spacing">12</property>
+                     <child>
++                      <placeholder/>
++                    </child>
++                    <child>
+                       <object class="GtkLabel" id="system-title">
+                         <property name="visible">True</property>
+                         <property name="can_focus">False</property>
+@@ -1079,9 +1260,9 @@
+                               <packing>
+                                 <property name="top_attach">1</property>
+                                 <property name="bottom_attach">2</property>
++                                <property name="y_options">GTK_FILL</property>
+                                 <property name="x_padding">3</property>
+                                 <property name="y_padding">3</property>
+-                                <property name="y_options">GTK_FILL</property>
+                               </packing>
+                             </child>
+                             <child>
+@@ -1091,16 +1272,16 @@
+                                 <property name="xalign">0</property>
+                                 <property name="yalign">0</property>
+                                 <property name="wrap">True</property>
+-                                <property name="width-chars">18</property>
++                                <property name="width_chars">18</property>
+                               </object>
+                               <packing>
+                                 <property name="left_attach">1</property>
+                                 <property name="right_attach">2</property>
+                                 <property name="top_attach">1</property>
+                                 <property name="bottom_attach">2</property>
++                                <property name="y_options">GTK_FILL</property>
+                                 <property name="x_padding">3</property>
+                                 <property name="y_padding">3</property>
+-                                <property name="y_options">GTK_FILL</property>
+                               </packing>
+                             </child>
+                             <child>
+@@ -1209,9 +1390,9 @@
+                               <packing>
+                                 <property name="top_attach">1</property>
+                                 <property name="bottom_attach">2</property>
++                                <property name="y_options">GTK_FILL</property>
+                                 <property name="x_padding">3</property>
+                                 <property name="y_padding">3</property>
+-                                <property name="y_options">GTK_FILL</property>
+                               </packing>
+                             </child>
+                             <child>
+@@ -1221,16 +1402,16 @@
+                                 <property name="xalign">0</property>
+                                 <property name="yalign">0</property>
+                                 <property name="wrap">True</property>
+-                                <property name="width-chars">18</property>
++                                <property name="width_chars">18</property>
+                               </object>
+                               <packing>
+                                 <property name="left_attach">1</property>
+                                 <property name="right_attach">2</property>
+                                 <property name="top_attach">1</property>
+                                 <property name="bottom_attach">2</property>
++                                <property name="y_options">GTK_FILL</property>
+                                 <property name="x_padding">3</property>
+                                 <property name="y_padding">3</property>
+-                                <property name="y_options">GTK_FILL</property>
+                               </packing>
+                             </child>
+                             <child>
+@@ -1290,7 +1471,6 @@
+                     <child>
+                       <object class="GtkButton" id="copy_settings_button">
+                         <property name="label" translatable="yes">Copy Settings...</property>
+-                        <property name="use_action_appearance">False</property>
+                         <property name="visible">True</property>
+                         <property name="can_focus">True</property>
+                         <property name="receives_default">True</property>
+@@ -1306,9 +1486,6 @@
+                         <property name="y_padding">3</property>
+                       </packing>
+                     </child>
+-                    <child>
+-                      <placeholder/>
+-                    </child>
+                   </object>
+                   <packing>
+                     <property name="position">4</property>
+--- a/panels/region/gnome-region-panel-input.c
++++ b/panels/region/gnome-region-panel-input.c
+@@ -36,16 +36,32 @@
+ 
+ #include "gdm-languages.h"
+ #include "gnome-region-panel-input.h"
++#include "keyboard-shortcuts.h"
++#include "gtkentryaccel.h"
+ 
+ #define WID(s) GTK_WIDGET(gtk_builder_get_object (builder, s))
+ 
+ #define GNOME_DESKTOP_INPUT_SOURCES_DIR "org.gnome.desktop.input-sources"
+-
+-#define KEY_CURRENT_INPUT_SOURCE "current"
+-#define KEY_INPUT_SOURCES        "sources"
+-
+-#define INPUT_SOURCE_TYPE_XKB  "xkb"
+-#define INPUT_SOURCE_TYPE_IBUS "ibus"
++#define KEY_CURRENT_INPUT_SOURCE        "current"
++#define KEY_INPUT_SOURCES               "sources"
++#define INPUT_SOURCE_TYPE_XKB           "xkb"
++#define INPUT_SOURCE_TYPE_IBUS          "ibus"
++
++#define MEDIA_KEYS_SCHEMA_ID  "org.gnome.settings-daemon.plugins.media-keys"
++#define KEY_PREV_INPUT_SOURCE "switch-input-source-backward"
++#define KEY_NEXT_INPUT_SOURCE "switch-input-source"
++
++#define INDICATOR_KEYBOARD_SCHEMA_ID "com.canonical.indicator.keyboard"
++#define KEY_VISIBLE                  "visible"
++
++#define LIBGNOMEKBD_DESKTOP_SCHEMA_ID "org.gnome.libgnomekbd.desktop"
++#define KEY_GROUP_PER_WINDOW          "group-per-window"
++#define KEY_DEFAULT_GROUP             "default-group"
++
++#define IBUS_PANEL_SECTION       "panel"
++#define IBUS_ORIENTATION_KEY     "lookup_table_orientation"
++#define IBUS_USE_CUSTOM_FONT_KEY "use_custom_font"
++#define IBUS_CUSTOM_FONT_KEY     "custom_font"
+ 
+ enum {
+   NAME_COLUMN,
+@@ -56,8 +72,14 @@
+ };
+ 
+ static GSettings *input_sources_settings = NULL;
++static GSettings *libgnomekbd_settings = NULL;
++static GSettings *media_key_settings = NULL;
++static GSettings *indicator_settings = NULL;
+ static GnomeXkbInfo *xkb_info = NULL;
++static GtkBuilder *builder = NULL; /* weak pointer */
+ static GtkWidget *input_chooser = NULL; /* weak pointer */
++static CcRegionKeyboardItem *prev_source_item = NULL;
++static CcRegionKeyboardItem *next_source_item = NULL;
+ 
+ #ifdef HAVE_IBUS
+ static IBusBus *ibus = NULL;
+@@ -467,9 +489,6 @@
+                                ibus_cancellable,
+                                (GAsyncReadyCallback)fetch_ibus_engines_result,
+                                builder);
+-
+-  /* We've got everything we needed, don't want to be called again. */
+-  g_signal_handlers_disconnect_by_func (ibus, fetch_ibus_engines, builder);
+ }
+ 
+ static void
+@@ -488,6 +507,273 @@
+ }
+ 
+ static void
++update_source_radios (GtkBuilder *builder)
++{
++  GtkWidget *same_source_radio = WID ("same-source-radio");
++  GtkWidget *different_source_radio = WID ("different-source-radio");
++  GtkWidget *default_source_radio = WID ("default-source-radio");
++  GtkWidget *current_source_radio = WID ("current-source-radio");
++  gboolean group_per_window = g_settings_get_boolean (libgnomekbd_settings, KEY_GROUP_PER_WINDOW);
++  gboolean default_group = g_settings_get_int (libgnomekbd_settings, KEY_DEFAULT_GROUP) >= 0;
++
++  gtk_widget_set_sensitive (default_source_radio, group_per_window);
++  gtk_widget_set_sensitive (current_source_radio, group_per_window);
++
++  if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (different_source_radio)) != group_per_window)
++    {
++      if (group_per_window)
++        gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (different_source_radio), TRUE);
++      else
++        gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (same_source_radio), TRUE);
++    }
++
++  if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (default_source_radio)) != default_group)
++    {
++      if (default_group)
++        gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (default_source_radio), TRUE);
++      else
++        gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (current_source_radio), TRUE);
++    }
++}
++
++static void
++update_orientation_combo (GtkBuilder *builder)
++{
++#ifdef HAVE_IBUS
++  if (ibus != NULL)
++    {
++      IBusConfig *config = ibus_bus_get_config (ibus);
++      GVariant *variant = ibus_config_get_value (config, IBUS_PANEL_SECTION, IBUS_ORIENTATION_KEY);
++
++      g_return_if_fail (variant != NULL);
++
++      if (g_variant_is_of_type (variant, G_VARIANT_TYPE_INT32))
++        {
++          GtkComboBox *orientation_combo = GTK_COMBO_BOX (WID ("orientation-combo"));
++          gint orientation = g_variant_get_int32 (variant);
++
++          if (gtk_combo_box_get_active (orientation_combo) != orientation)
++            gtk_combo_box_set_active (orientation_combo, orientation);
++        }
++      else
++        g_warning ("Orientation setting has type '%s', expected type 'i'",
++                   g_variant_get_type_string (variant));
++
++      g_variant_unref (variant);
++    }
++#endif
++}
++
++static void
++update_custom_font_buttons (GtkBuilder *builder)
++{
++#ifdef HAVE_IBUS
++  if (ibus != NULL)
++    {
++      IBusConfig *config = ibus_bus_get_config (ibus);
++      GVariant *variant = ibus_config_get_value (config, IBUS_PANEL_SECTION, IBUS_USE_CUSTOM_FONT_KEY);
++      GtkToggleButton *custom_font_check = GTK_TOGGLE_BUTTON (WID ("custom-font-check"));
++      GtkFontButton *custom_font_button = GTK_FONT_BUTTON (WID ("custom-font-button"));
++
++      if (variant != NULL)
++        {
++          if (g_variant_is_of_type (variant, G_VARIANT_TYPE_BOOLEAN))
++            {
++              gboolean use_custom_font = g_variant_get_boolean (variant);
++
++              if (gtk_toggle_button_get_active (custom_font_check) != use_custom_font)
++                gtk_toggle_button_set_active (custom_font_check, use_custom_font);
++            }
++          else
++            g_warning ("Use custom font setting has type '%s', expected type 'b'",
++                       g_variant_get_type_string (variant));
++
++          g_variant_unref (variant);
++        }
++      else
++        g_warning ("No use custom font setting '" IBUS_USE_CUSTOM_FONT_KEY "'");
++
++      variant = ibus_config_get_value (config, IBUS_PANEL_SECTION, IBUS_CUSTOM_FONT_KEY);
++
++      if (variant != NULL)
++        {
++          if (g_variant_is_of_type (variant, G_VARIANT_TYPE_STRING))
++            {
++              const gchar *custom_font = g_variant_get_string (variant, NULL);
++
++              if (g_strcmp0 (gtk_font_button_get_font_name (custom_font_button), custom_font))
++                gtk_font_button_set_font_name (custom_font_button, custom_font);
++            }
++          else
++            g_warning ("Custom font setting has type '%s', expected type 's'",
++                       g_variant_get_type_string (variant));
++
++          g_variant_unref (variant);
++        }
++      else
++        g_warning ("No custom font setting '" IBUS_CUSTOM_FONT_KEY "'");
++
++      gtk_widget_set_sensitive (GTK_WIDGET (custom_font_button),
++                                gtk_toggle_button_get_active (custom_font_check));
++    }
++#endif
++}
++
++static void
++source_radio_toggled (GtkToggleButton *widget,
++                      gpointer         user_data)
++{
++  GtkWidget *same_source_radio = WID ("same-source-radio");
++  GtkWidget *different_source_radio = WID ("different-source-radio");
++  GtkWidget *default_source_radio = WID ("default-source-radio");
++  GtkWidget *current_source_radio = WID ("current-source-radio");
++  gboolean different_source_active = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (different_source_radio));
++  gboolean default_source_active = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (default_source_radio));
++  gboolean group_per_window = g_settings_get_boolean (libgnomekbd_settings, KEY_GROUP_PER_WINDOW);
++  gboolean default_group = g_settings_get_int (libgnomekbd_settings, KEY_DEFAULT_GROUP) >= 0;
++
++  if (different_source_active != group_per_window)
++    g_settings_set_boolean (libgnomekbd_settings, KEY_GROUP_PER_WINDOW, different_source_active);
++
++  if (default_source_active != default_group)
++    g_settings_set_int (libgnomekbd_settings, KEY_DEFAULT_GROUP, default_source_active ? 0 : -1);
++
++  gtk_widget_set_sensitive (default_source_radio, different_source_active);
++  gtk_widget_set_sensitive (current_source_radio, different_source_active);
++}
++
++static void
++orientation_combo_changed (GtkComboBox *widget,
++                           gpointer     user_data)
++{
++#ifdef HAVE_IBUS
++  if (ibus != NULL)
++    {
++      GtkBuilder *builder = user_data;
++      GtkComboBox *orientation_combo = GTK_COMBO_BOX (WID ("orientation-combo"));
++      IBusConfig *config = ibus_bus_get_config (ibus);
++      gint orientation = -1;
++      GVariant *variant = ibus_config_get_value (config, IBUS_PANEL_SECTION, IBUS_ORIENTATION_KEY);
++
++      if (variant != NULL)
++        {
++          if (g_variant_is_of_type (variant, G_VARIANT_TYPE_INT32))
++            orientation = g_variant_get_int32 (variant);
++
++          g_variant_unref (variant);
++        }
++
++      if (gtk_combo_box_get_active (orientation_combo) != orientation)
++        {
++          orientation = gtk_combo_box_get_active (orientation_combo);
++          variant = g_variant_new_int32 (orientation);
++
++          ibus_config_set_value (config, IBUS_PANEL_SECTION, IBUS_ORIENTATION_KEY, variant);
++        }
++    }
++#endif
++}
++
++static void
++custom_font_changed (GtkWidget *widget,
++                     gpointer   user_data)
++{
++#ifdef HAVE_IBUS
++  if (ibus != NULL)
++    {
++      GtkBuilder *builder = user_data;
++      GtkToggleButton *custom_font_check = GTK_TOGGLE_BUTTON (WID ("custom-font-check"));
++      GtkFontButton *custom_font_button = GTK_FONT_BUTTON (WID ("custom-font-button"));
++      IBusConfig *config = ibus_bus_get_config (ibus);
++      gboolean update_setting = TRUE;
++      gboolean use_custom_font;
++      const gchar *custom_font;
++      GVariant *variant = ibus_config_get_value (config, IBUS_PANEL_SECTION, IBUS_USE_CUSTOM_FONT_KEY);
++
++      if (variant != NULL)
++        {
++          if (g_variant_is_of_type (variant, G_VARIANT_TYPE_BOOLEAN))
++            {
++              use_custom_font = g_variant_get_boolean (variant);
++              update_setting = gtk_toggle_button_get_active (custom_font_check) != use_custom_font;
++            }
++
++          g_variant_unref (variant);
++        }
++
++      if (update_setting)
++        {
++          use_custom_font = gtk_toggle_button_get_active (custom_font_check);
++          variant = g_variant_new_boolean (use_custom_font);
++
++          ibus_config_set_value (config, IBUS_PANEL_SECTION, IBUS_USE_CUSTOM_FONT_KEY, variant);
++        }
++
++      update_setting = TRUE;
++      variant = ibus_config_get_value (config, IBUS_PANEL_SECTION, IBUS_CUSTOM_FONT_KEY);
++
++      if (variant != NULL)
++        {
++          if (g_variant_is_of_type (variant, G_VARIANT_TYPE_STRING))
++            {
++              custom_font = g_variant_get_string (variant, NULL);
++              update_setting = g_strcmp0 (gtk_font_button_get_font_name (custom_font_button), custom_font);
++            }
++
++          g_variant_unref (variant);
++        }
++
++      if (update_setting)
++        {
++          custom_font = gtk_font_button_get_font_name (custom_font_button);
++          variant = g_variant_new_string (custom_font);
++
++          ibus_config_set_value (config, IBUS_PANEL_SECTION, IBUS_CUSTOM_FONT_KEY, variant);
++        }
++
++      gtk_widget_set_sensitive (GTK_WIDGET (custom_font_button),
++                                gtk_toggle_button_get_active (custom_font_check));
++    }
++#endif
++}
++
++static void
++ibus_config_value_changed (IBusConfig *config,
++                           gchar      *section,
++                           gchar      *name,
++                           GVariant   *value,
++                           gpointer    user_data)
++{
++  if (g_strcmp0 (section, IBUS_PANEL_SECTION) == 0)
++    {
++      if (g_strcmp0 (name, IBUS_ORIENTATION_KEY) == 0)
++        update_orientation_combo (builder);
++      else if (g_strcmp0 (name, IBUS_USE_CUSTOM_FONT_KEY) == 0 ||
++               g_strcmp0 (name, IBUS_CUSTOM_FONT_KEY) == 0)
++        update_custom_font_buttons (builder);
++    }
++}
++
++static void
++ibus_connected (IBusBus  *bus,
++                gpointer  user_data)
++{
++  GtkBuilder *builder = user_data;
++  IBusConfig *config = ibus_bus_get_config (bus);
++
++  g_signal_connect (config, "value-changed",
++                    G_CALLBACK (ibus_config_value_changed), NULL);
++
++  fetch_ibus_engines (builder);
++  update_source_radios (builder);
++  update_orientation_combo (builder);
++  update_custom_font_buttons (builder);
++
++  /* We've got everything we needed, don't want to be called again. */
++  g_signal_handlers_disconnect_by_func (ibus, ibus_connected, builder);
++}
++
++static void
+ on_shell_appeared (GDBusConnection *connection,
+                    const gchar     *name,
+                    const gchar     *name_owner,
+@@ -499,10 +785,9 @@
+     {
+       ibus = ibus_bus_new_async ();
+       if (ibus_bus_is_connected (ibus))
+-        fetch_ibus_engines (builder);
++        ibus_connected (ibus, builder);
+       else
+-        g_signal_connect_swapped (ibus, "connected",
+-                                  G_CALLBACK (fetch_ibus_engines), builder);
++        g_signal_connect (ibus, "connected", G_CALLBACK (ibus_connected), builder);
+     }
+   maybe_start_ibus ();
+ }
+@@ -1190,48 +1475,12 @@
+ }
+ 
+ static void
+-update_shortcut_label (GtkWidget  *widget,
+-		       const char *value)
++libgnomekbd_settings_changed (GSettings *settings,
++                              gchar     *key,
++                              gpointer   user_data)
+ {
+-  char *text;
+-  guint accel_key, *keycode;
+-  GdkModifierType mods;
+-
+-  if (value == NULL || *value == '\0')
+-    {
+-      gtk_label_set_text (GTK_LABEL (widget), "\342\200\224");
+-      return;
+-    }
+-  gtk_accelerator_parse_with_keycode (value, &accel_key, &keycode, &mods);
+-  if (accel_key == 0 && keycode == NULL && mods == 0)
+-    {
+-      gtk_label_set_text (GTK_LABEL (widget), "\342\200\224");
+-      g_warning ("Failed to parse keyboard shortcut: '%s'", value);
+-      return;
+-    }
+-
+-  text = gtk_accelerator_get_label_with_keycode (gtk_widget_get_display (widget), accel_key, *keycode, mods);
+-  g_free (keycode);
+-  gtk_label_set_text (GTK_LABEL (widget), text);
+-  g_free (text);
+-}
+-
+-static void
+-update_shortcuts (GtkBuilder *builder)
+-{
+-  char *previous, *next;
+-  GSettings *settings;
+-
+-  settings = g_settings_new ("org.gnome.settings-daemon.plugins.media-keys");
+-
+-  previous = g_settings_get_string (settings, "switch-input-source-backward");
+-  next = g_settings_get_string (settings, "switch-input-source");
+-
+-  update_shortcut_label (WID ("prev-source-shortcut-label"), previous);
+-  update_shortcut_label (WID ("next-source-shortcut-label"), next);
+-
+-  g_free (previous);
+-  g_free (next);
++  if (g_strcmp0 (key, KEY_GROUP_PER_WINDOW) == 0 || g_strcmp0 (key, KEY_DEFAULT_GROUP) == 0)
++    update_source_radios (user_data);
+ }
+ 
+ static gboolean
+@@ -1251,8 +1500,66 @@
+   return TRUE;
+ }
+ 
++static GtkEntryAccelPostAction
++shortcut_key_pressed (GtkEntryAccel   *entry,
++                      guint           *key,
++                      guint           *code,
++                      GdkModifierType *mask,
++                      gpointer         user_data)
++{
++  GtkBuilder *builder = user_data;
++  CcRegionKeyboardItem *item = NULL;
++  gboolean edited;
++
++  if (entry == GTK_ENTRY_ACCEL (WID ("prev-source-entry")))
++    item = prev_source_item;
++  else if (entry == GTK_ENTRY_ACCEL (WID ("next-source-entry")))
++    item = next_source_item;
++
++  if (*mask == 0 && *key == GDK_KEY_Escape)
++    return GTK_ENTRY_ACCEL_CANCEL;
++
++  if (*mask == 0 && *key == GDK_KEY_BackSpace)
++    {
++      *key = 0;
++      *code = 0;
++      *mask = 0;
++
++      return GTK_ENTRY_ACCEL_UPDATE;
++    }
++
++  if (!gtk_accelerator_valid (*key, *mask))
++    return GTK_ENTRY_ACCEL_IGNORE;
++
++  edited = keyboard_shortcuts_accel_edited (item,
++                                            *key,
++                                            *code,
++                                            *mask,
++                                            gtk_widget_get_toplevel (WID ("region_notebook")));
++
++  return edited ? GTK_ENTRY_ACCEL_UPDATE : GTK_ENTRY_ACCEL_IGNORE;
++}
++
++static void
++builder_finalized (gpointer  data,
++                   GObject  *where_the_object_was)
++{
++  keyboard_shortcuts_dispose ();
++
++  g_clear_object (&input_sources_settings);
++  g_clear_object (&libgnomekbd_settings);
++  g_clear_object (&indicator_settings);
++  g_clear_object (&media_key_settings);
++  g_clear_object (&next_source_item);
++  g_clear_object (&prev_source_item);
++
++#ifdef HAVE_IBUS
++  clear_ibus ();
++#endif
++}
++
+ void
+-setup_input_tabs (GtkBuilder    *builder,
++setup_input_tabs (GtkBuilder    *builder_,
+                   CcRegionPanel *panel)
+ {
+   GtkWidget *treeview;
+@@ -1262,6 +1569,17 @@
+   GtkTreeModel *filtered_store;
+   GtkTreeSelection *selection;
+ 
++  builder = builder_;
++
++  g_object_weak_ref (G_OBJECT (builder), builder_finalized, NULL);
++
++  keyboard_shortcuts_init ();
++
++  prev_source_item = g_object_ref (keyboard_shortcuts_get_item (MEDIA_KEYS_SCHEMA_ID,
++                                                                KEY_PREV_INPUT_SOURCE));
++  next_source_item = g_object_ref (keyboard_shortcuts_get_item (MEDIA_KEYS_SCHEMA_ID,
++                                                                KEY_NEXT_INPUT_SOURCE));
++
+   /* set up the list of active inputs */
+   treeview = WID("active_input_sources");
+   column = gtk_tree_view_column_new ();
+@@ -1279,8 +1597,11 @@
+   gtk_tree_view_set_model (GTK_TREE_VIEW (treeview), GTK_TREE_MODEL (store));
+ 
+   input_sources_settings = g_settings_new (GNOME_DESKTOP_INPUT_SOURCES_DIR);
++  libgnomekbd_settings = g_settings_new (LIBGNOMEKBD_DESKTOP_SCHEMA_ID);
++  indicator_settings = g_settings_new (INDICATOR_KEYBOARD_SCHEMA_ID);
++  media_key_settings = g_settings_new (MEDIA_KEYS_SCHEMA_ID);
++
+   g_settings_delay (input_sources_settings);
+-  g_object_weak_ref (G_OBJECT (builder), (GWeakNotify) g_object_unref, input_sources_settings);
+ 
+   if (!xkb_info)
+     xkb_info = gnome_xkb_info_new ();
+@@ -1294,7 +1615,6 @@
+                                           NULL,
+                                           builder,
+                                           NULL);
+-  g_object_weak_ref (G_OBJECT (builder), (GWeakNotify) clear_ibus, NULL);
+ #endif
+ 
+   populate_with_active_sources (store);
+@@ -1329,15 +1649,55 @@
+                     G_CALLBACK (show_selected_settings), builder);
+ 
+   /* use an em dash is no shortcut */
+-  update_shortcuts (builder);
++  update_source_radios (builder);
++  update_orientation_combo (builder);
++  update_custom_font_buttons (builder);
++
++  g_settings_bind (indicator_settings,
++                   KEY_VISIBLE,
++                   WID ("show-indicator-check"),
++                   "active",
++                   G_SETTINGS_BIND_DEFAULT);
++  g_settings_bind (media_key_settings,
++                   KEY_PREV_INPUT_SOURCE,
++                   WID ("prev-source-entry"),
++                   "accel",
++                   G_SETTINGS_BIND_DEFAULT);
++  g_settings_bind (media_key_settings,
++                   KEY_NEXT_INPUT_SOURCE,
++                   WID ("next-source-entry"),
++                   "accel",
++                   G_SETTINGS_BIND_DEFAULT);
+ 
+   g_signal_connect (WID("jump-to-shortcuts"), "activate-link",
+                     G_CALLBACK (go_to_shortcuts), panel);
++  g_signal_connect (WID ("prev-source-entry"), "key-pressed",
++                    G_CALLBACK (shortcut_key_pressed), builder);
++  g_signal_connect (WID ("next-source-entry"), "key-pressed",
++                    G_CALLBACK (shortcut_key_pressed), builder);
++  g_signal_connect (WID ("same-source-radio"), "toggled",
++                    G_CALLBACK (source_radio_toggled), builder);
++  g_signal_connect (WID ("different-source-radio"), "toggled",
++                    G_CALLBACK (source_radio_toggled), builder);
++  g_signal_connect (WID ("default-source-radio"), "toggled",
++                    G_CALLBACK (source_radio_toggled), builder);
++  g_signal_connect (WID ("current-source-radio"), "toggled",
++                    G_CALLBACK (source_radio_toggled), builder);
++  g_signal_connect (WID ("orientation-combo"), "changed",
++                    G_CALLBACK (orientation_combo_changed), builder);
++  g_signal_connect (WID ("custom-font-check"), "toggled",
++                    G_CALLBACK (custom_font_changed), builder);
++  g_signal_connect (WID ("custom-font-button"), "font-set",
++                    G_CALLBACK (custom_font_changed), builder);
+ 
+   g_signal_connect (G_OBJECT (input_sources_settings),
+                     "changed::" KEY_INPUT_SOURCES,
+                     G_CALLBACK (input_sources_changed),
+                     builder);
++  g_signal_connect (libgnomekbd_settings,
++                    "changed",
++                    G_CALLBACK (libgnomekbd_settings_changed),
++                    builder);
+ }
+ 
+ static void
+--- /dev/null
++++ b/panels/region/gtkentryaccel.c
+@@ -0,0 +1,470 @@
++#include "gtkentryaccel.h"
++#include <glib/gi18n.h>
++
++#define GTK_TYPE_ENTRY_ACCEL_POST_ACTION (gtk_entry_accel_post_action_get_type ())
++#define GTK_ENTRY_ACCEL_GET_PRIVATE(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GTK_TYPE_ENTRY_ACCEL, GtkEntryAccelPrivate))
++
++struct _GtkEntryAccelPrivate
++{
++  gchar *accel;
++
++  guint key;
++  guint code;
++  GdkModifierType mask;
++
++  GdkDevice *keyboard;
++  GdkDevice *pointer;
++};
++
++G_DEFINE_TYPE (GtkEntryAccel, gtk_entry_accel, GTK_TYPE_ENTRY);
++
++enum
++{
++  PROP_0,
++  PROP_ACCEL,
++  N_PROPERTIES
++};
++
++static GParamSpec *properties[N_PROPERTIES] = { NULL };
++
++enum
++{
++  SIGNAL_KEY_PRESSED,
++  N_SIGNALS
++};
++
++static guint signals[N_SIGNALS] = { 0 };
++
++static GType
++gtk_entry_accel_post_action_get_type (void)
++{
++  static GType type = 0;
++
++  if (G_UNLIKELY (type == 0))
++    {
++      static const GEnumValue values[] = {
++        { GTK_ENTRY_ACCEL_UPDATE, "GTK_ENTRY_ACCEL_UPDATE", "update" },
++        { GTK_ENTRY_ACCEL_CANCEL, "GTK_ENTRY_ACCEL_CANCEL", "cancel" },
++        { GTK_ENTRY_ACCEL_IGNORE, "GTK_ENTRY_ACCEL_IGNORE", "ignore" },
++        { GTK_ENTRY_ACCEL_PASS_THROUGH, "GTK_ENTRY_ACCEL_PASS_THROUGH", "pass-through" },
++        { 0, NULL, NULL }
++      };
++
++      type = g_enum_register_static (g_intern_static_string ("GtkEntryAccelPostAction"), values);
++    }
++
++  return type;
++}
++
++static void
++gtk_entry_accel_update_text (GtkEntryAccel *entry)
++{
++  if (entry->priv->keyboard == NULL || entry->priv->pointer == NULL)
++    {
++      if (entry->priv->key != 0 || entry->priv->code != 0 || entry->priv->mask != 0)
++        {
++          gchar *label = gtk_accelerator_get_label_with_keycode (NULL,
++                                                                 entry->priv->key,
++                                                                 entry->priv->code,
++                                                                 entry->priv->mask);
++
++          gtk_entry_set_text (GTK_ENTRY (entry), label);
++
++          g_free (label);
++        }
++      else
++        gtk_entry_set_text (GTK_ENTRY (entry), "");
++    }
++  else
++    gtk_entry_set_text (GTK_ENTRY (entry), _("New accelerator..."));
++}
++
++static void
++gtk_entry_accel_set_key (GtkEntryAccel   *entry,
++                         guint            key,
++                         guint            code,
++                         GdkModifierType  mask)
++{
++  if (key != entry->priv->key || code != entry->priv->code || mask != entry->priv->mask)
++    {
++      entry->priv->key = key;
++      entry->priv->code = code;
++      entry->priv->mask = mask;
++
++      g_free (entry->priv->accel);
++
++      if (key != 0 || code != 0 || mask != 0)
++        entry->priv->accel = gtk_accelerator_name_with_keycode (NULL, key, code, mask);
++      else
++        entry->priv->accel = NULL;
++
++      g_object_notify_by_pspec (G_OBJECT (entry), properties[PROP_ACCEL]);
++    }
++
++  gtk_entry_accel_update_text (entry);
++}
++
++static void
++gtk_entry_accel_ungrab_input (GtkEntryAccel *entry,
++                              GdkEvent      *event)
++{
++  guint32 time = gdk_event_get_time (event);
++
++  if (entry->priv->keyboard != NULL && entry->priv->pointer != NULL)
++    gtk_grab_remove (GTK_WIDGET (entry));
++
++  if (entry->priv->keyboard != NULL)
++    {
++      gdk_device_ungrab (entry->priv->keyboard, time);
++      g_clear_object (&entry->priv->keyboard);
++    }
++
++  if (entry->priv->pointer != NULL)
++    {
++      gdk_device_ungrab (entry->priv->pointer, time);
++      g_clear_object (&entry->priv->pointer);
++    }
++
++  gtk_entry_accel_update_text (entry);
++}
++
++static void
++gtk_entry_accel_grab_input (GtkEntryAccel *entry,
++                            GdkEvent      *event)
++{
++  GdkWindow *window = NULL;
++  GdkDevice *device = NULL;
++  GdkDevice *keyboard = NULL;
++  GdkDevice *pointer = NULL;
++  guint32 time;
++
++  if (entry->priv->keyboard != NULL && entry->priv->pointer != NULL)
++    return;
++
++  gtk_entry_accel_ungrab_input (entry, event);
++
++  if (event != NULL)
++    device = gdk_event_get_device (event);
++
++  if (device == NULL)
++    device = gtk_get_current_event_device ();
++
++  if (device == NULL)
++    return;
++
++  if (gdk_device_get_source (device) == GDK_SOURCE_KEYBOARD)
++    {
++      keyboard = device;
++      pointer = gdk_device_get_associated_device (device);
++    }
++  else
++    {
++      pointer = device;
++      keyboard = gdk_device_get_associated_device (device);
++    }
++
++  if (gdk_device_get_source (keyboard) != GDK_SOURCE_KEYBOARD)
++    return;
++
++  window = gtk_widget_get_window (GTK_WIDGET (entry));
++  time = gdk_event_get_time (event);
++
++  if (gdk_device_grab (keyboard,
++                       window,
++                       GDK_OWNERSHIP_WINDOW,
++                       FALSE,
++                       GDK_KEY_PRESS_MASK | GDK_KEY_RELEASE_MASK,
++                       NULL,
++                       time) != GDK_GRAB_SUCCESS)
++    return;
++
++  if (gdk_device_grab (pointer,
++                       window,
++                       GDK_OWNERSHIP_WINDOW,
++                       FALSE,
++                       GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK,
++                       NULL,
++                       time) != GDK_GRAB_SUCCESS)
++    {
++      gdk_device_ungrab (keyboard, time);
++
++      return;
++    }
++
++  gtk_grab_add (GTK_WIDGET (entry));
++
++  entry->priv->keyboard = g_object_ref (keyboard);
++  entry->priv->pointer = g_object_ref (pointer);
++}
++
++static void
++gtk_entry_accel_dispose (GObject *object)
++{
++  GtkEntryAccel *entry = GTK_ENTRY_ACCEL (object);
++
++  gtk_entry_accel_ungrab_input (entry, NULL);
++
++  G_OBJECT_CLASS (gtk_entry_accel_parent_class)->dispose (object);
++}
++
++static void
++gtk_entry_accel_finalize (GObject *object)
++{
++  GtkEntryAccel *entry = GTK_ENTRY_ACCEL (object);
++
++  g_free (entry->priv->accel);
++
++  G_OBJECT_CLASS (gtk_entry_accel_parent_class)->finalize (object);
++}
++
++static void
++gtk_entry_accel_get_property (GObject    *object,
++                              guint       property_id,
++                              GValue     *value,
++                              GParamSpec *pspec)
++{
++  GtkEntryAccel *entry = GTK_ENTRY_ACCEL (object);
++  const gchar *accel;
++
++  switch (property_id)
++    {
++    case PROP_ACCEL:
++      accel = gtk_entry_accel_get_accel (entry);
++      g_value_set_string (value, accel != NULL ? accel : "");
++      break;
++
++    default:
++      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
++      break;
++    }
++}
++
++static void
++gtk_entry_accel_set_property (GObject      *object,
++                              guint         property_id,
++                              const GValue *value,
++                              GParamSpec   *pspec)
++{
++  GtkEntryAccel *entry = GTK_ENTRY_ACCEL (object);
++
++  switch (property_id)
++    {
++    case PROP_ACCEL:
++      gtk_entry_accel_set_accel (entry, g_value_get_string (value));
++      break;
++
++    default:
++      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
++      break;
++    }
++}
++
++static gboolean
++gtk_entry_accel_button_press_event (GtkWidget      *widget,
++                                    GdkEventButton *event)
++{
++  if (event->button == 1)
++    {
++      GtkEntryAccel *entry = GTK_ENTRY_ACCEL (widget);
++
++      if (entry->priv->keyboard != NULL && entry->priv->pointer != NULL)
++        gtk_entry_accel_ungrab_input (entry, (GdkEvent *) event);
++      else
++        gtk_entry_accel_grab_input (entry, (GdkEvent *) event);
++
++      gtk_entry_accel_update_text (entry);
++    }
++
++  return TRUE;
++}
++
++static gboolean
++gtk_entry_accel_post_action_accumulator (GSignalInvocationHint *ihint,
++                                         GValue                *return_accu,
++                                         const GValue          *handler_return,
++                                         gpointer               data)
++{
++  GtkEntryAccelPostAction action = g_value_get_enum (return_accu);
++  GtkEntryAccelPostAction current_action = g_value_get_enum (handler_return);
++
++  if (action == GTK_ENTRY_ACCEL_UPDATE)
++    action = current_action;
++
++  g_value_set_enum (return_accu, action);
++
++  return action == GTK_ENTRY_ACCEL_UPDATE;
++}
++
++static GtkEntryAccelPostAction
++gtk_entry_accel_real_key_pressed (GtkEntryAccel   *entry,
++                                  guint           *key,
++                                  guint           *code,
++                                  GdkModifierType *mask)
++{
++  return GTK_ENTRY_ACCEL_UPDATE;
++}
++
++static GtkEntryAccelPostAction
++gtk_entry_accel_key_pressed (GtkEntryAccel   *entry,
++                             guint           *key,
++                             guint           *code,
++                             GdkModifierType *mask)
++{
++  GtkEntryAccelPostAction action;
++
++  g_signal_emit (entry,
++                 signals[SIGNAL_KEY_PRESSED],
++                 0,
++                 key,
++                 code,
++                 mask,
++                 &action);
++
++  return action;
++}
++
++static gboolean
++gtk_entry_accel_key_press_event (GtkWidget   *widget,
++                                 GdkEventKey *event)
++{
++  guint key = event->keyval;
++  guint mask = event->state & (GDK_MODIFIER_MASK & ~GDK_LOCK_MASK & ~GDK_MOD2_MASK);
++
++  return ((mask & ~GDK_SHIFT_MASK) != 0 ||
++          (key != GDK_KEY_Tab &&
++           key != GDK_KEY_KP_Tab &&
++           key != GDK_KEY_ISO_Left_Tab &&
++           key != GDK_KEY_3270_BackTab) ||
++          GTK_WIDGET_CLASS (gtk_entry_accel_parent_class)->key_press_event (widget, event));
++}
++
++static gboolean
++gtk_entry_accel_key_release_event (GtkWidget   *widget,
++                                   GdkEventKey *event)
++{
++  GtkEntryAccel *entry = GTK_ENTRY_ACCEL (widget);
++  guint key = event->keyval;
++  guint code = event->hardware_keycode;
++  guint mask = event->state & (GDK_MODIFIER_MASK & ~GDK_LOCK_MASK & ~GDK_MOD2_MASK);
++
++  if (entry->priv->keyboard != NULL && entry->priv->pointer != NULL)
++    {
++      gtk_entry_accel_ungrab_input (entry, (GdkEvent *) event);
++
++      switch (gtk_entry_accel_key_pressed (entry, &key, &code, &mask))
++        {
++        case GTK_ENTRY_ACCEL_UPDATE:
++          gtk_entry_accel_set_key (entry, key, code, mask);
++        case GTK_ENTRY_ACCEL_CANCEL:
++          gtk_entry_accel_ungrab_input (entry, (GdkEvent *) event);
++        case GTK_ENTRY_ACCEL_IGNORE:
++          return TRUE;
++        }
++
++      event->keyval = key;
++      event->hardware_keycode = code;
++      event->state = mask;
++
++      gtk_entry_accel_ungrab_input (entry, (GdkEvent *) event);
++
++      return GTK_WIDGET_CLASS (gtk_entry_accel_parent_class)->key_release_event (widget, event);
++    }
++
++  if (mask == 0 &&
++      (key == GDK_KEY_Return ||
++       key == GDK_KEY_KP_Enter ||
++       key == GDK_KEY_ISO_Enter ||
++       key == GDK_KEY_3270_Enter))
++    {
++      gtk_entry_accel_grab_input (entry, (GdkEvent *) event);
++      gtk_entry_accel_update_text (entry);
++
++      return TRUE;
++    }
++
++  return ((mask & ~GDK_SHIFT_MASK) != 0 ||
++          (key != GDK_KEY_Tab &&
++           key != GDK_KEY_KP_Tab &&
++           key != GDK_KEY_ISO_Left_Tab &&
++           key != GDK_KEY_3270_BackTab) ||
++          GTK_WIDGET_CLASS (gtk_entry_accel_parent_class)->key_release_event (widget, event));
++}
++
++static void
++gtk_entry_accel_class_init (GtkEntryAccelClass *klass)
++{
++  GObjectClass *object_class = G_OBJECT_CLASS (klass);
++  GtkWidgetClass *widget_class = GTK_WIDGET_CLASS (klass);
++
++  object_class->dispose = gtk_entry_accel_dispose;
++  object_class->finalize = gtk_entry_accel_finalize;
++  object_class->get_property = gtk_entry_accel_get_property;
++  object_class->set_property = gtk_entry_accel_set_property;
++  widget_class->button_press_event = gtk_entry_accel_button_press_event;
++  widget_class->key_press_event = gtk_entry_accel_key_press_event;
++  widget_class->key_release_event = gtk_entry_accel_key_release_event;
++  klass->key_pressed = gtk_entry_accel_real_key_pressed;
++
++  properties[PROP_ACCEL] = g_param_spec_string ("accel",
++                                                "Accelerator",
++                                                "Current accelerator",
++                                                NULL,
++                                                G_PARAM_READWRITE);
++
++  g_object_class_install_property (object_class,
++                                   PROP_ACCEL,
++                                   properties[PROP_ACCEL]);
++
++  signals[SIGNAL_KEY_PRESSED] = g_signal_new ("key-pressed",
++                                              G_OBJECT_CLASS_TYPE (klass),
++                                              G_SIGNAL_RUN_LAST,
++                                              G_STRUCT_OFFSET (GtkEntryAccelClass, key_pressed),
++                                              gtk_entry_accel_post_action_accumulator,
++                                              NULL,
++                                              NULL,
++                                              GTK_TYPE_ENTRY_ACCEL_POST_ACTION,
++                                              3,
++                                              G_TYPE_POINTER,
++                                              G_TYPE_POINTER,
++                                              G_TYPE_POINTER);
++
++  g_type_class_add_private (klass, sizeof (GtkEntryAccelPrivate));
++}
++
++static void
++gtk_entry_accel_init (GtkEntryAccel *self)
++{
++  self->priv = GTK_ENTRY_ACCEL_GET_PRIVATE (self);
++}
++
++GtkWidget *
++gtk_entry_accel_new (void)
++{
++  return g_object_new (GTK_TYPE_ENTRY_ACCEL, NULL);
++}
++
++const gchar *
++gtk_entry_accel_get_accel (GtkEntryAccel *entry)
++{
++  g_return_val_if_fail (GTK_IS_ENTRY_ACCEL (entry), NULL);
++
++  return entry->priv->accel;
++}
++
++void
++gtk_entry_accel_set_accel (GtkEntryAccel *entry,
++                           const gchar   *accel)
++{
++  guint key = 0;
++  guint *codes = NULL;
++  GdkModifierType mask = 0;
++
++  g_return_if_fail (GTK_IS_ENTRY_ACCEL (entry));
++
++  if (accel != NULL)
++    gtk_accelerator_parse_with_keycode (accel, &key, &codes, &mask);
++
++  gtk_entry_accel_set_key (entry, key, codes != NULL ? codes[0] : 0, mask);
++
++  g_free (codes);
++}
+--- /dev/null
++++ b/panels/region/gtkentryaccel.h
+@@ -0,0 +1,54 @@
++#ifndef __GTK_ENTRY_ACCEL_H__
++#define __GTK_ENTRY_ACCEL_H__
++
++#include <gtk/gtk.h>
++
++#define GTK_TYPE_ENTRY_ACCEL            (gtk_entry_accel_get_type ())
++#define GTK_ENTRY_ACCEL(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), GTK_TYPE_ENTRY_ACCEL, GtkEntryAccel))
++#define GTK_IS_ENTRY_ACCEL(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), GTK_TYPE_ENTRY_ACCEL))
++#define GTK_ENTRY_ACCEL_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), GTK_TYPE_ENTRY_ACCEL, GtkEntryAccelClass))
++#define GTK_IS_ENTRY_ACCEL_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), GTK_TYPE_ENTRY_ACCEL))
++#define GTK_ENTRY_ACCEL_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), GTK_TYPE_ENTRY_ACCEL, GtkEntryAccelClass))
++
++typedef struct _GtkEntryAccel           GtkEntryAccel;
++typedef struct _GtkEntryAccelClass      GtkEntryAccelClass;
++typedef struct _GtkEntryAccelPrivate    GtkEntryAccelPrivate;
++typedef enum   _GtkEntryAccelPostAction GtkEntryAccelPostAction;
++
++struct _GtkEntryAccel
++{
++  GtkEntry parent_instance;
++
++  /*< private >*/
++  GtkEntryAccelPrivate *priv;
++};
++
++struct _GtkEntryAccelClass
++{
++  GtkEntryClass parent_class;
++
++  /*< public >*/
++  GtkEntryAccelPostAction (* key_pressed) (GtkEntryAccel   *entry,
++                                           guint           *key,
++                                           guint           *code,
++                                           GdkModifierType *mask);
++};
++
++enum _GtkEntryAccelPostAction
++{
++  GTK_ENTRY_ACCEL_UPDATE,
++  GTK_ENTRY_ACCEL_CANCEL,
++  GTK_ENTRY_ACCEL_IGNORE,
++  GTK_ENTRY_ACCEL_PASS_THROUGH
++};
++
++GType         gtk_entry_accel_get_type  (void);
++
++GtkWidget *   gtk_entry_accel_new       (void);
++
++const gchar * gtk_entry_accel_get_accel (GtkEntryAccel *entry);
++
++void          gtk_entry_accel_set_accel (GtkEntryAccel *entry,
++                                         const gchar   *accel);
++
++#endif /* __GTK_ENTRY_ACCEL_H__ */
+--- a/panels/region/Makefile.am
++++ b/panels/region/Makefile.am
+@@ -25,6 +25,14 @@
+ 	gnome-region-panel-system.h \
+ 	gnome-region-panel-input.c \
+ 	gnome-region-panel-input.h \
++	cc-region-keyboard-item.c \
++	cc-region-keyboard-item.h \
++	keyboard-shortcuts.c \
++	keyboard-shortcuts.h \
++	gtkentryaccel.c \
++	gtkentryaccel.h \
++	wm-common.c \
++	wm-common.h \
+ 	$(NULL)
+ 
+ libregion_la_LIBADD = $(PANEL_LIBS) $(REGION_PANEL_LIBS) $(builddir)/../common/liblanguage.la
+--- a/panels/region/cc-region-panel.c
++++ b/panels/region/cc-region-panel.c
+@@ -26,6 +26,7 @@
+ #include "gnome-region-panel-lang.h"
+ #include "gnome-region-panel-formats.h"
+ #include "gnome-region-panel-system.h"
++#include "gtkentryaccel.h"
+ 
+ CC_PANEL_REGISTER (CcRegionPanel, cc_region_panel)
+ 
+@@ -136,6 +137,8 @@
+ 	GtkWidget *prefs_widget;
+ 	GError *error = NULL;
+ 
++	GTK_TYPE_ENTRY_ACCEL;
++
+ 	priv = self->priv = REGION_PANEL_PRIVATE (self);
+ 
+ 	priv->builder = gtk_builder_new ();
+--- /dev/null
++++ b/panels/region/keyboard-shortcuts.c
+@@ -0,0 +1,861 @@
++/*
++ * Copyright (C) 2010 Intel, Inc
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
++ *
++ * Authors: Thomas Wood <thomas.wood@intel.com>
++ *          Rodrigo Moya <rodrigo@gnome.org>
++ */
++
++#include <config.h>
++
++#include <glib/gi18n.h>
++
++#include "keyboard-shortcuts.h"
++#include "wm-common.h"
++
++#define BINDINGS_SCHEMA "org.gnome.settings-daemon.plugins.media-keys"
++#define CUSTOM_KEYS_BASENAME "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings"
++#define CUSTOM_SHORTCUTS_ID "custom"
++
++typedef struct {
++  /* The untranslated name, combine with ->package to translate */
++  char *name;
++  /* The group of keybindings (system or application) */
++  char *group;
++  /* The gettext package to use to translate the section title */
++  char *package;
++  /* Name of the window manager the keys would apply to */
++  char *wm_name;
++  /* The GSettings schema for the whole file, if any */
++  char *schema;
++  /* an array of KeyListEntry */
++  GArray *entries;
++} KeyList;
++
++typedef struct
++{
++  CcRegionKeyboardItemType type;
++  char *schema; /* GSettings schema name, if any */
++  char *description; /* description for GSettings types */
++  char *gettext_package;
++  char *name; /* GSettings schema path, or GSettings key name depending on type */
++} KeyListEntry;
++
++static GSettings *binding_settings = NULL;
++static GHashTable *kb_system_sections = NULL;
++static GHashTable *kb_apps_sections = NULL;
++static GHashTable *kb_user_sections = NULL;
++
++static void
++free_key_array (GPtrArray *keys)
++{
++  if (keys != NULL)
++    {
++      gint i;
++
++      for (i = 0; i < keys->len; i++)
++        {
++          CcRegionKeyboardItem *item;
++
++          item = g_ptr_array_index (keys, i);
++
++          g_object_unref (item);
++        }
++
++      g_ptr_array_free (keys, TRUE);
++    }
++}
++
++static GHashTable *
++get_hash_for_group (BindingGroupType group)
++{
++  GHashTable *hash;
++
++  switch (group)
++    {
++    case BINDING_GROUP_SYSTEM:
++      hash = kb_system_sections;
++      break;
++    case BINDING_GROUP_APPS:
++      hash = kb_apps_sections;
++      break;
++    case BINDING_GROUP_USER:
++      hash = kb_user_sections;
++      break;
++    default:
++      hash = NULL;
++    }
++  return hash;
++}
++
++static gboolean
++have_key_for_group (int group, const gchar *name)
++{
++  GHashTableIter iter;
++  GPtrArray *keys;
++  gint i;
++
++  g_hash_table_iter_init (&iter, get_hash_for_group (group));
++  while (g_hash_table_iter_next (&iter, NULL, (gpointer *)&keys))
++    {
++      for (i = 0; i < keys->len; i++)
++        {
++          CcRegionKeyboardItem *item = g_ptr_array_index (keys, i);
++
++	  if (item->type == CC_REGION_KEYBOARD_ITEM_TYPE_GSETTINGS &&
++	      g_strcmp0 (name, item->key) == 0)
++	    {
++	          return TRUE;
++	    }
++
++	  return FALSE;
++        }
++    }
++
++  return FALSE;
++}
++
++static void
++append_section (const gchar        *id,
++                BindingGroupType    group,
++                const KeyListEntry *keys_list)
++{
++  GPtrArray *keys_array;
++  gint i;
++  GHashTable *hash;
++  gboolean is_new;
++
++  hash = get_hash_for_group (group);
++  if (!hash)
++    return;
++
++  /* Add all CcRegionKeyboardItems for this section */
++  is_new = FALSE;
++  keys_array = g_hash_table_lookup (hash, id);
++  if (keys_array == NULL)
++    {
++      keys_array = g_ptr_array_new ();
++      is_new = TRUE;
++    }
++
++  for (i = 0; keys_list != NULL && keys_list[i].name != NULL; i++)
++    {
++      CcRegionKeyboardItem *item;
++      gboolean ret;
++
++      if (have_key_for_group (group, keys_list[i].name))
++        continue;
++
++      item = cc_region_keyboard_item_new (keys_list[i].type);
++      switch (keys_list[i].type)
++        {
++	case CC_REGION_KEYBOARD_ITEM_TYPE_GSETTINGS_PATH:
++          ret = cc_region_keyboard_item_load_from_gsettings_path (item, keys_list[i].name, FALSE);
++          break;
++	case CC_REGION_KEYBOARD_ITEM_TYPE_GSETTINGS:
++	  ret = cc_region_keyboard_item_load_from_gsettings (item,
++	                                                     keys_list[i].description,
++	                                                     keys_list[i].schema,
++	                                                     keys_list[i].name);
++	  break;
++	default:
++	  g_assert_not_reached ();
++	}
++
++      if (ret == FALSE)
++        {
++          /* We don't actually want to popup a dialog - just skip this one */
++          g_object_unref (item);
++          continue;
++        }
++
++      item->group = group;
++
++      g_ptr_array_add (keys_array, item);
++    }
++
++  /* Add the keys to the hash table */
++  if (is_new)
++    g_hash_table_insert (hash, g_strdup (id), keys_array);
++}
++
++static void
++parse_start_tag (GMarkupParseContext *ctx,
++                 const gchar         *element_name,
++                 const gchar        **attr_names,
++                 const gchar        **attr_values,
++                 gpointer             user_data,
++                 GError             **error)
++{
++  KeyList *keylist = (KeyList *) user_data;
++  KeyListEntry key;
++  const char *name, *schema, *description, *package;
++
++  name = NULL;
++  schema = NULL;
++  package = NULL;
++
++  /* The top-level element, names the section in the tree */
++  if (g_str_equal (element_name, "KeyListEntries"))
++    {
++      const char *wm_name = NULL;
++      const char *group = NULL;
++
++      while (*attr_names && *attr_values)
++        {
++          if (g_str_equal (*attr_names, "name"))
++            {
++              if (**attr_values)
++                name = *attr_values;
++            } else if (g_str_equal (*attr_names, "group")) {
++              if (**attr_values)
++                group = *attr_values;
++            } else if (g_str_equal (*attr_names, "wm_name")) {
++              if (**attr_values)
++                wm_name = *attr_values;
++	    } else if (g_str_equal (*attr_names, "schema")) {
++	      if (**attr_values)
++	        schema = *attr_values;
++            } else if (g_str_equal (*attr_names, "package")) {
++              if (**attr_values)
++                package = *attr_values;
++            }
++          ++attr_names;
++          ++attr_values;
++        }
++
++      if (name)
++        {
++          if (keylist->name)
++            g_warning ("Duplicate section name");
++          g_free (keylist->name);
++          keylist->name = g_strdup (name);
++        }
++      if (wm_name)
++        {
++          if (keylist->wm_name)
++            g_warning ("Duplicate window manager name");
++          g_free (keylist->wm_name);
++          keylist->wm_name = g_strdup (wm_name);
++        }
++      if (package)
++        {
++          if (keylist->package)
++            g_warning ("Duplicate gettext package name");
++          g_free (keylist->package);
++          keylist->package = g_strdup (package);
++	  bind_textdomain_codeset (keylist->package, "UTF-8");
++        }
++      if (group)
++        {
++          if (keylist->group)
++            g_warning ("Duplicate group");
++          g_free (keylist->group);
++          keylist->group = g_strdup (group);
++        }
++      if (schema)
++        {
++          if (keylist->schema)
++            g_warning ("Duplicate schema");
++          g_free (keylist->schema);
++          keylist->schema = g_strdup (schema);
++	}
++      return;
++    }
++
++  if (!g_str_equal (element_name, "KeyListEntry")
++      || attr_names == NULL
++      || attr_values == NULL)
++    return;
++
++  schema = NULL;
++  description = NULL;
++
++  while (*attr_names && *attr_values)
++    {
++      if (g_str_equal (*attr_names, "name"))
++        {
++          /* skip if empty */
++          if (**attr_values)
++            name = *attr_values;
++	} else if (g_str_equal (*attr_names, "schema")) {
++	  if (**attr_values) {
++	   schema = *attr_values;
++	  }
++	} else if (g_str_equal (*attr_names, "description")) {
++          if (**attr_values) {
++            if (keylist->package)
++	      {
++	        description = dgettext (keylist->package, *attr_values);
++	      }
++	    else
++	      {
++	        description = _(*attr_values);
++	      }
++	  }
++        }
++
++      ++attr_names;
++      ++attr_values;
++    }
++
++  if (name == NULL)
++    return;
++
++  if (schema == NULL &&
++      keylist->schema == NULL) {
++    g_debug ("Ignored GConf keyboard shortcut '%s'", name);
++    return;
++  }
++
++  key.name = g_strdup (name);
++  key.type = CC_REGION_KEYBOARD_ITEM_TYPE_GSETTINGS;
++  key.description = g_strdup (description);
++  key.gettext_package = g_strdup (keylist->package);
++  key.schema = schema ? g_strdup (schema) : g_strdup (keylist->schema);
++  g_array_append_val (keylist->entries, key);
++}
++
++static gboolean
++strv_contains (char **strv,
++               char  *str)
++{
++  char **p = strv;
++  for (p = strv; *p; p++)
++    if (strcmp (*p, str) == 0)
++      return TRUE;
++
++  return FALSE;
++}
++
++static void
++append_sections_from_file (const gchar *path, const char *datadir, gchar **wm_keybindings)
++{
++  GError *err = NULL;
++  char *buf;
++  gsize buf_len;
++  KeyList *keylist;
++  KeyListEntry key, *keys;
++  int group;
++  guint i;
++  GMarkupParseContext *ctx;
++  GMarkupParser parser = { parse_start_tag, NULL, NULL, NULL, NULL };
++
++  /* Parse file */
++  if (!g_file_get_contents (path, &buf, &buf_len, &err))
++    return;
++
++  keylist = g_new0 (KeyList, 1);
++  keylist->entries = g_array_new (FALSE, TRUE, sizeof (KeyListEntry));
++  ctx = g_markup_parse_context_new (&parser, 0, keylist, NULL);
++
++  if (!g_markup_parse_context_parse (ctx, buf, buf_len, &err))
++    {
++      g_warning ("Failed to parse '%s': '%s'", path, err->message);
++      g_error_free (err);
++      g_free (keylist->name);
++      g_free (keylist->package);
++      g_free (keylist->wm_name);
++      for (i = 0; i < keylist->entries->len; i++)
++        g_free (((KeyListEntry *) &(keylist->entries->data[i]))->name);
++      g_array_free (keylist->entries, TRUE);
++      g_free (keylist);
++      keylist = NULL;
++    }
++  g_markup_parse_context_free (ctx);
++  g_free (buf);
++
++  if (keylist == NULL)
++    return;
++
++  /* If there's no keys to add, or the settings apply to a window manager
++   * that's not the one we're running */
++  if (keylist->entries->len == 0
++      || (keylist->wm_name != NULL && !strv_contains (wm_keybindings, keylist->wm_name))
++      || keylist->name == NULL)
++    {
++      g_free (keylist->name);
++      g_free (keylist->package);
++      g_free (keylist->wm_name);
++      g_array_free (keylist->entries, TRUE);
++      g_free (keylist);
++      return;
++    }
++
++  /* Empty KeyListEntry to end the array */
++  key.name = NULL;
++  g_array_append_val (keylist->entries, key);
++
++  keys = (KeyListEntry *) g_array_free (keylist->entries, FALSE);
++  if (keylist->package)
++    {
++      char *localedir;
++
++      localedir = g_build_filename (datadir, "locale", NULL);
++      bindtextdomain (keylist->package, localedir);
++      g_free (localedir);
++    }
++  if (keylist->group && strcmp (keylist->group, "system") == 0)
++    group = BINDING_GROUP_SYSTEM;
++  else
++    group = BINDING_GROUP_APPS;
++
++  append_section (keylist->name, group, keys);
++
++  g_free (keylist->name);
++  g_free (keylist->package);
++  g_free (keylist->wm_name);
++  g_free (keylist->schema);
++  g_free (keylist->group);
++
++  for (i = 0; keys[i].name != NULL; i++) {
++    KeyListEntry *entry = &keys[i];
++    g_free (entry->schema);
++    g_free (entry->description);
++    g_free (entry->gettext_package);
++    g_free (entry->name);
++  }
++
++  g_free (keylist);
++}
++
++static void
++append_sections_from_gsettings (void)
++{
++  char **custom_paths;
++  GArray *entries;
++  KeyListEntry key;
++  int i;
++
++  /* load custom shortcuts from GSettings */
++  entries = g_array_new (FALSE, TRUE, sizeof (KeyListEntry));
++
++  custom_paths = g_settings_get_strv (binding_settings, "custom-keybindings");
++  for (i = 0; custom_paths[i]; i++)
++    {
++      key.name = g_strdup (custom_paths[i]);
++      if (!have_key_for_group (BINDING_GROUP_USER, key.name))
++        {
++          key.type = CC_REGION_KEYBOARD_ITEM_TYPE_GSETTINGS_PATH;
++          g_array_append_val (entries, key);
++        }
++      else
++        g_free (key.name);
++    }
++  g_strfreev (custom_paths);
++
++  if (entries->len > 0)
++    {
++      KeyListEntry *keys;
++      int i;
++
++      /* Empty KeyListEntry to end the array */
++      key.name = NULL;
++      g_array_append_val (entries, key);
++
++      keys = (KeyListEntry *) entries->data;
++      append_section (CUSTOM_SHORTCUTS_ID, BINDING_GROUP_USER, keys);
++      for (i = 0; i < entries->len; ++i)
++        {
++          g_free (keys[i].name);
++        }
++    }
++  else
++    {
++      append_section (CUSTOM_SHORTCUTS_ID, BINDING_GROUP_USER, NULL);
++    }
++
++  g_array_free (entries, TRUE);
++}
++
++static void
++reload_sections (void)
++{
++  gchar **wm_keybindings;
++  GDir *dir;
++  const gchar * const * data_dirs;
++  guint i;
++  GHashTable *loaded_files;
++  const char *section_to_set;
++
++  /* Clear previous hash tables */
++  if (kb_system_sections != NULL)
++    g_hash_table_destroy (kb_system_sections);
++  kb_system_sections = g_hash_table_new_full (g_str_hash,
++                                              g_str_equal,
++                                              g_free,
++                                              (GDestroyNotify) free_key_array);
++
++  if (kb_apps_sections != NULL)
++    g_hash_table_destroy (kb_apps_sections);
++  kb_apps_sections = g_hash_table_new_full (g_str_hash,
++                                            g_str_equal,
++                                            g_free,
++                                            (GDestroyNotify) free_key_array);
++
++  if (kb_user_sections != NULL)
++    g_hash_table_destroy (kb_user_sections);
++  kb_user_sections = g_hash_table_new_full (g_str_hash,
++                                            g_str_equal,
++                                            g_free,
++                                            (GDestroyNotify) free_key_array);
++
++  /* Load WM keybindings */
++  wm_keybindings = wm_common_get_current_keybindings ();
++
++  loaded_files = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
++
++  data_dirs = g_get_system_data_dirs ();
++  for (i = 0; data_dirs[i] != NULL; i++)
++    {
++      char *dir_path;
++      const gchar *name;
++
++      dir_path = g_build_filename (data_dirs[i], "gnome-control-center", "keybindings", NULL);
++
++      dir = g_dir_open (dir_path, 0, NULL);
++      if (!dir)
++        {
++          g_free (dir_path);
++          continue;
++        }
++
++      for (name = g_dir_read_name (dir) ; name ; name = g_dir_read_name (dir))
++        {
++          gchar *path;
++
++	  if (g_str_has_suffix (name, ".xml") == FALSE)
++	    continue;
++
++          if (g_hash_table_lookup (loaded_files, name) != NULL)
++	    {
++	      g_debug ("Not loading %s, it was already loaded from another directory", name);
++              continue;
++	    }
++
++	  g_hash_table_insert (loaded_files, g_strdup (name), GINT_TO_POINTER (1));
++	  path = g_build_filename (dir_path, name, NULL);
++	  append_sections_from_file (path, data_dirs[i], wm_keybindings);
++	  g_free (path);
++	}
++      g_free (dir_path);
++      g_dir_close (dir);
++    }
++
++  g_hash_table_destroy (loaded_files);
++  g_strfreev (wm_keybindings);
++
++  /* Load custom keybindings */
++  append_sections_from_gsettings ();
++}
++
++static const guint forbidden_keyvals[] = {
++  /* Navigation keys */
++  GDK_KEY_Home,
++  GDK_KEY_Left,
++  GDK_KEY_Up,
++  GDK_KEY_Right,
++  GDK_KEY_Down,
++  GDK_KEY_Page_Up,
++  GDK_KEY_Page_Down,
++  GDK_KEY_End,
++  GDK_KEY_Tab,
++
++  /* Return */
++  GDK_KEY_KP_Enter,
++  GDK_KEY_Return,
++
++  GDK_KEY_space,
++  GDK_KEY_Mode_switch
++};
++
++static char*
++binding_name (guint                   keyval,
++              guint                   keycode,
++              GdkModifierType         mask,
++              gboolean                translate)
++{
++  if (keyval != 0 || keycode != 0)
++    return translate ?
++        gtk_accelerator_get_label_with_keycode (NULL, keyval, keycode, mask) :
++        gtk_accelerator_name_with_keycode (NULL, keyval, keycode, mask);
++  else
++    return g_strdup (translate ? _("Disabled") : "");
++}
++
++static gboolean
++keyval_is_forbidden (guint keyval)
++{
++  guint i;
++
++  for (i = 0; i < G_N_ELEMENTS(forbidden_keyvals); i++) {
++    if (keyval == forbidden_keyvals[i])
++      return TRUE;
++  }
++
++  return FALSE;
++}
++
++typedef struct {
++  CcRegionKeyboardItem *orig_item;
++  CcRegionKeyboardItem *conflict_item;
++  guint new_keyval;
++  GdkModifierType new_mask;
++  guint new_keycode;
++} CcUniquenessData;
++
++static gboolean
++compare_keys_for_uniqueness (CcRegionKeyboardItem *element,
++                             CcUniquenessData     *data)
++{
++  CcRegionKeyboardItem *orig_item;
++
++  orig_item = data->orig_item;
++
++  /* no conflict for : blanks, different modifiers, or ourselves */
++  if (element == NULL || data->new_mask != element->mask ||
++      cc_region_keyboard_item_equal (orig_item, element))
++    return FALSE;
++
++  if (data->new_keyval != 0) {
++      if (data->new_keyval != element->keyval)
++          return FALSE;
++  } else if (element->keyval != 0 || data->new_keycode != element->keycode)
++    return FALSE;
++
++  data->conflict_item = element;
++
++  return TRUE;
++}
++
++static gboolean
++cb_check_for_uniqueness (gpointer          key,
++                         GPtrArray        *keys_array,
++                         CcUniquenessData *data)
++{
++  guint i;
++
++  for (i = 0; i < keys_array->len; i++)
++    {
++      CcRegionKeyboardItem *item;
++
++      item = keys_array->pdata[i];
++      if (compare_keys_for_uniqueness (item, data))
++        return TRUE;
++    }
++  return FALSE;
++}
++
++gboolean
++keyboard_shortcuts_accel_edited (CcRegionKeyboardItem *item,
++                                 guint                 keyval,
++                                 guint                 keycode,
++                                 GdkModifierType       mask,
++                                 GtkWidget            *toplevel)
++{
++  CcUniquenessData data;
++
++  /* sanity check */
++  if (item == NULL)
++    return FALSE;
++
++  /* CapsLock isn't supported as a keybinding modifier, so keep it from confusing us */
++  mask &= ~GDK_LOCK_MASK;
++
++  data.orig_item = item;
++  data.new_keyval = keyval;
++  data.new_mask = mask;
++  data.new_keycode = keycode;
++  data.conflict_item = NULL;
++
++  if (keyval != 0 || keycode != 0) /* any number of shortcuts can be disabled */
++    {
++      BindingGroupType i;
++
++      for (i = BINDING_GROUP_SYSTEM; i <= BINDING_GROUP_USER && data.conflict_item == NULL; i++)
++        {
++          GHashTable *table;
++
++          table = get_hash_for_group (i);
++          if (!table)
++            continue;
++          g_hash_table_find (table, (GHRFunc) cb_check_for_uniqueness, &data);
++        }
++    }
++
++  /* Check for unmodified keys */
++  if ((mask == 0 || mask == GDK_SHIFT_MASK) && keycode != 0)
++    {
++      if ((keyval >= GDK_KEY_a && keyval <= GDK_KEY_z)
++           || (keyval >= GDK_KEY_A && keyval <= GDK_KEY_Z)
++           || (keyval >= GDK_KEY_0 && keyval <= GDK_KEY_9)
++           || (keyval >= GDK_KEY_kana_fullstop && keyval <= GDK_KEY_semivoicedsound)
++           || (keyval >= GDK_KEY_Arabic_comma && keyval <= GDK_KEY_Arabic_sukun)
++           || (keyval >= GDK_KEY_Serbian_dje && keyval <= GDK_KEY_Cyrillic_HARDSIGN)
++           || (keyval >= GDK_KEY_Greek_ALPHAaccent && keyval <= GDK_KEY_Greek_omega)
++           || (keyval >= GDK_KEY_hebrew_doublelowline && keyval <= GDK_KEY_hebrew_taf)
++           || (keyval >= GDK_KEY_Thai_kokai && keyval <= GDK_KEY_Thai_lekkao)
++           || (keyval >= GDK_KEY_Hangul && keyval <= GDK_KEY_Hangul_Special)
++           || (keyval >= GDK_KEY_Hangul_Kiyeog && keyval <= GDK_KEY_Hangul_J_YeorinHieuh)
++           || keyval_is_forbidden (keyval)) {
++        GtkWidget *dialog;
++        char *name;
++
++        name = binding_name (keyval, keycode, mask, TRUE);
++
++        dialog =
++          gtk_message_dialog_new (GTK_WINDOW (toplevel),
++                                  GTK_DIALOG_DESTROY_WITH_PARENT | GTK_DIALOG_MODAL,
++                                  GTK_MESSAGE_WARNING,
++                                  GTK_BUTTONS_CANCEL,
++                                  _("The shortcut \"%s\" cannot be used because it will become impossible to type using this key.\n"
++                                  "Please try with a key such as Control, Alt or Shift at the same time."),
++                                  name);
++
++        g_free (name);
++        gtk_dialog_run (GTK_DIALOG (dialog));
++        gtk_widget_destroy (dialog);
++
++        return FALSE;
++      }
++    }
++
++  /* flag to see if the new accelerator was in use by something */
++  if (data.conflict_item != NULL)
++    {
++      GtkWidget *dialog;
++      char *name;
++      int response;
++
++      name = binding_name (keyval, keycode, mask, TRUE);
++
++      dialog =
++        gtk_message_dialog_new (GTK_WINDOW (toplevel),
++                                GTK_DIALOG_DESTROY_WITH_PARENT | GTK_DIALOG_MODAL,
++                                GTK_MESSAGE_WARNING,
++                                GTK_BUTTONS_CANCEL,
++                                _("The shortcut \"%s\" is already used for\n\"%s\""),
++                                name, data.conflict_item->description);
++      g_free (name);
++
++      gtk_message_dialog_format_secondary_text (GTK_MESSAGE_DIALOG (dialog),
++          _("If you reassign the shortcut to \"%s\", the \"%s\" shortcut "
++            "will be disabled."),
++          item->description,
++          data.conflict_item->description);
++
++      gtk_dialog_add_button (GTK_DIALOG (dialog),
++                             _("_Reassign"),
++                             GTK_RESPONSE_ACCEPT);
++
++      gtk_dialog_set_default_response (GTK_DIALOG (dialog),
++                                       GTK_RESPONSE_ACCEPT);
++
++      response = gtk_dialog_run (GTK_DIALOG (dialog));
++      gtk_widget_destroy (dialog);
++
++      if (response == GTK_RESPONSE_ACCEPT)
++        g_object_set (G_OBJECT (data.conflict_item), "binding", "", NULL);
++      else
++        return FALSE;
++    }
++
++  return TRUE;
++}
++
++static void
++on_window_manager_change (const char *wm_name,
++                          gpointer    user_data)
++{
++  reload_sections ();
++}
++
++void
++keyboard_shortcuts_init (void)
++{
++  wm_common_register_window_manager_change ((GFunc) on_window_manager_change, NULL);
++  binding_settings = g_settings_new (BINDINGS_SCHEMA);
++  reload_sections ();
++}
++
++void
++keyboard_shortcuts_dispose (void)
++{
++  if (kb_system_sections != NULL)
++    {
++      g_hash_table_destroy (kb_system_sections);
++      kb_system_sections = NULL;
++    }
++  if (kb_apps_sections != NULL)
++    {
++      g_hash_table_destroy (kb_apps_sections);
++      kb_apps_sections = NULL;
++    }
++  if (kb_user_sections != NULL)
++    {
++      g_hash_table_destroy (kb_user_sections);
++      kb_user_sections = NULL;
++    }
++
++  g_clear_object (&binding_settings);
++}
++
++static CcRegionKeyboardItem *
++get_item_in_group (BindingGroupType  group,
++                   const gchar      *schema,
++                   const gchar      *key)
++{
++  GHashTable *hash_table = get_hash_for_group (group);
++  GHashTableIter iter;
++  gpointer value;
++
++  g_hash_table_iter_init (&iter, hash_table);
++  while (g_hash_table_iter_next (&iter, NULL, &value))
++    {
++      GPtrArray *array = value;
++      guint i;
++
++      for (i = 0; i < array->len; i++)
++        {
++          CcRegionKeyboardItem *item = array->pdata[i];
++
++          if (g_strcmp0 (item->schema, schema) == 0 &&
++              g_strcmp0 (item->key, key) == 0)
++            return item;
++        }
++    }
++
++  return NULL;
++}
++
++CcRegionKeyboardItem *
++keyboard_shortcuts_get_item (const gchar *schema,
++                             const gchar *key)
++{
++  CcRegionKeyboardItem *item = get_item_in_group (BINDING_GROUP_SYSTEM, schema, key);
++
++  if (item != NULL)
++    return item;
++
++  item = get_item_in_group (BINDING_GROUP_APPS, schema, key);
++
++  if (item != NULL)
++    return item;
++
++  item = get_item_in_group (BINDING_GROUP_USER, schema, key);
++
++  return item;
++}
+--- /dev/null
++++ b/panels/region/keyboard-shortcuts.h
+@@ -0,0 +1,37 @@
++/*
++ * Copyright (C) 2010 Intel, Inc
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
++ *
++ * Authors: Thomas Wood <thomas.wood@intel.com>
++ *          Rodrigo Moya <rodrigo@gnome.org>
++ */
++
++#include <gtk/gtk.h>
++
++#include "cc-region-keyboard-item.h"
++
++void                   keyboard_shortcuts_init         (void);
++
++void                   keyboard_shortcuts_dispose      (void);
++
++CcRegionKeyboardItem * keyboard_shortcuts_get_item     (const gchar          *schema,
++                                                        const gchar          *key);
++
++gboolean               keyboard_shortcuts_accel_edited (CcRegionKeyboardItem *item,
++                                                        guint                 keyval,
++                                                        guint                 keycode,
++                                                        GdkModifierType       mask,
++                                                        GtkWidget            *toplevel);
+--- /dev/null
++++ b/panels/region/wm-common.c
+@@ -0,0 +1,184 @@
++#include <X11/Xatom.h>
++#include <gdk/gdkx.h>
++#include <gdk/gdk.h>
++#include <string.h>
++#include <glib.h>
++#include <glib-object.h>
++#include "wm-common.h"
++
++typedef struct _WMCallbackData
++{
++  GFunc func;
++  gpointer data;
++} WMCallbackData;
++
++/* Our WM Window */
++static Window wm_window = None;
++
++static char *
++wm_common_get_window_manager_property (Atom atom)
++{
++  Atom utf8_string, type;
++  int result;
++  char *retval;
++  int format;
++  gulong nitems;
++  gulong bytes_after;
++  gchar *val;
++
++  if (wm_window == None)
++    return NULL;
++
++  utf8_string = XInternAtom (GDK_DISPLAY_XDISPLAY (gdk_display_get_default ()), "UTF8_STRING", False);
++
++  gdk_error_trap_push ();
++
++  val = NULL;
++  result = XGetWindowProperty (GDK_DISPLAY_XDISPLAY (gdk_display_get_default ()),
++		  	       wm_window,
++			       atom,
++			       0, G_MAXLONG,
++			       False, utf8_string,
++			       &type, &format, &nitems,
++			       &bytes_after, (guchar **) &val);
++
++  if (gdk_error_trap_pop () || result != Success ||
++      type != utf8_string || format != 8 || nitems == 0 ||
++      !g_utf8_validate (val, nitems, NULL))
++    {
++      retval = NULL;
++    }
++  else
++    {
++      retval = g_strndup (val, nitems);
++    }
++
++  if (val)
++    XFree (val);
++
++  return retval;
++}
++
++char*
++wm_common_get_current_window_manager (void)
++{
++  Atom atom = XInternAtom (GDK_DISPLAY_XDISPLAY (gdk_display_get_default ()), "_NET_WM_NAME", False);
++  char *result;
++
++  result = wm_common_get_window_manager_property (atom);
++  if (result)
++    return result;
++  else
++    return g_strdup (WM_COMMON_UNKNOWN);
++}
++
++char**
++wm_common_get_current_keybindings (void)
++{
++  Atom keybindings_atom = XInternAtom (GDK_DISPLAY_XDISPLAY (gdk_display_get_default ()), "_GNOME_WM_KEYBINDINGS", False);
++  char *keybindings = wm_common_get_window_manager_property (keybindings_atom);
++  char **results;
++
++  if (keybindings)
++    {
++      char **p;
++      results = g_strsplit(keybindings, ",", -1);
++      for (p = results; *p; p++)
++	g_strstrip (*p);
++      g_free (keybindings);
++    }
++  else
++    {
++      Atom wm_atom = XInternAtom (GDK_DISPLAY_XDISPLAY (gdk_display_get_default ()), "_NET_WM_NAME", False);
++      char *wm_name = wm_common_get_window_manager_property (wm_atom);
++      char *to_copy[] = { NULL, NULL };
++
++      to_copy[0] = wm_name ? wm_name : WM_COMMON_UNKNOWN;
++
++      results = g_strdupv (to_copy);
++      g_free (wm_name);
++    }
++
++  return results;
++}
++
++static void
++update_wm_window (void)
++{
++  Window *xwindow;
++  Atom type;
++  gint format;
++  gulong nitems;
++  gulong bytes_after;
++
++  XGetWindowProperty (GDK_DISPLAY_XDISPLAY (gdk_display_get_default ()), GDK_ROOT_WINDOW (),
++		      XInternAtom (GDK_DISPLAY_XDISPLAY (gdk_display_get_default ()), "_NET_SUPPORTING_WM_CHECK", False),
++		      0, G_MAXLONG, False, XA_WINDOW, &type, &format,
++		      &nitems, &bytes_after, (guchar **) &xwindow);
++
++  if (type != XA_WINDOW)
++    {
++      wm_window = None;
++     return;
++    }
++
++  gdk_error_trap_push ();
++  XSelectInput (GDK_DISPLAY_XDISPLAY (gdk_display_get_default ()), *xwindow, StructureNotifyMask | PropertyChangeMask);
++  XSync (GDK_DISPLAY_XDISPLAY (gdk_display_get_default ()), False);
++
++  if (gdk_error_trap_pop ())
++    {
++       XFree (xwindow);
++       wm_window = None;
++       return;
++    }
++
++    wm_window = *xwindow;
++    XFree (xwindow);
++}
++
++static GdkFilterReturn
++wm_window_event_filter (GdkXEvent *xev,
++			GdkEvent  *event,
++			gpointer   data)
++{
++  WMCallbackData *ncb_data = (WMCallbackData*) data;
++  XEvent *xevent = (XEvent *)xev;
++
++  if ((xevent->type == DestroyNotify &&
++       wm_window != None && xevent->xany.window == wm_window) ||
++      (xevent->type == PropertyNotify &&
++       xevent->xany.window == GDK_ROOT_WINDOW () &&
++       xevent->xproperty.atom == (XInternAtom (GDK_DISPLAY_XDISPLAY (gdk_display_get_default ()),  "_NET_SUPPORTING_WM_CHECK", False))) ||
++      (xevent->type == PropertyNotify &&
++       wm_window != None && xevent->xany.window == wm_window &&
++       xevent->xproperty.atom == (XInternAtom (GDK_DISPLAY_XDISPLAY (gdk_display_get_default ()), "_NET_WM_NAME", False))))
++    {
++      update_wm_window ();
++      (* ncb_data->func) ((gpointer)wm_common_get_current_window_manager(),
++		   	  ncb_data->data);
++    }
++
++  return GDK_FILTER_CONTINUE;
++}
++
++void
++wm_common_register_window_manager_change (GFunc    func,
++					  gpointer data)
++{
++  WMCallbackData *ncb_data;
++
++  ncb_data = g_new0 (WMCallbackData, 1);
++
++  ncb_data->func = func;
++  ncb_data->data = data;
++
++  gdk_window_add_filter (NULL, wm_window_event_filter, ncb_data);
++
++  update_wm_window ();
++
++  XSelectInput (GDK_DISPLAY_XDISPLAY (gdk_display_get_default ()), GDK_ROOT_WINDOW (), PropertyChangeMask);
++  XSync (GDK_DISPLAY_XDISPLAY (gdk_display_get_default ()), False);
++}
++
++
+--- /dev/null
++++ b/panels/region/wm-common.h
+@@ -0,0 +1,17 @@
++#ifndef WM_COMMON_H
++#define WM_COMMON_H
++
++#define WM_COMMON_METACITY "Metacity"
++#define WM_COMMON_SAWFISH  "Sawfish"
++#define WM_COMMON_UNKNOWN  "Unknown"
++
++gchar *wm_common_get_current_window_manager (void);
++/* Returns a strv of keybinding names for the window manager;
++ * using _GNOME_WM_KEYBINDINGS if available, _NET_WM_NAME otherwise. */
++char **wm_common_get_current_keybindings (void);
++
++void   wm_common_register_window_manager_change (GFunc    func,
++						 gpointer data);
++
++#endif /* WM_COMMON_H */
++
+--- a/configure.ac
++++ b/configure.ac
+@@ -154,7 +154,8 @@
+ PKG_CHECK_MODULES(REGION_PANEL, $COMMON_MODULES
+                   polkit-gobject-1 >= $POLKIT_REQUIRED_VERSION
+                   gnome-desktop-3.0 >= $GNOME_DESKTOP_REQUIRED_VERSION
+-                  $IBUS_MODULE)
++                  $IBUS_MODULE
++                  x11)
+ PKG_CHECK_MODULES(SCREEN_PANEL, $COMMON_MODULES)
+ PKG_CHECK_MODULES(SOUND_PANEL, $COMMON_MODULES libxml-2.0
+                   libcanberra-gtk3 >= $CANBERRA_REQUIRED_VERSION
+--- /dev/null
++++ b/panels/region/cc-region-keyboard-item.c
+@@ -0,0 +1,493 @@
++/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 8 -*-
++ *
++ * Copyright (C) 2011 Red Hat, Inc.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
++ *
++ */
++
++#include "config.h"
++
++#include <stdlib.h>
++#include <stdio.h>
++
++#include <gtk/gtk.h>
++#include <gio/gio.h>
++#include <glib/gi18n-lib.h>
++
++#include "cc-region-keyboard-item.h"
++
++#define CC_REGION_KEYBOARD_ITEM_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), CC_TYPE_REGION_KEYBOARD_ITEM, CcRegionKeyboardItemPrivate))
++
++#define CUSTOM_KEYS_SCHEMA "org.gnome.settings-daemon.plugins.media-keys.custom-keybinding"
++
++struct CcRegionKeyboardItemPrivate
++{
++  /* properties */
++  int foo;
++
++  /* internal */
++};
++
++enum {
++  PROP_0,
++  PROP_DESCRIPTION,
++  PROP_BINDING,
++  PROP_EDITABLE,
++  PROP_TYPE,
++  PROP_COMMAND
++};
++
++static void cc_region_keyboard_item_class_init (CcRegionKeyboardItemClass *klass);
++static void cc_region_keyboard_item_init       (CcRegionKeyboardItem      *region_keyboard_item);
++static void cc_region_keyboard_item_finalize   (GObject                   *object);
++
++G_DEFINE_TYPE (CcRegionKeyboardItem, cc_region_keyboard_item, G_TYPE_OBJECT)
++
++static gboolean
++binding_from_string (const char      *str,
++                     guint           *accelerator_key,
++                     guint           *keycode,
++                     GdkModifierType *accelerator_mods)
++{
++  g_return_val_if_fail (accelerator_key != NULL, FALSE);
++  guint *keycodes;
++
++  if (str == NULL || strcmp (str, "disabled") == 0)
++    {
++      *accelerator_key = 0;
++      *keycode = 0;
++      *accelerator_mods = 0;
++      return TRUE;
++    }
++
++  gtk_accelerator_parse_with_keycode (str, accelerator_key, &keycodes, accelerator_mods);
++
++  if (keycode != NULL)
++    *keycode = (keycodes ? keycodes[0] : 0);
++  g_free (keycodes);
++
++  if (*accelerator_key == 0)
++    return FALSE;
++  else
++    return TRUE;
++}
++
++static void
++_set_description (CcRegionKeyboardItem *item,
++                  const char           *value)
++{
++  g_free (item->description);
++  item->description = g_strdup (value);
++}
++
++const char *
++cc_region_keyboard_item_get_description (CcRegionKeyboardItem *item)
++{
++  g_return_val_if_fail (CC_IS_REGION_KEYBOARD_ITEM (item), NULL);
++
++  return item->description;
++}
++
++/* wrapper around g_settings_set_str[ing|v] */
++static void
++settings_set_binding (GSettings  *settings,
++                      const char *key,
++		      const char *value)
++{
++  GVariant *variant;
++
++  variant = g_settings_get_value (settings, key);
++
++  if (g_variant_is_of_type (variant, G_VARIANT_TYPE_STRING))
++    g_settings_set_string (settings, key, value);
++  else if (g_variant_is_of_type (variant, G_VARIANT_TYPE_STRING_ARRAY))
++    {
++      char **str_array;
++
++      str_array = g_variant_dup_strv (variant, NULL);
++
++      /* create a space for the new binding if empty */
++      if (*str_array == NULL)
++        {
++          g_free (str_array);
++          str_array = g_new0 (char *, 2);
++        }
++
++      /* replace the first binding */
++      g_free (*str_array);
++      *str_array = g_strdup (value);
++
++      g_settings_set_strv (settings, key, (const char * const *)str_array);
++      g_strfreev (str_array);
++    }
++
++  g_variant_unref (variant);
++}
++
++
++static void
++_set_binding (CcRegionKeyboardItem *item,
++              const char           *value,
++	      gboolean              set_backend)
++{
++  /* don't reassign <Alt_L> or <Alt> key in the callback to the binding itself (as it's invalid for the cell renderer) */
++  if ((g_strcmp0 (value, "<Alt_L>") == 0) || (g_strcmp0 (value, "<Alt>") == 0))
++    return;
++
++  g_free (item->binding);
++  item->binding = g_strdup (value);
++  binding_from_string (item->binding, &item->keyval, &item->keycode, &item->mask);
++
++  const char *key;
++  char *cheated_modifier = NULL;
++  if (g_strcmp0 (item->binding, "Alt_L") == 0)
++    cheated_modifier = g_strdup_printf ("<%s>", item->binding);
++
++  if (set_backend == FALSE)
++    return;
++
++  settings_set_binding (item->settings, item->key, cheated_modifier ? cheated_modifier: item->binding);
++
++  g_free (cheated_modifier);
++}
++
++const char *
++cc_region_keyboard_item_get_binding (CcRegionKeyboardItem *item)
++{
++  g_return_val_if_fail (CC_IS_REGION_KEYBOARD_ITEM (item), NULL);
++
++  return item->binding;
++}
++
++static void
++_set_type (CcRegionKeyboardItem *item,
++           gint                  value)
++{
++  item->type = value;
++}
++
++static void
++_set_command (CcRegionKeyboardItem *item,
++              const char           *value)
++{
++  g_free (item->command);
++  item->command = g_strdup (value);
++}
++
++const char *
++cc_region_keyboard_item_get_command (CcRegionKeyboardItem *item)
++{
++  g_return_val_if_fail (CC_IS_REGION_KEYBOARD_ITEM (item), NULL);
++
++  return item->command;
++}
++
++static void
++cc_region_keyboard_item_set_property (GObject      *object,
++                                      guint         prop_id,
++                                      const GValue *value,
++                                      GParamSpec   *pspec)
++{
++  CcRegionKeyboardItem *self;
++
++  self = CC_REGION_KEYBOARD_ITEM (object);
++
++  switch (prop_id) {
++  case PROP_DESCRIPTION:
++    _set_description (self, g_value_get_string (value));
++    break;
++  case PROP_BINDING:
++    _set_binding (self, g_value_get_string (value), TRUE);
++    break;
++  case PROP_COMMAND:
++    _set_command (self, g_value_get_string (value));
++    break;
++  case PROP_TYPE:
++    _set_type (self, g_value_get_int (value));
++    break;
++  default:
++    G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
++    break;
++  }
++}
++
++static void
++cc_region_keyboard_item_get_property (GObject    *object,
++                                      guint       prop_id,
++                                      GValue     *value,
++                                      GParamSpec *pspec)
++{
++  CcRegionKeyboardItem *self;
++
++  self = CC_REGION_KEYBOARD_ITEM (object);
++
++  switch (prop_id) {
++  case PROP_DESCRIPTION:
++    g_value_set_string (value, self->description);
++    break;
++  case PROP_BINDING:
++    g_value_set_string (value, self->binding);
++    break;
++  case PROP_EDITABLE:
++    g_value_set_boolean (value, self->editable);
++    break;
++  case PROP_COMMAND:
++    g_value_set_string (value, self->command);
++    break;
++  default:
++    G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
++    break;
++  }
++}
++
++static GObject *
++cc_region_keyboard_item_constructor (GType                  type,
++                                     guint                  n_construct_properties,
++                                     GObjectConstructParam *construct_properties)
++{
++  CcRegionKeyboardItem      *region_keyboard_item;
++
++  region_keyboard_item = CC_REGION_KEYBOARD_ITEM (G_OBJECT_CLASS (cc_region_keyboard_item_parent_class)->constructor (type,
++                                                                                                 n_construct_properties,
++                                                                                                 construct_properties));
++
++  return G_OBJECT (region_keyboard_item);
++}
++
++static void
++cc_region_keyboard_item_class_init (CcRegionKeyboardItemClass *klass)
++{
++  GObjectClass  *object_class = G_OBJECT_CLASS (klass);
++
++  object_class->get_property = cc_region_keyboard_item_get_property;
++  object_class->set_property = cc_region_keyboard_item_set_property;
++  object_class->constructor = cc_region_keyboard_item_constructor;
++  object_class->finalize = cc_region_keyboard_item_finalize;
++
++  g_object_class_install_property (object_class,
++                                   PROP_DESCRIPTION,
++                                   g_param_spec_string ("description",
++                                                        "description",
++                                                        "description",
++                                                        NULL,
++                                                        G_PARAM_READWRITE));
++
++  g_object_class_install_property (object_class,
++                                   PROP_BINDING,
++                                   g_param_spec_string ("binding",
++                                                        "binding",
++                                                        "binding",
++                                                        NULL,
++                                                        G_PARAM_READWRITE));
++
++  g_object_class_install_property (object_class,
++                                   PROP_EDITABLE,
++                                   g_param_spec_boolean ("editable",
++                                                         NULL,
++                                                         NULL,
++                                                         FALSE,
++                                                         G_PARAM_READABLE));
++
++  g_object_class_install_property (object_class,
++                                   PROP_TYPE,
++                                   g_param_spec_int ("type",
++                                                     NULL,
++                                                     NULL,
++                                                     CC_REGION_KEYBOARD_ITEM_TYPE_NONE,
++                                                     CC_REGION_KEYBOARD_ITEM_TYPE_GSETTINGS,
++                                                     CC_REGION_KEYBOARD_ITEM_TYPE_NONE,
++                                                     G_PARAM_CONSTRUCT_ONLY | G_PARAM_WRITABLE));
++
++  g_object_class_install_property (object_class,
++                                   PROP_COMMAND,
++                                   g_param_spec_string ("command",
++                                                        "command",
++                                                        "command",
++                                                        NULL,
++                                                        G_PARAM_READWRITE));
++
++  g_type_class_add_private (klass, sizeof (CcRegionKeyboardItemPrivate));
++}
++
++static void
++cc_region_keyboard_item_init (CcRegionKeyboardItem *item)
++{
++  item->priv = CC_REGION_KEYBOARD_ITEM_GET_PRIVATE (item);
++}
++
++static void
++cc_region_keyboard_item_finalize (GObject *object)
++{
++  CcRegionKeyboardItem *item;
++
++  g_return_if_fail (object != NULL);
++  g_return_if_fail (CC_IS_REGION_KEYBOARD_ITEM (object));
++
++  item = CC_REGION_KEYBOARD_ITEM (object);
++
++  g_return_if_fail (item->priv != NULL);
++
++  if (item->settings != NULL)
++    g_object_unref (item->settings);
++
++  /* Free memory */
++  g_free (item->binding);
++  g_free (item->gettext_package);
++  g_free (item->gsettings_path);
++  g_free (item->description);
++  g_free (item->command);
++  g_free (item->schema);
++  g_free (item->key);
++
++  G_OBJECT_CLASS (cc_region_keyboard_item_parent_class)->finalize (object);
++}
++
++CcRegionKeyboardItem *
++cc_region_keyboard_item_new (CcRegionKeyboardItemType type)
++{
++  GObject *object;
++
++  object = g_object_new (CC_TYPE_REGION_KEYBOARD_ITEM,
++                         "type", type,
++                         NULL);
++
++  return CC_REGION_KEYBOARD_ITEM (object);
++}
++
++/* wrapper around g_settings_get_str[ing|v] */
++static char *
++settings_get_binding (GSettings  *settings,
++                      const char *key)
++{
++  GVariant *variant;
++  char *value = NULL;
++
++  variant = g_settings_get_value (settings, key);
++  if (g_variant_is_of_type (variant, G_VARIANT_TYPE_STRING))
++    value = g_variant_dup_string (variant, NULL);
++  else if (g_variant_is_of_type (variant, G_VARIANT_TYPE_STRING_ARRAY))
++    {
++      const char **str_array;
++
++      str_array = g_variant_get_strv (variant, NULL);
++      value = g_strdup (str_array[0]);
++    }
++  g_variant_unref (variant);
++
++  return value;
++}
++
++static void
++binding_changed (GSettings            *settings,
++                 const char           *key,
++                 CcRegionKeyboardItem *item)
++{
++  char *value;
++
++  value = settings_get_binding (item->settings, item->key);
++  item->editable = g_settings_is_writable (item->settings, item->key);
++  _set_binding (item, value, FALSE);
++  g_free (value);
++  g_object_notify (G_OBJECT (item), "binding");
++}
++
++gboolean
++cc_region_keyboard_item_load_from_gsettings_path (CcRegionKeyboardItem *item,
++                                                  const char           *path,
++                                                  gboolean              reset)
++{
++  item->schema = g_strdup (CUSTOM_KEYS_SCHEMA);
++  item->gsettings_path = g_strdup (path);
++  item->key = g_strdup ("binding");
++  item->settings = g_settings_new_with_path (item->schema, path);
++  item->editable = g_settings_is_writable (item->settings, item->key);
++  item->desc_editable = g_settings_is_writable (item->settings, "name");
++  item->cmd_editable = g_settings_is_writable (item->settings, "command");
++
++  if (reset)
++    {
++      g_settings_reset (item->settings, "name");
++      g_settings_reset (item->settings, "command");
++      g_settings_reset (item->settings, "binding");
++    }
++
++  g_settings_bind (item->settings, "name",
++                   G_OBJECT (item), "description", G_SETTINGS_BIND_DEFAULT);
++  g_settings_bind (item->settings, "command",
++                   G_OBJECT (item), "command", G_SETTINGS_BIND_DEFAULT);
++
++  item->binding = settings_get_binding (item->settings, item->key);
++  binding_from_string (item->binding, &item->keyval, &item->keycode, &item->mask);
++  g_signal_connect (G_OBJECT (item->settings), "changed::binding",
++		    G_CALLBACK (binding_changed), item);
++
++  return TRUE;
++}
++
++gboolean
++cc_region_keyboard_item_load_from_gsettings (CcRegionKeyboardItem *item,
++                                             const char           *description,
++                                             const char           *schema,
++                                             const char           *key)
++{
++  char *signal_name;
++
++  item->schema = g_strdup (schema);
++  item->key = g_strdup (key);
++  item->description = g_strdup (description);
++
++  item->settings = g_settings_new (item->schema);
++  item->binding = settings_get_binding (item->settings, item->key);
++  item->editable = g_settings_is_writable (item->settings, item->key);
++
++  if ((g_strcmp0 (item->binding, "<Alt>") == 0) || (g_strcmp0 (item->binding, "<Alt_L>") == 0))
++    {
++      g_free (item->binding);
++      item->binding = g_strdup ("Alt_L");
++    }
++
++  binding_from_string (item->binding, &item->keyval, &item->keycode, &item->mask);
++
++  signal_name = g_strdup_printf ("changed::%s", item->key);
++  g_signal_connect (G_OBJECT (item->settings), signal_name,
++		    G_CALLBACK (binding_changed), item);
++  g_free (signal_name);
++
++  return TRUE;
++}
++
++gboolean
++cc_region_keyboard_item_equal (CcRegionKeyboardItem *a,
++                               CcRegionKeyboardItem *b)
++{
++  if (a->type != b->type)
++    return FALSE;
++  switch (a->type)
++    {
++      case CC_REGION_KEYBOARD_ITEM_TYPE_GSETTINGS_PATH:
++	return g_str_equal (a->gsettings_path, b->gsettings_path);
++      case CC_REGION_KEYBOARD_ITEM_TYPE_GSETTINGS:
++	return (g_str_equal (a->schema, b->schema) &&
++		g_str_equal (a->key, b->key));
++      default:
++	g_assert_not_reached ();
++    }
++
++}
++
++/*
++ * vim: sw=2 ts=8 cindent noai bs=2
++ */
+--- /dev/null
++++ b/panels/region/cc-region-keyboard-item.h
+@@ -0,0 +1,108 @@
++/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 8 -*-
++ *
++ * Copyright (C) 2011 Red Hat, Inc.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
++ *
++ */
++
++#ifndef __CC_REGION_KEYBOARD_ITEM_H
++#define __CC_REGION_KEYBOARD_ITEM_H
++
++#include <glib-object.h>
++
++G_BEGIN_DECLS
++
++#define CC_TYPE_REGION_KEYBOARD_ITEM         (cc_region_keyboard_item_get_type ())
++#define CC_REGION_KEYBOARD_ITEM(o)           (G_TYPE_CHECK_INSTANCE_CAST ((o), CC_TYPE_REGION_KEYBOARD_ITEM, CcRegionKeyboardItem))
++#define CC_REGION_KEYBOARD_ITEM_CLASS(k)     (G_TYPE_CHECK_CLASS_CAST((k), CC_TYPE_REGION_KEYBOARD_ITEM, CcRegionKeyboardItemClass))
++#define CC_IS_REGION_KEYBOARD_ITEM(o)        (G_TYPE_CHECK_INSTANCE_TYPE ((o), CC_TYPE_REGION_KEYBOARD_ITEM))
++#define CC_IS_REGION_KEYBOARD_ITEM_CLASS(k)  (G_TYPE_CHECK_CLASS_TYPE ((k), CC_TYPE_REGION_KEYBOARD_ITEM))
++#define CC_REGION_KEYBOARD_ITEM_GET_CLASS(o) (G_TYPE_INSTANCE_GET_CLASS ((o), CC_TYPE_REGION_KEYBOARD_ITEM, CcRegionKeyboardItemClass))
++
++typedef enum
++{
++  BINDING_GROUP_SYSTEM,
++  BINDING_GROUP_APPS,
++  BINDING_GROUP_SEPARATOR,
++  BINDING_GROUP_USER,
++} BindingGroupType;
++
++typedef enum {
++	CC_REGION_KEYBOARD_ITEM_TYPE_NONE = 0,
++	CC_REGION_KEYBOARD_ITEM_TYPE_GSETTINGS_PATH,
++	CC_REGION_KEYBOARD_ITEM_TYPE_GSETTINGS
++} CcRegionKeyboardItemType;
++
++typedef struct CcRegionKeyboardItemPrivate CcRegionKeyboardItemPrivate;
++
++typedef struct
++{
++  GObject                parent;
++  CcRegionKeyboardItemPrivate *priv;
++
++  /* Move to priv */
++  CcRegionKeyboardItemType type;
++
++  /* common */
++  /* FIXME move to priv? */
++  guint keyval;
++  guint keycode;
++  GdkModifierType mask;
++  BindingGroupType group;
++  GtkTreeModel *model;
++  char *description;
++  char *gettext_package;
++  char *binding;
++  gboolean editable;
++
++  /* GSettings path */
++  char *gsettings_path;
++  gboolean desc_editable;
++  char *command;
++  gboolean cmd_editable;
++
++  /* GSettings */
++  char *schema;
++  char *key;
++  GSettings *settings;
++} CcRegionKeyboardItem;
++
++typedef struct
++{
++  GObjectClass   parent_class;
++} CcRegionKeyboardItemClass;
++
++GType                  cc_region_keyboard_item_get_type                 (void);
++
++CcRegionKeyboardItem * cc_region_keyboard_item_new                      (CcRegionKeyboardItemType  type);
++gboolean               cc_region_keyboard_item_load_from_gsettings_path (CcRegionKeyboardItem     *item,
++                                                                         const char               *path,
++                                                                         gboolean                  reset);
++gboolean               cc_region_keyboard_item_load_from_gsettings      (CcRegionKeyboardItem     *item,
++                                                                         const char               *description,
++                                                                         const char               *schema,
++                                                                         const char               *key);
++
++const char *           cc_region_keyboard_item_get_description          (CcRegionKeyboardItem     *item);
++const char *           cc_region_keyboard_item_get_binding              (CcRegionKeyboardItem     *item);
++const char *           cc_region_keyboard_item_get_command              (CcRegionKeyboardItem     *item);
++
++gboolean               cc_region_keyboard_item_equal                    (CcRegionKeyboardItem     *a,
++                                                                         CcRegionKeyboardItem     *b);
++
++G_END_DECLS
++
++#endif /* __CC_REGION_KEYBOARD_ITEM_H */
+--- a/po/POTFILES.in
++++ b/po/POTFILES.in
+@@ -81,7 +81,7 @@
+ [type: gettext/glade]panels/region/gnome-region-panel-input-chooser.ui
+ panels/region/gnome-region-panel-system.c
+ [type: gettext/glade]panels/region/gnome-region-panel.ui
+-panels/region/ubuntu-region-panel.desktop.in.in
++panels/region/gtkentryaccel.c
+ panels/screen/gnome-screen-panel.desktop.in.in
+ [type: gettext/glade]panels/screen/screen.ui
+ panels/sound/applet-main.c
