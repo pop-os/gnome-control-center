@@ -1,5 +1,7 @@
---- a/panels/display/cc-display-panel.c
-+++ b/panels/display/cc-display-panel.c
+Index: gnome-control-center-3.4.2/panels/display/cc-display-panel.c
+===================================================================
+--- gnome-control-center-3.4.2.orig/panels/display/cc-display-panel.c	2012-05-15 12:18:30.000000000 +0200
++++ gnome-control-center-3.4.2/panels/display/cc-display-panel.c	2012-07-23 10:26:57.281976435 +0200
 @@ -54,6 +54,13 @@
  #define MINIMUM_WIDTH 675
  #define MINIMUM_HEIGHT 530
@@ -47,7 +49,7 @@
    shell = cc_panel_get_shell (CC_PANEL (self));
    if (shell != NULL)
      {
-@@ -231,6 +250,12 @@
+@@ -223,6 +242,12 @@
  }
  
  static gboolean
@@ -60,7 +62,7 @@
  should_show_resolution (gint output_width,
                          gint output_height,
                          gint width,
-@@ -270,6 +295,9 @@
+@@ -262,6 +287,9 @@
       gnome_rr_labeler_show (self->priv->labeler);
  
    select_current_output_from_dialog_position (self);
@@ -70,7 +72,7 @@
  }
  
  static void
-@@ -607,6 +635,10 @@
+@@ -599,6 +627,10 @@
    gtk_widget_set_sensitive (self->priv->clone_checkbox, mirror_is_supported);
    gtk_widget_set_sensitive (self->priv->clone_label, mirror_is_supported);
  
@@ -81,7 +83,7 @@
    g_signal_handlers_unblock_by_func (self->priv->clone_checkbox, G_CALLBACK (on_clone_changed), self);
  }
  
-@@ -845,6 +877,7 @@
+@@ -838,6 +870,7 @@
    rebuild_on_off_radios (self);
    rebuild_resolution_combo (self);
    rebuild_rotation_combo (self);
@@ -89,7 +91,7 @@
  
    self->priv->ignore_gui_changes = FALSE;
  }
-@@ -1729,6 +1762,10 @@
+@@ -1722,6 +1755,10 @@
    outputs = gnome_rr_config_get_outputs (self->priv->current_configuration);
    for (i = 0; outputs[i] != NULL; ++i)
      gnome_rr_output_info_set_primary (outputs[i], outputs[i] == output);
@@ -100,7 +102,7 @@
  }
  
  static void
-@@ -2080,7 +2117,30 @@
+@@ -2073,7 +2110,30 @@
    g_object_unref (layout);
    cairo_restore (cr);
  
@@ -132,7 +134,7 @@
      {
        const char *clock_format;
        char *text;
-@@ -2563,6 +2623,233 @@
+@@ -2556,6 +2616,233 @@
  }
  
  static void
@@ -366,7 +368,7 @@
  cc_display_panel_init (CcDisplayPanel *self)
  {
  }
-@@ -2579,7 +2866,7 @@
+@@ -2572,7 +2859,7 @@
    CcDisplayPanel *self;
    CcShell *shell;
    GtkWidget *toplevel;
@@ -375,7 +377,7 @@
  
    obj = G_OBJECT_CLASS (cc_display_panel_parent_class)->constructor (gtype, n_properties, properties);
    self = CC_DISPLAY_PANEL (obj);
-@@ -2668,6 +2955,18 @@
+@@ -2661,6 +2948,18 @@
    g_signal_connect_swapped (WID ("apply_button"),
                              "clicked", G_CALLBACK (apply), self);
  
@@ -394,13 +396,15 @@
    gtk_widget_show (self->priv->panel);
    gtk_container_add (GTK_CONTAINER (self), self->priv->panel);
  
-@@ -2682,4 +2981,3 @@
+@@ -2675,4 +2974,3 @@
                                    CC_TYPE_DISPLAY_PANEL,
                                    "display", 0);
  }
 -
---- a/panels/display/display-capplet.ui
-+++ b/panels/display/display-capplet.ui
+Index: gnome-control-center-3.4.2/panels/display/display-capplet.ui
+===================================================================
+--- gnome-control-center-3.4.2.orig/panels/display/display-capplet.ui	2012-03-05 15:04:55.000000000 +0100
++++ gnome-control-center-3.4.2/panels/display/display-capplet.ui	2012-07-23 10:26:45.805976846 +0200
 @@ -1,6 +1,14 @@
  <?xml version="1.0"?>
  <interface>

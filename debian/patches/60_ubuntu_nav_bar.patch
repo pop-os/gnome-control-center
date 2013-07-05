@@ -2,8 +2,10 @@
 # UbuntuSpecific: yes
 #
 === modified file 'shell/Makefile.am'
---- a/shell/Makefile.am
-+++ b/shell/Makefile.am
+Index: gnome-control-center-3.6.3/shell/Makefile.am
+===================================================================
+--- gnome-control-center-3.6.3.orig/shell/Makefile.am	2012-10-01 11:39:00.000000000 +0200
++++ gnome-control-center-3.6.3/shell/Makefile.am	2012-11-22 10:20:59.485282338 +0100
 @@ -26,6 +26,8 @@
  	cc-shell-item-view.h			\
  	cc-shell-model.c			\
@@ -13,13 +15,17 @@
  	cc-editable-entry.c			\
  	cc-editable-entry.h			\
  	cc-panel.c				\
---- a/shell/cc-shell-marshal.list
-+++ b/shell/cc-shell-marshal.list
+Index: gnome-control-center-3.6.3/shell/cc-shell-marshal.list
+===================================================================
+--- gnome-control-center-3.6.3.orig/shell/cc-shell-marshal.list	2011-11-07 18:22:02.000000000 +0100
++++ gnome-control-center-3.6.3/shell/cc-shell-marshal.list	2012-11-22 10:20:56.873282212 +0100
 @@ -1 +1,2 @@
  VOID:STRING,STRING,STRING
 +VOID:VOID
---- /dev/null
-+++ b/shell/cc-shell-nav-bar.c
+Index: gnome-control-center-3.6.3/shell/cc-shell-nav-bar.c
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ gnome-control-center-3.6.3/shell/cc-shell-nav-bar.c	2012-11-22 10:20:56.873282212 +0100
 @@ -0,0 +1,150 @@
 +/*
 + * Copyright 2012 Canonical
@@ -171,8 +177,10 @@
 +{
 +  gtk_widget_hide (bar->priv->detail_button);
 +}
---- /dev/null
-+++ b/shell/cc-shell-nav-bar.h
+Index: gnome-control-center-3.6.3/shell/cc-shell-nav-bar.h
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ gnome-control-center-3.6.3/shell/cc-shell-nav-bar.h	2012-11-22 10:20:56.877282212 +0100
 @@ -0,0 +1,76 @@
 +/*
 + * Copyright 2012 Canonical
@@ -250,8 +258,10 @@
 +G_END_DECLS
 +
 +#endif /* _CC_SHELL_NAV_BAR_H */
---- a/shell/gnome-control-center.c
-+++ b/shell/gnome-control-center.c
+Index: gnome-control-center-3.6.3/shell/gnome-control-center.c
+===================================================================
+--- gnome-control-center-3.6.3.orig/shell/gnome-control-center.c	2012-11-22 10:20:56.833282210 +0100
++++ gnome-control-center-3.6.3/shell/gnome-control-center.c	2012-11-22 10:20:59.485282338 +0100
 @@ -38,6 +38,7 @@
  #include "cc-shell.h"
  #include "cc-shell-category-view.h"
@@ -260,7 +270,7 @@
  
  G_DEFINE_TYPE (GnomeControlCenter, gnome_control_center, CC_TYPE_SHELL)
  
-@@ -76,6 +77,7 @@
+@@ -75,6 +76,7 @@
    GtkWidget  *search_entry;
    GtkWidget  *lock_button;
    GPtrArray  *custom_widgets;
@@ -268,7 +278,7 @@
  
    GMenuTree  *menu_tree;
    GtkListStore *store;
-@@ -238,6 +240,7 @@
+@@ -237,6 +239,7 @@
    /* switch to the new panel */
    gtk_widget_show (box);
    notebook_select_page (priv->notebook, box);
@@ -276,7 +286,7 @@
  
    /* set the title of the window */
    icon_name = get_icon_name_from_g_icon (gicon);
-@@ -300,6 +303,8 @@
+@@ -299,6 +302,8 @@
  
    /* clear any custom widgets */
    _shell_remove_all_custom_widgets (priv);
@@ -285,7 +295,7 @@
  }
  
  void
-@@ -903,11 +908,8 @@
+@@ -902,11 +907,8 @@
  
    child = notebook_get_selected_page (GTK_WIDGET (notebook));
  
@@ -297,7 +307,7 @@
        gtk_widget_show (W (priv->builder, "search-entry"));
        gtk_widget_hide (W (priv->builder, "lock-button"));
  
-@@ -922,7 +924,6 @@
+@@ -917,7 +919,6 @@
      }
    else
      {
@@ -305,7 +315,7 @@
        gtk_widget_hide (W (priv->builder, "search-entry"));
        /* set the scrolled window small so that it doesn't force
           the window to be larger than this panel */
-@@ -1347,6 +1348,7 @@
+@@ -1332,6 +1333,7 @@
    GError *err = NULL;
    GnomeControlCenterPrivate *priv;
    GdkScreen *screen;
@@ -313,7 +323,7 @@
  
    priv = self->priv = CONTROL_CENTER_PRIVATE (self);
  
-@@ -1396,8 +1398,14 @@
+@@ -1378,8 +1380,14 @@
    g_signal_connect (priv->notebook, "notify::page",
                      G_CALLBACK (notebook_page_notify_cb), priv);
  
@@ -330,8 +340,10 @@
  
    /* keep a list of custom widgets to unload on panel change */
    priv->custom_widgets = g_ptr_array_new_with_free_func ((GDestroyNotify) g_object_unref);
---- a/shell/shell.ui
-+++ b/shell/shell.ui
+Index: gnome-control-center-3.6.3/shell/shell.ui
+===================================================================
+--- gnome-control-center-3.6.3.orig/shell/shell.ui	2012-11-14 12:42:44.000000000 +0100
++++ gnome-control-center-3.6.3/shell/shell.ui	2012-11-22 10:21:52.369284899 +0100
 @@ -34,36 +34,6 @@
                        <object class="GtkHBox" id="hbox1">
                          <property name="visible">True</property>

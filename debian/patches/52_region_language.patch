@@ -44,8 +44,10 @@ Last-Update: 2013-03-21
  * The 'common_name' field taken into account when parsing the iso-codes XML files
    for language names.
 
---- a/panels/common/cc-common-language.c
-+++ b/panels/common/cc-common-language.c
+Index: gnome-control-center-3.6.3/panels/common/cc-common-language.c
+===================================================================
+--- gnome-control-center-3.6.3.orig/panels/common/cc-common-language.c	2013-03-15 17:20:48.939849976 +0100
++++ gnome-control-center-3.6.3/panels/common/cc-common-language.c	2013-03-21 14:22:09.358586554 +0100
 @@ -326,6 +326,66 @@
          return language;
  }
@@ -180,8 +182,10 @@ Last-Update: 2013-03-21
          if (g_hash_table_lookup (ht, name) == NULL) {
                  language = gdm_get_language_from_name (name, NULL);
                  g_hash_table_insert (ht, name, language);
---- a/panels/common/cc-common-language.h
-+++ b/panels/common/cc-common-language.h
+Index: gnome-control-center-3.6.3/panels/common/cc-common-language.h
+===================================================================
+--- gnome-control-center-3.6.3.orig/panels/common/cc-common-language.h	2013-03-15 17:20:48.939849976 +0100
++++ gnome-control-center-3.6.3/panels/common/cc-common-language.h	2013-03-15 17:20:48.903849975 +0100
 @@ -45,6 +45,7 @@
                                                       GHashTable       *user_langs);
  gboolean cc_common_language_has_font                (const gchar  *locale);
@@ -190,8 +194,10 @@ Last-Update: 2013-03-21
  
  GHashTable *cc_common_language_get_initial_languages   (void);
  GHashTable *cc_common_language_get_initial_regions     (const gchar *lang);
---- a/panels/common/cc-language-chooser.c
-+++ b/panels/common/cc-language-chooser.c
+Index: gnome-control-center-3.6.3/panels/common/cc-language-chooser.c
+===================================================================
+--- gnome-control-center-3.6.3.orig/panels/common/cc-language-chooser.c	2013-03-15 17:20:48.939849976 +0100
++++ gnome-control-center-3.6.3/panels/common/cc-language-chooser.c	2013-03-15 17:20:48.919849976 +0100
 @@ -105,8 +105,8 @@
  
  	user_langs = cc_common_language_get_initial_languages ();
@@ -214,8 +220,10 @@ Last-Update: 2013-03-21
  
          g_hash_table_destroy (user_langs);
  }
---- a/panels/common/gdm-languages.c
-+++ b/panels/common/gdm-languages.c
+Index: gnome-control-center-3.6.3/panels/common/gdm-languages.c
+===================================================================
+--- gnome-control-center-3.6.3.orig/panels/common/gdm-languages.c	2013-03-15 17:20:48.939849976 +0100
++++ gnome-control-center-3.6.3/panels/common/gdm-languages.c	2013-03-15 17:20:48.923849976 +0100
 @@ -224,6 +224,7 @@
                           const char *codeset,
                           const char *modifier)
@@ -333,8 +341,10 @@ Last-Update: 2013-03-21
  
         if (full_language->len == 0) {
                 g_string_free (full_language, TRUE);
---- a/panels/region/gnome-region-panel-formats.c
-+++ b/panels/region/gnome-region-panel-formats.c
+Index: gnome-control-center-3.6.3/panels/region/gnome-region-panel-formats.c
+===================================================================
+--- gnome-control-center-3.6.3.orig/panels/region/gnome-region-panel-formats.c	2013-03-15 17:20:48.939849976 +0100
++++ gnome-control-center-3.6.3/panels/region/gnome-region-panel-formats.c	2013-03-15 17:20:48.927849976 +0100
 @@ -31,6 +31,7 @@
  #include "cc-language-chooser.h"
  #include "gdm-languages.h"
@@ -444,9 +454,11 @@ Last-Update: 2013-03-21
          if (!current_region || !current_region[0]) {
                  current_region = g_strdup (current_lang);
          }
---- a/panels/region/gnome-region-panel-system.c
-+++ b/panels/region/gnome-region-panel-system.c
-@@ -92,7 +92,7 @@
+Index: gnome-control-center-3.6.3/panels/region/gnome-region-panel-system.c
+===================================================================
+--- gnome-control-center-3.6.3.orig/panels/region/gnome-region-panel-system.c	2013-03-15 17:20:48.939849976 +0100
++++ gnome-control-center-3.6.3/panels/region/gnome-region-panel-system.c	2013-03-15 17:48:09.379904608 +0100
+@@ -88,7 +88,7 @@
                  gtk_widget_set_sensitive (button, TRUE);
  }
  
@@ -455,7 +467,7 @@ Last-Update: 2013-03-21
  locale_settings_changed (GSettings *settings,
                           const gchar *key,
                           GtkBuilder *dialog)
-@@ -100,7 +100,7 @@
+@@ -96,7 +96,7 @@
          GtkWidget *label;
          gchar *region, *display_region;
  
@@ -464,7 +476,7 @@ Last-Update: 2013-03-21
          if (!region || !region[0]) {
                  label = WID ("user_display_language");
                  region = g_strdup ((gchar*)g_object_get_data (G_OBJECT (label), "language"));
-@@ -226,6 +226,16 @@
+@@ -216,6 +216,16 @@
          }
  }
  
@@ -481,7 +493,7 @@ Last-Update: 2013-03-21
  static void
  on_localed_properties_changed (GDBusProxy   *proxy,
                                 GVariant     *changed_properties,
-@@ -257,33 +267,43 @@
+@@ -244,33 +254,43 @@
                  const gchar **strv;
                  gsize len;
                  gint i;
@@ -535,7 +547,7 @@ Last-Update: 2013-03-21
                          label = WID ("system_display_language");
                          gtk_label_set_text (GTK_LABEL (label), name);
                          g_free (name);
-@@ -298,6 +318,10 @@
+@@ -285,6 +305,10 @@
                          g_object_set_data_full (G_OBJECT (label), "region", g_strdup (time), g_free);
                  }
                  g_variant_unref (v);
@@ -546,7 +558,7 @@ Last-Update: 2013-03-21
          }
  
          label = WID ("system_input_source");
-@@ -396,27 +420,44 @@
+@@ -350,27 +374,44 @@
          GtkWidget *label;
          GVariantBuilder *b;
          gchar *s;
@@ -603,8 +615,8 @@ Last-Update: 2013-03-21
                  g_variant_builder_add (b, "s", s);
                  g_free (s);
          }
-@@ -525,7 +566,7 @@
-         g_object_weak_ref (G_OBJECT (dialog), (GWeakNotify) g_object_unref, input_sources_settings);
+@@ -474,7 +515,7 @@
+ 	g_object_weak_ref (G_OBJECT (dialog), (GWeakNotify) g_object_unref, xkb_settings);
  
          /* Display user settings */
 -        language = cc_common_language_get_current_language ();
@@ -612,8 +624,10 @@ Last-Update: 2013-03-21
          system_update_language (dialog, language);
          g_free (language);
  
---- a/panels/region/gnome-region-panel-system.h
-+++ b/panels/region/gnome-region-panel-system.h
+Index: gnome-control-center-3.6.3/panels/region/gnome-region-panel-system.h
+===================================================================
+--- gnome-control-center-3.6.3.orig/panels/region/gnome-region-panel-system.h	2013-03-15 17:20:48.939849976 +0100
++++ gnome-control-center-3.6.3/panels/region/gnome-region-panel-system.h	2013-03-15 17:20:48.927849976 +0100
 @@ -27,5 +27,8 @@
  void setup_system           (GtkBuilder *builder);
  void system_update_language (GtkBuilder  *builder,
@@ -623,9 +637,11 @@ Last-Update: 2013-03-21
 +                              GtkBuilder  *dialog);
  
  #endif
---- a/panels/region/gnome-region-panel.ui
-+++ b/panels/region/gnome-region-panel.ui
-@@ -154,7 +154,7 @@
+Index: gnome-control-center-3.6.3/panels/region/gnome-region-panel.ui
+===================================================================
+--- gnome-control-center-3.6.3.orig/panels/region/gnome-region-panel.ui	2013-03-15 17:20:48.939849976 +0100
++++ gnome-control-center-3.6.3/panels/region/gnome-region-panel.ui	2013-03-15 17:20:48.931849976 +0100
+@@ -192,7 +192,7 @@
                          </child>
                          <child>
                            <object class="GtkToolbar" id="language-toolbar">
