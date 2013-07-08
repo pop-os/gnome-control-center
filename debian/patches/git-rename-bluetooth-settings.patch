@@ -1,0 +1,94 @@
+Description: Use the 3.8 filename for the Bluetooth panel so that
+ the Bluetooth Settings link in GNOME Shell 3.8 works
+Index: gnome-control-center-3.6.3/configure.ac
+===================================================================
+--- gnome-control-center-3.6.3.orig/configure.ac	2013-07-04 00:08:46.849899534 -0400
++++ gnome-control-center-3.6.3/configure.ac	2013-07-04 00:08:46.841899534 -0400
+@@ -393,7 +393,7 @@
+ panels/background/Makefile
+ panels/background/gnome-background-panel.desktop.in
+ panels/bluetooth/Makefile
+-panels/bluetooth/bluetooth-properties.desktop.in
++panels/bluetooth/gnome-bluetooth-panel.desktop.in
+ panels/datetime/Makefile
+ panels/datetime/gnome-datetime-panel.desktop.in
+ panels/datetime/po-timezones/Makefile
+Index: gnome-control-center-3.6.3/panels/bluetooth/Makefile.am
+===================================================================
+--- gnome-control-center-3.6.3.orig/panels/bluetooth/Makefile.am	2013-07-04 00:08:46.849899534 -0400
++++ gnome-control-center-3.6.3/panels/bluetooth/Makefile.am	2013-07-04 00:08:46.845899534 -0400
+@@ -19,8 +19,8 @@
+ libbluetooth_la_LDFLAGS = $(PANEL_LDFLAGS)
+ 
+ desktopdir = $(datadir)/applications
+-desktop_in_in_files = bluetooth-properties.desktop.in.in
+-desktop_in_files = bluetooth-properties.desktop.in
++desktop_in_in_files = gnome-bluetooth-panel.desktop.in.in
++desktop_in_files = gnome-bluetooth-panel.desktop.in
+ desktop_DATA = $(desktop_in_files:.desktop.in=.desktop)
+ @INTLTOOL_DESKTOP_RULE@
+ 
+Index: gnome-control-center-3.6.3/panels/bluetooth/bluetooth-properties.desktop.in.in
+===================================================================
+--- gnome-control-center-3.6.3.orig/panels/bluetooth/bluetooth-properties.desktop.in.in	2013-07-04 00:08:46.849899534 -0400
++++ /dev/null	1970-01-01 00:00:00.000000000 +0000
+@@ -1,15 +0,0 @@
+-[Desktop Entry]
+-_Name=Bluetooth
+-_Comment=Configure Bluetooth settings
+-Icon=bluetooth
+-Exec=gnome-control-center bluetooth
+-Terminal=false
+-Type=Application
+-Categories=GTK;GNOME;Settings;X-GNOME-NetworkSettings;HardwareSettings;X-GNOME-Settings-Panel;
+-OnlyShowIn=GNOME;Unity;
+-StartupNotify=true
+-X-GNOME-Bugzilla-Bugzilla=GNOME
+-X-GNOME-Bugzilla-Product=gnome-bluetooth
+-X-GNOME-Bugzilla-Component=properties
+-X-GNOME-Bugzilla-Version=@VERSION@
+-X-GNOME-Settings-Panel=bluetooth
+Index: gnome-control-center-3.6.3/panels/bluetooth/gnome-bluetooth-panel.desktop.in.in
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ gnome-control-center-3.6.3/panels/bluetooth/gnome-bluetooth-panel.desktop.in.in	2013-07-04 00:08:46.845899534 -0400
+@@ -0,0 +1,15 @@
++[Desktop Entry]
++_Name=Bluetooth
++_Comment=Configure Bluetooth settings
++Icon=bluetooth
++Exec=gnome-control-center bluetooth
++Terminal=false
++Type=Application
++Categories=GTK;GNOME;Settings;X-GNOME-NetworkSettings;HardwareSettings;X-GNOME-Settings-Panel;
++OnlyShowIn=GNOME;Unity;
++StartupNotify=true
++X-GNOME-Bugzilla-Bugzilla=GNOME
++X-GNOME-Bugzilla-Product=gnome-bluetooth
++X-GNOME-Bugzilla-Component=properties
++X-GNOME-Bugzilla-Version=@VERSION@
++X-GNOME-Settings-Panel=bluetooth
+Index: gnome-control-center-3.6.3/po/POTFILES.in
+===================================================================
+--- gnome-control-center-3.6.3.orig/po/POTFILES.in	2013-07-04 00:08:46.849899534 -0400
++++ gnome-control-center-3.6.3/po/POTFILES.in	2013-07-04 00:08:46.845899534 -0400
+@@ -7,7 +7,7 @@
+ panels/background/cc-background-item.c
+ panels/background/cc-background-panel.c
+ panels/background/gnome-background-panel.desktop.in.in
+-panels/bluetooth/bluetooth-properties.desktop.in.in
++panels/bluetooth/gnome-bluetooth-panel.desktop.in.in
+ [type: gettext/glade]panels/bluetooth/bluetooth.ui
+ panels/bluetooth/cc-bluetooth-panel.c
+ panels/color/cc-color-panel.c
+Index: gnome-control-center-3.6.3/po/POTFILES.skip
+===================================================================
+--- gnome-control-center-3.6.3.orig/po/POTFILES.skip	2012-05-24 10:20:11.000000000 -0400
++++ gnome-control-center-3.6.3/po/POTFILES.skip	2013-07-04 00:10:38.653901911 -0400
+@@ -1,5 +1,5 @@
+ panels/background/gnome-background-panel.desktop.in
+-panels/bluetooth/bluetooth-properties.desktop.in
++panels/bluetooth/gnome-bluetooth-panel.desktop.in
+ panels/color/gnome-color-panel.desktop.in
+ panels/datetime/gnome-datetime-panel.desktop.in
+ panels/display/gnome-display-panel.desktop.in
