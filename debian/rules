@@ -1,7 +1,5 @@
 #!/usr/bin/make -f
 
-export DEB_BUILD_HARDENING=1
-
 include /usr/share/cdbs/1/rules/autoreconf.mk
 include /usr/share/cdbs/1/rules/debhelper.mk
 include /usr/share/cdbs/1/rules/utils.mk
@@ -11,14 +9,12 @@ include /usr/share/gnome-pkg-tools/1/rules/gnome-version.mk
 include /usr/share/gnome-pkg-tools/1/rules/clean-la.mk
 include /usr/share/gnome-pkg-tools/1/rules/gnome-get-source.mk
 
-#LDFLAGS += -Wl,-O1 -Wl,--as-needed
-LDFLAGS += -Wl,-z,defs -Wl,-O1 -Wl,--as-needed
+export DEB_LDFLAGS_MAINT_APPEND = -Wl,-z,defs -Wl,-O1 -Wl,--as-needed
+include /usr/share/dpkg/buildflags.mk
 
 DEB_CONFIGURE_EXTRA_FLAGS += --libdir=\$${prefix}/lib/$(DEB_HOST_MULTIARCH) \
                              --disable-update-mimedb \
-                             --enable-systemd \
-                             --without-cheese \
-                             --with-clutter
+                             --enable-systemd
 
 DEB_DH_MAKESHLIBS_ARGS_gnome-control-center = --no-act
 
