@@ -1,0 +1,220 @@
+--- a/shell/cc-panel.c
++++ b/shell/cc-panel.c
+@@ -52,12 +52,14 @@
+ 
+   gboolean  is_active;
+   CcShell  *shell;
++  gchar    *name;
+ };
+ 
+ enum
+ {
+     PROP_0,
+     PROP_SHELL,
++    PROP_NAME,
+     PROP_ARGV
+ };
+ 
+@@ -80,6 +82,11 @@
+       panel->priv->shell = g_value_get_object (value);
+       break;
+ 
++    case PROP_NAME:
++      /* construct only property */
++      panel->priv->name = g_strdup (g_value_get_string (value));
++      break;      
++
+     case PROP_ARGV:
+       {
+         gchar **argv = g_value_get_boxed (value);
+@@ -109,6 +116,10 @@
+       g_value_set_object (value, panel->priv->shell);
+       break;
+ 
++    case PROP_NAME:
++      g_value_set_string (value, panel->priv->name);
++      break;
++
+     default:
+       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+       break;
+@@ -127,6 +138,7 @@
+ 
+   g_free (panel->priv->id);
+   g_free (panel->priv->display_name);
++  g_free (panel->priv->name);
+ 
+   G_OBJECT_CLASS (cc_panel_parent_class)->finalize (object);
+ }
+@@ -208,6 +220,14 @@
+                                | G_PARAM_CONSTRUCT_ONLY);
+   g_object_class_install_property (object_class, PROP_SHELL, pspec);
+ 
++  pspec = g_param_spec_string ("name",
++                               "Name",
++                               "The name of the Panel",
++                               NULL,
++                               G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS
++                               | G_PARAM_CONSTRUCT_ONLY);
++  g_object_class_install_property (object_class, PROP_NAME, pspec);
++
+   pspec = g_param_spec_boxed ("argv",
+                               "Argument vector",
+                               "Additional arguments passed on the command line",
+@@ -257,3 +277,10 @@
+ 
+   return NULL;
+ }
++
++const char  *
++cc_panel_get_display_name (CcPanel *panel)
++{
++  return panel->priv->name;
++}
++
+--- a/shell/cc-panel.h
++++ b/shell/cc-panel.h
+@@ -93,6 +93,8 @@
+ 
+ const char  *cc_panel_get_help_uri     (CcPanel     *panel);
+ 
++const char  *cc_panel_get_display_name (CcPanel     *panel);
++
+ G_END_DECLS
+ 
+ #endif /* __CC_PANEL_H */
+--- a/shell/control-center.c
++++ b/shell/control-center.c
+@@ -186,6 +186,24 @@
+ }
+ 
+ static void
++contents_activated (GSimpleAction *action,
++                    GVariant      *parameter,
++                    gpointer       user_data)
++{
++  GnomeControlCenter *shell = user_data;
++  GtkWidget *window = cc_shell_get_toplevel (CC_SHELL (shell));
++  
++  if (!g_strcmp0(g_getenv("XDG_CURRENT_DESKTOP"), "Unity"))
++    gtk_show_uri (gtk_widget_get_screen (window),
++                  "help:ubuntu-help/prefs",
++                  GDK_CURRENT_TIME, NULL);
++  else
++    gtk_show_uri (gtk_widget_get_screen (window),
++                  "help:gnome-help/prefs",
++                  GDK_CURRENT_TIME, NULL);
++}
++
++static void
+ quit_activated (GSimpleAction *action,
+                 GVariant      *parameter,
+                 gpointer       user_data)
+@@ -195,30 +213,85 @@
+ }
+ 
+ static void
++active_panel_changed_cb (GObject    *gobject,
++                         GParamSpec *pspec,
++                         GMenu      *menu) 
++{
++  CcPanel *panel = cc_shell_get_active_panel (CC_SHELL (gobject));
++  const char *uri = NULL;
++
++  if (panel)
++    uri = cc_panel_get_help_uri (panel);
++
++  gint n_items = g_menu_model_get_n_items (G_MENU_MODEL (menu));
++
++  if (!uri && n_items > 1)
++  {
++    g_menu_remove (menu, 1);
++  }
++  else if (uri && n_items == 1)
++  {
++    g_menu_append (menu, cc_panel_get_display_name(panel), "app.help");
++  }
++  else if (uri && n_items > 1)
++  {
++    g_menu_remove (menu, 1);
++    g_menu_append (menu, cc_panel_get_display_name(panel), "app.help");
++  }
++}
++
++static void
+ application_startup_cb (GApplication       *application,
+                         GnomeControlCenter *shell)
+ {
+-  GMenu *menu, *section;
++  GMenu *menubar, *menu, *section;
++  GMenu *menuitem;
+   GAction *action;
+ 
+   action = G_ACTION (g_simple_action_new ("help", NULL));
+   g_action_map_add_action (G_ACTION_MAP (application), action);
+   g_signal_connect (action, "activate", G_CALLBACK (help_activated), shell);
+ 
++  action = G_ACTION (g_simple_action_new ("contents", NULL));
++  g_action_map_add_action (G_ACTION_MAP (application), action);
++  g_signal_connect (action, "activate", G_CALLBACK (contents_activated), shell);
++
+   action = G_ACTION (g_simple_action_new ("quit", NULL));
+   g_action_map_add_action (G_ACTION_MAP (application), action);
+   g_signal_connect (action, "activate", G_CALLBACK (quit_activated), shell);
+ 
+-  menu = g_menu_new ();
+-
+-  section = g_menu_new ();
+-  g_menu_append (section, _("Help"), "app.help");
+-  g_menu_append (section, _("Quit"), "app.quit");
+-
+-  g_menu_append_section (menu, NULL, G_MENU_MODEL (section));
+-
+-  gtk_application_set_app_menu (GTK_APPLICATION (application),
+-                                G_MENU_MODEL (menu));
++  if (!g_strcmp0(g_getenv("XDG_CURRENT_DESKTOP"), "Unity"))
++  {
++    menubar = g_menu_new ();
++    menu = g_menu_new ();
++
++    section = g_menu_new ();
++    g_menu_append (section, _("Contents"), "app.contents");
++    g_menu_append_section (menu, NULL, G_MENU_MODEL (section));
++
++    g_menu_append (menu, _("Quit"), "app.quit");
++
++    g_menu_append_submenu (menubar, _("Help"), G_MENU_MODEL (menu));
++
++    gtk_application_set_menubar (GTK_APPLICATION (application),
++                                 G_MENU_MODEL (menubar));
++
++    g_signal_connect (shell, "notify::active-panel",
++                      G_CALLBACK (active_panel_changed_cb), section);
++  }
++  else
++  {
++    menu = g_menu_new ();
++
++    section = g_menu_new ();
++    g_menu_append (section, _("Help"), "app.help");
++    g_menu_append (section, _("Quit"), "app.quit");
++
++    g_menu_append_section (menu, NULL, G_MENU_MODEL (section));
++
++    gtk_application_set_app_menu (GTK_APPLICATION (application),
++                                  G_MENU_MODEL (menu));
++  }
+ 
+   gtk_application_add_accelerator (GTK_APPLICATION (application),
+                                    "F1", "app.help", NULL);
+--- a/shell/gnome-control-center.c
++++ b/shell/gnome-control-center.c
+@@ -238,7 +238,7 @@
+     }
+ 
+   /* create the panel plugin */
+-  priv->current_panel = g_object_new (panel_type, "shell", shell, "argv", argv, NULL);
++  priv->current_panel = g_object_new (panel_type, "shell", shell, "name", name, "argv", argv, NULL);
+   cc_shell_set_active_panel (CC_SHELL (shell), CC_PANEL (priv->current_panel));
+   gtk_widget_show (priv->current_panel);
+ 
