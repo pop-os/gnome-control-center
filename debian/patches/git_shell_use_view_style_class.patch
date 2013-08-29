@@ -1,0 +1,32 @@
+From 688695dbec168b55d9510818d8197ccbdcdf45e4 Mon Sep 17 00:00:00 2001
+From: Cosimo Cecchi <cosimoc@gnome.org>
+Date: Wed, 5 Dec 2012 09:36:12 -0500
+Subject: [PATCH] shell: use the "view" style class for the main viewport
+
+Currently, gnome-themes-standard sets a white background on all
+GtkViewport widgets.
+We want to stop rendering one by default, so add a style class to the
+main viewport that ensures it gets the same background as the icon
+views it packs inside.
+
+https://bugzilla.gnome.org/show_bug.cgi?id=689700
+---
+ shell/shell.ui | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/shell/shell.ui b/shell/shell.ui
+index 60b084c..718cc16 100644
+--- a/shell/shell.ui
++++ b/shell/shell.ui
+@@ -129,6 +129,9 @@
+                     <property name="visible">True</property>
+                     <property name="resize_mode">queue</property>
+                     <property name="shadow_type">none</property>
++                    <style>
++                      <class name="view" />
++                    </style>
+                     <child>
+                       <object class="GtkVBox" id="main-vbox">
+                         <property name="visible">True</property>
+-- 
+1.8.0.1
