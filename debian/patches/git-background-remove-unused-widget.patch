@@ -1,0 +1,116 @@
+commit ea16cadce90fda067b6cba6cc831ba1ecb5adfa7
+Author: Bastien Nocera <hadess@hadess.net>
+Date:   Mon Aug 19 20:55:29 2013 +0200
+
+    background: Remove unused "lock" preview widgets
+    
+    https://bugzilla.gnome.org/show_bug.cgi?id=696166
+
+--- a/panels/background/background.ui
++++ b/panels/background/background.ui
+@@ -6,6 +6,10 @@
+     <property name="can_focus">False</property>
+     <property name="border_width">10</property>
+     <property name="spacing">12</property>
++    <property name="margin-left">6</property>
++    <property name="margin-right">6</property>
++    <property name="margin-top">6</property>
++    <property name="margin-bottom">6</property>
+     <child>
+       <object class="GtkVBox" id="vbox3">
+         <property name="visible">True</property>
+@@ -26,48 +30,18 @@
+                 <property name="receives_default">True</property>
+                 <property name="valign">center</property>
+                 <child>
+-                  <object class="GtkBox" id="box1">
++                  <object class="GtkDrawingArea" id="background-desktop-drawingarea">
++                    <property name="width_request">417</property>
++                    <property name="height_request">250</property>
+                     <property name="visible">True</property>
+                     <property name="can_focus">False</property>
++                    <property name="valign">center</property>
++                    <property name="margin_left">6</property>
++                    <property name="margin_right">6</property>
++                    <property name="margin_top">6</property>
++                    <property name="margin_bottom">6</property>
+                     <property name="hexpand">True</property>
+-                    <property name="spacing">18</property>
+-                    <child>
+-                      <object class="GtkDrawingArea" id="background-desktop-drawingarea">
+-                        <property name="width_request">417</property>
+-                        <property name="height_request">250</property>
+-                        <property name="visible">True</property>
+-                        <property name="can_focus">False</property>
+-                        <property name="valign">center</property>
+-                        <property name="margin_left">6</property>
+-                        <property name="margin_right">6</property>
+-                        <property name="margin_top">6</property>
+-                        <property name="margin_bottom">6</property>
+-                        <property name="hexpand">True</property>
+-                        <property name="vexpand">True</property>
+-                      </object>
+-                      <packing>
+-                        <property name="expand">True</property>
+-                        <property name="fill">True</property>
+-                        <property name="position">0</property>
+-                      </packing>
+-                    </child>
+-                    <child>
+-                      <object class="GtkDrawingArea" id="background-lock-drawingarea">
+-                        <property name="can_focus">False</property>
+-                        <property name="no_show_all">True</property>
+-                        <property name="valign">center</property>
+-                        <property name="margin_left">6</property>
+-                        <property name="margin_right">6</property>
+-                        <property name="margin_top">6</property>
+-                        <property name="hexpand">True</property>
+-                        <property name="vexpand">True</property>
+-                      </object>
+-                      <packing>
+-                        <property name="expand">True</property>
+-                        <property name="fill">True</property>
+-                        <property name="position">1</property>
+-                      </packing>
+-                    </child>
++                    <property name="vexpand">True</property>
+                   </object>
+                 </child>
+               </object>
+@@ -103,11 +77,10 @@
+                   </packing>
+                 </child>
+                 <child>
+-                  <object class="GtkLabel" id="slide-label">
++                  <object class="GtkLabel" id="strut">
+                     <property name="visible">True</property>
+                     <property name="can_focus">False</property>
+-                    <property name="xalign">0</property>
+-                    <property name="label" translatable="yes" comments="This refers to a slideshow background">Changes throughout the day</property>
++                    <property name="label"> </property>
+                   </object>
+                   <packing>
+                     <property name="expand">False</property>
+@@ -116,10 +89,11 @@
+                   </packing>
+                 </child>
+                 <child>
+-                  <object class="GtkLabel" id="strut">
++                  <object class="GtkLabel" id="slide-label">
+                     <property name="visible">True</property>
+                     <property name="can_focus">False</property>
+-                    <property name="label"> </property>
++                    <property name="xalign">0</property>
++                    <property name="label" translatable="yes" comments="This refers to a slideshow background">Changes throughout the day</property>
+                   </object>
+                   <packing>
+                     <property name="expand">False</property>
+@@ -196,8 +170,6 @@
+   <object class="GtkSizeGroup" id="sizegroup">
+     <property name="mode">vertical</property>
+     <widgets>
+-      <widget name="sources-combobox"/>
+-      <widget name="heading-hbox"/>
+       <widget name="slide-label"/>
+       <widget name="strut"/>
+     </widgets>
