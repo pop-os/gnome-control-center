@@ -1,0 +1,19 @@
+From 5fb7b67ab6d9928ec792b5025f2093529b7f932f Mon Sep 17 00:00:00 2001
+From: Matthias Clasen <mclasen@redhat.com>
+Date: Sat, 05 Jan 2013 22:45:58 +0000
+Subject: power: Construct the gsd proxies properly
+
+The code was not using the correct bus name for the screen proxy.
+https://bugzilla.gnome.org/show_bug.cgi?id=691177
+---
+--- a/panels/power/cc-power-panel.c
++++ b/panels/power/cc-power-panel.c
+@@ -1029,7 +1029,7 @@
+   g_dbus_proxy_new_for_bus (G_BUS_TYPE_SESSION,
+                             G_DBUS_PROXY_FLAGS_NONE,
+                             NULL,
+-                            "org.gnome.SettingsDaemon",
++                            "org.gnome.SettingsDaemon.Power",
+                             "/org/gnome/SettingsDaemon/Power",
+                             "org.gnome.SettingsDaemon.Power",
+                             self->priv->cancellable,

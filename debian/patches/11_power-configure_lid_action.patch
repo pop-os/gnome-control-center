@@ -1,10 +1,8 @@
 Subject: [PATCH] power: Add configuration for lid action
 Bug: https://bugzilla.gnome.org/show_bug.cgi?id=659045
 Bug-Ubuntu: https://bugs.launchpad.net/bugs/792636
-Index: gnome-control-center-3.6.3/panels/power/cc-power-panel.c
-===================================================================
---- gnome-control-center-3.6.3.orig/panels/power/cc-power-panel.c	2012-11-23 18:22:00.580034015 -0500
-+++ gnome-control-center-3.6.3/panels/power/cc-power-panel.c	2012-11-23 18:22:09.132033658 -0500
+--- a/panels/power/cc-power-panel.c
++++ b/panels/power/cc-power-panel.c
 @@ -932,6 +932,7 @@
  set_ac_battery_ui_mode (CcPowerPanel *self)
  {
@@ -23,7 +21,7 @@ Index: gnome-control-center-3.6.3/panels/power/cc-power-panel.c
  out:
 +  gtk_widget_set_visible (WID (priv->builder, "combobox_lid_ac"), has_lid);
 +  gtk_widget_set_visible (WID (priv->builder, "label_lid_action"), has_lid);
-+  gtk_widget_set_visible (WID (priv->builder, "combobox_lid_battery"), has_batteries && has_lid);    
++  gtk_widget_set_visible (WID (priv->builder, "combobox_lid_battery"), has_batteries && has_lid);
    gtk_widget_set_visible (WID (priv->builder, "label_header_battery"), has_batteries);
    gtk_widget_set_visible (WID (priv->builder, "label_header_ac"), has_batteries);
    gtk_widget_set_visible (WID (priv->builder, "combobox_sleep_battery"), has_batteries);
@@ -54,11 +52,9 @@ Index: gnome-control-center-3.6.3/panels/power/cc-power-panel.c
    widget = WID (self->priv->builder, "vbox_power");
    gtk_widget_reparent (widget, (GtkWidget *) self);
  }
-Index: gnome-control-center-3.6.3/panels/power/power.ui
-===================================================================
---- gnome-control-center-3.6.3.orig/panels/power/power.ui	2012-11-23 18:22:00.580034015 -0500
-+++ gnome-control-center-3.6.3/panels/power/power.ui	2012-11-23 18:59:32.479939834 -0500
-@@ -53,6 +53,33 @@
+--- a/panels/power/power.ui
++++ b/panels/power/power.ui
+@@ -53,6 +53,28 @@
        </row>
      </data>
    </object>
@@ -78,11 +74,6 @@ Index: gnome-control-center-3.6.3/panels/power/power.ui
 +        <col id="2">True</col>
 +      </row>
 +      <row>
-+        <col id="0" translatable="yes">Hibernate</col>
-+        <col id="1">3</col>
-+        <col id="2">True</col>
-+      </row>
-+      <row>
 +        <col id="0" translatable="yes">Do nothing</col>
 +        <col id="1">5</col>
 +        <col id="2">True</col>
@@ -92,7 +83,7 @@ Index: gnome-control-center-3.6.3/panels/power/power.ui
    <object class="GtkWindow" id="window_power">
      <property name="can_focus">False</property>
      <property name="resizable">False</property>
-@@ -172,6 +199,50 @@
+@@ -172,6 +194,50 @@
                  <property name="top_attach">2</property>
                </packing>
              </child>
@@ -143,12 +134,12 @@ Index: gnome-control-center-3.6.3/panels/power/power.ui
            </object>
            <packing>
              <property name="expand">False</property>
-@@ -352,9 +423,12 @@
+@@ -352,9 +418,12 @@
    </object>
    <object class="GtkSizeGroup" id="sizegroup_combos">
      <widgets>
 +      <widget name="combobox_lid_battery"/>
-+      <widget name="combobox_lid_ac"/>    
++      <widget name="combobox_lid_ac"/>
        <widget name="combobox_critical"/>
        <widget name="combobox_sleep_battery"/>
        <widget name="combobox_sleep_ac"/>

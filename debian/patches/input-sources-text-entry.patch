@@ -21,7 +21,7 @@
 +#define INPUT_SOURCE_TYPE_XKB           "xkb"
 +#define INPUT_SOURCE_TYPE_IBUS          "ibus"
 +
-+#define MEDIA_KEYS_SCHEMA_ID  "org.gnome.settings-daemon.plugins.media-keys"
++#define MEDIA_KEYS_SCHEMA_ID  "org.gnome.desktop.wm.keybindings"
 +#define KEY_PREV_INPUT_SOURCE "switch-input-source-backward"
 +#define KEY_NEXT_INPUT_SOURCE "switch-input-source"
 +
@@ -393,7 +393,7 @@
  static gboolean
  active_sources_visible_func (GtkTreeModel *model,
                               GtkTreeIter  *iter,
-@@ -1251,8 +1557,66 @@
+@@ -1251,8 +1557,99 @@
    return TRUE;
  }
  
@@ -455,13 +455,46 @@
 +#endif
 +}
 +
++static gboolean
++get_key_setting (GValue   *value,
++                 GVariant *variant,
++                 gpointer  user_data)
++{
++    gchar **switch_key;
++
++    switch_key = g_variant_get_strv (variant, NULL);
++    g_value_set_string (value, switch_key[0]);
++
++
++    return TRUE;
++}
++
++static GVariant *
++set_key_setting (const GValue   *value,
++                 const GVariantType *expected_type,
++                 gpointer  user_data)
++{
++    gchar *switch_key;
++    gchar **switch_strv;
++    GVariant *ret = NULL;
++
++    switch_strv = g_settings_get_strv(media_key_settings, user_data);
++    switch_key = g_value_get_string (value);
++    switch_strv[0] = g_strdup (switch_key);
++
++    ret = g_variant_new_strv ((const gchar * const *) switch_strv, -1);
++
++    return ret;
++}
++
++
  void
 -setup_input_tabs (GtkBuilder    *builder,
 +setup_input_tabs (GtkBuilder    *builder_,
                    CcRegionPanel *panel)
  {
    GtkWidget *treeview;
-@@ -1262,6 +1626,17 @@
+@@ -1262,6 +1659,17 @@
    GtkTreeModel *filtered_store;
    GtkTreeSelection *selection;
  
@@ -479,7 +512,7 @@
    /* set up the list of active inputs */
    treeview = WID("active_input_sources");
    column = gtk_tree_view_column_new ();
-@@ -1279,8 +1654,8 @@
+@@ -1279,8 +1687,8 @@
    gtk_tree_view_set_model (GTK_TREE_VIEW (treeview), GTK_TREE_MODEL (store));
  
    input_sources_settings = g_settings_new (GNOME_DESKTOP_INPUT_SOURCES_DIR);
@@ -489,7 +522,7 @@
  
    if (!xkb_info)
      xkb_info = gnome_xkb_info_new ();
-@@ -1294,7 +1669,6 @@
+@@ -1294,7 +1702,6 @@
                                            NULL,
                                            builder,
                                            NULL);
@@ -497,7 +530,7 @@
  #endif
  
    populate_with_active_sources (store);
-@@ -1327,17 +1701,64 @@
+@@ -1327,17 +1734,70 @@
                      G_CALLBACK (show_selected_layout), builder);
    g_signal_connect (WID("input_source_settings"), "clicked",
                      G_CALLBACK (show_selected_settings), builder);
@@ -528,16 +561,22 @@
 +                       WID ("show-indicator-check"),
 +                       "active",
 +                       G_SETTINGS_BIND_DEFAULT);
-+      g_settings_bind (media_key_settings,
-+                       KEY_PREV_INPUT_SOURCE,
-+                       WID ("prev-source-entry"),
-+                       "accel",
-+                       G_SETTINGS_BIND_DEFAULT);
-+      g_settings_bind (media_key_settings,
-+                       KEY_NEXT_INPUT_SOURCE,
-+                       WID ("next-source-entry"),
-+                       "accel",
-+                       G_SETTINGS_BIND_DEFAULT);
++      g_settings_bind_with_mapping (media_key_settings,
++                                    KEY_PREV_INPUT_SOURCE,
++                                    WID ("prev-source-entry"),
++                                    "accel",
++                                    G_SETTINGS_BIND_DEFAULT,
++                                    get_key_setting,
++                                    set_key_setting,
++                                    KEY_PREV_INPUT_SOURCE, NULL);
++      g_settings_bind_with_mapping (media_key_settings,
++                                    KEY_NEXT_INPUT_SOURCE,
++                                    WID ("next-source-entry"),
++                                    "accel",
++                                    G_SETTINGS_BIND_DEFAULT,
++                                    get_key_setting,
++                                    set_key_setting,
++                                    KEY_NEXT_INPUT_SOURCE, NULL);
 +
 +      g_signal_connect (WID ("prev-source-entry"), "key-pressed",
 +                        G_CALLBACK (shortcut_key_pressed), builder);
