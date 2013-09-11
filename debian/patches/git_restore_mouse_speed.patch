@@ -1,0 +1,32 @@
+From 59467033f1eb293335e4f54a6033e7417af2cd43 Mon Sep 17 00:00:00 2001
+From: Ondrej Holy <oholy@redhat.com>
+Date: Thu, 02 May 2013 12:29:38 +0000
+Subject: mouse: Restore mouse and touchpad pointer speed
+
+https://bugzilla.gnome.org/show_bug.cgi?id=699015
+---
+diff --git a/panels/mouse/gnome-mouse-properties.c b/panels/mouse/gnome-mouse-properties.c
+index 1336916..36c4067 100644
+--- a/panels/mouse/gnome-mouse-properties.c
++++ b/panels/mouse/gnome-mouse-properties.c
+@@ -182,6 +182,9 @@ setup_dialog (GtkBuilder *dialog)
+ 
+ 	g_signal_connect (WID ("pointer_speed_scale"), "value-changed",
+ 			  G_CALLBACK (pointer_speed_scale_event), dialog);
++	g_settings_bind (mouse_settings, "motion-acceleration",
++			 gtk_range_get_adjustment (GTK_RANGE (WID ("pointer_speed_scale"))), "value",
++			 G_SETTINGS_BIND_DEFAULT);
+ 
+ 	/* Trackpad page */
+ 	touchpad_present = touchpad_is_present ();
+@@ -204,6 +207,9 @@ setup_dialog (GtkBuilder *dialog)
+ 	g_settings_bind (touchpad_settings, "natural-scroll",
+ 			 WID ("natural_scroll_toggle"), "active",
+ 			 G_SETTINGS_BIND_DEFAULT);
++	g_settings_bind (touchpad_settings, "motion-acceleration",
++			 gtk_range_get_adjustment (GTK_RANGE (WID ("touchpad_pointer_speed_scale"))), "value",
++			 G_SETTINGS_BIND_DEFAULT);
+ 
+ 	g_signal_connect (WID ("touchpad_pointer_speed_scale"), "value-changed",
+ 			  G_CALLBACK (pointer_speed_scale_event), dialog);
+

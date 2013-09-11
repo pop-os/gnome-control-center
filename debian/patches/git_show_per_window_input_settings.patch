@@ -1,0 +1,310 @@
+From 4f38c427858a6ef834c04f1a1744b3797351410e Mon Sep 17 00:00:00 2001
+From: Rui Matos <tiagomatos@gmail.com>
+Date: Wed, 09 Jan 2013 13:11:31 +0000
+Subject: region: Add UI for the per-window input sources setting
+
+https://bugzilla.gnome.org/show_bug.cgi?id=684210
+---
+Index: gnome-control-center-3.6.3/panels/region/gnome-region-panel.ui
+===================================================================
+--- gnome-control-center-3.6.3.orig/panels/region/gnome-region-panel.ui	2013-09-11 10:18:42.715555023 -0400
++++ gnome-control-center-3.6.3/panels/region/gnome-region-panel.ui	2013-09-11 10:18:42.707555024 -0400
+@@ -862,111 +862,191 @@
+                           </packing>
+                         </child>
+                         <child>
+-                          <object class="GtkFrame" id="frame4">
++                          <object class="GtkVBox" id="vbox124266413adc">
+                             <property name="visible">True</property>
+                             <property name="can_focus">False</property>
+-                            <property name="label_xalign">0</property>
+-                            <property name="shadow_type">none</property>
+                             <child>
+-                              <object class="GtkAlignment" id="alignment3">
++                              <object class="GtkFrame" id="frame4">
+                                 <property name="visible">True</property>
+                                 <property name="can_focus">False</property>
+-                                <property name="left_padding">12</property>
++                                <property name="label_xalign">0</property>
++                                <property name="shadow_type">none</property>
+                                 <child>
+-                                  <object class="GtkGrid" id="shortcuts-grid">
++                                  <object class="GtkAlignment" id="alignment3">
+                                     <property name="visible">True</property>
+                                     <property name="can_focus">False</property>
+-                                    <property name="margin_top">6</property>
+-                                    <property name="row_spacing">6</property>
+-                                    <property name="column_spacing">6</property>
++                                    <property name="left_padding">12</property>
+                                     <child>
+-                                      <object class="GtkLabel" id="prev-source-label">
++                                      <object class="GtkGrid" id="shortcuts-grid">
+                                         <property name="visible">True</property>
+                                         <property name="can_focus">False</property>
+-                                        <property name="xalign">0</property>
+-                                        <property name="label" translatable="yes">Switch to previous source</property>
++                                        <property name="margin_top">6</property>
++                                        <property name="row_spacing">6</property>
++                                        <property name="column_spacing">6</property>
++                                        <child>
++                                          <object class="GtkLabel" id="prev-source-label">
++                                            <property name="visible">True</property>
++                                            <property name="can_focus">False</property>
++                                            <property name="xalign">0</property>
++                                            <property name="label" translatable="yes">Switch to previous source</property>
++                                          </object>
++                                          <packing>
++                                            <property name="left_attach">0</property>
++                                            <property name="top_attach">0</property>
++                                            <property name="width">1</property>
++                                            <property name="height">1</property>
++                                          </packing>
++                                        </child>
++                                        <child>
++                                          <object class="GtkLabel" id="prev-source-shortcut-label">
++                                            <property name="visible">True</property>
++                                            <property name="can_focus">False</property>
++                                            <property name="halign">end</property>
++                                            <property name="hexpand">True</property>
++                                            <property name="label" translatable="yes">Ctrl+Alt+Space</property>
++                                            <style><class name="dim-label"/></style>
++                                          </object>
++                                          <packing>
++                                            <property name="left_attach">1</property>
++                                            <property name="top_attach">0</property>
++                                            <property name="width">1</property>
++                                            <property name="height">1</property>
++                                          </packing>
++                                        </child>
++                                        <child>
++                                          <object class="GtkLabel" id="next-source-label">
++                                            <property name="visible">True</property>
++                                            <property name="can_focus">False</property>
++                                            <property name="xalign">0</property>
++                                            <property name="label" translatable="yes">Switch to next source</property>
++                                          </object>
++                                          <packing>
++                                            <property name="left_attach">0</property>
++                                            <property name="top_attach">1</property>
++                                            <property name="width">1</property>
++                                            <property name="height">1</property>
++                                          </packing>
++                                        </child>
++                                        <child>
++                                          <object class="GtkLabel" id="next-source-shortcut-label">
++                                            <property name="visible">True</property>
++                                            <property name="can_focus">False</property>
++                                            <property name="halign">end</property>
++                                            <property name="hexpand">True</property>
++                                            <property name="label" translatable="yes">Ctrl+Alt+Shift+Space</property>
++                                            <style><class name="dim-label"/></style>
++                                          </object>
++                                          <packing>
++                                            <property name="left_attach">1</property>
++                                            <property name="top_attach">1</property>
++                                            <property name="width">1</property>
++                                            <property name="height">1</property>
++                                          </packing>
++                                        </child>
++                                        <child>
++                                          <object class="GtkLinkButton" id="jump-to-shortcuts">
++                                            <property name="visible">True</property>
++                                            <property name="can_focus">True</property>
++                                            <property name="label" translatable="yes">Shortcut Settings</property>
++                                            <property name="halign">end</property>
++                                          </object>
++                                          <packing>
++                                            <property name="left_attach">1</property>
++                                            <property name="top_attach">2</property>
++                                            <property name="width">1</property>
++                                            <property name="height">1</property>
++                                          </packing>
++                                        </child>
+                                       </object>
+-                                      <packing>
+-                                        <property name="left_attach">0</property>
+-                                        <property name="top_attach">0</property>
+-                                        <property name="width">1</property>
+-                                        <property name="height">1</property>
+-                                      </packing>
+-                                    </child>
+-                                    <child>
+-                                      <object class="GtkLabel" id="prev-source-shortcut-label">
+-                                        <property name="visible">True</property>
+-                                        <property name="can_focus">False</property>
+-                                        <property name="halign">end</property>
+-                                        <property name="hexpand">True</property>
+-                                        <property name="label" translatable="yes">Ctrl+Alt+Space</property>
+-                                        <style><class name="dim-label"/></style>
+-                                      </object>
+-                                      <packing>
+-                                        <property name="left_attach">1</property>
+-                                        <property name="top_attach">0</property>
+-                                        <property name="width">1</property>
+-                                        <property name="height">1</property>
+-                                      </packing>
+-                                    </child>
+-                                    <child>
+-                                      <object class="GtkLabel" id="next-source-label">
+-                                        <property name="visible">True</property>
+-                                        <property name="can_focus">False</property>
+-                                        <property name="xalign">0</property>
+-                                        <property name="label" translatable="yes">Switch to next source</property>
+-                                      </object>
+-                                      <packing>
+-                                        <property name="left_attach">0</property>
+-                                        <property name="top_attach">1</property>
+-                                        <property name="width">1</property>
+-                                        <property name="height">1</property>
+-                                      </packing>
+                                     </child>
++                                  </object>
++                                </child>
++                                <child type="label">
++                                  <object class="GtkLabel" id="shortcuts-frame-label">
++                                    <property name="visible">True</property>
++                                    <property name="can_focus">False</property>
++                                    <property name="label" translatable="yes">Shortcuts</property>
++                                    <property name="use_markup">True</property>
++                                    <attributes>
++                                      <attribute name="weight" value="bold"/>
++                                    </attributes>
++                                  </object>
++                                </child>
++                              </object>
++                              <packing>
++                                <property name="expand">False</property>
++                                <property name="fill">False</property>
++                                <property name="position">0</property>
++                              </packing>
++                            </child>
++                            <child>
++                              <object class="GtkFrame" id="framea751fbb5f03a">
++                                <property name="visible">True</property>
++                                <property name="can_focus">False</property>
++                                <property name="label_xalign">0</property>
++                                <property name="shadow_type">none</property>
++                                <child>
++                                  <object class="GtkAlignment" id="alignment2a898e7d1ebf">
++                                    <property name="visible">True</property>
++                                    <property name="can_focus">False</property>
++                                    <property name="left_padding">12</property>
+                                     <child>
+-                                      <object class="GtkLabel" id="next-source-shortcut-label">
++                                      <object class="GtkGrid" id="options-grid">
+                                         <property name="visible">True</property>
+                                         <property name="can_focus">False</property>
+-                                        <property name="halign">end</property>
+-                                        <property name="hexpand">True</property>
+-                                        <property name="label" translatable="yes">Ctrl+Alt+Shift+Space</property>
+-                                        <style><class name="dim-label"/></style>
+-                                      </object>
+-                                      <packing>
+-                                        <property name="left_attach">1</property>
+-                                        <property name="top_attach">1</property>
+-                                        <property name="width">1</property>
+-                                        <property name="height">1</property>
+-                                      </packing>
+-                                    </child>
+-                                    <child>
+-                                      <object class="GtkLinkButton" id="jump-to-shortcuts">
+-                                        <property name="visible">True</property>
+-                                        <property name="can_focus">True</property>
+-                                        <property name="label" translatable="yes">Shortcut Settings</property>
+-                                        <property name="halign">end</property>
++                                        <property name="margin_top">6</property>
++                                        <property name="row_spacing">6</property>
++                                        <property name="column_spacing">6</property>
++                                        <child>
++                                          <object class="GtkRadioButton" id="per-window-radio-false">
++                                            <property name="visible">True</property>
++                                            <property name="can_focus">True</property>
++                                            <property name="xalign">0</property>
++                                            <property name="label" translatable="yes">Use the same source for all windows</property>
++                                          </object>
++                                          <packing>
++                                            <property name="left_attach">0</property>
++                                            <property name="top_attach">0</property>
++                                            <property name="width">1</property>
++                                            <property name="height">1</property>
++                                          </packing>
++                                        </child>
++                                        <child>
++                                          <object class="GtkRadioButton" id="per-window-radio-true">
++                                            <property name="visible">True</property>
++                                            <property name="can_focus">True</property>
++                                            <property name="xalign">0</property>
++                                            <property name="label" translatable="yes">Allow different sources for each window</property>
++                                            <property name="group">per-window-radio-false</property>
++                                          </object>
++                                          <packing>
++                                            <property name="left_attach">0</property>
++                                            <property name="top_attach">1</property>
++                                            <property name="width">1</property>
++                                            <property name="height">1</property>
++                                          </packing>
++                                        </child>
+                                       </object>
+-                                      <packing>
+-                                        <property name="left_attach">1</property>
+-                                        <property name="top_attach">2</property>
+-                                        <property name="width">1</property>
+-                                        <property name="height">1</property>
+-                                      </packing>
+                                     </child>
+                                   </object>
+                                 </child>
++                                <child type="label">
++                                  <object class="GtkLabel" id="options-frame-label">
++                                    <property name="visible">True</property>
++                                    <property name="can_focus">False</property>
++                                    <property name="label" translatable="yes">Options</property>
++                                    <property name="use_markup">True</property>
++                                    <attributes>
++                                      <attribute name="weight" value="bold"/>
++                                    </attributes>
++                                  </object>
++                                </child>
+                               </object>
+-                            </child>
+-                            <child type="label">
+-                              <object class="GtkLabel" id="shortcuts-frame-label">
+-                                <property name="visible">True</property>
+-                                <property name="can_focus">False</property>
+-                                <property name="label" translatable="yes">Shortcuts</property>
+-                                <property name="use_markup">True</property>
+-                                <attributes>
+-                                  <attribute name="weight" value="bold"/>
+-                                </attributes>
+-                              </object>
++                              <packing>
++                                <property name="expand">False</property>
++                                <property name="fill">False</property>
++                                <property name="position">1</property>
++                              </packing>
+                             </child>
+                           </object>
+                           <packing>
+Index: gnome-control-center-3.6.3/panels/region/gnome-region-panel-input.c
+===================================================================
+--- gnome-control-center-3.6.3.orig/panels/region/gnome-region-panel-input.c	2013-09-11 10:18:42.499555032 -0400
++++ gnome-control-center-3.6.3/panels/region/gnome-region-panel-input.c	2013-09-11 10:21:05.091549069 -0400
+@@ -1741,6 +1741,18 @@
+                     G_CALLBACK (input_sources_changed),
+                     builder);
+ 
++  g_settings_bind (input_sources_settings, "per-window",
++                   WID("per-window-radio-true"), "active",
++                   G_SETTINGS_BIND_DEFAULT);
++  g_settings_bind (input_sources_settings, "per-window",
++                   WID("per-window-radio-false"), "active",
++                   G_SETTINGS_BIND_DEFAULT | G_SETTINGS_BIND_INVERT_BOOLEAN);
++  /* because we are in delay-apply mode */
++  g_signal_connect_swapped (WID("per-window-radio-true"), "clicked",
++                            G_CALLBACK (g_settings_apply), input_sources_settings);
++  g_signal_connect_swapped (WID("per-window-radio-false"), "clicked",
++                            G_CALLBACK (g_settings_apply), input_sources_settings);
++
+   if (is_ubuntu ())
+     {
+       libgnomekbd_settings = g_settings_new (LIBGNOMEKBD_DESKTOP_SCHEMA_ID);
