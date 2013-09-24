@@ -54,7 +54,7 @@
  
  #ifdef HAVE_IBUS
  static IBusBus *ibus = NULL;
-@@ -279,6 +301,12 @@
+@@ -279,6 +301,31 @@
  };
  #endif  /* HAVE_IBUS */
  
@@ -64,10 +64,29 @@
 +  return g_strcmp0 (g_getenv ("XDG_CURRENT_DESKTOP"), "Unity") == 0;
 +}
 +
++static gboolean
++has_indicator_keyboard (void)
++{
++  if (is_ubuntu ())
++    {
++      const gchar * const *schemas = g_settings_list_schemas ();
++
++      while (*schemas != NULL)
++        {
++          if (g_strcmp0 (*schemas, INDICATOR_KEYBOARD_SCHEMA_ID) == 0)
++            return TRUE;
++
++          schemas++;
++        }
++    }
++
++  return FALSE;
++}
++
  static void       populate_model             (GtkListStore  *store,
                                                GtkListStore  *active_sources_store);
  static GtkWidget *input_chooser_new          (GtkWindow     *main_window,
-@@ -467,9 +495,6 @@
+@@ -467,9 +514,6 @@
                                 ibus_cancellable,
                                 (GAsyncReadyCallback)fetch_ibus_engines_result,
                                 builder);
@@ -77,7 +96,7 @@
  }
  
  static void
-@@ -488,6 +513,277 @@
+@@ -488,6 +532,277 @@
  }
  
  static void
@@ -340,7 +359,7 @@
 +
 +  fetch_ibus_engines (builder);
 +
-+  if (is_ubuntu ())
++  if (has_indicator_keyboard ())
 +    {
 +      update_source_radios (builder);
 +      update_orientation_combo (builder);
@@ -355,7 +374,7 @@
  on_shell_appeared (GDBusConnection *connection,
                     const gchar     *name,
                     const gchar     *name_owner,
-@@ -499,10 +795,9 @@
+@@ -499,10 +814,9 @@
      {
        ibus = ibus_bus_new_async ();
        if (ibus_bus_is_connected (ibus))
@@ -368,7 +387,7 @@
      }
    maybe_start_ibus ();
  }
-@@ -1150,6 +1445,8 @@
+@@ -1150,6 +1464,8 @@
    const gchar *argv[] = { "shortcuts", "Typing", NULL };
    GError *error = NULL;
  
@@ -377,7 +396,7 @@
    shell = cc_panel_get_shell (CC_PANEL (panel));
    if (!cc_shell_set_active_panel_from_id (shell, "keyboard", argv, &error))
      {
-@@ -1234,6 +1531,15 @@
+@@ -1234,6 +1550,15 @@
    g_free (next);
  }
  
@@ -393,7 +412,7 @@
  static gboolean
  active_sources_visible_func (GtkTreeModel *model,
                               GtkTreeIter  *iter,
-@@ -1251,8 +1557,99 @@
+@@ -1251,8 +1576,99 @@
    return TRUE;
  }
  
@@ -494,7 +513,7 @@
                    CcRegionPanel *panel)
  {
    GtkWidget *treeview;
-@@ -1262,6 +1659,17 @@
+@@ -1262,6 +1678,17 @@
    GtkTreeModel *filtered_store;
    GtkTreeSelection *selection;
  
@@ -512,7 +531,7 @@
    /* set up the list of active inputs */
    treeview = WID("active_input_sources");
    column = gtk_tree_view_column_new ();
-@@ -1279,8 +1687,8 @@
+@@ -1279,8 +1706,8 @@
    gtk_tree_view_set_model (GTK_TREE_VIEW (treeview), GTK_TREE_MODEL (store));
  
    input_sources_settings = g_settings_new (GNOME_DESKTOP_INPUT_SOURCES_DIR);
@@ -522,7 +541,7 @@
  
    if (!xkb_info)
      xkb_info = gnome_xkb_info_new ();
-@@ -1294,7 +1702,6 @@
+@@ -1294,7 +1721,6 @@
                                            NULL,
                                            builder,
                                            NULL);
@@ -530,7 +549,7 @@
  #endif
  
    populate_with_active_sources (store);
-@@ -1327,17 +1734,70 @@
+@@ -1327,17 +1753,70 @@
                      G_CALLBACK (show_selected_layout), builder);
    g_signal_connect (WID("input_source_settings"), "clicked",
                      G_CALLBACK (show_selected_settings), builder);
@@ -546,7 +565,7 @@
                      G_CALLBACK (input_sources_changed),
                      builder);
 +
-+  if (is_ubuntu ())
++  if (has_indicator_keyboard ())
 +    {
 +      libgnomekbd_settings = g_settings_new (LIBGNOMEKBD_DESKTOP_SCHEMA_ID);
 +      indicator_settings = g_settings_new (INDICATOR_KEYBOARD_SCHEMA_ID);
@@ -1171,20 +1190,41 @@
  
  CC_PANEL_REGISTER (CcRegionPanel, cc_region_panel)
  
-@@ -47,6 +48,12 @@
+@@ -47,6 +48,33 @@
  	SYSTEM_PAGE
  };
  
++#define INDICATOR_KEYBOARD_SCHEMA_ID "com.canonical.indicator.keyboard"
++
 +static gboolean
 +is_ubuntu (void)
 +{
 +  return g_strcmp0 (g_getenv ("XDG_CURRENT_DESKTOP"), "Unity") == 0;
 +}
 +
++static gboolean
++has_indicator_keyboard (void)
++{
++  if (is_ubuntu ())
++    {
++      const gchar * const *schemas = g_settings_list_schemas ();
++
++      while (*schemas != NULL)
++        {
++          if (g_strcmp0 (*schemas, INDICATOR_KEYBOARD_SCHEMA_ID) == 0)
++            return TRUE;
++
++          schemas++;
++        }
++    }
++
++  return FALSE;
++}
++
  static void
  cc_region_panel_set_page (CcRegionPanel *panel,
  			  const char    *page)
-@@ -136,13 +143,21 @@
+@@ -136,13 +164,21 @@
  	GtkWidget *prefs_widget;
  	GError *error = NULL;
  
@@ -1197,7 +1237,7 @@
 -	gtk_builder_add_from_file (priv->builder,
 -				   GNOMECC_UI_DIR "/gnome-region-panel.ui",
 -				   &error);
-+	if (is_ubuntu ())
++	if (has_indicator_keyboard ())
 +		gtk_builder_add_from_file (priv->builder,
 +					   GNOMECC_UI_DIR "/ubuntu-region-panel.ui",
 +					   &error);
