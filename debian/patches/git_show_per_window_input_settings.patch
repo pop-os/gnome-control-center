@@ -5,10 +5,8 @@ Subject: region: Add UI for the per-window input sources setting
 
 https://bugzilla.gnome.org/show_bug.cgi?id=684210
 ---
-Index: gnome-control-center-3.6.3/panels/region/gnome-region-panel.ui
-===================================================================
---- gnome-control-center-3.6.3.orig/panels/region/gnome-region-panel.ui	2013-09-11 10:18:42.715555023 -0400
-+++ gnome-control-center-3.6.3/panels/region/gnome-region-panel.ui	2013-09-11 10:18:42.707555024 -0400
+--- a/panels/region/gnome-region-panel.ui
++++ b/panels/region/gnome-region-panel.ui
 @@ -862,111 +862,191 @@
                            </packing>
                          </child>
@@ -285,11 +283,9 @@ Index: gnome-control-center-3.6.3/panels/region/gnome-region-panel.ui
                              </child>
                            </object>
                            <packing>
-Index: gnome-control-center-3.6.3/panels/region/gnome-region-panel-input.c
-===================================================================
---- gnome-control-center-3.6.3.orig/panels/region/gnome-region-panel-input.c	2013-09-11 10:18:42.499555032 -0400
-+++ gnome-control-center-3.6.3/panels/region/gnome-region-panel-input.c	2013-09-11 10:21:05.091549069 -0400
-@@ -1741,6 +1741,18 @@
+--- a/panels/region/gnome-region-panel-input.c
++++ b/panels/region/gnome-region-panel-input.c
+@@ -1760,6 +1760,18 @@
                      G_CALLBACK (input_sources_changed),
                      builder);
  
@@ -305,6 +301,6 @@ Index: gnome-control-center-3.6.3/panels/region/gnome-region-panel-input.c
 +  g_signal_connect_swapped (WID("per-window-radio-false"), "clicked",
 +                            G_CALLBACK (g_settings_apply), input_sources_settings);
 +
-   if (is_ubuntu ())
+   if (has_indicator_keyboard ())
      {
        libgnomekbd_settings = g_settings_new (LIBGNOMEKBD_DESKTOP_SCHEMA_ID);
