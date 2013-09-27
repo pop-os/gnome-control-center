@@ -21,7 +21,7 @@ Forwarded: no, Ubuntu Specific
 -  /* set both battery and ac keys */
 -  g_settings_set_int (self->priv->gsd_settings, "sleep-display-ac", value);
 -  g_settings_set_int (self->priv->gsd_settings, "sleep-display-battery", value);
-+  g_settings_set_int (self->priv->session_settings, "idle-delay", value);
++  g_settings_set (self->priv->session_settings, "idle-delay", "u", value);
  
    set_idle_delay_from_dpms (self, value);
  }
@@ -30,7 +30,7 @@ Forwarded: no, Ubuntu Specific
  
    /* try to make the UI match the AC setting */
 -  value = g_settings_get_int (self->priv->gsd_settings, "sleep-display-ac");
-+  value = g_settings_get_int (self->priv->session_settings, "idle-delay");
++  g_settings_get (self->priv->session_settings, "idle-delay",  "u", &value);
    do
      {
        gtk_tree_model_get (model, &iter,
