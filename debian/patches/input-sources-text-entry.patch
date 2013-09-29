@@ -54,12 +54,11 @@
  
  #ifdef HAVE_IBUS
  static IBusBus *ibus = NULL;
-@@ -279,6 +301,31 @@
- };
- #endif  /* HAVE_IBUS */
+@@ -289,6 +311,31 @@
+ static GtkTreeModel *tree_view_get_actual_model (GtkTreeView *tv);
  
-+static gboolean
-+is_ubuntu (void)
+ static gboolean
++is_unity (void)
 +{
 +  return g_strcmp0 (g_getenv ("XDG_CURRENT_DESKTOP"), "Unity") == 0;
 +}
@@ -67,7 +66,7 @@
 +static gboolean
 +has_indicator_keyboard (void)
 +{
-+  if (is_ubuntu ())
++  if (is_unity ())
 +    {
 +      const gchar * const *schemas = g_settings_list_schemas ();
 +
@@ -83,9 +82,10 @@
 +  return FALSE;
 +}
 +
- static void       populate_model             (GtkListStore  *store,
-                                               GtkListStore  *active_sources_store);
- static GtkWidget *input_chooser_new          (GtkWindow     *main_window,
++static gboolean
+ strv_contains (const gchar * const *strv,
+                const gchar         *str)
+ {
 @@ -467,9 +514,6 @@
                                 ibus_cancellable,
                                 (GAsyncReadyCallback)fetch_ibus_engines_result,
@@ -1190,41 +1190,39 @@
  
  CC_PANEL_REGISTER (CcRegionPanel, cc_region_panel)
  
-@@ -47,6 +48,33 @@
+@@ -47,12 +48,31 @@
  	SYSTEM_PAGE
  };
  
 +#define INDICATOR_KEYBOARD_SCHEMA_ID "com.canonical.indicator.keyboard"
 +
-+static gboolean
-+is_ubuntu (void)
-+{
-+  return g_strcmp0 (g_getenv ("XDG_CURRENT_DESKTOP"), "Unity") == 0;
-+}
-+
+ static gboolean
+ is_unity (void)
+ {
+ 	return g_strcmp0 (g_getenv ("XDG_CURRENT_DESKTOP"), "Unity") == 0;
+ }
+ 
 +static gboolean
 +has_indicator_keyboard (void)
 +{
-+  if (is_ubuntu ())
-+    {
-+      const gchar * const *schemas = g_settings_list_schemas ();
++	if (is_unity ()) {
++		const gchar * const *schemas = g_settings_list_schemas ();
 +
-+      while (*schemas != NULL)
-+        {
-+          if (g_strcmp0 (*schemas, INDICATOR_KEYBOARD_SCHEMA_ID) == 0)
-+            return TRUE;
++		while (*schemas != NULL) {
++			if (g_strcmp0 (*schemas, INDICATOR_KEYBOARD_SCHEMA_ID) == 0)
++				return TRUE;
 +
-+          schemas++;
-+        }
-+    }
++			schemas++;
++		}
++	}
 +
-+  return FALSE;
++	return FALSE;
 +}
 +
  static void
  cc_region_panel_set_page (CcRegionPanel *panel,
  			  const char    *page)
-@@ -136,13 +164,21 @@
+@@ -142,13 +162,21 @@
  	GtkWidget *prefs_widget;
  	GError *error = NULL;
  
