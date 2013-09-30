@@ -387,6 +387,15 @@
      }
    maybe_start_ibus ();
  }
+@@ -909,7 +1223,7 @@
+ 
+   g_debug ("add an input source");
+ 
+-  toplevel = gtk_widget_get_toplevel (WID ("region_notebook"));
++  toplevel = gtk_widget_get_toplevel (WID ("active_input_sources"));
+   treeview = WID ("active_input_sources");
+   active_sources = GTK_LIST_STORE (tree_view_get_actual_model (GTK_TREE_VIEW (treeview)));
+ 
 @@ -1150,6 +1464,8 @@
    const gchar *argv[] = { "shortcuts", "Typing", NULL };
    GError *error = NULL;
@@ -451,7 +460,7 @@
 +                                            *key,
 +                                            *code,
 +                                            *mask,
-+                                            gtk_widget_get_toplevel (WID ("region_notebook")));
++                                            gtk_widget_get_toplevel (GTK_WIDGET (entry)));
 +
 +  return edited ? GTK_ENTRY_ACCEL_UPDATE : GTK_ENTRY_ACCEL_IGNORE;
 +}
