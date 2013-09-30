@@ -285,10 +285,11 @@ https://bugzilla.gnome.org/show_bug.cgi?id=684210
                            <packing>
 --- a/panels/region/gnome-region-panel-input.c
 +++ b/panels/region/gnome-region-panel-input.c
-@@ -1760,6 +1760,18 @@
+@@ -1338,6 +1338,18 @@
+                     "changed::" KEY_INPUT_SOURCES,
                      G_CALLBACK (input_sources_changed),
                      builder);
- 
++
 +  g_settings_bind (input_sources_settings, "per-window",
 +                   WID("per-window-radio-true"), "active",
 +                   G_SETTINGS_BIND_DEFAULT);
@@ -300,7 +301,6 @@ https://bugzilla.gnome.org/show_bug.cgi?id=684210
 +                            G_CALLBACK (g_settings_apply), input_sources_settings);
 +  g_signal_connect_swapped (WID("per-window-radio-false"), "clicked",
 +                            G_CALLBACK (g_settings_apply), input_sources_settings);
-+
-   if (has_indicator_keyboard ())
-     {
-       libgnomekbd_settings = g_settings_new (LIBGNOMEKBD_DESKTOP_SCHEMA_ID);
+ }
+ 
+ static void
