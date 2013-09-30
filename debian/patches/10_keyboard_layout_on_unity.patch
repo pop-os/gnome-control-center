@@ -1,16 +1,14 @@
 --- a/panels/region/gnome-region-panel.desktop.in.in
 +++ b/panels/region/gnome-region-panel.desktop.in.in
-@@ -1,8 +1,8 @@
- [Desktop Entry]
--_Name=Region & Language
-+_Name=Keyboard Layout
- _Comment=Change your region and language settings
- Exec=gnome-control-center region
--Icon=preferences-desktop-locale
-+Icon=key_bindings
- Terminal=false
+@@ -7,7 +7,7 @@
  Type=Application
  StartupNotify=true
+ Categories=GNOME;GTK;Settings;DesktopSettings;X-GNOME-Settings-Panel;X-GNOME-PersonalSettings
+-OnlyShowIn=GNOME;Unity;
++OnlyShowIn=GNOME;
+ X-GNOME-Bugzilla-Bugzilla=GNOME
+ X-GNOME-Bugzilla-Product=gnome-control-center
+ X-GNOME-Bugzilla-Component=region
 --- a/panels/region/cc-region-panel.c
 +++ b/panels/region/cc-region-panel.c
 @@ -47,6 +47,12 @@
@@ -56,3 +54,46 @@
  }
  
  void
+--- /dev/null
++++ b/panels/region/unity-region-panel.desktop.in.in
+@@ -0,0 +1,17 @@
++[Desktop Entry]
++_Name=Text Entry
++_Comment=Change your keyboard or input method settings
++Exec=gnome-control-center region
++Icon=preferences-desktop-keyboard-shortcuts
++Terminal=false
++Type=Application
++StartupNotify=true
++Categories=GNOME;GTK;Settings;DesktopSettings;X-GNOME-Settings-Panel;X-GNOME-PersonalSettings
++OnlyShowIn=Unity;
++X-GNOME-Bugzilla-Bugzilla=GNOME
++X-GNOME-Bugzilla-Product=gnome-control-center
++X-GNOME-Bugzilla-Component=region
++X-GNOME-Bugzilla-Version=@VERSION@
++X-GNOME-Settings-Panel=region
++# Translators: those are keywords for the region control-center panel
++_Keywords=Language;Layout;Keyboard;Input Method;Text Entry;
+--- a/panels/region/Makefile.am
++++ b/panels/region/Makefile.am
+@@ -40,7 +40,9 @@
+ 	$(NULL)
+ 
+ desktopdir = $(datadir)/applications
+-Desktop_in_files = gnome-region-panel.desktop.in
++Desktop_in_files =	\
++	gnome-region-panel.desktop.in \
++	unity-region-panel.desktop.in
+ desktop_DATA = $(Desktop_in_files:.desktop.in=.desktop)
+ 
+ CLEANFILES = $(Desktop_in_files) $(desktop_DATA)
+--- a/configure.ac
++++ b/configure.ac
+@@ -414,6 +414,7 @@
+ panels/keyboard/gnome-keybindings.pc
+ panels/region/Makefile
+ panels/region/gnome-region-panel.desktop.in
++panels/region/unity-region-panel.desktop.in
+ panels/mouse/Makefile
+ panels/mouse/gnome-mouse-panel.desktop.in
+ panels/online-accounts/Makefile
