@@ -1,0 +1,99 @@
+--- a/panels/region/gnome-region-panel.desktop.in.in
++++ b/panels/region/gnome-region-panel.desktop.in.in
+@@ -7,7 +7,7 @@
+ Type=Application
+ StartupNotify=true
+ Categories=GNOME;GTK;Settings;DesktopSettings;X-GNOME-Settings-Panel;X-GNOME-PersonalSettings
+-OnlyShowIn=GNOME;Unity;
++OnlyShowIn=GNOME;
+ X-GNOME-Bugzilla-Bugzilla=GNOME
+ X-GNOME-Bugzilla-Product=gnome-control-center
+ X-GNOME-Bugzilla-Component=region
+--- a/panels/region/cc-region-panel.c
++++ b/panels/region/cc-region-panel.c
+@@ -47,6 +47,12 @@
+ 	SYSTEM_PAGE
+ };
+ 
++static gboolean
++is_unity (void)
++{
++	return g_strcmp0 (g_getenv ("XDG_CURRENT_DESKTOP"), "Unity") == 0;
++}
++
+ static void
+ cc_region_panel_set_page (CcRegionPanel *panel,
+ 			  const char    *page)
+@@ -149,16 +155,24 @@
+ 		return;
+ 	}
+ 
+-	prefs_widget = (GtkWidget *) gtk_builder_get_object (priv->builder,
+-							     "region_notebook");
++	if (!is_unity ())
++		prefs_widget = (GtkWidget *) gtk_builder_get_object (priv->builder,
++								     "region_notebook");
++	else
++		prefs_widget = (GtkWidget *) gtk_builder_get_object (priv->builder,
++								     "vbox5");
++
+ 	gtk_widget_set_size_request (GTK_WIDGET (prefs_widget), -1, 400);
+ 
+ 	gtk_widget_reparent (prefs_widget, GTK_WIDGET (self));
+ 
+         setup_input_tabs (priv->builder, self);
+-	setup_language (priv->builder);
+-	setup_formats (priv->builder);
+-	setup_system (priv->builder);
++
++	if (!is_unity ()) {
++		setup_language (priv->builder);
++		setup_formats (priv->builder);
++		setup_system (priv->builder);
++	}
+ }
+ 
+ void
+--- /dev/null
++++ b/panels/region/unity-region-panel.desktop.in.in
+@@ -0,0 +1,17 @@
++[Desktop Entry]
++_Name=Text Entry
++_Comment=Change your keyboard or input method settings
++Exec=gnome-control-center region
++Icon=preferences-desktop-keyboard-shortcuts
++Terminal=false
++Type=Application
++StartupNotify=true
++Categories=GNOME;GTK;Settings;DesktopSettings;X-GNOME-Settings-Panel;X-GNOME-PersonalSettings
++OnlyShowIn=Unity;
++X-GNOME-Bugzilla-Bugzilla=GNOME
++X-GNOME-Bugzilla-Product=gnome-control-center
++X-GNOME-Bugzilla-Component=region
++X-GNOME-Bugzilla-Version=@VERSION@
++X-GNOME-Settings-Panel=region
++# Translators: those are keywords for the region control-center panel
++_Keywords=Language;Layout;Keyboard;Input Method;Text Entry;
+--- a/panels/region/Makefile.am
++++ b/panels/region/Makefile.am
+@@ -40,7 +40,9 @@
+ 	$(NULL)
+ 
+ desktopdir = $(datadir)/applications
+-Desktop_in_files = gnome-region-panel.desktop.in
++Desktop_in_files =	\
++	gnome-region-panel.desktop.in \
++	unity-region-panel.desktop.in
+ desktop_DATA = $(Desktop_in_files:.desktop.in=.desktop)
+ 
+ CLEANFILES = $(Desktop_in_files) $(desktop_DATA)
+--- a/configure.ac
++++ b/configure.ac
+@@ -414,6 +414,7 @@
+ panels/keyboard/gnome-keybindings.pc
+ panels/region/Makefile
+ panels/region/gnome-region-panel.desktop.in
++panels/region/unity-region-panel.desktop.in
+ panels/mouse/Makefile
+ panels/mouse/gnome-mouse-panel.desktop.in
+ panels/online-accounts/Makefile
