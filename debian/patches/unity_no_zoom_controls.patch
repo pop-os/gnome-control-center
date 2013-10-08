@@ -1,0 +1,27 @@
+Index: gnome-control-center-3.6.3/panels/universal-access/cc-ua-panel.c
+===================================================================
+--- gnome-control-center-3.6.3.orig/panels/universal-access/cc-ua-panel.c	2013-10-07 15:14:01.510776625 +0200
++++ gnome-control-center-3.6.3/panels/universal-access/cc-ua-panel.c	2013-10-07 15:31:38.894811839 +0200
+@@ -429,13 +429,21 @@
+                    WID (priv->builder, "seeing_toggle_keys_switch"), "active",
+                    G_SETTINGS_BIND_DEFAULT);
+ 
+-  priv->shell_watch_id = g_bus_watch_name (G_BUS_TYPE_SESSION,
++  if (g_strcmp0 (g_getenv ("XDG_CURRENT_DESKTOP"), "Unity")) 
++  {
++    priv->shell_watch_id = g_bus_watch_name (G_BUS_TYPE_SESSION,
+ 					   "org.gnome.Shell",
+ 					   G_BUS_NAME_WATCHER_FLAGS_NONE,
+ 					   (GBusNameAppearedCallback) shell_appeared_cb,
+ 					   (GBusNameVanishedCallback) shell_vanished_cb,
+ 					   self,
+ 					   NULL);
++  } else
++  {
++    gtk_widget_hide (WID (priv->builder, "zoom_label_box"));
++    gtk_widget_hide (WID (priv->builder, "zoom_value_box"));
++  }
++
+   g_signal_connect (WID (priv->builder, "seeing_zoom_preferences_button"),
+                     "clicked",
+                     G_CALLBACK (zoom_options_launch_cb), self);
