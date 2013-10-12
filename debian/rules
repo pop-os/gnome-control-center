@@ -9,22 +9,12 @@ include /usr/share/gnome-pkg-tools/1/rules/gnome-version.mk
 include /usr/share/gnome-pkg-tools/1/rules/clean-la.mk
 include /usr/share/gnome-pkg-tools/1/rules/gnome-get-source.mk
 
-LDFLAGS += -Wl,-O1 -Wl,--as-needed
+export DEB_LDFLAGS_MAINT_APPEND = -Wl,-z,defs -Wl,-O1 -Wl,--as-needed
+include /usr/share/dpkg/buildflags.mk
 
-DEB_CONFIGURE_EXTRA_FLAGS += --disable-scrollkeeper \
-                             --disable-update-mimedb \
+DEB_CONFIGURE_EXTRA_FLAGS += --disable-update-mimedb \
                              --with-libsocialweb
 
-DEB_INSTALL_MANPAGES_gnome-control-center += debian/gnome-control-center.1
-
 DEB_DH_MAKESHLIBS_ARGS_gnome-control-center = --no-act
-
-build/gnome-control-center:: $(DEB_INSTALL_MANPAGES_gnome-control-center)
-
-%.1: %.sgml
-	/usr/bin/docbook-to-man $< >$@
-
-clean::
-	rm -f $(DEB_INSTALL_MANPAGES_gnome-control-center)
 
 common-binary-post-install-arch:: list-missing
