@@ -421,7 +421,7 @@
  static gboolean
  active_sources_visible_func (GtkTreeModel *model,
                               GtkTreeIter  *iter,
-@@ -1251,8 +1576,99 @@
+@@ -1251,8 +1576,103 @@
    return TRUE;
  }
  
@@ -453,7 +453,11 @@
 +      return GTK_ENTRY_ACCEL_UPDATE;
 +    }
 +
-+  if (!gtk_accelerator_valid (*key, *mask))
++  if ((*mask & ~GDK_SHIFT_MASK & ~GDK_LOCK_MASK) == 0 &&
++      (*key == GDK_KEY_Tab ||
++       *key == GDK_KEY_KP_Tab ||
++       *key == GDK_KEY_ISO_Left_Tab ||
++       *key == GDK_KEY_3270_BackTab))
 +    return GTK_ENTRY_ACCEL_IGNORE;
 +
 +  edited = keyboard_shortcuts_accel_edited (item,
@@ -522,7 +526,7 @@
                    CcRegionPanel *panel)
  {
    GtkWidget *treeview;
-@@ -1262,6 +1678,17 @@
+@@ -1262,6 +1682,17 @@
    GtkTreeModel *filtered_store;
    GtkTreeSelection *selection;
  
@@ -540,7 +544,7 @@
    /* set up the list of active inputs */
    treeview = WID("active_input_sources");
    column = gtk_tree_view_column_new ();
-@@ -1279,8 +1706,8 @@
+@@ -1279,8 +1710,8 @@
    gtk_tree_view_set_model (GTK_TREE_VIEW (treeview), GTK_TREE_MODEL (store));
  
    input_sources_settings = g_settings_new (GNOME_DESKTOP_INPUT_SOURCES_DIR);
@@ -550,7 +554,7 @@
  
    if (!xkb_info)
      xkb_info = gnome_xkb_info_new ();
-@@ -1294,7 +1721,6 @@
+@@ -1294,7 +1725,6 @@
                                            NULL,
                                            builder,
                                            NULL);
@@ -558,7 +562,7 @@
  #endif
  
    populate_with_active_sources (store);
-@@ -1327,29 +1753,84 @@
+@@ -1327,29 +1757,84 @@
                      G_CALLBACK (show_selected_layout), builder);
    g_signal_connect (WID("input_source_settings"), "clicked",
                      G_CALLBACK (show_selected_settings), builder);
@@ -661,9 +665,17 @@
  static void
 --- /dev/null
 +++ b/panels/region/gtkentryaccel.c
-@@ -0,0 +1,470 @@
+@@ -0,0 +1,512 @@
 +#include "gtkentryaccel.h"
 +#include <glib/gi18n.h>
++
++#define GTK_ENTRY_ACCEL_MODIFIER_MASK (GDK_MODIFIER_MASK & \
++                                       ~GDK_LOCK_MASK & \
++                                       ~GDK_MOD2_MASK & \
++                                       ~GDK_MOD3_MASK & \
++                                       ~GDK_MOD4_MASK & \
++                                       ~GDK_MOD5_MASK & \
++                                       ~GDK_HYPER_MASK)
 +
 +#define GTK_TYPE_ENTRY_ACCEL_POST_ACTION (gtk_entry_accel_post_action_get_type ())
 +#define GTK_ENTRY_ACCEL_GET_PRIVATE(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GTK_TYPE_ENTRY_ACCEL, GtkEntryAccelPrivate))
@@ -992,7 +1004,7 @@
 +                                 GdkEventKey *event)
 +{
 +  guint key = event->keyval;
-+  guint mask = event->state & (GDK_MODIFIER_MASK & ~GDK_LOCK_MASK & ~GDK_MOD2_MASK);
++  guint mask = event->state & GTK_ENTRY_ACCEL_MODIFIER_MASK;
 +
 +  return ((mask & ~GDK_SHIFT_MASK) != 0 ||
 +          (key != GDK_KEY_Tab &&
@@ -1002,6 +1014,37 @@
 +          GTK_WIDGET_CLASS (gtk_entry_accel_parent_class)->key_press_event (widget, event));
 +}
 +
++static guint
++gtk_entry_accel_get_mask_for_key (guint key)
++{
++  switch (key)
++    {
++    case GDK_KEY_Shift_L:
++    case GDK_KEY_Shift_R:
++      return GDK_SHIFT_MASK;
++    case GDK_KEY_Control_L:
++    case GDK_KEY_Control_R:
++      return GDK_CONTROL_MASK;
++    case GDK_KEY_Caps_Lock:
++    case GDK_KEY_Shift_Lock:
++      return GDK_LOCK_MASK;
++    case GDK_KEY_Meta_L:
++    case GDK_KEY_Meta_R:
++      return GDK_META_MASK;
++    case GDK_KEY_Alt_L:
++    case GDK_KEY_Alt_R:
++      return GDK_MOD1_MASK;
++    case GDK_KEY_Super_L:
++    case GDK_KEY_Super_R:
++      return GDK_SUPER_MASK;
++    case GDK_KEY_Hyper_L:
++    case GDK_KEY_Hyper_R:
++      return GDK_HYPER_MASK;
++    }
++
++  return 0;
++}
++
 +static gboolean
 +gtk_entry_accel_key_release_event (GtkWidget   *widget,
 +                                   GdkEventKey *event)
@@ -1009,7 +1052,10 @@
 +  GtkEntryAccel *entry = GTK_ENTRY_ACCEL (widget);
 +  guint key = event->keyval;
 +  guint code = event->hardware_keycode;
-+  guint mask = event->state & (GDK_MODIFIER_MASK & ~GDK_LOCK_MASK & ~GDK_MOD2_MASK);
++  guint mask = event->state & GTK_ENTRY_ACCEL_MODIFIER_MASK;
++
++  if (event->is_modifier)
++    mask &= ~gtk_entry_accel_get_mask_for_key (key);
 +
 +  if (entry->priv->keyboard != NULL && entry->priv->pointer != NULL)
 +    {
