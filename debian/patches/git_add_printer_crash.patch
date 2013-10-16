@@ -1,0 +1,45 @@
+From 5a654556de7a85414e9ef3a465f383b9ea4357e7 Mon Sep 17 00:00:00 2001
+From: Marek Kasik <mkasik@redhat.com>
+Date: Wed, 24 Apr 2013 11:03:22 +0000
+Subject: printers: Don't crash without system-config-printer
+
+Fix error handling in addition of new printer.
+
+https://bugzilla.gnome.org/show_bug.cgi?id=698642
+---
+diff --git a/panels/printers/pp-new-printer.c b/panels/printers/pp-new-printer.c
+index 038a2ad..c76f1ac 100644
+--- a/panels/printers/pp-new-printer.c
++++ b/panels/printers/pp-new-printer.c
+@@ -683,6 +683,7 @@ printer_add_async_scb (GObject      *source_object,
+   GDBusConnection     *bus;
+   GVariantBuilder      array_builder;
+   GVariant            *output;
++  gboolean             cancelled = FALSE;
+   PPDName             *ppd_item = NULL;
+   GError              *error = NULL;
+ 
+@@ -698,15 +699,15 @@ printer_add_async_scb (GObject      *source_object,
+     }
+   else
+     {
+-      if (error->domain != G_IO_ERROR ||
+-          error->code != G_IO_ERROR_CANCELLED)
++      cancelled = g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED);
++
++      if (!cancelled)
+         g_warning ("%s", error->message);
+-      g_error_free (error);
++
++      g_clear_error (&error);
+     }
+ 
+-  if (!error ||
+-      error->domain != G_IO_ERROR ||
+-      error->code != G_IO_ERROR_CANCELLED)
++  if (!cancelled)
+     {
+       if (ppd_item == NULL || ppd_item->ppd_match_level < PPD_EXACT_MATCH)
+         {
+--
+cgit v0.9.2
