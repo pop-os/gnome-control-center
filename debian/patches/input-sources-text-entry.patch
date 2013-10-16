@@ -453,7 +453,7 @@
 +      return GTK_ENTRY_ACCEL_UPDATE;
 +    }
 +
-+  if ((*mask & ~GDK_SHIFT_MASK & ~GDK_LOCK_MASK) == 0 &&
++  if ((*mask & ~GDK_LOCK_MASK) == 0 &&
 +      (*key == GDK_KEY_Tab ||
 +       *key == GDK_KEY_KP_Tab ||
 +       *key == GDK_KEY_ISO_Left_Tab ||
@@ -665,7 +665,7 @@
  static void
 --- /dev/null
 +++ b/panels/region/gtkentryaccel.c
-@@ -0,0 +1,512 @@
+@@ -0,0 +1,514 @@
 +#include "gtkentryaccel.h"
 +#include <glib/gi18n.h>
 +
@@ -1003,10 +1003,12 @@
 +gtk_entry_accel_key_press_event (GtkWidget   *widget,
 +                                 GdkEventKey *event)
 +{
++  GtkEntryAccel *entry = GTK_ENTRY_ACCEL (widget);
 +  guint key = event->keyval;
 +  guint mask = event->state & GTK_ENTRY_ACCEL_MODIFIER_MASK;
++  gboolean grabbed = entry->priv->keyboard != NULL && entry->priv->pointer != NULL;
 +
-+  return ((mask & ~GDK_SHIFT_MASK) != 0 ||
++  return ((grabbed ? mask : (mask & ~GDK_SHIFT_MASK)) != 0 ||
 +          (key != GDK_KEY_Tab &&
 +           key != GDK_KEY_KP_Tab &&
 +           key != GDK_KEY_ISO_Left_Tab &&
@@ -1904,13 +1906,11 @@
 +  GDK_KEY_Page_Up,
 +  GDK_KEY_Page_Down,
 +  GDK_KEY_End,
-+  GDK_KEY_Tab,
 +
 +  /* Return */
 +  GDK_KEY_KP_Enter,
 +  GDK_KEY_Return,
 +
-+  GDK_KEY_space,
 +  GDK_KEY_Mode_switch
 +};
 +
@@ -2042,6 +2042,8 @@
 +           || (keyval >= GDK_KEY_Thai_kokai && keyval <= GDK_KEY_Thai_lekkao)
 +           || (keyval >= GDK_KEY_Hangul && keyval <= GDK_KEY_Hangul_Special)
 +           || (keyval >= GDK_KEY_Hangul_Kiyeog && keyval <= GDK_KEY_Hangul_J_YeorinHieuh)
++           || (keyval == GDK_KEY_Tab && mask == 0)
++           || (keyval == GDK_KEY_space && mask == 0)
 +           || keyval_is_forbidden (keyval)) {
 +        GtkWidget *dialog;
 +        char *name;
