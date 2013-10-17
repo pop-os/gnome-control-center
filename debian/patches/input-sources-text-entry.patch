@@ -665,7 +665,7 @@
  static void
 --- /dev/null
 +++ b/panels/region/gtkentryaccel.c
-@@ -0,0 +1,514 @@
+@@ -0,0 +1,525 @@
 +#include "gtkentryaccel.h"
 +#include <glib/gi18n.h>
 +
@@ -1055,6 +1055,17 @@
 +  guint key = event->keyval;
 +  guint code = event->hardware_keycode;
 +  guint mask = event->state & GTK_ENTRY_ACCEL_MODIFIER_MASK;
++
++  switch (key)
++    {
++    case GDK_KEY_Meta_L:
++      key = GDK_KEY_Alt_L;
++      break;
++
++    case GDK_KEY_Meta_R:
++      key = GDK_KEY_Alt_R;
++      break;
++    }
 +
 +  if (event->is_modifier)
 +    mask &= ~gtk_entry_accel_get_mask_for_key (key);
