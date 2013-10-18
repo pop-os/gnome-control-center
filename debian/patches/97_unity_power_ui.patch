@@ -1,7 +1,10 @@
-Index: gnome-control-center-3.6.0/panels/power/cc-power-panel.c
+Description: When indicator-power is installed, display an extra option in the power panel.
+Forwarded: not-needed
+
+Index: b/panels/power/cc-power-panel.c
 ===================================================================
---- gnome-control-center-3.6.0.orig/panels/power/cc-power-panel.c	2012-10-03 22:54:51.600763059 -0400
-+++ gnome-control-center-3.6.0/panels/power/cc-power-panel.c	2012-10-03 22:54:53.384763114 -0400
+--- a/panels/power/cc-power-panel.c
++++ b/panels/power/cc-power-panel.c
 @@ -39,6 +39,7 @@
  {
    GSettings     *lock_settings;
@@ -22,7 +25,7 @@ Index: gnome-control-center-3.6.0/panels/power/cc-power-panel.c
    if (priv->cancellable != NULL)
      {
        g_cancellable_cancel (priv->cancellable);
-@@ -1109,6 +1115,26 @@
+@@ -1112,6 +1118,37 @@
  
    widget = WID (self->priv->builder, "vbox_power");
    gtk_widget_reparent (widget, (GtkWidget *) self);
@@ -32,13 +35,23 @@ Index: gnome-control-center-3.6.0/panels/power/cc-power-panel.c
 +   *  https://wiki.ubuntu.com/Power
 +   *  https://docs.google.com/document/d/1ILTJDiDCd25Npt2AmgzF8aOnZZECxTfM0hvsbWT2BxA/edit?pli=1#heading=h.i5lg1g344bsb
 +   */
-+  if (g_strcmp0 (g_getenv ("XDG_CURRENT_DESKTOP"), "Unity") == 0)
++  // First check the schema is installed
++  GSettingsSchemaSource *schema_source = g_settings_schema_source_ref (
++              g_settings_schema_source_get_default ());
++  GSettingsSchema *schema = g_settings_schema_source_lookup (
++              schema_source,
++              "com.canonical.indicator.power",
++              TRUE);
++  g_settings_schema_source_unref (schema_source);
++
++  if (schema)
 +    {
 +      widget = GTK_WIDGET (gtk_builder_get_object (self->priv->builder,
 +                                                   "combobox_indicator"));
 +      self->priv->power_settings = g_settings_new ("com.canonical.indicator.power");
 +      g_settings_bind (self->priv->power_settings, "icon-policy",
 +                       widget, "active-id", G_SETTINGS_BIND_DEFAULT);
++      g_settings_schema_unref (schema);
 +    }
 +  else
 +    {
@@ -46,14 +59,15 @@ Index: gnome-control-center-3.6.0/panels/power/cc-power-panel.c
 +      gtk_widget_hide (GTK_WIDGET (gtk_builder_get_object (self->priv->builder, "label_indicator")));
 +      gtk_widget_hide (GTK_WIDGET (gtk_builder_get_object (self->priv->builder, "combobox_indicator")));
 +    }
++
  }
  
  void
-Index: gnome-control-center-3.6.0/panels/power/power.ui
+Index: b/panels/power/power.ui
 ===================================================================
---- gnome-control-center-3.6.0.orig/panels/power/power.ui	2012-10-03 22:54:51.600763059 -0400
-+++ gnome-control-center-3.6.0/panels/power/power.ui	2012-10-03 22:54:53.384763114 -0400
-@@ -80,6 +80,28 @@
+--- a/panels/power/power.ui
++++ b/panels/power/power.ui
+@@ -75,6 +75,28 @@
        </row>
      </data>
    </object>
@@ -82,7 +96,7 @@ Index: gnome-control-center-3.6.0/panels/power/power.ui
    <object class="GtkWindow" id="window_power">
      <property name="can_focus">False</property>
      <property name="resizable">False</property>
-@@ -241,6 +263,48 @@
+@@ -238,6 +260,48 @@
                  <property name="top_attach">3</property>
                </packing>
              </child>
@@ -131,3 +145,16 @@ Index: gnome-control-center-3.6.0/panels/power/power.ui
            </object>
            <packing>
              <property name="expand">False</property>
+Index: b/configure.ac
+===================================================================
+--- a/configure.ac
++++ b/configure.ac
+@@ -94,7 +94,7 @@
+ dnl Check that we meet the  dependencies
+ dnl ==============================================
+ 
+-GLIB_REQUIRED_VERSION=2.31.0
++GLIB_REQUIRED_VERSION=2.31.2
+ GTK_REQUIRED_VERSION=3.5.13
+ PA_REQUIRED_VERSION=2.0
+ CANBERRA_REQUIRED_VERSION=0.13
