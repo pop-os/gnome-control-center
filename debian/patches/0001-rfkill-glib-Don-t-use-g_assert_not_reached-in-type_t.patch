@@ -1,0 +1,27 @@
+From 90f49a4d5dd646b8fce10f61a9231db4973a907b Mon Sep 17 00:00:00 2001
+From: Adel Gadllah <adel.gadllah@gmail.com>
+Date: Thu, 16 May 2013 15:41:17 +0200
+Subject: [PATCH] rfkill-glib: Don't use g_assert_not_reached in type_to_string
+
+New kernel versions can add new RFKILL types, we should now crash here,
+just say that we don't know what the switch is.
+---
+ panels/network/rfkill-glib.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/panels/network/rfkill-glib.c b/panels/network/rfkill-glib.c
+index e27ca40..7c9ee3c 100644
+--- a/panels/network/rfkill-glib.c
++++ b/panels/network/rfkill-glib.c
+@@ -80,7 +80,7 @@ type_to_string (unsigned int type)
+ 	case RFKILL_TYPE_WWAN:
+ 		return "WWAN";
+ 	default:
+-		g_assert_not_reached ();
++		return "UNKNOWN";
+ 	}
+ }
+ 
+-- 
+1.8.3.2
+
