@@ -665,7 +665,7 @@
  static void
 --- /dev/null
 +++ b/panels/region/gtkentryaccel.c
-@@ -0,0 +1,525 @@
+@@ -0,0 +1,653 @@
 +#include "gtkentryaccel.h"
 +#include <glib/gi18n.h>
 +
@@ -690,6 +690,15 @@
 +
 +  GdkDevice *keyboard;
 +  GdkDevice *pointer;
++
++  gboolean left_shift : 1;
++  gboolean right_shift : 1;
++  gboolean left_control : 1;
++  gboolean right_control : 1;
++  gboolean left_alt : 1;
++  gboolean right_alt : 1;
++  gboolean left_super : 1;
++  gboolean right_super : 1;
 +};
 +
 +G_DEFINE_TYPE (GtkEntryAccel, gtk_entry_accel, GTK_TYPE_ENTRY);
@@ -730,6 +739,90 @@
 +    }
 +
 +  return type;
++}
++
++static void
++gtk_entry_accel_reset_modifier_states (GtkEntryAccel *entry)
++{
++  g_return_if_fail (GTK_IS_ENTRY_ACCEL (entry));
++
++  entry->priv->left_shift = FALSE;
++  entry->priv->right_shift = FALSE;
++  entry->priv->left_control = FALSE;
++  entry->priv->right_control = FALSE;
++  entry->priv->left_alt = FALSE;
++  entry->priv->right_alt = FALSE;
++  entry->priv->left_super = FALSE;
++  entry->priv->right_super = FALSE;
++}
++
++static gboolean
++gtk_entry_accel_get_modifier_state (GtkEntryAccel *entry,
++                                    guint          key)
++{
++  g_return_val_if_fail (GTK_IS_ENTRY_ACCEL (entry), FALSE);
++
++  switch (key)
++    {
++    case GDK_KEY_Shift_L:
++      return entry->priv->left_shift;
++    case GDK_KEY_Shift_R:
++      return entry->priv->right_shift;
++    case GDK_KEY_Control_L:
++      return entry->priv->left_control;
++    case GDK_KEY_Control_R:
++      return entry->priv->right_control;
++    case GDK_KEY_Meta_L:
++    case GDK_KEY_Alt_L:
++      return entry->priv->left_alt;
++    case GDK_KEY_Meta_R:
++    case GDK_KEY_Alt_R:
++      return entry->priv->right_alt;
++    case GDK_KEY_Super_L:
++      return entry->priv->left_super;
++    case GDK_KEY_Super_R:
++      return entry->priv->right_super;
++    }
++
++  return FALSE;
++}
++
++static void
++gtk_entry_accel_set_modifier_state (GtkEntryAccel *entry,
++                                    guint          key,
++                                    gboolean       state)
++{
++  g_return_if_fail (GTK_IS_ENTRY_ACCEL (entry));
++
++  switch (key)
++    {
++    case GDK_KEY_Shift_L:
++      entry->priv->left_shift = state;
++      break;
++    case GDK_KEY_Shift_R:
++      entry->priv->right_shift = state;
++      break;
++    case GDK_KEY_Control_L:
++      entry->priv->left_control = state;
++      break;
++    case GDK_KEY_Control_R:
++      entry->priv->right_control = state;
++      break;
++    case GDK_KEY_Meta_L:
++    case GDK_KEY_Alt_L:
++      entry->priv->left_alt = state;
++      break;
++    case GDK_KEY_Meta_R:
++    case GDK_KEY_Alt_R:
++      entry->priv->right_alt = state;
++      break;
++    case GDK_KEY_Super_L:
++      entry->priv->left_super = state;
++      break;
++    case GDK_KEY_Super_R:
++      entry->priv->right_super = state;
++      break;
++    }
 +}
 +
 +static void
@@ -801,6 +894,7 @@
 +      g_clear_object (&entry->priv->pointer);
 +    }
 +
++  gtk_entry_accel_reset_modifier_states (entry);
 +  gtk_entry_accel_update_text (entry);
 +}
 +
@@ -1008,6 +1102,8 @@
 +  guint mask = event->state & GTK_ENTRY_ACCEL_MODIFIER_MASK;
 +  gboolean grabbed = entry->priv->keyboard != NULL && entry->priv->pointer != NULL;
 +
++  gtk_entry_accel_set_modifier_state (entry, key, TRUE);
++
 +  return ((grabbed ? mask : (mask & ~GDK_SHIFT_MASK)) != 0 ||
 +          (key != GDK_KEY_Tab &&
 +           key != GDK_KEY_KP_Tab &&
@@ -1047,6 +1143,38 @@
 +  return 0;
 +}
 +
++static guint
++gtk_entry_accel_get_mirrored_key (guint key)
++{
++  switch (key)
++    {
++    case GDK_KEY_Shift_L:
++      return GDK_KEY_Shift_R;
++    case GDK_KEY_Shift_R:
++      return GDK_KEY_Shift_L;
++    case GDK_KEY_Control_L:
++      return GDK_KEY_Control_R;
++    case GDK_KEY_Control_R:
++      return GDK_KEY_Control_L;
++    case GDK_KEY_Meta_L:
++      return GDK_KEY_Meta_R;
++    case GDK_KEY_Meta_R:
++      return GDK_KEY_Meta_L;
++    case GDK_KEY_Alt_L:
++      return GDK_KEY_Alt_R;
++    case GDK_KEY_Alt_R:
++      return GDK_KEY_Alt_L;
++    case GDK_KEY_Super_L:
++      return GDK_KEY_Super_R;
++    case GDK_KEY_Super_R:
++      return GDK_KEY_Super_L;
++    case GDK_KEY_Hyper_L:
++      return GDK_KEY_Hyper_R;
++    }
++
++  return 0;
++}
++
 +static gboolean
 +gtk_entry_accel_key_release_event (GtkWidget   *widget,
 +                                   GdkEventKey *event)
@@ -1056,22 +1184,22 @@
 +  guint code = event->hardware_keycode;
 +  guint mask = event->state & GTK_ENTRY_ACCEL_MODIFIER_MASK;
 +
-+  switch (key)
-+    {
-+    case GDK_KEY_Meta_L:
-+      key = GDK_KEY_Alt_L;
-+      break;
-+
-+    case GDK_KEY_Meta_R:
-+      key = GDK_KEY_Alt_R;
-+      break;
-+    }
-+
-+  if (event->is_modifier)
-+    mask &= ~gtk_entry_accel_get_mask_for_key (key);
-+
 +  if (entry->priv->keyboard != NULL && entry->priv->pointer != NULL)
 +    {
++      switch (key)
++        {
++        case GDK_KEY_Meta_L:
++          key = GDK_KEY_Alt_L;
++          break;
++
++        case GDK_KEY_Meta_R:
++          key = GDK_KEY_Alt_R;
++          break;
++        }
++
++      if (event->is_modifier && !gtk_entry_accel_get_modifier_state (entry, gtk_entry_accel_get_mirrored_key (key)))
++        mask &= ~gtk_entry_accel_get_mask_for_key (key);
++
 +      gtk_entry_accel_ungrab_input (entry, (GdkEvent *) event);
 +
 +      switch (gtk_entry_accel_key_pressed (entry, &key, &code, &mask))
