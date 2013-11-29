@@ -1,0 +1,78 @@
+From: Mathieu Trudel-Lapierre <mathieu.trudel-lapierre@canonical.com>
+Subject: Properly convert an access point SSID into a format that can be displayed.
+
+Use nm_utils_ssid_to_utf8() as used elsewhere in the code, rather than using
+nm_utils_escape_ssid() (which doesn't in fact convert into an UTF8 string), so
+that we have something sane that can be passed to g_markup_escape_text().
+
+---
+ panels/network/net-device-wifi.c |   13 +++++++++----
+ 1 file changed, 9 insertions(+), 4 deletions(-)
+
+Index: b/panels/network/net-device-wifi.c
+===================================================================
+--- a/panels/network/net-device-wifi.c
++++ b/panels/network/net-device-wifi.c
+@@ -150,7 +150,7 @@ add_access_point (NetDeviceWifi *device_
+         ssid = nm_access_point_get_ssid (ap);
+         if (ssid == NULL)
+                 return;
+-        ssid_text = nm_utils_escape_ssid (ssid->data, ssid->len);
++        ssid_text = nm_utils_ssid_to_utf8 (ssid);
+         title = g_markup_escape_text (ssid_text, -1);
+ 
+         is_active_ap = active && nm_utils_same_ssid (ssid, nm_access_point_get_ssid (active), TRUE);
+@@ -172,6 +172,7 @@ add_access_point (NetDeviceWifi *device_
+                                            COLUMN_AP_OUT_OF_RANGE, FALSE,
+                                            COLUMN_AP_IS_SAVED, FALSE,
+                                            -1);
++        g_free (ssid_text);
+         g_free (title);
+ }
+ 
+@@ -531,7 +532,7 @@ add_saved_connection (NetDeviceWifi *dev
+                 return;
+ 
+         ssid = nm_setting_wireless_get_ssid (NM_SETTING_WIRELESS (setting));
+-        ssid_text = nm_utils_escape_ssid (ssid->data, ssid->len);
++        ssid_text = nm_utils_ssid_to_utf8 (ssid);
+         title = g_markup_escape_text (ssid_text, -1);
+         g_debug ("got saved %s", title);
+ 
+@@ -559,6 +560,7 @@ add_saved_connection (NetDeviceWifi *dev
+                                                    COLUMN_AP_IS_SAVED, TRUE,
+                                                    -1);
+         g_free (title);
++        g_free (ssid_text);
+ }
+ 
+ static void
+@@ -1074,7 +1076,7 @@ wireless_try_to_connect (NetDeviceWifi *
+                          const gchar *ap_object_path)
+ {
+         const GByteArray *ssid;
+-        const gchar *ssid_tmp;
++        const gchar *ssid_tmp = NULL;
+         GSList *list, *l;
+         GSList *filtered;
+         NMConnection *connection_activate = NULL;
+@@ -1112,15 +1114,18 @@ wireless_try_to_connect (NetDeviceWifi *
+                 ssid = nm_setting_wireless_get_ssid (setting_wireless);
+                 if (ssid == NULL)
+                         continue;
+-                ssid_tmp = nm_utils_escape_ssid (ssid->data, ssid->len);
++                ssid_tmp = nm_utils_ssid_to_utf8 (ssid);
+                 if (g_strcmp0 (ssid_target, ssid_tmp) == 0) {
+                         g_debug ("we found an existing connection %s to activate!",
+                                  nm_connection_get_id (connection));
+                         connection_activate = connection;
+                         break;
+                 }
++                g_free (ssid_tmp);
++                ssid_tmp = NULL;
+         }
+ 
++        g_free (ssid_tmp);
+         g_slist_free (list);
+         g_slist_free (filtered);
+ 
