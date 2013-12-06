@@ -1,0 +1,86 @@
+From 82e6777cb1a32edb9c85b85c0c3768f9ca62c4c2 Mon Sep 17 00:00:00 2001
+From: Marco Barisione <marco.barisione@collabora.co.uk>
+Date: Wed, 21 Aug 2013 11:48:25 +0100
+Subject: [PATCH] online-accounts: use the async function to get all the
+ providers
+
+https://bugzilla.gnome.org/show_bug.cgi?id=706148
+---
+ panels/online-accounts/cc-online-accounts-panel.c | 49 ++++++++++++++++++-----
+ 1 file changed, 40 insertions(+), 9 deletions(-)
+
+Index: b/panels/online-accounts/cc-online-accounts-panel.c
+===================================================================
+--- a/panels/online-accounts/cc-online-accounts-panel.c
++++ b/panels/online-accounts/cc-online-accounts-panel.c
+@@ -596,9 +596,17 @@
+ 
+ /* ---------------------------------------------------------------------------------------------------- */
+ 
++typedef struct
++{
++  GoaPanel *panel;
++} AddAccountData;
++
+ static void
+-add_account (GoaPanel *panel)
++get_all_providers_cb (GObject      *source,
++                      GAsyncResult *res,
++                      gpointer      user_data)
+ {
++  AddAccountData *data = user_data;
+   GtkWindow *parent;
+   GtkWidget *dialog;
+   gint response;
+@@ -609,12 +617,15 @@
+ 
+   providers = NULL;
+ 
+-  parent = GTK_WINDOW (cc_shell_get_toplevel (cc_panel_get_shell (CC_PANEL (panel))));
++  providers = NULL;
++  if (!goa_provider_get_all_finish (&providers, res, NULL))
++    goto out;
++
++  parent = GTK_WINDOW (cc_shell_get_toplevel (cc_panel_get_shell (CC_PANEL (data->panel))));
+ 
+-  dialog = goa_panel_add_account_dialog_new (panel->client);
++  dialog = goa_panel_add_account_dialog_new (data->panel->client);
+   gtk_window_set_transient_for (GTK_WINDOW (dialog), parent);
+ 
+-  providers = goa_provider_get_all ();
+   for (l = providers; l != NULL; l = l->next)
+     {
+       GoaProvider *provider;
+@@ -643,11 +654,11 @@
+     {
+       GtkTreeIter iter;
+       /* navigate to newly created object */
+-      if (goa_panel_accounts_model_get_iter_for_object (panel->accounts_model,
++      if (goa_panel_accounts_model_get_iter_for_object (data->panel->accounts_model,
+                                                         object,
+                                                         &iter))
+         {
+-          gtk_tree_selection_select_iter (gtk_tree_view_get_selection (GTK_TREE_VIEW (panel->accounts_treeview)),
++          gtk_tree_selection_select_iter (gtk_tree_view_get_selection (GTK_TREE_VIEW (data->panel->accounts_treeview)),
+                                           &iter);
+         }
+       g_object_unref (object);
+@@ -675,6 +686,18 @@
+  out:
+   g_list_foreach (providers, (GFunc) g_object_unref, NULL);
+   g_list_free (providers);
++  g_clear_object (&data->panel);
++  g_slice_free (AddAccountData, data);
++}
++
++static void
++add_account (GoaPanel *panel)
++{
++  AddAccountData *data;
++
++  data = g_slice_new0 (AddAccountData);
++  data->panel = g_object_ref_sink (panel);
++  goa_provider_get_all (get_all_providers_cb, data);
+ }
+ 
+ /* ---------------------------------------------------------------------------------------------------- */
