@@ -24,6 +24,8 @@ def add_info(report):
 				package = apport.packaging.get_file_package(path)
 				if package == 'gnome-control-center':
 					continue
+				if not package:
+					continue
 
 				plugin_packages.add(package)
 
