@@ -28,5 +28,5 @@ def add_info(report):
 					continue
 
 				plugin_packages.add(package)
-
-		report["usr_lib_gnome-control-center"] = package_versions(*sorted(plugin_packages))
+		if plugin_packages:
+			report["usr_lib_gnome-control-center"] = package_versions(*sorted(plugin_packages))
