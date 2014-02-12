@@ -1,0 +1,46 @@
+Index: gnome-control-center-3.8.6/panels/online-accounts/cc-online-accounts-panel.c
+===================================================================
+--- gnome-control-center-3.8.6.orig/panels/online-accounts/cc-online-accounts-panel.c	2013-12-12 14:00:10.759923318 +1300
++++ gnome-control-center-3.8.6/panels/online-accounts/cc-online-accounts-panel.c	2013-12-12 14:00:10.755923318 +1300
+@@ -617,8 +617,11 @@
+ /* ---------------------------------------------------------------------------------------------------- */
+ 
+ static void
+-add_account (CcGoaPanel *panel)
++get_all_providers_cb (GObject      *source,
++                      GAsyncResult *res,
++                      gpointer      user_data)
+ {
++  CcGoaPanel *panel = CC_GOA_PANEL (user_data);
+   GtkWindow *parent;
+   GtkWidget *dialog;
+   gint response;
+@@ -629,12 +632,14 @@
+ 
+   providers = NULL;
+ 
++  if (!goa_provider_get_all_finish (&providers, res, NULL))
++    goto out;
++
+   parent = GTK_WINDOW (cc_shell_get_toplevel (cc_panel_get_shell (CC_PANEL (panel))));
+ 
+   dialog = goa_panel_add_account_dialog_new (panel->client);
+   gtk_window_set_transient_for (GTK_WINDOW (dialog), parent);
+ 
+-  providers = goa_provider_get_all ();
+   for (l = providers; l != NULL; l = l->next)
+     {
+       GoaProvider *provider;
+@@ -697,6 +703,12 @@
+   g_list_free (providers);
+ }
+ 
++static void
++add_account (CcGoaPanel *panel)
++{
++  goa_provider_get_all (get_all_providers_cb, panel);
++}
++
+ /* ---------------------------------------------------------------------------------------------------- */
+ 
+ static void

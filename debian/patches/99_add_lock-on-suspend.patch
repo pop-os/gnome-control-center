@@ -3,75 +3,73 @@ Author: Marc Deslauriers <marc.deslauriers@canonical.com>
 Forwarded: no, likely a Ubuntu-specific preference
 Bug-Ubuntu: https://bugs.launchpad.net/bugs/938076
 
-Index: b/panels/screen/cc-screen-panel.c
-===================================================================
---- a/panels/screen/cc-screen-panel.c
-+++ b/panels/screen/cc-screen-panel.c
-@@ -540,6 +540,13 @@
- 
-   update_lock_screen_sensitivity (self);
- 
-+  /* bind the screen lock suspend checkbutton */
-+  widget = WID ("screen_lock_suspend_checkbutton");
-+  g_settings_bind (self->priv->lock_settings,
-+                   "ubuntu-lock-on-suspend",
-+                   widget, "active",
-+                   G_SETTINGS_BIND_DEFAULT);
+From: Tim Lunn <tim@feathertop.org>
+Date: Mon, 3 Jun 2013 17:27:45 +1000
+Subject: [PATCH] ubuntu lock on suspend
+
+---
+ panels/privacy/cc-privacy-panel.c |  5 +++++
+ panels/privacy/privacy.ui         | 31 +++++++++++++++++++++++++++++++
+ 2 files changed, 36 insertions(+)
+
+diff --git a/panels/privacy/cc-privacy-panel.c b/panels/privacy/cc-privacy-panel.c
+index d92b9e4..fb1be4c 100644
+--- a/panels/privacy/cc-privacy-panel.c
++++ b/panels/privacy/cc-privacy-panel.c
+@@ -299,6 +299,11 @@ add_screen_lock (CcPrivacyPanel *self)
+   g_settings_bind (self->priv->notification_settings, "show-in-lock-screen",
+                    w, "active",
+                    G_SETTINGS_BIND_DEFAULT);
 +
-   widget = WID ("screen_vbox");
-   gtk_widget_reparent (widget, (GtkWidget *) self);
-   g_object_set (self, "valign", GTK_ALIGN_START, NULL);
-Index: b/panels/screen/screen.ui
-===================================================================
---- a/panels/screen/screen.ui
-+++ b/panels/screen/screen.ui
-@@ -299,6 +299,31 @@
-                           </packing>
-                         </child>
-                         <child>
-+                          <object class="GtkHBox" id="screen_suspend_hbox">
-+                            <property name="visible">True</property>
-+                            <property name="can_focus">False</property>
-+                            <property name="spacing">6</property>
-+                            <child>
-+                              <object class="GtkCheckButton" id="screen_lock_suspend_checkbutton">
-+                                <property name="label" translatable="yes">Require my password when waking from suspend</property>
-+                                <property name="use_action_appearance">False</property>
-+                                <property name="visible">True</property>
-+                                <property name="can_focus">True</property>
-+                              </object>
-+                              <packing>
-+                                <property name="expand">False</property>
-+                                <property name="fill">False</property>
-+                                <property name="position">0</property>
-+                              </packing>
-+                            </child>
-+                          </object>
-+                          <packing>
-+                            <property name="expand">False</property>
-+                            <property name="fill">False</property>
-+                            <property name="position">2</property>
-+                          </packing>
-+                        </child>
-+                        <child>
-                           <object class="GtkHBox" id="hbox2">
-                             <property name="can_focus">False</property>
-                             <property name="no_show_all">True</property>
-@@ -340,7 +365,7 @@
-                           <packing>
-                             <property name="expand">True</property>
-                             <property name="fill">True</property>
--                            <property name="position">2</property>
-+                            <property name="position">3</property>
-                           </packing>
-                         </child>
-                         <child>
-@@ -357,7 +382,7 @@
-                           <packing>
-                             <property name="expand">True</property>
-                             <property name="fill">True</property>
--                            <property name="position">3</property>
-+                            <property name="position">4</property>
-                           </packing>
-                         </child>
-                       </object>
++  w = GTK_WIDGET (gtk_builder_get_object (self->priv->builder, "screen_lock_suspend"));
++  g_settings_bind (self->priv->lock_settings, "ubuntu-lock-on-suspend",
++                   w, "active",
++                   G_SETTINGS_BIND_DEFAULT);
+ }
+ 
+ static void
+diff --git a/panels/privacy/privacy.ui b/panels/privacy/privacy.ui
+index ec62b70..b5d43f4 100644
+--- a/panels/privacy/privacy.ui
++++ b/panels/privacy/privacy.ui
+@@ -612,6 +612,37 @@
+                 <property name="height">1</property>
+               </packing>
+             </child>
++            <child>
++              <object class="GtkLabel" id="label8">
++                <property name="visible">True</property>
++                <property name="can_focus">False</property>
++                <property name="xalign">0</property>
++                <property name="hexpand">True</property>
++                <property name="label" translatable="yes">Lock Screen on Suspend</property>
++                <property name="use_underline">True</property>
++                <property name="mnemonic_widget">screen_lock_suspend</property>
++              </object>
++              <packing>
++                <property name="left_attach">0</property>
++                <property name="top_attach">3</property>
++                <property name="width">1</property>
++                <property name="height">1</property>
++              </packing>
++            </child>
++            <child>
++              <object class="GtkSwitch" id="screen_lock_suspend">
++                <property name="visible">True</property>
++                <property name="can_focus">True</property>
++                <property name="halign">end</property>
++                <property name="valign">center</property>
++              </object>
++              <packing>
++                <property name="left_attach">1</property>
++                <property name="top_attach">3</property>
++                <property name="width">1</property>
++                <property name="height">1</property>
++              </packing>
++            </child>
+           </object>
+           <packing>
+             <property name="expand">False</property>
+-- 
+1.8.1.2
+
