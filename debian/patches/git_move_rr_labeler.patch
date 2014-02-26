@@ -5,8 +5,10 @@ Subject: display: Move GnomeRRLabeler here
 
 And rename to CcRRLabeler.
 ---
---- a/panels/display/Makefile.am
-+++ b/panels/display/Makefile.am
+Index: gnome-control-center-3.6.3/panels/display/Makefile.am
+===================================================================
+--- gnome-control-center-3.6.3.orig/panels/display/Makefile.am	2014-02-26 19:03:16.059681370 +0100
++++ gnome-control-center-3.6.3/panels/display/Makefile.am	2014-02-26 19:03:16.047681370 +0100
 @@ -19,6 +19,8 @@
  	display-module.c	\
  	cc-display-panel.c	\
@@ -16,8 +18,10 @@ And rename to CcRRLabeler.
  	scrollarea.c		\
  	scrollarea.h		\
  	$(MARSHALFILES)
---- a/panels/display/cc-display-panel.c
-+++ b/panels/display/cc-display-panel.c
+Index: gnome-control-center-3.6.3/panels/display/cc-display-panel.c
+===================================================================
+--- gnome-control-center-3.6.3.orig/panels/display/cc-display-panel.c	2014-02-26 19:03:16.059681370 +0100
++++ gnome-control-center-3.6.3/panels/display/cc-display-panel.c	2014-02-26 19:03:16.051681370 +0100
 @@ -31,12 +31,13 @@
  #define GNOME_DESKTOP_USE_UNSTABLE_API
  #include <libgnome-desktop/gnome-rr.h>
@@ -107,8 +111,10 @@ And rename to CcRRLabeler.
  
    cairo_surface = cairo_image_surface_create (CAIRO_FORMAT_RGB24, monitor_width, monitor_height);
    cr = cairo_create (cairo_surface);
---- /dev/null
-+++ b/panels/display/cc-rr-labeler.c
+Index: gnome-control-center-3.6.3/panels/display/cc-rr-labeler.c
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ gnome-control-center-3.6.3/panels/display/cc-rr-labeler.c	2014-02-26 19:03:16.051681370 +0100
 @@ -0,0 +1,601 @@
 +/* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*-
 + *
@@ -711,8 +717,10 @@ And rename to CcRRLabeler.
 +	rgba_out->blue  = 1.0;
 +	rgba_out->alpha  = 1.0;
 +}
---- /dev/null
-+++ b/panels/display/cc-rr-labeler.h
+Index: gnome-control-center-3.6.3/panels/display/cc-rr-labeler.h
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ gnome-control-center-3.6.3/panels/display/cc-rr-labeler.h	2014-02-26 19:03:16.051681370 +0100
 @@ -0,0 +1,64 @@
 +/* gnome-rr-labeler.h - Utility to label monitors to identify them
 + * while they are being configured.
@@ -778,8 +786,10 @@ And rename to CcRRLabeler.
 +void cc_rr_labeler_get_rgba_for_output (CcRRLabeler *labeler, GnomeRROutputInfo *output, GdkRGBA *rgba_out);
 +
 +#endif
---- a/configure.ac
-+++ b/configure.ac
+Index: gnome-control-center-3.6.3/configure.ac
+===================================================================
+--- gnome-control-center-3.6.3.orig/configure.ac	2014-02-26 19:03:16.059681370 +0100
++++ gnome-control-center-3.6.3/configure.ac	2014-02-26 19:03:19.000000000 +0100
 @@ -135,7 +135,7 @@
                    gnome-desktop-3.0 >= $GNOME_DESKTOP_REQUIRED_VERSION
                    polkit-gobject-1 >= $POLKIT_REQUIRED_VERSION
@@ -787,5 +797,5 @@ And rename to CcRRLabeler.
 -PKG_CHECK_MODULES(DISPLAY_PANEL, $COMMON_MODULES gnome-desktop-3.0 >= 3.1.0)
 +PKG_CHECK_MODULES(DISPLAY_PANEL, $COMMON_MODULES gnome-desktop-3.0 >= 3.1.0 x11)
  PKG_CHECK_MODULES(INFO_PANEL, $COMMON_MODULES libgtop-2.0 gl x11
- 		  polkit-gobject-1 >= $POLKIT_REQUIRED_VERSION webkitgtk-3.0)
+ 		  polkit-gobject-1 >= $POLKIT_REQUIRED_VERSION)
  PKG_CHECK_MODULES(KEYBOARD_PANEL, $COMMON_MODULES
