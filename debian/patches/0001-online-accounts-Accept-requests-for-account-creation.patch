@@ -1,0 +1,258 @@
+From 8762e2f8dc16e169986be7d6630e0814834c5d15 Mon Sep 17 00:00:00 2001
+From: Emanuele Aina <emanuele.aina@collabora.com>
+Date: Fri, 1 Mar 2013 12:11:14 +0100
+Subject: [PATCH] online-accounts: Accept requests for account creation on
+ DBus/cmdline
+
+Also accepts additional data to pre-seed the GOA dialog, in particular
+the provider name (eg. 'google') and provider-specific data encoded in a
+a GVariant dict ('a{sv}') to eg. pass cookies from an existing web
+session (this is only available from DBus activation).
+
+It can be run from the command line as:
+ $ gnome-control-center online-accounts add google
+
+https://bugzilla.gnome.org/show_bug.cgi?id=694315
+---
+ .../cc-online-accounts-add-account-dialog.c        | 33 ++++++++-
+ .../cc-online-accounts-add-account-dialog.h        |  4 ++
+ panels/online-accounts/cc-online-accounts-panel.c  | 81 ++++++++++++++++++----
+ 3 files changed, 101 insertions(+), 17 deletions(-)
+
+diff --git a/panels/online-accounts/cc-online-accounts-add-account-dialog.c b/panels/online-accounts/cc-online-accounts-add-account-dialog.c
+index 5c2e9c8..c0b0e0b 100644
+--- a/panels/online-accounts/cc-online-accounts-add-account-dialog.c
++++ b/panels/online-accounts/cc-online-accounts-add-account-dialog.c
+@@ -45,6 +45,7 @@ struct _GoaPanelAddAccountDialogPrivate
+   GError *error;
+   GoaClient *client;
+   GoaObject *object;
++  GoaProvider *provider;
+   GtkListStore *list_store;
+   GtkWidget *contacts_grid;
+   GtkWidget *mail_grid;
+@@ -72,7 +73,8 @@ enum
+ G_DEFINE_TYPE (GoaPanelAddAccountDialog, goa_panel_add_account_dialog, GTK_TYPE_DIALOG)
+ 
+ static void
+-add_account_dialog_add_account (GoaPanelAddAccountDialog *add_account, GoaProvider *provider)
++add_account_dialog_add_account (GoaPanelAddAccountDialog *add_account,
++                                GoaProvider *provider)
+ {
+   GoaPanelAddAccountDialogPrivate *priv = add_account->priv;
+   GList *children;
+@@ -91,6 +93,7 @@ add_account_dialog_add_account (GoaPanelAddAccountDialog *add_account, GoaProvid
+     }
+   g_list_free (children);
+ 
++  /* This spins gtk_dialog_run() */
+   priv->object = goa_provider_add_account (provider,
+                                            priv->client,
+                                            GTK_DIALOG (add_account),
+@@ -111,7 +114,6 @@ list_box_child_activated_cb (GoaPanelAddAccountDialog *add_account, GtkWidget *c
+     }
+ 
+   add_account_dialog_add_account (add_account, provider);
+-  gtk_dialog_response (GTK_DIALOG (add_account), GTK_RESPONSE_OK);
+ }
+ 
+ static void
+@@ -240,6 +242,7 @@ goa_panel_add_account_dialog_dispose (GObject *object)
+ 
+   g_clear_object (&priv->object);
+   g_clear_object (&priv->client);
++  g_clear_object (&priv->provider);
+ 
+   G_OBJECT_CLASS (goa_panel_add_account_dialog_parent_class)->dispose (object);
+ }
+@@ -378,6 +381,22 @@ goa_panel_add_account_dialog_new (GoaClient *client)
+ }
+ 
+ void
++goa_panel_add_account_dialog_set_preseed_data (GoaPanelAddAccountDialog *add_account,
++                                               GoaProvider *provider,
++                                               GVariant *preseed)
++{
++  GoaPanelAddAccountDialogPrivate *priv = add_account->priv;
++
++  g_clear_object (&priv->provider);
++
++  if (provider != NULL)
++    {
++      priv->provider = g_object_ref (provider);
++      goa_provider_set_preseed_data (provider, preseed);
++    }
++}
++
++void
+ goa_panel_add_account_dialog_add_provider (GoaPanelAddAccountDialog *add_account, GoaProvider *provider)
+ {
+   GoaPanelAddAccountDialogPrivate *priv = add_account->priv;
+@@ -431,6 +450,16 @@ goa_panel_add_account_dialog_add_provider (GoaPanelAddAccountDialog *add_account
+     }
+ }
+ 
++void
++goa_panel_add_account_dialog_run (GoaPanelAddAccountDialog *add_account)
++{
++  GoaPanelAddAccountDialogPrivate *priv = add_account->priv;
++  if (priv->provider != NULL)
++    add_account_dialog_add_account (add_account, priv->provider);
++  else
++    gtk_dialog_run (GTK_DIALOG (add_account));
++}
++
+ GoaObject *
+ goa_panel_add_account_dialog_get_account (GoaPanelAddAccountDialog *add_account, GError **error)
+ {
+diff --git a/panels/online-accounts/cc-online-accounts-add-account-dialog.h b/panels/online-accounts/cc-online-accounts-add-account-dialog.h
+index 0f503cb..9338575 100644
+--- a/panels/online-accounts/cc-online-accounts-add-account-dialog.h
++++ b/panels/online-accounts/cc-online-accounts-add-account-dialog.h
+@@ -54,6 +54,10 @@ GType                  goa_panel_add_account_dialog_get_type               (void
+ GtkWidget             *goa_panel_add_account_dialog_new                    (GoaClient *client);
+ void                   goa_panel_add_account_dialog_add_provider           (GoaPanelAddAccountDialog *add_account,
+                                                                             GoaProvider              *provider);
++void                   goa_panel_add_account_dialog_set_preseed_data       (GoaPanelAddAccountDialog *add_account,
++                                                                            GoaProvider              *provider,
++                                                                            GVariant                 *preseed);
++void                   goa_panel_add_account_dialog_run                    (GoaPanelAddAccountDialog *add_account);
+ GoaObject             *goa_panel_add_account_dialog_get_account            (GoaPanelAddAccountDialog *add_account,
+                                                                             GError                   **error);
+ 
+diff --git a/panels/online-accounts/cc-online-accounts-panel.c b/panels/online-accounts/cc-online-accounts-panel.c
+index 52fb054..acaff10 100644
+--- a/panels/online-accounts/cc-online-accounts-panel.c
++++ b/panels/online-accounts/cc-online-accounts-panel.c
+@@ -86,6 +86,9 @@ static void on_account_changed (GoaClient  *client,
+ 
+ static gboolean select_account_by_id (CcGoaPanel    *panel,
+                                       const gchar *account_id);
++static void     add_account          (CcGoaPanel *panel,
++                                      GoaProvider *provider,
++                                      GVariant *preseed);
+ 
+ CC_PANEL_REGISTER (CcGoaPanel, cc_goa_panel);
+ 
+@@ -95,6 +98,56 @@ enum {
+ };
+ 
+ static void
++command_add (CcGoaPanel *panel,
++             GVariant   *parameters)
++{
++  GVariant *v, *preseed = NULL;
++  GoaProvider *provider = NULL;
++  const gchar *provider_name = NULL;
++
++  g_assert (panel != NULL);
++  g_assert (parameters != NULL);
++
++  switch (g_variant_n_children (parameters))
++    {
++      case 4:
++        g_variant_get_child (parameters, 3, "v", &preseed);
++      case 3:
++        g_variant_get_child (parameters, 2, "v", &v);
++        if (g_variant_is_of_type (v, G_VARIANT_TYPE_STRING))
++          provider_name = g_variant_get_string (v, NULL);
++        else
++          g_warning ("Wrong type for the second argument (provider name) GVariant, expected 's' but got '%s'",
++                     (gchar *)g_variant_get_type (v));
++        g_variant_unref (v);
++      case 2:
++        /* Nothing to see here, move along */
++      case 1:
++        /* No flag to handle here */
++        break;
++      default:
++        g_warning ("Unexpected parameters found, ignore request");
++        goto out;
++    }
++
++  if (provider_name != NULL)
++    {
++      provider = goa_provider_get_for_provider_type (provider_name);
++      if (provider == NULL)
++        {
++          g_warning ("Unable to get a provider for type '%s'", provider_name);
++          goto out;
++        }
++    }
++
++  add_account (panel, provider, preseed);
++
++out:
++  g_clear_object (&provider);
++  g_clear_pointer (&preseed, g_variant_unref);
++}
++
++static void
+ cc_goa_panel_set_property (GObject *object,
+                         guint property_id,
+                         const GValue *value,
+@@ -628,18 +683,17 @@ on_model_row_inserted (GtkTreeModel *tree_model,
+ /* ---------------------------------------------------------------------------------------------------- */
+ 
+ static void
+-add_account (CcGoaPanel *panel)
++add_account (CcGoaPanel *panel,
++             GoaProvider *provider,
++             GVariant *preseed)
+ {
+   GtkWindow *parent;
+   GtkWidget *dialog;
+-  gint response;
+   GList *providers;
+   GList *l;
+   GoaObject *object;
+   GError *error;
+ 
+-  providers = NULL;
+-
+   parent = GTK_WINDOW (cc_shell_get_toplevel (cc_panel_get_shell (CC_PANEL (panel))));
+ 
+   dialog = goa_panel_add_account_dialog_new (panel->client);
+@@ -649,18 +703,16 @@ add_account (CcGoaPanel *panel)
+   for (l = providers; l != NULL; l = l->next)
+     {
+       GoaProvider *provider;
+-
+       provider = GOA_PROVIDER (l->data);
++
+       goa_panel_add_account_dialog_add_provider (GOA_PANEL_ADD_ACCOUNT_DIALOG (dialog), provider);
+     }
+ 
++  goa_panel_add_account_dialog_set_preseed_data (GOA_PANEL_ADD_ACCOUNT_DIALOG (dialog),
++                                                 provider, preseed);
++
+   gtk_widget_show_all (dialog);
+-  response = gtk_dialog_run (GTK_DIALOG (dialog));
+-  if (response != GTK_RESPONSE_OK)
+-    {
+-      gtk_widget_destroy (dialog);
+-      goto out;
+-    }
++  goa_panel_add_account_dialog_run (GOA_PANEL_ADD_ACCOUNT_DIALOG (dialog));
+ 
+   error = NULL;
+   object = goa_panel_add_account_dialog_get_account (GOA_PANEL_ADD_ACCOUNT_DIALOG (dialog), &error);
+@@ -714,7 +765,7 @@ on_toolbar_add_button_clicked (GtkToolButton *button,
+                                gpointer       user_data)
+ {
+   CcGoaPanel *panel = CC_GOA_PANEL (user_data);
+-  add_account (panel);
++  add_account (panel, NULL, NULL);
+ }
+ 
+ static void
+@@ -795,5 +846,5 @@ on_add_button_clicked (GtkButton *button,
+                        gpointer   user_data)
+ {
+   CcGoaPanel *panel = CC_GOA_PANEL (user_data);
+-  add_account (panel);
++  add_account (panel, NULL, NULL);
+ }
+-- 
+1.9.0
+
