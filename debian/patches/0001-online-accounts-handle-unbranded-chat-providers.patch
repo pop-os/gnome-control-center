@@ -1,0 +1,52 @@
+From 570611752e1bf1a0cf01f2581ec03525381066bd Mon Sep 17 00:00:00 2001
+From: Marco Barisione <marco.barisione@collabora.co.uk>
+Date: Thu, 25 Jul 2013 13:08:58 +0100
+Subject: [PATCH] online-accounts: handle unbranded chat providers
+
+https://bugzilla.gnome.org/show_bug.cgi?id=706148
+---
+ .../online-accounts/cc-online-accounts-add-account-dialog.c  | 12 ++++++++++++
+ 1 file changed, 12 insertions(+)
+
+--- a/panels/online-accounts/cc-online-accounts-add-account-dialog.c
++++ b/panels/online-accounts/cc-online-accounts-add-account-dialog.c
+@@ -41,6 +41,7 @@
+   EggListBox *branded_list_box;
+   EggListBox *contacts_list_box;
+   EggListBox *mail_list_box;
++  EggListBox *chat_list_box;
+   EggListBox *ticketing_list_box;
+   GError *error;
+   GoaClient *client;
+@@ -49,6 +50,7 @@
+   GtkListStore *list_store;
+   GtkWidget *contacts_grid;
+   GtkWidget *mail_grid;
++  GtkWidget *chat_grid;
+   GtkWidget *ticketing_grid;
+   GtkWidget *stack;
+   gboolean add_other;
+@@ -339,6 +341,12 @@
+                                       _("Contacts"));
+ 
+   add_account_dialog_create_group_ui (add_account,
++                                      &priv->chat_list_box,
++                                      &priv->chat_grid,
++                                      grid,
++                                      _("Chat"));
++
++  add_account_dialog_create_group_ui (add_account,
+                                       &priv->ticketing_list_box,
+                                       &priv->ticketing_grid,
+                                       grid,
+@@ -433,6 +441,10 @@
+       group_grid = priv->mail_grid;
+       list_box = priv->mail_list_box;
+       break;
++    case GOA_PROVIDER_GROUP_CHAT:
++      group_grid = priv->chat_grid;
++      list_box = priv->chat_list_box;
++      break;
+     case GOA_PROVIDER_GROUP_TICKETING:
+       group_grid = priv->ticketing_grid;
+       list_box = priv->ticketing_list_box;
