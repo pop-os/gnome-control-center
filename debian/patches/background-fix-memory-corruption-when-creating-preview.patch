@@ -1,0 +1,38 @@
+From 1097d4ca754ec0a340bc26127808a901e6d78a94 Mon Sep 17 00:00:00 2001
+From: Bastien Nocera <hadess@hadess.net>
+Date: Mon, 19 Aug 2013 23:40:26 +0200
+Subject: background: Fix memory corruption when creating preview
+
+When using a single screen, the captured area was too small, and
+we were copying data from out-of-bounds of the pixbuf area.
+
+https://bugzilla.gnome.org/show_bug.cgi?id=696166
+
+diff --git a/panels/background/cc-background-panel.c b/panels/background/cc-background-panel.c
+index 480cd73..14fa244 100644
+--- a/panels/background/cc-background-panel.c
++++ b/panels/background/cc-background-panel.c
+@@ -256,8 +256,6 @@ on_screenshot_finished (GObject *source,
+   cairo_surface_t *surface;
+   cairo_t *cr;
+   GVariant *result;
+-  int width;
+-  int height;
+ 
+   error = NULL;
+   result = g_dbus_connection_call_finish (G_DBUS_CONNECTION (source),
+@@ -288,10 +286,8 @@ on_screenshot_finished (GObject *source,
+       goto out;
+     }
+ 
+-  width = gdk_pixbuf_get_width (pixbuf);
+-  height = gdk_pixbuf_get_height (pixbuf);
+   surface = cairo_image_surface_create (CAIRO_FORMAT_ARGB32,
+-                                        width, height);
++                                        data->monitor_rect.width, data->monitor_rect.height);
+   cr = cairo_create (surface);
+   gdk_cairo_set_source_pixbuf (cr, pixbuf, data->capture_rect.x, data->capture_rect.y);
+   cairo_paint (cr);
+-- 
+cgit v0.10.1
+
