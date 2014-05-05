@@ -1,0 +1,101 @@
+Description: Generate logo versioning at Build Time
+ Changes Merged from Unity-control-center 
+ http://bazaar.launchpad.net/~unity-control-center-team/unity-control-center/trunk/revision/12726
+ .
+ gnome-control-center (1:3.6.3-0ubuntu57) utopic; urgency=medium
+ .
+   * debian/patches/ubuntu-gnome-version.patch: Merge build-time versioned
+     logo from unity-control-center (LP: #1299912)
+   * debian/rules: generate logo
+   * debian/control.in: build-depend on ubuntu font and valac
+Author: Tim Lunn <tim@feathertop.org>
+Bug-Ubuntu: https://bugs.launchpad.net/bugs/1299912
+
+---
+--- gnome-control-center-3.6.3.orig/configure.ac
++++ gnome-control-center-3.6.3/configure.ac
+@@ -168,6 +168,8 @@ PKG_CHECK_MODULES(USER_ACCOUNTS_PANEL, $
+                   pwquality
+                   $SYSTEMD)
+ 
++AM_PROG_VALAC([0.20.0])
++
+ GDESKTOP_PREFIX=`$PKG_CONFIG --variable prefix gsettings-desktop-schemas`
+ AC_SUBST(GDESKTOP_PREFIX)
+ 
+--- gnome-control-center-3.6.3.orig/panels/info/Makefile.am
++++ gnome-control-center-3.6.3/panels/info/Makefile.am
+@@ -10,11 +10,22 @@ INCLUDES = 						\
+ 	-DLIBEXECDIR="\"$(libexecdir)\""		\
+ 	$(NULL)
+ 
+-noinst_PROGRAMS = test-hostname
++noinst_PROGRAMS = test-hostname logo-generator
+ test_hostname_SOURCES = hostname-helper.c hostname-helper.h test-hostname.c
+ test_hostname_LDADD = $(PANEL_LIBS) $(INFO_PANEL_LIBS)
+ test_hostname_CFLAGS = $(INCLUDES)
+ 
++logo_generator_SOURCES = logo-generator.vala
++
++logo_generator_VALAFLAGS = \
++	--pkg cairo        \
++	--pkg pango        \
++	--pkg pangocairo   \
++	--target-glib 2.32
++
++logo_generator_CFLAGS = $(PANEL_CFLAGS) $(INFO_PANEL_CFLAGS)
++logo_generator_LDADD = $(PANEL_LIBS) $(INFO_PANEL_LIBS)
++
+ all-local: check-local
+ 
+ check-local: test-hostname
+--- /dev/null
++++ gnome-control-center-3.6.3/panels/info/logo-generator.vala
+@@ -0,0 +1,47 @@
++public class Main : Object
++{
++
++    private static string? file = null;
++    private static string? text = null;
++    private static string? result = null;
++    private const OptionEntry[] options = { 
++	{"logo", 0, 0, OptionArg.FILENAME, ref file, "Path to logo", "LOGO"},
++	{"text", 0, 0, OptionArg.STRING, ref text, "Sublogo text", "TEXT"},
++	{"output", 0, 0, OptionArg.FILENAME, ref result, "Path to rendered output", "OUTPUT"},
++	{null}
++    };
++
++    public static int main(string[] args) {
++	try {
++	    var opt_context = new OptionContext ("- OptionContext example");
++	    opt_context.set_help_enabled (true);
++	    opt_context.add_main_entries (options, null);
++	    opt_context.parse (ref args);
++	} catch (OptionError e) {    
++	    stdout.printf ("error: %s\n", e.message);
++	    stdout.printf ("Run '%s --help' to see a full list of available command line options.\n", args[0]);
++	    return 0;
++	}
++	Cairo.ImageSurface surface = new Cairo.ImageSurface (Cairo.Format.ARGB32, 190, 145);
++	Cairo.Context context = new Cairo.Context (surface);
++	Cairo.ImageSurface logo = new Cairo.ImageSurface.from_png (file);
++	context.set_source_surface (logo, 0, 0);
++	context.paint();
++
++	context.set_source_rgba (0, 0, 0, 1);
++	context.translate (0, 117);
++	var font_description = new Pango.FontDescription();
++	font_description.set_family("Ubuntu");
++	font_description.set_size((int)(17.5 * Pango.SCALE));
++	var layout = Pango.cairo_create_layout (context);
++	layout.set_alignment(Pango.Alignment.CENTER);
++	layout.set_width(190*Pango.SCALE);
++	layout.set_font_description (font_description);
++	layout.set_text (text, -1);
++
++	Pango.cairo_show_layout(context, layout);
++
++	surface.write_to_png(result);
++	return 0;
++    }
++}
