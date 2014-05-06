@@ -25,7 +25,7 @@ Bug-Ubuntu: https://bugs.launchpad.net/bugs/1299912
  
 --- a/panels/info/Makefile.am
 +++ b/panels/info/Makefile.am
-@@ -7,6 +7,18 @@
+@@ -7,9 +7,25 @@
  	-DDATADIR="\"$(datadir)\""			\
  	$(NULL)
  
@@ -43,7 +43,14 @@ Bug-Ubuntu: https://bugs.launchpad.net/bugs/1299912
 +
  noinst_LTLIBRARIES = libinfo.la
  
++UbuntuLogo.png: logo-generator
++	./logo-generator --logo UbuntuLogoBlank.png --text "ubuntu 14.10" --output UbuntuLogo.png
++
  BUILT_SOURCES =			\
++	UbuntuLogo.png		\
+ 	cc-info-resources.c	\
+ 	cc-info-resources.h
+ 
 --- /dev/null
 +++ b/panels/info/logo-generator.vala
 @@ -0,0 +1,47 @@
