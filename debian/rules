@@ -13,10 +13,12 @@ export DEB_LDFLAGS_MAINT_APPEND = -Wl,-z,defs -Wl,-O1 -Wl,--as-needed
 include /usr/share/dpkg/buildflags.mk
 
 DEB_CONFIGURE_EXTRA_FLAGS += --libdir=\$${prefix}/lib/$(DEB_HOST_MULTIARCH) \
-                             --disable-update-mimedb \
-                             --enable-systemd
+                             --disable-update-mimedb
 
 DEB_DH_MAKESHLIBS_ARGS_gnome-control-center = --no-act
+pre-build::
+	touch panels/info/UbuntuLogo.png
+	cp debian/UbuntuLogoBlank.png panels/info
 
 # Install a wrapper to run unity-control-center under Unity
 binary-post-install/gnome-control-center::
@@ -27,6 +29,5 @@ binary-post-install/gnome-control-center-data::
 	rm -rf debian/capplets-data/usr/share/applications/mimeinfo.cache
 	rm -rf debian/capplets-data/usr/share/pkgconfig
 	dh_installmime -p$(cdbs_curpkg)
-	./panels/info/logo-generator --logo debian/UbuntuLogoBlank.png --text "ubuntu 14.10" --output debian/gnome-control-center-data/usr/share/gnome-control-center/ui/UbuntuLogo.png
 
 common-binary-post-install-arch:: list-missing

@@ -12,29 +12,24 @@ Author: Tim Lunn <tim@feathertop.org>
 Bug-Ubuntu: https://bugs.launchpad.net/bugs/1299912
 
 ---
---- gnome-control-center-3.6.3.orig/configure.ac
-+++ gnome-control-center-3.6.3/configure.ac
-@@ -168,6 +168,8 @@ PKG_CHECK_MODULES(USER_ACCOUNTS_PANEL, $
-                   pwquality
-                   $SYSTEMD)
+--- a/configure.ac
++++ b/configure.ac
+@@ -186,6 +186,8 @@
+ PKG_CHECK_MODULES(GVC, gobject-2.0 libpulse libpulse-mainloop-glib)
+ AM_CONDITIONAL(HAVE_INTROSPECTION, false)
  
 +AM_PROG_VALAC([0.20.0])
 +
  GDESKTOP_PREFIX=`$PKG_CONFIG --variable prefix gsettings-desktop-schemas`
  AC_SUBST(GDESKTOP_PREFIX)
  
---- gnome-control-center-3.6.3.orig/panels/info/Makefile.am
-+++ gnome-control-center-3.6.3/panels/info/Makefile.am
-@@ -10,11 +10,22 @@ INCLUDES = 						\
- 	-DLIBEXECDIR="\"$(libexecdir)\""		\
+--- a/panels/info/Makefile.am
++++ b/panels/info/Makefile.am
+@@ -7,9 +7,25 @@
+ 	-DDATADIR="\"$(datadir)\""			\
  	$(NULL)
  
--noinst_PROGRAMS = test-hostname
-+noinst_PROGRAMS = test-hostname logo-generator
- test_hostname_SOURCES = hostname-helper.c hostname-helper.h test-hostname.c
- test_hostname_LDADD = $(PANEL_LIBS) $(INFO_PANEL_LIBS)
- test_hostname_CFLAGS = $(INCLUDES)
- 
++noinst_PROGRAMS = logo-generator
 +logo_generator_SOURCES = logo-generator.vala
 +
 +logo_generator_VALAFLAGS = \
@@ -46,11 +41,18 @@ Bug-Ubuntu: https://bugs.launchpad.net/bugs/1299912
 +logo_generator_CFLAGS = $(PANEL_CFLAGS) $(INFO_PANEL_CFLAGS)
 +logo_generator_LDADD = $(PANEL_LIBS) $(INFO_PANEL_LIBS)
 +
- all-local: check-local
+ noinst_LTLIBRARIES = libinfo.la
  
- check-local: test-hostname
++UbuntuLogo.png: logo-generator
++	./logo-generator --logo UbuntuLogoBlank.png --text "ubuntu 14.10" --output UbuntuLogo.png
++
+ BUILT_SOURCES =			\
++	UbuntuLogo.png		\
+ 	cc-info-resources.c	\
+ 	cc-info-resources.h
+ 
 --- /dev/null
-+++ gnome-control-center-3.6.3/panels/info/logo-generator.vala
++++ b/panels/info/logo-generator.vala
 @@ -0,0 +1,47 @@
 +public class Main : Object
 +{

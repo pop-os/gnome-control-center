@@ -1,7 +1,5 @@
-Index: gnome-control-center-3.6.3/panels/network/net-proxy.c
-===================================================================
---- gnome-control-center-3.6.3.orig/panels/network/net-proxy.c	2013-04-16 16:14:41.159226157 +0200
-+++ gnome-control-center-3.6.3/panels/network/net-proxy.c	2013-04-16 16:14:59.847226780 +0200
+--- a/panels/network/net-proxy.c
++++ b/panels/network/net-proxy.c
 @@ -25,8 +25,14 @@
  #include <glib/gi18n.h>
  #include <gio/gio.h>
@@ -17,8 +15,8 @@ Index: gnome-control-center-3.6.3/panels/network/net-proxy.c
  #define NET_PROXY_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), NET_TYPE_PROXY, NetProxyPrivate))
  
  struct _NetProxyPrivate
-@@ -250,6 +256,148 @@
-         g_type_class_add_private (klass, sizeof (NetProxyPrivate));
+@@ -306,6 +312,148 @@
+         return g_variant_builder_end (&builder);
  }
  
 +
@@ -166,9 +164,9 @@ Index: gnome-control-center-3.6.3/panels/network/net-proxy.c
  static void
  net_proxy_init (NetProxy *proxy)
  {
-@@ -369,6 +517,13 @@
-                                                      "label_proxy_status"));
-         gtk_label_set_label (GTK_LABEL (widget), "");
+@@ -427,6 +575,13 @@
+                                       G_SETTINGS_BIND_DEFAULT, get_ignore_hosts, set_ignore_hosts,
+                                       NULL, NULL);
  
 +        /* Ubuntu button for system proxy settings */
 +        if (ubuntu_is_admin ()) {
@@ -180,11 +178,9 @@ Index: gnome-control-center-3.6.3/panels/network/net-proxy.c
          /* hide the switch until we get some more detail in the mockup */
          widget = GTK_WIDGET (gtk_builder_get_object (proxy->priv->builder,
                                                       "device_proxy_off_switch"));
-Index: gnome-control-center-3.6.3/panels/network/network-proxy.ui
-===================================================================
---- gnome-control-center-3.6.3.orig/panels/network/network-proxy.ui	2013-04-16 16:14:41.159226157 +0200
-+++ gnome-control-center-3.6.3/panels/network/network-proxy.ui	2013-04-16 16:14:41.155226157 +0200
-@@ -280,6 +280,21 @@
+--- a/panels/network/network-proxy.ui
++++ b/panels/network/network-proxy.ui
+@@ -229,6 +229,21 @@
            </packing>
          </child>
          <child>
@@ -197,21 +193,21 @@ Index: gnome-control-center-3.6.3/panels/network/network-proxy.ui
 +          </object>
 +          <packing>
 +            <property name="left_attach">0</property>
-+            <property name="top_attach">7</property>
++            <property name="top_attach">8</property>
 +            <property name="width">3</property>
 +            <property name="height">1</property>
 +          </packing>
 +        </child>
 +        <child>
            <object class="GtkLabel" id="label_proxy_warning">
-             <property name="visible">True</property>
+             <property name="visible">False</property>
              <property name="can_focus">False</property>
-@@ -290,7 +305,7 @@
+@@ -239,7 +254,7 @@
            </object>
            <packing>
              <property name="left_attach">0</property>
--            <property name="top_attach">7</property>
-+            <property name="top_attach">8</property>
+-            <property name="top_attach">8</property>
++            <property name="top_attach">9</property>
              <property name="width">3</property>
              <property name="height">1</property>
            </packing>
