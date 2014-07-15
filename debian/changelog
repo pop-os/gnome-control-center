@@ -1,51 +1,91 @@
-gnome-control-center (1:3.8.3-8) UNRELEASED; urgency=medium
+gnome-control-center (1:3.12.1-4) unstable; urgency=medium
 
-  * Add d/p/background-fix-memory-corruption-when-creating-preview.patch
-    - backport upstream commit since it looks like it'll still take
-      a while before we can get the new version into unstable.
-      (Closes: #742648, #731209, #743220 and a gazillion more duplicates.)
+  [ Laurent Bigonville ]
+  * debian/control.in: Recommends realmd package
 
- -- Andreas Henriksson <andreas@fatal.se>  Mon, 05 May 2014 11:17:20 +0200
-
-gnome-control-center (1:3.8.3-7) unstable; urgency=medium
-
-  * 0001-online-accounts-handle-unbranded-chat-providers.patch:
-    + Backport patch from upstream git to handle unbranded providers,
-      fixes a segfault when trying to add an account.
-
- -- Emilio Pozuelo Monfort <pochu@debian.org>  Sun, 27 Apr 2014 15:23:43 +0200
-
-gnome-control-center (1:3.8.3-6) unstable; urgency=medium
-
-  * d/p/0001-online-accounts-Accept-requests-for-account-creation.patch,
-    d/p/0001-online-accounts-use-the-async-function-to-get-all-th.patch:
-    + Backport patches from upstream, modified to apply on 3.8, to fix
-      the build with gnome-online-accounts 3.12.
+  [ Emilio Pozuelo Monfort ]
   * debian/control.in:
-    + Build depend on goa 3.12.
+    + Drop duplicate libgnome-bluetooth-dev build dependency.
 
- -- Emilio Pozuelo Monfort <pochu@debian.org>  Sat, 26 Apr 2014 14:36:06 +0200
+  [ Andreas Henriksson ]
+  * Bump dependency on gsettings-desktop-schemas to >= 3.9.91
+    - build-dependency already set to this version.
+    - needed for newly added datetime schema
+    (Closes: #752569)
+  * Upload to unstable.
 
-gnome-control-center (1:3.8.3-5) unstable; urgency=medium
+ -- Andreas Henriksson <andreas@fatal.se>  Mon, 14 Jul 2014 23:49:42 +0200
 
-  * debian/patches/07-vpn-plugin-properties-paths.patch:
-    - Use VPN plugin paths as specified in the .name files. Since LIBDIR of
-      gnome-control-center and the VPN plugins aren't necessarily the same,
-      use the paths as specified by the VPN plugins and only reconstruct the
-      path if it is not absolute or we fail to load the plugin.
-      Closes: #743333
-  * debian/control.in:
-    - Add Build-Depends on libmm-glib-dev for ModemManager1 support.
-    - Add Build-Depends on libkrb5-dev as required by configure.ac.
-
- -- Michael Biebl <biebl@debian.org>  Thu, 03 Apr 2014 00:53:49 +0200
-
-gnome-control-center (1:3.8.3-4) unstable; urgency=low
+gnome-control-center (1:3.12.1-3) experimental; urgency=medium
 
   * debian/control.in:
-    + Lower network-manager-gnome depends to recommends. Closes: #726395.
+    Add recommends to libnss-myhostname (Closes: #705319)
 
- -- Emilio Pozuelo Monfort <pochu@debian.org>  Sat, 02 Nov 2013 17:50:10 +0100
+ -- Sjoerd Simons <sjoerd@debian.org>  Sun, 27 Apr 2014 18:20:29 +0200
+
+gnome-control-center (1:3.12.1-2) experimental; urgency=medium
+
+  [ Josselin Mouette ]
+  * Remove Suggests on screensavers.
+
+ -- Sjoerd Simons <sjoerd@debian.org>  Sun, 27 Apr 2014 10:14:45 +0200
+
+gnome-control-center (1:3.12.1-1) experimental; urgency=medium
+
+  [ Laurent Bigonville]
+  * New upstream release.
+    - Add libkrb5-dev to the build-dependencies
+    - Re-add libgnome-bluetooth-dev build-dependency
+  * debian/control.in: Bump Standards-Version to 3.9.5 (no further changes)
+
+  [ Sjoerd Simons ]
+  * Re-add gnome-bluetooth support
+
+ -- Sjoerd Simons <sjoerd@debian.org>  Sat, 26 Apr 2014 18:41:34 +0200
+
+gnome-control-center (1:3.12.0-1) experimental; urgency=medium
+
+  * New upstream release.
+
+ -- Andreas Henriksson <andreas@fatal.se>  Mon, 24 Mar 2014 19:58:34 +0100
+
+gnome-control-center (1:3.11.91-1) experimental; urgency=medium
+
+  [ Jordi Mallach ]
+  * Bumb Build-Depends for libgnome-bluetooth-dev to >= 3.9.3.
+
+  [ Andreas Henriksson ]
+  * New upstream release.
+  * Update build-dependencies according to configure.ac changes:
+    - Bump libgnome-desktop-3-dev to >= 3.11.3
+    - Bump libgtk-3-dev to >= 3.11.1
+    - Bump libupower-glib-dev to >= 0.99.0
+    - Add libgrilo-0.2-dev (>= 0.2.6)
+    - Drop libsocialweb-client-dev
+  * Drop debian/patches/background-Fix-compilation-with-libsocialweb.patch
+    - socialweb integration dropped upstream.
+  * debian/rules: remove --with-libsocialweb configure flag
+  * Drop d/p/background-Fix-test-chooser-dialog-build-with-some-l.patch
+    - merged upstream.
+  * Have quilt refresh remaining patches
+  * Drop build-dependency on libgnome-bluetooth-dev [linux-any]
+    - Looks like we won't get bluez 5.x in unstable until some time
+      after hell freezes over, so just disable the bluetooth panel
+      for now to not let this hold us back.
+
+ -- Andreas Henriksson <andreas@fatal.se>  Tue, 11 Mar 2014 23:44:49 +0100
+
+gnome-control-center (1:3.10.1-1) experimental; urgency=low
+
+  * New upstream release
+  * debian/patches/background-Fix-compilation-with-libsocialweb.patch
+    + Fix compilation with libsocialweb
+  * debian/patches/background-Fix-test-chooser-dialog-build-with-some-l.patch
+    + Fix compilation with more strictl linkers
+  * debian/control: Recommend network-manager instead of depending
+    (Closes: #726395)
+
+ -- Sjoerd Simons <sjoerd@debian.org>  Fri, 01 Nov 2013 23:11:23 +0100
 
 gnome-control-center (1:3.8.3-3) unstable; urgency=low
 
