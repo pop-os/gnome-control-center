@@ -1,3 +1,152 @@
+gnome-control-center (1:3.12.1-5ubuntu1) utopic; urgency=medium
+
+  * New Upstream Release (LP: #1372346)
+  * Merge with Debian, remaining changes:
+    + debian/patches:
+      - revert_git_new_bluetooth_panel.patch,
+        revert_new_bluetooth.patch,
+        revert-bluetooth-BlueZ5-interface.patch:
+         Revert bluetooth back to Bluez4
+      - 52_region_language.patch
+        Adapt region panel to use Ubuntu style regions and UTF-8
+      - 56_use_ubuntu_info_branding.patch,
+        ubuntu-gnome-version.patch
+         Use Ubuntu GNOME branding
+      - 64_restore_terminal_keyboard_shortcut.patch
+         Bring back terminal shortcut
+      - 92_ubuntu_system_proxy.patch
+         Add system proxy support
+      - 99_add_lock-on-suspend.patch
+         Add option to lock on suspend
+      - revert_git_dont_hide_zoom.patch
+         Bring back zoom settings
+      - revert_git_drop_library.patch,
+        ubuntu_external_panels.patch
+         Reimplement support for external panels
+      - gcc_not_in_unity.patch
+         don't list "Unity" in OnlyShowIn
+    + debian/control.in:
+      - Relax build-deps on upower and gnome-bluetooth
+      - Drop Recommends for packages not in main
+      - Various other Ubuntu specific changes
+    + debian/libgnome-control-center1.symbols: 
+      - Add new symbols from external panel patch
+    + debian/gnome-control-center-data.install:
+      - don't install the pkla yet
+    + Split out shared data that is used by unity-control-center
+    + Add a wrapper to run unity-control-center in Unity
+    + Install apport hook
+    + Revert to 3.10 power panel, until we have new upower 
+
+ -- Tim Lunn <tim@feathertop.org>  Thu, 18 Sep 2014 09:31:20 +1000
+
+gnome-control-center (1:3.12.1-5) unstable; urgency=medium
+
+  [ Jordi Mallach ]
+  * Add cracklib-runtime to Recommends, it's needed for password changing.
+
+  [ Laurent Bigonville ]
+  * Add debian/patches/07_polkit_wheel_sudo_group.patch: The "wheel" group is
+    not existing on debian, check if the user is member of the "sudo" group
+    instead (Closes: #760722)
+
+  [ Andreas Henriksson ]
+  * Update debian/gnome-control-center.pkla with what is currently listed
+    in upstreams panels/common/gnome-control-center.rules since we don't yet
+    have/depend-on policykit-1 >= 0.106 which means the rules file is still
+    unused. This fixes automatic time/timezone, etc.
+
+ -- Laurent Bigonville <bigon@debian.org>  Sun, 07 Sep 2014 12:31:59 +0200
+
+gnome-control-center (1:3.12.1-4) unstable; urgency=medium
+
+  [ Laurent Bigonville ]
+  * debian/control.in: Recommends realmd package
+
+  [ Emilio Pozuelo Monfort ]
+  * debian/control.in:
+    + Drop duplicate libgnome-bluetooth-dev build dependency.
+
+  [ Andreas Henriksson ]
+  * Bump dependency on gsettings-desktop-schemas to >= 3.9.91
+    - build-dependency already set to this version.
+    - needed for newly added datetime schema
+    (Closes: #752569)
+  * Upload to unstable.
+
+ -- Andreas Henriksson <andreas@fatal.se>  Mon, 14 Jul 2014 23:49:42 +0200
+
+gnome-control-center (1:3.12.1-3) experimental; urgency=medium
+
+  * debian/control.in:
+    Add recommends to libnss-myhostname (Closes: #705319)
+
+ -- Sjoerd Simons <sjoerd@debian.org>  Sun, 27 Apr 2014 18:20:29 +0200
+
+gnome-control-center (1:3.12.1-2) experimental; urgency=medium
+
+  [ Josselin Mouette ]
+  * Remove Suggests on screensavers.
+
+ -- Sjoerd Simons <sjoerd@debian.org>  Sun, 27 Apr 2014 10:14:45 +0200
+
+gnome-control-center (1:3.12.1-1) experimental; urgency=medium
+
+  [ Laurent Bigonville]
+  * New upstream release.
+    - Add libkrb5-dev to the build-dependencies
+    - Re-add libgnome-bluetooth-dev build-dependency
+  * debian/control.in: Bump Standards-Version to 3.9.5 (no further changes)
+
+  [ Sjoerd Simons ]
+  * Re-add gnome-bluetooth support
+
+ -- Sjoerd Simons <sjoerd@debian.org>  Sat, 26 Apr 2014 18:41:34 +0200
+
+gnome-control-center (1:3.12.0-1) experimental; urgency=medium
+
+  * New upstream release.
+
+ -- Andreas Henriksson <andreas@fatal.se>  Mon, 24 Mar 2014 19:58:34 +0100
+
+gnome-control-center (1:3.11.91-1) experimental; urgency=medium
+
+  [ Jordi Mallach ]
+  * Bumb Build-Depends for libgnome-bluetooth-dev to >= 3.9.3.
+
+  [ Andreas Henriksson ]
+  * New upstream release.
+  * Update build-dependencies according to configure.ac changes:
+    - Bump libgnome-desktop-3-dev to >= 3.11.3
+    - Bump libgtk-3-dev to >= 3.11.1
+    - Bump libupower-glib-dev to >= 0.99.0
+    - Add libgrilo-0.2-dev (>= 0.2.6)
+    - Drop libsocialweb-client-dev
+  * Drop debian/patches/background-Fix-compilation-with-libsocialweb.patch
+    - socialweb integration dropped upstream.
+  * debian/rules: remove --with-libsocialweb configure flag
+  * Drop d/p/background-Fix-test-chooser-dialog-build-with-some-l.patch
+    - merged upstream.
+  * Have quilt refresh remaining patches
+  * Drop build-dependency on libgnome-bluetooth-dev [linux-any]
+    - Looks like we won't get bluez 5.x in unstable until some time
+      after hell freezes over, so just disable the bluetooth panel
+      for now to not let this hold us back.
+
+ -- Andreas Henriksson <andreas@fatal.se>  Tue, 11 Mar 2014 23:44:49 +0100
+
+gnome-control-center (1:3.10.1-1) experimental; urgency=low
+
+  * New upstream release
+  * debian/patches/background-Fix-compilation-with-libsocialweb.patch
+    + Fix compilation with libsocialweb
+  * debian/patches/background-Fix-test-chooser-dialog-build-with-some-l.patch
+    + Fix compilation with more strictl linkers
+  * debian/control: Recommend network-manager instead of depending
+    (Closes: #726395)
+
+ -- Sjoerd Simons <sjoerd@debian.org>  Fri, 01 Nov 2013 23:11:23 +0100
+
 gnome-control-center (1:3.8.6-0ubuntu5) utopic; urgency=medium
 
   * Actually do a no change rebuild against new libgtop
@@ -66,6 +215,153 @@ gnome-control-center (1:3.8.6-0ubuntu1) utopic; urgency=medium
     - Dropped, included in new version
 
  -- Robert Ancell <robert.ancell@canonical.com>  Wed, 04 Dec 2013 11:03:26 +1300
+
+gnome-control-center (1:3.8.3-3) unstable; urgency=low
+
+  * Drop recommends on gnome-session, it doesn't seem to be needed anymore
+    and brings in all of gnome when installing network-manager-gnome which
+    is also used in non-gnome environments.
+  * Upload to unstable.
+
+ -- Emilio Pozuelo Monfort <pochu@debian.org>  Sun, 13 Oct 2013 18:04:36 +0200
+
+gnome-control-center (1:3.8.3-2) experimental; urgency=low
+
+  [ Emilio Pozuelo Monfort ]
+  * debian/control.in:
+    + Recommend gkbd-capplet, used by the Region & Language panel to
+      display the selected keyboard layout.
+    + Recommend ntp for the Date & Time panel.
+
+  [ Laurent Bigonville ]
+  * debian/control.in:
+    - Use canonical URL for Vcs-Svn field
+    - Drop duplicate Section to please lintian
+    - Also Suggests libcanberra-gtk3-module
+  * debian/rules:
+    - Use DEB_LDFLAGS_MAINT_APPEND instead of LDFLAGS so we are
+      sure we are not overrinding the hardening flags
+    - Pass -Wl,-z,defs to DEB_LDFLAGS_MAINT_APPEND so we can detect undefined
+      symbols during build
+  * gnome-control-center-data.maintscript: Remove /etc/xdg/menus/gnomecc.menu
+    and /etc/xdg/autostart/gnome-sound-applet.desktop on upgrade, the files
+    are no longer shipped (Closes: #712831)
+  * debian/control.in, debian/rules: Re-enable ibus support (Closes: #720585)
+
+  [ Jeremy Bicha ]
+  * Build-depend on gtk-doc-tools instead of docbook directly
+  * Don't build-depend on gnome-doc-utils
+
+ -- Laurent Bigonville <bigon@debian.org>  Sat, 24 Aug 2013 14:05:49 +0200
+
+gnome-control-center (1:3.8.3-1) experimental; urgency=low
+
+  [ Andreas Henriksson ]
+  * Recommend both gnome-user-share and rygel | rygel-tracker
+    - Needs to be of recent version, but we don't have versioned recommends.
+    - This Makes Bluetooth Sharing, Personal File Sharing and Media Sharing
+      visible under the Sharing panel.
+      (Also, Remote Login will not show up until we ship a sshd.service
+       in Debian.)
+
+  [ Emilio Pozuelo Monfort ]
+  * New upstream release.
+
+ -- Emilio Pozuelo Monfort <pochu@debian.org>  Sat, 08 Jun 2013 18:32:00 +0200
+
+gnome-control-center (1:3.8.2-1) experimental; urgency=low
+
+  [ Thomas Bechtold ]
+  * New upstream release 3.8.1.
+  * debian/control:
+    - Build-Depends on libgoa-1.0-dev (>= 3.8.1) according to
+      configure.ac.
+    - Bump Standards-Version to 3.9.4.
+
+  [ Emilio Pozuelo Monfort ]
+  * debian/control.in:
+    + Bump minimum gnome-menus dependency to fix loading desktop
+      files from the shell. Thanks to Luca Bruno for pointing it
+      out.
+    + Recommend system-config-printer for the printers panel.
+  * New upstream release 3.8.2.
+    + Doesn't crash if the printing dbus service is missing.
+      Closes: #709451.
+
+ -- Emilio Pozuelo Monfort <pochu@debian.org>  Sat, 25 May 2013 13:00:07 +0200
+
+gnome-control-center (1:3.8.0-2) experimental; urgency=low
+
+  [ Emilio Pozuelo Monfort ]
+  * debian/control.in:
+    + Remove obsolete libgconf2-dev build dependency.
+
+  [ Sjoerd Simons ]
+  * debian/control.in: Add libsmbclient-dev for the printer panel
+  * debian/control.in: Add libnm*-dev (>= 0.9.8) for the network panel
+  * debian/control.in: Add run-time depend on network-manager-gnome (>= 0.9.8)
+
+ -- Sjoerd Simons <sjoerd@debian.org>  Wed, 10 Apr 2013 09:22:02 +0100
+
+gnome-control-center (1:3.8.0-1) experimental; urgency=low
+
+  [ Jeremy Bicha ]
+  * debian/gnome-control-center-data.install, gnome-control-center.install:
+    - Move the new polkit rules to gnome-control-center-data
+      like the existing rule
+  * debian/control.in:
+    - Add temporary breaks/replaces for the previous change
+  * Add gnome-control-center.pkla to allow admins to change the hostname
+    without needing policykit from experimental (Closes: #693071)
+
+  [ Thomas Bechtold ]
+  *  New upstream release
+
+ -- Thomas Bechtold <thomasbechtold@jpberlin.de>  Wed, 27 Mar 2013 19:02:54 +0100
+
+gnome-control-center (1:3.7.92-1) experimental; urgency=low
+
+  [ Sjoerd Simons ]
+  * New upstream release
+  * debian/patches/90_force_fallback.patch
+    + Dropped, no longer applicable
+  * debian/patches/revert_git_datetime_port.patch
+    + Follow upstream in the systemd datetime usage
+  * debian/control.in: Bump build-deps
+  * debian/control.in: Add run-time depend on colord
+  * debian/gnome-control-center.install: Don't install panel .so files, all
+    plugins are now static
+  * debian/gnome-control-center-data.install: Remove installation of fallback
+    files, no longer shipped with g-c-c
+
+  [ Jean Schurger ]
+  * debian/control.in: Dropped valac build-dependency (not longer needed).
+
+  [ Sjoerd Simons ]
+  * New upstream release (3.7.92)
+  * debian/gnome-control-center.install: Install policykit rules & search
+    provider
+  * debian/control.in: Depend on gnome-icon-theme >= 3.7
+
+ -- Sjoerd Simons <sjoerd@debian.org>  Sat, 23 Mar 2013 20:19:50 +0100
+
+gnome-control-center (1:3.6.3-1) experimental; urgency=low
+
+  [ Sjoerd Simons ]
+  * debian/control.in: Bump libgnome-bluetooth-dev to >= 3.5.5
+  * debian/control.in: Bump libcheese-gtk-dev to >= 3.5.91
+
+  [ Jeremy Bicha ]
+  * New upstream version.
+  * debian/gnome-control-center.sgml, debian/gnome-control-center.install
+    debian/rules
+    - Ship improved man page from GNOME
+
+  [ Aron Xu ]
+  * debian/control.in debian/rules: disable ibus integration.
+    (Closes: #694301, #691656)
+
+ -- Sjoerd Simons <sjoerd@debian.org>  Sun, 10 Feb 2013 13:17:20 +0100
 
 gnome-control-center (1:3.6.3-0ubuntu57) utopic; urgency=medium
 
@@ -712,6 +1008,96 @@ gnome-control-center (1:3.6.3-0ubuntu1) raring; urgency=low
   * sound_nua_panel.patch: Rebase to gnome 3.6 
 
  -- Sebastien Bacher <seb128@ubuntu.com>  Wed, 21 Nov 2012 19:32:45 +0100
+
+gnome-control-center (1:3.6.2-1) experimental; urgency=low
+
+  * Team upload
+
+  [ Andreas Henriksson ]
+  * Fix typo in gsettings-desktop-schemas-dev build dependency version
+    (3.3.91 should be 3.5.91). (Closes: #693027)
+
+  [ Simon McVittie ]
+  * Bump build-dependency to libgnome-desktop-3-dev (>= 3.5.91) as well,
+    otherwise it'll continue to FTBFS
+  * New upstream release
+  * Install org.gnome.controlcenter.user-accounts.policy PolicyKit rule,
+    which means that authenticating for
+    org.gnome.controlcenter.user-accounts.administration is sufficient
+    to administer accountsservice and (if later added to Debian) realmd
+  * Do not install gnome-control-center.rules for now; it won't work in Debian
+    since we don't have a wheel group. Patching it to use group sudo is
+    a possibility for a future upload.
+
+ -- Simon McVittie <smcv@debian.org>  Mon, 12 Nov 2012 17:14:50 +0000
+
+gnome-control-center (1:3.6.1-1) experimental; urgency=low
+
+  [ Josselin Mouette ]
+  * Add missing epoch on libxi build-dependency.
+
+  [ Michael Biebl ]
+  * Rebuild with xz compression. Closes: #687279
+
+  [ Sjoerd Simons ]
+  * New upstream release (3.6.1)
+  * debian/control.in: Updated dependencies
+  * debian/patches/02_no_assert_on_null_streams.patch
+    + Removed, was supposed to be a temporary patch
+  * debian/patches/10_optional_wacom_support.patch
+    + Removed, fixed upstream
+  * debian/patches/90_force_fallback.patch: Refreshed
+
+ -- Sjoerd Simons <sjoerd@debian.org>  Sun, 14 Oct 2012 21:42:26 +0200
+
+gnome-control-center (1:3.4.2-2) unstable; urgency=low
+
+  * Upload to unstable.
+
+ -- Michael Biebl <biebl@debian.org>  Wed, 30 May 2012 12:54:24 +0200
+
+gnome-control-center (1:3.4.2-1) experimental; urgency=low
+
+  [ Sjoerd Simons ]
+  * New upstream release
+  * Sync with Ubuntu:
+    + debian/control.in: Update build-depends
+    + debian/patches/02_no_assert_on_null_streams.patch:
+      - Don't crash on null streams (bgo: #633728, LP: #741155)
+    + debian/patches/90_force_fallback.patch:
+      - Refreshed
+    + debian/patches/06_handle_passwd_with_ldap.patch:
+      - Refreshed
+    + debian/patches/revert_git_datetime_port.patch:
+      - Added, don't switch to systemd for datetime functionality just yet.
+  * Drop libgnome-control-center1 package, gnome-control-center no longer
+    builds a library.
+  * debian/patches/00git_handle_media_dialog_close.patch,
+    debian/patches/91_configure_cheese.patch,
+    debian/patches/08_dont_crash_on_null_territories.patch,
+    debian/patches/92_link_language_chooser_against_fontconfig.patch:
+    + All removed, fixed upstream
+  * debian/rules: Don't use -Wl,-z,defs as it cause the panel plugins to fail
+    to build
+  * debian/gnome-control-center-data.install: gnome-control-center no longer
+    ships a manual.
+
+  [ Michael Biebl ]
+  * Add Build-Depends on libwacom-dev and libxi-dev for the Wacom panel and
+    libgnome-bluetooth-dev for the Bluetooth panel.
+  * Mark libwacom-dev and libgnome-bluetooth-dev as linux-any.
+  * Update Build-Depends according to configure.ac.
+  * Add Breaks/Replaces: gnome-bluetooth (<< 3.4) as the Bluetooth panel moved
+    into gnome-control-center.
+  * debian/patches/10_optional_wacom_support.patch: Build the Wacom panel
+    conditionally to support plattforms where libwacom-dev is not available.
+  * Bump Standards-Version to 3.9.3.
+  * Add Breaks against libgnome-bluetooth8 since loading booth
+    libgnome-bluetooth8 and libgnome-bluetooth10 will lead to crashes when
+    using the Bluetooth panel. Eventually we should use versioned directories
+    for the gnome-bluetooth plugins but for now the Breaks will do.
+
+ -- Michael Biebl <biebl@debian.org>  Sat, 19 May 2012 23:57:55 +0200
 
 gnome-control-center (1:3.4.2-0ubuntu20) quantal-proposed; urgency=low
 
@@ -1381,6 +1767,14 @@ gnome-control-center (1:3.3.5-0ubuntu1) precise; urgency=low
     - refreshed with latest changes from ronoc
 
  -- Sebastien Bacher <seb128@ubuntu.com>  Wed, 15 Feb 2012 23:16:31 +0100
+
+gnome-control-center (1:3.2.2-3) unstable; urgency=low
+
+  * debian/patches/92_link_language_chooser_against_fontconfig.patch: Link
+    language chooser panel against fontconfig. Patch cherry-picked from
+    upstream Git.
+
+ -- Michael Biebl <biebl@debian.org>  Thu, 29 Mar 2012 23:36:02 +0200
 
 gnome-control-center (1:3.2.2-2ubuntu10) precise; urgency=low
 

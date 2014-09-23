@@ -1,0 +1,68 @@
+From 8a885b3b6d826d56fb7b3946e806b37956141396 Mon Sep 17 00:00:00 2001
+From: Tim Lunn <tim@feathertop.org>
+Date: Wed, 17 Jul 2013 11:37:06 +1000
+Subject: [PATCH] Revert "build: bump gnome-bluetooth dependency to 3.9.3"
+
+This reverts commit 3d6efb12a389a655ff56bfacbeb94225507ff74f.
+revert commit c7b02d716a9763ba2fca2339d7a7a71f4e1c29f1
+---
+ configure.ac                          |  2 +-
+ libgd                                 |  1 -
+ panels/bluetooth/cc-bluetooth-panel.c | 14 ++++++++------
+ 3 files changed, 9 insertions(+), 8 deletions(-)
+ delete mode 160000 libgd
+
+--- a/panels/bluetooth/cc-bluetooth-panel.c
++++ b/panels/bluetooth/cc-bluetooth-panel.c
+@@ -299,6 +299,7 @@
+ 		BluetoothType type;
+ 		gboolean connected;
+ 		GValue value = { 0 };
++		GHashTable *services;
+ 
+ 		if (self->priv->debug)
+ 			bluetooth_chooser_dump_selected_device (BLUETOOTH_CHOOSER (self->priv->chooser));
+@@ -321,6 +322,13 @@
+ 				    g_value_get_boolean (&value) ? _("Yes") : _("No"));
+ 		g_value_unset (&value);
+ 
++		/* Connection */
++		bluetooth_chooser_get_selected_device_info (BLUETOOTH_CHOOSER (self->priv->chooser),
++							    "services", &value);
++		services = g_value_get_boxed (&value);
++		gtk_widget_set_sensitive (GTK_WIDGET (button), (services != NULL));
++		g_value_unset (&value);
++
+ 		/* UUIDs */
+ 		if (bluetooth_chooser_get_selected_device_info (BLUETOOTH_CHOOSER (self->priv->chooser),
+ 								"uuids", &value)) {
+@@ -328,18 +336,12 @@
+ 			guint i;
+ 
+ 			uuids = (const char **) g_value_get_boxed (&value);
+-
+-			gtk_widget_set_sensitive (GTK_WIDGET(button),
+-						  bluetooth_client_get_connectable (uuids));
+-
+ 			for (i = 0; uuids && uuids[i] != NULL; i++) {
+ 				if (g_str_equal (uuids[i], "OBEXObjectPush")) {
+ 					gtk_widget_show (WID ("send_box"));
+ 					break;
+ 				}
+-
+ 			}
+-
+ 			g_value_unset (&value);
+ 		}
+ 
+--- a/configure.ac
++++ b/configure.ac
+@@ -215,7 +215,7 @@
+ AM_CONDITIONAL(HAVE_NM_UNSTABLE, [test x$nm_unstable = xyes])
+ 
+ # Check for gnome-bluetooth
+-PKG_CHECK_MODULES(BLUETOOTH, $COMMON_MODULES gnome-bluetooth-1.0 >= 3.9.3,
++PKG_CHECK_MODULES(BLUETOOTH, $COMMON_MODULES gnome-bluetooth-1.0 >= 3.5.5,
+ 		  [have_bluetooth=yes], have_bluetooth=no)
+ if test "x$have_bluetooth" = xyes ; then
+ 	AC_DEFINE(BUILD_BLUETOOTH, 1, [Define to 1 to build the Bluetooth panel])

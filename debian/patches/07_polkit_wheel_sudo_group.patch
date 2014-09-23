@@ -1,0 +1,16 @@
+Description: The "wheel" group is not existing on debian, check the "sudo" one instead
+Author: Laurent Bigonville <bigon@debian.org>
+Bug-Debian: https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=760722
+Forwarded: not-needed
+
+--- a/panels/common/gnome-control-center.rules
++++ b/panels/common/gnome-control-center.rules
+@@ -6,7 +6,7 @@ polkit.addRule(function(action, subject)
+ 	     action.id == "org.gnome.controlcenter.datetime.configure") &&
+ 	    subject.local &&
+ 	    subject.active &&
+-	    subject.isInGroup ("wheel")) {
++	    subject.isInGroup ("sudo")) {
+ 		    return polkit.Result.YES;
+ 	    }
+ });
