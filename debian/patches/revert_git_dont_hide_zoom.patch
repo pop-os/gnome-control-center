@@ -7,19 +7,17 @@ Now that the fallback mode is gone. #fallback
 
 https://bugzilla.gnome.org/show_bug.cgi?id=682862
 ---
-Index: gnome-control-center-3.8.3/panels/universal-access/cc-ua-panel.c
-===================================================================
---- gnome-control-center-3.8.3.orig/panels/universal-access/cc-ua-panel.c	2013-06-11 20:04:34.087380775 -0400
-+++ gnome-control-center-3.8.3/panels/universal-access/cc-ua-panel.c	2013-06-11 20:04:34.083380775 -0400
-@@ -60,6 +60,7 @@
-   GSettings *mediakeys_settings;
+--- a/panels/universal-access/cc-ua-panel.c
++++ b/panels/universal-access/cc-ua-panel.c
+@@ -102,6 +102,7 @@
+   GSettings *application_settings;
  
    ZoomOptions *zoom_options;
 +  guint shell_watch_id;
- };
  
+   GtkAdjustment *focus_adjustment;
  
-@@ -94,6 +95,12 @@
+@@ -116,6 +117,12 @@
  {
    CcUaPanelPrivate *priv = CC_UA_PANEL (object)->priv;
  
@@ -29,11 +27,11 @@ Index: gnome-control-center-3.8.3/panels/universal-access/cc-ua-panel.c
 +      priv->shell_watch_id = 0;
 +    }
 +
-   if (priv->builder)
-     {
-       g_object_unref (priv->builder);
-@@ -300,6 +307,29 @@
- 	g_free (text);
+   g_clear_object (&priv->builder);
+   g_slist_free_full (priv->toplevels, (GDestroyNotify)gtk_widget_destroy);
+   priv->toplevels = NULL;
+@@ -177,6 +184,29 @@
+   return (factor > DPI_FACTOR_NORMAL);
  }
  
 +static void
@@ -43,8 +41,8 @@ Index: gnome-control-center-3.8.3/panels/universal-access/cc-ua-panel.c
 +{
 +  CcUaPanelPrivate *priv = self->priv;
 +
-+  gtk_widget_hide (WID (priv->builder, "zoom_label_box"));
-+  gtk_widget_hide (WID (priv->builder, "zoom_value_box"));
++  gtk_widget_hide (WID ("zoom_label_box"));
++  gtk_widget_hide (WID ("zoom_value_box"));
 +}
 +
 +static void
@@ -55,17 +53,17 @@ Index: gnome-control-center-3.8.3/panels/universal-access/cc-ua-panel.c
 +{
 +  CcUaPanelPrivate *priv = self->priv;
 +
-+  gtk_widget_show (WID (priv->builder, "zoom_label_box"));
-+  gtk_widget_show (WID (priv->builder, "zoom_value_box"));
++  gtk_widget_show (WID ("zoom_label_box"));
++  gtk_widget_show (WID ("zoom_value_box"));
 +}
 +
  static gboolean
  get_large_text_mapping (GValue   *value,
                          GVariant *variant,
-@@ -401,6 +431,13 @@
-                    WID (priv->builder, "seeing_toggle_keys_switch"), "active",
-                    G_SETTINGS_BIND_DEFAULT);
+@@ -445,6 +475,13 @@
+                                 NULL);
  
+   /* zoom */
 +  priv->shell_watch_id = g_bus_watch_name (G_BUS_TYPE_SESSION,
 +					   "org.gnome.Shell",
 +					   G_BUS_NAME_WATCHER_FLAGS_NONE,
@@ -73,6 +71,6 @@ Index: gnome-control-center-3.8.3/panels/universal-access/cc-ua-panel.c
 +					   (GBusNameVanishedCallback) shell_vanished_cb,
 +					   self,
 +					   NULL);
-   g_signal_connect (WID (priv->builder, "seeing_zoom_preferences_button"),
-                     "clicked",
-                     G_CALLBACK (zoom_options_launch_cb), self);
+ 
+   g_settings_bind_with_mapping (priv->application_settings, "screen-magnifier-enabled",
+                                 WID ("value_zoom"),

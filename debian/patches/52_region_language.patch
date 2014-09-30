@@ -140,7 +140,7 @@ Subject: [PATCH] Ubuntu changes required for proper region support.
  	g_debug ("Trying to select lang '%s' in treeview", lang);
  	model = gtk_tree_view_get_model (treeview);
  	found = FALSE;
-@@ -513,6 +574,7 @@
+@@ -518,6 +579,7 @@
  	return lang;
  }
  
@@ -148,7 +148,7 @@ Subject: [PATCH] Ubuntu changes required for proper region support.
  static void
  add_other_users_language (GHashTable *ht)
  {
-@@ -573,6 +635,7 @@
+@@ -578,6 +640,7 @@
  
          g_object_unref (proxy);
  }
@@ -156,7 +156,7 @@ Subject: [PATCH] Ubuntu changes required for proper region support.
  
  static void
  insert_language (GHashTable *ht,
-@@ -596,10 +659,10 @@
+@@ -601,10 +664,10 @@
  
          g_debug ("We have translations for %s", lang);
  
@@ -169,7 +169,7 @@ Subject: [PATCH] Ubuntu changes required for proper region support.
  
          label_own_lang = gnome_get_language_from_locale (key, key);
          label_current_lang = gnome_get_language_from_locale (key, NULL);
-@@ -625,9 +688,18 @@
+@@ -630,9 +693,18 @@
  cc_common_language_get_initial_languages (void)
  {
          GHashTable *ht;
@@ -188,7 +188,7 @@ Subject: [PATCH] Ubuntu changes required for proper region support.
          insert_language (ht, "en_US");
          insert_language (ht, "en_GB");
          insert_language (ht, "de_DE");
-@@ -637,7 +709,7 @@
+@@ -642,7 +714,7 @@
          insert_language (ht, "ja_JP");
          insert_language (ht, "ru_RU");
          insert_language (ht, "ar_EG");
@@ -197,7 +197,7 @@ Subject: [PATCH] Ubuntu changes required for proper region support.
          return ht;
  }
  
-@@ -651,10 +723,10 @@
+@@ -656,10 +728,10 @@
          ht = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
  
          /* Add the languages used by other users on the system */
@@ -210,7 +210,7 @@ Subject: [PATCH] Ubuntu changes required for proper region support.
          if (g_hash_table_lookup (ht, name) == NULL) {
                  language = gnome_get_language_from_locale (name, NULL);
                  g_hash_table_insert (ht, name, language);
-@@ -703,6 +775,28 @@
+@@ -708,6 +780,28 @@
          return ht;
  }
  
@@ -239,7 +239,7 @@ Subject: [PATCH] Ubuntu changes required for proper region support.
  static void
  foreach_user_lang_cb (gpointer key,
                        gpointer value,
-@@ -734,7 +828,7 @@
+@@ -739,7 +833,7 @@
          user_langs = cc_common_language_get_initial_languages ();
  
          /* Add the current locale first */
@@ -248,7 +248,7 @@ Subject: [PATCH] Ubuntu changes required for proper region support.
          display = g_hash_table_lookup (user_langs, name);
          if (!display) {
                  insert_language (user_langs, name);
-@@ -750,8 +844,8 @@
+@@ -755,8 +849,8 @@
          g_hash_table_foreach (user_langs, (GHFunc) foreach_user_lang_cb, store);
  
          /* And now the "Other…" selection */
@@ -287,8 +287,8 @@ Subject: [PATCH] Ubuntu changes required for proper region support.
   * Copyright (C) 2013 Red Hat, Inc
   *
   * This program is free software; you can redistribute it and/or modify
-@@ -79,7 +78,9 @@
-                                 egg_list_box_refilter (EGG_LIST_BOX (priv->language_list));
+@@ -335,7 +334,9 @@
+                                 gtk_list_box_invalidate_filter (GTK_LIST_BOX (priv->language_list));
                          }
                  } else {
 +
@@ -299,7 +299,7 @@ Subject: [PATCH] Ubuntu changes required for proper region support.
          g_list_free (children);
 --- a/panels/region/cc-format-chooser.c
 +++ b/panels/region/cc-format-chooser.c
-@@ -170,7 +170,9 @@
+@@ -168,7 +168,9 @@
  
                  } else {
                          /* mark as unselected */
@@ -311,7 +311,7 @@ Subject: [PATCH] Ubuntu changes required for proper region support.
          g_list_free (children);
 --- a/panels/region/cc-input-chooser.c
 +++ b/panels/region/cc-input-chooser.c
-@@ -909,7 +909,7 @@
+@@ -891,7 +891,7 @@
            lang_code != NULL &&
            country_code != NULL)
          {
@@ -320,7 +320,7 @@ Subject: [PATCH] Ubuntu changes required for proper region support.
  
            info = g_hash_table_lookup (priv->locales, locale);
            if (info)
-@@ -1034,7 +1034,7 @@
+@@ -1016,7 +1016,7 @@
        if (!gnome_parse_locale (*locale, &lang_code, &country_code, NULL, NULL))
          continue;
  
@@ -331,7 +331,7 @@ Subject: [PATCH] Ubuntu changes required for proper region support.
            g_free (simple_locale);
 --- a/panels/region/cc-region-panel.c
 +++ b/panels/region/cc-region-panel.c
-@@ -404,14 +404,55 @@
+@@ -424,6 +424,47 @@
  }
  
  static void
@@ -379,17 +379,15 @@ Subject: [PATCH] Ubuntu changes required for proper region support.
  update_region (CcRegionPanel *self,
                 const gchar   *region)
  {
--	CcRegionPanelPrivate *priv = self->priv;
-+        CcRegionPanelPrivate *priv = self->priv;
- 
-         if (g_strcmp0 (region, priv->region) == 0)
-                 return;
--
-+        set_formats_locale(region);
-         g_settings_set_string (priv->locale_settings, KEY_REGION, region);
-         maybe_notify (self, LC_TIME, region);
- }
-@@ -545,7 +586,7 @@
+@@ -434,6 +475,7 @@
+         } else {
+                 if (g_strcmp0 (region, priv->region) == 0)
+                         return;
++                set_formats_locale(region);
+                 g_settings_set_string (priv->locale_settings, KEY_REGION, region);
+                 if (priv->login_auto_apply)
+                         set_system_region (self, region);
+@@ -595,7 +637,7 @@
          CcRegionPanelPrivate *priv = self->priv;
  
          g_free (priv->region);
@@ -398,20 +396,21 @@ Subject: [PATCH] Ubuntu changes required for proper region support.
          update_region_label (self);
  }
  
-@@ -576,14 +617,16 @@
+@@ -628,15 +670,17 @@
+ update_language_from_user (CcRegionPanel *self)
  {
  	CcRegionPanelPrivate *priv = self->priv;
-         const gchar *language;
--
+-        const gchar *language;
++        const gchar *language, *locale;
+ 
 -        if (act_user_is_loaded (priv->user))
-+        const gchar *locale;
 +        if (act_user_is_loaded (priv->user)){
                  language = act_user_get_language (priv->user);
 +                cc_common_language_get_locale (language, &locale);
 +        }
          else
--                language = "en_US.utf-8";
-+                locale = "en_US.UTF-8";
+-                language = setlocale (LC_MESSAGES, NULL);
++                locale = setlocale (LC_MESSAGES, NULL);
  
          g_free (priv->language);
 -        priv->language = g_strdup (language);
@@ -419,7 +418,7 @@ Subject: [PATCH] Ubuntu changes required for proper region support.
          update_language_label (self);
  }
  
-@@ -1428,6 +1471,16 @@
+@@ -1484,6 +1528,16 @@
          update_buttons (self);
  }
  
@@ -436,7 +435,7 @@ Subject: [PATCH] Ubuntu changes required for proper region support.
  static void
  on_localed_properties_changed (GDBusProxy     *proxy,
                                 GVariant       *changed_properties,
-@@ -1442,34 +1495,49 @@
+@@ -1498,34 +1552,50 @@
                  const gchar **strv;
                  gsize len;
                  gint i;
@@ -468,11 +467,12 @@ Subject: [PATCH] Ubuntu changes required for proper region support.
 +                g_free (strv);
 +
                  if (!lang) {
--                        lang = "";
+-                        lang = setlocale (LC_MESSAGES, NULL);
 +                        lang = g_strdup ("en_US.UTF-8");
                  }
 -                if (!messages) {
 -                        messages = lang;
++
 +                if (!language) {
 +                        if (messages)
 +                                language = g_strdup (messages);
@@ -496,7 +496,7 @@ Subject: [PATCH] Ubuntu changes required for proper region support.
  
                  update_language_label (self);
          }
-@@ -1539,29 +1607,28 @@
+@@ -1595,29 +1665,28 @@
  	CcRegionPanelPrivate *priv = self->priv;
          GVariantBuilder *b;
          gchar *s;
@@ -542,7 +542,7 @@ Subject: [PATCH] Ubuntu changes required for proper region support.
                             g_variant_new ("(asb)", b, TRUE),
 --- a/panels/user-accounts/um-user-panel.c
 +++ b/panels/user-accounts/um-user-panel.c
-@@ -697,8 +697,9 @@
+@@ -701,8 +701,9 @@
          cc_common_language_add_user_languages (model);
  
          lang = g_strdup (act_user_get_language (user));
@@ -553,7 +553,7 @@ Subject: [PATCH] Ubuntu changes required for proper region support.
          if (cc_common_language_get_iter_for_language (model, lang, &iter))
            um_editable_combo_set_active_iter (UM_EDITABLE_COMBO (widget), &iter);
          g_free (lang);
-@@ -824,8 +825,9 @@
+@@ -828,8 +829,9 @@
          }
          else {
                  lang = g_strdup (act_user_get_language (user));
@@ -564,7 +564,7 @@ Subject: [PATCH] Ubuntu changes required for proper region support.
                  }
          }
          cc_common_language_get_iter_for_language (model, lang, &iter);
-@@ -845,6 +847,7 @@
+@@ -849,6 +851,7 @@
          GtkTreeModel *model;
          GtkTreeIter iter;
          gchar *lang;
@@ -572,7 +572,7 @@ Subject: [PATCH] Ubuntu changes required for proper region support.
          ActUser *user;
  
          if (!um_editable_combo_get_active_iter (combo, &iter))
-@@ -855,8 +858,10 @@
+@@ -859,8 +862,10 @@
          model = um_editable_combo_get_model (combo);
  
          gtk_tree_model_get (model, &iter, 0, &lang, -1);
