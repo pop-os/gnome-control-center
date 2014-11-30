@@ -1,0 +1,30 @@
+From f5be9cccd8e78970d25fa3559128e827f9924651 Mon Sep 17 00:00:00 2001
+From: Rui Matos <tiagomatos@gmail.com>
+Date: Mon, 10 Nov 2014 15:06:52 +0100
+Subject: sharing: Prevent an endless loop and resulting stack overflow
+
+We need to block ourselves around the gtk_switch_set_active() call in
+the error path, when we can't speak to the sharing dbus service, or we
+end up in an endless loop since we're the ::state-set handler.
+
+https://bugzilla.gnome.org/show_bug.cgi?id=739886
+
+diff --git a/panels/sharing/cc-sharing-networks.c b/panels/sharing/cc-sharing-networks.c
+index 181ed99..10920de 100644
+--- a/panels/sharing/cc-sharing-networks.c
++++ b/panels/sharing/cc-sharing-networks.c
+@@ -190,7 +190,11 @@ cc_sharing_networks_enable_network (GtkSwitch *widget,
+     g_warning ("Failed to %s service %s: %s", state ? "enable" : "disable",
+ 	       self->priv->service_name, error->message);
+     g_error_free (error);
++    g_signal_handlers_block_by_func (widget,
++                                     cc_sharing_networks_enable_network, self);
+     gtk_switch_set_active (widget, !state);
++    g_signal_handlers_unblock_by_func (widget,
++                                       cc_sharing_networks_enable_network, self);
+   }
+ 
+   cc_sharing_update_networks (self);
+-- 
+cgit v0.10.1
+
