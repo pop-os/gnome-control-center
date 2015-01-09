@@ -23,9 +23,11 @@ CC_PANEL_REGISTER() -> CC_PANEL_REGISTER_EXTERNAL()
  shell/cc-window.c       |  95 ++++++++++++++++++++++++++++++++++++++++
  6 files changed, 220 insertions(+), 2 deletions(-)
 
---- a/configure.ac
-+++ b/configure.ac
-@@ -339,6 +339,9 @@
+Index: gnome-control-center/configure.ac
+===================================================================
+--- gnome-control-center.orig/configure.ac
++++ gnome-control-center/configure.ac
+@@ -339,6 +339,9 @@ dnl ====================================
  dnl Panels
  dnl =======================================
  
@@ -35,20 +37,21 @@ CC_PANEL_REGISTER() -> CC_PANEL_REGISTER_EXTERNAL()
  PANEL_CFLAGS="-I\$(top_srcdir)/ -DG_LOG_DOMAIN=\"\\\"\$(cappletname)-cc-panel\\\"\" -DPANEL_ID=\"\\\"\$(cappletname)\\\"\""
  AC_SUBST(PANEL_CFLAGS)
  
---- a/shell/Makefile.am
-+++ b/shell/Makefile.am
-@@ -114,7 +114,8 @@
- gnome_control_center_LDADD += $(top_builddir)/panels/bluetooth/libbluetooth.la
- endif
- 
--AM_CPPFLAGS = -DGNOMELOCALEDIR="\"$(datadir)/locale\""
-+AM_CPPFLAGS =  -DGNOMELOCALEDIR="\"$(datadir)/locale\""    \
-+   -DPANELS_DIR="\"$(PANELS_DIR)\""
- 
- # Dbus service file
- servicefiledir = $(datadir)/dbus-1/services
---- a/shell/cc-panel-loader.c
-+++ b/shell/cc-panel-loader.c
+Index: gnome-control-center/shell/Makefile.am
+===================================================================
+--- gnome-control-center.orig/shell/Makefile.am
++++ gnome-control-center/shell/Makefile.am
+@@ -1,5 +1,6 @@
+ AM_CPPFLAGS =					\
+ 	-DGNOMELOCALEDIR="\"$(datadir)/locale\""\
++    -DPANELS_DIR="\"$(PANELS_DIR)\"" \
+ 	-I$(top_srcdir)				\
+ 	$(SHELL_CFLAGS)				\
+ 	$(CHEESE_CFLAGS)			\
+Index: gnome-control-center/shell/cc-panel-loader.c
+===================================================================
+--- gnome-control-center.orig/shell/cc-panel-loader.c
++++ gnome-control-center/shell/cc-panel-loader.c
 @@ -26,6 +26,19 @@
  
  #include "cc-panel-loader.h"
@@ -194,8 +197,10 @@ CC_PANEL_REGISTER() -> CC_PANEL_REGISTER_EXTERNAL()
  
    return g_object_new (get_type (),
                         "shell", shell,
---- a/shell/cc-panel-loader.h
-+++ b/shell/cc-panel-loader.h
+Index: gnome-control-center/shell/cc-panel-loader.h
+===================================================================
+--- gnome-control-center.orig/shell/cc-panel-loader.h
++++ gnome-control-center/shell/cc-panel-loader.h
 @@ -29,6 +29,7 @@
  G_BEGIN_DECLS
  
@@ -204,9 +209,11 @@ CC_PANEL_REGISTER() -> CC_PANEL_REGISTER_EXTERNAL()
  GList   *cc_panel_loader_get_panels     (void);
  void     cc_panel_loader_add_option_groups (GOptionContext  *context,
                                              GVariantBuilder *builder);
---- a/shell/cc-panel.h
-+++ b/shell/cc-panel.h
-@@ -45,6 +45,14 @@
+Index: gnome-control-center/shell/cc-panel.h
+===================================================================
+--- gnome-control-center.orig/shell/cc-panel.h
++++ gnome-control-center/shell/cc-panel.h
+@@ -45,6 +45,14 @@ G_BEGIN_DECLS
  #define CC_PANEL_REGISTER(PluginName, plugin_name)                      \
    G_DEFINE_TYPE (PluginName, plugin_name, CC_TYPE_PANEL)
  
@@ -221,9 +228,11 @@ CC_PANEL_REGISTER() -> CC_PANEL_REGISTER_EXTERNAL()
  typedef struct CcPanelPrivate CcPanelPrivate;
  
  typedef struct _CcPanel       CcPanel;
---- a/shell/cc-window.c
-+++ b/shell/cc-window.c
-@@ -100,6 +100,8 @@
+Index: gnome-control-center/shell/cc-window.c
+===================================================================
+--- gnome-control-center.orig/shell/cc-window.c
++++ gnome-control-center/shell/cc-window.c
+@@ -101,6 +101,8 @@ struct _CcWindowPrivate
  
    CcPanel *active_panel;
  
@@ -232,7 +241,7 @@ CC_PANEL_REGISTER() -> CC_PANEL_REGISTER_EXTERNAL()
    int monitor_num;
    CcSmallScreen small_screen;
  };
-@@ -139,6 +141,53 @@
+@@ -140,6 +142,53 @@ get_icon_name_from_g_icon (GIcon *gicon)
    return NULL;
  }
  
@@ -286,7 +295,7 @@ CC_PANEL_REGISTER() -> CC_PANEL_REGISTER_EXTERNAL()
  static gboolean
  activate_panel (CcWindow           *self,
                  const gchar        *id,
-@@ -154,6 +203,16 @@
+@@ -155,6 +204,16 @@ activate_panel (CcWindow           *self
      return FALSE;
  
    priv->current_panel = GTK_WIDGET (cc_panel_loader_load_by_name (CC_SHELL (self), id, parameters));
@@ -303,7 +312,7 @@ CC_PANEL_REGISTER() -> CC_PANEL_REGISTER_EXTERNAL()
    cc_shell_set_active_panel (CC_SHELL (self), CC_PANEL (priv->current_panel));
    gtk_widget_show (priv->current_panel);
  
-@@ -874,9 +933,44 @@
+@@ -878,9 +937,44 @@ setup_model (CcWindow *shell)
    add_category_view (shell, CC_CATEGORY_SYSTEM, C_("category", "System"));
  
    cc_panel_loader_fill_model (CC_SHELL_MODEL (shell->priv->store));
@@ -348,7 +357,7 @@ CC_PANEL_REGISTER() -> CC_PANEL_REGISTER_EXTERNAL()
  previous_button_clicked_cb (GtkButton *button,
                              CcWindow  *shell)
  {
-@@ -1447,6 +1541,9 @@
+@@ -1452,6 +1546,9 @@ create_main_page (CcWindow *self)
  
    gtk_widget_set_size_request (priv->scrolled_window, FIXED_WIDTH, -1);
  
