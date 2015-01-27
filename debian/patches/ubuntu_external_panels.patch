@@ -72,22 +72,10 @@ Index: gnome-control-center/shell/cc-panel-loader.c
  #ifndef CC_PANEL_LOADER_NO_GTYPES
  
  /* Extension points */
-@@ -149,6 +162,37 @@ parse_categories (GDesktopAppInfo *app)
+@@ -149,6 +162,25 @@
    return retval;
  }
  
-+static gboolean
-+parse_show_in (GDesktopAppInfo *app)
-+{
-+  const char *env;
-+  gboolean result;
-+
-+  env = g_getenv ("XDG_CURRENT_DESKTOP");
-+  result = g_desktop_app_info_get_show_in (app, env);
-+
-+  return result;
-+}
-+
 +static gboolean
 +cc_panel_loader_add_item (CcShellModel *model, const char *name, GDesktopAppInfo *app )
 +{
@@ -98,7 +86,7 @@ Index: gnome-control-center/shell/cc-panel-loader.c
 +  if (G_UNLIKELY (category < 0))
 +    return FALSE;
 +
-+  show = parse_show_in (app);
++  show = g_desktop_app_info_get_show_in (app, NULL);
 +  if (!show)
 +    return FALSE;
 +
@@ -110,7 +98,7 @@ Index: gnome-control-center/shell/cc-panel-loader.c
  void
  cc_panel_loader_fill_model (CcShellModel *model)
  {
-@@ -159,6 +203,7 @@ cc_panel_loader_fill_model (CcShellModel
+@@ -159,6 +191,7 @@
        GDesktopAppInfo *app;
        char *desktop_name;
        int category;
@@ -118,11 +106,11 @@ Index: gnome-control-center/shell/cc-panel-loader.c
  
        desktop_name = g_strconcat ("gnome-", all_panels[i].name,
                                    "-panel.desktop", NULL);
-@@ -176,11 +221,80 @@ cc_panel_loader_fill_model (CcShellModel
+@@ -176,11 +209,80 @@
        if (G_UNLIKELY (category < 0))
          continue;
  
-+      show = parse_show_in (app);
++      show = g_desktop_app_info_get_show_in (app, NULL);
 +      if (!show)
 +        continue;
 +
@@ -199,7 +187,7 @@ Index: gnome-control-center/shell/cc-panel-loader.c
  #ifndef CC_PANEL_LOADER_NO_GTYPES
  
  static GHashTable *panel_types;
-@@ -208,7 +322,8 @@ cc_panel_loader_load_by_name (CcShell
+@@ -208,7 +310,8 @@
    ensure_panel_types ();
  
    get_type = g_hash_table_lookup (panel_types, name);
