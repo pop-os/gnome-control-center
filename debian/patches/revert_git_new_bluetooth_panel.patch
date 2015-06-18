@@ -12,9 +12,11 @@ This reverts commit 28fecc01c46a7b082f9746744c938e499a522e4f.
  panels/bluetooth/cc-bluetooth-panel.c | 799 +++++++++++++++++++++++++++++-----
  3 files changed, 1317 insertions(+), 125 deletions(-)
 
---- a/configure.ac
-+++ b/configure.ac
-@@ -206,7 +206,7 @@
+Index: gnome-control-center-3.16.2/configure.ac
+===================================================================
+--- gnome-control-center-3.16.2.orig/configure.ac
++++ gnome-control-center-3.16.2/configure.ac
+@@ -220,7 +220,7 @@ fi
  AM_CONDITIONAL(HAVE_NM_UNSTABLE, [test x$nm_unstable = xyes])
  
  # Check for gnome-bluetooth
@@ -23,8 +25,10 @@ This reverts commit 28fecc01c46a7b082f9746744c938e499a522e4f.
  		  [have_bluetooth=yes], have_bluetooth=no)
  if test "x$have_bluetooth" = xyes ; then
  	AC_DEFINE(BUILD_BLUETOOTH, 1, [Define to 1 to build the Bluetooth panel])
---- a/panels/bluetooth/bluetooth.ui
-+++ b/panels/bluetooth/bluetooth.ui
+Index: gnome-control-center-3.16.2/panels/bluetooth/bluetooth.ui
+===================================================================
+--- gnome-control-center-3.16.2.orig/panels/bluetooth/bluetooth.ui
++++ gnome-control-center-3.16.2/panels/bluetooth/bluetooth.ui
 @@ -1,5 +1,4 @@
  <?xml version="1.0" encoding="UTF-8"?>
 -<!-- Generated with glade 3.16.0 on Fri Nov 29 16:46:49 2013 -->
@@ -688,8 +692,10 @@ This reverts commit 28fecc01c46a7b082f9746744c938e499a522e4f.
 +        </child>
 +      </object>
  </interface>
---- a/panels/bluetooth/cc-bluetooth-panel.c
-+++ b/panels/bluetooth/cc-bluetooth-panel.c
+Index: gnome-control-center-3.16.2/panels/bluetooth/cc-bluetooth-panel.c
+===================================================================
+--- gnome-control-center-3.16.2.orig/panels/bluetooth/cc-bluetooth-panel.c
++++ gnome-control-center-3.16.2/panels/bluetooth/cc-bluetooth-panel.c
 @@ -1,6 +1,9 @@
  /*
   *
@@ -717,7 +723,7 @@ This reverts commit 28fecc01c46a7b082f9746744c938e499a522e4f.
  
  CC_PANEL_REGISTER (CcBluetoothPanel, cc_bluetooth_panel)
  
-@@ -36,32 +42,44 @@
+@@ -36,32 +42,44 @@ CC_PANEL_REGISTER (CcBluetoothPanel, cc_
  
  #define WID(s) GTK_WIDGET (gtk_builder_get_object (self->priv->builder, s))
  
@@ -776,7 +782,7 @@ This reverts commit 28fecc01c46a7b082f9746744c938e499a522e4f.
  }
  
  static void
-@@ -84,17 +102,148 @@
+@@ -84,17 +102,148 @@ cc_bluetooth_panel_finalize (GObject *ob
  	CcBluetoothPanel *self;
  
  	self = CC_BLUETOOTH_PANEL (object);
@@ -928,7 +934,7 @@ This reverts commit 28fecc01c46a7b082f9746744c938e499a522e4f.
  static void
  cc_bluetooth_panel_constructed (GObject *object)
  {
-@@ -109,6 +258,120 @@
+@@ -109,6 +258,120 @@ cc_bluetooth_panel_constructed (GObject
  	gtk_widget_show_all (self->priv->kill_switch_header);
  }
  
@@ -1049,7 +1055,7 @@ This reverts commit 28fecc01c46a7b082f9746744c938e499a522e4f.
  static void
  power_callback (GObject          *object,
  		GParamSpec       *spec,
-@@ -118,117 +381,375 @@
+@@ -118,117 +381,375 @@ power_callback (GObject          *object
  
  	state = gtk_switch_get_active (GTK_SWITCH (WID ("switch_bluetooth")));
  	g_debug ("Power switched to %s", state ? "on" : "off");
@@ -1490,7 +1496,7 @@ This reverts commit 28fecc01c46a7b082f9746744c938e499a522e4f.
  	self->priv->builder = gtk_builder_new ();
  	gtk_builder_set_translation_domain (self->priv->builder, GETTEXT_PACKAGE);
  	gtk_builder_add_from_resource (self->priv->builder,
-@@ -240,43 +761,79 @@
+@@ -240,43 +761,79 @@ cc_bluetooth_panel_init (CcBluetoothPane
  		return;
  	}
  

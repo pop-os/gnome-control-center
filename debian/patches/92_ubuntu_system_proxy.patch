@@ -1,5 +1,7 @@
---- a/panels/network/net-proxy.c
-+++ b/panels/network/net-proxy.c
+Index: gnome-control-center-3.16.2/panels/network/net-proxy.c
+===================================================================
+--- gnome-control-center-3.16.2.orig/panels/network/net-proxy.c
++++ gnome-control-center-3.16.2/panels/network/net-proxy.c
 @@ -25,8 +25,14 @@
  #include <glib/gi18n.h>
  #include <gio/gio.h>
@@ -15,7 +17,7 @@
  #define NET_PROXY_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), NET_TYPE_PROXY, NetProxyPrivate))
  
  struct _NetProxyPrivate
-@@ -306,6 +312,148 @@
+@@ -299,6 +305,148 @@ set_ignore_hosts (const GValue       *va
          return g_variant_builder_end (&builder);
  }
  
@@ -164,7 +166,7 @@
  static void
  net_proxy_init (NetProxy *proxy)
  {
-@@ -427,6 +575,13 @@
+@@ -420,6 +568,13 @@ net_proxy_init (NetProxy *proxy)
                                        G_SETTINGS_BIND_DEFAULT, get_ignore_hosts, set_ignore_hosts,
                                        NULL, NULL);
  
@@ -178,9 +180,11 @@
          /* hide the switch until we get some more detail in the mockup */
          widget = GTK_WIDGET (gtk_builder_get_object (proxy->priv->builder,
                                                       "device_proxy_off_switch"));
---- a/panels/network/network-proxy.ui
-+++ b/panels/network/network-proxy.ui
-@@ -229,6 +229,21 @@
+Index: gnome-control-center-3.16.2/panels/network/network-proxy.ui
+===================================================================
+--- gnome-control-center-3.16.2.orig/panels/network/network-proxy.ui
++++ gnome-control-center-3.16.2/panels/network/network-proxy.ui
+@@ -226,6 +226,21 @@
            </packing>
          </child>
          <child>
@@ -202,7 +206,7 @@
            <object class="GtkLabel" id="label_proxy_warning">
              <property name="visible">False</property>
              <property name="can_focus">False</property>
-@@ -239,7 +254,7 @@
+@@ -236,7 +251,7 @@
            </object>
            <packing>
              <property name="left_attach">0</property>

@@ -23,11 +23,11 @@ CC_PANEL_REGISTER() -> CC_PANEL_REGISTER_EXTERNAL()
  shell/cc-window.c       |  95 ++++++++++++++++++++++++++++++++++++++++
  6 files changed, 220 insertions(+), 2 deletions(-)
 
-Index: gnome-control-center/configure.ac
+Index: gnome-control-center-3.16.2/configure.ac
 ===================================================================
---- gnome-control-center.orig/configure.ac
-+++ gnome-control-center/configure.ac
-@@ -339,6 +339,9 @@ dnl ====================================
+--- gnome-control-center-3.16.2.orig/configure.ac
++++ gnome-control-center-3.16.2/configure.ac
+@@ -353,6 +353,9 @@ dnl ====================================
  dnl Panels
  dnl =======================================
  
@@ -37,21 +37,22 @@ Index: gnome-control-center/configure.ac
  PANEL_CFLAGS="-I\$(top_srcdir)/ -DG_LOG_DOMAIN=\"\\\"\$(cappletname)-cc-panel\\\"\" -DPANEL_ID=\"\\\"\$(cappletname)\\\"\""
  AC_SUBST(PANEL_CFLAGS)
  
-Index: gnome-control-center/shell/Makefile.am
+Index: gnome-control-center-3.16.2/shell/Makefile.am
 ===================================================================
---- gnome-control-center.orig/shell/Makefile.am
-+++ gnome-control-center/shell/Makefile.am
-@@ -1,5 +1,6 @@
+--- gnome-control-center-3.16.2.orig/shell/Makefile.am
++++ gnome-control-center-3.16.2/shell/Makefile.am
+@@ -2,6 +2,7 @@ SUBDIRS = appdata
+ 
  AM_CPPFLAGS =					\
  	-DGNOMELOCALEDIR="\"$(datadir)/locale\""\
 +    -DPANELS_DIR="\"$(PANELS_DIR)\"" \
  	-I$(top_srcdir)				\
  	$(SHELL_CFLAGS)				\
  	$(CHEESE_CFLAGS)			\
-Index: gnome-control-center/shell/cc-panel-loader.c
+Index: gnome-control-center-3.16.2/shell/cc-panel-loader.c
 ===================================================================
---- gnome-control-center.orig/shell/cc-panel-loader.c
-+++ gnome-control-center/shell/cc-panel-loader.c
+--- gnome-control-center-3.16.2.orig/shell/cc-panel-loader.c
++++ gnome-control-center-3.16.2/shell/cc-panel-loader.c
 @@ -26,6 +26,19 @@
  
  #include "cc-panel-loader.h"
@@ -72,7 +73,7 @@ Index: gnome-control-center/shell/cc-panel-loader.c
  #ifndef CC_PANEL_LOADER_NO_GTYPES
  
  /* Extension points */
-@@ -149,6 +162,25 @@
+@@ -149,6 +162,25 @@ parse_categories (GDesktopAppInfo *app)
    return retval;
  }
  
@@ -98,7 +99,7 @@ Index: gnome-control-center/shell/cc-panel-loader.c
  void
  cc_panel_loader_fill_model (CcShellModel *model)
  {
-@@ -159,6 +191,7 @@
+@@ -159,6 +191,7 @@ cc_panel_loader_fill_model (CcShellModel
        GDesktopAppInfo *app;
        char *desktop_name;
        int category;
@@ -106,7 +107,7 @@ Index: gnome-control-center/shell/cc-panel-loader.c
  
        desktop_name = g_strconcat ("gnome-", all_panels[i].name,
                                    "-panel.desktop", NULL);
-@@ -176,11 +209,80 @@
+@@ -176,11 +209,80 @@ cc_panel_loader_fill_model (CcShellModel
        if (G_UNLIKELY (category < 0))
          continue;
  
@@ -187,7 +188,7 @@ Index: gnome-control-center/shell/cc-panel-loader.c
  #ifndef CC_PANEL_LOADER_NO_GTYPES
  
  static GHashTable *panel_types;
-@@ -208,7 +310,8 @@
+@@ -208,7 +310,8 @@ cc_panel_loader_load_by_name (CcShell
    ensure_panel_types ();
  
    get_type = g_hash_table_lookup (panel_types, name);
@@ -197,10 +198,10 @@ Index: gnome-control-center/shell/cc-panel-loader.c
  
    return g_object_new (get_type (),
                         "shell", shell,
-Index: gnome-control-center/shell/cc-panel-loader.h
+Index: gnome-control-center-3.16.2/shell/cc-panel-loader.h
 ===================================================================
---- gnome-control-center.orig/shell/cc-panel-loader.h
-+++ gnome-control-center/shell/cc-panel-loader.h
+--- gnome-control-center-3.16.2.orig/shell/cc-panel-loader.h
++++ gnome-control-center-3.16.2/shell/cc-panel-loader.h
 @@ -29,6 +29,7 @@
  G_BEGIN_DECLS
  
@@ -209,10 +210,10 @@ Index: gnome-control-center/shell/cc-panel-loader.h
  GList   *cc_panel_loader_get_panels     (void);
  void     cc_panel_loader_add_option_groups (GOptionContext  *context,
                                              GVariantBuilder *builder);
-Index: gnome-control-center/shell/cc-panel.h
+Index: gnome-control-center-3.16.2/shell/cc-panel.h
 ===================================================================
---- gnome-control-center.orig/shell/cc-panel.h
-+++ gnome-control-center/shell/cc-panel.h
+--- gnome-control-center-3.16.2.orig/shell/cc-panel.h
++++ gnome-control-center-3.16.2/shell/cc-panel.h
 @@ -45,6 +45,14 @@ G_BEGIN_DECLS
  #define CC_PANEL_REGISTER(PluginName, plugin_name)                      \
    G_DEFINE_TYPE (PluginName, plugin_name, CC_TYPE_PANEL)
@@ -228,10 +229,10 @@ Index: gnome-control-center/shell/cc-panel.h
  typedef struct CcPanelPrivate CcPanelPrivate;
  
  typedef struct _CcPanel       CcPanel;
-Index: gnome-control-center/shell/cc-window.c
+Index: gnome-control-center-3.16.2/shell/cc-window.c
 ===================================================================
---- gnome-control-center.orig/shell/cc-window.c
-+++ gnome-control-center/shell/cc-window.c
+--- gnome-control-center-3.16.2.orig/shell/cc-window.c
++++ gnome-control-center-3.16.2/shell/cc-window.c
 @@ -101,6 +101,8 @@ struct _CcWindowPrivate
  
    CcPanel *active_panel;
@@ -312,7 +313,7 @@ Index: gnome-control-center/shell/cc-window.c
    cc_shell_set_active_panel (CC_SHELL (self), CC_PANEL (priv->current_panel));
    gtk_widget_show (priv->current_panel);
  
-@@ -878,9 +937,44 @@ setup_model (CcWindow *shell)
+@@ -882,9 +941,44 @@ setup_model (CcWindow *shell)
    add_category_view (shell, CC_CATEGORY_SYSTEM, C_("category", "System"));
  
    cc_panel_loader_fill_model (CC_SHELL_MODEL (shell->priv->store));
@@ -357,7 +358,7 @@ Index: gnome-control-center/shell/cc-window.c
  previous_button_clicked_cb (GtkButton *button,
                              CcWindow  *shell)
  {
-@@ -1452,6 +1546,9 @@ create_main_page (CcWindow *self)
+@@ -1456,6 +1550,9 @@ create_main_page (CcWindow *self)
  
    gtk_widget_set_size_request (priv->scrolled_window, FIXED_WIDTH, -1);
  

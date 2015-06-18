@@ -7,19 +7,19 @@ Section: gnome
 Priority: optional
 Maintainer: Ubuntu Desktop Team <ubuntu-desktop@lists.ubuntu.com>
 XSBC-Original-Maintainer: Debian GNOME Maintainers <pkg-gnome-maintainers@lists.alioth.debian.org>
-Uploaders: Andreas Henriksson <andreas@fatal.se>, Debian GNOME Maintainers <pkg-gnome-maintainers@lists.alioth.debian.org>, Josselin Mouette <joss@debian.org>, Laurent Bigonville <bigon@debian.org>
+Uploaders: Andreas Henriksson <andreas@fatal.se>, Debian GNOME Maintainers <pkg-gnome-maintainers@lists.alioth.debian.org>, Emilio Pozuelo Monfort <pochu@debian.org>, Josselin Mouette <joss@debian.org>, Laurent Bigonville <bigon@debian.org>, Michael Biebl <biebl@debian.org>
 Standards-Version: 3.9.6
 Build-Depends: autotools-dev,
                cdbs (>= 0.4.41),
                debhelper (>= 9),
                dpkg-dev (>= 1.16.1~),
-               libaccountsservice-dev (>= 0.6.30),
+               libaccountsservice-dev (>= 0.6.39),
                desktop-file-utils,
                dh-autoreconf,
                gnome-common,
                gnome-pkg-tools (>= 0.10),
                gnome-settings-daemon-dev (>= 3.7.3),
-               gsettings-desktop-schemas-dev (>= 3.13.91),
+               gsettings-desktop-schemas-dev (>= 3.15.4),
                gtk-doc-tools,
                intltool (>= 0.37.1),
                libcanberra-gtk3-dev,
@@ -34,24 +34,24 @@ Build-Depends: autotools-dev,
                libglib2.0-dev (>= 2.37.7),
                libgnome-desktop-3-dev (>= 3.11.3),
                libgnomekbd-dev (>= 2.91.91),
-               libgnome-bluetooth-dev (>= 3.3.4) [linux-any],
+               libgnome-bluetooth-dev (>= 3.11.1) [linux-any],
                libibus-1.0-dev (>= 1.5.2),
-               libgoa-1.0-dev (>= 3.9.90),
+               libgoa-1.0-dev (>= 3.15.1),
                libgrilo-0.2-dev (>= 0.2.6),
-               libgtk-3-dev (>= 3.13.0),
+               libgtk-3-dev (>= 3.15.0),
                libgtop2-dev,
+               libgudev-1.0-dev [linux-any],
                libkrb5-dev,
                libnm-glib-dev (>= 0.9.8) [linux-any],
                libnm-glib-vpn-dev (>= 0.9.8) [linux-any],
                libnm-gtk-dev (>= 0.9.8) [linux-any],
                libnm-util-dev (>= 0.9.8) [linux-any],
-               libmm-glib-dev [linux-any],
                libnotify-dev (>= 0.7.3),
                libpolkit-gobject-1-dev (>= 0.103),
                libpulse-dev,
                libpwquality-dev,
-               libsmbclient-dev (>= 2:3.6.12),
-               libupower-glib-dev (>= 0.99),
+               libsmbclient-dev (>= 2:3.6.12-1),
+               libupower-glib-dev (>= 0.99.0),
                libwacom-dev (>= 0.7) [linux-any],
                libxi-dev (>= 2:1.2),
                libx11-dev,
@@ -60,6 +60,7 @@ Build-Depends: autotools-dev,
                libxml2-dev,
                locales,
                network-manager-dev (>= 0.9.8) [linux-any],
+               libmm-glib-dev [linux-any],
                shared-mime-info,
                ttf-ubuntu-font-family,
                libgl1-mesa-dev,
@@ -68,7 +69,6 @@ Vcs-Bzr: http://code.launchpad.net/~ubuntu-desktop/gnome-control-center/ubuntu
 
 Package: gnome-control-center
 Architecture: any
-Section: gnome
 Depends: ${misc:Depends},
          ${shlibs:Depends},
          accountsservice,
@@ -81,10 +81,9 @@ Depends: ${misc:Depends},
          gnome-icon-theme (>= 3.7),
          gnome-icon-theme-symbolic (>= 3.7),
          gnome-settings-daemon (>= 3.13.91),
-         gsettings-desktop-schemas (>= 3.13.91),
+         gsettings-desktop-schemas (>= 3.15.4),
 Recommends: cups-pk-helper,
             gnome-control-center-shared-data,
-#            gnome-session-bin,
             gnome-user-share,
             gkbd-capplet,
             ibus (>= 1.5.0),
@@ -99,10 +98,10 @@ Breaks: gnome-power-manager (<< 3.0),
         gnome-session (<< 3.0),
         libglib2.0-0 (<< 2.28.6-2),
         gnome-bluetooth (<< 3.4),
-Replaces: gnome-bluetooth (<< 3.4.0)
+Replaces: gnome-bluetooth (<< 3.4)
 Suggests: gnome-screensaver | xscreensaver,
           gnome-user-guide | ubuntu-docs,
-          gstreamer0.10-pulseaudio,
+          gstreamer1.0-pulseaudio,
           libcanberra-gtk-module,
           libcanberra-gtk3-module,
           x11-xserver-utils
@@ -124,7 +123,6 @@ Description: utilities to configure the GNOME desktop
 
 Package: gnome-control-center-data
 Architecture: all
-Section: gnome
 Depends: ${misc:Depends}
 Recommends: gnome-control-center (>= ${source:Version})
 Provides: capplets-data
@@ -147,7 +145,6 @@ Description: configuration applets for GNOME - data files
 
 Package: gnome-control-center-shared-data
 Architecture: all
-Section: gnome
 Depends: ${misc:Depends}
 Replaces: gnome-control-center-data (<< 1:3.6.3-0ubuntu54)
 Conflicts: gnome-control-center-data (<< 1:3.6.3-0ubuntu54)
