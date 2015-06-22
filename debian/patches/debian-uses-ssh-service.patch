@@ -1,0 +1,32 @@
+From: Andreas Henriksson <andreas@fatal.se>
+Subject: Debian uses ssh.service (rather than sshd.service)
+Forwarded: not-needed
+
+The sharing panel does not show Remote Connections unless
+it can find the ssh service unit. In Debian it is called
+ssh.service rather than sshd.service. Patch the code
+to use the Debian name.... obviously this is not something
+to be forwarded upstream.
+
+--- a/panels/sharing/cc-remote-login-helper.c
++++ b/panels/sharing/cc-remote-login-helper.c
+@@ -20,7 +20,7 @@
+  */
+ 
+ #include <gio/gio.h>
+-#define SSHD_SERVICE "sshd.service"
++#define SSHD_SERVICE "ssh.service"
+ 
+ static const gchar *service_list[] = { SSHD_SERVICE, NULL };
+ 
+--- a/panels/sharing/cc-remote-login.c
++++ b/panels/sharing/cc-remote-login.c
+@@ -21,7 +21,7 @@
+ #include "cc-remote-login.h"
+ #include <gio/gio.h>
+ 
+-#define SSHD_SERVICE "sshd.service"
++#define SSHD_SERVICE "ssh.service"
+ 
+ typedef struct
+ {
