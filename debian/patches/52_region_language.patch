@@ -46,10 +46,11 @@ Last-Update: 2013-03-21
  * The 'common_name' field taken into account when parsing the iso-codes XML files
    for language names.
 
-diff -ru a/panels/common/cc-common-language.c b/panels/common/cc-common-language.c
---- a/panels/common/cc-common-language.c	2015-04-13 14:05:13.000000000 +0200
-+++ b/panels/common/cc-common-language.c	2015-07-01 03:13:44.719852986 +0200
-@@ -167,6 +167,66 @@
+Index: gnome-control-center-3.16.2/panels/common/cc-common-language.c
+===================================================================
+--- gnome-control-center-3.16.2.orig/panels/common/cc-common-language.c
++++ gnome-control-center-3.16.2/panels/common/cc-common-language.c
+@@ -167,6 +167,66 @@ cc_common_language_get_current_language
          return language;
  }
  
@@ -116,7 +117,7 @@ diff -ru a/panels/common/cc-common-language.c b/panels/common/cc-common-language
  static char *
  get_lang_for_user_object_path (const char *path)
  {
-@@ -215,7 +275,7 @@
+@@ -215,7 +275,7 @@ insert_language (GHashTable *ht,
          char *label_untranslated;
          char *key;
  
@@ -125,7 +126,7 @@ diff -ru a/panels/common/cc-common-language.c b/panels/common/cc-common-language
  
          label_own_lang = gnome_get_language_from_locale (key, key);
          label_current_lang = gnome_get_language_from_locale (key, NULL);
-@@ -241,9 +301,26 @@
+@@ -241,9 +301,26 @@ GHashTable *
  cc_common_language_get_initial_languages (void)
  {
          GHashTable *ht;
@@ -152,7 +153,7 @@ diff -ru a/panels/common/cc-common-language.c b/panels/common/cc-common-language
          insert_language (ht, "en_US.UTF-8");
          insert_language (ht, "en_GB.UTF-8");
          insert_language (ht, "de_DE.UTF-8");
-@@ -253,10 +330,32 @@
+@@ -253,10 +330,32 @@ cc_common_language_get_initial_languages
          insert_language (ht, "ja_JP.UTF-8");
          insert_language (ht, "ru_RU.UTF-8");
          insert_language (ht, "ar_EG.UTF-8");
@@ -186,7 +187,7 @@ diff -ru a/panels/common/cc-common-language.c b/panels/common/cc-common-language
  static void
  foreach_user_lang_cb (gpointer key,
                        gpointer value,
-@@ -282,31 +381,18 @@
+@@ -282,31 +381,18 @@ cc_common_language_add_user_languages (G
          GtkListStore *store = GTK_LIST_STORE (model);
          GHashTable *user_langs;
          const char *display;
@@ -222,7 +223,7 @@ diff -ru a/panels/common/cc-common-language.c b/panels/common/cc-common-language
                  display = g_hash_table_lookup (user_langs, name);
          }
  
-@@ -319,8 +405,8 @@
+@@ -319,8 +405,8 @@ cc_common_language_add_user_languages (G
          g_hash_table_foreach (user_langs, (GHFunc) foreach_user_lang_cb, store);
  
          /* And now the "Other…" selection */
@@ -233,10 +234,11 @@ diff -ru a/panels/common/cc-common-language.c b/panels/common/cc-common-language
  
          g_hash_table_destroy (user_langs);
  }
-diff -ru a/panels/common/cc-common-language.h b/panels/common/cc-common-language.h
---- a/panels/common/cc-common-language.h	2014-10-21 15:46:44.000000000 +0200
-+++ b/panels/common/cc-common-language.h	2015-07-01 01:12:52.915462276 +0200
-@@ -44,6 +44,7 @@
+Index: gnome-control-center-3.16.2/panels/common/cc-common-language.h
+===================================================================
+--- gnome-control-center-3.16.2.orig/panels/common/cc-common-language.h
++++ gnome-control-center-3.16.2/panels/common/cc-common-language.h
+@@ -44,6 +44,7 @@ guint    cc_common_language_add_availabl
                                                       GHashTable       *user_langs);
  gboolean cc_common_language_has_font                (const gchar  *locale);
  gchar   *cc_common_language_get_current_language    (void);
@@ -244,7 +246,7 @@ diff -ru a/panels/common/cc-common-language.h b/panels/common/cc-common-language
  
  GHashTable *cc_common_language_get_initial_languages   (void);
  GHashTable *cc_common_language_get_user_languages      (void);
-@@ -56,6 +57,8 @@
+@@ -56,6 +57,8 @@ void     cc_common_language_select_curre
  
  void     cc_common_language_add_user_languages (GtkTreeModel *model);
  
@@ -253,10 +255,11 @@ diff -ru a/panels/common/cc-common-language.h b/panels/common/cc-common-language
  G_END_DECLS
  
  #endif
-diff -ru a/panels/region/cc-format-chooser.c b/panels/region/cc-format-chooser.c
---- a/panels/region/cc-format-chooser.c	2015-04-13 14:05:13.000000000 +0200
-+++ b/panels/region/cc-format-chooser.c	2015-07-01 01:12:52.915462276 +0200
-@@ -167,7 +167,9 @@
+Index: gnome-control-center-3.16.2/panels/region/cc-format-chooser.c
+===================================================================
+--- gnome-control-center-3.16.2.orig/panels/region/cc-format-chooser.c
++++ gnome-control-center-3.16.2/panels/region/cc-format-chooser.c
+@@ -167,7 +167,9 @@ set_locale_id (GtkDialog   *chooser,
  
                  } else {
                          /* mark as unselected */
@@ -266,10 +269,11 @@ diff -ru a/panels/region/cc-format-chooser.c b/panels/region/cc-format-chooser.c
                  }
          }
          g_list_free (children);
-diff -ru a/panels/region/cc-region-panel.c b/panels/region/cc-region-panel.c
---- a/panels/region/cc-region-panel.c	2015-04-13 14:05:13.000000000 +0200
-+++ b/panels/region/cc-region-panel.c	2015-07-01 01:12:52.919462133 +0200
-@@ -414,6 +414,47 @@
+Index: gnome-control-center-3.16.2/panels/region/cc-region-panel.c
+===================================================================
+--- gnome-control-center-3.16.2.orig/panels/region/cc-region-panel.c
++++ gnome-control-center-3.16.2/panels/region/cc-region-panel.c
+@@ -414,6 +414,47 @@ set_system_region (CcRegionPanel *self,
  }
  
  static void
@@ -317,7 +321,7 @@ diff -ru a/panels/region/cc-region-panel.c b/panels/region/cc-region-panel.c
  update_region (CcRegionPanel *self,
                 const gchar   *region)
  {
-@@ -424,6 +465,7 @@
+@@ -424,6 +465,7 @@ update_region (CcRegionPanel *self,
          } else {
                  if (g_strcmp0 (region, priv->region) == 0)
                          return;
@@ -325,7 +329,7 @@ diff -ru a/panels/region/cc-region-panel.c b/panels/region/cc-region-panel.c
                  g_settings_set_string (priv->locale_settings, KEY_REGION, region);
                  if (priv->login_auto_apply)
                          set_system_region (self, region);
-@@ -591,7 +633,7 @@
+@@ -591,7 +633,7 @@ update_region_from_setting (CcRegionPane
          CcRegionPanelPrivate *priv = self->priv;
  
          g_free (priv->region);
@@ -334,7 +338,7 @@ diff -ru a/panels/region/cc-region-panel.c b/panels/region/cc-region-panel.c
          update_region_label (self);
  }
  
-@@ -624,15 +666,17 @@
+@@ -624,15 +666,17 @@ static void
  update_language_from_user (CcRegionPanel *self)
  {
  	CcRegionPanelPrivate *priv = self->priv;
@@ -356,7 +360,7 @@ diff -ru a/panels/region/cc-region-panel.c b/panels/region/cc-region-panel.c
          update_language_label (self);
  }
  
-@@ -1507,6 +1551,16 @@
+@@ -1507,6 +1551,16 @@ setup_input_section (CcRegionPanel *self
          update_buttons (self);
  }
  
@@ -373,7 +377,7 @@ diff -ru a/panels/region/cc-region-panel.c b/panels/region/cc-region-panel.c
  static void
  on_localed_properties_changed (GDBusProxy     *proxy,
                                 GVariant       *changed_properties,
-@@ -1521,34 +1575,50 @@
+@@ -1521,34 +1575,50 @@ on_localed_properties_changed (GDBusProx
                  const gchar **strv;
                  gsize len;
                  gint i;
@@ -434,7 +438,7 @@ diff -ru a/panels/region/cc-region-panel.c b/panels/region/cc-region-panel.c
  
                  update_language_label (self);
          }
-@@ -1618,29 +1688,28 @@
+@@ -1618,29 +1688,28 @@ set_localed_locale (CcRegionPanel *self)
  	CcRegionPanelPrivate *priv = self->priv;
          GVariantBuilder *b;
          gchar *s;
@@ -478,10 +482,11 @@ diff -ru a/panels/region/cc-region-panel.c b/panels/region/cc-region-panel.c
          g_dbus_proxy_call (priv->localed,
                             "SetLocale",
                             g_variant_new ("(asb)", b, TRUE),
-diff -ru a/panels/user-accounts/um-user-panel.c b/panels/user-accounts/um-user-panel.c
---- a/panels/user-accounts/um-user-panel.c	2015-04-20 16:33:32.000000000 +0200
-+++ b/panels/user-accounts/um-user-panel.c	2015-07-01 01:12:52.919462133 +0200
-@@ -911,8 +911,9 @@
+Index: gnome-control-center-3.16.2/panels/user-accounts/um-user-panel.c
+===================================================================
+--- gnome-control-center-3.16.2.orig/panels/user-accounts/um-user-panel.c
++++ gnome-control-center-3.16.2/panels/user-accounts/um-user-panel.c
+@@ -911,8 +911,9 @@ show_user (ActUser *user, CcUserPanelPri
  
          name = NULL;
          lang = g_strdup (act_user_get_language (user));
@@ -492,7 +497,7 @@ diff -ru a/panels/user-accounts/um-user-panel.c b/panels/user-accounts/um-user-p
                  act_user_set_language (user, lang);
          }
  
-@@ -1098,6 +1099,7 @@
+@@ -1098,6 +1099,7 @@ language_response (GtkDialog         *di
          ActUser *user;
          const gchar *lang, *account_language;
          gchar *current_language;
@@ -500,7 +505,7 @@ diff -ru a/panels/user-accounts/um-user-panel.c b/panels/user-accounts/um-user-p
          gchar *name = NULL;
          gboolean self_selected;
  
-@@ -1111,8 +1113,9 @@
+@@ -1111,8 +1113,9 @@ language_response (GtkDialog         *di
          self_selected = act_user_get_uid (user) == geteuid ();
  
          lang = cc_language_chooser_get_language (GTK_WIDGET (dialog));
@@ -511,3 +516,27 @@ diff -ru a/panels/user-accounts/um-user-panel.c b/panels/user-accounts/um-user-p
                          act_user_set_language (user, lang);
  
                          /* Do not show the notification if the locale is already used. */
+@@ -1142,6 +1145,7 @@ change_language (GtkButton *button,
+ 
+         user = get_selected_user (d);
+         current_language = act_user_get_language (user);
++        cc_common_language_get_locale (current_language, &current_language);
+ 
+         if (d->language_chooser) {
+ 		cc_language_chooser_clear_filter (d->language_chooser);
+Index: gnome-control-center-3.16.2/panels/common/cc-language-chooser.c
+===================================================================
+--- gnome-control-center-3.16.2.orig/panels/common/cc-language-chooser.c
++++ gnome-control-center-3.16.2/panels/common/cc-language-chooser.c
+@@ -400,7 +400,10 @@ cc_language_chooser_new (GtkWidget *pare
+         priv->filter_entry = WID ("language-filter-entry");
+         priv->language_list = WID ("language-list");
+         priv->scrolledwindow = WID ("language-scrolledwindow");
+-        priv->more_item = more_widget_new ();
++
++        /* Disable the more languages view, until lang-pack installation is re-integrated
++        priv->more_item = more_widget_new (); */
++
+         /* We ref-sink here so we can reuse this widget multiple times */
+         priv->no_results = g_object_ref_sink (no_results_widget_new ());
+         gtk_widget_show_all (priv->no_results);
