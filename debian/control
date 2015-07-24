@@ -7,7 +7,7 @@ Section: gnome
 Priority: optional
 Maintainer: Ubuntu Desktop Team <ubuntu-desktop@lists.ubuntu.com>
 XSBC-Original-Maintainer: Debian GNOME Maintainers <pkg-gnome-maintainers@lists.alioth.debian.org>
-Uploaders: Andreas Henriksson <andreas@fatal.se>, Debian GNOME Maintainers <pkg-gnome-maintainers@lists.alioth.debian.org>, Emilio Pozuelo Monfort <pochu@debian.org>, Josselin Mouette <joss@debian.org>, Laurent Bigonville <bigon@debian.org>, Michael Biebl <biebl@debian.org>
+Uploaders: Andreas Henriksson <andreas@fatal.se>, Debian GNOME Maintainers <pkg-gnome-maintainers@lists.alioth.debian.org>, Emilio Pozuelo Monfort <pochu@debian.org>, Josselin Mouette <joss@debian.org>, Michael Biebl <biebl@debian.org>
 Standards-Version: 3.9.6
 Build-Depends: autotools-dev,
                cdbs (>= 0.4.41),
@@ -34,7 +34,7 @@ Build-Depends: autotools-dev,
                libglib2.0-dev (>= 2.37.7),
                libgnome-desktop-3-dev (>= 3.11.3),
                libgnomekbd-dev (>= 2.91.91),
-               libgnome-bluetooth-dev (>= 3.11.1) [linux-any],
+               libgnome-bluetooth-dev (>= 3.3.4) [linux-any],
                libibus-1.0-dev (>= 1.5.2),
                libgoa-1.0-dev (>= 3.15.1),
                libgrilo-0.2-dev (>= 0.2.6),
@@ -97,8 +97,10 @@ Recommends: cups-pk-helper,
 Breaks: gnome-power-manager (<< 3.0),
         gnome-session (<< 3.0),
         libglib2.0-0 (<< 2.28.6-2),
-        gnome-bluetooth (<< 3.4),
-Replaces: gnome-bluetooth (<< 3.4)
+        libgnome-control-center1 (<< 1:3.16.2-2ubuntu1~wily6)
+Replaces: libgnome-control-center1 (<< 1:3.16.2-2ubuntu1~wily6)
+#        gnome-bluetooth (<< 3.4),
+#Replaces: gnome-bluetooth (<< 3.4)
 Suggests: gnome-screensaver | xscreensaver,
           gnome-user-guide | ubuntu-docs,
           gstreamer1.0-pulseaudio,
@@ -151,19 +153,3 @@ Conflicts: gnome-control-center-data (<< 1:3.6.3-0ubuntu54)
 Description: configuration applets for GNOME - shared data
  This package contains datas that are used by gnome-control-center and the
  new unity-control-center
-
-Package: libgnome-control-center-dev
-Architecture: any
-Section: libdevel
-Depends: ${misc:Depends},
-         libgnome-control-center1 (= ${binary:Version})
-Description: utilities to configure the GNOME desktop
- This package contains the files needed to build Control Center panels
-
-Package: libgnome-control-center1
-Architecture: any
-Section: libs
-Depends: ${misc:Depends},
-         ${shlibs:Depends}
-Description: utilities to configure the GNOME desktop
- This package contains the library used by Control Center panels
