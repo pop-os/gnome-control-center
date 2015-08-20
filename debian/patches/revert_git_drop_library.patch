@@ -11,9 +11,11 @@ Subject: [PATCH 1/2] revert git drop library
  4 files changed, 68 insertions(+), 9 deletions(-)
  create mode 100644 shell/libgnome-control-center.pc.in
 
---- a/configure.ac
-+++ b/configure.ac
-@@ -19,6 +19,15 @@
+Index: gnome-control-center-3.16.2/configure.ac
+===================================================================
+--- gnome-control-center-3.16.2.orig/configure.ac
++++ gnome-control-center-3.16.2/configure.ac
+@@ -19,6 +19,15 @@ AC_HEADER_STDC
  LT_PREREQ([2.2])
  LT_INIT
  
@@ -29,7 +31,7 @@ Subject: [PATCH 1/2] revert git drop library
  # Internationalization support
  
  IT_PROG_INTLTOOL([0.40.1])
-@@ -334,9 +343,12 @@
+@@ -347,9 +356,12 @@ dnl ====================================
  PANEL_CFLAGS="-I\$(top_srcdir)/ -DG_LOG_DOMAIN=\"\\\"\$(cappletname)-cc-panel\\\"\" -DPANEL_ID=\"\\\"\$(cappletname)\\\"\""
  AC_SUBST(PANEL_CFLAGS)
  
@@ -43,7 +45,7 @@ Subject: [PATCH 1/2] revert git drop library
  dnl =======================================
  dnl Update Mime Database
  dnl =======================================
-@@ -416,6 +428,7 @@
+@@ -444,6 +456,7 @@ esac
  
  AC_CONFIG_FILES([
  Makefile
@@ -51,9 +53,11 @@ Subject: [PATCH 1/2] revert git drop library
  panels/Makefile
  panels/common/Makefile
  panels/background/Makefile
---- a/panels/common/Makefile.am
-+++ b/panels/common/Makefile.am
-@@ -21,8 +21,11 @@
+Index: gnome-control-center-3.16.2/panels/common/Makefile.am
+===================================================================
+--- gnome-control-center-3.16.2.orig/panels/common/Makefile.am
++++ gnome-control-center-3.16.2/panels/common/Makefile.am
+@@ -22,8 +22,11 @@ liblanguage_la_SOURCES =		\
  	cc-language-chooser.h
  
  liblanguage_la_LIBADD = 		\
@@ -62,12 +66,14 @@ Subject: [PATCH 1/2] revert git drop library
  
 +liblanguage_la_LDFLAGS = $(PANEL_LDFLAGS)
 +
- resource_files = $(shell glib-compile-resources --sourcedir=$(srcdir) --generate-dependencies $(srcdir)/common.gresource.xml)
- cc-common-resources.c: common.gresource.xml $(resource_files)
- 	$(AM_V_GEN) glib-compile-resources --target=$@ --sourcedir=$(srcdir) --generate-source --c-name cc_common $<
---- a/shell/Makefile.am
-+++ b/shell/Makefile.am
-@@ -29,14 +29,8 @@
+ #libdevice
+ GSD_COMMON_ENUM_FILES = gsd-common-enums.c gsd-common-enums.h
+ 
+Index: gnome-control-center-3.16.2/shell/Makefile.am
+===================================================================
+--- gnome-control-center-3.16.2.orig/shell/Makefile.am
++++ gnome-control-center-3.16.2/shell/Makefile.am
+@@ -32,14 +32,8 @@ gnome_control_center_SOURCES =			\
  	cc-shell-category-view.h		\
  	cc-shell-item-view.c			\
  	cc-shell-item-view.h			\
@@ -84,7 +90,7 @@ Subject: [PATCH 1/2] revert git drop library
  	hostname-helper.c			\
  	hostname-helper.h			\
  	cc-hostname-entry.c			\
-@@ -45,8 +39,43 @@
+@@ -50,8 +44,43 @@ gnome_control_center_SOURCES =			\
  
  gnome_control_center_LDFLAGS = -export-dynamic
  
@@ -128,7 +134,7 @@ Subject: [PATCH 1/2] revert git drop library
  	$(SHELL_LIBS)							\
  	$(CHEESE_LIBS)							\
  	$(top_builddir)/libgd/libgd.la					\
-@@ -107,6 +136,7 @@
+@@ -111,6 +140,7 @@ completions/gnome-control-center: comple
  
  EXTRA_DIST =					\
  	gnome-control-center.desktop.in.in	\
@@ -136,8 +142,10 @@ Subject: [PATCH 1/2] revert git drop library
  	$(servicefile_in_files)                 \
  	$(completion_in_files)			\
  	list-panel.sh
+Index: gnome-control-center-3.16.2/shell/libgnome-control-center.pc.in
+===================================================================
 --- /dev/null
-+++ b/shell/libgnome-control-center.pc.in
++++ gnome-control-center-3.16.2/shell/libgnome-control-center.pc.in
 @@ -0,0 +1,12 @@
 +prefix=@prefix@
 +exec_prefix=@exec_prefix@
@@ -152,9 +160,11 @@ Subject: [PATCH 1/2] revert git drop library
 +Libs: -L${libdir} -lgnome-control-center
 +Cflags: -I${includedir}/gnome-control-center-1
 \ No newline at end of file
---- a/Makefile.am
-+++ b/Makefile.am
-@@ -35,6 +35,12 @@
+Index: gnome-control-center-3.16.2/Makefile.am
+===================================================================
+--- gnome-control-center-3.16.2.orig/Makefile.am
++++ gnome-control-center-3.16.2/Makefile.am
+@@ -35,6 +35,12 @@ GITIGNOREFILES=m4
  
  -include $(top_srcdir)/git.mk
  
