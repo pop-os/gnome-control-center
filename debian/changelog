@@ -1,3 +1,79 @@
+gnome-control-center (1:3.18.1-1ubuntu1) UNRELEASED; urgency=medium
+
+  * Merge with Debian, remaining changes: (LP: #1511140) 
+    + debian/patches:
+      - 52_region_language.patch
+        Adapt region panel to use Ubuntu style regions
+      - 56_use_ubuntu_info_branding.patch,
+        ubuntu-gnome-version.patch
+         Use Ubuntu GNOME branding
+      - 64_restore_terminal_keyboard_shortcut.patch
+         Bring back terminal shortcut
+      - 92_ubuntu_system_proxy.patch
+         Add system proxy support
+      - 99_add_lock-on-suspend.patch
+         Add option to lock on suspend
+      - ubuntu_external_panels.patch
+         Reimplement support for desktop launchers
+      - revert_online_accounts_disable_remove_button.patch,
+        revert_revert_main_disable_sslv3_because_of_POODLE.patch
+          revert patches that require g-o-a 3.16
+    + debian/control.in:
+      - Drop Recommends for packages not in main
+      - Various other Ubuntu specific changes
+      - build-dep on ttf-ubuntu-font-family and valac 
+         For logo generation
+    + Split out shared data that is used by unity-control-center
+    + Add a wrapper to run unity-control-center in Unity
+    + Install apport hook
+
+ -- Tim Lunn <tim@feathertop.org>  Thu, 29 Oct 2015 08:51:20 +1100
+
+gnome-control-center (1:3.18.1-1) unstable; urgency=medium
+
+  * New upstream release.
+  * Upload to unstable.
+  * Update Build-Depends as per configure.ac:
+    - Bump libgrilo-0.2-dev to (>= 0.2.12).
+    - Bump libgnome-bluetooth-dev to (>= 3.18.0).
+  * Drop debian/patches/debian-uses-ssh-service.patch and instead set
+    SSHD_SERVICE=ssh.service via CPPFLAGS in debian/rules.
+  * Cherry-pick patch from upstream which fixes syntax errors in
+    gnome-sharing-panel.desktop translations.
+
+ -- Michael Biebl <biebl@debian.org>  Wed, 14 Oct 2015 21:51:58 +0200
+
+gnome-control-center (1:3.17.92-1) experimental; urgency=medium
+
+  [ Josselin Mouette ]
+  * Remove Debian menu entry.
+
+  [ Andreas Henriksson ]
+  * New upstream release candidate.
+  * Update build-dependencies according to configure.ac changes:
+    - bump gnome-bluetooth >= 3.17.90
+    - bump gnome-desktop >= 3.17.4
+  * Update debian/patches/debian-uses-ssh-service.patch
+
+ -- Andreas Henriksson <andreas@fatal.se>  Wed, 16 Sep 2015 17:22:36 +0200
+
+gnome-control-center (1:3.16.3-1) unstable; urgency=medium
+
+  [ Andreas Henriksson ]
+  * Add debian/patches/debian-uses-ssh-service.patch
+    - look for ssh.service (rathen than sshd.service) to make
+      Remote Login show up under sharing panel.
+
+  [ Michael Biebl ]
+  * New upstream release.
+  * Drop clean-la.mk include from debian/rules, the package no longer ships
+    any libtool .la files.
+  * Drop obsolete Breaks/Replaces from pre-wheezy and the no longer used
+    Conflicts/Replaces/Provides: capplet-data.
+  * Bump debhelper compatibility level to 9.
+
+ -- Michael Biebl <biebl@debian.org>  Wed, 22 Jul 2015 21:00:37 +0200
+
 gnome-control-center (1:3.16.3-0ubuntu1) wily; urgency=medium
 
   * New upstream stable release:
