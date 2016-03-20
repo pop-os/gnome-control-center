@@ -8,10 +8,10 @@ Subject: [PATCH 3/3] Modify the input-chooser dialog to allow for the
  panels/region/cc-region-panel.c     | 3 +++
  2 files changed, 7 insertions(+), 2 deletions(-)
 
-Index: gnome-control-center-3.16.3/panels/common/cc-language-chooser.c
+Index: gnome-control-center/panels/common/cc-language-chooser.c
 ===================================================================
---- gnome-control-center-3.16.3.orig/panels/common/cc-language-chooser.c
-+++ gnome-control-center-3.16.3/panels/common/cc-language-chooser.c
+--- gnome-control-center.orig/panels/common/cc-language-chooser.c
++++ gnome-control-center/panels/common/cc-language-chooser.c
 @@ -121,7 +121,7 @@ more_widget_new (void)
          row = gtk_list_box_row_new ();
          box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 10);
@@ -39,17 +39,29 @@ Index: gnome-control-center-3.16.3/panels/common/cc-language-chooser.c
  }
  static void
  set_locale_id (GtkDialog *chooser,
-Index: gnome-control-center-3.16.3/panels/region/cc-region-panel.c
+Index: gnome-control-center/panels/region/cc-region-panel.c
 ===================================================================
---- gnome-control-center-3.16.3.orig/panels/region/cc-region-panel.c
-+++ gnome-control-center-3.16.3/panels/region/cc-region-panel.c
+--- gnome-control-center.orig/panels/region/cc-region-panel.c
++++ gnome-control-center/panels/region/cc-region-panel.c
 @@ -371,6 +371,9 @@ update_language (CcRegionPanel *self,
  {
  	CcRegionPanelPrivate *priv = self->priv;
  
-+        if (!cc_common_language_maybe_install (0, language))
++        if (!cc_common_language_maybe_install (0, language, FALSE))
 +            return;
 +
          if (priv->login) {
                  set_system_language (self, language);
          } else {
+@@ -720,6 +723,11 @@ setup_language_section (CcRegionPanel *s
+ 
+         update_language_from_user (self);
+         update_region_from_setting (self);
++
++        /* check if there are missing lang packs */
++        cc_common_language_maybe_install (0, priv->language, TRUE);
++
++
+ }
+ 
+ #ifdef HAVE_IBUS

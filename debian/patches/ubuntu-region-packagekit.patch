@@ -7,11 +7,11 @@ PackageKit WhatProvides locale() to locate and install
 language packs for the selected language
 ---
 
-diff --git a/panels/common/cc-common-language.c b/panels/common/cc-common-language.c
-index f447698..a5b3e6c 100644
---- a/panels/common/cc-common-language.c
-+++ b/panels/common/cc-common-language.c
-@@ -425,3 +425,235 @@ cc_common_language_add_user_languages (GtkTreeModel *model)
+Index: gnome-control-center/panels/common/cc-common-language.c
+===================================================================
+--- gnome-control-center.orig/panels/common/cc-common-language.c
++++ gnome-control-center/panels/common/cc-common-language.c
+@@ -425,3 +425,240 @@ cc_common_language_add_user_languages (G
          g_hash_table_destroy (user_langs);
  }
  
@@ -172,8 +172,8 @@ index f447698..a5b3e6c 100644
 +                     "WhatProvides",
 +                     /* TODO need to get enums from libpackagekit-glib2 */
 +                     g_variant_new ("(tu^a&s)",
-+                                    1, /*PK_FILTER_ENUM_NONE*/
-+                                    11, /*PK_PROVIDES_ENUM_LANGUAGE_SUPPORT*/
++                                    (guint64)1, /*PK_FILTER_ENUM_NONE*/
++                                    (guint32)11, /*PK_PROVIDES_ENUM_LANGUAGE_SUPPORT*/
 +                                    provides_args),
 +                     G_DBUS_CALL_FLAGS_NONE,
 +                     -1,
@@ -183,7 +183,7 @@ index f447698..a5b3e6c 100644
 +}
 +
 +gboolean
-+cc_common_language_maybe_install (guint xid, const gchar *lang)
++cc_common_language_maybe_install (guint xid, const gchar *lang, gboolean force)
 +{
 +        gchar *language_code, *territory_code, *territory_lang = NULL;
 +        gchar **langs;
@@ -194,18 +194,23 @@ index f447698..a5b3e6c 100644
 +        gnome_parse_locale (lang, &language_code, &territory_code, NULL, NULL);
 +
 +        /* If the language is already available, do nothing */
-+        territory_lang = g_strdup_printf ("%s_%s", language_code, territory_code);
++        if (g_strcmp0 (language_code, "zh") == 0 )
++                territory_lang = g_strdup_printf ("%s_%s", language_code, territory_code);
++        else
++                territory_lang = g_strdup (language_code);
 +
 +        langs = cc_common_language_get_installed_languages();
 +        for (i = 0; langs[i]; i++) {
-+                if (g_strcmp0 (langs[i], territory_lang) ==0 ) {
-+                       g_warning ("Language is already installed");
-+                       result = TRUE;
-+                       goto out;
++                if (g_strrstr (langs[i], territory_lang) ) {
++                        if (!force) {
++                               g_warning ("Language is already installed");
++                               result = TRUE;
++                               goto out;
++                        }
 +                }
 +         }
 +
-+        g_warning ("Language %s not installed, trying to intall it", lang);
++        g_warning ("Language %s not installed, trying to install it", lang);
 +
 +        pk_data = g_new0 (PkTransactionData, 1);
 +        pk_data->lang = g_strdup (lang);
@@ -247,19 +252,16 @@ index f447698..a5b3e6c 100644
 +
 +        return result;
 +}
-diff --git a/panels/common/cc-common-language.h b/panels/common/cc-common-language.h
-index 8ebd723..31ed19d 100644
---- a/panels/common/cc-common-language.h
-+++ b/panels/common/cc-common-language.h
-@@ -51,6 +51,8 @@ GHashTable *cc_common_language_get_initial_languages   (void);
+Index: gnome-control-center/panels/common/cc-common-language.h
+===================================================================
+--- gnome-control-center.orig/panels/common/cc-common-language.h
++++ gnome-control-center/panels/common/cc-common-language.h
+@@ -51,6 +51,8 @@ GHashTable *cc_common_language_get_initi
  GHashTable *cc_common_language_get_user_languages      (void);
  GHashTable *cc_common_language_get_initial_regions     (const gchar *lang);
  
-+gboolean cc_common_language_maybe_install           (guint32 xid,  const gchar *lang);
++gboolean cc_common_language_maybe_install           (guint32 xid,  const gchar *lang, gboolean force);
 +
  void     cc_common_language_setup_list              (GtkWidget    *treeview,
  						     GHashTable   *users,
  						     GHashTable   *initial);
--- 
-2.5.0
-
