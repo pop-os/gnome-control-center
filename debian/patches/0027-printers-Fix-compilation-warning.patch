@@ -1,0 +1,26 @@
+From 201e696567cbbf9480e8fe862479416660770a72 Mon Sep 17 00:00:00 2001
+From: Marek Kasik <mkasik@redhat.com>
+Date: Tue, 20 Sep 2016 12:29:09 +0200
+Subject: [PATCH 27/28] printers: Fix compilation warning
+
+We need to include cups/ppd.h explicitly due to some modification
+of structure of CUPS headers
+---
+ panels/printers/cc-printers-panel.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/panels/printers/cc-printers-panel.c b/panels/printers/cc-printers-panel.c
+index 66529de..f13e7ba 100644
+--- a/panels/printers/cc-printers-panel.c
++++ b/panels/printers/cc-printers-panel.c
+@@ -28,6 +28,7 @@
+ #include <gdesktop-enums.h>
+ 
+ #include <cups/cups.h>
++#include <cups/ppd.h>
+ 
+ #include <math.h>
+ 
+-- 
+2.9.3
+

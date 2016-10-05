@@ -1,0 +1,32 @@
+From ed31adb4fc6984a4d1736438c9bce6219daa25d5 Mon Sep 17 00:00:00 2001
+From: Michael Catanzaro <mcatanzaro@gnome.org>
+Date: Fri, 16 Sep 2016 19:47:23 -0500
+Subject: [PATCH 26/28] power: Fix wifi device state when opening power panel
+
+This toggle is always set to off when the panel is opened. We should
+check whether it's on or not when opening the panel. Currently we are
+only subscribed to changes, so we don't check the wifi state until it's
+toggled on or off after the panel has been opened the first time.
+
+Alternate patch for gnome-3-20 branch.
+
+https://bugzilla.gnome.org/show_bug.cgi?id=771564
+---
+ panels/power/cc-power-panel.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/panels/power/cc-power-panel.c b/panels/power/cc-power-panel.c
+index 7c0140c..d54af34 100644
+--- a/panels/power/cc-power-panel.c
++++ b/panels/power/cc-power-panel.c
+@@ -1900,6 +1900,7 @@ add_power_saving_section (CcPowerPanel *self)
+   gtk_widget_show_all (widget);
+ 
+ #ifdef HAVE_NETWORK_MANAGER
++  nm_client_state_changed (priv->nm_client, NULL, self);
+   nm_device_changed (priv->nm_client, NULL, self);
+ #endif
+ }
+-- 
+2.9.3
+

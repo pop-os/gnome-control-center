@@ -1,0 +1,66 @@
+From f1e77f023726f40463ab6debac9a1c0796975857 Mon Sep 17 00:00:00 2001
+From: Bastien Nocera <hadess@hadess.net>
+Date: Fri, 23 Sep 2016 13:36:20 +0200
+Subject: [PATCH 28/28] display: Fix possible crash on startup
+
+If no items are added to the GVariantBuilder, g_variant_builder_close()
+would throw a critical, g_variant_builder_end() would throw a
+segmentation fault.
+
+As this can only happen when there are no items added to the output_ids
+hashtable, this should only happen if there are no displays known to
+libgnome-desktop (and therefore mutter).
+
+See https://bugzilla.redhat.com/show_bug.cgi?id=1280075
+
+https://bugzilla.gnome.org/show_bug.cgi?id=771875
+---
+ panels/display/cc-display-panel.c | 14 ++++++++++++--
+ 1 file changed, 12 insertions(+), 2 deletions(-)
+
+diff --git a/panels/display/cc-display-panel.c b/panels/display/cc-display-panel.c
+index 94e7508..1418128 100644
+--- a/panels/display/cc-display-panel.c
++++ b/panels/display/cc-display-panel.c
+@@ -122,12 +122,12 @@ monitor_labeler_show (CcDisplayPanel *self)
+   GnomeRROutput *output;
+   GVariantBuilder builder;
+   gint number;
++  gboolean has_outputs;
+ 
+   if (!priv->shell_proxy)
+     return;
+ 
+-  g_variant_builder_init (&builder, G_VARIANT_TYPE_TUPLE);
+-  g_variant_builder_open (&builder, G_VARIANT_TYPE_ARRAY);
++  has_outputs = FALSE;
+ 
+   infos = gnome_rr_config_get_outputs (priv->current_configuration);
+   for (info = infos; *info; info++)
+@@ -136,6 +136,13 @@ monitor_labeler_show (CcDisplayPanel *self)
+       if (number == 0)
+         continue;
+ 
++      if (!has_outputs)
++        {
++          g_variant_builder_init (&builder, G_VARIANT_TYPE_TUPLE);
++          g_variant_builder_open (&builder, G_VARIANT_TYPE_ARRAY);
++          has_outputs = TRUE;
++        }
++
+       output = gnome_rr_screen_get_output_by_name (priv->screen,
+                                                    gnome_rr_output_info_get_name (*info));
+       g_variant_builder_add (&builder, "{uv}",
+@@ -143,6 +150,9 @@ monitor_labeler_show (CcDisplayPanel *self)
+                              g_variant_new_int32 (number));
+     }
+ 
++  if (!has_outputs)
++    return;
++
+   g_variant_builder_close (&builder);
+ 
+   g_dbus_proxy_call (priv->shell_proxy,
+-- 
+2.9.3
+

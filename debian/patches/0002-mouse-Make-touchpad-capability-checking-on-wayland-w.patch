@@ -1,0 +1,31 @@
+From db5dcda0badd33b9aea576f4f3a45c8076f11b8c Mon Sep 17 00:00:00 2001
+From: Rui Matos <tiagomatos@gmail.com>
+Date: Mon, 2 May 2016 14:35:33 +0200
+Subject: [PATCH 02/28] mouse: Make touchpad capability checking on wayland
+ work as intended
+
+We need to set the out variables otherwise the intended semantics as
+documented by the comment aren't enforced.
+
+https://bugzilla.gnome.org/show_bug.cgi?id=765879
+---
+ panels/mouse/cc-mouse-caps-helper.c | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/panels/mouse/cc-mouse-caps-helper.c b/panels/mouse/cc-mouse-caps-helper.c
+index 6fdeb4d..3b912ce 100644
+--- a/panels/mouse/cc-mouse-caps-helper.c
++++ b/panels/mouse/cc-mouse-caps-helper.c
+@@ -96,6 +96,9 @@ cc_touchpad_check_capabilities (gboolean *have_two_finger_scrolling,
+                                                         have_edge_scrolling,
+                                                         have_tap_to_click);
+ 	/* else we unconditionally show all touchpad knobs */
++        *have_two_finger_scrolling = TRUE;
++        *have_edge_scrolling = TRUE;
++        *have_tap_to_click = TRUE;
+ 	return FALSE;
+ }
+ 
+-- 
+2.9.3
+

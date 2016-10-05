@@ -1,0 +1,46 @@
+From 601164dec82300e1d0ef7ef9b82eba0ec05bd5d3 Mon Sep 17 00:00:00 2001
+From: Michael Catanzaro <mcatanzaro@gnome.org>
+Date: Fri, 9 Sep 2016 21:38:46 -0500
+Subject: [PATCH 25/28] power: Fix hiding wi-fi, mobile broadband toggles
+
+We check with NetworkManager whether a wireless device exists to decide
+whether or not to display these toggles. NetworkManager says no, we hide
+the toggles, then we call gtk_widget_show_all() and undo our work. Sad!
+Actually pressing the toggles triggers the check again, and causes both
+listbox rows to shockingly disappear.
+
+This fix is not needed on the master branch because, since the port to
+libnm 1.2, the check is now scheduled on the main loop, to run after
+this function completes, inadvertantly fixing this bug.
+
+https://bugzilla.gnome.org/show_bug.cgi?id=771148
+---
+ panels/power/cc-power-panel.c | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/panels/power/cc-power-panel.c b/panels/power/cc-power-panel.c
+index e631e0b..7c0140c 100644
+--- a/panels/power/cc-power-panel.c
++++ b/panels/power/cc-power-panel.c
+@@ -1842,7 +1842,6 @@ add_power_saving_section (CcPowerPanel *self)
+                     G_CALLBACK (nm_device_changed), self);
+   g_signal_connect (priv->nm_client, "device-removed",
+                     G_CALLBACK (nm_device_changed), self);
+-  nm_device_changed (priv->nm_client, NULL, self);
+ 
+   g_signal_connect (G_OBJECT (priv->wifi_switch), "notify::active",
+                     G_CALLBACK (wifi_switch_changed), self);
+@@ -1899,6 +1898,10 @@ add_power_saving_section (CcPowerPanel *self)
+ #endif
+ 
+   gtk_widget_show_all (widget);
++
++#ifdef HAVE_NETWORK_MANAGER
++  nm_device_changed (priv->nm_client, NULL, self);
++#endif
+ }
+ 
+ static void
+-- 
+2.9.3
+
