@@ -12,10 +12,14 @@ Author: Tim Lunn <tim@feathertop.org>
 Bug-Ubuntu: https://bugs.launchpad.net/bugs/1299912
 
 ---
-Index: gnome-control-center-3.16.3/configure.ac
-===================================================================
---- gnome-control-center-3.16.3.orig/configure.ac
-+++ gnome-control-center-3.16.3/configure.ac
+---
+ configure.ac                    |    2 +
+ panels/info/Makefile.am         |   17 +++++++++++++-
+ panels/info/logo-generator.vala |   47 ++++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 65 insertions(+), 1 deletion(-)
+
+--- a/configure.ac
++++ b/configure.ac
 @@ -175,6 +175,8 @@ PKG_CHECK_MODULES(REMOTE_LOGIN_HELPER, g
  PKG_CHECK_MODULES(GVC, gobject-2.0 libpulse libpulse-mainloop-glib)
  AM_CONDITIONAL(HAVE_INTROSPECTION, false)
@@ -25,15 +29,12 @@ Index: gnome-control-center-3.16.3/configure.ac
  GDESKTOP_PREFIX=`$PKG_CONFIG --variable prefix gsettings-desktop-schemas`
  AC_SUBST(GDESKTOP_PREFIX)
  
-Index: gnome-control-center-3.16.3/panels/info/Makefile.am
-===================================================================
---- gnome-control-center-3.16.3.orig/panels/info/Makefile.am
-+++ gnome-control-center-3.16.3/panels/info/Makefile.am
-@@ -8,9 +8,25 @@ AM_CPPFLAGS = 						\
- 	-DBINDIR="\"$(bindir)\""			\
+--- a/panels/info/Makefile.am
++++ b/panels/info/Makefile.am
+@@ -11,9 +11,24 @@ AM_CPPFLAGS =							\
+ 	-DBINDIR="\"$(bindir)\""				\
  	$(NULL)
  
-+noinst_PROGRAMS = logo-generator
 +logo_generator_SOURCES = logo-generator.vala
 +
 +logo_generator_VALAFLAGS = \
@@ -55,10 +56,17 @@ Index: gnome-control-center-3.16.3/panels/info/Makefile.am
  	cc-info-resources.c	\
  	cc-info-resources.h
  
-Index: gnome-control-center-3.16.3/panels/info/logo-generator.vala
-===================================================================
+@@ -28,7 +43,7 @@ libinfo_la_SOURCES =		\
+ 
+ libinfo_la_LIBADD = $(PANEL_LIBS) $(INFO_PANEL_LIBS)
+ 
+-noinst_PROGRAMS = test-info-cleanup
++noinst_PROGRAMS = test-info-cleanup logo-generator
+ TEST_PROGS += $(noinst_PROGRAMS)
+ test_info_cleanup_SOURCES =		\
+ 	test-info-cleanup.c		\
 --- /dev/null
-+++ gnome-control-center-3.16.3/panels/info/logo-generator.vala
++++ b/panels/info/logo-generator.vala
 @@ -0,0 +1,47 @@
 +public class Main : Object
 +{
