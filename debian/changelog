@@ -1,45 +1,18 @@
-gnome-control-center (1:3.20.2-0ubuntu1) yakkety; urgency=medium
+gnome-control-center (1:3.22.1-1ubuntu2) zesty; urgency=medium
 
-  * New upstream bugfix release (LP: #1633753)
-  * Drop patches applied in new release
+  * debian/control.in:
+    - Depend on system-config-printer-common instead of recommending
+      system-config-printer-gnome (LP: #1637466) (LP: #1643129)
+    - Depend on instead of recommend network-manager-gnome (Closes: #845021)
 
- -- Jeremy Bicha <jbicha@ubuntu.com>  Sat, 15 Oct 2016 13:05:25 -0400
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Thu, 24 Nov 2016 18:16:34 -0500
 
-gnome-control-center (1:3.20.1-2ubuntu3) yakkety; urgency=medium
+gnome-control-center (1:3.22.1-1ubuntu1) zesty; urgency=medium
 
-  * Add 08_lowercase_user_names.patch:
-    - Copy patch from unity-control-center to disallow upper-case
-      letters in user names for compliance with adduser (LP: #1600638)
-  * Depend on system-config-printer-gnome instead of -common.
-    Ubuntu's s-c-p packaging differs and we need scp-dbus-service.py
-    (LP: #1623150)
-
- -- Jeremy Bicha <jbicha@ubuntu.com>  Wed, 05 Oct 2016 14:35:22 -0400
-
-gnome-control-center (1:3.20.1-2ubuntu2) yakkety; urgency=medium
-
-  * Cherrypick commits from the 3.20 branch since there was never a 3.20.2
-    release. See patch headers or git for descriptions of issues fixed.
-    - 0002-mouse-Make-touchpad-capability-checking-on-wayland-w.patch
-    - 0007-universal-access-allow-focus-on-row-switches.patch
-    - 0008-mouse-allow-focus-on-switches-in-the-Touchpad-sectio.patch
-    - 0014-network-fix-some-SSID-escaping-issues.patch
-    - 0016-user-accounts-Fix-missing-records-in-the-history-dia.patch
-      (LP: #1443052)
-    - 0020-privacy-React-to-changes-in-permissions-store.patch
-    - 0021-privacy-Update-for-PermissionStore-DBus-API-changes.patch
-    - 0025-power-Fix-hiding-wi-fi-mobile-broadband-toggles.patch
-    - 0026-power-Fix-wifi-device-state-when-opening-power-panel.patch
-    - 0027-printers-Fix-compilation-warning.patch
-    - 0028-display-Fix-possible-crash-on-startup.patch
-
- -- Jeremy Bicha <jbicha@ubuntu.com>  Tue, 04 Oct 2016 06:52:59 -0400
-
-gnome-control-center (1:3.20.1-2ubuntu1) yakkety; urgency=medium
-
-  [ Jeremy Bicha ]
-  * Merge with Debian (LP: #1611195). Remaining changes:
+  * Merge with Debian. Remaining changes:
     + debian/patches:
+      - 08_lowercase_user_names.patch:
+        Disallow upper-case letters in user names for compliance with adduser
       - 52_region_language.patch
         Adapt region panel to use Ubuntu style regions
       - 56_use_ubuntu_info_branding.patch,
@@ -61,23 +34,96 @@ gnome-control-center (1:3.20.1-2ubuntu1) yakkety; urgency=medium
     + debian/control.in:
       - Recommend ibus, unity-control-center-faces, and unity-system-service
       - Don't recommend rygel | rygel-tracker for now
-      - Breaks/Replaces libgnome-control-center1
       - build-dep on ttf-ubuntu-font-family and valac for logo generation
+      - Depend on system-config-printer-gnome instead of -common.
+        Ubuntu's s-c-p packaging differs and we need scp-dbus-service.py
     + Split out shared data that is used by unity-control-center
     + Install apport hook
     + debian/gnome-control-center-data.install:
       - Don't install gnome-control-center.pkla since we use
         policykit-desktop-privileges instead
       - Don't install 'faces', installed instead by unity-control-center-faces
-  *  revert_revert_main_disable_sslv3_because_of_POODLE.patch:
-    - Dropped, gnome-online-accounts uses webkit2 now
   * debian/patches/ubuntu-gnome-version.patch:
-    - Set Ubuntu version to 16.10
- 
-  [ Tim Lunn ]
-  * debian/patches/52_region_language.patch: refreshed
+    - Set Ubuntu version to 17.04
 
- -- Jeremy Bicha <jbicha@ubuntu.com>  Sat, 13 Aug 2016 11:58:16 -0400
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Tue, 11 Oct 2016 11:36:05 -0400
+
+gnome-control-center (1:3.22.1-1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Michael Biebl <biebl@debian.org>  Tue, 11 Oct 2016 17:30:11 +0200
+
+gnome-control-center (1:3.22.0-2) unstable; urgency=medium
+
+  [ Jeremy Bicha ]
+  * debian/control.in:
+    - Recommend libcanberra-pulse for Test Speakers feature (Closes: #676234)
+
+  [ Andreas Henriksson ]
+  * Add build-dependency on tzdata as zone.tab is used in tests.
+    (Closes:  #839485)
+
+ -- Andreas Henriksson <andreas@fatal.se>  Sat, 08 Oct 2016 22:42:58 +0200
+
+gnome-control-center (1:3.22.0-1) unstable; urgency=medium
+
+  * New upstream release.
+  * Drop fix-crash-entering-ipv4-gateway.patch and
+    fix-crash-entering-ipv4-routes.patch, merged upstream.
+  * Bump debhelper compat level to 10.
+  * Bump Build-Depends on libgtk-3-dev to (>= 3.22.0) for
+    GtkScrolledWindow.propagate_natural_width. (Closes: #838336)
+  * Use non-multiarch path (/usr/lib/gnome-control-center) for libexecdir.
+
+ -- Michael Biebl <biebl@debian.org>  Wed, 21 Sep 2016 02:00:20 +0200
+
+gnome-control-center (1:3.21.92-2) unstable; urgency=high
+
+  * Team upload.
+  * Add fix-crash-entering-ipv4-gateway.patch and
+    fix-crash-entering-ipv4-routes.patch taken from upstream git fixing
+    crashes when setting IPv4 gateway or IPv4 routes. They can be dropped for
+    3.21.93. Closes: #836835
+  * High urgency to get those fixes in testing as quickly as possible.
+
+ -- Raphaël Hertzog <hertzog@debian.org>  Thu, 15 Sep 2016 21:40:56 +0200
+
+gnome-control-center (1:3.21.92-1) unstable; urgency=medium
+
+  * New upstream beta release.
+  * debian/gnome-control-center.install: ship usr/share/gettext/its
+    - this installs the new gnome-keybindings.its and .loc
+  * Append a ~ to the versioned libsmbclient-dev build-dependency
+    to silence lintian.
+
+ -- Andreas Henriksson <andreas@fatal.se>  Tue, 13 Sep 2016 14:19:49 +0200
+
+gnome-control-center (1:3.21.90-1) unstable; urgency=medium
+
+  [ Andreas Henriksson ]
+  * New upstream beta release.
+  * Update (build-)dependencies according to configure.ac changes:
+    - bump gsettings-desktop-schemas-dev to >= 3.21.4
+    - bump libgoa-1.0-dev to >= 3.21.5
+    - bump libgnome-desktop-3-dev to >= 3.21.2
+    - bump libgtk-3-dev to >= 3.21.4
+    - bump libnm-* to >= 1.2.0
+    - Replace libnm-glib-dev, libnm-glib-vpn-dev, libnm-gtk-dev and
+      libnm-util-dev with libnm-dev (>= 1.2.0) and libnma-dev (>= 1.2.0)
+  * Drop Recommends on mesa-utils
+    - not needed for a long time since upstream commit c60221e0b4187a
+      which has now been superseded by fetching the info over dbus
+      from gnome-session.
+  * Bump build-dependency on libgtk-3-dev to >= 3.21.5
+    - the keyboard panel uses GtkShortcutLabel which is not in 3.21.4.
+
+  [ Michael Biebl ]
+  * Drop Build-Depends on libdbus-1-dev and libnotify-dev, no longer required.
+  * Drop obsolete cleanup code in maintainer scripts.
+  * Convert from cdbs to dh.
+
+ -- Michael Biebl <biebl@debian.org>  Thu, 01 Sep 2016 12:43:52 +0200
 
 gnome-control-center (1:3.20.1-2) unstable; urgency=medium
 
