@@ -49,9 +49,9 @@ Last-Update: 2013-03-21
 ---
  panels/common/cc-common-language.c   |  142 +++++++++++++++++++++++++++++------
  panels/common/cc-common-language.h   |    4 
- panels/region/cc-region-panel.c      |  139 ++++++++++++++++++++++++++--------
+ panels/region/cc-region-panel.c      |  137 +++++++++++++++++++++++++--------
  panels/user-accounts/um-user-panel.c |    8 +
- 4 files changed, 237 insertions(+), 56 deletions(-)
+ 4 files changed, 235 insertions(+), 56 deletions(-)
 
 --- a/panels/common/cc-common-language.c
 +++ b/panels/common/cc-common-language.c
@@ -404,7 +404,7 @@ Last-Update: 2013-03-21
  static void
  on_localed_properties_changed (GDBusProxy     *proxy,
                                 GVariant       *changed_properties,
-@@ -1484,32 +1544,48 @@ on_localed_properties_changed (GDBusProx
+@@ -1484,32 +1544,46 @@ on_localed_properties_changed (GDBusProx
                  const gchar **strv;
                  gsize len;
                  gint i;
@@ -433,8 +433,6 @@ Last-Update: 2013-03-21
 +                                time = strip_quotes (strv[i] + strlen ("LC_TIME="));
                          }
                  }
-+                g_free (strv);
-+
                  if (!lang) {
 -                        lang = setlocale (LC_MESSAGES, NULL);
 +                        lang = g_strdup ("en_US.UTF-8");
@@ -462,7 +460,7 @@ Last-Update: 2013-03-21
  
                  update_language_label (self);
          }
-@@ -1578,27 +1654,24 @@ set_localed_locale (CcRegionPanel *self)
+@@ -1579,27 +1653,24 @@ set_localed_locale (CcRegionPanel *self)
  	CcRegionPanelPrivate *priv = self->priv;
          GVariantBuilder *b;
          gchar *s;
