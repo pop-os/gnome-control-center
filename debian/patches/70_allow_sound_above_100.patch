@@ -1,0 +1,61 @@
+Description: Allow volume to bet set above 100%.
+ Some systems have low maximum volume set (like x220), allow, from an option
+ in gnome-control-center to set it above that 100% limit from g-s-d
+ (keyboard) and gnome-shell.
+ Modified from original patch in unity-control-center from Lars Uebernickel.
+Origin: ubuntu
+Bug-Ubuntu: https://launchpad.net/bugs/1706524
+Forwarded: https://bugzilla.gnome.org/show_bug.cgi?id=710424
+
+Index: gnome-control-center-3.24.3/panels/sound/gvc-mixer-dialog.c
+===================================================================
+--- gnome-control-center-3.24.3.orig/panels/sound/gvc-mixer-dialog.c
++++ gnome-control-center-3.24.3/panels/sound/gvc-mixer-dialog.c
+@@ -77,6 +77,7 @@ struct GvcMixerDialogPrivate
+         GtkWidget       *audible_bell_button;
+         GtkWidget       *test_dialog;
+         GtkSizeGroup    *size_group;
++        GSettings       *ubuntu_sound_settings;
+ 
+         gdouble          last_input_peak;
+         guint            num_apps;
+@@ -1608,6 +1609,8 @@ gvc_mixer_dialog_constructor (GType
+         GtkWidget        *box;
+         GtkWidget        *sbox;
+         GtkWidget        *ebox;
++        GtkWidget        *louder_volume_box;
++        GtkWidget        *allow_amplify_switch;
+         GSList           *streams;
+         GSList           *l;
+         GvcMixerStream   *stream;
+@@ -1633,6 +1636,20 @@ gvc_mixer_dialog_constructor (GType
+         gtk_box_pack_start (GTK_BOX (self->priv->output_stream_box),
+                             self->priv->output_bar, TRUE, TRUE, 12);
+ 
++        if (self->priv->ubuntu_sound_settings != NULL) {
++                louder_volume_box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 12);
++                gtk_box_pack_start (GTK_BOX (main_vbox), louder_volume_box, FALSE, FALSE, 12);
++                label = gtk_label_new (_("Allow volume louder than 100% from main interface and keyboard"));
++                allow_amplify_switch = gtk_switch_new ();
++                gtk_box_pack_start (GTK_BOX (louder_volume_box), label, FALSE, FALSE, 12);
++                g_settings_bind (self->priv->ubuntu_sound_settings, "allow-amplified-volume",
++                                allow_amplify_switch, "active", G_SETTINGS_BIND_DEFAULT);
++                gtk_box_pack_start (GTK_BOX (louder_volume_box), allow_amplify_switch, FALSE, FALSE, 0);
++
++                self->priv->output_stream_box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 12);
++                gtk_widget_set_margin_top (self->priv->output_stream_box, 12);
++        }
++
+         self->priv->notebook = gtk_notebook_new ();
+         gtk_box_pack_start (GTK_BOX (main_vbox),
+                             self->priv->notebook,
+@@ -1905,6 +1922,9 @@ gvc_mixer_dialog_init (GvcMixerDialog *d
+         dialog->priv = GVC_MIXER_DIALOG_GET_PRIVATE (dialog);
+         dialog->priv->bars = g_hash_table_new (NULL, NULL);
+         dialog->priv->size_group = gtk_size_group_new (GTK_SIZE_GROUP_HORIZONTAL);
++        if (strstr (g_getenv("XDG_SESSION_DESKTOP"), "ubuntu") != NULL) {
++                dialog->priv->ubuntu_sound_settings = g_settings_new ("com.ubuntu.sound");
++        }
+ }
+ 
+ static void
