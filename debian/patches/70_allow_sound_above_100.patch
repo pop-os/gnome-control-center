@@ -123,12 +123,20 @@ Index: gnome-control-center-3.24.3/panels/sound/gvc-mixer-dialog.c
          self->priv->notebook = gtk_notebook_new ();
          gtk_box_pack_start (GTK_BOX (main_vbox),
                              self->priv->notebook,
-@@ -1905,6 +1966,9 @@ gvc_mixer_dialog_init (GvcMixerDialog *d
+@@ -1905,6 +1966,17 @@ gvc_mixer_dialog_init (GvcMixerDialog *d
          dialog->priv = GVC_MIXER_DIALOG_GET_PRIVATE (dialog);
          dialog->priv->bars = g_hash_table_new (NULL, NULL);
          dialog->priv->size_group = gtk_size_group_new (GTK_SIZE_GROUP_HORIZONTAL);
 +        if (strstr (g_getenv("XDG_CURRENT_DESKTOP"), "ubuntu") != NULL) {
-+                dialog->priv->ubuntu_sound_settings = g_settings_new (AMPLIFIED_SETTINGS);
++                GSettingsSchema *schema;
++                schema = g_settings_schema_source_lookup (g_settings_schema_source_get_default(),
++                                                          AMPLIFIED_SETTINGS, TRUE);
++
++                if (schema != NULL)
++                {
++                        dialog->priv->ubuntu_sound_settings = g_settings_new_full (schema, NULL, NULL);
++                        g_settings_schema_unref (schema);
++                }
 +        }
  }
  
