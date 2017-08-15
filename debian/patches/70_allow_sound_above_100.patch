@@ -1,0 +1,143 @@
+Description: Allow volume to bet set above 100%.
+ Some systems have low maximum volume set (like x220), allow, from an option
+ in gnome-control-center to set it above that 100% limit from g-s-d
+ (keyboard) and gnome-shell.
+ Only show the above 100% volume option if:
+ 1. you are in an ubuntu session
+ 2. the selected output supports amplified volume. If so:
+    present the settings to google that on and off. It will enable
+    GNOME Shell and media keys to set the sound above 100%. If not
+    enabled, volume and sliders are all capped to 100%. (LP: #1706524)
+ Modified from original patch in unity-control-center from Lars Uebernickel.
+Origin: ubuntu
+Bug-Ubuntu: https://launchpad.net/bugs/1706524
+Bug: https://bugzilla.gnome.org/show_bug.cgi?id=710424
+
+Index: gnome-control-center-3.24.3/panels/sound/gvc-mixer-dialog.c
+===================================================================
+--- gnome-control-center-3.24.3.orig/panels/sound/gvc-mixer-dialog.c
++++ gnome-control-center-3.24.3/panels/sound/gvc-mixer-dialog.c
+@@ -48,6 +48,9 @@
+ 
+ #define GVC_MIXER_DIALOG_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), GVC_TYPE_MIXER_DIALOG, GvcMixerDialogPrivate))
+ 
++#define AMPLIFIED_SETTINGS "com.ubuntu.sound"
++#define AMPLIFIED_KEY "allow-amplified-volume"
++
+ struct GvcMixerDialogPrivate
+ {
+         GvcMixerControl *mixer_control;
+@@ -77,6 +80,8 @@ struct GvcMixerDialogPrivate
+         GtkWidget       *audible_bell_button;
+         GtkWidget       *test_dialog;
+         GtkSizeGroup    *size_group;
++        GtkWidget       *amplified_volume_box;
++        GSettings       *ubuntu_sound_settings;
+ 
+         gdouble          last_input_peak;
+         guint            num_apps;
+@@ -188,8 +193,14 @@ update_output_settings (GvcMixerDialog
+ 
+         gvc_channel_bar_set_base_volume (GVC_CHANNEL_BAR (dialog->priv->output_bar),
+                                          gvc_mixer_stream_get_base_volume (stream));
++
++        gboolean can_amplify = gvc_mixer_stream_get_can_decibel (stream);
++        if (dialog->priv->ubuntu_sound_settings != NULL && can_amplify) {
++            gtk_widget_set_sensitive(dialog->priv->amplified_volume_box, can_amplify);
++            can_amplify = g_settings_get_boolean(dialog->priv->ubuntu_sound_settings, AMPLIFIED_KEY);
++        }
+         gvc_channel_bar_set_is_amplified (GVC_CHANNEL_BAR (dialog->priv->output_bar),
+-                                          gvc_mixer_stream_get_can_decibel (stream));
++                                          can_amplify);
+ 
+ 	/* Update the adjustment in case the previous bar wasn't decibel
+ 	 * capable, and we clipped it */
+@@ -1595,6 +1606,37 @@ on_test_speakers_clicked (GvcComboBox *w
+         gtk_widget_destroy (d);
+ }
+ 
++static void
++on_amplify_changed (GSettings      *settings,
++                    const char     *key,
++                    GvcMixerDialog *self)
++{
++        GtkTreeSelection *selection = gtk_tree_view_get_selection (GTK_TREE_VIEW (self->priv->output_treeview));
++        GtkTreeModel     *model;
++        GtkTreeIter       iter;
++        gboolean          active;
++        guint             id;
++        GvcMixerUIDevice *output;
++
++        if (gtk_tree_selection_get_selected (selection, &model, &iter) == FALSE) {
++                g_debug ("Could not get default output from selection");
++                return;
++        }
++
++        gtk_tree_model_get (model, &iter,
++                            ID_COLUMN, &id,
++                            ACTIVE_COLUMN, &active,
++                            -1);
++        if (!active)
++                return;
++
++        output = gvc_mixer_control_lookup_output_id (self->priv->mixer_control, id);
++
++        // refresh our output bar UI
++        update_output_settings(self, output);
++}
++
++
+ static GObject *
+ gvc_mixer_dialog_constructor (GType                  type,
+                               guint                  n_construct_properties,
+@@ -1608,6 +1650,8 @@ gvc_mixer_dialog_constructor (GType
+         GtkWidget        *box;
+         GtkWidget        *sbox;
+         GtkWidget        *ebox;
++        GtkWidget        *amplified_volume_box;
++        GtkWidget        *allow_amplify_switch;
+         GSList           *streams;
+         GSList           *l;
+         GvcMixerStream   *stream;
+@@ -1633,6 +1677,23 @@ gvc_mixer_dialog_constructor (GType
+         gtk_box_pack_start (GTK_BOX (self->priv->output_stream_box),
+                             self->priv->output_bar, TRUE, TRUE, 12);
+ 
++        if (self->priv->ubuntu_sound_settings != NULL) {
++                self->priv->amplified_volume_box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 12);
++                gtk_box_pack_start (GTK_BOX (main_vbox), self->priv->amplified_volume_box, FALSE, FALSE, 12);
++                label = gtk_label_new (_("Allow louder than 100%"));
++                allow_amplify_switch = gtk_switch_new ();
++                gtk_box_pack_start (GTK_BOX (self->priv->amplified_volume_box), label, FALSE, FALSE, 12);
++                g_settings_bind (self->priv->ubuntu_sound_settings, AMPLIFIED_KEY,
++                                allow_amplify_switch, "active", G_SETTINGS_BIND_DEFAULT);
++                gtk_box_pack_start (GTK_BOX (self->priv->amplified_volume_box), allow_amplify_switch, FALSE, FALSE, 0);
++
++                self->priv->output_stream_box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 12);
++                gtk_widget_set_margin_top (self->priv->output_stream_box, 12);
++
++                g_signal_connect (self->priv->ubuntu_sound_settings, "changed::" AMPLIFIED_KEY,
++                                  G_CALLBACK (on_amplify_changed), self);
++        }
++
+         self->priv->notebook = gtk_notebook_new ();
+         gtk_box_pack_start (GTK_BOX (main_vbox),
+                             self->priv->notebook,
+@@ -1905,6 +1966,17 @@ gvc_mixer_dialog_init (GvcMixerDialog *d
+         dialog->priv = GVC_MIXER_DIALOG_GET_PRIVATE (dialog);
+         dialog->priv->bars = g_hash_table_new (NULL, NULL);
+         dialog->priv->size_group = gtk_size_group_new (GTK_SIZE_GROUP_HORIZONTAL);
++        if (strstr (g_getenv("XDG_CURRENT_DESKTOP"), "ubuntu") != NULL) {
++                GSettingsSchema *schema;
++                schema = g_settings_schema_source_lookup (g_settings_schema_source_get_default(),
++                                                          AMPLIFIED_SETTINGS, TRUE);
++
++                if (schema != NULL)
++                {
++                        dialog->priv->ubuntu_sound_settings = g_settings_new_full (schema, NULL, NULL);
++                        g_settings_schema_unref (schema);
++                }
++        }
+ }
+ 
+ static void
