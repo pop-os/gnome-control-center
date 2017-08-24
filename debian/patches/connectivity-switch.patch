@@ -1,0 +1,287 @@
+From e5eaabefcfd09503b3a96f82ec45645e1929b656 Mon Sep 17 00:00:00 2001
+From: James Henstridge <james@jamesh.id.au>
+Date: Wed, 9 Aug 2017 22:30:21 +0800
+Subject: [PATCH] panels/privacy: add network connectivity checking toggle
+
+---
+ panels/privacy/Makefile.am        |   3 +-
+ panels/privacy/cc-privacy-panel.c | 107 ++++++++++++++++++++++++++++++++++++++
+ panels/privacy/privacy.ui         |  86 ++++++++++++++++++++++++++++++
+ 3 files changed, 195 insertions(+), 1 deletion(-)
+
+diff --git a/panels/privacy/Makefile.am b/panels/privacy/Makefile.am
+index ec9e5cc01..cb6f8c49f 100644
+--- a/panels/privacy/Makefile.am
++++ b/panels/privacy/Makefile.am
+@@ -3,6 +3,7 @@ cappletname = privacy
+ AM_CPPFLAGS = 						\
+ 	$(PANEL_CFLAGS)					\
+ 	$(PRIVACY_PANEL_CFLAGS)				\
++	$(NETWORK_MANAGER_CFLAGS)			\
+ 	-DGNOMELOCALEDIR="\"$(datadir)/locale\""	\
+ 	-I$(top_srcdir)/panels/common/			\
+ 	$(NULL)
+@@ -18,7 +19,7 @@ libprivacy_la_SOURCES =		\
+ 	cc-privacy-panel.c	\
+ 	cc-privacy-panel.h
+ 
+-libprivacy_la_LIBADD = $(PANEL_LIBS) $(PRIVACY_PANEL_LIBS)
++libprivacy_la_LIBADD = $(PANEL_LIBS) $(PRIVACY_PANEL_LIBS) $(NETWORK_MANAGER_LIBS)
+ 
+ resource_files = $(shell glib-compile-resources --sourcedir=$(srcdir) --generate-dependencies $(srcdir)/privacy.gresource.xml)
+ cc-privacy-resources.c: privacy.gresource.xml $(resource_files)
+diff --git a/panels/privacy/cc-privacy-panel.c b/panels/privacy/cc-privacy-panel.c
+index fb985132c..f3255859c 100644
+--- a/panels/privacy/cc-privacy-panel.c
++++ b/panels/privacy/cc-privacy-panel.c
+@@ -18,6 +18,8 @@
+  * Author: Matthias Clasen <mclasen@redhat.com>
+  */
+ 
++#include <config.h>
++
+ #include "shell/list-box-helper.h"
+ #include "cc-privacy-panel.h"
+ #include "cc-privacy-resources.h"
+@@ -25,6 +27,11 @@
+ 
+ #include <gio/gdesktopappinfo.h>
+ #include <glib/gi18n.h>
++#ifdef BUILD_NETWORK
++#  include <NetworkManager.h>
++#else
++typedef struct _NMClient NMClient;
++#endif
+ 
+ CC_PANEL_REGISTER (CcPrivacyPanel, cc_privacy_panel)
+ 
+@@ -75,6 +82,10 @@ struct _CcPrivacyPanelPrivate
+   GHashTable *location_app_switches;
+ 
+   GtkSizeGroup *location_icon_size_group;
++
++  NMClient *nm_client;
++  GtkWidget *connectivity_check_dialog;
++  GtkWidget *connectivity_check_row;
+ };
+ 
+ static char *
+@@ -1238,6 +1249,98 @@ add_abrt (CcPrivacyPanel *self)
+                                                 NULL);
+ }
+ 
++#ifdef BUILD_NETWORK
++static void
++set_connectivity_check_label (NMClient   *client,
++                              GParamSpec *pspec,
++                              GtkLabel   *label)
++{
++  gboolean enabled = nm_client_connectivity_check_get_enabled (client);
++
++  gtk_label_set_label (label, enabled ? _("On") : _("Off"));
++}
++
++static GtkWidget *
++get_connectivity_check_label (NMClient *client)
++{
++  GtkWidget *w;
++
++  w = gtk_label_new ("");
++  g_signal_connect_object (client, "notify::" NM_CLIENT_CONNECTIVITY_CHECK_ENABLED,
++                           G_CALLBACK (set_connectivity_check_label),
++                           w, 0);
++  set_connectivity_check_label (client, NULL, GTK_LABEL (w));
++  return w;
++}
++
++static void
++set_connectivity_row_visible (NMClient   *client,
++                              GParamSpec *pspec,
++                              GtkWidget  *row)
++{
++  gboolean available = nm_client_connectivity_check_get_available (client);
++
++  gtk_widget_set_visible (row, available);
++}
++
++static void
++set_connectivity_switch (NMClient   *client,
++                         GParamSpec *pspec,
++                         GtkSwitch  *sw)
++{
++  gboolean enabled = nm_client_connectivity_check_get_enabled (client);
++
++  gtk_switch_set_state (sw, enabled);
++}
++
++static gboolean
++connectivity_switch_state_set (GtkSwitch *sw,
++                               gboolean   state,
++                               NMClient  *client)
++{
++  nm_client_connectivity_check_set_enabled (client, state);
++  return TRUE;
++}
++
++static void
++add_connectivity_check (CcPrivacyPanel *self)
++{
++  GtkWidget *w;
++  GtkWidget *dialog;
++
++  self->priv->nm_client = nm_client_new (NULL, NULL);
++  if (!self->priv->nm_client)
++    return;
++
++  w = get_connectivity_check_label (self->priv->nm_client);
++  self->priv->connectivity_check_row = add_row (self, _("Network Connectivity Checking"), "connectivity_check_dialog", w);
++  g_signal_connect_object (self->priv->nm_client,
++                           "notify::" NM_CLIENT_CONNECTIVITY_CHECK_AVAILABLE,
++                           G_CALLBACK (set_connectivity_row_visible),
++                           self->priv->connectivity_check_row, 0);
++  set_connectivity_row_visible (self->priv->nm_client, NULL,
++                                self->priv->connectivity_check_row);
++
++  dialog = self->priv->connectivity_check_dialog;
++  g_signal_connect (dialog, "delete-event",
++                    G_CALLBACK (gtk_widget_hide_on_delete), NULL);
++
++  w = GTK_WIDGET (gtk_builder_get_object (self->priv->builder, "connectivity_check_switch"));
++  g_signal_connect_object (self->priv->nm_client,
++                           "notify::" NM_CLIENT_CONNECTIVITY_CHECK_AVAILABLE,
++                           G_CALLBACK (set_connectivity_switch), w, 0);
++  set_connectivity_switch (self->priv->nm_client, NULL, GTK_SWITCH (w));
++  g_signal_connect_object (w, "state-set",
++                           G_CALLBACK (connectivity_switch_state_set),
++                           self->priv->nm_client, 0);
++}
++#else
++static void
++add_connectivity_check (CcPrivacyPanel *self)
++{
++}
++#endif
++
+ static void
+ cc_privacy_panel_finalize (GObject *object)
+ {
+@@ -1269,6 +1372,8 @@ cc_privacy_panel_finalize (GObject *object)
+   g_clear_pointer (&priv->location_apps_perms, g_variant_unref);
+   g_clear_pointer (&priv->location_apps_data, g_variant_unref);
+   g_clear_pointer (&priv->location_app_switches, g_hash_table_unref);
++  g_clear_object (&priv->nm_client);
++  g_clear_pointer (&priv->connectivity_check_dialog, gtk_widget_destroy);
+ 
+   G_OBJECT_CLASS (cc_privacy_panel_parent_class)->finalize (object);
+ }
+@@ -1334,6 +1439,7 @@ cc_privacy_panel_init (CcPrivacyPanel *self)
+   self->priv->trash_dialog = GTK_WIDGET (gtk_builder_get_object (self->priv->builder, "trash_dialog"));
+   self->priv->software_dialog = GTK_WIDGET (gtk_builder_get_object (self->priv->builder, "software_dialog"));
+   self->priv->abrt_dialog = GTK_WIDGET (gtk_builder_get_object (self->priv->builder, "abrt_dialog"));
++  self->priv->connectivity_check_dialog = GTK_WIDGET (gtk_builder_get_object (self->priv->builder, "connectivity_check_dialog"));
+ 
+   frame = WID ("frame");
+   widget = gtk_list_box_new ();
+@@ -1368,6 +1474,7 @@ cc_privacy_panel_init (CcPrivacyPanel *self)
+   add_trash_temp (self);
+   add_software (self);
+   add_abrt (self);
++  add_connectivity_check (self);
+ 
+   g_signal_connect (self->priv->lockdown_settings, "changed",
+                     G_CALLBACK (on_lockdown_settings_changed), self);
+diff --git a/panels/privacy/privacy.ui b/panels/privacy/privacy.ui
+index e9eeb019b..46ea6010a 100644
+--- a/panels/privacy/privacy.ui
++++ b/panels/privacy/privacy.ui
+@@ -1038,4 +1038,90 @@ All the information we collect is made anonymous, and we will never share your d
+     </child>
+   </object>
+ 
++  <object class="GtkDialog" id="connectivity_check_dialog">
++    <property name="can_focus">False</property>
++    <property name="border_width">5</property>
++    <property name="title" translatable="yes">Connectivity Checking</property>
++    <property name="resizable">False</property>
++    <property name="type_hint">dialog</property>
++    <property name="use_header_bar">1</property>
++    <child internal-child="vbox">
++      <object class="GtkBox">
++        <property name="can_focus">False</property>
++        <property name="orientation">vertical</property>
++        <property name="spacing">2</property>
++        <property name="margin_start">12</property>
++        <property name="margin_end">12</property>
++        <property name="margin_top">12</property>
++        <property name="margin_bottom">12</property>
++        <child>
++          <object class="GtkLabel" id="connectivity_check_explanation_label">
++            <property name="visible">True</property>
++            <property name="can_focus">False</property>
++            <property name="margin_start">12</property>
++            <property name="margin_end">12</property>
++            <property name="margin_top">6</property>
++            <property name="margin_bottom">12</property>
++            <property name="xalign">0</property>
++            <property name="label" translatable="yes">Check that network connections can reach the Internet.  This makes it possible to detect captive portals, but also generates periodic network traffic.</property>
++            <property name="wrap">True</property>
++            <property name="max_width_chars">50</property>
++            <style>
++              <class name="dim-label"/>
++            </style>
++          </object>
++          <packing>
++            <property name="expand">False</property>
++            <property name="fill">True</property>
++            <property name="position">0</property>
++          </packing>
++        </child>
++        <child>
++          <object class="GtkGrid">
++            <property name="visible">True</property>
++            <property name="can_focus">False</property>
++            <property name="margin_start">12</property>
++            <property name="margin_end">12</property>
++            <property name="margin_top">12</property>
++            <property name="margin_bottom">12</property>
++            <property name="row_spacing">12</property>
++            <property name="column_spacing">6</property>
++            <child>
++              <object class="GtkLabel" id="connectivity_check_label">
++                <property name="visible">True</property>
++                <property name="can_focus">False</property>
++                <property name="hexpand">True</property>
++                <property name="label" translatable="yes">_Connectivity Checking</property>
++                <property name="use_underline">True</property>
++                <property name="mnemonic_widget">connectivity_check_switch</property>
++                <property name="xalign">0</property>
++              </object>
++              <packing>
++                <property name="left_attach">0</property>
++                <property name="top_attach">0</property>
++              </packing>
++            </child>
++            <child>
++              <object class="GtkSwitch" id="connectivity_check_switch">
++                <property name="visible">True</property>
++                <property name="can_focus">True</property>
++                <property name="halign">end</property>
++                <property name="valign">center</property>
++              </object>
++              <packing>
++                <property name="left_attach">1</property>
++                <property name="top_attach">0</property>
++              </packing>
++            </child>
++          </object>
++          <packing>
++            <property name="expand">False</property>
++            <property name="fill">True</property>
++            <property name="position">1</property>
++          </packing>
++        </child>
++      </object>
++    </child>
++  </object>
++
+ </interface>
