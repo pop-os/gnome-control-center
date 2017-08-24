@@ -13,11 +13,15 @@ list all_launchers, hard-coded into the patch.
 
 ---
 
-Index: gnome-control-center-3.22.0/shell/cc-panel-loader.c
-===================================================================
---- gnome-control-center-3.22.0.orig/shell/cc-panel-loader.c
-+++ gnome-control-center-3.22.0/shell/cc-panel-loader.c
-@@ -26,6 +26,20 @@
+---
+ shell/cc-panel-loader.c |   66 +++++++++++++++++++++++++++++++++++++++++++++++-
+ shell/cc-panel-loader.h |    1 
+ shell/cc-window.c       |   29 +++++++++++++++++++++
+ 3 files changed, 95 insertions(+), 1 deletion(-)
+
+--- a/shell/cc-panel-loader.c
++++ b/shell/cc-panel-loader.c
+@@ -26,6 +26,17 @@
  
  #include "cc-panel-loader.h"
  
@@ -26,19 +30,16 @@ Index: gnome-control-center-3.22.0/shell/cc-panel-loader.c
 +static struct {
 +  const char *name;
 +} all_launchers[] = {
-+  {"deja-dup-preferences"},
 +  {"gufw"},
-+  {"landscape-client-settings"},
 +  {"language-selector"},
 +  {"software-properties-gtk"},
 +  {"system-config-printer"},
-+  {"ubuntuone-installer"},
 +};
 +
  #ifndef CC_PANEL_LOADER_NO_GTYPES
  
  /* Extension points */
-@@ -164,6 +178,25 @@ parse_categories (GDesktopAppInfo *app)
+@@ -172,6 +183,25 @@ parse_categories (GDesktopAppInfo *app)
    return retval;
  }
  
@@ -64,15 +65,15 @@ Index: gnome-control-center-3.22.0/shell/cc-panel-loader.c
  void
  cc_panel_loader_fill_model (CcShellModel *model)
  {
-@@ -174,6 +207,7 @@ cc_panel_loader_fill_model (CcShellModel
-       GDesktopAppInfo *app;
-       char *desktop_name;
-       int category;
+@@ -182,6 +212,7 @@ cc_panel_loader_fill_model (CcShellModel
+       g_autoptr (GDesktopAppInfo) app;
+       g_autofree gchar *desktop_name = NULL;
+       gint category;
 +      gboolean show;
  
        desktop_name = g_strconcat ("gnome-", all_panels[i].name,
                                    "-panel.desktop", NULL);
-@@ -191,11 +225,43 @@ cc_panel_loader_fill_model (CcShellModel
+@@ -197,6 +228,10 @@ cc_panel_loader_fill_model (CcShellModel
        if (G_UNLIKELY (category < 0))
          continue;
  
@@ -80,8 +81,10 @@ Index: gnome-control-center-3.22.0/shell/cc-panel-loader.c
 +      if (!show)
 +        continue;
 +
-       cc_shell_model_add_item (model, category, G_APP_INFO (app), all_panels[i].name);
-       g_object_unref (app);
+       /* Only add the panel when it is not hidden, e.g. the Details subpanels
+        * that are only visible in the new Shell.
+        */
+@@ -205,6 +240,34 @@ cc_panel_loader_fill_model (CcShellModel
      }
  }
  
@@ -116,7 +119,7 @@ Index: gnome-control-center-3.22.0/shell/cc-panel-loader.c
  #ifndef CC_PANEL_LOADER_NO_GTYPES
  
  static GHashTable *panel_types;
-@@ -223,7 +289,8 @@ cc_panel_loader_load_by_name (CcShell
+@@ -232,7 +295,8 @@ cc_panel_loader_load_by_name (CcShell
    ensure_panel_types ();
  
    get_type = g_hash_table_lookup (panel_types, name);
@@ -126,10 +129,8 @@ Index: gnome-control-center-3.22.0/shell/cc-panel-loader.c
  
    return g_object_new (get_type (),
                         "shell", shell,
-Index: gnome-control-center-3.22.0/shell/cc-panel-loader.h
-===================================================================
---- gnome-control-center-3.22.0.orig/shell/cc-panel-loader.h
-+++ gnome-control-center-3.22.0/shell/cc-panel-loader.h
+--- a/shell/cc-panel-loader.h
++++ b/shell/cc-panel-loader.h
 @@ -29,6 +29,7 @@
  G_BEGIN_DECLS
  
@@ -138,11 +139,9 @@ Index: gnome-control-center-3.22.0/shell/cc-panel-loader.h
  GList   *cc_panel_loader_get_panels     (void);
  CcPanel *cc_panel_loader_load_by_name   (CcShell       *shell,
                                           const char    *name,
-Index: gnome-control-center-3.22.0/shell/cc-window.c
-===================================================================
---- gnome-control-center-3.22.0.orig/shell/cc-window.c
-+++ gnome-control-center-3.22.0/shell/cc-window.c
-@@ -139,6 +139,27 @@ get_icon_name_from_g_icon (GIcon *gicon)
+--- a/shell/cc-window.c
++++ b/shell/cc-window.c
+@@ -114,6 +114,27 @@ get_icon_name_from_g_icon (GIcon *gicon)
    return NULL;
  }
  
@@ -170,7 +169,7 @@ Index: gnome-control-center-3.22.0/shell/cc-window.c
  static gboolean
  activate_panel (CcWindow           *self,
                  const gchar        *id,
-@@ -153,6 +174,13 @@ activate_panel (CcWindow           *self
+@@ -128,6 +149,13 @@ activate_panel (CcWindow           *self
      return FALSE;
  
    self->current_panel = GTK_WIDGET (cc_panel_loader_load_by_name (CC_SHELL (self), id, parameters));
@@ -184,11 +183,11 @@ Index: gnome-control-center-3.22.0/shell/cc-window.c
    cc_shell_set_active_panel (CC_SHELL (self), CC_PANEL (self->current_panel));
    gtk_widget_show (self->current_panel);
  
-@@ -873,6 +901,7 @@ setup_model (CcWindow *shell)
-   add_category_view (shell, CC_CATEGORY_SYSTEM, C_("category", "System"));
+@@ -323,6 +351,7 @@ setup_model (CcWindow *shell)
+   model = GTK_TREE_MODEL (shell->store);
  
    cc_panel_loader_fill_model (CC_SHELL_MODEL (shell->store));
 +  cc_panel_loader_external_fill_model (CC_SHELL_MODEL (shell->store));
- }
  
- static void
+   /* Create a row for each panel */
+   valid = gtk_tree_model_get_iter_first (model, &iter);
