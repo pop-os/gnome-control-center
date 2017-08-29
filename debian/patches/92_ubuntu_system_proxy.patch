@@ -1,8 +1,18 @@
-Index: gnome-control-center-3.16.2/panels/network/net-proxy.c
-===================================================================
---- gnome-control-center-3.16.2.orig/panels/network/net-proxy.c
-+++ gnome-control-center-3.16.2/panels/network/net-proxy.c
-@@ -25,8 +25,14 @@
+From f67b90b9c6287c3cd93be2b8215cdeaef68eb59e Mon Sep 17 00:00:00 2001
+From: Michael Vogt <michael.vogt@ubuntu.com>
+Date: Mon, 18 Aug 2008 18:44:27 +0200
+Subject: [PATCH] Allow setting proxy system-wide for all users
+
+---
+ panels/network/net-proxy.c      | 151 ++++++++++++++++++++++++++++++++++++++++
+ panels/network/network-proxy.ui |  15 ++++
+ 2 files changed, 166 insertions(+)
+
+diff --git a/panels/network/net-proxy.c b/panels/network/net-proxy.c
+index d1b46026a..fbc0cdbd9 100644
+--- a/panels/network/net-proxy.c
++++ b/panels/network/net-proxy.c
+@@ -25,6 +25,10 @@
  #include <glib/gi18n.h>
  #include <gio/gio.h>
  
@@ -12,12 +22,8 @@ Index: gnome-control-center-3.16.2/panels/network/net-proxy.c
 +
  #include "net-proxy.h"
  
-+
-+
  #define NET_PROXY_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), NET_TYPE_PROXY, NetProxyPrivate))
- 
- struct _NetProxyPrivate
-@@ -299,6 +305,148 @@ set_ignore_hosts (const GValue       *va
+@@ -282,6 +286,146 @@ set_ignore_hosts (const GValue       *value,
          return g_variant_builder_end (&builder);
  }
  
@@ -26,7 +32,7 @@ Index: gnome-control-center-3.16.2/panels/network/net-proxy.c
 +ubuntu_is_in_admin_group (int id_group)
 +{
 +        gid_t groups [1024];
-+       int i, ngroups;
++        int i, ngroups;
 +
 +        ngroups = getgroups (1024, groups);
 +        if (ngroups < 0) {
@@ -105,7 +111,6 @@ Index: gnome-control-center-3.16.2/panels/network/net-proxy.c
 +                g_free (proxy_str);
 +        }
 +
-+        /* Free memory */
 +        g_free (host);
 +        g_object_unref (settings);
 +}
@@ -159,16 +164,15 @@ Index: gnome-control-center-3.16.2/panels/network/net-proxy.c
 +                break;
 +        }
 +
-+        /* Free memory */
 +        g_object_unref (dbus_proxy);
 +}
 +
  static void
  net_proxy_init (NetProxy *proxy)
  {
-@@ -420,6 +568,13 @@ net_proxy_init (NetProxy *proxy)
-                                       G_SETTINGS_BIND_DEFAULT, get_ignore_hosts, set_ignore_hosts,
-                                       NULL, NULL);
+@@ -304,6 +448,13 @@ net_proxy_init (NetProxy *proxy)
+                 return;
+         }
  
 +        /* Ubuntu button for system proxy settings */
 +        if (ubuntu_is_admin ()) {
@@ -177,17 +181,18 @@ Index: gnome-control-center-3.16.2/panels/network/net-proxy.c
 +        } else
 +                gtk_widget_hide (GTK_WIDGET (gtk_builder_get_object (proxy->priv->builder, "system_proxy_button")));
 +
-         /* hide the switch until we get some more detail in the mockup */
-         widget = GTK_WIDGET (gtk_builder_get_object (proxy->priv->builder,
-                                                      "device_proxy_off_switch"));
-Index: gnome-control-center-3.16.2/panels/network/network-proxy.ui
-===================================================================
---- gnome-control-center-3.16.2.orig/panels/network/network-proxy.ui
-+++ gnome-control-center-3.16.2/panels/network/network-proxy.ui
-@@ -226,6 +226,21 @@
-           </packing>
+         proxy->priv->settings = g_settings_new ("org.gnome.system.proxy");
+         g_signal_connect (proxy->priv->settings,
+                           "changed",
+diff --git a/panels/network/network-proxy.ui b/panels/network/network-proxy.ui
+index e92ee8c62..525d04649 100644
+--- a/panels/network/network-proxy.ui
++++ b/panels/network/network-proxy.ui
+@@ -478,6 +478,15 @@
+             </child>
+           </object>
          </child>
-         <child>
++        <child>
 +          <object class="GtkButton" id="system_proxy_button">
 +            <property name="label" translatable="yes">Apply system wide</property>
 +            <property name="visible">True</property>
@@ -195,23 +200,7 @@ Index: gnome-control-center-3.16.2/panels/network/network-proxy.ui
 +            <property name="receives_default">True</property>
 +            <property name="use_action_appearance">False</property>
 +          </object>
-+          <packing>
-+            <property name="left_attach">0</property>
-+            <property name="top_attach">8</property>
-+            <property name="width">3</property>
-+            <property name="height">1</property>
-+          </packing>
 +        </child>
-+        <child>
-           <object class="GtkLabel" id="label_proxy_warning">
-             <property name="visible">False</property>
-             <property name="can_focus">False</property>
-@@ -236,7 +251,7 @@
-           </object>
-           <packing>
-             <property name="left_attach">0</property>
--            <property name="top_attach">8</property>
-+            <property name="top_attach">9</property>
-             <property name="width">3</property>
-             <property name="height">1</property>
-           </packing>
+       </object>
+     </child>
+   </object>
