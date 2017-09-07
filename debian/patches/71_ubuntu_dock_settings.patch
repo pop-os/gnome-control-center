@@ -1,7 +1,6 @@
 Description: Allow tweaking some settings for Ubuntu Dock
  Expose some of the settings that most users will find useful for our
- Ubuntu Dock installation. Those are located in the Display panel for now
- until we find a better place:
+ Ubuntu Dock installation. Those are located in its own panel for now:
  * change intellihide true/hide mode
  * change dock icon size
  * modify placement of the launcher (all monitor, primary or any monitors)
@@ -9,14 +8,128 @@ Origin: ubuntu
 Author: didrocks@ubuntu.com
 Forwarded: not-needed
 
-Index: gnome-control-center-3.24.3/panels/display/cc-display-panel.c
+Index: gnome-control-center-3.25.91/configure.ac
 ===================================================================
---- gnome-control-center-3.24.3.orig/panels/display/cc-display-panel.c
-+++ gnome-control-center-3.24.3/panels/display/cc-display-panel.c
-@@ -55,6 +55,15 @@ CC_PANEL_REGISTER (CcDisplayPanel, cc_di
- #define DISPLAY_PREVIEW_SETUP_HEIGHT 140
- #define DISPLAY_PREVIEW_LIST_HEIGHT  55
+--- gnome-control-center-3.25.91.orig/configure.ac
++++ gnome-control-center-3.25.91/configure.ac
+@@ -162,6 +162,7 @@ PKG_CHECK_MODULES(SOUND_PANEL, $COMMON_M
+                   libcanberra-gtk3 >= $CANBERRA_REQUIRED_VERSION
+                   libpulse >= $PA_REQUIRED_VERSION
+                   libpulse-mainloop-glib >= $PA_REQUIRED_VERSION)
++PKG_CHECK_MODULES(UBUNTU_PANEL, $COMMON_MODULES)
+ PKG_CHECK_MODULES(UNIVERSAL_ACCESS_PANEL, $COMMON_MODULES)
+ PKG_CHECK_MODULES(USER_ACCOUNTS_PANEL, $COMMON_MODULES
+                   polkit-gobject-1 >= $POLKIT_REQUIRED_VERSION
+@@ -548,6 +549,8 @@ panels/network/gnome-network-panel.deskt
+ panels/network/gnome-wifi-panel.desktop.in
+ panels/notifications/Makefile
+ panels/notifications/gnome-notifications-panel.desktop.in
++panels/ubuntu/Makefile
++panels/ubuntu/gnome-ubuntu-panel.desktop.in
+ panels/universal-access/Makefile
+ panels/universal-access/gnome-universal-access-panel.desktop.in
+ panels/user-accounts/Makefile
+Index: gnome-control-center-3.25.91/panels/Makefile.am
+===================================================================
+--- gnome-control-center-3.25.91.orig/panels/Makefile.am
++++ gnome-control-center-3.25.91/panels/Makefile.am
+@@ -17,7 +17,8 @@ SUBDIRS= \
+ 	search \
+ 	privacy \
+ 	sharing \
+-	printers
++	printers \
++	ubuntu
  
+ if BUILD_WACOM
+ SUBDIRS += wacom
+Index: gnome-control-center-3.25.91/panels/ubuntu/Makefile.am
+===================================================================
+--- /dev/null
++++ gnome-control-center-3.25.91/panels/ubuntu/Makefile.am
+@@ -0,0 +1,43 @@
++cappletname = ubuntu
++
++AM_CPPFLAGS = 						\
++	$(PANEL_CFLAGS)					\
++	$(UBUNTU_PANEL_CFLAGS)				\
++	-DGNOMELOCALEDIR="\"$(datadir)/locale\""	\
++	-DDATADIR="\"$(datadir)\""			\
++	-I$(top_srcdir)/panels/common/			\
++	$(NULL)
++
++noinst_LTLIBRARIES = libubuntu.la
++
++BUILT_SOURCES =			\
++	cc-ubuntu-resources.c	\
++	cc-ubuntu-resources.h
++
++libubuntu_la_SOURCES =		\
++	$(BUILT_SOURCES)	\
++	cc-ubuntu-panel.c	\
++	cc-ubuntu-panel.h
++
++libubuntu_la_LIBADD = $(PANEL_LIBS) $(UBUNTU_PANEL_LIBS)
++
++resource_files = $(shell glib-compile-resources --sourcedir=$(srcdir) --sourcedir=$(srcdir)/icons --generate-dependencies $(srcdir)/ubuntu.gresource.xml)
++cc-ubuntu-resources.c: ubuntu.gresource.xml $(resource_files)
++	$(AM_V_GEN) glib-compile-resources --target=$@ --sourcedir=$(srcdir) --sourcedir=$(srcdir)/icons --generate-source --c-name cc_ubuntu $<
++cc-ubuntu-resources.h: ubuntu.gresource.xml $(resource_files)
++	$(AM_V_GEN) glib-compile-resources --target=$@ --sourcedir=$(srcdir) --sourcedir=$(srcdir)/icons --generate-header --c-name cc_ubuntu $<
++
++# You will need a recent intltool or the patch from this bug
++# http://bugzilla.gnome.org/show_bug.cgi?id=462312
++@INTLTOOL_POLICY_RULE@
++
++@INTLTOOL_DESKTOP_RULE@
++
++desktopdir = $(datadir)/applications
++Desktop_in_files = gnome-ubuntu-panel.desktop.in
++desktop_DATA = $(Desktop_in_files:.desktop.in=.desktop)
++
++CLEANFILES = $(Desktop_in_files) $(desktop_DATA) $(BUILT_SOURCES)
++EXTRA_DIST = $(resource_files) ubuntu.gresource.xml
++
++-include $(top_srcdir)/git.mk
+Index: gnome-control-center-3.25.91/panels/ubuntu/cc-ubuntu-panel.c
+===================================================================
+--- /dev/null
++++ gnome-control-center-3.25.91/panels/ubuntu/cc-ubuntu-panel.c
+@@ -0,0 +1,394 @@
++/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
++/*
++ * Copyright (C) 2017 Canonical Ltd
++ *
++ * This library is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU Lesser General Public
++ * License as published by the Free Software Foundation; either
++ * version 2 of the License, or (at your option) any later version.
++ *
++ * This library is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++ * Lesser General Public License for more details.
++ *
++ * You should have received a copy of the GNU Lesser General
++ * Public License along with this library; if not, see <http://www.gnu.org/licenses/>.
++ *
++ */
++
++#include "config.h"
++
++#include <string.h>
++#include <glib/gi18n-lib.h>
++#include <glib.h>
++#include <gio/gio.h>
++#include <gio/gdesktopappinfo.h>
++
++#include "shell/list-box-helper.h"
++#include "cc-ubuntu-panel.h"
++#include "cc-ubuntu-resources.h"
++
++#include "panels/display/cc-display-config-manager-dbus.h"
++#include "panels/display/cc-display-config.h"
++
 +#define MIN_ICONSIZE 16.0
 +#define MAX_ICONSIZE 64.0
 +#define DEFAULT_ICONSIZE 48.0
@@ -26,105 +139,89 @@ Index: gnome-control-center-3.24.3/panels/display/cc-display-panel.c
 +#define UBUNTU_DOCK_ALL_MONITORS_KEY "multi-monitor"
 +#define UBUNTU_DOCK_ON_MONITOR_KEY "preferred-monitor"
 +
- enum
- {
-   DISPLAY_MODE_PRIMARY,
-@@ -101,6 +110,10 @@ struct _CcDisplayPanelPrivate
-   guint       sensor_watch_id;
-   GDBusProxy *iio_sensor_proxy;
-   gboolean    has_accelerometer;
++struct _CcUbuntuPanel {
++  CcPanel parent_instance;
++
++  GtkBuilder *builder;
 +
 +  GSettings *ubuntu_dock_settings;
 +  GtkWidget *ubuntu_dock_placement_combo;
 +  gint ubuntu_dock_placement_primary_index;
- };
- 
- typedef struct
-@@ -494,6 +507,37 @@ display_preview_new (CcDisplayPanel    *
- }
- 
- static void
-+on_ubuntu_dock_placement_combo_changed (GtkComboBox *combo, CcDisplayPanel *self)
++
++  CcDisplayConfigManager *display_config_manager;
++  /*CcDisplayConfig *current_config;*/
++};
++
++struct _CcUbuntuPanelClass {
++  CcPanelClass parent;
++};
++
++CC_PANEL_REGISTER (CcUbuntuPanel, cc_ubuntu_panel);
++
++static void
++cc_ubuntu_panel_dispose (GObject *object)
 +{
-+  gint active = gtk_combo_box_get_active (combo);
++  CcUbuntuPanel *panel = CC_UBUNTU_PANEL (object);
 +
-+  gboolean ubuntu_dock_on_all_monitors = g_settings_get_boolean (self->priv->ubuntu_dock_settings, UBUNTU_DOCK_ALL_MONITORS_KEY);
-+  gint ubuntu_dock_current_index = g_settings_get_int (self->priv->ubuntu_dock_settings, UBUNTU_DOCK_ON_MONITOR_KEY);
++  g_clear_object (&panel->display_config_manager);
 +
-+  if (active < 0)
-+    return;
-+  else if (active == 0) {
-+    if (ubuntu_dock_on_all_monitors != TRUE) {
-+      g_settings_set_boolean (self->priv->ubuntu_dock_settings, UBUNTU_DOCK_ALL_MONITORS_KEY, TRUE);
-+      g_settings_apply (self->priv->ubuntu_dock_settings);
-+    }
-+  }
-+  else {
-+    active--;
-+    GSettings *delayed_settings = g_settings_new (UBUNTU_DOCK_SCHEMA);
-+    g_settings_delay (delayed_settings);
-+    if (ubuntu_dock_on_all_monitors != FALSE)
-+      g_settings_set_boolean (delayed_settings, UBUNTU_DOCK_ALL_MONITORS_KEY, FALSE);
-+    if (ubuntu_dock_current_index != active) {
-+      if (!(ubuntu_dock_current_index == -1 && (active == self->priv->ubuntu_dock_placement_primary_index)))
-+        g_settings_set_int (delayed_settings, UBUNTU_DOCK_ON_MONITOR_KEY, active);
-+    }
-+    g_settings_apply (delayed_settings);
-+    g_object_unref (delayed_settings);
-+  }
++  G_OBJECT_CLASS (cc_ubuntu_panel_parent_class)->dispose (object);
 +}
 +
 +static void
- on_screen_changed (CcDisplayPanel *panel)
- {
-   GnomeRRConfig *current;
-@@ -504,6 +548,14 @@ on_screen_changed (CcDisplayPanel *panel
-   GtkSizeGroup *sizegroup;
-   GList *sorted_outputs = NULL, *l;
- 
-+  GtkWidget *ubuntu_dock_placement_combo = priv->ubuntu_dock_placement_combo;
++cc_ubuntu_panel_finalize (GObject *object)
++{
++  CcUbuntuPanel *panel = CC_UBUNTU_PANEL (object);
++
++  G_OBJECT_CLASS (cc_ubuntu_panel_parent_class)->finalize (object);
++}
++
++static void
++on_screen_changed (CcUbuntuPanel *panel)
++{
++  CcDisplayConfig *current;
++  GList *outputs, *l;
++  GList *sorted = NULL;
++  gint n = 0;
++
++  if (!panel->display_config_manager)
++    return;
++
++  current = cc_display_config_manager_get_current (panel->display_config_manager);
++  if (!current)
++    return;
++
++  GtkWidget *ubuntu_dock_placement_combo = panel->ubuntu_dock_placement_combo;
 +  GtkCellRenderer *ubuntu_dock_placement_cell;
 +  GtkListStore *ubuntu_dock_placement_liststore = gtk_list_store_new (1, G_TYPE_STRING);
 +  GtkTreeIter ubuntu_dock_placement_iter;
-+  gboolean ubuntu_dock_on_all_monitors = g_settings_get_boolean (priv->ubuntu_dock_settings, UBUNTU_DOCK_ALL_MONITORS_KEY);
-+  gint ubuntu_dock_current_index = g_settings_get_int (priv->ubuntu_dock_settings, UBUNTU_DOCK_ON_MONITOR_KEY);
++  gboolean ubuntu_dock_on_all_monitors = g_settings_get_boolean (panel->ubuntu_dock_settings, UBUNTU_DOCK_ALL_MONITORS_KEY);
++  gint ubuntu_dock_current_index = g_settings_get_int (panel->ubuntu_dock_settings, UBUNTU_DOCK_ON_MONITOR_KEY);
 +  gtk_list_store_clear (ubuntu_dock_placement_liststore);
 +
-   if (priv->dialog)
-     gtk_dialog_response (GTK_DIALOG (priv->dialog), GTK_RESPONSE_NONE);
- 
-@@ -548,6 +600,7 @@ on_screen_changed (CcDisplayPanel *panel
- 
-   sizegroup = gtk_size_group_new (GTK_SIZE_GROUP_HORIZONTAL);
- 
-+  i = 0;
-   for (l = sorted_outputs; l; l = g_list_next (l))
-     {
-       GtkWidget *row, *item, *preview, *label;
-@@ -583,9 +636,19 @@ on_screen_changed (CcDisplayPanel *panel
-       label = gtk_label_new (gnome_rr_output_info_get_display_name (output_info));
-       gtk_container_add (GTK_CONTAINER (item), label);
- 
-+      char *monitor_name;
-+      monitor_name = g_strdup (gnome_rr_output_info_get_display_name (output_info));
-+      gtk_list_store_append (ubuntu_dock_placement_liststore, &ubuntu_dock_placement_iter);
-+      gtk_list_store_set (ubuntu_dock_placement_liststore, &ubuntu_dock_placement_iter, 0, monitor_name, -1);
++  outputs = cc_display_config_get_monitors(current);
++  for (l = outputs; l != NULL; l = l->next) {
++    CcDisplayMonitor *output = l->data;
++    if (cc_display_monitor_is_builtin (output))
++      sorted = g_list_prepend (sorted, output);
++    else
++      sorted = g_list_append (sorted, output);
++  }
 +
-       primary = gnome_rr_output_info_get_primary (output_info);
-       active = gnome_rr_output_info_is_active (output_info);
- 
-+      if (primary) {
-+        priv->ubuntu_dock_placement_primary_index = i;
-+      }
-+      i++;
++  n = 0;
++  for (l = sorted; l != NULL; l = l->next) {
++    CcDisplayMonitor *output = l->data;
 +
-       if (num_connected_outputs > 1)
-         {
-           if (display_closed)
-@@ -617,6 +680,26 @@ on_screen_changed (CcDisplayPanel *panel
- 
-   g_list_free (sorted_outputs);
- 
++    const gchar *monitor_name = cc_display_monitor_get_display_name (output);
++    gtk_list_store_append (ubuntu_dock_placement_liststore, &ubuntu_dock_placement_iter);
++    gtk_list_store_set (ubuntu_dock_placement_liststore, &ubuntu_dock_placement_iter, 0, monitor_name, -1);
++
++    if (cc_display_monitor_is_primary (output)) {
++      panel->ubuntu_dock_placement_primary_index = n;
++    }
++    n++;
++  }
++
 +  gtk_list_store_prepend (ubuntu_dock_placement_liststore, &ubuntu_dock_placement_iter);
 +  gtk_list_store_set (ubuntu_dock_placement_liststore, &ubuntu_dock_placement_iter, 0, _("All displays"), -1);
 +  gtk_combo_box_set_model (GTK_COMBO_BOX (ubuntu_dock_placement_combo), GTK_TREE_MODEL (ubuntu_dock_placement_liststore));
@@ -138,42 +235,49 @@ Index: gnome-control-center-3.24.3/panels/display/cc-display-panel.c
 +
 +  gint selection = 0;
 +  if (ubuntu_dock_on_all_monitors != TRUE) {
-+    if ((ubuntu_dock_current_index != -1) && (ubuntu_dock_current_index < num_connected_outputs))
++    if ((ubuntu_dock_current_index != -1) && (ubuntu_dock_current_index < g_list_length (outputs)))
 +        selection = ubuntu_dock_current_index + 1;
 +    else
-+      selection = priv->ubuntu_dock_placement_primary_index + 1;
++      selection = panel->ubuntu_dock_placement_primary_index + 1;
 +  }
 +  gtk_combo_box_set_active (GTK_COMBO_BOX (ubuntu_dock_placement_combo), selection);
 +
-   if (combined)
-     gtk_widget_show (priv->arrange_button);
-   else
-@@ -2795,6 +2878,162 @@ settings_color_changed_cb (GSettings *se
- }
- 
- static void
-+ext_ubuntu_dock_placement_changed_callback (GSettings *settings,
-+                                            guint key,
-+                                            gpointer user_data)
-+{
-+  CcDisplayPanel *self = CC_DISPLAY_PANEL (user_data);
-+  int selection = 0;
-+
-+  if (g_settings_get_boolean (self->priv->ubuntu_dock_settings, UBUNTU_DOCK_ALL_MONITORS_KEY) == FALSE) {
-+    selection = g_settings_get_int (self->priv->ubuntu_dock_settings, UBUNTU_DOCK_ON_MONITOR_KEY);
-+    if (selection == -1)
-+      selection = self->priv->ubuntu_dock_placement_primary_index;
-+    selection++; // offset in combox
-+  }
-+
-+  gtk_combo_box_set_active (GTK_COMBO_BOX (self->priv->ubuntu_dock_placement_combo), selection);
++  g_clear_object (&current);
 +}
++
++static void
++session_bus_ready (GObject        *source,
++                   GAsyncResult   *res,
++                   CcUbuntuPanel  *panel)
++{
++  GDBusConnection *bus;
++  GError *error = NULL;
++
++  bus = g_bus_get_finish (res, &error);
++  if (!bus)
++    {
++      if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED))
++        {
++          g_warning ("Failed to get session bus: %s", error->message);
++          /*gtk_stack_set_visible_child_name (GTK_STACK (panel->stack), "error");*/
++        }
++      g_error_free (error);
++      return;
++    }
++
++  panel->display_config_manager = cc_display_config_manager_dbus_new ();
++  g_signal_connect_object (panel->display_config_manager, "changed",
++                           G_CALLBACK (on_screen_changed),
++                           panel,
++                           G_CONNECT_SWAPPED);
++}
++
 +
 +static void
 +iconsize_widget_refresh (GtkAdjustment *iconsize_adj, GSettings *settings)
 +{
 +  gint value = g_settings_get_int (settings, ICONSIZE_KEY);
-+  gtk_adjustment_set_value(iconsize_adj, (gdouble)value / 2);
++  gtk_adjustment_set_value (iconsize_adj, (gdouble)value / 2);
 +}
 +
 +static void
@@ -191,50 +295,114 @@ Index: gnome-control-center-3.24.3/panels/display/cc-display-panel.c
 +}
 +
 +static void
-+on_iconsize_changed (GtkAdjustment *adj, CcDisplayPanel *self)
++on_iconsize_changed (GtkAdjustment *adj, CcUbuntuPanel *panel)
 +{
 +  gint value = (gint)gtk_adjustment_get_value (adj) * 2;
-+  if (g_settings_get_int (self->priv->ubuntu_dock_settings, ICONSIZE_KEY) != value)
-+    g_settings_set_int (self->priv->ubuntu_dock_settings, ICONSIZE_KEY, value);
++  if (g_settings_get_int (panel->ubuntu_dock_settings, ICONSIZE_KEY) != value)
++    g_settings_set_int (panel->ubuntu_dock_settings, ICONSIZE_KEY, value);
 +}
 +
 +static void
-+cc_display_add_ubuntu_dock_settings(CcDisplayPanel *self, GtkWidget *vbox)
++on_ubuntu_dock_placement_combo_changed (GtkComboBox *combo, CcUbuntuPanel *panel)
 +{
-+  CcDisplayPanelPrivate *priv = self->priv;
-+  GtkWidget *widget, *mainbox, *box, *label;
++  gint active = gtk_combo_box_get_active (combo);
++
++  gboolean ubuntu_dock_on_all_monitors = g_settings_get_boolean (panel->ubuntu_dock_settings, UBUNTU_DOCK_ALL_MONITORS_KEY);
++  gint ubuntu_dock_current_index = g_settings_get_int (panel->ubuntu_dock_settings, UBUNTU_DOCK_ON_MONITOR_KEY);
++
++  if (active < 0)
++    return;
++  else if (active == 0) {
++    if (ubuntu_dock_on_all_monitors != TRUE) {
++      g_settings_set_boolean (panel->ubuntu_dock_settings, UBUNTU_DOCK_ALL_MONITORS_KEY, TRUE);
++      g_settings_apply (panel->ubuntu_dock_settings);
++    }
++  }
++  else {
++    active--;
++    GSettings *delayed_settings = g_settings_new (UBUNTU_DOCK_SCHEMA);
++    g_settings_delay (delayed_settings);
++    if (ubuntu_dock_on_all_monitors != FALSE)
++      g_settings_set_boolean (delayed_settings, UBUNTU_DOCK_ALL_MONITORS_KEY, FALSE);
++    if (ubuntu_dock_current_index != active) {
++      if (!(ubuntu_dock_current_index == -1 && (active == panel->ubuntu_dock_placement_primary_index)))
++        g_settings_set_int (delayed_settings, UBUNTU_DOCK_ON_MONITOR_KEY, active);
++    }
++    g_settings_apply (delayed_settings);
++    g_object_unref (delayed_settings);
++  }
++}
++
++static void
++ext_ubuntu_dock_placement_changed_callback (GSettings *settings,
++                                            guint key,
++                                            gpointer user_data)
++{
++  CcUbuntuPanel *panel = CC_UBUNTU_PANEL (user_data);
++  int selection = 0;
++
++  if (g_settings_get_boolean (panel->ubuntu_dock_settings, UBUNTU_DOCK_ALL_MONITORS_KEY) == FALSE) {
++    selection = g_settings_get_int (panel->ubuntu_dock_settings, UBUNTU_DOCK_ON_MONITOR_KEY);
++    if (selection == -1)
++      selection = panel->ubuntu_dock_placement_primary_index;
++    selection++; // offset in combox
++  }
++
++  gtk_combo_box_set_active (GTK_COMBO_BOX (panel->ubuntu_dock_placement_combo), selection);
++}
++
++static void
++cc_ubuntu_panel_init (CcUbuntuPanel *panel)
++{
++  GtkWidget *w;
++  GtkWidget *widget, *box, *label;
 +  GtkWidget *ubuntu_dock_listbox;
 +  GtkListBoxRow *row;
 +  GtkWidget *frame;
 +  GtkWidget *sw, *iconsize_scale;
 +  GtkAdjustment *iconsize_adj;
 +  gchar *s;
++  GError *error = NULL;
 +
-+  mainbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
-+  gtk_box_pack_start (GTK_BOX (vbox), mainbox, FALSE, TRUE, 0);
++  panel->builder = gtk_builder_new ();
++  if (gtk_builder_add_from_resource (panel->builder,
++                                     "/org/gnome/control-center/ubuntu/ubuntu.ui",
++                                     &error) == 0) {
++    g_error ("Error loading UI file: %s", error->message);
++    g_error_free (error);
++    return;
++  }
 +
-+  s = g_strdup_printf ("<b>%s</b>", _("Ubuntu Dock settings"));
-+  label = gtk_label_new (s);
-+  g_free (s);
-+  gtk_label_set_use_markup (GTK_LABEL (label), TRUE);
-+  gtk_widget_set_halign (label, GTK_ALIGN_START);
-+  gtk_widget_set_margin_start (label, 6);
-+  gtk_widget_set_margin_end (label, 6);
-+  gtk_widget_set_margin_bottom (label, 6);
-+  gtk_box_pack_start (GTK_BOX (mainbox), label, FALSE, TRUE, 0);
++  w = GTK_WIDGET (gtk_builder_get_object (panel->builder,
++                                          "ccubuntu-scrolled-window"));
++  ubuntu_dock_listbox = GTK_WIDGET (gtk_builder_get_object (panel->builder,
++                                    "ccubuntu-listbox"));
++  gtk_container_add(GTK_CONTAINER(panel), w);
 +
-+  frame = gtk_frame_new (NULL);
-+  gtk_frame_set_shadow_type(GTK_FRAME(frame), GTK_SHADOW_IN);
-+  ubuntu_dock_listbox = gtk_list_box_new ();
-+  gtk_list_box_set_selection_mode (GTK_LIST_BOX(ubuntu_dock_listbox),
-+                                   GTK_SELECTION_NONE);
-+  gtk_container_add (GTK_CONTAINER( frame), ubuntu_dock_listbox);
++  /* Only load if we have ubuntu dock or dash to dock installed */
++  GSettingsSchema *schema = g_settings_schema_source_lookup(g_settings_schema_source_get_default(),
++                                                            UBUNTU_DOCK_SCHEMA, TRUE);
++  if (!schema) {
++    g_resources_register (cc_ubuntu_get_resource());
++    g_warning ("No Ubuntu Dock is installed here. Panel disabled. Please fix your installation.");
++    return;
++  }
++  panel->ubuntu_dock_settings = g_settings_new_full (schema, NULL, NULL);
++  g_settings_schema_unref (schema);
 +
-+  label = gtk_label_new (_("Auto-hide the Launcher (intellihide)"));
++  /* register session bus */
++  g_bus_get (G_BUS_TYPE_SESSION,
++            NULL,
++            (GAsyncReadyCallback) session_bus_ready,
++            panel);
++
++  /* Layout */
++
++  label = gtk_label_new (_("Auto-hide (intellihide)"));
 +  row = GTK_LIST_BOX_ROW (gtk_list_box_row_new ());
 +  box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 50);
-+  gtk_container_add (GTK_CONTAINER( row), box);
-+  gtk_container_add (GTK_CONTAINER( ubuntu_dock_listbox), GTK_WIDGET (row));
++  gtk_container_add (GTK_CONTAINER (row), box);
++  gtk_container_add (GTK_CONTAINER (ubuntu_dock_listbox), GTK_WIDGET (row));
 +  gtk_widget_set_halign (label, GTK_ALIGN_START);
 +  gtk_label_set_use_underline (GTK_LABEL (label), TRUE);
 +  gtk_widget_set_margin_start (label, 20);
@@ -243,22 +411,22 @@ Index: gnome-control-center-3.24.3/panels/display/cc-display-panel.c
 +  gtk_widget_set_margin_bottom (label, 12);
 +  gtk_box_pack_start (GTK_BOX (box), label, TRUE, TRUE, 0);
 +  sw = gtk_switch_new ();
-+  g_settings_bind (priv->ubuntu_dock_settings, "dock-fixed",
++  g_settings_bind (panel->ubuntu_dock_settings, "dock-fixed",
 +                   sw, "active",
 +                   G_SETTINGS_BIND_INVERT_BOOLEAN);
 +  gtk_switch_set_active(GTK_SWITCH(sw),
-+                        !g_settings_get_boolean (priv->ubuntu_dock_settings, "dock-fixed"));
++                        !g_settings_get_boolean (panel->ubuntu_dock_settings, "dock-fixed"));
 +  gtk_widget_set_margin_start (sw, 20);
 +  gtk_widget_set_margin_end (sw, 20);
 +  gtk_widget_set_valign(sw, GTK_ALIGN_CENTER);
 +  gtk_box_pack_start (GTK_BOX (box), sw, FALSE, TRUE, 0);
 +  gtk_label_set_mnemonic_widget (GTK_LABEL (label), sw);
 +
-+  label = gtk_label_new (_("Launcher icon size"));
++  label = gtk_label_new (_("Icon size"));
 +  row = GTK_LIST_BOX_ROW (gtk_list_box_row_new ());
 +  box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 50);
-+  gtk_container_add (GTK_CONTAINER( row), box);
-+  gtk_container_add (GTK_CONTAINER( ubuntu_dock_listbox), GTK_WIDGET (row));
++  gtk_container_add (GTK_CONTAINER (row), box);
++  gtk_container_add (GTK_CONTAINER (ubuntu_dock_listbox), GTK_WIDGET (row));
 +  gtk_widget_set_halign (label, GTK_ALIGN_START);
 +  gtk_label_set_use_underline (GTK_LABEL (label), TRUE);
 +  gtk_widget_set_margin_start (label, 20);
@@ -266,27 +434,28 @@ Index: gnome-control-center-3.24.3/panels/display/cc-display-panel.c
 +  gtk_widget_set_margin_top (label, 12);
 +  gtk_widget_set_margin_bottom (label, 12);
 +  gtk_box_pack_start (GTK_BOX (box), label, TRUE, TRUE, 0);
++
 +  /* Icon size change - we halve the sizes so we can only get even values*/
 +  iconsize_adj = gtk_adjustment_new (DEFAULT_ICONSIZE / 2, MIN_ICONSIZE / 2, MAX_ICONSIZE / 2, 1, 4, 0);
 +  iconsize_scale = gtk_scale_new (GTK_ORIENTATION_HORIZONTAL, iconsize_adj);
 +  gtk_scale_set_value_pos (GTK_SCALE (iconsize_scale), GTK_POS_LEFT);
 +  gtk_widget_set_size_request (iconsize_scale, 264, -1);
 +  gtk_scale_add_mark (GTK_SCALE (iconsize_scale), DEFAULT_ICONSIZE / 2, GTK_POS_BOTTOM, NULL);
-+  g_signal_connect (priv->ubuntu_dock_settings, "changed::" ICONSIZE_KEY,
++  g_signal_connect (panel->ubuntu_dock_settings, "changed::" ICONSIZE_KEY,
 +                   G_CALLBACK (ext_iconsize_changed_callback), iconsize_adj);
 +  g_signal_connect (G_OBJECT (iconsize_scale), "format-value",
 +                   G_CALLBACK (on_iconsize_format_value), NULL);
 +  g_signal_connect (iconsize_adj, "value_changed",
-+                   G_CALLBACK (on_iconsize_changed), self);
-+  iconsize_widget_refresh (iconsize_adj, priv->ubuntu_dock_settings);
++                   G_CALLBACK (on_iconsize_changed), panel);
++  iconsize_widget_refresh (iconsize_adj, panel->ubuntu_dock_settings);
 +  gtk_box_pack_start (GTK_BOX (box), iconsize_scale, TRUE, TRUE, 0);
 +  gtk_label_set_mnemonic_widget (GTK_LABEL (label), iconsize_scale);
 +
-+  label = gtk_label_new (_("Launcher placement"));
++  label = gtk_label_new (_("Placement"));
 +  row = GTK_LIST_BOX_ROW (gtk_list_box_row_new ());
 +  box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 50);
-+  gtk_container_add (GTK_CONTAINER( row), box);
-+  gtk_container_add (GTK_CONTAINER( ubuntu_dock_listbox), GTK_WIDGET (row));
++  gtk_container_add (GTK_CONTAINER (row), box);
++  gtk_container_add (GTK_CONTAINER (ubuntu_dock_listbox), GTK_WIDGET (row));
 +  gtk_widget_set_halign (label, GTK_ALIGN_START);
 +  gtk_label_set_use_underline (GTK_LABEL (label), TRUE);
 +  gtk_widget_set_margin_start (label, 20);
@@ -294,41 +463,272 @@ Index: gnome-control-center-3.24.3/panels/display/cc-display-panel.c
 +  gtk_widget_set_margin_top (label, 12);
 +  gtk_widget_set_margin_bottom (label, 12);
 +  gtk_box_pack_start (GTK_BOX (box), label, TRUE, TRUE, 0);
-+  priv->ubuntu_dock_placement_combo = gtk_combo_box_new ();
-+  g_signal_connect (G_OBJECT (priv->ubuntu_dock_placement_combo), "changed",
-+                    G_CALLBACK (on_ubuntu_dock_placement_combo_changed), self);
-+  g_signal_connect (self->priv->ubuntu_dock_settings, "changed::" UBUNTU_DOCK_ALL_MONITORS_KEY,
-+                    G_CALLBACK (ext_ubuntu_dock_placement_changed_callback), self);
-+  g_signal_connect (self->priv->ubuntu_dock_settings, "changed::" UBUNTU_DOCK_ON_MONITOR_KEY,
-+                    G_CALLBACK (ext_ubuntu_dock_placement_changed_callback), self);
-+  gtk_box_pack_start (GTK_BOX (box), priv->ubuntu_dock_placement_combo, FALSE, TRUE, 0);
-+  gtk_label_set_mnemonic_widget (GTK_LABEL (label), priv->ubuntu_dock_placement_combo);
++  panel->ubuntu_dock_placement_combo = gtk_combo_box_new ();
++  g_signal_connect (G_OBJECT (panel->ubuntu_dock_placement_combo), "changed",
++                    G_CALLBACK (on_ubuntu_dock_placement_combo_changed), panel);
++  g_signal_connect (panel->ubuntu_dock_settings, "changed::" UBUNTU_DOCK_ALL_MONITORS_KEY,
++                    G_CALLBACK (ext_ubuntu_dock_placement_changed_callback), panel);
++  g_signal_connect (panel->ubuntu_dock_settings, "changed::" UBUNTU_DOCK_ON_MONITOR_KEY,
++                    G_CALLBACK (ext_ubuntu_dock_placement_changed_callback), panel);
++  gtk_box_pack_start (GTK_BOX (box), panel->ubuntu_dock_placement_combo, FALSE, TRUE, 0);
++  gtk_label_set_mnemonic_widget (GTK_LABEL (label), panel->ubuntu_dock_placement_combo);
 +
-+  gtk_container_add (GTK_CONTAINER( mainbox), frame);
++  gtk_widget_show_all (w);
++
++  g_resources_register (cc_ubuntu_get_resource ());
 +}
 +
 +static void
- cc_display_panel_init (CcDisplayPanel *self)
- {
-   CcDisplayPanelPrivate *priv;
-@@ -2890,6 +3129,20 @@ cc_display_panel_init (CcDisplayPanel *s
-   gtk_box_pack_start (GTK_BOX (box), label, FALSE, TRUE, 0);
-   gtk_container_add (GTK_CONTAINER (vbox), frame);
- 
-+  if (strstr (g_getenv ("XDG_CURRENT_DESKTOP"), "ubuntu") != NULL)
-+  {
-+    GSettingsSchema *schema;
-+    schema = g_settings_schema_source_lookup (g_settings_schema_source_get_default(),
-+                                              UBUNTU_DOCK_SCHEMA, TRUE);
++cc_ubuntu_panel_class_init (CcUbuntuPanelClass *klass)
++{
++  GObjectClass *object_class = G_OBJECT_CLASS (klass);
++  CcPanelClass *panel_class = CC_PANEL_CLASS (klass);
 +
-+    if (schema != NULL)
-+    {
-+      priv->ubuntu_dock_settings = g_settings_new_full (schema, NULL, NULL);
-+      g_settings_schema_unref (schema);
-+      cc_display_add_ubuntu_dock_settings (self, vbox);
-+    }
-+  }
++  /* Separate dispose() and finalize() functions are necessary
++   * to make sure we cancel the running thread before the panel
++   * gets finalized */
++  object_class->dispose = cc_ubuntu_panel_dispose;
++  object_class->finalize = cc_ubuntu_panel_finalize;
++}
+Index: gnome-control-center-3.25.91/panels/ubuntu/cc-ubuntu-panel.h
+===================================================================
+--- /dev/null
++++ gnome-control-center-3.25.91/panels/ubuntu/cc-ubuntu-panel.h
+@@ -0,0 +1,39 @@
++/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
++/*
++ * Copyright (C) 2017 Canonical Ltd
++ *
++ * This library is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU Lesser General Public
++ * License as published by the Free Software Foundation; either
++ * version 2 of the License, or (at your option) any later version.
++ *
++ * This library is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++ * Lesser General Public License for more details.
++ *
++ * You should have received a copy of the GNU Lesser General
++ * Public License along with this library; if not, see <http://www.gnu.org/licenses/>.
++ *
++ */
 +
-   gtk_widget_show_all (vbox);
- 
-   on_screen_changed (self);
++#ifndef _CC_UBUNTU_PANEL_H_
++#define _CC_UBUNTU_PANEL_H_
++
++#include <gio/gio.h>
++#include <shell/cc-panel.h>
++
++G_BEGIN_DECLS
++
++#define CC_TYPE_UBUNTU_PANEL  (cc_ubuntu_panel_get_type ())
++#define CC_UBUNTU_PANEL(o)    (G_TYPE_CHECK_INSTANCE_CAST ((o), CC_TYPE_UBUNTU_PANEL, CcUbuntuPanel))
++#define GC_IS_UBUNTU_PANEL(o) (G_TYPE_CHECK_INSTANCE_TYPE ((o), CC_TYPE_UBUNTU_PANEL))
++
++typedef struct _CcUbuntuPanel CcUbuntuPanel;
++typedef struct _CcUbuntuPanelClass CcUbuntuPanelClass;
++
++GType cc_ubuntu_panel_get_type (void) G_GNUC_CONST;
++
++G_END_DECLS
++
++#endif /* _CC_EDIT_DIALOG_H_ */
+Index: gnome-control-center-3.25.91/panels/ubuntu/gnome-ubuntu-panel.desktop.in.in
+===================================================================
+--- /dev/null
++++ gnome-control-center-3.25.91/panels/ubuntu/gnome-ubuntu-panel.desktop.in.in
+@@ -0,0 +1,17 @@
++[Desktop Entry]
++# Translators: Add soft hyphens to your translations so that the icon view won't clip your translations. See https://bugzilla.gnome.org/show_bug.cgi?id=647087#c13 for details
++_Name=Dock
++_Comment=Ubuntu Dock Settings
++Exec=gnome-control-center ubuntu
++Icon=preferences-desktop-display
++Terminal=false
++Type=Application
++NoDisplay=true
++StartupNotify=true
++Categories=GNOME;GTK;Settings;DesktopSettings;X-GNOME-Settings-Panel;X-GNOME-PersonalSettings;X-GNOME-PersonalizationSettings;
++OnlyShowIn=ubuntu;
++X-GNOME-Bugzilla-Bugzilla=GNOME
++X-GNOME-Bugzilla-Product=gnome-control-center
++X-GNOME-Bugzilla-Version=@VERSION@
++# Translators: those are keywords for the display control-center panel
++_Keywords=Dock;
+Index: gnome-control-center-3.25.91/panels/ubuntu/ubuntu.gresource.xml
+===================================================================
+--- /dev/null
++++ gnome-control-center-3.25.91/panels/ubuntu/ubuntu.gresource.xml
+@@ -0,0 +1,7 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<gresources>
++  <gresource prefix="/org/gnome/control-center/ubuntu">
++    <file preprocess="xml-stripblanks">ubuntu.ui</file>
++  </gresource>
++</gresources>
++
+Index: gnome-control-center-3.25.91/panels/ubuntu/ubuntu.ui
+===================================================================
+--- /dev/null
++++ gnome-control-center-3.25.91/panels/ubuntu/ubuntu.ui
+@@ -0,0 +1,100 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<!-- Generated with glade 3.20.0 -->
++<interface>
++  <requires lib="gtk+" version="3.20"/>
++  <object class="GtkScrolledWindow" id="ccubuntu-scrolled-window">
++    <property name="visible">True</property>
++    <property name="can_focus">True</property>
++    <property name="hscrollbar_policy">never</property>
++    <property name="shadow_type">in</property>
++    <child>
++      <object class="GtkViewport" id="ccubuntu-viewport">
++        <property name="visible">True</property>
++        <property name="can_focus">False</property>
++        <child>
++          <object class="GtkBox">
++            <property name="visible">True</property>
++            <property name="can_focus">False</property>
++
++            <!-- Stub boxes to make the content cover 1/3 of the screen -->
++            <child>
++              <object class="GtkBox">
++                <property name="visible">True</property>
++                <property name="can_focus">False</property>
++                <property name="hexpand">True</property>
++              </object>
++            </child>
++
++            <child>
++              <object class="GtkBox">
++                <property name="visible">True</property>
++                <property name="can_focus">False</property>
++                <property name="hexpand">True</property>
++              </object>
++              <packing>
++                <property name="pack_type">end</property>
++              </packing>
++            </child>
++
++            <!-- Content -->
++            <child>
++              <object class="GtkBox">
++                <property name="visible">True</property>
++                <property name="can_focus">False</property>
++                <property name="margin">32</property>
++                <property name="orientation">vertical</property>
++                <property name="hexpand">True</property>
++                <child>
++                  <object class="GtkLabel">
++                    <property name="visible">True</property>
++                    <property name="can_focus">False</property>
++                    <property name="xalign">0</property>
++                    <property name="margin_bottom">12</property>
++                    <property name="label" translatable="yes" comments="Dock settings.">Ubuntu Dock</property>
++                    <attributes>
++                      <attribute name="weight" value="bold"/>
++                    </attributes>
++                  </object>
++                  <packing>
++                    <property name="expand">False</property>
++                    <property name="fill">True</property>
++                    <property name="position">0</property>
++                  </packing>
++                </child>
++                <child>
++                  <object class="GtkFrame" id="ccubuntu-frame">
++                    <property name="visible">True</property>
++                    <property name="can_focus">False</property>
++                    <property name="margin_bottom">32</property>
++                    <property name="hexpand">True</property>
++                    <property name="label_xalign">0</property>
++                    <property name="shadow_type">in</property>
++                    <child>
++                      <object class="GtkListBox" id="ccubuntu-listbox">
++                        <property name="visible">True</property>
++                        <property name="can_focus">False</property>
++                        <property name="hexpand">True</property>
++                        <property name="selection_mode">none</property>
++                        <property name="activate_on_single_click">False</property>
++                      </object>
++                    </child>
++                  </object>
++                  <packing>
++                    <property name="expand">False</property>
++                    <property name="fill">True</property>
++                    <property name="position">1</property>
++                  </packing>
++                </child>
++              </object>
++              <packing>
++                <property name="expand">False</property>
++                <property name="fill">True</property>
++                <property name="position">2</property>
++              </packing>
++            </child>
++          </object>
++        </child>
++      </object>
++    </child>
++  </object>
++</interface>
+Index: gnome-control-center-3.25.91/shell/Makefile.am
+===================================================================
+--- gnome-control-center-3.25.91.orig/shell/Makefile.am
++++ gnome-control-center-3.25.91/shell/Makefile.am
+@@ -94,6 +94,7 @@ gnome_control_center_LDADD =						\
+ 	$(top_builddir)/panels/search/libsearch.la			\
+ 	$(top_builddir)/panels/sharing/libsharing.la			\
+ 	$(top_builddir)/panels/sound/libsound.la			\
++	$(top_builddir)/panels/ubuntu/libubuntu.la	                \
+ 	$(top_builddir)/panels/universal-access/libuniversal-access.la	\
+ 	$(top_builddir)/panels/user-accounts/libuser-accounts.la	\
+ 	$(top_builddir)/panels/printers/libprinters.la
+Index: gnome-control-center-3.25.91/shell/cc-panel-list.c
+===================================================================
+--- gnome-control-center-3.25.91.orig/shell/cc-panel-list.c
++++ gnome-control-center-3.25.91/shell/cc-panel-list.c
+@@ -267,6 +267,7 @@ static const gchar * const panel_order[]
+   "mobile-broadband",
+   "bluetooth",
+   "background",
++  "ubuntu",
+   "notifications",
+   "search",
+   "region",
+Index: gnome-control-center-3.25.91/po/POTFILES.in
+===================================================================
+--- gnome-control-center-3.25.91.orig/po/POTFILES.in
++++ gnome-control-center-3.25.91/po/POTFILES.in
+@@ -189,6 +189,10 @@ panels/sound/gvc-mixer-dialog.c
+ panels/sound/gvc-sound-theme-chooser.c
+ panels/sound/gvc-speaker-test.c
+ panels/sound/sound-theme-file-utils.c
++panels/ubuntu/cc-ubuntu-panel.c
++panels/ubuntu/gnome-ubuntu-panel.desktop.in
++panels/ubuntu/gnome-ubuntu-panel.desktop.in.in
++[type: gettext/glade]panels/ubuntu/ubuntu.ui
+ panels/universal-access/cc-ua-panel.c
+ panels/universal-access/gnome-universal-access-panel.desktop.in.in
+ [type: gettext/glade]panels/universal-access/uap.ui
+Index: gnome-control-center-3.25.91/shell/cc-panel-loader.c
+===================================================================
+--- gnome-control-center-3.25.91.orig/shell/cc-panel-loader.c
++++ gnome-control-center-3.25.91/shell/cc-panel-loader.c
+@@ -56,6 +56,7 @@ extern GType cc_search_panel_get_type (v
+ extern GType cc_sharing_panel_get_type (void);
+ extern GType cc_sound_panel_get_type (void);
+ extern GType cc_ua_panel_get_type (void);
++extern GType cc_ubuntu_panel_get_type(void);
+ extern GType cc_user_panel_get_type (void);
+ #ifdef BUILD_WACOM
+ extern GType cc_wacom_panel_get_type (void);
+@@ -101,6 +102,7 @@ static struct {
+   PANEL_TYPE("search",           cc_search_panel_get_type       ),
+   PANEL_TYPE("sharing",          cc_sharing_panel_get_type      ),
+   PANEL_TYPE("sound",            cc_sound_panel_get_type        ),
++  PANEL_TYPE("ubuntu",           cc_ubuntu_panel_get_type       ),
+   PANEL_TYPE("universal-access", cc_ua_panel_get_type           ),
+   PANEL_TYPE("user-accounts",    cc_user_panel_get_type         ),
+ #ifdef BUILD_WACOM
