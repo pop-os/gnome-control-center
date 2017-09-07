@@ -95,7 +95,7 @@ Index: gnome-control-center-3.25.91/panels/ubuntu/cc-ubuntu-panel.c
 ===================================================================
 --- /dev/null
 +++ gnome-control-center-3.25.91/panels/ubuntu/cc-ubuntu-panel.c
-@@ -0,0 +1,397 @@
+@@ -0,0 +1,395 @@
 +/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 +/*
 + * Copyright (C) 2017 Canonical Ltd
@@ -375,7 +375,7 @@ Index: gnome-control-center-3.25.91/panels/ubuntu/cc-ubuntu-panel.c
 +                                          "ccubuntu-scrolled-window"));
 +  ubuntu_dock_listbox = GTK_WIDGET (gtk_builder_get_object (panel->builder,
 +                                    "ccubuntu-listbox"));
-+  gtk_container_add(GTK_CONTAINER(panel), w);
++  gtk_container_add (GTK_CONTAINER(panel), w);
 +
 +  /* Only load if we have ubuntu dock or dash to dock installed */
 +  GSettingsSchema *schema = g_settings_schema_source_lookup(g_settings_schema_source_get_default(),
@@ -395,7 +395,7 @@ Index: gnome-control-center-3.25.91/panels/ubuntu/cc-ubuntu-panel.c
 +            panel);
 +
 +  /* Layout */
-+  label = gtk_label_new (_("Auto-hide (intellihide)"));
++  label = gtk_label_new (_("Always show the Dock"));
 +  row = GTK_LIST_BOX_ROW (gtk_list_box_row_new ());
 +  box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 50);
 +  gtk_container_add (GTK_CONTAINER (row), box);
@@ -410,9 +410,7 @@ Index: gnome-control-center-3.25.91/panels/ubuntu/cc-ubuntu-panel.c
 +  sw = gtk_switch_new ();
 +  g_settings_bind (panel->ubuntu_dock_settings, "dock-fixed",
 +                   sw, "active",
-+                   G_SETTINGS_BIND_INVERT_BOOLEAN);
-+  gtk_switch_set_active(GTK_SWITCH(sw),
-+                        !g_settings_get_boolean (panel->ubuntu_dock_settings, "dock-fixed"));
++                   G_SETTINGS_BIND_DEFAULT);
 +  gtk_widget_set_margin_start (sw, 20);
 +  gtk_widget_set_margin_end (sw, 20);
 +  gtk_widget_set_valign(sw, GTK_ALIGN_CENTER);
@@ -451,7 +449,7 @@ Index: gnome-control-center-3.25.91/panels/ubuntu/cc-ubuntu-panel.c
 +  gtk_box_pack_start (GTK_BOX (box), iconsize_scale, FALSE, TRUE, 0);
 +  gtk_label_set_mnemonic_widget (GTK_LABEL (label), iconsize_scale);
 +
-+  label = gtk_label_new (_("Placement"));
++  label = gtk_label_new (_("Show on"));
 +  row = GTK_LIST_BOX_ROW (gtk_list_box_row_new ());
 +  box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 50);
 +  gtk_container_add (GTK_CONTAINER (row), box);
@@ -622,7 +620,7 @@ Index: gnome-control-center-3.25.91/panels/ubuntu/ubuntu.ui
 +                <property name="margin">32</property>
 +                <property name="orientation">vertical</property>
 +                <property name="hexpand">True</property>
-+                <child>
++                <!--<child>
 +                  <object class="GtkLabel">
 +                    <property name="visible">True</property>
 +                    <property name="can_focus">False</property>
@@ -638,7 +636,7 @@ Index: gnome-control-center-3.25.91/panels/ubuntu/ubuntu.ui
 +                    <property name="fill">True</property>
 +                    <property name="position">0</property>
 +                  </packing>
-+                </child>
++                </child>-->
 +                <child>
 +                  <object class="GtkFrame" id="ccubuntu-frame">
 +                    <property name="visible">True</property>
