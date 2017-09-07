@@ -95,7 +95,7 @@ Index: gnome-control-center-3.25.91/panels/ubuntu/cc-ubuntu-panel.c
 ===================================================================
 --- /dev/null
 +++ gnome-control-center-3.25.91/panels/ubuntu/cc-ubuntu-panel.c
-@@ -0,0 +1,394 @@
+@@ -0,0 +1,397 @@
 +/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 +/*
 + * Copyright (C) 2017 Canonical Ltd
@@ -149,7 +149,6 @@ Index: gnome-control-center-3.25.91/panels/ubuntu/cc-ubuntu-panel.c
 +  gint ubuntu_dock_placement_primary_index;
 +
 +  CcDisplayConfigManager *display_config_manager;
-+  /*CcDisplayConfig *current_config;*/
 +};
 +
 +struct _CcUbuntuPanelClass {
@@ -259,7 +258,6 @@ Index: gnome-control-center-3.25.91/panels/ubuntu/cc-ubuntu-panel.c
 +      if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED))
 +        {
 +          g_warning ("Failed to get session bus: %s", error->message);
-+          /*gtk_stack_set_visible_child_name (GTK_STACK (panel->stack), "error");*/
 +        }
 +      g_error_free (error);
 +      return;
@@ -397,7 +395,6 @@ Index: gnome-control-center-3.25.91/panels/ubuntu/cc-ubuntu-panel.c
 +            panel);
 +
 +  /* Layout */
-+
 +  label = gtk_label_new (_("Auto-hide (intellihide)"));
 +  row = GTK_LIST_BOX_ROW (gtk_list_box_row_new ());
 +  box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 50);
@@ -441,6 +438,9 @@ Index: gnome-control-center-3.25.91/panels/ubuntu/cc-ubuntu-panel.c
 +  gtk_scale_set_value_pos (GTK_SCALE (iconsize_scale), GTK_POS_LEFT);
 +  gtk_widget_set_size_request (iconsize_scale, 264, -1);
 +  gtk_scale_add_mark (GTK_SCALE (iconsize_scale), DEFAULT_ICONSIZE / 2, GTK_POS_BOTTOM, NULL);
++  gtk_widget_set_margin_start (iconsize_scale, 20);
++  gtk_widget_set_margin_end (iconsize_scale, 20);
++  gtk_widget_set_valign (iconsize_scale, GTK_ALIGN_CENTER);
 +  g_signal_connect (panel->ubuntu_dock_settings, "changed::" ICONSIZE_KEY,
 +                   G_CALLBACK (ext_iconsize_changed_callback), iconsize_adj);
 +  g_signal_connect (G_OBJECT (iconsize_scale), "format-value",
@@ -448,7 +448,7 @@ Index: gnome-control-center-3.25.91/panels/ubuntu/cc-ubuntu-panel.c
 +  g_signal_connect (iconsize_adj, "value_changed",
 +                   G_CALLBACK (on_iconsize_changed), panel);
 +  iconsize_widget_refresh (iconsize_adj, panel->ubuntu_dock_settings);
-+  gtk_box_pack_start (GTK_BOX (box), iconsize_scale, TRUE, TRUE, 0);
++  gtk_box_pack_start (GTK_BOX (box), iconsize_scale, FALSE, TRUE, 0);
 +  gtk_label_set_mnemonic_widget (GTK_LABEL (label), iconsize_scale);
 +
 +  label = gtk_label_new (_("Placement"));
@@ -464,6 +464,9 @@ Index: gnome-control-center-3.25.91/panels/ubuntu/cc-ubuntu-panel.c
 +  gtk_widget_set_margin_bottom (label, 12);
 +  gtk_box_pack_start (GTK_BOX (box), label, TRUE, TRUE, 0);
 +  panel->ubuntu_dock_placement_combo = gtk_combo_box_new ();
++  gtk_widget_set_margin_start (panel->ubuntu_dock_placement_combo, 20);
++  gtk_widget_set_margin_end (panel->ubuntu_dock_placement_combo, 20);
++  gtk_widget_set_valign (panel->ubuntu_dock_placement_combo, GTK_ALIGN_CENTER);
 +  g_signal_connect (G_OBJECT (panel->ubuntu_dock_placement_combo), "changed",
 +                    G_CALLBACK (on_ubuntu_dock_placement_combo_changed), panel);
 +  g_signal_connect (panel->ubuntu_dock_settings, "changed::" UBUNTU_DOCK_ALL_MONITORS_KEY,
