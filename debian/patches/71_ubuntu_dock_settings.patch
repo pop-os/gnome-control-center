@@ -95,7 +95,7 @@ Index: gnome-control-center-3.25.92.1/panels/ubuntu/cc-ubuntu-panel.c
 ===================================================================
 --- /dev/null
 +++ gnome-control-center-3.25.92.1/panels/ubuntu/cc-ubuntu-panel.c
-@@ -0,0 +1,431 @@
+@@ -0,0 +1,434 @@
 +/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 +/*
 + * Copyright (C) 2017 Canonical Ltd
@@ -410,22 +410,25 @@ Index: gnome-control-center-3.25.92.1/panels/ubuntu/cc-ubuntu-panel.c
 +  gtk_grid_set_column_spacing (GTK_GRID (box), 16);
 +  gtk_widget_set_valign (box, GTK_ALIGN_CENTER);
 +  gtk_widget_set_halign (label, GTK_ALIGN_START);
++  gtk_widget_set_hexpand (label, TRUE);
 +  gtk_label_set_use_underline (GTK_LABEL (label), TRUE);
 +  gtk_grid_attach (GTK_GRID (box), label, 0, 0, 1, 1);
 +  seclabel = gtk_label_new (_("The dock hides when any windows overlap with it."));
++  gtk_widget_set_halign (seclabel, GTK_ALIGN_START);
 +  GtkStyleContext *context = gtk_widget_get_style_context (GTK_WIDGET (seclabel));
 +  gtk_style_context_add_class (context, "dim-label");
-+  gtk_style_context_set_scale (context, 0.9);
-+  gtk_grid_attach (GTK_GRID (box), seclabel, 0, 1, 1, 1);
++  PangoAttribute *scale = pango_attr_scale_new (0.9);
++  PangoAttrList *attr_lst = pango_attr_list_new();
++  pango_attr_list_insert (attr_lst, scale);
++  gtk_label_set_attributes (GTK_LABEL (seclabel), attr_lst);
++  gtk_grid_attach(GTK_GRID(box), seclabel, 0, 1, 1, 1);
 +  sw = gtk_switch_new();
 +  g_settings_bind (panel->ubuntu_dock_settings, "dock-fixed",
 +                   sw, "active",
 +                   G_SETTINGS_BIND_INVERT_BOOLEAN);
-+  gtk_widget_set_margin_start (sw, 20);
-+  gtk_widget_set_margin_end (sw, 20);
 +  gtk_widget_set_halign (sw, GTK_ALIGN_END);
 +  gtk_widget_set_valign (sw, GTK_ALIGN_CENTER);
-+  gtk_grid_attach (GTK_GRID (box), sw, 1, 0, 1, 1);
++  gtk_grid_attach (GTK_GRID (box), sw, 1, 0, 1, 2);
 +  gtk_label_set_mnemonic_widget (GTK_LABEL (label), sw);
 +
 +  label = gtk_label_new (_("Icon size"));
