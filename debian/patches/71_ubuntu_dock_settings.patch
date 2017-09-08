@@ -95,7 +95,7 @@ Index: gnome-control-center-3.25.92.1/panels/ubuntu/cc-ubuntu-panel.c
 ===================================================================
 --- /dev/null
 +++ gnome-control-center-3.25.92.1/panels/ubuntu/cc-ubuntu-panel.c
-@@ -0,0 +1,430 @@
+@@ -0,0 +1,431 @@
 +/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 +/*
 + * Copyright (C) 2017 Canonical Ltd
@@ -376,6 +376,7 @@ Index: gnome-control-center-3.25.92.1/panels/ubuntu/cc-ubuntu-panel.c
 +                                          "ccubuntu-scrolled-window"));
 +  ubuntu_dock_listbox = GTK_WIDGET (gtk_builder_get_object (panel->builder,
 +                                    "ccubuntu-listbox"));
++  gtk_list_box_set_header_func (GTK_LIST_BOX (ubuntu_dock_listbox), cc_list_box_update_header_func, NULL, NULL);
 +  gtk_container_add (GTK_CONTAINER(panel), w);
 +
 +  /* Only load if we have ubuntu dock or dash to dock installed */
