@@ -1,0 +1,29 @@
+From cfbe34f94c548c92ae28721b26ea82e310ab0d83 Mon Sep 17 00:00:00 2001
+From: Felipe Borges <felipeborges@gnome.org>
+Date: Sun, 3 Sep 2017 15:53:40 +0200
+Subject: window: Disable the menubar
+
+It looks better to present the fallback app menu in the headerbar
+instead.
+
+This change assumes that client side decorations will be available,
+and therefore a GtkHeaderBar.
+
+https://bugzilla.gnome.org/show_bug.cgi?id=786692
+---
+ shell/cc-window.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/shell/cc-window.c b/shell/cc-window.c
+index f051dad..4fd1a49 100644
+--- a/shell/cc-window.c
++++ b/shell/cc-window.c
+@@ -828,6 +828,7 @@ cc_window_new (GtkApplication *application)
+                        "title", _("Settings"),
+                        "icon-name", DEFAULT_WINDOW_ICON_NAME,
+                        "window-position", GTK_WIN_POS_CENTER,
++                       "show-menubar", FALSE,
+                        NULL);
+ }
+ 
+
