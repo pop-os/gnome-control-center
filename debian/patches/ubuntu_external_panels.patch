@@ -1,193 +1,31 @@
-From 740aa2c73a11501a1059f1715a9618fcced42ee9 Mon Sep 17 00:00:00 2001
-From: Tim Lunn <tim@feathertop.org>
-Date: Sun, 28 Apr 2013 11:59:58 +1000
-Updated: Fri, 24 Jul 2015 09:45:59 +1000
-Subject: [PATCH] Reimplement support for desktop launchers
+From 43dbc708a120ed31bbc6d1949a94556a1a50fa1f Mon Sep 17 00:00:00 2001
+From: Didier Roche <didrocks@ubuntu.com>
+Date: Wed, 6 Sep 2017 10:04:25 +0200
+Subject: Only load panel corresponding to OnlyShowIn/NotShowIn
 
-Also brings back support for hiding icons based on XDG_CURRENT_DESKTOP
-and the ShowIn values in desktop files.
+Most panel desktop files have an OnlyShowIn entry to display them
+in the previous iconish G-C-C UI. Some distributions (like ubuntu) prefers
+adding new panel rather than patching the existing ones to ensure that
+the upstream Control Center look it preserved under a vanilla GNOME session.
+This patch fix thus the new layout setting to respect the OnlyShowIn property.
 
-This does not re-implement the gmenu loading code. So for now we
-just look for desktop files matching the static
-list all_launchers, hard-coded into the patch.
-
+https://bugzilla.gnome.org/show_bug.cgi?id=787347
 ---
+ shell/cc-panel-loader.c | 4 ++++
+ 1 file changed, 4 insertions(+)
 
----
- shell/cc-panel-loader.c |   66 +++++++++++++++++++++++++++++++++++++++++++++++-
- shell/cc-panel-loader.h |    1 
- shell/cc-window.c       |   29 +++++++++++++++++++++
- 3 files changed, 95 insertions(+), 1 deletion(-)
-
+diff --git a/shell/cc-panel-loader.c b/shell/cc-panel-loader.c
+index fc235fe..8be3bb9 100644
 --- a/shell/cc-panel-loader.c
 +++ b/shell/cc-panel-loader.c
-@@ -26,6 +26,17 @@
- 
- #include "cc-panel-loader.h"
- 
-+/* This is a list of desktop file launchers that should be loaded
-+where they are available */
-+static struct {
-+  const char *name;
-+} all_launchers[] = {
-+  {"gufw"},
-+  {"language-selector"},
-+  {"software-properties-gtk"},
-+  {"system-config-printer"},
-+};
-+
- #ifndef CC_PANEL_LOADER_NO_GTYPES
- 
- /* Extension points */
-@@ -172,6 +183,25 @@ parse_categories (GDesktopAppInfo *app)
-   return retval;
- }
- 
-+static gboolean
-+cc_panel_loader_add_item (CcShellModel *model, const char *name, GDesktopAppInfo *app )
-+{
-+  int category;
-+  gboolean show;
-+
-+  category = parse_categories (app);
-+  if (G_UNLIKELY (category < 0))
-+    return FALSE;
-+
-+  show = g_desktop_app_info_get_show_in (app, NULL);
-+  if (!show)
-+    return FALSE;
-+
-+  cc_shell_model_add_item (model, category, G_APP_INFO (app), name);
-+
-+  return TRUE;
-+}
-+
- void
- cc_panel_loader_fill_model (CcShellModel *model)
- {
-@@ -182,6 +212,7 @@ cc_panel_loader_fill_model (CcShellModel
-       g_autoptr (GDesktopAppInfo) app;
-       g_autofree gchar *desktop_name = NULL;
-       gint category;
-+      gboolean show;
- 
-       desktop_name = g_strconcat ("gnome-", all_panels[i].name,
-                                   "-panel.desktop", NULL);
-@@ -197,6 +228,10 @@ cc_panel_loader_fill_model (CcShellModel
+@@ -197,6 +197,10 @@ cc_panel_loader_fill_model (CcShellModel *model)
        if (G_UNLIKELY (category < 0))
          continue;
  
-+      show = g_desktop_app_info_get_show_in (app, NULL);
-+      if (!show)
++      /* Consult OnlyShowIn/NotShowIn for desktop environments */
++      if (!g_desktop_app_info_get_show_in (app, NULL))
 +        continue;
 +
        /* Only add the panel when it is not hidden, e.g. the Details subpanels
         * that are only visible in the new Shell.
         */
-@@ -205,6 +240,34 @@ cc_panel_loader_fill_model (CcShellModel
-     }
- }
- 
-+void
-+cc_panel_loader_external_fill_model (CcShellModel *model)
-+{
-+
-+  /* Load desktop launchers */
-+  int i;
-+
-+  for (i = 0; i < G_N_ELEMENTS (all_launchers); i++)
-+    {
-+      GDesktopAppInfo *app;
-+      char *desktop_name;
-+
-+      desktop_name = g_strconcat (all_launchers[i].name, ".desktop", NULL);
-+      app = g_desktop_app_info_new (desktop_name);
-+      g_free (desktop_name);
-+
-+      if (app == NULL)
-+        {
-+          g_warning ("Ignoring launcher %s (missing desktop file)",
-+                     all_launchers[i].name);
-+          continue;
-+        }
-+      cc_panel_loader_add_item(model, all_launchers[i].name, app);
-+      g_object_unref (app);
-+    }
-+
-+}
-+
- #ifndef CC_PANEL_LOADER_NO_GTYPES
- 
- static GHashTable *panel_types;
-@@ -232,7 +295,8 @@ cc_panel_loader_load_by_name (CcShell
-   ensure_panel_types ();
- 
-   get_type = g_hash_table_lookup (panel_types, name);
--  g_return_val_if_fail (get_type != NULL, NULL);
-+  if (get_type == NULL)
-+    return NULL;
- 
-   return g_object_new (get_type (),
-                        "shell", shell,
---- a/shell/cc-panel-loader.h
-+++ b/shell/cc-panel-loader.h
-@@ -29,6 +29,7 @@
- G_BEGIN_DECLS
- 
- void     cc_panel_loader_fill_model     (CcShellModel  *model);
-+void     cc_panel_loader_external_fill_model     (CcShellModel  *model);
- GList   *cc_panel_loader_get_panels     (void);
- CcPanel *cc_panel_loader_load_by_name   (CcShell       *shell,
-                                          const char    *name,
---- a/shell/cc-window.c
-+++ b/shell/cc-window.c
-@@ -114,6 +114,27 @@ get_icon_name_from_g_icon (GIcon *gicon)
-   return NULL;
- }
- 
-+static void
-+external_launch_by_id (const char *name)
-+{
-+  GDesktopAppInfo *app;
-+  char *desktop_name;
-+  const char *command;
-+
-+  desktop_name = g_strconcat (name, ".desktop", NULL);
-+  app = g_desktop_app_info_new (desktop_name);
-+  g_free (desktop_name);
-+
-+  command = g_app_info_get_executable ( G_APP_INFO (app));
-+
-+  if (command && command[0])
-+    {
-+      g_spawn_command_line_async (command, NULL);
-+    }
-+  g_object_unref (app);
-+
-+}
-+
- static gboolean
- activate_panel (CcWindow           *self,
-                 const gchar        *id,
-@@ -128,6 +149,13 @@ activate_panel (CcWindow           *self
-     return FALSE;
- 
-   self->current_panel = GTK_WIDGET (cc_panel_loader_load_by_name (CC_SHELL (self), id, parameters));
-+
-+  if (!self->current_panel)
-+    {
-+          external_launch_by_id (id);
-+          return FALSE;
-+    }
-+
-   cc_shell_set_active_panel (CC_SHELL (self), CC_PANEL (self->current_panel));
-   gtk_widget_show (self->current_panel);
- 
-@@ -323,6 +351,7 @@ setup_model (CcWindow *shell)
-   model = GTK_TREE_MODEL (shell->store);
- 
-   cc_panel_loader_fill_model (CC_SHELL_MODEL (shell->store));
-+  cc_panel_loader_external_fill_model (CC_SHELL_MODEL (shell->store));
- 
-   /* Create a row for each panel */
-   valid = gtk_tree_model_get_iter_first (model, &iter);
