@@ -9,11 +9,11 @@ Workaround for https://launchpad.net/bugs/1631750
  panels/region/region.ui         | 30 ++++++++++++++++++++++++++++++
  2 files changed, 56 insertions(+)
 
-diff --git a/panels/region/cc-region-panel.c b/panels/region/cc-region-panel.c
-index 48c0d7ac0..2d11023b8 100644
+Index: b/panels/region/cc-region-panel.c
+===================================================================
 --- a/panels/region/cc-region-panel.c
 +++ b/panels/region/cc-region-panel.c
-@@ -113,6 +113,7 @@ struct _CcRegionPanelPrivate {
+@@ -113,6 +113,7 @@
          GtkWidget *move_down_input;
          GtkWidget *show_config;
          GtkWidget *show_layout;
@@ -21,7 +21,7 @@ index 48c0d7ac0..2d11023b8 100644
  
          GSettings *input_settings;
          GnomeXkbInfo *xkb_info;
-@@ -1340,6 +1341,28 @@ show_selected_settings (CcRegionPanel *self)
+@@ -1398,6 +1399,33 @@
          g_object_unref (ctx);
  }
  
@@ -33,12 +33,17 @@ index 48c0d7ac0..2d11023b8 100644
 +        GdkAppLaunchContext *ctx;
 +        GError *error = NULL;
 +
-+        app_info = (GAppInfo*) g_desktop_app_info_new ("gnome-language-selector.desktop");
-+        ctx = gdk_display_get_app_launch_context (gdk_display_get_default ());
-+        g_app_info_launch (app_info, NULL, G_APP_LAUNCH_CONTEXT (ctx), &error);
++        app_info = G_APP_INFO (g_desktop_app_info_new ("gnome-language-selector.desktop"));
 +
-+        if (error)
-+        {
++        if (app_info) {
++                ctx = gdk_display_get_app_launch_context (gdk_display_get_default ());
++                g_app_info_launch (app_info, NULL, G_APP_LAUNCH_CONTEXT (ctx), &error);
++        } else {
++                g_warning ("Failed to launch language-selector: couldn't create GDesktopAppInfo");
++                return;
++        }
++
++        if (error) {
 +                g_warning ("Failed to launch language-selector: %s", error->message);
 +                g_error_free (error);
 +        }
@@ -50,7 +55,7 @@ index 48c0d7ac0..2d11023b8 100644
  static void
  show_selected_layout (CcRegionPanel *self)
  {
-@@ -1452,6 +1475,7 @@ setup_input_section (CcRegionPanel *self)
+@@ -1510,6 +1538,7 @@
          priv->move_down_input = WID ("input_source_down");
          priv->show_config = WID ("input_source_config");
          priv->show_layout = WID ("input_source_layout");
@@ -58,7 +63,7 @@ index 48c0d7ac0..2d11023b8 100644
  
          g_signal_connect_swapped (priv->options_button, "clicked",
                                    G_CALLBACK (show_input_options), self);
-@@ -1467,6 +1491,8 @@ setup_input_section (CcRegionPanel *self)
+@@ -1525,6 +1554,8 @@
                                    G_CALLBACK (show_selected_settings), self);
          g_signal_connect_swapped (priv->show_layout, "clicked",
                                    G_CALLBACK (show_selected_layout), self);
@@ -67,8 +72,8 @@ index 48c0d7ac0..2d11023b8 100644
  
          cc_list_box_setup_scrolling (GTK_LIST_BOX (priv->input_list), 5);
  
-diff --git a/panels/region/region.ui b/panels/region/region.ui
-index 7e8f8d55e..b5075c76b 100644
+Index: b/panels/region/region.ui
+===================================================================
 --- a/panels/region/region.ui
 +++ b/panels/region/region.ui
 @@ -534,6 +534,36 @@
@@ -84,7 +89,7 @@ index 7e8f8d55e..b5075c76b 100644
 +            </child>
 +            <child>
 +              <object class="GtkButton" id="language-support-button">
-+                <property name="label" translatable="yes">Installed Languages</property>
++                <property name="label" translatable="yes">Manage Installed Languages</property>
 +                <property name="visible">True</property>
 +                <property name="can_focus">True</property>
 +                <property name="receives_default">True</property>
@@ -108,6 +113,3 @@ index 7e8f8d55e..b5075c76b 100644
        </object>
      </child>
    </object>
--- 
-2.14.1
-
