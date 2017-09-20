@@ -1,4 +1,4 @@
-From e5eaabefcfd09503b3a96f82ec45645e1929b656 Mon Sep 17 00:00:00 2001
+From 639a4e64919bbf93eff5adc428b5c3922aa9aa43 Mon Sep 17 00:00:00 2001
 From: James Henstridge <james@jamesh.id.au>
 Date: Wed, 9 Aug 2017 22:30:21 +0800
 Subject: [PATCH] panels/privacy: add network connectivity checking toggle
@@ -31,7 +31,7 @@ index ec9e5cc01..cb6f8c49f 100644
  resource_files = $(shell glib-compile-resources --sourcedir=$(srcdir) --generate-dependencies $(srcdir)/privacy.gresource.xml)
  cc-privacy-resources.c: privacy.gresource.xml $(resource_files)
 diff --git a/panels/privacy/cc-privacy-panel.c b/panels/privacy/cc-privacy-panel.c
-index fb985132c..f3255859c 100644
+index ab367b6ca..ab16a4841 100644
 --- a/panels/privacy/cc-privacy-panel.c
 +++ b/panels/privacy/cc-privacy-panel.c
 @@ -18,6 +18,8 @@
@@ -73,7 +73,7 @@ index fb985132c..f3255859c 100644
 +#ifdef BUILD_NETWORK
 +static void
 +set_connectivity_check_label (NMClient   *client,
-+                              GParamSpec *pspec,
++                              GParamSpec *pspec G_GNUC_UNUSED,
 +                              GtkLabel   *label)
 +{
 +  gboolean enabled = nm_client_connectivity_check_get_enabled (client);
@@ -96,7 +96,7 @@ index fb985132c..f3255859c 100644
 +
 +static void
 +set_connectivity_row_visible (NMClient   *client,
-+                              GParamSpec *pspec,
++                              GParamSpec *pspec G_GNUC_UNUSED,
 +                              GtkWidget  *row)
 +{
 +  gboolean available = nm_client_connectivity_check_get_available (client);
@@ -106,7 +106,7 @@ index fb985132c..f3255859c 100644
 +
 +static void
 +set_connectivity_switch (NMClient   *client,
-+                         GParamSpec *pspec,
++                         GParamSpec *pspec G_GNUC_UNUSED,
 +                         GtkSwitch  *sw)
 +{
 +  gboolean enabled = nm_client_connectivity_check_get_enabled (client);
@@ -115,9 +115,9 @@ index fb985132c..f3255859c 100644
 +}
 +
 +static gboolean
-+connectivity_switch_state_set (GtkSwitch *sw,
-+                               gboolean   state,
-+                               NMClient  *client)
++on_connectivity_switch_state_set (GtkSwitch *sw G_GNUC_UNUSED,
++                                  gboolean   state,
++                                  NMClient  *client)
 +{
 +  nm_client_connectivity_check_set_enabled (client, state);
 +  return TRUE;
@@ -148,11 +148,11 @@ index fb985132c..f3255859c 100644
 +
 +  w = GTK_WIDGET (gtk_builder_get_object (self->priv->builder, "connectivity_check_switch"));
 +  g_signal_connect_object (self->priv->nm_client,
-+                           "notify::" NM_CLIENT_CONNECTIVITY_CHECK_AVAILABLE,
++                           "notify::" NM_CLIENT_CONNECTIVITY_CHECK_ENABLED,
 +                           G_CALLBACK (set_connectivity_switch), w, 0);
 +  set_connectivity_switch (self->priv->nm_client, NULL, GTK_SWITCH (w));
 +  g_signal_connect_object (w, "state-set",
-+                           G_CALLBACK (connectivity_switch_state_set),
++                           G_CALLBACK (on_connectivity_switch_state_set),
 +                           self->priv->nm_client, 0);
 +}
 +#else
@@ -191,7 +191,7 @@ index fb985132c..f3255859c 100644
    g_signal_connect (self->priv->lockdown_settings, "changed",
                      G_CALLBACK (on_lockdown_settings_changed), self);
 diff --git a/panels/privacy/privacy.ui b/panels/privacy/privacy.ui
-index e9eeb019b..46ea6010a 100644
+index ae0471dee..f61c213a4 100644
 --- a/panels/privacy/privacy.ui
 +++ b/panels/privacy/privacy.ui
 @@ -1038,4 +1038,90 @@ All the information we collect is made anonymous, and we will never share your d
@@ -285,3 +285,6 @@ index e9eeb019b..46ea6010a 100644
 +  </object>
 +
  </interface>
+-- 
+2.14.1
+
