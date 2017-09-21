@@ -1,0 +1,136 @@
+Description: Temporary add an additional advanced printer button.
+ g-c-c printers panel doesn't support printer sharing and other
+ features.
+ Workaround it for now by adding in multiple places an advanced printer
+ button starting system-config-printer to avoid doubling the panel in Settings.
+Origin: ubuntu
+Bug-Ubuntu: https://launchpad.net/bugs/1706524a
+Bug: https://bugzilla.gnome.org/show_bug.cgi?id=692532
+
+Index: gnome-control-center-3.26.0/panels/printers/printers.ui
+===================================================================
+--- gnome-control-center-3.26.0.orig/panels/printers/printers.ui
++++ gnome-control-center-3.26.0/panels/printers/printers.ui
+@@ -134,6 +134,7 @@
+             <child>
+               <object class="GtkBox">
+                 <property name="visible">True</property>
++                <property name="orientation">vertical</property>
+                 <child>
+                   <object class="GtkListBox" id="content">
+                     <property name="visible">True</property>
+@@ -146,6 +147,32 @@
+                     </style>
+                   </object>
+                 </child>
++                <child>
++                  <object class="GtkBox">
++                    <property name="visible">True</property>
++                    <property name="can_focus">False</property>
++                    <property name="orientation">horizontal</property>
++                    <child>
++                      <object class="GtkButton" id="system-config-printer-button1">
++                        <property name="label" translatable="yes">Additional Printer Settings…</property>
++                        <property name="visible">True</property>
++                        <property name="can_focus">True</property>
++                        <property name="receives_default">True</property>
++                        <property name="margin-start">60</property>
++                        <property name="margin-end">60</property>
++                      </object>
++                      <packing>
++                        <property name="expand">False</property>
++                        <property name="fill">True</property>
++                        <property name="pack_type">end</property>
++                      </packing>
++                    </child>
++                  </object>
++                  <packing>
++                    <property name="expand">False</property>
++                    <property name="fill">True</property>
++                  </packing>
++                </child>
+               </object>
+             </child>
+           </object>
+@@ -213,6 +240,22 @@
+             <property name="position">2</property>
+           </packing>
+         </child>
++        <child>
++          <object class="GtkButton" id="system-config-printer-button2">
++            <property name="label" translatable="yes">Additional Printer Settings…</property>
++            <property name="visible">True</property>
++            <property name="can_focus">True</property>
++            <property name="receives_default">False</property>
++            <property name="halign">center</property>
++            <property name="relief">normal</property>
++            <property name="margin-top">30</property>
++          </object>
++          <packing>
++            <property name="expand">False</property>
++            <property name="fill">False</property>
++            <property name="position">3</property>
++          </packing>
++        </child>
+       </object>
+       <packing>
+         <property name="name">empty-state</property>
+Index: gnome-control-center-3.26.0/panels/printers/cc-printers-panel.c
+===================================================================
+--- gnome-control-center-3.26.0.orig/panels/printers/cc-printers-panel.c
++++ gnome-control-center-3.26.0/panels/printers/cc-printers-panel.c
+@@ -23,6 +23,7 @@
+ #include "pp-printer.h"
+ 
+ #include <string.h>
++#include <gio/gdesktopappinfo.h>
+ #include <glib/gi18n-lib.h>
+ #include <glib/gstdio.h>
+ #include <polkit/polkit.h>
+@@ -960,6 +961,32 @@ printer_add_cb (GtkToolButton *toolbutto
+ }
+ 
+ static void
++show_system_config_printer (void)
++{
++  GAppInfo *app_info;
++  GdkAppLaunchContext *ctx;
++  GError *error = NULL;
++
++  app_info = G_APP_INFO (g_desktop_app_info_new ("system-config-printer.desktop"));
++
++  if (app_info) {
++    ctx = gdk_display_get_app_launch_context (gdk_display_get_default ());
++    g_app_info_launch (app_info, NULL, G_APP_LAUNCH_CONTEXT (ctx), &error);
++  } else {
++    g_warning ("Failed to launch system-config-printer: couldn't create GDesktopAppInfo");
++    return;
++  }
++
++  if (error) {
++    g_warning ("Failed to launch system-config-printer: %s", error->message);
++    g_error_free (error);
++  }
++
++  g_object_unref (app_info);
++  g_object_unref (ctx);
++}
++
++static void
+ update_sensitivity (gpointer user_data)
+ {
+   CcPrintersPanelPrivate  *priv;
+@@ -997,6 +1024,13 @@ update_sensitivity (gpointer user_data)
+ 
+   widget = (GtkWidget*) gtk_builder_get_object (priv->builder, "printer-add-button2");
+   gtk_widget_set_sensitive (widget, local_server && priv->is_authorized && !no_cups && !priv->new_printer_name);
++
++  widget = (GtkWidget*) gtk_builder_get_object (priv->builder, "system-config-printer-button1");
++  g_signal_connect_swapped (widget, "clicked",
++                            G_CALLBACK (show_system_config_printer), NULL);
++  widget = (GtkWidget*) gtk_builder_get_object (priv->builder, "system-config-printer-button2");
++  g_signal_connect_swapped (widget, "clicked",
++                            G_CALLBACK (show_system_config_printer), NULL);
+ }
+ 
+ static void
