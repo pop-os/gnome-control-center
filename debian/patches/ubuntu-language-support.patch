@@ -9,11 +9,11 @@ Workaround for https://launchpad.net/bugs/1631750
  panels/region/region.ui         | 30 ++++++++++++++++++++++++++++++
  2 files changed, 56 insertions(+)
 
-Index: b/panels/region/cc-region-panel.c
+Index: gnome-control-center-3.26.0/panels/region/cc-region-panel.c
 ===================================================================
---- a/panels/region/cc-region-panel.c
-+++ b/panels/region/cc-region-panel.c
-@@ -113,6 +113,7 @@
+--- gnome-control-center-3.26.0.orig/panels/region/cc-region-panel.c
++++ gnome-control-center-3.26.0/panels/region/cc-region-panel.c
+@@ -113,6 +113,7 @@ struct _CcRegionPanelPrivate {
          GtkWidget *move_down_input;
          GtkWidget *show_config;
          GtkWidget *show_layout;
@@ -21,7 +21,7 @@ Index: b/panels/region/cc-region-panel.c
  
          GSettings *input_settings;
          GnomeXkbInfo *xkb_info;
-@@ -1398,6 +1399,33 @@
+@@ -1398,6 +1399,33 @@ show_selected_settings (CcRegionPanel *s
          g_object_unref (ctx);
  }
  
@@ -55,7 +55,7 @@ Index: b/panels/region/cc-region-panel.c
  static void
  show_selected_layout (CcRegionPanel *self)
  {
-@@ -1510,6 +1538,7 @@
+@@ -1510,6 +1538,7 @@ setup_input_section (CcRegionPanel *self
          priv->move_down_input = WID ("input_source_down");
          priv->show_config = WID ("input_source_config");
          priv->show_layout = WID ("input_source_layout");
@@ -63,7 +63,7 @@ Index: b/panels/region/cc-region-panel.c
  
          g_signal_connect_swapped (priv->options_button, "clicked",
                                    G_CALLBACK (show_input_options), self);
-@@ -1525,6 +1554,8 @@
+@@ -1525,6 +1554,8 @@ setup_input_section (CcRegionPanel *self
                                    G_CALLBACK (show_selected_settings), self);
          g_signal_connect_swapped (priv->show_layout, "clicked",
                                    G_CALLBACK (show_selected_layout), self);
@@ -72,11 +72,11 @@ Index: b/panels/region/cc-region-panel.c
  
          cc_list_box_setup_scrolling (GTK_LIST_BOX (priv->input_list), 5);
  
-Index: b/panels/region/region.ui
+Index: gnome-control-center-3.26.0/panels/region/region.ui
 ===================================================================
---- a/panels/region/region.ui
-+++ b/panels/region/region.ui
-@@ -534,6 +534,36 @@
+--- gnome-control-center-3.26.0.orig/panels/region/region.ui
++++ gnome-control-center-3.26.0/panels/region/region.ui
+@@ -534,6 +534,31 @@
             </style>
            </object>
          </child>
@@ -84,9 +84,7 @@ Index: b/panels/region/region.ui
 +          <object class="GtkBox">
 +            <property name="visible">True</property>
 +            <property name="can_focus">False</property>
-+            <child>
-+              <placeholder/>
-+            </child>
++            <property name="orientation">vertical</property>
 +            <child>
 +              <object class="GtkButton" id="language-support-button">
 +                <property name="label" translatable="yes">Manage Installed Languages</property>
@@ -97,11 +95,8 @@ Index: b/panels/region/region.ui
 +              <packing>
 +                <property name="expand">False</property>
 +                <property name="fill">True</property>
-+                <property name="position">1</property>
++                <property name="pack_type">end</property>
 +              </packing>
-+            </child>
-+            <child>
-+              <placeholder/>
 +            </child>
 +          </object>
 +          <packing>
