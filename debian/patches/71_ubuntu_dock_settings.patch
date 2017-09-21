@@ -8,10 +8,10 @@ Origin: ubuntu
 Author: didrocks@ubuntu.com
 Forwarded: not-needed
 
-Index: gnome-control-center-3.25.92.1/configure.ac
+Index: gnome-control-center-3.26.0/configure.ac
 ===================================================================
---- gnome-control-center-3.25.92.1.orig/configure.ac
-+++ gnome-control-center-3.25.92.1/configure.ac
+--- gnome-control-center-3.26.0.orig/configure.ac
++++ gnome-control-center-3.26.0/configure.ac
 @@ -162,6 +162,7 @@ PKG_CHECK_MODULES(SOUND_PANEL, $COMMON_M
                    libcanberra-gtk3 >= $CANBERRA_REQUIRED_VERSION
                    libpulse >= $PA_REQUIRED_VERSION
@@ -29,10 +29,10 @@ Index: gnome-control-center-3.25.92.1/configure.ac
  panels/universal-access/Makefile
  panels/universal-access/gnome-universal-access-panel.desktop.in
  panels/user-accounts/Makefile
-Index: gnome-control-center-3.25.92.1/panels/Makefile.am
+Index: gnome-control-center-3.26.0/panels/Makefile.am
 ===================================================================
---- gnome-control-center-3.25.92.1.orig/panels/Makefile.am
-+++ gnome-control-center-3.25.92.1/panels/Makefile.am
+--- gnome-control-center-3.26.0.orig/panels/Makefile.am
++++ gnome-control-center-3.26.0/panels/Makefile.am
 @@ -17,7 +17,8 @@ SUBDIRS= \
  	search \
  	privacy \
@@ -43,10 +43,10 @@ Index: gnome-control-center-3.25.92.1/panels/Makefile.am
  
  if BUILD_WACOM
  SUBDIRS += wacom
-Index: gnome-control-center-3.25.92.1/panels/ubuntu/Makefile.am
+Index: gnome-control-center-3.26.0/panels/ubuntu/Makefile.am
 ===================================================================
 --- /dev/null
-+++ gnome-control-center-3.25.92.1/panels/ubuntu/Makefile.am
++++ gnome-control-center-3.26.0/panels/ubuntu/Makefile.am
 @@ -0,0 +1,43 @@
 +cappletname = ubuntu
 +
@@ -91,10 +91,10 @@ Index: gnome-control-center-3.25.92.1/panels/ubuntu/Makefile.am
 +EXTRA_DIST = $(resource_files) ubuntu.gresource.xml
 +
 +-include $(top_srcdir)/git.mk
-Index: gnome-control-center-3.25.92.1/panels/ubuntu/cc-ubuntu-panel.c
+Index: gnome-control-center-3.26.0/panels/ubuntu/cc-ubuntu-panel.c
 ===================================================================
 --- /dev/null
-+++ gnome-control-center-3.25.92.1/panels/ubuntu/cc-ubuntu-panel.c
++++ gnome-control-center-3.26.0/panels/ubuntu/cc-ubuntu-panel.c
 @@ -0,0 +1,434 @@
 +/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 +/*
@@ -404,8 +404,8 @@ Index: gnome-control-center-3.25.92.1/panels/ubuntu/cc-ubuntu-panel.c
 +  gtk_container_add (GTK_CONTAINER (ubuntu_dock_listbox), GTK_WIDGET (row));
 +  gtk_widget_set_margin_start (box, 20);
 +  gtk_widget_set_margin_end (box, 20);
-+  gtk_widget_set_margin_top (box, 6);
-+  gtk_widget_set_margin_bottom (box, 6);
++  gtk_widget_set_margin_top (box, 10);
++  gtk_widget_set_margin_bottom (box, 10);
 +  gtk_grid_set_row_spacing (GTK_GRID (box), 2);
 +  gtk_grid_set_column_spacing (GTK_GRID (box), 16);
 +  gtk_widget_set_valign (box, GTK_ALIGN_CENTER);
@@ -440,8 +440,8 @@ Index: gnome-control-center-3.25.92.1/panels/ubuntu/cc-ubuntu-panel.c
 +  gtk_label_set_use_underline (GTK_LABEL (label), TRUE);
 +  gtk_widget_set_margin_start (label, 20);
 +  gtk_widget_set_margin_end (label, 20);
-+  gtk_widget_set_margin_top (label, 12);
-+  gtk_widget_set_margin_bottom (label, 12);
++  gtk_widget_set_margin_top (label, 16);
++  gtk_widget_set_margin_bottom (label, 16);
 +  gtk_box_pack_start (GTK_BOX (box), label, TRUE, TRUE, 0);
 +
 +  /* Icon size change - we halve the sizes so we can only get even values*/
@@ -472,8 +472,8 @@ Index: gnome-control-center-3.25.92.1/panels/ubuntu/cc-ubuntu-panel.c
 +  gtk_label_set_use_underline (GTK_LABEL (label), TRUE);
 +  gtk_widget_set_margin_start (label, 20);
 +  gtk_widget_set_margin_end (label, 20);
-+  gtk_widget_set_margin_top (label, 12);
-+  gtk_widget_set_margin_bottom (label, 12);
++  gtk_widget_set_margin_top (label, 16);
++  gtk_widget_set_margin_bottom (label, 16);
 +  gtk_box_pack_start (GTK_BOX (box), label, TRUE, TRUE, 0);
 +  panel->ubuntu_dock_placement_combo = gtk_combo_box_new ();
 +  gtk_widget_set_margin_start (panel->ubuntu_dock_placement_combo, 20);
@@ -497,8 +497,8 @@ Index: gnome-control-center-3.25.92.1/panels/ubuntu/cc-ubuntu-panel.c
 +  gtk_label_set_use_underline (GTK_LABEL (label), TRUE);
 +  gtk_widget_set_margin_start (label, 20);
 +  gtk_widget_set_margin_end (label, 20);
-+  gtk_widget_set_margin_top (label, 12);
-+  gtk_widget_set_margin_bottom (label, 12);
++  gtk_widget_set_margin_top (label, 16);
++  gtk_widget_set_margin_bottom (label, 16);
 +  gtk_box_pack_start (GTK_BOX (box), label, TRUE, TRUE, 0);
 +  pos_combo = gtk_combo_box_text_new();
 +  gtk_widget_set_margin_start (pos_combo, 20);
@@ -530,10 +530,10 @@ Index: gnome-control-center-3.25.92.1/panels/ubuntu/cc-ubuntu-panel.c
 +  object_class->dispose = cc_ubuntu_panel_dispose;
 +  object_class->finalize = cc_ubuntu_panel_finalize;
 +}
-Index: gnome-control-center-3.25.92.1/panels/ubuntu/cc-ubuntu-panel.h
+Index: gnome-control-center-3.26.0/panels/ubuntu/cc-ubuntu-panel.h
 ===================================================================
 --- /dev/null
-+++ gnome-control-center-3.25.92.1/panels/ubuntu/cc-ubuntu-panel.h
++++ gnome-control-center-3.26.0/panels/ubuntu/cc-ubuntu-panel.h
 @@ -0,0 +1,39 @@
 +/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 +/*
@@ -574,10 +574,10 @@ Index: gnome-control-center-3.25.92.1/panels/ubuntu/cc-ubuntu-panel.h
 +G_END_DECLS
 +
 +#endif /* _CC_EDIT_DIALOG_H_ */
-Index: gnome-control-center-3.25.92.1/panels/ubuntu/gnome-ubuntu-panel.desktop.in.in
+Index: gnome-control-center-3.26.0/panels/ubuntu/gnome-ubuntu-panel.desktop.in.in
 ===================================================================
 --- /dev/null
-+++ gnome-control-center-3.25.92.1/panels/ubuntu/gnome-ubuntu-panel.desktop.in.in
++++ gnome-control-center-3.26.0/panels/ubuntu/gnome-ubuntu-panel.desktop.in.in
 @@ -0,0 +1,17 @@
 +[Desktop Entry]
 +# Translators: Add soft hyphens to your translations so that the icon view won't clip your translations. See https://bugzilla.gnome.org/show_bug.cgi?id=647087#c13 for details
@@ -596,10 +596,10 @@ Index: gnome-control-center-3.25.92.1/panels/ubuntu/gnome-ubuntu-panel.desktop.i
 +X-GNOME-Bugzilla-Version=@VERSION@
 +# Translators: those are keywords for the ubuntu control-center panel
 +_Keywords=Dock;Launcher;
-Index: gnome-control-center-3.25.92.1/panels/ubuntu/ubuntu.gresource.xml
+Index: gnome-control-center-3.26.0/panels/ubuntu/ubuntu.gresource.xml
 ===================================================================
 --- /dev/null
-+++ gnome-control-center-3.25.92.1/panels/ubuntu/ubuntu.gresource.xml
++++ gnome-control-center-3.26.0/panels/ubuntu/ubuntu.gresource.xml
 @@ -0,0 +1,7 @@
 +<?xml version="1.0" encoding="UTF-8"?>
 +<gresources>
@@ -608,10 +608,10 @@ Index: gnome-control-center-3.25.92.1/panels/ubuntu/ubuntu.gresource.xml
 +  </gresource>
 +</gresources>
 +
-Index: gnome-control-center-3.25.92.1/panels/ubuntu/ubuntu.ui
+Index: gnome-control-center-3.26.0/panels/ubuntu/ubuntu.ui
 ===================================================================
 --- /dev/null
-+++ gnome-control-center-3.25.92.1/panels/ubuntu/ubuntu.ui
++++ gnome-control-center-3.26.0/panels/ubuntu/ubuntu.ui
 @@ -0,0 +1,100 @@
 +<?xml version="1.0" encoding="UTF-8"?>
 +<!-- Generated with glade 3.20.0 -->
@@ -713,10 +713,10 @@ Index: gnome-control-center-3.25.92.1/panels/ubuntu/ubuntu.ui
 +    </child>
 +  </object>
 +</interface>
-Index: gnome-control-center-3.25.92.1/shell/Makefile.am
+Index: gnome-control-center-3.26.0/shell/Makefile.am
 ===================================================================
---- gnome-control-center-3.25.92.1.orig/shell/Makefile.am
-+++ gnome-control-center-3.25.92.1/shell/Makefile.am
+--- gnome-control-center-3.26.0.orig/shell/Makefile.am
++++ gnome-control-center-3.26.0/shell/Makefile.am
 @@ -94,6 +94,7 @@ gnome_control_center_LDADD =						\
  	$(top_builddir)/panels/search/libsearch.la			\
  	$(top_builddir)/panels/sharing/libsharing.la			\
@@ -725,10 +725,10 @@ Index: gnome-control-center-3.25.92.1/shell/Makefile.am
  	$(top_builddir)/panels/universal-access/libuniversal-access.la	\
  	$(top_builddir)/panels/user-accounts/libuser-accounts.la	\
  	$(top_builddir)/panels/printers/libprinters.la
-Index: gnome-control-center-3.25.92.1/shell/cc-panel-list.c
+Index: gnome-control-center-3.26.0/shell/cc-panel-list.c
 ===================================================================
---- gnome-control-center-3.25.92.1.orig/shell/cc-panel-list.c
-+++ gnome-control-center-3.25.92.1/shell/cc-panel-list.c
+--- gnome-control-center-3.26.0.orig/shell/cc-panel-list.c
++++ gnome-control-center-3.26.0/shell/cc-panel-list.c
 @@ -267,6 +267,7 @@ static const gchar * const panel_order[]
    "mobile-broadband",
    "bluetooth",
@@ -737,10 +737,10 @@ Index: gnome-control-center-3.25.92.1/shell/cc-panel-list.c
    "notifications",
    "search",
    "region",
-Index: gnome-control-center-3.25.92.1/po/POTFILES.in
+Index: gnome-control-center-3.26.0/po/POTFILES.in
 ===================================================================
---- gnome-control-center-3.25.92.1.orig/po/POTFILES.in
-+++ gnome-control-center-3.25.92.1/po/POTFILES.in
+--- gnome-control-center-3.26.0.orig/po/POTFILES.in
++++ gnome-control-center-3.26.0/po/POTFILES.in
 @@ -189,6 +189,10 @@ panels/sound/gvc-mixer-dialog.c
  panels/sound/gvc-sound-theme-chooser.c
  panels/sound/gvc-speaker-test.c
@@ -752,10 +752,10 @@ Index: gnome-control-center-3.25.92.1/po/POTFILES.in
  panels/universal-access/cc-ua-panel.c
  panels/universal-access/gnome-universal-access-panel.desktop.in.in
  [type: gettext/glade]panels/universal-access/uap.ui
-Index: gnome-control-center-3.25.92.1/shell/cc-panel-loader.c
+Index: gnome-control-center-3.26.0/shell/cc-panel-loader.c
 ===================================================================
---- gnome-control-center-3.25.92.1.orig/shell/cc-panel-loader.c
-+++ gnome-control-center-3.25.92.1/shell/cc-panel-loader.c
+--- gnome-control-center-3.26.0.orig/shell/cc-panel-loader.c
++++ gnome-control-center-3.26.0/shell/cc-panel-loader.c
 @@ -56,6 +56,7 @@ extern GType cc_search_panel_get_type (v
  extern GType cc_sharing_panel_get_type (void);
  extern GType cc_sound_panel_get_type (void);
