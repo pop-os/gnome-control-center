@@ -95,7 +95,7 @@ Index: gnome-control-center-3.26.0/panels/ubuntu/cc-ubuntu-panel.c
 ===================================================================
 --- /dev/null
 +++ gnome-control-center-3.26.0/panels/ubuntu/cc-ubuntu-panel.c
-@@ -0,0 +1,434 @@
+@@ -0,0 +1,442 @@
 +/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 +/*
 + * Copyright (C) 2017 Canonical Ltd
@@ -146,6 +146,7 @@ Index: gnome-control-center-3.26.0/panels/ubuntu/cc-ubuntu-panel.c
 +
 +  GSettings *ubuntu_dock_settings;
 +  GtkWidget *ubuntu_dock_placement_combo;
++  GtkWidget *show_on_row;
 +  gint ubuntu_dock_placement_primary_index;
 +
 +  CcDisplayConfigManager *display_config_manager;
@@ -219,6 +220,12 @@ Index: gnome-control-center-3.26.0/panels/ubuntu/cc-ubuntu-panel.c
 +      panel->ubuntu_dock_placement_primary_index = n;
 +    }
 +    n++;
++  }
++
++  if (n < 2) {
++    gtk_widget_set_visible (panel->show_on_row, FALSE);
++  } else {
++    gtk_widget_set_visible (panel->show_on_row, TRUE);
 +  }
 +
 +  gtk_list_store_prepend (ubuntu_dock_placement_liststore, &ubuntu_dock_placement_iter);
@@ -464,7 +471,8 @@ Index: gnome-control-center-3.26.0/panels/ubuntu/cc-ubuntu-panel.c
 +  gtk_label_set_mnemonic_widget (GTK_LABEL (label), iconsize_scale);
 +
 +  label = gtk_label_new (_("Show on"));
-+  row = GTK_LIST_BOX_ROW (gtk_list_box_row_new ());
++  panel->show_on_row = gtk_list_box_row_new ();
++  row = GTK_LIST_BOX_ROW (panel->show_on_row );
 +  box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 50);
 +  gtk_container_add (GTK_CONTAINER (row), box);
 +  gtk_container_add (GTK_CONTAINER (ubuntu_dock_listbox), GTK_WIDGET (row));
