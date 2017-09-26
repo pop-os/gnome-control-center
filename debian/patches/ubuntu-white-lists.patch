@@ -1,0 +1,69 @@
+Description: set a white bg for the lists when using the ubuntu theme, 
+ that's a workaround for artful to not modify the theme which could 
+ impact other softwares 
+Origin: ubuntu
+Bug-Ubuntu: https://launchpad.net/bugs/1719668
+diff --git a/shell/cc-application.c b/shell/cc-application.c
+index c160899b2..11a4a7ffb 100644
+--- a/shell/cc-application.c
++++ b/shell/cc-application.c
+@@ -207,6 +207,40 @@ cc_application_activate (GApplication *application)
+   cc_window_present (self->priv->window);
+ }
+ 
++static void
++theme_changed (GtkSettings *settings)
++{
++    static GtkCssProvider *provider = NULL;
++    static GtkCssProvider *permanent_provider = NULL;
++    gchar *theme;
++    GdkScreen *screen;
++
++    g_object_get (settings, "gtk-theme-name", &theme, NULL);
++    screen = gdk_screen_get_default ();
++
++    /* CSS that themes can override */
++    if (g_str_equal (theme, "Ambiance") || g_str_equal (theme, "Radiance"))
++    {
++        if (provider == NULL)
++        {
++            provider = gtk_css_provider_new ();
++            gtk_css_provider_load_from_data (provider, "frame list row, viewport > list row { background: white }", -1, NULL);
++        }
++
++        gtk_style_context_add_provider_for_screen (screen,
++                                                   GTK_STYLE_PROVIDER (provider),
++                                                   GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
++    }
++    else if (provider != NULL)
++    {
++        gtk_style_context_remove_provider_for_screen (screen,
++                                                      GTK_STYLE_PROVIDER (provider));
++        g_clear_object (&provider);
++    }
++
++    g_free (theme);
++}
++
+ static void
+ cc_application_startup (GApplication *application)
+ {
+@@ -215,6 +249,7 @@ cc_application_startup (GApplication *application)
+   GMenu *section;
+   GSimpleAction *action;
+   const gchar *help_accels[] = { "F1", NULL };
++  GtkSettings *settings;
+ 
+   G_APPLICATION_CLASS (cc_application_parent_class)->startup (application);
+ 
+@@ -261,6 +296,10 @@ cc_application_startup (GApplication *application)
+                                          "app.help", help_accels);
+ 
+   self->priv->window = cc_window_new (GTK_APPLICATION (application));
++
++  settings = gtk_settings_get_default ();
++  g_signal_connect (settings, "notify::gtk-theme-name", G_CALLBACK (theme_changed), NULL);
++  theme_changed (settings);
+ }
+ 
+ static GObject *
