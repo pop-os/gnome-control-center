@@ -460,12 +460,12 @@ Index: gnome-control-center-3.26.1/panels/ubuntu/cc-ubuntu-panel.c
 +  gtk_widget_set_margin_start (iconsize_scale, 20);
 +  gtk_widget_set_margin_end (iconsize_scale, 20);
 +  gtk_widget_set_valign (iconsize_scale, GTK_ALIGN_CENTER);
-+  g_signal_connect (panel->ubuntu_dock_settings, "changed::" ICONSIZE_KEY,
-+                   G_CALLBACK (ext_iconsize_changed_callback), iconsize_adj);
-+  g_signal_connect (G_OBJECT (iconsize_scale), "format-value",
-+                   G_CALLBACK (on_iconsize_format_value), NULL);
-+  g_signal_connect (iconsize_adj, "value_changed",
-+                   G_CALLBACK (on_iconsize_changed), panel);
++  g_signal_connect_object (panel->ubuntu_dock_settings, "changed::" ICONSIZE_KEY,
++                           G_CALLBACK (ext_iconsize_changed_callback), iconsize_adj, 0);
++  g_signal_connect_object (G_OBJECT (iconsize_scale), "format-value",
++                           G_CALLBACK (on_iconsize_format_value), NULL, 0);
++  g_signal_connect_object (iconsize_adj, "value_changed",
++                           G_CALLBACK (on_iconsize_changed), panel, 0);
 +  iconsize_widget_refresh (iconsize_adj, panel->ubuntu_dock_settings);
 +  gtk_box_pack_start (GTK_BOX (box), iconsize_scale, FALSE, TRUE, 0);
 +  gtk_label_set_mnemonic_widget (GTK_LABEL (label), iconsize_scale);
@@ -487,12 +487,12 @@ Index: gnome-control-center-3.26.1/panels/ubuntu/cc-ubuntu-panel.c
 +  gtk_widget_set_margin_start (panel->ubuntu_dock_placement_combo, 20);
 +  gtk_widget_set_margin_end (panel->ubuntu_dock_placement_combo, 20);
 +  gtk_widget_set_valign (panel->ubuntu_dock_placement_combo, GTK_ALIGN_CENTER);
-+  g_signal_connect (G_OBJECT (panel->ubuntu_dock_placement_combo), "changed",
-+                    G_CALLBACK (on_ubuntu_dock_placement_combo_changed), panel);
-+  g_signal_connect (panel->ubuntu_dock_settings, "changed::" UBUNTU_DOCK_ALL_MONITORS_KEY,
-+                    G_CALLBACK (ext_ubuntu_dock_placement_changed_callback), panel);
-+  g_signal_connect (panel->ubuntu_dock_settings, "changed::" UBUNTU_DOCK_ON_MONITOR_KEY,
-+                    G_CALLBACK (ext_ubuntu_dock_placement_changed_callback), panel);
++  g_signal_connect_object (G_OBJECT (panel->ubuntu_dock_placement_combo), "changed",
++                           G_CALLBACK (on_ubuntu_dock_placement_combo_changed), panel, 0);
++  g_signal_connect_object (panel->ubuntu_dock_settings, "changed::" UBUNTU_DOCK_ALL_MONITORS_KEY,
++                           G_CALLBACK (ext_ubuntu_dock_placement_changed_callback), panel, 0);
++  g_signal_connect_object (panel->ubuntu_dock_settings, "changed::" UBUNTU_DOCK_ON_MONITOR_KEY,
++                           G_CALLBACK (ext_ubuntu_dock_placement_changed_callback), panel, 0);
 +  gtk_box_pack_start (GTK_BOX (box), panel->ubuntu_dock_placement_combo, FALSE, TRUE, 0);
 +  gtk_label_set_mnemonic_widget (GTK_LABEL (label), panel->ubuntu_dock_placement_combo);
 +
