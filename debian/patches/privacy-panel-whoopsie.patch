@@ -2,10 +2,10 @@ From: James Henstridge <james@jamesh.id.au>
 Date: Thu, 14 Sep 2017 10:58:16 +0800
 Subject: [PATCH] panels/privacy: add Whoopsie support to privacy panel
 
-Index: gnome-control-center-3.25.92.1/configure.ac
+Index: gnome-control-center-3.26.1/configure.ac
 ===================================================================
---- gnome-control-center-3.25.92.1.orig/configure.ac
-+++ gnome-control-center-3.25.92.1/configure.ac
+--- gnome-control-center-3.26.1.orig/configure.ac
++++ gnome-control-center-3.26.1/configure.ac
 @@ -193,6 +193,11 @@ if test "x$have_wayland" = xyes ; then
  	fi
  fi
@@ -18,10 +18,10 @@ Index: gnome-control-center-3.25.92.1/configure.ac
  # Panels that must be built on Linux systems
  linux_error_or_warn()
  {
-Index: gnome-control-center-3.25.92.1/panels/privacy/cc-privacy-panel.c
+Index: gnome-control-center-3.26.1/panels/privacy/cc-privacy-panel.c
 ===================================================================
---- gnome-control-center-3.25.92.1.orig/panels/privacy/cc-privacy-panel.c
-+++ gnome-control-center-3.25.92.1/panels/privacy/cc-privacy-panel.c
+--- gnome-control-center-3.26.1.orig/panels/privacy/cc-privacy-panel.c
++++ gnome-control-center-3.26.1/panels/privacy/cc-privacy-panel.c
 @@ -33,6 +33,12 @@
  typedef struct _NMClient NMClient;
  #endif
@@ -46,7 +46,7 @@ Index: gnome-control-center-3.25.92.1/panels/privacy/cc-privacy-panel.c
  
    GCancellable *cancellable;
  
-@@ -1206,25 +1215,56 @@ abrt_vanished_cb (GDBusConnection *conne
+@@ -1206,25 +1215,74 @@ abrt_vanished_cb (GDBusConnection *conne
    gtk_widget_hide (self->priv->abrt_row);
  }
  
@@ -62,25 +62,43 @@ Index: gnome-control-center-3.25.92.1/panels/privacy/cc-privacy-panel.c
 +
 +  gtk_label_set_text (GTK_LABEL (self->priv->abrt_status),
 +                      report_crashes ? _("Automatic") : _("Manual"));
-+  gtk_switch_set_active (GTK_SWITCH (self->priv->abrt_switch), report_crashes);
++  gtk_switch_set_state (GTK_SWITCH (self->priv->abrt_switch), report_crashes);
 +}
 +
 +static void
-+whoopsie_switch_activated (GtkSwitch  *sw,
-+                           GParamSpec *param_spec,
-+                           gpointer    user_data)
++whoopsie_set_report_crashes_done (GObject *source_object,
++                                  GAsyncResult *res,
++                                  gpointer user_data)
 +{
-+  CcPrivacyPanel *self = user_data;
-+  gboolean report_crashes = gtk_switch_get_active (sw);
++  WhoopsiePreferences *whoopsie = WHOOPSIE_PREFERENCES (source_object);
 +  GError *error = NULL;
 +
-+  whoopsie_preferences_call_set_report_crashes_sync (self->priv->whoopsie,
-+                                                     report_crashes, NULL, &error);
-+  if (error != NULL)
++  if (!whoopsie_preferences_call_set_report_crashes_finish (whoopsie,
++                                                           res, &error))
 +    {
 +      g_warning ("Failed to toggle crash reporting: %s", error->message);
 +      g_error_free (error);
 +    }
++}
++
++static gboolean
++whoopsie_switch_state_set (GtkSwitch  *sw G_GNUC_UNUSED,
++                           gboolean    state,
++                           gpointer    user_data)
++{
++  CcPrivacyPanel *self = user_data;
++  gboolean old_report_crashes;
++
++  old_report_crashes = whoopsie_preferences_get_report_crashes (self->priv->whoopsie);
++  if (state != old_report_crashes)
++    {
++      whoopsie_preferences_call_set_report_crashes (self->priv->whoopsie,
++                                                    state, NULL,
++                                                    whoopsie_set_report_crashes_done,
++                                                    NULL);
++    }
++
++  return FALSE;
 +}
 +#endif
 +
@@ -110,7 +128,7 @@ Index: gnome-control-center-3.25.92.1/panels/privacy/cc-privacy-panel.c
  
    os_name = get_os_name ();
    /* translators: '%s' is the distributor's name, such as 'Fedora' */
-@@ -1245,13 +1285,54 @@ add_abrt (CcPrivacyPanel *self)
+@@ -1245,13 +1303,54 @@ add_abrt (CcPrivacyPanel *self)
    gtk_label_set_markup (GTK_LABEL (gtk_builder_get_object (self->priv->builder, "abrt_policy_linklabel")), msg);
    g_free (msg);
  
@@ -136,8 +154,8 @@ Index: gnome-control-center-3.25.92.1/panels/privacy/cc-privacy-panel.c
 +      g_signal_connect (self->priv->whoopsie, "g-properties-changed",
 +                        G_CALLBACK (whoopsie_properties_changed), self);
 +      whoopsie_properties_changed (self->priv->whoopsie, NULL, NULL, self);
-+      g_signal_connect (self->priv->abrt_switch, "notify::active",
-+                        G_CALLBACK (whoopsie_switch_activated), self);
++      g_signal_connect (self->priv->abrt_switch, "state-set",
++                        G_CALLBACK (whoopsie_switch_state_set), self);
 +      gtk_widget_show (self->priv->abrt_row);
 +    }
 +  else
@@ -172,7 +190,7 @@ Index: gnome-control-center-3.25.92.1/panels/privacy/cc-privacy-panel.c
  }
  
  #ifdef BUILD_NETWORK
-@@ -1374,6 +1455,7 @@ cc_privacy_panel_finalize (GObject *obje
+@@ -1374,6 +1473,7 @@ cc_privacy_panel_finalize (GObject *obje
    g_clear_object (&priv->cancellable);
    g_clear_object (&priv->perm_store);
    g_clear_object (&priv->location_icon_size_group);
@@ -180,10 +198,10 @@ Index: gnome-control-center-3.25.92.1/panels/privacy/cc-privacy-panel.c
    g_clear_pointer (&priv->location_apps_perms, g_variant_unref);
    g_clear_pointer (&priv->location_apps_data, g_variant_unref);
    g_clear_pointer (&priv->location_app_switches, g_hash_table_unref);
-Index: gnome-control-center-3.25.92.1/panels/privacy/Makefile.am
+Index: gnome-control-center-3.26.1/panels/privacy/Makefile.am
 ===================================================================
---- gnome-control-center-3.25.92.1.orig/panels/privacy/Makefile.am
-+++ gnome-control-center-3.25.92.1/panels/privacy/Makefile.am
+--- gnome-control-center-3.26.1.orig/panels/privacy/Makefile.am
++++ gnome-control-center-3.26.1/panels/privacy/Makefile.am
 @@ -4,6 +4,7 @@ AM_CPPFLAGS = 						\
  	$(PANEL_CFLAGS)					\
  	$(PRIVACY_PANEL_CFLAGS)				\
