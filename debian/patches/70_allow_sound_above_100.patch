@@ -13,11 +13,17 @@ Origin: ubuntu
 Bug-Ubuntu: https://launchpad.net/bugs/1706524
 Bug: https://bugzilla.gnome.org/show_bug.cgi?id=710424
 
-Index: gnome-control-center-3.24.3/panels/sound/gvc-mixer-dialog.c
+Index: gnome-control-center-3.26.2/panels/sound/gvc-mixer-dialog.c
 ===================================================================
---- gnome-control-center-3.24.3.orig/panels/sound/gvc-mixer-dialog.c
-+++ gnome-control-center-3.24.3/panels/sound/gvc-mixer-dialog.c
-@@ -48,6 +48,9 @@
+--- gnome-control-center-3.26.2.orig/panels/sound/gvc-mixer-dialog.c
++++ gnome-control-center-3.26.2/panels/sound/gvc-mixer-dialog.c
+@@ -44,10 +44,15 @@
+ #include "gvc-speaker-test.h"
+ #include "gvc-mixer-control-private.h"
+ 
++#include "shell/list-box-helper.h"
++
+ #define SCALE_SIZE 128
  
  #define GVC_MIXER_DIALOG_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), GVC_TYPE_MIXER_DIALOG, GvcMixerDialogPrivate))
  
@@ -27,7 +33,7 @@ Index: gnome-control-center-3.24.3/panels/sound/gvc-mixer-dialog.c
  struct GvcMixerDialogPrivate
  {
          GvcMixerControl *mixer_control;
-@@ -77,6 +80,8 @@ struct GvcMixerDialogPrivate
+@@ -77,6 +82,8 @@ struct GvcMixerDialogPrivate
          GtkWidget       *audible_bell_button;
          GtkWidget       *test_dialog;
          GtkSizeGroup    *size_group;
@@ -36,7 +42,7 @@ Index: gnome-control-center-3.24.3/panels/sound/gvc-mixer-dialog.c
  
          gdouble          last_input_peak;
          guint            num_apps;
-@@ -188,8 +193,14 @@ update_output_settings (GvcMixerDialog
+@@ -188,8 +195,14 @@ update_output_settings (GvcMixerDialog
  
          gvc_channel_bar_set_base_volume (GVC_CHANNEL_BAR (dialog->priv->output_bar),
                                           gvc_mixer_stream_get_base_volume (stream));
@@ -52,7 +58,7 @@ Index: gnome-control-center-3.24.3/panels/sound/gvc-mixer-dialog.c
  
  	/* Update the adjustment in case the previous bar wasn't decibel
  	 * capable, and we clipped it */
-@@ -1595,6 +1606,37 @@ on_test_speakers_clicked (GvcComboBox *w
+@@ -1601,6 +1614,37 @@ on_test_speakers_clicked (GvcComboBox *w
          gtk_widget_destroy (d);
  }
  
@@ -90,31 +96,97 @@ Index: gnome-control-center-3.24.3/panels/sound/gvc-mixer-dialog.c
  static GObject *
  gvc_mixer_dialog_constructor (GType                  type,
                                guint                  n_construct_properties,
-@@ -1608,6 +1650,8 @@ gvc_mixer_dialog_constructor (GType
+@@ -1612,8 +1656,12 @@ gvc_mixer_dialog_constructor (GType
+         GtkWidget        *label;
+         GtkWidget        *sw;
          GtkWidget        *box;
++        GtkWidget        *row;
          GtkWidget        *sbox;
          GtkWidget        *ebox;
-+        GtkWidget        *amplified_volume_box;
++        GtkWidget        *frame;
 +        GtkWidget        *allow_amplify_switch;
++        GtkWidget        *output_box;
          GSList           *streams;
          GSList           *l;
          GvcMixerStream   *stream;
-@@ -1633,6 +1677,23 @@ gvc_mixer_dialog_constructor (GType
+@@ -1629,16 +1677,81 @@ gvc_mixer_dialog_constructor (GType
+ 
+         self->priv->output_stream_box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 12);
+         gtk_widget_set_margin_top (self->priv->output_stream_box, 12);
+-        gtk_box_pack_start (GTK_BOX (main_vbox),
+-                            self->priv->output_stream_box,
+-                            FALSE, FALSE, 0);
+-        self->priv->output_bar = create_bar (self, TRUE, TRUE);
++        if (self->priv->ubuntu_sound_settings != NULL) {
++                frame = gtk_frame_new (NULL);
++                gtk_box_pack_start (GTK_BOX (main_vbox), frame, FALSE, FALSE, 20);
++                gtk_widget_set_margin_start (frame, 4);
++                gtk_widget_set_margin_end (frame, 4);
++
++                output_box = gtk_list_box_new ();
++                gtk_container_add (GTK_CONTAINER (frame), output_box);
++                gtk_list_box_set_selection_mode (GTK_LIST_BOX (output_box), GTK_SELECTION_NONE);
++                gtk_list_box_set_header_func (GTK_LIST_BOX (output_box), cc_list_box_update_header_func, NULL, NULL);
++                
++                gtk_widget_set_margin_start (self->priv->output_stream_box, 8);
++                gtk_widget_set_margin_end (self->priv->output_stream_box, 8);
++                gtk_widget_set_margin_top (self->priv->output_stream_box, 10);
++                gtk_widget_set_margin_bottom (self->priv->output_stream_box, 10);
++                gtk_widget_set_valign (self->priv->output_stream_box, TRUE);
++
++                row = gtk_list_box_row_new ();
++                gtk_container_add (GTK_CONTAINER (row), self->priv->output_stream_box);
++                gtk_container_add (GTK_CONTAINER (output_box), GTK_WIDGET (row));
++        } else
++                gtk_box_pack_start (GTK_BOX (main_vbox),
++                                    self->priv->output_stream_box,
++                                    FALSE, FALSE, 0);
++        self->priv->output_bar = create_bar (self, FALSE, FALSE);
+         gvc_channel_bar_set_name (GVC_CHANNEL_BAR (self->priv->output_bar),
+                                   _("_Output volume:"));
+         gtk_widget_set_sensitive (self->priv->output_bar, FALSE);
          gtk_box_pack_start (GTK_BOX (self->priv->output_stream_box),
                              self->priv->output_bar, TRUE, TRUE, 12);
  
 +        if (self->priv->ubuntu_sound_settings != NULL) {
-+                self->priv->amplified_volume_box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 12);
-+                gtk_box_pack_start (GTK_BOX (main_vbox), self->priv->amplified_volume_box, FALSE, FALSE, 12);
-+                label = gtk_label_new (_("Allow louder than 100%"));
++                row = gtk_list_box_row_new ();
++                self->priv->amplified_volume_box = gtk_grid_new ();
++                gtk_container_add (GTK_CONTAINER (row), self->priv->amplified_volume_box);
++                gtk_container_add (GTK_CONTAINER (output_box), GTK_WIDGET (row));
++
++                gtk_widget_set_margin_start (self->priv->amplified_volume_box, 20);
++                gtk_widget_set_margin_end (self->priv->amplified_volume_box, 20);
++                gtk_widget_set_margin_top (self->priv->amplified_volume_box, 10);
++                gtk_widget_set_margin_bottom (self->priv->amplified_volume_box, 10);
++                gtk_grid_set_row_spacing (GTK_GRID (self->priv->amplified_volume_box), 2);
++                gtk_grid_set_column_spacing (GTK_GRID (self->priv->amplified_volume_box), 16);
++
++                label = gtk_label_new (NULL);
++                gtk_label_set_markup (GTK_LABEL (label), _("<b>Over-Amplification</b>"));
++                gtk_widget_set_valign (self->priv->amplified_volume_box, GTK_ALIGN_CENTER);
++                gtk_widget_set_halign (label, GTK_ALIGN_START);
++                gtk_widget_set_hexpand (label, TRUE);
++                gtk_label_set_use_underline (GTK_LABEL (label), TRUE);
++                gtk_grid_attach (GTK_GRID (self->priv->amplified_volume_box), label, 0, 0, 1, 1);
++
 +                allow_amplify_switch = gtk_switch_new ();
-+                gtk_box_pack_start (GTK_BOX (self->priv->amplified_volume_box), label, FALSE, FALSE, 12);
 +                g_settings_bind (self->priv->ubuntu_sound_settings, AMPLIFIED_KEY,
 +                                allow_amplify_switch, "active", G_SETTINGS_BIND_DEFAULT);
-+                gtk_box_pack_start (GTK_BOX (self->priv->amplified_volume_box), allow_amplify_switch, FALSE, FALSE, 0);
++                gtk_widget_set_halign (allow_amplify_switch, GTK_ALIGN_END);
++                gtk_widget_set_valign (allow_amplify_switch, GTK_ALIGN_CENTER);
++                gtk_grid_attach (GTK_GRID (self->priv->amplified_volume_box), allow_amplify_switch, 1, 0, 1, 2);
++                gtk_label_set_mnemonic_widget (GTK_LABEL (label), allow_amplify_switch);
 +
-+                self->priv->output_stream_box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 12);
-+                gtk_widget_set_margin_top (self->priv->output_stream_box, 12);
++                label = gtk_label_new (_("Allows raising the volume above 100%. This can result in a loss of audio quality; it is better to increase application volume settings, if possible."));
++                gtk_widget_set_halign (label, GTK_ALIGN_START);
++                gtk_label_set_line_wrap (GTK_LABEL (label), TRUE);
++                GtkStyleContext *context = gtk_widget_get_style_context (GTK_WIDGET (label));
++                gtk_style_context_add_class (context, "dim-label");
++                PangoAttribute *scale = pango_attr_scale_new (0.9);
++                PangoAttrList *attr_lst = pango_attr_list_new();
++                pango_attr_list_insert (attr_lst, scale);
++                gtk_label_set_attributes (GTK_LABEL (label), attr_lst);
++                gtk_grid_attach (GTK_GRID (self->priv->amplified_volume_box), label, 0, 1, 1, 1);
 +
 +                g_signal_connect (self->priv->ubuntu_sound_settings, "changed::" AMPLIFIED_KEY,
 +                                  G_CALLBACK (on_amplify_changed), self);
@@ -123,7 +195,7 @@ Index: gnome-control-center-3.24.3/panels/sound/gvc-mixer-dialog.c
          self->priv->notebook = gtk_notebook_new ();
          gtk_box_pack_start (GTK_BOX (main_vbox),
                              self->priv->notebook,
-@@ -1905,6 +1966,17 @@ gvc_mixer_dialog_init (GvcMixerDialog *d
+@@ -1911,6 +2024,17 @@ gvc_mixer_dialog_init (GvcMixerDialog *d
          dialog->priv = GVC_MIXER_DIALOG_GET_PRIVATE (dialog);
          dialog->priv->bars = g_hash_table_new (NULL, NULL);
          dialog->priv->size_group = gtk_size_group_new (GTK_SIZE_GROUP_HORIZONTAL);
