@@ -1,0 +1,68 @@
+From 747134ad45a8f9a34f57f4cf2afb9eed8dd9a153 Mon Sep 17 00:00:00 2001
+From: Iain Lane <iain@orangesquash.org.uk>
+Date: Wed, 6 Dec 2017 19:01:12 +0000
+Subject: [PATCH] search-provider: Populate the model in startup
+
+If the translations are stripped off into gettext .mo files, as happens
+on Ubuntu, we need to be operating in the right locale so that
+g_desktop_app_info_get_description (et al.) read them out correctly.
+
+Previously we were doing work in init(), which is after gtk_init() calls
+setlocale().
+
+Move the population of the model to startup(), and chain up first, so
+that it happens after we're fully initialised (including the locale).
+
+Forwarded: https://bugzilla.gnome.org/show_bug.cgi?id=791035
+Bug-Ubuntu: https://bugs.launchpad.net/ubuntu/+source/gnome-control-center/+bug/1491787
+---
+ search-provider/control-center-search-provider.c | 18 ++++++++++++++----
+ 1 file changed, 14 insertions(+), 4 deletions(-)
+
+diff --git a/search-provider/control-center-search-provider.c b/search-provider/control-center-search-provider.c
+index 78ecec3f7..dfe0dc51c 100644
+--- a/search-provider/control-center-search-provider.c
++++ b/search-provider/control-center-search-provider.c
+@@ -85,11 +85,7 @@ cc_search_provider_app_dispose (GObject *object)
+ static void
+ cc_search_provider_app_init (CcSearchProviderApp *self)
+ {
+-  self->model = cc_shell_model_new ();
+-  cc_panel_loader_fill_model (self->model);
+-
+   self->search_provider = cc_search_provider_new ();
+-
+   g_application_set_inactivity_timeout (G_APPLICATION (self),
+                                         INACTIVITY_TIMEOUT);
+ 
+@@ -98,6 +94,19 @@ cc_search_provider_app_init (CcSearchProviderApp *self)
+   g_application_release (G_APPLICATION (self));
+ }
+ 
++static void
++cc_search_provider_app_startup (GApplication *application)
++{
++  CcSearchProviderApp *self;
++
++  self = CC_SEARCH_PROVIDER_APP (application);
++
++  G_APPLICATION_CLASS (cc_search_provider_app_parent_class)->startup (application);
++
++  self->model = cc_shell_model_new ();
++  cc_panel_loader_fill_model (self->model);
++}
++
+ static void
+ cc_search_provider_app_class_init (CcSearchProviderAppClass *klass)
+ {
+@@ -108,6 +117,7 @@ cc_search_provider_app_class_init (CcSearchProviderAppClass *klass)
+ 
+   app_class->dbus_register = cc_search_provider_app_dbus_register;
+   app_class->dbus_unregister = cc_search_provider_app_dbus_unregister;
++  app_class->startup = cc_search_provider_app_startup;
+ }
+ 
+ CcShellModel *
+-- 
+2.14.1
+
