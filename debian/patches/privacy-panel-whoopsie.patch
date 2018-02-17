@@ -2,26 +2,48 @@ From: James Henstridge <james@jamesh.id.au>
 Date: Thu, 14 Sep 2017 10:58:16 +0800
 Subject: [PATCH] panels/privacy: add Whoopsie support to privacy panel
 
-Index: gnome-control-center-3.26.1/configure.ac
-===================================================================
---- gnome-control-center-3.26.1.orig/configure.ac
-+++ gnome-control-center-3.26.1/configure.ac
-@@ -193,6 +193,11 @@ if test "x$have_wayland" = xyes ; then
- 	fi
- fi
+---
+ meson.build                       |    9 ++
+ meson_options.txt                 |    1 
+ panels/privacy/cc-privacy-panel.c |  128 +++++++++++++++++++++++++++++++++-----
+ panels/privacy/meson.build        |    3 
+ 4 files changed, 127 insertions(+), 14 deletions(-)
+
+--- a/meson.build
++++ b/meson.build
+@@ -182,6 +182,14 @@ endif
+ config_h.set('HAVE_WAYLAND', enable_wayland,
+              description: 'Define to 1 if Wayland is enabled')
  
-+PKG_CHECK_MODULES(WHOOPSIE, libwhoopsie-preferences, have_whoopsie=yes, have_whoopsie=no)
-+if test "x$have_whoopsie" = xyes ; then
-+	AC_DEFINE(HAVE_WHOOPSIE, 1, [System has libwhoopsie-preferences])
-+fi
++# Whoopsie (Ubuntu error reporting service)
++enable_whoopsie = get_option('whoopsie')
++if enable_whoopsie
++  whoopsie_dep = dependency('libwhoopsie-preferences')
++endif
++config_h.set('HAVE_WHOOPSIE', enable_wayland,
++             description: 'Define to 1 if Whoopsie is enabled')
 +
- # Panels that must be built on Linux systems
- linux_error_or_warn()
- {
-Index: gnome-control-center-3.26.1/panels/privacy/cc-privacy-panel.c
-===================================================================
---- gnome-control-center-3.26.1.orig/panels/privacy/cc-privacy-panel.c
-+++ gnome-control-center-3.26.1/panels/privacy/cc-privacy-panel.c
+ if host_is_linux
+   # network manager
+   network_manager_deps = [
+@@ -282,6 +290,7 @@ output += '** IBus (Region panel IBus su
+ output += '** NetworkManager (Network panel): ' + host_is_linux.to_string() + '\n'
+ output += '** wacom (Wacom tablet panel): ' + host_is_linux_not_s390.to_string() + '\n'
+ output += '** Wayland: ' + enable_wayland.to_string() + '\n'
++output += '** Whoopsie: ' + enable_whoopsie.to_string() + '\n'
+ output += '** gnome-session libexecdir: ' + gnome_session_libexecdir + '\n'
+ output += 'End options'
+ message(output)
+--- a/meson_options.txt
++++ b/meson_options.txt
+@@ -2,4 +2,5 @@ option('cheese', type: 'boolean', value:
+ option('documentation', type: 'boolean', value: false, description: 'build documentation')
+ option('gnome_session_libexecdir', type: 'string', value: '', description: 'Directory for gnome-session\'s libexecdir')
+ option('ibus', type: 'boolean', value: true, description: 'build with IBus support')
++option('whoopsie', type: 'boolean', value: false, description: 'build with Whoopsie support')
+ option('wayland', type: 'boolean', value: true, description: 'build with Wayland support')
+--- a/panels/privacy/cc-privacy-panel.c
++++ b/panels/privacy/cc-privacy-panel.c
 @@ -33,6 +33,12 @@
  typedef struct _NMClient NMClient;
  #endif
@@ -46,7 +68,7 @@ Index: gnome-control-center-3.26.1/panels/privacy/cc-privacy-panel.c
  
    GCancellable *cancellable;
  
-@@ -1206,25 +1215,74 @@ abrt_vanished_cb (GDBusConnection *conne
+@@ -1210,25 +1219,74 @@ abrt_vanished_cb (GDBusConnection *conne
    gtk_widget_hide (self->priv->abrt_row);
  }
  
@@ -128,7 +150,7 @@ Index: gnome-control-center-3.26.1/panels/privacy/cc-privacy-panel.c
  
    os_name = get_os_name ();
    /* translators: '%s' is the distributor's name, such as 'Fedora' */
-@@ -1245,13 +1303,54 @@ add_abrt (CcPrivacyPanel *self)
+@@ -1249,13 +1307,54 @@ add_abrt (CcPrivacyPanel *self)
    gtk_label_set_markup (GTK_LABEL (gtk_builder_get_object (self->priv->builder, "abrt_policy_linklabel")), msg);
    g_free (msg);
  
@@ -189,8 +211,8 @@ Index: gnome-control-center-3.26.1/panels/privacy/cc-privacy-panel.c
 +    }
  }
  
- #ifdef BUILD_NETWORK
-@@ -1374,6 +1473,7 @@ cc_privacy_panel_finalize (GObject *obje
+ #if defined(BUILD_NETWORK) && NM_CHECK_VERSION(1,10,0)
+@@ -1346,6 +1445,7 @@ cc_privacy_panel_finalize (GObject *obje
    g_clear_object (&priv->cancellable);
    g_clear_object (&priv->perm_store);
    g_clear_object (&priv->location_icon_size_group);
@@ -198,24 +220,15 @@ Index: gnome-control-center-3.26.1/panels/privacy/cc-privacy-panel.c
    g_clear_pointer (&priv->location_apps_perms, g_variant_unref);
    g_clear_pointer (&priv->location_apps_data, g_variant_unref);
    g_clear_pointer (&priv->location_app_switches, g_hash_table_unref);
-Index: gnome-control-center-3.26.1/panels/privacy/Makefile.am
-===================================================================
---- gnome-control-center-3.26.1.orig/panels/privacy/Makefile.am
-+++ gnome-control-center-3.26.1/panels/privacy/Makefile.am
-@@ -4,6 +4,7 @@ AM_CPPFLAGS = 						\
- 	$(PANEL_CFLAGS)					\
- 	$(PRIVACY_PANEL_CFLAGS)				\
- 	$(NETWORK_MANAGER_CFLAGS)			\
-+	$(WHOOPSIE_CFLAGS)				\
- 	-DGNOMELOCALEDIR="\"$(datadir)/locale\""	\
- 	-I$(top_srcdir)/panels/common/			\
- 	$(NULL)
-@@ -19,7 +20,7 @@ libprivacy_la_SOURCES =		\
- 	cc-privacy-panel.c	\
- 	cc-privacy-panel.h
+--- a/panels/privacy/meson.build
++++ b/panels/privacy/meson.build
+@@ -33,6 +33,9 @@ deps = common_deps
+ if host_is_linux
+   deps += network_manager_deps
+ endif
++if enable_whoopsie
++  deps += whoopsie_dep
++endif
  
--libprivacy_la_LIBADD = $(PANEL_LIBS) $(PRIVACY_PANEL_LIBS) $(NETWORK_MANAGER_LIBS)
-+libprivacy_la_LIBADD = $(PANEL_LIBS) $(PRIVACY_PANEL_LIBS) $(NETWORK_MANAGER_LIBS) $(WHOOPSIE_LIBS)
+ cflags += '-DGNOMELOCALEDIR="@0@"'.format(control_center_localedir)
  
- resource_files = $(shell glib-compile-resources --sourcedir=$(srcdir) --generate-dependencies $(srcdir)/privacy.gresource.xml)
- cc-privacy-resources.c: privacy.gresource.xml $(resource_files)

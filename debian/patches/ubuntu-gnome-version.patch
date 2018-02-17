@@ -20,14 +20,14 @@ and drop the "Version" string from the GNOME version line
 --- a/panels/info/cc-info-overview-panel.c
 +++ b/panels/info/cc-info-overview-panel.c
 @@ -797,7 +794,7 @@ info_overview_panel_setup_overview (CcIn
-                             &priv->gnome_date);
    if (res)
      {
+       g_autofree gchar *text = NULL;
 -      text = g_strdup_printf (_("Version %s"), priv->gnome_version);
 +      text = g_strdup_printf ("%s", priv->gnome_version);
        gtk_label_set_text (GTK_LABEL (priv->version_label), text);
-       g_free (text);
      }
+ 
 --- a/panels/info/info-overview.ui
 +++ b/panels/info/info-overview.ui
 @@ -12,13 +12,14 @@

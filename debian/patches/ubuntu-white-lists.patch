@@ -3,11 +3,13 @@ Description: set a white bg for the lists when using the ubuntu theme,
  impact other softwares 
 Origin: ubuntu
 Bug-Ubuntu: https://launchpad.net/bugs/1719668
-Index: gnome-control-center-3.26.1/shell/cc-application.c
-===================================================================
---- gnome-control-center-3.26.1.orig/shell/cc-application.c
-+++ gnome-control-center-3.26.1/shell/cc-application.c
-@@ -208,6 +208,54 @@ cc_application_activate (GApplication *a
+---
+ shell/cc-application.c |   53 +++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 53 insertions(+)
+
+--- a/shell/cc-application.c
++++ b/shell/cc-application.c
+@@ -212,6 +212,54 @@ cc_application_activate (GApplication *a
  }
  
  static void
@@ -62,7 +64,7 @@ Index: gnome-control-center-3.26.1/shell/cc-application.c
  cc_application_startup (GApplication *application)
  {
    CcApplication *self = CC_APPLICATION (application);
-@@ -215,6 +263,7 @@ cc_application_startup (GApplication *ap
+@@ -219,6 +267,7 @@ cc_application_startup (GApplication *ap
    GMenu *section;
    GSimpleAction *action;
    const gchar *help_accels[] = { "F1", NULL };
@@ -70,10 +72,10 @@ Index: gnome-control-center-3.26.1/shell/cc-application.c
  
    G_APPLICATION_CLASS (cc_application_parent_class)->startup (application);
  
-@@ -261,6 +310,10 @@ cc_application_startup (GApplication *ap
+@@ -265,6 +314,10 @@ cc_application_startup (GApplication *ap
                                           "app.help", help_accels);
  
-   self->priv->window = cc_window_new (GTK_APPLICATION (application));
+   self->window = cc_window_new (GTK_APPLICATION (application));
 +
 +  settings = gtk_settings_get_default ();
 +  g_signal_connect (settings, "notify::gtk-theme-name", G_CALLBACK (theme_changed), NULL);
