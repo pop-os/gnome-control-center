@@ -12,14 +12,15 @@ Forwarded: not-needed
  panels/meson.build                             |    1 
  panels/ubuntu/cc-ubuntu-panel.c                |  442 +++++++++++++++++++++++++
  panels/ubuntu/cc-ubuntu-panel.h                |   39 ++
- panels/ubuntu/gnome-ubuntu-panel.desktop.in.in |   17 
- panels/ubuntu/meson.build                      |   38 ++
+ panels/ubuntu/gnome-ubuntu-panel.desktop.in.in |   16 
+ panels/ubuntu/meson.build                      |   40 ++
+ panels/ubuntu/ubuntu.gresource.xml             |    6 
  panels/ubuntu/ubuntu.ui                        |  100 +++++
  po/POTFILES.in                                 |    4 
  shell/cc-panel-list.c                          |    1 
  shell/cc-panel-loader.c                        |    2 
  shell/window.ui                                |    2 
- 10 files changed, 645 insertions(+), 1 deletion(-)
+ 11 files changed, 652 insertions(+), 1 deletion(-)
 
 --- a/panels/meson.build
 +++ b/panels/meson.build
@@ -520,11 +521,10 @@ Forwarded: not-needed
 +#endif /* _CC_EDIT_DIALOG_H_ */
 --- /dev/null
 +++ b/panels/ubuntu/gnome-ubuntu-panel.desktop.in.in
-@@ -0,0 +1,17 @@
+@@ -0,0 +1,16 @@
 +[Desktop Entry]
-+# Translators: Add soft hyphens to your translations so that the icon view won't clip your translations. See https://bugzilla.gnome.org/show_bug.cgi?id=647087#c13 for details
-+_Name=Dock
-+_Comment=Ubuntu Dock Settings
++Name=Dock
++Comment=Ubuntu Dock Settings
 +Exec=gnome-control-center ubuntu
 +Icon=preferences-ubuntu-panel
 +Terminal=false
@@ -537,10 +537,10 @@ Forwarded: not-needed
 +X-GNOME-Bugzilla-Product=gnome-control-center
 +X-GNOME-Bugzilla-Version=@VERSION@
 +# Translators: those are keywords for the ubuntu control-center panel
-+_Keywords=Dock;Launcher;
++Keywords=Dock;Launcher;
 --- /dev/null
 +++ b/panels/ubuntu/meson.build
-@@ -0,0 +1,38 @@
+@@ -0,0 +1,40 @@
 +panels_list += cappletname
 +desktop = 'gnome-@0@-panel.desktop'.format(cappletname)
 +
@@ -560,9 +560,11 @@ Forwarded: not-needed
 +  install_dir: control_center_desktopdir
 +)
 +
++sources = files('cc-ubuntu-panel.c')
++
 +resource_data = files('ubuntu.ui')
 +
-+resources = gnome.compile_resources(
++sources += gnome.compile_resources(
 +  'cc-' + cappletname + '-resources',
 +  cappletname + '.gresource.xml',
 +  c_name: 'cc_' + cappletname,
@@ -579,6 +581,15 @@ Forwarded: not-needed
 +  dependencies: common_deps,
 +  c_args: cflags
 +)
+--- /dev/null
++++ b/panels/ubuntu/ubuntu.gresource.xml
+@@ -0,0 +1,6 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<gresources>
++  <gresource prefix="/org/gnome/control-center/ubuntu">
++    <file preprocess="xml-stripblanks">ubuntu.ui</file>
++  </gresource>
++</gresources>
 --- /dev/null
 +++ b/panels/ubuntu/ubuntu.ui
 @@ -0,0 +1,100 @@
