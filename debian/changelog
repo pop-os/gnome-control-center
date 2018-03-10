@@ -1,459 +1,189 @@
-gnome-control-center (1:3.27.90-0ubuntu1) UNRELEASED; urgency=medium
+gnome-control-center (1:3.27.92-1ubuntu1) UNRELEASED; urgency=medium
 
   [ Jeremy Bicha ]
-  * New upstream release (LP: #1750174)
-  * Build with meson
-  * Bump Build-Depends on gsettings-desktop-schemas-dev to 3.27.2
-  * Build-Depend on policykit-1 for itstool rules
-  * Depends on fonts-ubuntu instead of transitional package
-  * Bump debhelper compat to 11
-  * Refresh patches
-  * Update connectivity-switch.patch with latest version proposed to GNOME
-  * Drop patches applied in new release:
-    - gnome-desktop327.patch
-    - search-provider-locale.patch
-  * Add git_fix-app-icon-install.patch and list it in
-    debian/source/include-binaries
-  * Cherry-pick user-accounts patches to fix upgrade issue for user
-    avatars
-
-  [ Didier Roche ]
-  * Rebased 70_allow_sound_above_100.patch
-  * Dep on latest gsettings-desktop-schemas for binary
-
- -- Jeremy Bicha <jbicha@debian.org>  Sat, 17 Feb 2018 08:30:14 -0500
-
-gnome-control-center (1:3.26.2-0ubuntu5) bionic; urgency=medium
-
-  * Cherry-pick gnome-desktop327.patch to build against latest gnome-desktop3
-  * debian/control.in: Set minimum gnome-desktop to 3.27.3 for above patch
-
- -- Jeremy Bicha <jbicha@ubuntu.com>  Fri, 16 Feb 2018 08:16:51 -0500
-
-gnome-control-center (1:3.26.2-0ubuntu4) bionic; urgency=medium
-
-  * No-change rebuild against latest gnome-desktop3
-
- -- Jeremy Bicha <jbicha@ubuntu.com>  Fri, 16 Feb 2018 08:08:32 -0500
-
-gnome-control-center (1:3.26.2-0ubuntu3) bionic; urgency=medium
-
-  * debian/patches/70_allow_sound_above_100.patch:
-    - Adopt new design suggested by GNOME design team
-
- -- Didier Roche <didrocks@ubuntu.com>  Tue, 06 Feb 2018 16:55:33 +0100
-
-gnome-control-center (1:3.26.2-0ubuntu2) bionic; urgency=medium
-
-  * debian/patches/search-provider-locale.patch: Backport patch from upstream
-    to set up the search provider such that setlocale() has been called early
-    enough for results to be translated. (LP: #1491787)
-
- -- Iain Lane <iain.lane@canonical.com>  Mon, 11 Dec 2017 14:21:54 +0000
-
-gnome-control-center (1:3.26.2-0ubuntu1) bionic; urgency=medium
-
-  * New upstream release (LP: #1731103)
-    - Fix Empty Trash button in Setting > Privacy (LP: #1721927)
-  * Drop fix-about-desktop.patch: Applied in new release
-
- -- Jeremy Bicha <jbicha@ubuntu.com>  Wed, 08 Nov 2017 21:31:18 -0500
-
-gnome-control-center (1:3.26.1-0ubuntu7) bionic; urgency=medium
-
-  * Suggest instead of Recommend gnome-user-share (LP: #1714821)
-
- -- Jeremy Bicha <jbicha@ubuntu.com>  Fri, 27 Oct 2017 16:44:46 -0400
-
-gnome-control-center (1:3.26.1-0ubuntu6) bionic; urgency=medium
-
-  [ James Henstridge ]
-  * Modify privacy-panel-whoopsie.patch:
-    - use an asynchronous D-Bus call when toggling crash reporting, and 
-      avoid calling SetReportCrashes when setting to the current value.
-      (LP: #1720331)
-
-  [ Jeremy Bicha ]
-  * Modify ubuntu-gnome-version.patch:
-    - Use Ubuntu's PRETTY_NAME instead of NAME from /etc/os-release.
-      This is needed for the version number in About to end up as
-      something like "Ubuntu 18.04.1 LTS" instead of just "Ubuntu 18.04".
-
- -- James Henstridge <james.henstridge@canonical.com>  Fri, 27 Oct 2017 11:05:31 -0400
-
-gnome-control-center (1:3.26.1-0ubuntu5) artful; urgency=medium
-
-  * debian/patches/71_ubuntu_dock_settings.patch:
-    - tentatively fix crashes when panel is disposed (LP: #1725219)
-  * debian/patches/series, enable ubuntu-legacy-notifications.patch:
-    - Ubuntu ships compatibility names for .desktop that got renamed
-      upstream, those use NoDisplay but the panel doesn't respect that key,
-      skip known buggy entries for file-roller and nautilus (LP: #1716267)
-
- -- Didier Roche <didrocks@ubuntu.com>  Tue, 24 Oct 2017 17:42:28 +0200
-
-gnome-control-center (1:3.26.1-0ubuntu4) artful; urgency=medium
-
-  * debian/patches/ubuntu-legacy-notifications.patch:
-    - Ubuntu ships compatibility names for .desktop that got renamed
-      upstream, those use NoDisplay but the panel doesn't respect that key,
-      skip known buggy entries for file-roller and nautilus (lp: #1716267)
-
-  [ Didier Roche ]
-  * debian/patches/ubuntu-white-lists.patch:
-    - use white background for list as expected, clearer that way.
-
- -- Sebastien Bacher <seb128@ubuntu.com>  Fri, 13 Oct 2017 11:39:10 +0200
-
-gnome-control-center (1:3.26.1-0ubuntu3) artful; urgency=medium
-
-  [ Sebastien Bacher ]
-  * debian/patches/71_ubuntu_dock_settings.patch:
-    - increase the default height to accomodate for our extra panel
-      (lp: #1722079)
-
-  [ Didier Roche ]
-  * debian/patches/ubuntu-white-lists.patch:
-    - respect GTK_THEME override when applying additional style
-    - fix item list selection label being white on white (LP: #1720300)
-    - reintroduce alternate white/grey in list for better visibility.
-      The previous fix making the whole list all white instead of grey,
-      despite following more Adwaita, doesn't follow other list of our
-      theme. Ensure we only impact even rows (LP: #1722749)
-
- -- Didier Roche <didrocks@ubuntu.com>  Wed, 11 Oct 2017 12:00:22 +0200
-
-gnome-control-center (1:3.26.1-0ubuntu2) artful; urgency=medium
-
-  * Add fix-about-desktop.patch:
-    - Fix launching About panel (LP: #1721802)
-  * Drop dist-old-shell.patch:
-    - Temporary patch to install old gnome-control-center shell
-
- -- Jeremy Bicha <jbicha@ubuntu.com>  Fri, 06 Oct 2017 12:39:11 -0400
-
-gnome-control-center (1:3.26.1-0ubuntu1) artful; urgency=medium
-
-  * New upstream release
-  * Drop patches applied in new release:
-    - ubuntu_external_panels.patch
-    - git_split-window-decorations.patch
-    - git_disable-menubar.patch
-
- -- Jeremy Bicha <jbicha@ubuntu.com>  Tue, 03 Oct 2017 14:50:25 -0400
-
-gnome-control-center (1:3.26.0-0ubuntu3) artful; urgency=medium
-
-  * debian/patches/ubuntu-white-lists.patch: set a white bg for the lists 
-    when using the ubuntu theme, that's a workaround for artful to 
-    not modify the theme which could impact other softwares (lp: #1719668)
-
- -- Sebastien Bacher <seb128@ubuntu.com>  Tue, 26 Sep 2017 16:37:03 -0400
-
-gnome-control-center (1:3.26.0-0ubuntu2) artful; urgency=medium
-
-  [ James Henstridge ]
-  * debian/patches/connectivity-switch.patch: watch the correct property
-    so the connectivity switch updates correctly. (LP: #1715662)
-
-  [ Didier Roche ]
-  * debian/patches/ubuntu-printer-support.patch: (LP: #1718083)
-    - Temporary add an additional advanced printer button.
-      g-c-c printers panel doesn't support printer sharing and other
-      features.
-      Workaround it for now by adding in multiple places an advanced printer
-      button starting system-config-printer to avoid doubling the panel
-      in Settings.
-  * debian/patches/ubuntu-language-support.patch:
-    clean up ui file and align right, as for advanced printer setttings button.
-  * debian/patches/71_ubuntu_dock_settings.patch: (LP: #1718612)
-    - as suggested by the community, change label "screen position" by
-      "position on screen"
-    - change margin to match other panels
-    - only display "show on" when having multiple displays
-
- -- Didier Roche <didrocks@ubuntu.com>  Fri, 22 Sep 2017 07:22:35 +0200
-
-gnome-control-center (1:3.26.0-0ubuntu1) artful; urgency=medium
-
-  * New upstream release
-  * debian/control.in:
-    - Depend on language-selector-gnome >= 0.179
-  * Backport 2 patches to fix double app menu when desktop doesn't handle
-    app menu (LP: #1717197)
-    - git_split-window-decorations.patch
-    - git_disable-menubar.patch
-  * Add ubuntu-language-support.patch:
-    - Add Language Support button to Region & Language panel to
-      work around LP: #1631750
-  * Replace ubuntu_external_panels.patch with simpler
-    OnlyShowIn/NotShowIn patch applied upstream
-
- -- Jeremy Bicha <jbicha@ubuntu.com>  Thu, 14 Sep 2017 11:47:25 -0400
-
-gnome-control-center (1:3.25.92.1-0ubuntu3) artful; urgency=medium
-
-  * debian/patches/privacy-panel-whoopsie.patch:
-    - Add Whoopsie crash reporting support to privacy panel (LP: #1698035)
-
- -- James Henstridge <james.henstridge@canonical.com>  Thu, 14 Sep 2017 15:54:54 +0800
-
-gnome-control-center (1:3.25.92.1-0ubuntu2) artful; urgency=medium
-
-  * debian/patches/71_ubuntu_dock_settings.patch:
-    - Revert the logic for Always show Dock to something more explicit
-      "Auto-hide the Dock" with a sub-label illustrating the hiding logic.
-      Thanks Greg K Nicholson for the suggestion.
-    - Do some casting warning cleanup.
-    - Add separators between items for consistency with other panels.
-
- -- Didier Roche <didrocks@ubuntu.com>  Mon, 11 Sep 2017 10:02:08 +0200
-
-gnome-control-center (1:3.25.92.1-0ubuntu1~ppa1) artful; urgency=medium
-
-  [ Jeremy Bicha ]
-  * New upstream release (LP: #1712797)
-  * debian/control.in:
-    - Bump minimum libglib2.0-dev to 2.53
-    - Bump minimum libgoa-1.0-dev to 3.25.3
-    - Bump minimum gnome-settings-daemon-dev to 3.25.90
-  * Rebase ubuntu-gnome-version.patch
-  * Refresh ubuntu_external_panels.patch
-  * Disable 71_ubuntu_dock_settings.patch:
-    - Needs to be adapted to redesigned Displays panel
-  * Disable 92_ubuntu_system_proxy.patch:
-    - Needs to be adapted to redesigned Network panel
-  * Add dist-old-shell.patch:
-    Install old shell. Try it out by running gnome-control-center-alt
-  * Rebase and re-enable 92_ubuntu_system_proxy.patch
-  * TODO: The proxy button crashes when pressed
-
-  [ Didier Roche ]
-  * debian/patches/71_ubuntu_dock_settings.patch:
-    - separate the dock settings in its own panel (thanks seb128), rewrite
-      the backend and adapt the monitor detection to new upstream method.
-      This panel is only available in the ubuntu session.
-  * Add specific icons for that new panel.
-  * Disable 92_ubuntu_system_proxy.patch for now. We may reenable it if
-    we are confident users find that setting useful.
-
- -- Didier Roche <didrocks@ubuntu.com>  Fri, 08 Sep 2017 07:27:38 +0200
-
-gnome-control-center (1:3.24.3-0ubuntu6) artful; urgency=medium
-
-  * debian/patches/monospace-wifihotspot-password.patch:
-    - Add the Monospace font attribute to the security key label (LP: #1706421)
-
- -- Will Cooke <will@whizzy.org>  Wed, 30 Aug 2017 16:07:51 +0200
-
-gnome-control-center (1:3.24.3-0ubuntu5) artful; urgency=medium
-
-  * Add connectivity-check.patch:
-    - Apply James Henstridge's proposed patch to add Connectivity Check
-      on/off switch to Privacy panel (LP: #1704162)
-
- -- Jeremy Bicha <jbicha@ubuntu.com>  Wed, 23 Aug 2017 22:01:16 -0400
-
-gnome-control-center (1:3.24.3-0ubuntu4) artful; urgency=medium
-
-  * Allow tweaking some settings for Ubuntu Dock in
-    debian/patches/71_ubuntu_dock_settings.patch:
-    - Expose some of the settings that most users will find useful for our
-    - Ubuntu Dock installation. Those are located in the Display panel for now
-    - until we find a better place:
-      * change intellihide true/hide mode
-      * change dock icon size
-      * modify placement of the launcher (all monitor, primary or any monitors)
-
- -- Didier Roche <didrocks@ubuntu.com>  Fri, 18 Aug 2017 08:22:03 +0200
-
-gnome-control-center (1:3.24.3-0ubuntu3) artful; urgency=medium
-
-  * Add patch to expose settings allowing setting volume above 100%:
-    - debian/patches/70_allow_sound_above_100.patch, adapt the patch from
-      unity-control-center to only add a slightely reshaped UI (use of
-      gtk switch and rephrasing). Only show the above 100% volume option if:
-      1. you are in an ubuntu session
-      2. the selected output supports amplified volume. If so:
-         present the settings to google that on and off. It will enable
-         GNOME Shell and media keys to set the sound above 100%. If not
-         enabled, volume and sliders are all capped to 100%. (LP: #1706524)
-
- -- Didier Roche <didrocks@ubuntu.com>  Wed, 16 Aug 2017 08:30:52 +0200
-
-gnome-control-center (1:3.24.3-0ubuntu2) artful; urgency=medium
-
-  * No-change rebuild against latest libgtop2
-
- -- Jeremy Bicha <jbicha@ubuntu.com>  Wed, 09 Aug 2017 22:54:23 -0400
-
-gnome-control-center (1:3.24.3-0ubuntu1) artful; urgency=medium
-
-  * New upstream release
-
- -- Jeremy Bicha <jbicha@ubuntu.com>  Sun, 23 Jul 2017 10:52:36 -0400
-
-gnome-control-center (1:3.24.2-0ubuntu5) artful; urgency=medium
-
-  * debian/gnome-control-center-data.links
-    - Link audio-speaker-center* to audio-speaker-mono* so that an icon is
-      show in the test speaker panel. (LP: #1704002)
-
- -- Will Cooke <will@whizzy.org>  Wed, 12 Jul 2017 22:29:59 +0100
-
-gnome-control-center (1:3.24.2-0ubuntu4) artful; urgency=medium
-
-  * debian/control.in:
-    - let g-c-c-faces c/r/p the old u-c-c binary
-  * Use the correct name for the .install
-
- -- Sebastien Bacher <seb128@ubuntu.com>  Thu, 06 Jul 2017 16:43:41 +0200
-
-gnome-control-center (1:3.24.2-0ubuntu3) artful; urgency=medium
-
-  * debian/control.in, debian/unity-control-center-faces.install:
-    - build the deb providing the user profiles icons from g-c-c instead of
-
- -- Sebastien Bacher <seb128@ubuntu.com>  Thu, 06 Jul 2017 16:36:25 +0200
-
-gnome-control-center (1:3.24.2-0ubuntu2) artful; urgency=medium
-
-  * debian/patches/52_region_language.patch:
-    - Fix crash when opening Region panel in 3.24.2 (LP: #1692528)
-
- -- Jeremy Bicha <jbicha@ubuntu.com>  Sat, 17 Jun 2017 14:13:30 -0400
-
-gnome-control-center (1:3.24.2-0ubuntu1) artful; urgency=medium
-
-  * New upstream release (LP: #1690253)
-  * Recommend gnome-user-guide again
-
- -- Jeremy Bicha <jbicha@ubuntu.com>  Wed, 03 May 2017 17:13:04 -0400
-
-gnome-control-center (1:3.24.1-0ubuntu3) artful; urgency=medium
-
-  * Drop universe recommends to suggests:
-    - realmd
-    - rygel
-  * Recommend ubuntu-docs instead of gnome-user-guide
-
- -- Jeremy Bicha <jbicha@ubuntu.com>  Tue, 25 Apr 2017 22:29:00 -0400
-
-gnome-control-center (1:3.24.1-0ubuntu2) artful; urgency=medium
-
-  * debian/patches/ubuntu-gnome-version.patch:
-    - Use Fedora's patch for Details panel branding.
-      Adjust it to use Ubuntu logo with larger version number below.
-      Don't use the word "Version" in GNOME version line.
-  * Install ubuntu-logo-icon.png until some other package provides a suitable
-    icon.
-  * Drop obsolete files:
-    - debian/UbuntuLogoBlank.png
-    - debian/patches/56_use_ubuntu_info_branding.patch
-  * debian/control.in:
-    - Drop obsolete Build-Depends on ttf-ubuntu-font-family and valac
-    - Depend on ttf-ubuntu-font-family for Details panel branding
-
- -- Jeremy Bicha <jbicha@ubuntu.com>  Sat, 22 Apr 2017 12:59:07 -0400
-
-gnome-control-center (1:3.24.1-0ubuntu1) zesty; urgency=medium
-
-  * New upstream release (LP: #1682138)
-
- -- Jeremy Bicha <jbicha@ubuntu.com>  Wed, 12 Apr 2017 09:51:00 -0400
-
-gnome-control-center (1:3.24.0-0ubuntu1) zesty; urgency=medium
-
-  * New upstream translations release
-
- -- Jeremy Bicha <jbicha@ubuntu.com>  Mon, 20 Mar 2017 11:05:32 -0400
-
-gnome-control-center (1:3.23.92-0ubuntu1) zesty; urgency=medium
-
-  [ Jeremy Bicha ]
-  * New upstream release
-
-  [ Michael Biebl ]
-  * Set --with-gnome-session-libexecdir so gnome-control-center can find the
-    gnome-session-check-accelerated binary which is required for the info
-    panel.
-
- -- Jeremy Bicha <jbicha@ubuntu.com>  Wed, 15 Mar 2017 14:04:06 -0400
-
-gnome-control-center (1:3.23.91-0ubuntu1) zesty; urgency=medium
-
-  * New upstream release
-  * Drop git_tweak-night-light.patch, applied in new release
-
- -- Jeremy Bicha <jbicha@ubuntu.com>  Tue, 28 Feb 2017 17:29:53 -0500
-
-gnome-control-center (1:3.23.90-0ubuntu2) zesty; urgency=medium
-
-  * Add git_tweak-night-light.patch:
-    - Update Night Light panel to fix some issues
-
- -- Jeremy Bicha <jbicha@ubuntu.com>  Sat, 18 Feb 2017 10:32:19 -0500
-
-gnome-control-center (1:3.23.90-0ubuntu1) zesty; urgency=medium
-
-  * New upstream release
-  * debian/control.in:
-    - Bump minimum gnome-settings-daemon to 3.23.90
-  * Refresh patches:
-    - 52_region_language.patch
-    - ubuntu-gnome-version.patch
-
- -- Jeremy Bicha <jbicha@ubuntu.com>  Tue, 14 Feb 2017 16:15:09 -0500
-
-gnome-control-center (1:3.22.1-1ubuntu2) zesty; urgency=medium
-
-  * debian/control.in:
-    - Depend on system-config-printer-common instead of recommending
-      system-config-printer-gnome (LP: #1637466) (LP: #1643129)
-    - Depend on instead of recommend network-manager-gnome (Closes: #845021)
-
- -- Jeremy Bicha <jbicha@ubuntu.com>  Thu, 24 Nov 2016 18:16:34 -0500
-
-gnome-control-center (1:3.22.1-1ubuntu1) zesty; urgency=medium
-
-  * Merge with Debian. Remaining changes:
+  * Sync with Debian. (LP: #1750174, LP: #1752928, LP: #1691867)
+    Remaining changes:
+    + debian/control.in:
+      - Depend on fonts-ubuntu, language-selector-gnome, and 
+        whoopsie-preferences
+      - Depend on instead of Recommend network-manager-gnome and
+        system-config-printer-common
+      - Recommend ibus, unity-control-center-faces, & ubuntu-system-service
+      - Suggest instead of Recommend realmd and rygel
+      - Build-Depend on libwhoopsie-preferences-dev
+    + Split gnome-control-center-faces to a separate package so
+      that it can be used by unity-control-center
+    + Install apport hook
+    + debian/gnome-control-center-data.install:
+      - Don't install gnome-control-center.pkla since we use
+        policykit-desktop-privileges instead
+      - Install additional assets used by unity-control-center
+    * debian/ubuntu-logo-icon.png, debian/source/include-binaries,
+      debian/gnome-control-center-data.install: Include an Ubuntu logo
+    * debian/gnome-control-center-data.links:
+      - Link audio-speaker-center* to audio-speaker-mono* so that an
+        icon is shown in the test speaker panel. (LP: #1704002)
+    + debian/rules: Enable whoospie integration
     + debian/patches:
       - 08_lowercase_user_names.patch:
-        Disallow upper-case letters in user names for compliance with adduser
-      - 52_region_language.patch
-        Adapt region panel to use Ubuntu style regions
-      - 56_use_ubuntu_info_branding.patch,
-        ubuntu-gnome-version.patch
-         Use Ubuntu GNOME branding
+         Disallow upper-case letters in user names for compliance with adduser
+      - 52_region_language.patch:
+         Adapt region panel to use Ubuntu style regions
       - 64_restore_terminal_keyboard_shortcut.patch
          Bring back terminal shortcut
-      - 92_ubuntu_system_proxy.patch
-         Add system proxy support
+      - 70_allow_sound_above_100.patch:
+         Allow setting volume above 100% in the Ubuntu session
+      - 71_ubuntu_dock_settings.patch
+         Add Dock panel for Ubuntu session
       - 99_add_lock-on-suspend.patch
          Add option to lock on suspend
-      - ubuntu_external_panels.patch
-         Reimplement support for desktop launchers
+      - ubuntu-gnome-version.patch:
+         Add Ubuntu branding to Details panel
       - ubuntu-region-packagekit.patch
          fix detection of installed language packs
       - ubuntu-region-langpack-install.patch:
          check for missing language packs when loading region panel to pull
          in packs that arent included with the installer
-    + debian/control.in:
-      - Recommend ibus, unity-control-center-faces, and unity-system-service
-      - Don't recommend rygel | rygel-tracker for now
-      - build-dep on ttf-ubuntu-font-family and valac for logo generation
-      - Depend on system-config-printer-gnome instead of -common.
-        Ubuntu's s-c-p packaging differs and we need scp-dbus-service.py
-    + Split out shared data that is used by unity-control-center
-    + Install apport hook
-    + debian/gnome-control-center-data.install:
-      - Don't install gnome-control-center.pkla since we use
-        policykit-desktop-privileges instead
-      - Don't install 'faces', installed instead by unity-control-center-faces
-  * debian/patches/ubuntu-gnome-version.patch:
-    - Set Ubuntu version to 17.04
+      - ubuntu-language-support.patch
+         Add Language Support button to Region & Language panel to
+         work around (LP: #1631750)
+      - ubuntu-printer-support.patch
+         Add Advanced Printer Settings button to work around missing printer
+         sharing feature (LP: #1718083)
+      - ubuntu-legacy-notifications.patch
+         Ubuntu ships compatibility names for .desktop that got renamed
+         upstream, those use NoDisplay but the panel doesn't respect that key,
+         skip known buggy entries for file-roller and nautilus (LP: #1716267)
+      - connectivity-switch.patch
+         Add Connectivity Checking switch to Privacy panel
+      - privacy-panel-whoopsie.patch
+         Support Ubuntu's whoopsie service in the Privacy panel
+      - ubuntu-white-lists.patch
+         Ensure lists have white background when used with Ambiance & Radiance
+  * Update connectivity-switch.patch with latest version proposed to GNOME
+  * Drop patches applied in new release:
+    - gnome-desktop327.patch
+    - monospace-wifihotspot-password.patch
+    - search-provider-locale.patch
 
- -- Jeremy Bicha <jbicha@ubuntu.com>  Tue, 11 Oct 2016 11:36:05 -0400
+  [ Didier Roche ]
+  * Rebased 70_allow_sound_above_100.patch
+  * Dep on latest gsettings-desktop-schemas for binary
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Sat, 10 Mar 2018 14:53:13 -0500
+
+gnome-control-center (1:3.27.92-1) unstable; urgency=medium
+
+  * New upstream release candidate
+  * Build with meson
+  * Build-Depend on policykit-1 for itstool rules
+  * Build-Depend on networkmanager-dev
+  * Bump minimum gnome-desktop3 and gsettings-desktop-schemas
+  * Bump debhelper compat to 11
+  * Bump Standards-Version to 4.1.3
+
+ -- Jeremy Bicha <jbicha@debian.org>  Sat, 10 Mar 2018 14:50:31 -0500
+
+gnome-control-center (1:3.26.2-1) unstable; urgency=medium
+
+  * New upstream release
+  * Recommend gnome-user-docs instead of transitional package gnome-user-guide
+  * Drop debian/patches/fix-about-desktop.patch, merged upstream
+  * Switch to dh_missing and abort on uninstalled files
+
+ -- Michael Biebl <biebl@debian.org>  Sun, 05 Nov 2017 19:11:44 +0100
+
+gnome-control-center (1:3.26.1-2) unstable; urgency=medium
+
+  * Release to unstable
+  * Add fix-about-desktop.patch:
+    - Fix launching About panel (LP: #1721802)
+  * Bump Standards-Version to 4.1.1
+
+ -- Jeremy Bicha <jbicha@debian.org>  Fri, 13 Oct 2017 17:16:32 -0400
+
+gnome-control-center (1:3.26.1-1) experimental; urgency=medium
+
+  * Team upload
+  * New upstream release
+
+ -- Simon McVittie <smcv@debian.org>  Fri, 06 Oct 2017 10:36:51 +0100
+
+gnome-control-center (1:3.26.0-1) experimental; urgency=medium
+
+  * Team upload
+  * debian/watch: Go back to checking for stable versions only
+  * New upstream stable release
+
+ -- Simon McVittie <smcv@debian.org>  Wed, 13 Sep 2017 11:56:48 +0100
+
+gnome-control-center (1:3.25.92.1-1) experimental; urgency=medium
+
+  * Team upload
+  * debian/watch: Check for development versions too
+  * New upstream release
+    - Increase build and runtime dependencies as per configure.ac
+  * Add Suggests: gnome-software | gnome-packagekit, for Updates
+    button in overview panel
+
+ -- Simon McVittie <smcv@debian.org>  Thu, 07 Sep 2017 11:59:44 +0100
+
+gnome-control-center (1:3.24.3-1) unstable; urgency=medium
+
+  [ Laurent Bigonville ]
+  * New upstream release.
+    - Drop d/p/git_allow_empty_ip4_gateway.patch and
+      d/p/info-Do-not-crash-if-Renderer-is-not-set-by-SessionM.patch, applied
+      upstream
+    - debian/control.in: Bump (build-)dependencies
+
+  [ Jeremy Bicha ]
+  * debian/control.in:
+    - Bump minimum gnome-settings-daemon to 3.23.90
+  * Bump Standards-Version to 4.1.0
+
+ -- Laurent Bigonville <bigon@debian.org>  Wed, 30 Aug 2017 02:01:50 +0200
+
+gnome-control-center (1:3.22.2-3) unstable; urgency=medium
+
+  * Add debian/patches/git_allow_empty_ip4_gateway.patch
+    - Allow entering manual ipv4 configuration *without* a gateway.
+      (Cherry-picked from upstream commit 898d0aa4e9780078ff3)
+      Closes: #863595 (see also bgo: #708500)
+
+ -- Andreas Henriksson <andreas@fatal.se>  Tue, 30 May 2017 22:29:04 +0200
+
+gnome-control-center (1:3.22.2-2) unstable; urgency=medium
+
+  * Remove leftover Build-Depends on network-manager-dev, libnm-util-dev and
+    libnm-glib-dev. Those are no longer needed after the switch to
+    libnm-dev/libnma-dev.
+
+ -- Michael Biebl <biebl@debian.org>  Mon, 15 May 2017 17:21:05 +0200
+
+gnome-control-center (1:3.22.2-1) unstable; urgency=medium
+
+  * New upstream release.
+  * Set --with-gnome-session-libexecdir so gnome-control-center can find the
+    gnome-session-check-accelerated binary which is required for the info
+    panel.
+  * debian/patches/info-Do-not-crash-if-Renderer-is-not-set-by-SessionM.patch
+    - Fix a crash in the info panel if the renderer can not be retrieved from
+      SessionManager.
+
+ -- Michael Biebl <biebl@debian.org>  Tue, 14 Mar 2017 23:15:36 +0100
+
+gnome-control-center (1:3.22.1-2) unstable; urgency=medium
+
+  [ Helmut Grohne ]
+  * Mark gnome-control-center-{dev,data} Multi-Arch: foreign.
+    (Closes: #842527)
+
+  [ Michael Biebl ]
+  * Drop Recommends: gnome-control-center from gnome-control-center-data.
+    (Closes: #819458)
+
+ -- Michael Biebl <biebl@debian.org>  Wed, 25 Jan 2017 16:51:16 +0100
 
 gnome-control-center (1:3.22.1-1) unstable; urgency=medium
 

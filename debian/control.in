@@ -4,7 +4,7 @@ Priority: optional
 Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
 XSBC-Original-Maintainer: Debian GNOME Maintainers <pkg-gnome-maintainers@lists.alioth.debian.org>
 Uploaders: @GNOME_TEAM@
-Standards-Version: 3.9.8
+Standards-Version: 4.1.3
 Build-Depends: debhelper (>= 11.1.3),
                libaccountsservice-dev (>= 0.6.39),
                desktop-file-utils,
@@ -32,8 +32,9 @@ Build-Depends: debhelper (>= 11.1.3),
                libgtop2-dev,
                libgudev-1.0-dev [linux-any],
                libkrb5-dev,
-               libnm-dev (>= 1.8.2-1ubuntu3~) [linux-any],
+               libnm-dev (>= 1.2.0) [linux-any],
                libnma-dev (>= 1.2.0) [linux-any],
+               libmm-glib-dev [linux-any],
                libpolkit-gobject-1-dev (>= 0.103),
                libpulse-dev,
                libpwquality-dev,
@@ -50,11 +51,10 @@ Build-Depends: debhelper (>= 11.1.3),
                meson (>= 0.43.0),
                network-manager-dev (>= 1.2.0) [linux-any],
                policykit-1,
-               libnm-util-dev (>= 1.2.0) [linux-any],
-               libnm-glib-dev (>= 1.2.0) [linux-any],
-               libmm-glib-dev [linux-any],
                shared-mime-info,
                tzdata <!nocheck>
+XS-Debian-Vcs-Svn: svn://anonscm.debian.org/pkg-gnome/desktop/unstable/gnome-control-center/
+XS-Debian-Vcs-Browser: https://anonscm.debian.org/viewvc/pkg-gnome/desktop/unstable/gnome-control-center/
 Vcs-Bzr: http://code.launchpad.net/~ubuntu-desktop/gnome-control-center/ubuntu
 
 Package: gnome-control-center
@@ -76,8 +76,8 @@ Depends: ${misc:Depends},
          fonts-ubuntu,
          whoopsie-preferences,
 Recommends: cups-pk-helper,
-            gnome-online-accounts,
-            gnome-user-guide,
+            gnome-online-accounts (>= 3.25.3),
+            gnome-user-docs,
             gkbd-capplet,
             ibus,
             iso-codes,
@@ -89,10 +89,11 @@ Recommends: cups-pk-helper,
             pulseaudio-module-bluetooth,
             ubuntu-system-service,
             gnome-control-center-faces
-Suggests: gstreamer1.0-pulseaudio,
+Suggests: gnome-software | gnome-packagekit,
           gnome-user-share,
           realmd,
           rygel | rygel-tracker,
+          gstreamer1.0-pulseaudio,
           libcanberra-gtk-module,
           libcanberra-gtk3-module,
           x11-xserver-utils
@@ -107,6 +108,7 @@ Description: utilities to configure the GNOME desktop
 
 Package: gnome-control-center-faces
 Architecture: all
+Multi-Arch: foreign
 Depends: ${misc:Depends}
 Conflicts: unity-control-center-faces
 Replaces: unity-control-center-faces
@@ -116,6 +118,7 @@ Description: utilities to configure the GNOME desktop - faces images
 
 Package: gnome-control-center-dev
 Architecture: all
+Multi-Arch: foreign
 Section: devel
 Depends: ${misc:Depends}
 Description: utilities to configure the GNOME desktop
@@ -123,8 +126,8 @@ Description: utilities to configure the GNOME desktop
 
 Package: gnome-control-center-data
 Architecture: all
+Multi-Arch: foreign
 Depends: ${misc:Depends}
-Recommends: gnome-control-center (>= ${source:Version})
 Breaks: gnome-control-center (<< 1:3.7.92-2~)
 Replaces: gnome-control-center (<< 1:3.7.92-2~)
 Description: configuration applets for GNOME - data files
