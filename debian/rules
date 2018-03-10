@@ -1,21 +1,17 @@
 #!/usr/bin/make -f
+-include /usr/share/gnome-pkg-tools/1/rules/gnome-get-source.mk
 
-include /usr/share/gnome-pkg-tools/1/rules/gnome-get-source.mk
-
-export DEB_LDFLAGS_MAINT_APPEND = -Wl,-z,defs -Wl,-O1 -Wl,--as-needed
+export DEB_LDFLAGS_MAINT_APPEND = -Wl,-z,defs -Wl,--as-needed
 export DEB_CPPFLAGS_MAINT_APPEND = -DSSHD_SERVICE=\"ssh.service\"
 
 %:
 	dh $@ --with gnome
 
-override_dh_autoreconf:
-	dh_autoreconf --as-needed
-
 override_dh_auto_configure:
 	dh_auto_configure -- \
-		--libexecdir=\$${prefix}/lib/gnome-control-center \
-		--with-gnome-session-libexecdir=\$${prefix}/lib/gnome-session \
-		--disable-update-mimedb
+		--libexecdir=/usr/lib/gnome-control-center \
+		-Dgnome_session_libexecdir=/usr/lib/gnome-session \
+		-Ddocumentation=true
 
 override_dh_missing:
 	dh_missing --fail-missing
