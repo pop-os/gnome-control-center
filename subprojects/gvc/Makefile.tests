@@ -1,0 +1,43 @@
+LIBGVC_SOURCES =				\
+	gvc-mixer-card.h			\
+	gvc-mixer-card.c			\
+	gvc-mixer-stream.h			\
+	gvc-mixer-stream.c			\
+	gvc-channel-map.h			\
+	gvc-channel-map.c			\
+	gvc-mixer-ui-device.h			\
+	gvc-mixer-ui-device.c			\
+	gvc-mixer-sink.h			\
+	gvc-mixer-sink.c			\
+	gvc-mixer-source.h			\
+	gvc-mixer-source.c			\
+	gvc-mixer-sink-input.h			\
+	gvc-mixer-sink-input.c			\
+	gvc-mixer-source-output.h		\
+	gvc-mixer-source-output.c		\
+	gvc-mixer-event-role.h			\
+	gvc-mixer-event-role.c			\
+	gvc-mixer-control.h			\
+	gvc-mixer-control.c			\
+	gvc-mixer-card-private.h		\
+	gvc-mixer-stream-private.h		\
+	gvc-channel-map-private.h		\
+	gvc-mixer-control-private.h		\
+	gvc-pulseaudio-fake.h
+
+GVC_CFLAGS = `pkg-config --cflags gtk+-3.0 libpulse libpulse-mainloop-glib alsa`
+GVC_LIBS = `pkg-config --libs gtk+-3.0 libpulse libpulse-mainloop-glib alsa`
+
+all: test-audio-device-selection $(LIBGVC_SOURCES) tests-include/config.h
+
+.c.o:
+	$(CC) -g3 -ggdb -c $(GVC_CFLAGS) -I. -Itests-include/ $< -o $@
+
+C_SOURCES = $(filter %.c,$(LIBGVC_SOURCES))
+OBJECTS=$(C_SOURCES:.c=.o)
+
+test-audio-device-selection: $(OBJECTS) test-audio-device-selection.o
+	$(CC) -g3 -ggdb $(GVC_LIBS) $(OBJECTS) test-audio-device-selection.o -o $@
+
+clean:
+	rm -f *.o test-audio-device-selection

@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <!-- interface-requires gtk+ 3.0 -->
+  <object class="GtkAdjustment" id="cursor_blink_time_adjustment">
+    <property name="lower">100</property>
+    <property name="upper">2500</property>
+    <property name="value">1000</property>
+    <property name="step_increment">200</property>
+    <property name="page_increment">200</property>
+  </object>
+  <template class="CcKeyboardPanel" parent="CcPanel">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="expand">True</property>
+    <signal name="key-press-event" handler="gtk_search_bar_handle_event" object="search_bar" swapped="yes" />
+    <child>
+      <object class="GtkBox">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="orientation">vertical</property>
+        <child>
+          <object class="GtkSearchBar" id="search_bar">
+            <property name="visible">True</property>
+            <property name="hexpand">True</property>
+            <property name="search_mode_enabled" bind-source="search_button" bind-property="active" bind-flags="bidirectional" />
+            <child>
+              <object class="GtkSearchEntry" id="search_entry">
+                <property name="visible">True</property>
+                <property name="width_chars">30</property>
+                <signal name="notify::text" handler="gtk_list_box_invalidate_filter" object="listbox" swapped="yes" />
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkScrolledWindow">
+            <property name="visible">True</property>
+            <property name="can_focus">True</property>
+            <property name="hexpand">True</property>
+            <property name="vexpand">True</property>
+            <property name="hscrollbar_policy">never</property>
+            <property name="propagate_natural_width">True</property>
+            <property name="propagate_natural_height">True</property>
+            <property name="max_content_height">350</property>
+            <child>
+              <object class="GtkBox">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="orientation">vertical</property>
+                <property name="margin_top">32</property>
+                <property name="margin_bottom">32</property>
+                <property name="margin_left">18</property>
+                <property name="margin_right">18</property>
+                <property name="spacing">12</property>
+                <property name="halign">center</property>
+                <child>
+                  <object class="GtkBox">
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="hexpand">True</property>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="hexpand">True</property>
+                        <property name="xalign">0.0</property>
+                        <property name="label" translatable="yes">Keyboard Shortcuts</property>
+                        <attributes>
+                          <attribute name="weight" value="bold" />
+                        </attributes>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkButton">
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="label" translatable="yes">Reset All…</property>
+                        <property name="tooltip-text" translatable="yes">Reset all shortcuts to their default keybindings</property>
+                        <signal name="clicked" handler="reset_all_clicked_cb" object="CcKeyboardPanel" swapped="yes" />
+                      </object>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkFrame">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <child>
+                      <object class="GtkListBox" id="listbox">
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="selection-mode">none</property>
+                        <property name="width-request">250</property>
+                        <signal name="row-activated" handler="shortcut_row_activated" object="CcKeyboardPanel" swapped="no" />
+                        <child>
+                          <object class="GtkListBoxRow" id="add_shortcut_row">
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <child>
+                              <object class="GtkBox">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="hexpand">True</property>
+                                <property name="border_width">6</property>
+                                <child type="center">
+                                  <object class="GtkImage">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">False</property>
+                                    <property name="icon_name">list-add-symbolic</property>
+                                  </object>
+                                </child>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+  </template>
+  <object class="GtkToggleButton" id="search_button">
+    <property name="visible">True</property>
+    <style>
+      <class name="image-button" />
+    </style>
+    <child>
+      <object class="GtkImage">
+        <property name="visible">True</property>
+        <property name="icon_name">system-search-symbolic</property>
+      </object>
+    </child>
+  </object>
+  <object class="GtkBox" id="empty_search_placeholder">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="halign">center</property>
+    <property name="valign">center</property>
+    <property name="hexpand">True</property>
+    <property name="vexpand">True</property>
+    <property name="border_width">18</property>
+    <property name="orientation">vertical</property>
+    <property name="spacing">6</property>
+    <child>
+      <object class="GtkImage">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="pixel_size">72</property>
+        <property name="icon_name">edit-find-symbolic</property>
+        <style>
+          <class name="dim-label"/>
+        </style>
+      </object>
+    </child>
+    <child>
+      <object class="GtkLabel">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="label" translatable="yes">No keyboard shortcut found</property>
+        <attributes>
+          <attribute name="weight" value="bold"/>
+          <attribute name="scale" value="1.44"/>
+        </attributes>
+      </object>
+    </child>
+    <child>
+      <object class="GtkLabel">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="label" translatable="yes">Try a different search</property>
+        <style>
+          <class name="dim-label"/>
+        </style>
+      </object>
+    </child>
+  </object>
+</interface>
