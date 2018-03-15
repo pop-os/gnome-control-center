@@ -27,7 +27,15 @@
 
 #include <glib/gi18n-lib.h>
 #include <gtk/gtk.h>
+#include <gdesktop-enums.h>
+#ifdef GDK_WINDOWING_X11
+#include <gdk/gdkx.h>
+#endif
+#ifdef GDK_WINDOWING_WAYLAND
+#include <gdk/gdkwayland.h>
+#endif
 
+#include "cc-wacom-device.h"
 #include "cc-wacom-button-row.h"
 #include "cc-wacom-page.h"
 #include "cc-wacom-nav-button.h"
@@ -35,6 +43,7 @@
 #include "cc-wacom-stylus-page.h"
 #include "gsd-enums.h"
 #include "calibrator-gui.h"
+#include "gsd-input-helper.h"
 
 #include <string.h>
 
@@ -61,12 +70,15 @@ enum {
 struct _CcWacomPagePrivate
 {
 	CcWacomPanel   *panel;
-	GsdWacomDevice *stylus, *pad;
+	CcWacomDevice  *stylus;
+	CcWacomDevice  *pad;
 	GtkBuilder     *builder;
 	GtkWidget      *nav;
 	GtkWidget      *notebook;
 	CalibArea      *area;
 	GSettings      *wacom_settings;
+
+	GtkSizeGroup   *header_group;
 
 	/* Button mapping */
 	GtkBuilder     *mapping_builder;
@@ -112,13 +124,14 @@ update_tablet_ui (CcWacomPage *page,
 		  int          layout);
 
 static int
-get_layout_type (GsdWacomDevice *device)
+get_layout_type (CcWacomDevice *device)
 {
 	int layout;
 
-	if (gsd_wacom_device_is_screen_tablet (device))
+	if (cc_wacom_device_get_integration_flags (device) &
+	    (WACOM_DEVICE_INTEGRATED_DISPLAY | WACOM_DEVICE_INTEGRATED_SYSTEM))
 		layout = LAYOUT_SCREEN;
-	else if (gsd_wacom_device_reversible (device))
+	else if (cc_wacom_device_is_reversible (device))
 		layout = LAYOUT_REVERSIBLE;
 	else
 		layout = LAYOUT_NORMAL;
@@ -127,10 +140,10 @@ get_layout_type (GsdWacomDevice *device)
 }
 
 static void
-set_calibration (GsdWacomDevice *device,
+set_calibration (CcWacomDevice  *device,
                  const gint      display_width,
                  const gint      display_height,
-                 gint           *cal,
+                 gdouble        *cal,
                  gsize           ncal,
                  GSettings      *settings)
 {
@@ -141,7 +154,7 @@ set_calibration (GsdWacomDevice *device,
 	gint         i;
 
 	current = g_settings_get_value (settings, "area");
-	g_variant_get_fixed_array (current, &nvalues, sizeof (gint32));
+	g_variant_get_fixed_array (current, &nvalues, sizeof (gdouble));
 	if ((ncal != 4) || (nvalues != 4)) {
 		g_warning("Unable set set device calibration property. Got %"G_GSIZE_FORMAT" items to put in %"G_GSIZE_FORMAT" slots; expected %d items.\n", ncal, nvalues, 4);
 		return;
@@ -149,14 +162,14 @@ set_calibration (GsdWacomDevice *device,
 
 	tmp = g_malloc (nvalues * sizeof (GVariant*));
 	for (i = 0; i < ncal; i++)
-		tmp[i] = g_variant_new_int32 (cal[i]);
+		tmp[i] = g_variant_new_double (cal[i]);
 
-	array = g_variant_new_array (G_VARIANT_TYPE_INT32, tmp, nvalues);
+	array = g_variant_new_array (G_VARIANT_TYPE_DOUBLE, tmp, nvalues);
 	g_settings_set_value (settings, "area", array);
 
 	g_free (tmp);
 
-	g_debug ("Setting area top (%d, %d) bottom (%d, %d) (last used resolution: %d x %d)",
+	g_debug ("Setting area to %f, %f, %f, %f (left/right/top/bottom) (last used resolution: %d x %d)",
 		 cal[0], cal[1], cal[2], cal[3],
 		 display_width, display_height);
 }
@@ -168,13 +181,14 @@ finish_calibration (CalibArea *area,
 	CcWacomPage *page = (CcWacomPage *) user_data;
 	CcWacomPagePrivate *priv = page->priv;
 	XYinfo axis;
-	gboolean swap_xy;
-	gint cal[4], display_width, display_height;
+	gdouble cal[4];
+	gint display_width, display_height;
 
-	if (calib_area_finish (area, &axis, &swap_xy)) {
+	if (calib_area_finish (area)) {
+		calib_area_get_padding (area, &axis);
 		cal[0] = axis.x_min;
-		cal[1] = axis.y_min;
-		cal[2] = axis.x_max;
+		cal[1] = axis.x_max;
+		cal[2] = axis.y_min;
 		cal[3] = axis.y_max;
 
 		calib_area_get_display_size (area, &display_width, &display_height);
@@ -197,38 +211,65 @@ finish_calibration (CalibArea *area,
 	gtk_widget_set_sensitive (WID ("button-calibrate"), TRUE);
 }
 
+static GdkDevice *
+cc_wacom_page_get_gdk_device (CcWacomPage *page)
+{
+	GsdDevice *gsd_device;
+	GdkDevice *gdk_device = NULL;
+	GdkDeviceManager *device_manager;
+	GdkDisplay *display;
+	GList *slaves, *l;
+
+	gsd_device = cc_wacom_device_get_device (page->priv->stylus);
+	g_return_val_if_fail (GSD_IS_DEVICE (gsd_device), NULL);
+
+	display = gtk_widget_get_display (GTK_WIDGET (page));
+	device_manager = gdk_display_get_device_manager (display);
+	slaves = gdk_device_manager_list_devices (device_manager, GDK_DEVICE_TYPE_SLAVE);
+
+	for (l = slaves; l && !gdk_device; l = l->next) {
+		gchar *device_node = NULL;
+
+		if (gdk_device_get_source (l->data) != GDK_SOURCE_PEN)
+			continue;
+
+#ifdef GDK_WINDOWING_X11
+		if (GDK_IS_X11_DISPLAY (display))
+			device_node = xdevice_get_device_node (gdk_x11_device_get_id (l->data));
+#endif
+#ifdef GDK_WINDOWING_WAYLAND
+		if (GDK_IS_WAYLAND_DISPLAY (display))
+			device_node = g_strdup (gdk_wayland_device_get_node_path (l->data));
+#endif
+
+		if (g_strcmp0 (device_node, gsd_device_get_device_file (gsd_device)) == 0)
+			gdk_device = l->data;
+
+		g_free (device_node);
+	}
+
+	g_list_free (slaves);
+
+	return gdk_device;
+}
+
 static gboolean
 run_calibration (CcWacomPage *page,
 		 GVariant    *old_calibration,
-		 gint        *cal,
+		 gdouble     *cal,
 		 gint         monitor)
 {
-	XYinfo              old_axis;
-	GdkDevice          *gdk_device;
 	CcWacomPagePrivate *priv;
-	int                 device_id;
 
 	g_assert (page->priv->area == NULL);
 
-	old_axis.x_min = cal[0];
-	old_axis.y_min = cal[1];
-	old_axis.x_max = cal[2];
-	old_axis.y_max = cal[3];
-
 	priv = page->priv;
-	gdk_device = gsd_wacom_device_get_gdk_device (priv->stylus);
-
-	if (gdk_device != NULL)
-		g_object_get (gdk_device, "device-id", &device_id, NULL);
-	else
-		device_id = -1;
 
 	priv->area = calib_area_new (NULL,
 				     monitor,
-				     device_id,
+				     cc_wacom_page_get_gdk_device (page),
 				     finish_calibration,
 				     page,
-				     &old_axis,
 				     THRESHOLD_MISCLICK,
 				     THRESHOLD_DOUBLECLICK);
 
@@ -244,17 +285,31 @@ static void
 calibrate (CcWacomPage *page)
 {
 	CcWacomPagePrivate *priv;
-	int i, *calibration;
+	int i;
 	GVariant *old_calibration, **tmp, *array;
+	gdouble *calibration;
 	gsize ncal;
 	gint monitor;
-#ifdef FAKE_AREA
 	GdkScreen *screen;
-#endif
+	GnomeRRScreen *rr_screen;
+	GnomeRROutput *output;
+	GError *error = NULL;
+	gint x, y;
 
 	priv = page->priv;
 
-	monitor = gsd_wacom_device_get_display_monitor (page->priv->stylus);
+	screen = gdk_screen_get_default ();
+	rr_screen = gnome_rr_screen_new (screen, &error);
+	if (error) {
+		g_warning ("Could not connect to display manager: %s", error->message);
+		g_error_free (error);
+		return;
+	}
+
+	output = cc_wacom_device_get_output (page->priv->stylus, rr_screen);
+	gnome_rr_output_get_position (output, &x, &y);
+	monitor = gdk_screen_get_monitor_at_point (screen, x, y);
+
 	if (monitor < 0) {
 		/* The display the tablet should be mapped to could not be located.
 		 * This shouldn't happen if the EDID data is good...
@@ -264,39 +319,32 @@ calibrate (CcWacomPage *page)
 	}
 
 	old_calibration = g_settings_get_value (page->priv->wacom_settings, "area");
-	g_variant_get_fixed_array (old_calibration, &ncal, sizeof (gint32));
+	g_variant_get_fixed_array (old_calibration, &ncal, sizeof (gdouble));
 
 	if (ncal != 4) {
 		g_warning("Device calibration property has wrong length. Got %"G_GSIZE_FORMAT" items; expected %d.\n", ncal, 4);
 		return;
 	}
 
-#ifdef FAKE_AREA
-	/* Prepare the monitor attachment */
-	screen = gdk_screen_get_default ();
-
-	calibration = g_new0 (int, 4);
-	calibration[0] = 0;
-	calibration[1] = gdk_screen_get_width (screen);
-	calibration[2] = 0;
-	calibration[3] = gdk_screen_get_height (screen);
-#else
-	calibration = gsd_wacom_device_get_default_area (priv->stylus);
-#endif /* FAKE_AREA */
+	calibration = g_new0 (gdouble, ncal);
 
 	/* Reset the current values, to avoid old calibrations
 	 * from interfering with the calibration */
 	tmp = g_malloc (ncal * sizeof (GVariant*));
-	for (i = 0; i < ncal; i++)
-		tmp[i] = g_variant_new_int32 (calibration[i]);
+	for (i = 0; i < ncal; i++) {
+		calibration[i] = 0.0;
+		tmp[i] = g_variant_new_double (calibration[i]);
+	}
 
-	array = g_variant_new_array (G_VARIANT_TYPE_INT32, tmp, 4);
+	array = g_variant_new_array (G_VARIANT_TYPE_DOUBLE, tmp, ncal);
 	g_settings_set_value (page->priv->wacom_settings, "area", array);
 	g_free (tmp);
 
 	run_calibration (page, old_calibration, calibration, monitor);
 	g_free (calibration);
 	gtk_widget_set_sensitive (WID ("button-calibrate"), FALSE);
+
+	g_object_unref (rr_screen);
 }
 
 static void
@@ -310,21 +358,21 @@ calibrate_button_clicked_cb (GtkButton   *button,
  * gnome-control-center has been used, and we load up an
  * old one, as the action type if unknown to the old g-c-c */
 static gboolean
-action_type_is_valid (GsdWacomActionType type)
+action_type_is_valid (GDesktopPadButtonAction action)
 {
-	if (type >= G_N_ELEMENTS(action_table))
+	if (action >= G_N_ELEMENTS (action_table))
 		return FALSE;
 	return TRUE;
 }
 
 static void
-create_row_from_button (GtkWidget            *list_box,
-			GsdWacomTabletButton *button,
-			GtkDirectionType      dir)
+create_row_from_button (GtkWidget *list_box,
+			guint      button,
+			GSettings *settings)
 {
 	GtkWidget *row;
 
-	row = cc_wacom_button_row_new (button, dir);
+	row = cc_wacom_button_row_new (button, settings);
 	gtk_container_add (GTK_CONTAINER (list_box), row);
 	gtk_widget_show (row);
 }
@@ -332,35 +380,26 @@ create_row_from_button (GtkWidget            *list_box,
 static void
 setup_button_mapping (CcWacomPage *page)
 {
-	CcWacomPagePrivate *priv;
-	GList              *list, *l;
-	GtkWidget          *list_box = NULL;
+	CcWacomPagePrivate *priv = page->priv;
+	GDesktopPadButtonAction action;
+	GtkWidget *list_box;
+	guint i, n_buttons;
+	GSettings *settings;
 
-	priv = page->priv;
 	list_box = MWID ("shortcuts_list");
-	list = gsd_wacom_device_get_buttons (priv->pad);
+	n_buttons = cc_wacom_device_get_num_buttons (priv->pad);
 
-	for (l = list; l != NULL; l = l->next) {
-		GsdWacomTabletButton *button = l->data;
-		GsdWacomActionType    action_type;
-
-		if (button->type == WACOM_TABLET_BUTTON_TYPE_HARDCODED)
+	for (i = 0; i < n_buttons; i++) {
+		settings = cc_wacom_device_get_button_settings (priv->pad, i);
+		if (!settings)
 			continue;
 
-		action_type = g_settings_get_enum (button->settings, "action-type");
-		if (!action_type_is_valid (action_type))
+		action = g_settings_get_enum (settings, "action");
+		if (!action_type_is_valid (action))
 			continue;
 
-		if (button->type == WACOM_TABLET_BUTTON_TYPE_STRIP ||
-		    button->type == WACOM_TABLET_BUTTON_TYPE_RING) {
-			create_row_from_button (list_box, button, GTK_DIR_UP);
-			create_row_from_button (list_box, button, GTK_DIR_DOWN);
-			continue;
-		}
-
-		create_row_from_button (list_box, button, 0);
+		create_row_from_button (list_box, i, settings);
 	}
-	g_list_free (list);
 }
 
 static void
@@ -441,14 +480,18 @@ set_osd_visibility_cb (GObject      *source_object,
 }
 
 static void
-set_osd_visibility (CcWacomPage *page,
-		    guint32      device_id)
+set_osd_visibility (CcWacomPage *page)
 {
 	CcWacomPagePrivate *priv;
 	GDBusProxy         *proxy;
+	GsdDevice          *gsd_device;
+	const gchar        *device_path;
 
 	priv = page->priv;
 	proxy = cc_wacom_panel_get_gsd_wacom_bus_proxy (priv->panel);
+	gsd_device = cc_wacom_device_get_device (priv->pad);
+
+	device_path = gsd_device_get_device_file (gsd_device);
 
 	if (proxy == NULL) {
 		show_button_mapping_dialog (page);
@@ -456,8 +499,8 @@ set_osd_visibility (CcWacomPage *page,
 	}
 
 	g_dbus_proxy_call (proxy,
-			   "SetOSDVisibility",
-			   g_variant_new ("(ubb)", device_id, TRUE, TRUE),
+			   "Show",
+			   g_variant_new ("(ob)", device_path, TRUE),
 			   G_DBUS_CALL_FLAGS_NONE,
 			   -1,
 			   priv->cancellable,
@@ -469,28 +512,7 @@ static void
 map_buttons_button_clicked_cb (GtkButton   *button,
 			       CcWacomPage *page)
 {
-	CcWacomPagePrivate *priv;
-	GdkDevice *gdk_device = NULL;
-	guint32 device_id;
-        const gchar *layout_path;
-
-	priv = page->priv;
-
-	gdk_device = gsd_wacom_device_get_gdk_device (priv->pad);
-
-	g_return_if_fail (gdk_device != NULL);
-
-	g_object_get (gdk_device, "device-id", &device_id, NULL);
-
-	/* Check if the OSD should be shown instead of the button mapping dialod */
-        layout_path = gsd_wacom_device_get_layout_path (page->priv->pad);
-        if (layout_path && g_file_test (layout_path, G_FILE_TEST_EXISTS)) {
-		set_osd_visibility (page, device_id);
-		return;
-	}
-
-	g_message ("Couldn't find a layout for '%s'. Launching the button mapping dialog.", gsd_wacom_device_get_name (priv->pad));
-	show_button_mapping_dialog (page);
+	set_osd_visibility (page);
 }
 
 static void
@@ -540,11 +562,10 @@ display_mapping_button_clicked_cb (GtkButton   *button,
 static void
 tabletmode_changed_cb (GtkComboBox *combo, gpointer user_data)
 {
-	CcWacomPagePrivate	*priv	= CC_WACOM_PAGE(user_data)->priv;
-	GtkListStore		*liststore;
-	GtkTreeIter		iter;
-	gint			mode;
-	gboolean		is_absolute;
+	CcWacomPagePrivate *priv = CC_WACOM_PAGE (user_data)->priv;
+	GtkListStore *liststore;
+	GtkTreeIter iter;
+	gint mode;
 
 	if (!gtk_combo_box_get_active_iter (combo, &iter))
 		return;
@@ -554,66 +575,40 @@ tabletmode_changed_cb (GtkComboBox *combo, gpointer user_data)
 			    MODENUMBER_COLUMN, &mode,
 			    -1);
 
-	is_absolute = (mode == MODE_ABSOLUTE);
-	g_settings_set_boolean (priv->wacom_settings, "is-absolute", is_absolute);
-}
-
-static const gchar*
-opposite_rotation (const gchar *rotation)
-{
-	/* Order matters here, if not found we return "none"  */
-	static const gchar *rotations[] = { "half", "cw", "none", "ccw" };
-	guint i, n;
-
-	n = G_N_ELEMENTS (rotations);
-	for (i = 0; i < n; i++) {
-		if (strcmp (rotation, rotations[i]) == 0)
-			break;
-	}
-
-	return rotations[(i + n / 2) % n];
+	g_settings_set_enum (priv->wacom_settings, "mapping", mode);
 }
 
 static void
 left_handed_toggled_cb (GtkSwitch *sw, GParamSpec *pspec, gpointer *user_data)
 {
-	CcWacomPagePrivate	*priv = CC_WACOM_PAGE(user_data)->priv;
-	GsdWacomDevice          *device = priv->stylus;
-	GsdWacomRotation 	display_rotation;
-	const gchar*		rotation;
+	CcWacomPagePrivate *priv = CC_WACOM_PAGE (user_data)->priv;
+	gboolean left_handed;
 
-	display_rotation = gsd_wacom_device_get_display_rotation (device);
-	rotation = gsd_wacom_device_rotation_type_to_name (display_rotation);
-	if (gtk_switch_get_active (sw))
-		rotation = opposite_rotation (rotation);
-
-	g_settings_set_string (priv->wacom_settings, "rotation", rotation);
+	left_handed = gtk_switch_get_active (sw);
+	g_settings_set_boolean (priv->wacom_settings, "left-handed", left_handed);
 }
 
 static void
 set_left_handed_from_gsettings (CcWacomPage *page)
 {
-	CcWacomPagePrivate	*priv = CC_WACOM_PAGE(page)->priv;
-	GsdWacomDevice          *device = priv->stylus;
-	GsdWacomRotation 	display_rotation;
-	const gchar*		rotation;
+	CcWacomPagePrivate *priv = CC_WACOM_PAGE (page)->priv;
+	gboolean left_handed;
 
-	display_rotation = gsd_wacom_device_get_display_rotation (device);
-	rotation = g_settings_get_string (priv->wacom_settings, "rotation");
-	if (strcmp (rotation, gsd_wacom_device_rotation_type_to_name (display_rotation)) != 0)
-		gtk_switch_set_active (GTK_SWITCH (WID ("switch-left-handed")), TRUE);
+	left_handed = g_settings_get_boolean (priv->wacom_settings, "left-handed");
+	gtk_switch_set_active (GTK_SWITCH (WID ("switch-left-handed")), left_handed);
 }
 
 static void
-set_mode_from_gsettings (GtkComboBox *combo, CcWacomPage *page)
+set_mode_from_gsettings (GtkComboBox *combo,
+			 CcWacomPage *page)
 {
-	CcWacomPagePrivate	*priv = page->priv;
-	gboolean		is_absolute;
+	CcWacomPagePrivate *priv = page->priv;
+	GDesktopTabletMapping mapping;
 
-	is_absolute = g_settings_get_boolean (priv->wacom_settings, "is-absolute");
+	mapping = g_settings_get_enum (priv->wacom_settings, "mapping");
 
 	/* this must be kept in sync with the .ui file */
-	gtk_combo_box_set_active (combo, is_absolute ? MODE_ABSOLUTE : MODE_RELATIVE);
+	gtk_combo_box_set_active (combo, mapping);
 }
 
 static void
@@ -701,6 +696,12 @@ cc_wacom_page_dispose (GObject *object)
 		priv->builder = NULL;
 	}
 
+	if (priv->header_group) {
+		g_object_unref (priv->header_group);
+		priv->header_group = NULL;
+	}
+
+
 	priv->panel = NULL;
 
 	G_OBJECT_CLASS (cc_wacom_page_parent_class)->dispose (object);
@@ -754,8 +755,6 @@ cc_wacom_page_init (CcWacomPage *self)
 	gtk_container_add (GTK_CONTAINER (self), box);
 	gtk_widget_set_vexpand (GTK_WIDGET (box), TRUE);
 
-	self->priv->notebook = WID ("stylus-notebook");
-
 	g_signal_connect (WID ("button-calibrate"), "clicked",
 			  G_CALLBACK (calibrate_button_clicked_cb), self);
 	g_signal_connect (WID ("map-buttons-button"), "clicked",
@@ -782,7 +781,8 @@ cc_wacom_page_init (CcWacomPage *self)
 	priv->nav = cc_wacom_nav_button_new ();
         gtk_widget_set_halign (priv->nav, GTK_ALIGN_END);
         gtk_widget_set_margin_start (priv->nav, 10);
-	gtk_grid_attach (GTK_GRID (box), priv->nav, 1, 0, 1, 1);
+	gtk_widget_show (priv->nav);
+	gtk_container_add (CWID ("navigation-placeholder"), priv->nav);
 
 	priv->cancellable = g_cancellable_new ();
 }
@@ -800,70 +800,6 @@ set_icon_name (CcWacomPage *page,
 	resource = g_strdup_printf ("/org/gnome/control-center/wacom/%s.svg", icon_name);
 	gtk_image_set_from_resource (GTK_IMAGE (WID (widget_name)), resource);
 	g_free (resource);
-}
-
-typedef struct {
-	GsdWacomStylus *stylus;
-	GsdWacomStylus *eraser;
-} StylusPair;
-
-static void
-add_styli (CcWacomPage *page)
-{
-	GList *styli, *l;
-	CcWacomPagePrivate *priv;
-
-	priv = page->priv;
-
-	styli = gsd_wacom_device_list_styli (priv->stylus);
-
-	for (l = styli; l; l = l->next) {
-		GsdWacomStylus *stylus;
-		GtkWidget *page;
-
-		stylus = l->data;
-
-		if (gsd_wacom_stylus_get_stylus_type (stylus) == WACOM_STYLUS_TYPE_PUCK)
-			continue;
-
-		page = cc_wacom_stylus_page_new (stylus);
-		cc_wacom_stylus_page_set_navigation (CC_WACOM_STYLUS_PAGE (page), GTK_NOTEBOOK (priv->notebook));
-		gtk_widget_show (page);
-		gtk_notebook_append_page (GTK_NOTEBOOK (priv->notebook), page, NULL);
-	}
-	g_list_free (styli);
-}
-
-static void
-stylus_changed (GsdWacomDevice *device,
-		GParamSpec     *pspec,
-		CcWacomPage    *page)
-{
-	GsdWacomStylus *stylus;
-	CcWacomPagePrivate *priv;
-	int num_pages;
-	guint i;
-
-	priv = page->priv;
-	g_object_get (G_OBJECT (device), "last-stylus", &stylus, NULL);
-	if (stylus == NULL)
-		return;
-
-	num_pages = gtk_notebook_get_n_pages (GTK_NOTEBOOK (priv->notebook));
-	for (i = 0; i < num_pages; i++) {
-		GsdWacomStylus *s;
-		CcWacomStylusPage *spage;
-
-		spage = CC_WACOM_STYLUS_PAGE (gtk_notebook_get_nth_page (GTK_NOTEBOOK (priv->notebook), i));
-		s = cc_wacom_stylus_page_get_stylus (spage);
-		if (s == stylus) {
-			gtk_notebook_set_current_page (GTK_NOTEBOOK (priv->notebook), i);
-			return;
-		}
-	}
-
-	g_warning ("Failed to find the page for stylus '%s'",
-		   gsd_wacom_stylus_get_name (stylus));
 }
 
 static void
@@ -896,20 +832,32 @@ remove_mouse_link (CcWacomPagePrivate *priv)
 static gboolean
 has_monitor (CcWacomPage *page)
 {
-	return gsd_wacom_device_get_display_monitor (page->priv->stylus) >= 0;
+	WacomIntegrationFlags integration_flags;
+	CcWacomPagePrivate *priv;
+
+	priv = page->priv;
+	integration_flags = cc_wacom_device_get_integration_flags (priv->stylus);
+
+	return ((integration_flags &
+		 (WACOM_DEVICE_INTEGRATED_DISPLAY | WACOM_DEVICE_INTEGRATED_SYSTEM)) != 0);
 }
 
 static void
 update_tablet_ui (CcWacomPage *page,
 		  int          layout)
 {
+	WacomIntegrationFlags integration_flags;
 	CcWacomPagePrivate *priv;
-	GsdWacomStylus *puck;
 
 	priv = page->priv;
-	puck = gsd_wacom_device_get_stylus_for_type (priv->stylus, WACOM_STYLUS_TYPE_PUCK);
-	if (puck == NULL)
+
+	integration_flags = cc_wacom_device_get_integration_flags (priv->stylus);
+
+	if ((integration_flags &
+	     (WACOM_DEVICE_INTEGRATED_DISPLAY | WACOM_DEVICE_INTEGRATED_SYSTEM)) != 0) {
+		/* FIXME: Check we've got a puck, or a corresponding touchpad device */
 		remove_mouse_link (priv);
+	}
 
 	/* Hide the pad buttons if no pad is present */
 	gtk_widget_set_visible (WID ("map-buttons-button"), priv->pad != NULL);
@@ -946,9 +894,9 @@ update_tablet_ui (CcWacomPage *page,
 }
 
 gboolean
-cc_wacom_page_update_tools (CcWacomPage    *page,
-			    GsdWacomDevice *stylus,
-			    GsdWacomDevice *pad)
+cc_wacom_page_update_tools (CcWacomPage   *page,
+			    CcWacomDevice *stylus,
+			    CcWacomDevice *pad)
 {
 	CcWacomPagePrivate *priv;
 	int layout;
@@ -971,18 +919,15 @@ cc_wacom_page_update_tools (CcWacomPage    *page,
 }
 
 GtkWidget *
-cc_wacom_page_new (CcWacomPanel   *panel,
-		   GsdWacomDevice *stylus,
-		   GsdWacomDevice *pad)
+cc_wacom_page_new (CcWacomPanel  *panel,
+		   CcWacomDevice *stylus,
+		   CcWacomDevice *pad)
 {
 	CcWacomPage *page;
 	CcWacomPagePrivate *priv;
 
-	g_return_val_if_fail (GSD_IS_WACOM_DEVICE (stylus), NULL);
-	g_return_val_if_fail (gsd_wacom_device_get_device_type (stylus) == WACOM_TYPE_STYLUS, NULL);
-
-	if (pad != NULL)
-		g_return_val_if_fail (gsd_wacom_device_get_device_type (pad) == WACOM_TYPE_PAD, NULL);
+	g_return_val_if_fail (CC_IS_WACOM_DEVICE (stylus), NULL);
+	g_return_val_if_fail (!pad || CC_IS_WACOM_DEVICE (pad), NULL);
 
 	page = g_object_new (CC_TYPE_WACOM_PAGE, NULL);
 
@@ -992,26 +937,18 @@ cc_wacom_page_new (CcWacomPanel   *panel,
 	cc_wacom_page_update_tools (page, stylus, pad);
 
 	/* FIXME move this to construct */
-	priv->wacom_settings  = gsd_wacom_device_get_settings (stylus);
+	priv->wacom_settings  = cc_wacom_device_get_settings (stylus);
 	set_mode_from_gsettings (GTK_COMBO_BOX (WID ("combo-tabletmode")), page);
 
 	/* Tablet name */
-	gtk_label_set_text (GTK_LABEL (WID ("label-tabletmodel")), gsd_wacom_device_get_name (stylus));
+	gtk_label_set_text (GTK_LABEL (WID ("label-tabletmodel")), cc_wacom_device_get_name (stylus));
 
 	/* Left-handedness */
-	if (gsd_wacom_device_reversible (stylus))
+	if (cc_wacom_device_is_reversible (stylus))
 		set_left_handed_from_gsettings (page);
 
 	/* Tablet icon */
-	set_icon_name (page, "image-tablet", gsd_wacom_device_get_icon_name (stylus));
-
-	/* Add styli */
-	add_styli (page);
-
-	/* Get the current stylus and switch to its page */
-	stylus_changed (priv->stylus, NULL, page);
-	g_signal_connect (G_OBJECT (priv->stylus), "notify::last-stylus",
-			  G_CALLBACK (stylus_changed), page);
+	set_icon_name (page, "image-tablet", cc_wacom_device_get_icon_name (stylus));
 
 	return GTK_WIDGET (page);
 }

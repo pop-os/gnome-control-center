@@ -178,7 +178,7 @@ pretty_hostname_to_ssid (const char *pretty)
 	const char *p, *prev;
 	char *ret = NULL;
 
-	if (pretty == NULL) {
+	if (pretty == NULL || *pretty == '\0') {
 		pretty = g_get_host_name ();
 		if (g_strcmp0 (pretty, "localhost") == 0)
 			pretty = NULL;
@@ -187,7 +187,7 @@ pretty_hostname_to_ssid (const char *pretty)
 	if (pretty == NULL) {
 		/* translators: This is the default hotspot name, need to be less than 32-bytes */
 		ret = g_strdup (C_("hotspot", "Hotspot"));
-		g_assert (strlen (ret) <= 32);
+		g_assert (strlen (ret) <= SSID_MAX_LEN);
 		return ret;
 	}
 
@@ -199,14 +199,17 @@ pretty_hostname_to_ssid (const char *pretty)
 		if (p == prev)
 			break;
 
-		if (p - pretty > 32) {
+		if (p - pretty > SSID_MAX_LEN) {
 			ret = g_strndup (pretty, prev - pretty);
 			break;
 		}
-		if (p - pretty == 32) {
+		if (p - pretty == SSID_MAX_LEN) {
 			ret = g_strndup (pretty, p - pretty);
 			break;
 		}
+
+		if (*p == '\0')
+			break;
 
 		prev = p;
 	}

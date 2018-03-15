@@ -55,6 +55,9 @@
 
 #define WID(s) GTK_WIDGET (gtk_builder_get_object (priv->builder, s))
 
+#define AUTHENTICATION_PAGE "authentication-page"
+#define ADDPRINTER_PAGE "addprinter-page"
+
 static void     set_device (PpNewPrinterDialog *dialog,
                             PpPrintDevice      *device,
                             GtkTreeIter        *iter);
@@ -264,6 +267,8 @@ get_authenticated_samba_devices_cb (GObject      *source_object,
   GError                    *error = NULL;
   GList                     *iter;
 
+  g_object_ref (samba);
+
   result = pp_samba_get_devices_finish (samba, res, &error);
   g_object_unref (source_object);
 
@@ -288,8 +293,6 @@ get_authenticated_samba_devices_cb (GObject      *source_object,
 
       if (!cancelled)
         {
-          remove_device_from_list (dialog,
-                                   data->server_name);
 
           if (result->devices != NULL)
             {
@@ -330,6 +333,133 @@ get_authenticated_samba_devices_cb (GObject      *source_object,
 }
 
 static void
+go_to_page (PpNewPrinterDialog *dialog,
+            const gchar        *page)
+{
+  PpNewPrinterDialogPrivate *priv = dialog->priv;
+  GtkStack                  *stack;
+
+  stack = GTK_STACK (WID ("dialog-stack"));
+  gtk_stack_set_visible_child_name (stack, page);
+
+  stack = GTK_STACK (WID ("headerbar-topright-buttons"));
+  gtk_stack_set_visible_child_name (stack, page);
+
+  stack = GTK_STACK (WID ("headerbar-topleft-buttons"));
+  gtk_stack_set_visible_child_name (stack, page);
+}
+
+static gchar *
+get_entry_text (const gchar        *object_name,
+                PpNewPrinterDialog *dialog)
+{
+  PpNewPrinterDialogPrivate *priv = dialog->priv;
+
+  return g_strdup (gtk_entry_get_text (GTK_ENTRY (WID (object_name))));
+}
+
+static void
+on_authenticate (GtkWidget *button,
+                 gpointer   user_data)
+{
+  PpNewPrinterDialog        *dialog = PP_NEW_PRINTER_DIALOG (user_data);
+  PpNewPrinterDialogPrivate *priv = dialog->priv;
+  gchar                     *hostname = NULL;
+  gchar                     *username = NULL;
+  gchar                     *password = NULL;
+
+  username = get_entry_text ("username-entry", dialog);
+  password = get_entry_text ("password-entry", dialog);
+
+  if ((username == NULL) || (username[0] == '\0') ||
+      (password == NULL) || (password[0] == '\0'))
+    {
+      g_clear_pointer (&username, g_free);
+      g_clear_pointer (&password, g_free);
+      return;
+    }
+
+  pp_samba_set_auth_info (PP_SAMBA (priv->samba_host), username, password);
+
+  gtk_header_bar_set_title (GTK_HEADER_BAR (WID ("headerbar")), _("Add Printer"));
+  go_to_page (dialog, ADDPRINTER_PAGE);
+
+  g_object_get (PP_HOST (priv->samba_host), "hostname", &hostname, NULL);
+  remove_device_from_list (dialog, hostname);
+}
+
+static void
+on_authentication_required (PpHost   *host,
+                            gpointer  user_data)
+{
+  PpNewPrinterDialogPrivate *priv;
+  PpNewPrinterDialog        *dialog = PP_NEW_PRINTER_DIALOG (user_data);
+  gchar                     *text, *hostname;
+
+  priv = dialog->priv;
+
+  gtk_header_bar_set_subtitle (GTK_HEADER_BAR (WID ("headerbar")), NULL);
+  gtk_header_bar_set_title (GTK_HEADER_BAR (WID ("headerbar")), _("Unlock Print Server"));
+
+  g_object_get (G_OBJECT (host), "hostname", &hostname, NULL);
+  /* Translators: Samba server needs authentication of the user to show list of its printers. */
+  text = g_strdup_printf (_("Unlock %s."), hostname);
+  gtk_label_set_text (GTK_LABEL (WID ("authentication-title")), text);
+  g_free (text);
+
+  /* Translators: Samba server needs authentication of the user to show list of its printers. */
+  text = g_strdup_printf (_("Enter username and password to view printers on %s."), hostname);
+  gtk_label_set_text (GTK_LABEL (WID ("authentication-text")), text);
+  g_free (hostname);
+  g_free (text);
+
+  go_to_page (dialog, AUTHENTICATION_PAGE);
+
+  g_signal_connect (WID ("authenticate-button"), "clicked", G_CALLBACK (on_authenticate), dialog);
+}
+
+static void
+auth_entries_changed (GtkEditable *editable,
+                      gpointer     user_data)
+{
+  PpNewPrinterDialogPrivate *priv;
+  PpNewPrinterDialog        *dialog = PP_NEW_PRINTER_DIALOG (user_data);
+  gboolean                   can_authenticate = FALSE;
+  gchar                     *username = NULL;
+  gchar                     *password = NULL;
+
+  priv = dialog->priv;
+
+  username = get_entry_text ("username-entry", dialog);
+  password = get_entry_text ("password-entry", dialog);
+
+  can_authenticate = (username != NULL && username[0] != '\0' &&
+                      password != NULL && password[0] != '\0');
+
+  gtk_widget_set_sensitive (WID ("authenticate-button"), can_authenticate);
+
+  g_clear_pointer (&username, g_free);
+  g_clear_pointer (&password, g_free);
+}
+
+static void
+on_go_back_button_clicked (GtkButton *button,
+                           gpointer   user_data)
+{
+  PpNewPrinterDialog        *dialog = PP_NEW_PRINTER_DIALOG (user_data);
+  PpNewPrinterDialogPrivate *priv = dialog->priv;
+
+  pp_samba_set_auth_info (priv->samba_host, NULL, NULL);
+  g_clear_object (&priv->samba_host);
+
+  go_to_page (dialog, ADDPRINTER_PAGE);
+  gtk_header_bar_set_title (GTK_HEADER_BAR (WID ("headerbar")), _("Add Printer"));
+  gtk_widget_set_sensitive (WID ("new-printer-add-button"), FALSE);
+
+  gtk_tree_selection_unselect_all (gtk_tree_view_get_selection (priv->treeview));
+}
+
+static void
 authenticate_samba_server (GtkButton *button,
                            gpointer   user_data)
 {
@@ -338,8 +468,11 @@ authenticate_samba_server (GtkButton *button,
   GtkTreeModel              *model;
   GtkTreeIter                iter;
   AuthSMBData               *data;
-  PpSamba                   *samba_host;
   gchar                     *server_name = NULL;
+
+  gtk_widget_set_sensitive (GTK_WIDGET (button), FALSE);
+  gtk_widget_set_sensitive (WID ("authenticate-button"), FALSE);
+  gtk_widget_grab_focus (WID ("username-entry"));
 
   if (gtk_tree_selection_get_selected (gtk_tree_view_get_selection (priv->treeview), &model, &iter))
     {
@@ -349,8 +482,13 @@ authenticate_samba_server (GtkButton *button,
 
       if (server_name != NULL)
         {
-          samba_host = pp_samba_new (GTK_WINDOW (priv->dialog),
-                                     server_name);
+          g_clear_object (&priv->samba_host);
+
+          priv->samba_host = pp_samba_new (server_name);
+          g_signal_connect_object (priv->samba_host,
+                                   "authentication-required",
+                                   G_CALLBACK (on_authentication_required),
+                                   dialog, 0);
 
           priv->samba_authenticated_searching = TRUE;
           update_dialog_state (dialog);
@@ -359,7 +497,7 @@ authenticate_samba_server (GtkButton *button,
           data->server_name = server_name;
           data->dialog = dialog;
 
-          pp_samba_get_devices_async (samba_host,
+          pp_samba_get_devices_async (priv->samba_host,
                                       TRUE,
                                       priv->cancellable,
                                       get_authenticated_samba_devices_cb,
@@ -415,8 +553,13 @@ pp_new_printer_dialog_init (PpNewPrinterDialog *dialog)
   g_signal_connect (widget, "activate", G_CALLBACK (search_entry_activated_cb), dialog);
   g_signal_connect (widget, "search-changed", G_CALLBACK (search_entry_changed_cb), dialog);
 
-  widget = WID ("authenticate-button");
+  widget = WID ("unlock-button");
   g_signal_connect (widget, "clicked", G_CALLBACK (authenticate_samba_server), dialog);
+
+  /* Authentication form widgets */
+  g_signal_connect (WID ("username-entry"), "changed", G_CALLBACK (auth_entries_changed), dialog);
+  g_signal_connect (WID ("password-entry"), "changed", G_CALLBACK (auth_entries_changed), dialog);
+  g_signal_connect (WID ("go-back-button"), "clicked", G_CALLBACK (on_go_back_button_clicked), dialog);
 
   /* Set junctions */
   widget = WID ("scrolledwindow1");
@@ -489,7 +632,7 @@ device_selection_changed_cb (GtkTreeSelection *selection,
   GtkTreeModel              *model;
   GtkTreeIter                iter;
   GtkWidget                 *widget;
-  GtkWidget                 *notebook;
+  GtkWidget                 *stack;
   gboolean                   authentication_needed;
   gboolean                   selected;
 
@@ -506,15 +649,15 @@ device_selection_changed_cb (GtkTreeSelection *selection,
       widget = WID ("new-printer-add-button");
       gtk_widget_set_sensitive (widget, selected);
 
-      widget = WID ("authenticate-button");
+      widget = WID ("unlock-button");
       gtk_widget_set_sensitive (widget, authentication_needed);
 
-      notebook = WID ("notebook");
+      stack = WID ("headerbar-topright-buttons");
 
       if (authentication_needed)
-        gtk_notebook_set_current_page (GTK_NOTEBOOK (notebook), 1);
+        gtk_stack_set_visible_child_name (GTK_STACK (stack), "unlock-button");
       else
-        gtk_notebook_set_current_page (GTK_NOTEBOOK (notebook), 0);
+        gtk_stack_set_visible_child_name (GTK_STACK (stack), ADDPRINTER_PAGE);
     }
 }
 
@@ -712,7 +855,7 @@ update_dialog_state (PpNewPrinterDialog *dialog)
 {
   PpNewPrinterDialogPrivate *priv = dialog->priv;
   GtkTreeIter                iter;
-  GtkWidget                 *spinner;
+  GtkWidget                 *header;
   GtkWidget                 *stack;
   gboolean                   searching;
 
@@ -725,24 +868,22 @@ update_dialog_state (PpNewPrinterDialog *dialog)
               priv->samba_authenticated_searching ||
               priv->samba_searching;
 
-  spinner = WID ("spinner");
+  header = WID ("headerbar");
   stack = WID ("stack");
 
   if (searching)
     {
-      gtk_spinner_start (GTK_SPINNER (spinner));
-      gtk_widget_show (spinner);
+      gtk_header_bar_set_subtitle (GTK_HEADER_BAR (header), _("Searching for Printers"));
     }
   else
     {
-      gtk_spinner_stop (GTK_SPINNER (spinner));
-      gtk_widget_hide (spinner);
+      gtk_header_bar_set_subtitle (GTK_HEADER_BAR (header), NULL);
     }
 
-  if (!gtk_tree_model_get_iter_first (GTK_TREE_MODEL (priv->store), &iter) && !searching)
-    gtk_stack_set_visible_child_name (GTK_STACK (stack), "no-printers-page");
+  if (gtk_tree_model_get_iter_first (GTK_TREE_MODEL (priv->store), &iter))
+      gtk_stack_set_visible_child_name (GTK_STACK (stack), "standard-page");
   else
-    gtk_stack_set_visible_child_name (GTK_STACK (stack), "standard-page");
+      gtk_stack_set_visible_child_name (GTK_STACK (stack), searching ? "loading-page" : "no-printers-page");
 }
 
 static void
@@ -1446,8 +1587,7 @@ search_for_remote_printers (THostSearchData *data)
         g_object_set (priv->lpd_host, "port", data->host_port, NULL);
     }
 
-  priv->samba_host = pp_samba_new (GTK_WINDOW (priv->dialog),
-                                   data->host_name);
+  priv->samba_host = pp_samba_new (data->host_name);
 
   update_dialog_state (data->dialog);
 
@@ -1834,8 +1974,30 @@ row_activated_cb (GtkTreeView       *tree_view,
 {
   PpNewPrinterDialog        *dialog = (PpNewPrinterDialog *) user_data;
   PpNewPrinterDialogPrivate *priv = dialog->priv;
+  GtkTreeModel              *model;
+  GtkTreeIter                iter;
+  GtkWidget                 *widget;
+  gboolean                   authentication_needed;
+  gboolean                   selected;
 
-  gtk_dialog_response (GTK_DIALOG (priv->dialog), GTK_RESPONSE_OK);
+  selected = gtk_tree_selection_get_selected (gtk_tree_view_get_selection (priv->treeview),
+                                              &model,
+                                              &iter);
+
+  if (selected)
+    {
+      gtk_tree_model_get (model, &iter, SERVER_NEEDS_AUTHENTICATION_COLUMN, &authentication_needed, -1);
+
+      if (authentication_needed)
+        {
+          widget = WID ("unlock-button");
+          authenticate_samba_server (GTK_BUTTON (widget), dialog);
+        }
+      else
+        {
+          gtk_dialog_response (GTK_DIALOG (priv->dialog), GTK_RESPONSE_OK);
+        }
+    }
 }
 
 static void
@@ -1944,7 +2106,7 @@ populate_devices_list (PpNewPrinterDialog *dialog)
   priv->samba_searching = TRUE;
   update_dialog_state (dialog);
 
-  samba = pp_samba_new (GTK_WINDOW (priv->dialog), NULL);
+  samba = pp_samba_new (NULL);
   pp_samba_get_devices_async (samba, FALSE, priv->cancellable, get_samba_devices_cb, dialog);
 }
 

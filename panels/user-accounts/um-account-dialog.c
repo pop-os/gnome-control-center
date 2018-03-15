@@ -79,6 +79,7 @@ struct _UmAccountDialog {
         /* Local user account widgets */
         GtkWidget *local_username;
         GtkWidget *local_username_entry;
+        gboolean   has_custom_username;
         GtkWidget *local_name;
         gint       local_name_timeout_id;
         GtkWidget *local_username_hint;
@@ -271,18 +272,17 @@ update_password_strength (UmAccountDialog *self)
         const gchar *password;
         const gchar *username;
         const gchar *hint;
-        const gchar *long_hint;
         gint strength_level;
 
         password = gtk_entry_get_text (GTK_ENTRY (self->local_password));
         username = gtk_combo_box_text_get_active_text (GTK_COMBO_BOX_TEXT (self->local_username));
 
-        pw_strength (password, NULL, username, &hint, &long_hint, &strength_level);
+        pw_strength (password, NULL, username, &hint, &strength_level);
 
-        gtk_label_set_label (GTK_LABEL (self->local_hint), long_hint);
+        gtk_label_set_label (GTK_LABEL (self->local_hint), hint);
         gtk_level_bar_set_value (GTK_LEVEL_BAR (self->local_strength_indicator), strength_level);
 
-        if (strength_level > 0) {
+        if (strength_level > 1) {
                 set_entry_validation_checkmark (GTK_ENTRY (self->local_password));
         } else if (strlen (password) == 0) {
                 set_entry_generation_icon (GTK_ENTRY (self->local_password));
@@ -327,7 +327,7 @@ local_validate (UmAccountDialog *self)
         verify = gtk_entry_get_text (GTK_ENTRY (self->local_verify));
         if (self->local_password_mode == ACT_USER_PASSWORD_MODE_REGULAR) {
                 strength = update_password_strength (self);
-                valid_password = strength > 0 && strcmp (password, verify) == 0;
+                valid_password = strength > 1 && strcmp (password, verify) == 0;
         } else {
                 valid_password = TRUE;
         }
@@ -368,13 +368,21 @@ on_username_changed (GtkComboBoxText *combo,
 {
         UmAccountDialog *self = UM_ACCOUNT_DIALOG (user_data);
         GtkWidget *entry;
+        const gchar *username;
+
+        entry = gtk_bin_get_child (GTK_BIN (self->local_username));
+        username = gtk_entry_get_text (GTK_ENTRY (entry));
+        if (*username == '\0')
+                self->has_custom_username = FALSE;
+        else if (gtk_widget_has_focus (entry) ||
+                 gtk_combo_box_get_active (GTK_COMBO_BOX (self->local_username)) > 0)
+                self->has_custom_username = TRUE;
 
         if (self->local_username_timeout_id != 0) {
                 g_source_remove (self->local_username_timeout_id);
                 self->local_username_timeout_id = 0;
         }
 
-        entry = gtk_bin_get_child (GTK_BIN (self->local_username));
         clear_entry_validation_error (GTK_ENTRY (entry));
         gtk_dialog_set_response_sensitive (GTK_DIALOG (self), GTK_RESPONSE_OK, FALSE);
 
@@ -421,12 +429,13 @@ on_name_changed (GtkEditable *editable,
         gtk_list_store_clear (GTK_LIST_STORE (model));
 
         name = gtk_entry_get_text (GTK_ENTRY (editable));
-        if (strlen (name) == 0) {
+        if ((name == NULL || strlen (name) == 0) && !self->has_custom_username) {
                 entry = gtk_bin_get_child (GTK_BIN (self->local_username));
                 gtk_entry_set_text (GTK_ENTRY (entry), "");
-        } else {
+        } else if (name != NULL && strlen (name) != 0) {
                 generate_username_choices (name, GTK_LIST_STORE (model));
-                gtk_combo_box_set_active (GTK_COMBO_BOX (self->local_username), 0);
+                if (!self->has_custom_username)
+                        gtk_combo_box_set_active (GTK_COMBO_BOX (self->local_username), 0);
         }
 
         if (self->local_name_timeout_id != 0) {
@@ -592,6 +601,7 @@ local_prepare (UmAccountDialog *self)
         model = gtk_combo_box_get_model (GTK_COMBO_BOX (self->local_username));
         gtk_list_store_clear (GTK_LIST_STORE (model));
         gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (self->account_type_standard), TRUE);
+        self->has_custom_username = FALSE;
 }
 
 static gboolean
@@ -1028,14 +1038,14 @@ on_realm_login (GObject *source,
         /* A problem with the user's login name or password */
         } else if (g_error_matches (error, UM_REALM_ERROR, UM_REALM_ERROR_BAD_LOGIN)) {
                 g_debug ("Problem with the user's login: %s", error->message);
-                message = _("That login name didn't work.\nPlease try again.");
+                message = _("That login name didn’t work.\nPlease try again.");
                 gtk_label_set_text (GTK_LABEL (self->enterprise_hint), message);
                 finish_action (self);
                 gtk_widget_grab_focus (GTK_WIDGET (self->enterprise_login));
 
         } else if (g_error_matches (error, UM_REALM_ERROR, UM_REALM_ERROR_BAD_PASSWORD)) {
                 g_debug ("Problem with the user's password: %s", error->message);
-                message = _("That login password didn't work.\nPlease try again.");
+                message = _("That login password didn’t work.\nPlease try again.");
                 gtk_label_set_text (GTK_LABEL (self->enterprise_hint), message);
                 finish_action (self);
                 gtk_widget_grab_focus (GTK_WIDGET (self->enterprise_password));
@@ -1101,7 +1111,7 @@ on_realm_discover_input (GObject *source,
                 g_dbus_error_strip_remote_error (error);
 
                 if (g_error_matches (error, UM_REALM_ERROR, UM_REALM_ERROR_GENERIC)) {
-                        message = g_strdup(_("Unable find the domain. Maybe you misspelled it?"));
+                        message = g_strdup (_("Unable to find the domain. Maybe you misspelled it?"));
                 } else {
                         message = g_strdup_printf ("%s.", error->message);
                 }

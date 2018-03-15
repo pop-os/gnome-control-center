@@ -556,6 +556,9 @@ kind_to_description (UpDeviceKind kind)
       case UP_DEVICE_KIND_COMPUTER:
         /* TRANSLATORS: secondary battery */
         return N_("Computer");
+      case UP_DEVICE_KIND_GAMING_INPUT:
+        /* TRANSLATORS: secondary battery */
+        return N_("Gaming input device");
       default:
         /* TRANSLATORS: secondary battery, misc */
         return N_("Battery");
@@ -1077,11 +1080,11 @@ static void
 got_screen_proxy_cb (GObject *source_object, GAsyncResult *res, gpointer user_data)
 {
   GError *error = NULL;
-  CcPowerPanel *self = CC_POWER_PANEL (user_data);
-  CcPowerPanelPrivate *priv = self->priv;
+  CcPowerPanel *self;
+  GDBusProxy *screen_proxy;
 
-  priv->screen_proxy = g_dbus_proxy_new_for_bus_finish (res, &error);
-  if (priv->screen_proxy == NULL)
+  screen_proxy = g_dbus_proxy_new_for_bus_finish (res, &error);
+  if (screen_proxy == NULL)
     {
       if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED))
         g_printerr ("Error creating screen proxy: %s\n", error->message);
@@ -1089,8 +1092,11 @@ got_screen_proxy_cb (GObject *source_object, GAsyncResult *res, gpointer user_da
       return;
     }
 
+  self = CC_POWER_PANEL (user_data);
+  self->priv->screen_proxy = screen_proxy;
+
   /* we want to change the bar if the user presses brightness buttons */
-  g_signal_connect (priv->screen_proxy, "g-properties-changed",
+  g_signal_connect (screen_proxy, "g-properties-changed",
                     G_CALLBACK (on_screen_property_change), self);
 
   sync_screen_brightness (self);
@@ -1111,11 +1117,11 @@ static void
 got_kbd_proxy_cb (GObject *source_object, GAsyncResult *res, gpointer user_data)
 {
   GError *error = NULL;
-  CcPowerPanel *self = CC_POWER_PANEL (user_data);
-  CcPowerPanelPrivate *priv = self->priv;
+  CcPowerPanel *self;
+  GDBusProxy *kbd_proxy;
 
-  priv->kbd_proxy = g_dbus_proxy_new_for_bus_finish (res, &error);
-  if (priv->kbd_proxy == NULL)
+  kbd_proxy = g_dbus_proxy_new_for_bus_finish (res, &error);
+  if (kbd_proxy == NULL)
     {
       if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED))
         g_printerr ("Error creating keyboard proxy: %s\n", error->message);
@@ -1123,8 +1129,11 @@ got_kbd_proxy_cb (GObject *source_object, GAsyncResult *res, gpointer user_data)
       return;
     }
 
+  self = CC_POWER_PANEL (user_data);
+  self->priv->kbd_proxy = kbd_proxy;
+
   /* we want to change the bar if the user presses brightness buttons */
-  g_signal_connect (priv->kbd_proxy, "g-properties-changed",
+  g_signal_connect (kbd_proxy, "g-properties-changed",
                     G_CALLBACK (on_kbd_property_change), self);
 
   sync_kbd_brightness (self);
@@ -1192,17 +1201,23 @@ set_ac_battery_ui_mode (CcPowerPanel *self)
   gboolean has_batteries = FALSE;
   GPtrArray *devices;
   guint i;
-  UpDevice *device;
-  UpDeviceKind kind;
 
   devices = up_client_get_devices (self->priv->up_client);
   g_debug ("got %d devices from upower\n", devices ? devices->len : 0);
 
   for (i = 0; devices != NULL && i < devices->len; i++)
     {
+      UpDevice *device;
+      gboolean is_power_supply;
+      UpDeviceKind kind;
+
       device = g_ptr_array_index (devices, i);
-      g_object_get (device, "kind", &kind, NULL);
-      if (kind == UP_DEVICE_KIND_BATTERY || kind == UP_DEVICE_KIND_UPS)
+      g_object_get (device,
+                    "kind", &kind,
+                    "power-supply", &is_power_supply,
+                    NULL);
+      if (kind == UP_DEVICE_KIND_UPS ||
+          (kind == UP_DEVICE_KIND_BATTERY && is_power_supply))
         {
           has_batteries = TRUE;
           break;
@@ -1683,9 +1698,7 @@ add_power_saving_section (CcPowerPanel *self)
   g_free (s);
   gtk_label_set_use_markup (GTK_LABEL (label), TRUE);
   gtk_widget_set_halign (label, GTK_ALIGN_START);
-  gtk_widget_set_margin_start (label, 56);
-  gtk_widget_set_margin_end (label, 56);
-  gtk_widget_set_margin_bottom (label, 6);
+  gtk_widget_set_margin_bottom (label, 12);
   gtk_box_pack_start (GTK_BOX (vbox), label, FALSE, TRUE, 0);
   gtk_widget_show (label);
 
@@ -1706,9 +1719,7 @@ add_power_saving_section (CcPowerPanel *self)
 
   box = gtk_frame_new (NULL);
   gtk_frame_set_shadow_type (GTK_FRAME (box), GTK_SHADOW_IN);
-  gtk_widget_set_margin_start (box, 50);
-  gtk_widget_set_margin_end (box, 50);
-  gtk_widget_set_margin_bottom (box, 24);
+  gtk_widget_set_margin_bottom (box, 32);
   gtk_widget_show (box);
   gtk_container_add (GTK_CONTAINER (box), widget);
   gtk_box_pack_start (GTK_BOX (vbox), box, FALSE, TRUE, 0);
@@ -1904,14 +1915,23 @@ add_power_saving_section (CcPowerPanel *self)
   row = no_prelight_row_new ();
   box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 50);
   gtk_container_add (GTK_CONTAINER (row), box);
+
+  box2 = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
+  gtk_widget_set_margin_start (box2, 20);
+  gtk_widget_set_margin_end (box2, 20);
+  gtk_widget_set_margin_top (box2, 6);
+  gtk_widget_set_margin_bottom (box2, 6);
+  gtk_box_pack_start (GTK_BOX (box), box2, TRUE, TRUE, 0);
+
   label = gtk_label_new (_("_Bluetooth"));
   gtk_widget_set_halign (label, GTK_ALIGN_START);
   gtk_label_set_use_underline (GTK_LABEL (label), TRUE);
-  gtk_widget_set_margin_start (label, 20);
-  gtk_widget_set_margin_end (label, 20);
-  gtk_widget_set_margin_top (label, 6);
-  gtk_widget_set_margin_bottom (label, 6);
-  gtk_box_pack_start (GTK_BOX (box), label, TRUE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (box2), label, TRUE, TRUE, 0);
+
+  label = gtk_label_new (_("Turn off Bluetooth to save power."));
+  gtk_widget_set_halign (label, GTK_ALIGN_START);
+  gtk_style_context_add_class (gtk_widget_get_style_context (label), GTK_STYLE_CLASS_DIM_LABEL);
+  gtk_box_pack_start (GTK_BOX (box2), label, TRUE, TRUE, 0);
 
   priv->bt_switch = sw = gtk_switch_new ();
   gtk_widget_set_margin_start (sw, 20);
@@ -2065,6 +2085,7 @@ populate_power_button_model (GtkTreeModel *model,
     GsdPowerButtonActionType value;
   } actions[] = {
     { N_("Suspend"), GSD_POWER_BUTTON_ACTION_SUSPEND },
+    { N_("Power Off"), GSD_POWER_BUTTON_ACTION_INTERACTIVE },
     { N_("Hibernate"), GSD_POWER_BUTTON_ACTION_HIBERNATE },
     { N_("Nothing"), GSD_POWER_BUTTON_ACTION_NOTHING }
   };
@@ -2185,9 +2206,7 @@ add_suspend_and_power_off_section (CcPowerPanel *self)
   g_free (s);
   gtk_label_set_use_markup (GTK_LABEL (label), TRUE);
   gtk_widget_set_halign (label, GTK_ALIGN_START);
-  gtk_widget_set_margin_start (label, 56);
-  gtk_widget_set_margin_end (label, 50);
-  gtk_widget_set_margin_bottom (label, 6);
+  gtk_widget_set_margin_bottom (label, 12);
   gtk_box_pack_start (GTK_BOX (vbox), label, FALSE, TRUE, 0);
   gtk_widget_show (label);
 
@@ -2210,9 +2229,7 @@ add_suspend_and_power_off_section (CcPowerPanel *self)
 
   box = gtk_frame_new (NULL);
   gtk_frame_set_shadow_type (GTK_FRAME (box), GTK_SHADOW_IN);
-  gtk_widget_set_margin_start (box, 50);
-  gtk_widget_set_margin_end (box, 50);
-  gtk_widget_set_margin_bottom (box, 24);
+  gtk_widget_set_margin_bottom (box, 32);
   gtk_widget_show (box);
   gtk_container_add (GTK_CONTAINER (box), widget);
   gtk_box_pack_start (GTK_BOX (vbox), box, FALSE, TRUE, 0);
@@ -2357,10 +2374,7 @@ add_battery_section (CcPowerPanel *self)
   vbox = WID (priv->builder, "vbox_power");
 
   priv->battery_section = box = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
-  gtk_widget_set_margin_start (box, 50);
-  gtk_widget_set_margin_end (box, 50);
-  gtk_widget_set_margin_bottom (box, 6);
-  gtk_widget_set_margin_bottom (box, 24);
+  gtk_widget_set_margin_bottom (box, 32);
   gtk_box_pack_start (GTK_BOX (vbox), box, FALSE, TRUE, 0);
 
   s = g_markup_printf_escaped ("<b>%s</b>", _("Battery"));
@@ -2368,10 +2382,8 @@ add_battery_section (CcPowerPanel *self)
   g_free (s);
   gtk_label_set_use_markup (GTK_LABEL (widget), TRUE);
   gtk_widget_set_halign (widget, GTK_ALIGN_START);
-  gtk_widget_set_margin_start (widget, 6);
-  gtk_widget_set_margin_end (widget, 6);
-  gtk_widget_set_margin_bottom (widget, 6);
-  gtk_widget_set_margin_bottom (box, 24);
+  gtk_widget_set_margin_bottom (widget, 12);
+  gtk_widget_set_margin_bottom (box, 32);
   gtk_box_pack_start (GTK_BOX (box), widget, FALSE, TRUE, 0);
 
   priv->battery_list = widget = GTK_WIDGET (gtk_list_box_new ());
@@ -2411,10 +2423,8 @@ add_device_section (CcPowerPanel *self)
   vbox = WID (priv->builder, "vbox_power");
 
   priv->device_section = box = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
-  gtk_widget_set_margin_start (box, 50);
-  gtk_widget_set_margin_end (box, 50);
   gtk_widget_set_margin_top (box, 6);
-  gtk_widget_set_margin_bottom (box, 24);
+  gtk_widget_set_margin_bottom (box, 32);
   gtk_box_pack_start (GTK_BOX (vbox), box, FALSE, TRUE, 0);
 
   s = g_markup_printf_escaped ("<b>%s</b>", _("Devices"));
@@ -2422,9 +2432,7 @@ add_device_section (CcPowerPanel *self)
   g_free (s);
   gtk_label_set_use_markup (GTK_LABEL (widget), TRUE);
   gtk_widget_set_halign (widget, GTK_ALIGN_START);
-  gtk_widget_set_margin_start (widget, 6);
-  gtk_widget_set_margin_end (widget, 6);
-  gtk_widget_set_margin_bottom (widget, 6);
+  gtk_widget_set_margin_bottom (widget, 12);
   gtk_box_pack_start (GTK_BOX (box), widget, FALSE, TRUE, 0);
 
   priv->device_list = widget = gtk_list_box_new ();
@@ -2552,7 +2560,7 @@ cc_power_panel_init (CcPowerPanel *self)
   }
   up_client_changed (priv->up_client, NULL, self);
 
-  widget = WID (priv->builder, "vbox_power");
+  widget = WID (priv->builder, "main_box");
   box = gtk_scrolled_window_new (NULL, NULL);
   gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (box),
                                   GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);

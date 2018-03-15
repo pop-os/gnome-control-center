@@ -167,6 +167,10 @@ show_touchpad_enabling_switch (CcMousePropertiesPrivate *d)
 	if (!d->have_touchpad)
 		return FALSE;
 
+	g_debug ("Should we show the touchpad disable switch: have_mouse: %s have_touchscreen: %s\n",
+		 d->have_mouse ? "true" : "false",
+		 d->have_touchscreen ? "true" : "false");
+
 	/* Let's show the button when a mouse or touchscreen is present */
 	if (d->have_mouse || d->have_touchscreen)
 		return TRUE;
@@ -365,7 +369,7 @@ static void
 cc_mouse_properties_init (CcMouseProperties *object)
 {
 	CcMousePropertiesPrivate *d = object->priv = CC_MOUSE_PROPERTIES_GET_PRIVATE (object);
-	GError *error = NULL;
+	g_autoptr(GError) error = NULL;
 
 	d->builder = gtk_builder_new ();
 	gtk_builder_add_from_resource (d->builder,

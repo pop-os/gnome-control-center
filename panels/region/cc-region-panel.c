@@ -47,8 +47,6 @@
 
 #include <act/act.h>
 
-#include <libgd/gd-notification.h>
-
 #define GNOME_DESKTOP_INPUT_SOURCES_DIR "org.gnome.desktop.input-sources"
 #define KEY_INPUT_SOURCES        "sources"
 
@@ -88,8 +86,8 @@ struct _CcRegionPanelPrivate {
         GDBusProxy  *session;
         GCancellable *cancellable;
 
-        GtkWidget *overlay;
-        GtkWidget *notification;
+        GtkWidget *restart_notification;
+        gchar *needs_restart_file_path;
 
         GtkWidget     *language_section;
         GtkListBoxRow *language_row;
@@ -164,6 +162,8 @@ cc_region_panel_finalize (GObject *object)
         g_free (priv->system_language);
         g_free (priv->system_region);
 
+        g_clear_pointer (&priv->needs_restart_file_path, g_free);
+
         chooser = g_object_get_data (G_OBJECT (self), "input-chooser");
         if (chooser)
                 gtk_widget_destroy (chooser);
@@ -209,7 +209,8 @@ restart_now (CcRegionPanel *self)
 {
         CcRegionPanelPrivate *priv = self->priv;
 
-        gd_notification_dismiss (GD_NOTIFICATION (self->priv->notification));
+        g_file_delete (g_file_new_for_path (priv->needs_restart_file_path),
+                                            NULL, NULL);
 
         g_dbus_proxy_call (priv->session,
                            "Logout",
@@ -219,51 +220,34 @@ restart_now (CcRegionPanel *self)
 }
 
 static void
-show_restart_notification (CcRegionPanel *self,
-                           const gchar   *locale)
+set_restart_notification_visible (CcRegionPanel *self,
+                                  const gchar   *locale,
+                                  gboolean       visible)
 {
 	CcRegionPanelPrivate *priv = self->priv;
-        GtkWidget *box;
-        GtkWidget *label;
-        GtkWidget *button;
         gchar *current_locale = NULL;
-
-        if (priv->notification)
-                return;
 
         if (locale) {
                 current_locale = g_strdup (setlocale (LC_MESSAGES, NULL));
                 setlocale (LC_MESSAGES, locale);
         }
 
-        priv->notification = gd_notification_new ();
-        g_object_add_weak_pointer (G_OBJECT (priv->notification),
-                                   (gpointer *)&priv->notification);
-        box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 6);
-        gtk_widget_set_margin_start (box, 6);
-        gtk_widget_set_margin_end (box, 6);
-        gtk_widget_set_margin_top (box, 6);
-        gtk_widget_set_margin_bottom (box, 6);
-        label = gtk_label_new (_("Your session needs to be restarted for changes to take effect"));
-        gtk_label_set_line_wrap (GTK_LABEL (label), TRUE);
-        gtk_label_set_max_width_chars (GTK_LABEL (label), 30);
-        g_object_set (G_OBJECT (label), "xalign", 0, NULL);
-        button = gtk_button_new_with_label (_("Restart Now"));
-        gtk_widget_set_valign (button, GTK_ALIGN_CENTER);
-        g_signal_connect_swapped (button, "clicked",
-                                  G_CALLBACK (restart_now), self);
-        gtk_box_pack_start (GTK_BOX (box), label, FALSE, FALSE, 0);
-        gtk_box_pack_start (GTK_BOX (box), button, FALSE, FALSE, 0);
-        gtk_widget_show_all (box);
-
-        gtk_container_add (GTK_CONTAINER (priv->notification), box);
-        gtk_overlay_add_overlay (GTK_OVERLAY (self->priv->overlay), priv->notification);
-        gtk_widget_show (priv->notification);
+        gtk_revealer_set_reveal_child (GTK_REVEALER (priv->restart_notification), visible);
 
         if (locale) {
                 setlocale (LC_MESSAGES, current_locale);
                 g_free (current_locale);
         }
+
+        if (!visible) {
+                g_file_delete (g_file_new_for_path (priv->needs_restart_file_path),
+                                                    NULL, NULL);
+
+                return;
+        }
+
+        if (!g_file_set_contents (priv->needs_restart_file_path, "", -1, NULL))
+                g_warning ("Unable to create %s", priv->needs_restart_file_path);
 }
 
 typedef struct {
@@ -312,8 +296,13 @@ maybe_notify_finish (GObject      *source,
 
         if (g_str_equal (current_lang_code, target_lang_code) == FALSE ||
             g_str_equal (current_country_code, target_country_code) == FALSE)
-                show_restart_notification (self,
-                                           mnd->category == LC_MESSAGES ? mnd->target_locale : NULL);
+                set_restart_notification_visible (self,
+                                                  mnd->category == LC_MESSAGES ? mnd->target_locale : NULL,
+                                                  TRUE);
+        else
+                set_restart_notification_visible (self,
+                                                  mnd->category == LC_MESSAGES ? mnd->target_locale : NULL,
+                                                  FALSE);
 out:
         g_free (target_country_code);
         g_free (target_lang_code);
@@ -667,6 +656,10 @@ setup_language_section (CcRegionPanel *self)
         priv->formats_row = GTK_LIST_BOX_ROW (WID ("formats_row"));
         priv->formats_label = WID ("formats_label");
 
+        priv->restart_notification = WID ("restart-revealer");
+        widget = WID ("restart-button");
+        g_signal_connect_swapped (widget, "clicked", G_CALLBACK (restart_now), self);
+
         widget = WID ("language_list");
         gtk_list_box_set_selection_mode (GTK_LIST_BOX (widget),
                                          GTK_SELECTION_NONE);
@@ -853,8 +846,8 @@ add_input_row (CcRegionPanel   *self,
         gtk_widget_set_halign (label, GTK_ALIGN_START);
         gtk_widget_set_margin_start (label, 20);
         gtk_widget_set_margin_end (label, 20);
-        gtk_widget_set_margin_top (label, 12);
-        gtk_widget_set_margin_bottom (label, 12);
+        gtk_widget_set_margin_top (label, 18);
+        gtk_widget_set_margin_bottom (label, 18);
         gtk_box_pack_start (GTK_BOX (box), label, TRUE, TRUE, 0);
 
         if (strcmp (type, INPUT_SOURCE_TYPE_IBUS) == 0) {
@@ -1531,6 +1524,7 @@ on_localed_properties_changed (GDBusProxy     *proxy,
                 g_free (priv->system_region);
                 priv->system_region = g_strdup (time);
                 g_variant_unref (v);
+                g_free (strv);
 
                 update_language_label (self);
         }
@@ -1852,6 +1846,12 @@ cc_region_panel_init (CcRegionPanel *self)
         setup_language_section (self);
         setup_input_section (self);
 
-        priv->overlay = GTK_WIDGET (gtk_builder_get_object (priv->builder, "overlay"));
-	gtk_container_add (GTK_CONTAINER (self), priv->overlay);
+	gtk_container_add (GTK_CONTAINER (self),
+                           GTK_WIDGET (gtk_builder_get_object (priv->builder, "vbox_region")));
+
+        priv->needs_restart_file_path = g_build_filename (g_get_user_runtime_dir (),
+                                                          "gnome-control-center-region-needs-restart",
+                                                          NULL);
+        if (g_file_query_exists (g_file_new_for_path (priv->needs_restart_file_path), NULL))
+                set_restart_notification_visible (self, NULL, TRUE);
 }

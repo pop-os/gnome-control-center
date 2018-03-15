@@ -32,10 +32,10 @@
 #include "cc-background-item.h"
 #include "gdesktop-enums-types.h"
 
-#define CC_BACKGROUND_ITEM_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), CC_TYPE_BACKGROUND_ITEM, CcBackgroundItemPrivate))
-
-struct CcBackgroundItemPrivate
+struct _CcBackgroundItem
 {
+        GObject          parent_instance;
+
         /* properties */
         char            *name;
         char            *uri;
@@ -76,8 +76,6 @@ enum {
         PROP_MODIFIED
 };
 
-static void     cc_background_item_class_init     (CcBackgroundItemClass *klass);
-static void     cc_background_item_init           (CcBackgroundItem      *background_item);
 static void     cc_background_item_finalize       (GObject               *object);
 
 G_DEFINE_TYPE (CcBackgroundItem, cc_background_item, G_TYPE_OBJECT)
@@ -87,9 +85,6 @@ static GdkPixbuf *slideshow_emblem = NULL;
 static GdkPixbuf *
 get_emblemed_pixbuf (CcBackgroundItem *item, GdkPixbuf *pixbuf, gint scale_factor)
 {
-        GdkPixbuf *retval;
-        GIcon *icon = NULL;
-        GtkIconInfo *icon_info = NULL;
         int eh;
         int ew;
         int h;
@@ -97,12 +92,12 @@ get_emblemed_pixbuf (CcBackgroundItem *item, GdkPixbuf *pixbuf, gint scale_facto
         int x;
         int y;
 
-        retval = g_object_ref (pixbuf);
-
-        if (item->priv->slideshow_emblem == NULL) {
+        if (item->slideshow_emblem == NULL) {
                 if (slideshow_emblem == NULL) {
-                        GError *error = NULL;
+                        g_autoptr(GIcon) icon = NULL;
                         GtkIconTheme *theme;
+                        g_autoptr(GtkIconInfo) icon_info = NULL;
+                        g_autoptr(GError) error = NULL;
 
                         icon = g_themed_icon_new ("slideshow-emblem");
                         theme = gtk_icon_theme_get_default ();
@@ -115,20 +110,19 @@ get_emblemed_pixbuf (CcBackgroundItem *item, GdkPixbuf *pixbuf, gint scale_facto
                         if (icon_info == NULL) {
                                 g_warning ("Your icon theme is missing the slideshow-emblem icon, "
                                            "please file a bug against it");
-                                goto out;
+                                return g_object_ref (pixbuf);
                         }
 
                         slideshow_emblem = gtk_icon_info_load_icon (icon_info, &error);
                         if (slideshow_emblem == NULL) {
                                 g_warning ("Failed to load slideshow emblem: %s", error->message);
-                                g_error_free (error);
-                                goto out;
+                                return g_object_ref (pixbuf);
                         }
 
                         g_object_add_weak_pointer (G_OBJECT (slideshow_emblem), (gpointer *) (&slideshow_emblem));
-                        item->priv->slideshow_emblem = slideshow_emblem;
+                        item->slideshow_emblem = slideshow_emblem;
                 } else {
-                        item->priv->slideshow_emblem = g_object_ref (slideshow_emblem);
+                        item->slideshow_emblem = g_object_ref (slideshow_emblem);
                 }
         }
 
@@ -141,39 +135,34 @@ get_emblemed_pixbuf (CcBackgroundItem *item, GdkPixbuf *pixbuf, gint scale_facto
 
         gdk_pixbuf_composite (slideshow_emblem, pixbuf, x, y, ew, eh, x, y, 1.0, 1.0, GDK_INTERP_BILINEAR, 255);
 
- out:
-        g_clear_object (&icon_info);
-        g_clear_object (&icon);
-        return retval;
+        return g_object_ref (pixbuf);
 }
 
 static void
 set_bg_properties (CcBackgroundItem *item)
 {
-        GdkColor pcolor = { 0, 0, 0, 0 };
-        GdkColor scolor = { 0, 0, 0, 0 };
+        GdkRGBA pcolor = { 0, 0, 0, 0 };
+        GdkRGBA scolor = { 0, 0, 0, 0 };
+        GdkColor p, s;
 
-        if (item->priv->uri) {
-		GFile *file;
-		char *filename;
+        if (item->uri) {
+		g_autoptr(GFile) file = NULL;
+		g_autofree gchar *filename = NULL;
 
-		file = g_file_new_for_commandline_arg (item->priv->uri);
+		file = g_file_new_for_commandline_arg (item->uri);
 		filename = g_file_get_path (file);
-		g_object_unref (file);
-
-		gnome_bg_set_filename (item->priv->bg, filename);
-		g_free (filename);
+		gnome_bg_set_filename (item->bg, filename);
 	}
 
-        if (item->priv->primary_color != NULL) {
-                gdk_color_parse (item->priv->primary_color, &pcolor);
+        if (item->primary_color != NULL) {
+                gdk_rgba_parse (&pcolor, item->primary_color);
         }
-        if (item->priv->secondary_color != NULL) {
-                gdk_color_parse (item->priv->secondary_color, &scolor);
+        if (item->secondary_color != NULL) {
+                gdk_rgba_parse (&scolor, item->secondary_color);
         }
 
-        gnome_bg_set_color (item->priv->bg, item->priv->shading, &pcolor, &scolor);
-        gnome_bg_set_placement (item->priv->bg, item->priv->placement);
+        gnome_bg_set_rgba (item->bg, item->shading, &pcolor, &scolor);
+        gnome_bg_set_placement (item->bg, item->placement);
 }
 
 
@@ -185,8 +174,8 @@ cc_background_item_changes_with_time (CcBackgroundItem *item)
 	g_return_val_if_fail (CC_IS_BACKGROUND_ITEM (item), FALSE);
 
         changes = FALSE;
-        if (item->priv->bg != NULL) {
-                changes = gnome_bg_changes_with_time (item->priv->bg);
+        if (item->bg != NULL) {
+                changes = gnome_bg_changes_with_time (item->bg);
         }
         return changes;
 }
@@ -194,19 +183,19 @@ cc_background_item_changes_with_time (CcBackgroundItem *item)
 static void
 update_size (CcBackgroundItem *item)
 {
-	g_clear_pointer (&item->priv->size, g_free);
+	g_clear_pointer (&item->size, g_free);
 
-	if (item->priv->uri == NULL) {
-		item->priv->size = g_strdup ("");
+	if (item->uri == NULL) {
+		item->size = g_strdup ("");
 	} else {
-		if (gnome_bg_has_multiple_sizes (item->priv->bg) || gnome_bg_changes_with_time (item->priv->bg)) {
-			item->priv->size = g_strdup (_("multiple sizes"));
+		if (gnome_bg_has_multiple_sizes (item->bg) || gnome_bg_changes_with_time (item->bg)) {
+			item->size = g_strdup (_("multiple sizes"));
 		} else {
 			/* translators: 100 × 100px
 			 * Note that this is not an "x", but U+00D7 MULTIPLICATION SIGN */
-			item->priv->size = g_strdup_printf (_("%d × %d"),
-							    item->priv->width,
-							    item->priv->height);
+			item->size = g_strdup_printf (_("%d × %d"),
+						      item->width,
+						      item->height);
 		}
 	}
 }
@@ -233,8 +222,8 @@ cc_background_item_get_frame_thumbnail (CcBackgroundItem             *item,
                                         int                           frame,
                                         gboolean                      force_size)
 {
-        GdkPixbuf *pixbuf = NULL;
-        GdkPixbuf *retval = NULL;
+        g_autoptr(GdkPixbuf) pixbuf = NULL;
+        g_autoptr(GdkPixbuf) retval = NULL;
 
 	g_return_val_if_fail (CC_IS_BACKGROUND_ITEM (item), NULL);
 	g_return_val_if_fail (width > 0 && height > 0, NULL);
@@ -249,17 +238,17 @@ cc_background_item_get_frame_thumbnail (CcBackgroundItem             *item,
                  * the slideshow frame though, so we can't do much better than this
                  * for now.
                  */
-                pixbuf = render_at_size (item->priv->bg, width, height);
+                pixbuf = render_at_size (item->bg, width, height);
         } else {
                 if (frame >= 0) {
-                        pixbuf = gnome_bg_create_frame_thumbnail (item->priv->bg,
+                        pixbuf = gnome_bg_create_frame_thumbnail (item->bg,
                                                                   thumbs,
                                                                   gdk_screen_get_default (),
                                                                   width,
                                                                   height,
                                                                   frame);
                 } else {
-                        pixbuf = gnome_bg_create_thumbnail (item->priv->bg,
+                        pixbuf = gnome_bg_create_thumbnail (item->bg,
                                                             thumbs,
                                                             gdk_screen_get_default (),
                                                             width,
@@ -269,23 +258,22 @@ cc_background_item_get_frame_thumbnail (CcBackgroundItem             *item,
 
         if (pixbuf != NULL
             && frame != -2
-            && gnome_bg_changes_with_time (item->priv->bg)) {
+            && gnome_bg_changes_with_time (item->bg)) {
                 retval = get_emblemed_pixbuf (item, pixbuf, scale_factor);
-                g_object_unref (pixbuf);
         } else {
-                retval = pixbuf;
+                retval = g_steal_pointer (&pixbuf);
 	}
 
-        gnome_bg_get_image_size (item->priv->bg,
+        gnome_bg_get_image_size (item->bg,
                                  thumbs,
                                  width,
                                  height,
-                                 &item->priv->width,
-                                 &item->priv->height);
+                                 &item->width,
+                                 &item->height);
 
         update_size (item);
 
-        return retval;
+        return g_steal_pointer (&retval);
 }
 
 
@@ -303,11 +291,12 @@ static void
 update_info (CcBackgroundItem *item,
 	     GFileInfo        *_info)
 {
-        GFile     *file;
-        GFileInfo *info;
+        g_autoptr(GFileInfo) info = NULL;
 
 	if (_info == NULL) {
-		file = g_file_new_for_uri (item->priv->uri);
+		g_autoptr(GFile) file = NULL;
+
+		file = g_file_new_for_uri (item->uri);
 
 		info = g_file_query_info (file,
 					  G_FILE_ATTRIBUTE_STANDARD_NAME ","
@@ -318,31 +307,27 @@ update_info (CcBackgroundItem *item,
 					  G_FILE_QUERY_INFO_NONE,
 					  NULL,
 					  NULL);
-		g_object_unref (file);
 	} else {
 		info = g_object_ref (_info);
 	}
 
-	g_clear_pointer (&item->priv->mime_type, g_free);
+	g_clear_pointer (&item->mime_type, g_free);
 
         if (info == NULL
             || g_file_info_get_content_type (info) == NULL) {
-                if (item->priv->uri == NULL) {
-                        item->priv->mime_type = g_strdup ("image/x-no-data");
-                        g_free (item->priv->name);
-                        item->priv->name = g_strdup (_("No Desktop Background"));
+                if (item->uri == NULL) {
+                        item->mime_type = g_strdup ("image/x-no-data");
+                        g_free (item->name);
+                        item->name = g_strdup (_("No Desktop Background"));
                 }
         } else {
-                if (item->priv->name == NULL)
-                        item->priv->name = g_strdup (g_file_info_get_display_name (info));
+                if (item->name == NULL)
+                        item->name = g_strdup (g_file_info_get_display_name (info));
 
-                item->priv->mime_type = g_strdup (g_file_info_get_content_type (info));
-                if (item->priv->modified == 0)
-                  item->priv->modified = g_file_info_get_attribute_uint64 (info, G_FILE_ATTRIBUTE_TIME_MODIFIED);
+                item->mime_type = g_strdup (g_file_info_get_content_type (info));
+                if (item->modified == 0)
+                        item->modified = g_file_info_get_attribute_uint64 (info, G_FILE_ATTRIBUTE_TIME_MODIFIED);
         }
-
-        if (info != NULL)
-                g_object_unref (info);
 }
 
 gboolean
@@ -351,29 +336,28 @@ cc_background_item_load (CcBackgroundItem *item,
 {
         g_return_val_if_fail (CC_IS_BACKGROUND_ITEM (item), FALSE);
 
-        if (item->priv->uri == NULL)
+        if (item->uri == NULL)
 		return TRUE;
 
         update_info (item, info);
 
-        if (item->priv->mime_type != NULL
-            && (g_str_has_prefix (item->priv->mime_type, "image/")
-                || strcmp (item->priv->mime_type, "application/xml") == 0)) {
+        if (item->mime_type != NULL
+            && (g_str_has_prefix (item->mime_type, "image/")
+                || strcmp (item->mime_type, "application/xml") == 0)) {
                 set_bg_properties (item);
         } else {
 		return FALSE;
         }
 
 	/* FIXME we should handle XML files as well */
-        if (item->priv->mime_type != NULL &&
-            g_str_has_prefix (item->priv->mime_type, "image/")) {
-		char *filename;
+        if (item->mime_type != NULL &&
+            g_str_has_prefix (item->mime_type, "image/")) {
+		g_autofree gchar *filename = NULL;
 
-		filename = g_filename_from_uri (item->priv->uri, NULL, NULL);
+		filename = g_filename_from_uri (item->uri, NULL, NULL);
 		gdk_pixbuf_get_file_info (filename,
-					  &item->priv->width,
-					  &item->priv->height);
-		g_free (filename);
+					  &item->width,
+					  &item->height);
 		update_size (item);
 	}
 
@@ -384,8 +368,8 @@ static void
 _set_name (CcBackgroundItem *item,
            const char       *value)
 {
-        g_free (item->priv->name);
-        item->priv->name = g_strdup (value);
+        g_free (item->name);
+        item->name = g_strdup (value);
 }
 
 const char *
@@ -393,20 +377,20 @@ cc_background_item_get_name (CcBackgroundItem *item)
 {
 	g_return_val_if_fail (CC_IS_BACKGROUND_ITEM (item), NULL);
 
-	return item->priv->name;
+	return item->name;
 }
 
 static void
 _set_uri (CcBackgroundItem *item,
 	  const char       *value)
 {
-        g_free (item->priv->uri);
+        g_free (item->uri);
         if (value && *value == '\0') {
-		item->priv->uri = NULL;
+		item->uri = NULL;
 	} else {
 		if (value && strstr (value, "://") == NULL)
 			g_warning ("URI '%s' is invalid", value);
-		item->priv->uri = g_strdup (value);
+		item->uri = g_strdup (value);
 	}
 }
 
@@ -415,29 +399,29 @@ cc_background_item_get_uri (CcBackgroundItem *item)
 {
 	g_return_val_if_fail (CC_IS_BACKGROUND_ITEM (item), NULL);
 
-	return item->priv->uri;
+	return item->uri;
 }
 
 static void
 _set_placement (CcBackgroundItem        *item,
                 GDesktopBackgroundStyle  value)
 {
-        item->priv->placement = value;
+        item->placement = value;
 }
 
 static void
 _set_shading (CcBackgroundItem          *item,
               GDesktopBackgroundShading  value)
 {
-        item->priv->shading = value;
+        item->shading = value;
 }
 
 static void
 _set_primary_color (CcBackgroundItem *item,
                     const char       *value)
 {
-        g_free (item->priv->primary_color);
-        item->priv->primary_color = g_strdup (value);
+        g_free (item->primary_color);
+        item->primary_color = g_strdup (value);
 }
 
 const char *
@@ -445,15 +429,15 @@ cc_background_item_get_pcolor (CcBackgroundItem *item)
 {
 	g_return_val_if_fail (CC_IS_BACKGROUND_ITEM (item), NULL);
 
-	return item->priv->primary_color;
+	return item->primary_color;
 }
 
 static void
 _set_secondary_color (CcBackgroundItem *item,
                       const char       *value)
 {
-        g_free (item->priv->secondary_color);
-        item->priv->secondary_color = g_strdup (value);
+        g_free (item->secondary_color);
+        item->secondary_color = g_strdup (value);
 }
 
 const char *
@@ -461,7 +445,7 @@ cc_background_item_get_scolor (CcBackgroundItem *item)
 {
 	g_return_val_if_fail (CC_IS_BACKGROUND_ITEM (item), NULL);
 
-	return item->priv->secondary_color;
+	return item->secondary_color;
 }
 
 GDesktopBackgroundStyle
@@ -469,7 +453,7 @@ cc_background_item_get_placement (CcBackgroundItem *item)
 {
 	g_return_val_if_fail (CC_IS_BACKGROUND_ITEM (item), G_DESKTOP_BACKGROUND_STYLE_SCALED);
 
-	return item->priv->placement;
+	return item->placement;
 }
 
 GDesktopBackgroundShading
@@ -477,22 +461,22 @@ cc_background_item_get_shading (CcBackgroundItem *item)
 {
 	g_return_val_if_fail (CC_IS_BACKGROUND_ITEM (item), G_DESKTOP_BACKGROUND_SHADING_SOLID);
 
-	return item->priv->shading;
+	return item->shading;
 }
 
 static void
 _set_is_deleted (CcBackgroundItem *item,
                  gboolean          value)
 {
-        item->priv->is_deleted = value;
+        item->is_deleted = value;
 }
 
 static void
 _set_source_url (CcBackgroundItem *item,
                  const char       *value)
 {
-        g_free (item->priv->source_url);
-        item->priv->source_url = g_strdup (value);
+        g_free (item->source_url);
+        item->source_url = g_strdup (value);
 }
 
 const char *
@@ -500,15 +484,15 @@ cc_background_item_get_source_url (CcBackgroundItem *item)
 {
 	g_return_val_if_fail (CC_IS_BACKGROUND_ITEM (item), NULL);
 
-	return item->priv->source_url;
+	return item->source_url;
 }
 
 static void
 _set_source_xml (CcBackgroundItem *item,
                  const char       *value)
 {
-        g_free (item->priv->source_xml);
-        item->priv->source_xml = g_strdup (value);
+        g_free (item->source_xml);
+        item->source_xml = g_strdup (value);
 }
 
 const char *
@@ -516,14 +500,14 @@ cc_background_item_get_source_xml (CcBackgroundItem *item)
 {
 	g_return_val_if_fail (CC_IS_BACKGROUND_ITEM (item), NULL);
 
-	return item->priv->source_xml;
+	return item->source_xml;
 }
 
 static void
 _set_flags (CcBackgroundItem      *item,
             CcBackgroundItemFlags  value)
 {
-	item->priv->flags = value;
+	item->flags = value;
 }
 
 CcBackgroundItemFlags
@@ -531,7 +515,7 @@ cc_background_item_get_flags (CcBackgroundItem *item)
 {
 	g_return_val_if_fail (CC_IS_BACKGROUND_ITEM (item), 0);
 
-	return item->priv->flags;
+	return item->flags;
 }
 
 const char *
@@ -539,14 +523,14 @@ cc_background_item_get_size (CcBackgroundItem *item)
 {
 	g_return_val_if_fail (CC_IS_BACKGROUND_ITEM (item), NULL);
 
-	return item->priv->size;
+	return item->size;
 }
 
 static void
 _set_needs_download (CcBackgroundItem *item,
 		     gboolean          value)
 {
-	item->priv->needs_download = value;
+	item->needs_download = value;
 }
 
 gboolean
@@ -554,14 +538,14 @@ cc_background_item_get_needs_download (CcBackgroundItem *item)
 {
 	g_return_val_if_fail (CC_IS_BACKGROUND_ITEM (item), 0);
 
-	return item->priv->needs_download;
+	return item->needs_download;
 }
 
 static void
 _set_modified (CcBackgroundItem *item,
                guint64           value)
 {
-        item->priv->modified = value;
+        item->modified = value;
 }
 
 guint64
@@ -569,7 +553,7 @@ cc_background_item_get_modified (CcBackgroundItem *item)
 {
 	g_return_val_if_fail (CC_IS_BACKGROUND_ITEM (item), 0);
 
-	return item->priv->modified;
+	return item->modified;
 }
 
 static void
@@ -637,43 +621,43 @@ cc_background_item_get_property (GObject    *object,
 
         switch (prop_id) {
         case PROP_NAME:
-                g_value_set_string (value, self->priv->name);
+                g_value_set_string (value, self->name);
                 break;
 	case PROP_URI:
-                g_value_set_string (value, self->priv->uri);
+                g_value_set_string (value, self->uri);
                 break;
         case PROP_PLACEMENT:
-                g_value_set_enum (value, self->priv->placement);
+                g_value_set_enum (value, self->placement);
                 break;
         case PROP_SHADING:
-                g_value_set_enum (value, self->priv->shading);
+                g_value_set_enum (value, self->shading);
                 break;
         case PROP_PRIMARY_COLOR:
-                g_value_set_string (value, self->priv->primary_color);
+                g_value_set_string (value, self->primary_color);
                 break;
         case PROP_SECONDARY_COLOR:
-                g_value_set_string (value, self->priv->secondary_color);
+                g_value_set_string (value, self->secondary_color);
                 break;
         case PROP_IS_DELETED:
-                g_value_set_boolean (value, self->priv->is_deleted);
+                g_value_set_boolean (value, self->is_deleted);
                 break;
 	case PROP_SOURCE_URL:
-		g_value_set_string (value, self->priv->source_url);
+		g_value_set_string (value, self->source_url);
 		break;
 	case PROP_SOURCE_XML:
-		g_value_set_string (value, self->priv->source_xml);
+		g_value_set_string (value, self->source_xml);
 		break;
 	case PROP_FLAGS:
-		g_value_set_flags (value, self->priv->flags);
+		g_value_set_flags (value, self->flags);
 		break;
 	case PROP_SIZE:
-		g_value_set_string (value, self->priv->size);
+		g_value_set_string (value, self->size);
 		break;
 	case PROP_NEEDS_DOWNLOAD:
-		g_value_set_boolean (value, self->priv->needs_download);
+		g_value_set_boolean (value, self->needs_download);
 		break;
 	case PROP_MODIFIED:
-		g_value_set_uint64 (value, self->priv->modified);
+		g_value_set_uint64 (value, self->modified);
 		break;
         default:
                 G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -689,8 +673,8 @@ cc_background_item_constructor (GType                  type,
         CcBackgroundItem      *background_item;
 
         background_item = CC_BACKGROUND_ITEM (G_OBJECT_CLASS (cc_background_item_parent_class)->constructor (type,
-                                                                                                                         n_construct_properties,
-                                                                                                                         construct_properties));
+                                                                                                             n_construct_properties,
+                                                                                                             construct_properties));
 
         return G_OBJECT (background_item);
 }
@@ -809,25 +793,20 @@ cc_background_item_class_init (CcBackgroundItemClass *klass)
                                                               G_MAXUINT64,
                                                               0,
                                                               G_PARAM_READWRITE));
-
-
-        g_type_class_add_private (klass, sizeof (CcBackgroundItemPrivate));
 }
 
 static void
 cc_background_item_init (CcBackgroundItem *item)
 {
-        item->priv = CC_BACKGROUND_ITEM_GET_PRIVATE (item);
+        item->bg = gnome_bg_new ();
 
-        item->priv->bg = gnome_bg_new ();
-
-        item->priv->shading = G_DESKTOP_BACKGROUND_SHADING_SOLID;
-        item->priv->placement = G_DESKTOP_BACKGROUND_STYLE_SCALED;
-        item->priv->primary_color = g_strdup ("#000000000000");
-        item->priv->secondary_color = g_strdup ("#000000000000");
-        item->priv->needs_download = TRUE;
-        item->priv->flags = 0;
-        item->priv->modified = 0;
+        item->shading = G_DESKTOP_BACKGROUND_SHADING_SOLID;
+        item->placement = G_DESKTOP_BACKGROUND_STYLE_SCALED;
+        item->primary_color = g_strdup ("#000000000000");
+        item->secondary_color = g_strdup ("#000000000000");
+        item->needs_download = TRUE;
+        item->flags = 0;
+        item->modified = 0;
 }
 
 static void
@@ -840,21 +819,21 @@ cc_background_item_finalize (GObject *object)
 
         item = CC_BACKGROUND_ITEM (object);
 
-        g_return_if_fail (item->priv != NULL);
+        g_return_if_fail (item != NULL);
 
-        g_free (item->priv->name);
-        g_free (item->priv->uri);
-        g_free (item->priv->primary_color);
-        g_free (item->priv->secondary_color);
-        g_free (item->priv->mime_type);
-        g_free (item->priv->size);
-        g_free (item->priv->source_url);
-        g_free (item->priv->source_xml);
+        g_free (item->name);
+        g_free (item->uri);
+        g_free (item->primary_color);
+        g_free (item->secondary_color);
+        g_free (item->mime_type);
+        g_free (item->size);
+        g_free (item->source_url);
+        g_free (item->source_xml);
 
-        if (item->priv->bg != NULL)
-                g_object_unref (item->priv->bg);
+        if (item->bg != NULL)
+                g_object_unref (item->bg);
 
-        g_clear_object (&item->priv->slideshow_emblem);
+        g_clear_object (&item->slideshow_emblem);
 
         G_OBJECT_CLASS (cc_background_item_parent_class)->finalize (object);
 }
@@ -876,18 +855,18 @@ cc_background_item_copy (CcBackgroundItem *item)
 {
 	CcBackgroundItem *ret;
 
-	ret = cc_background_item_new (item->priv->uri);
-	ret->priv->name = g_strdup (item->priv->name);
-	ret->priv->size = g_strdup (item->priv->size);
-	ret->priv->placement = item->priv->placement;
-	ret->priv->shading = item->priv->shading;
-	ret->priv->primary_color = g_strdup (item->priv->primary_color);
-	ret->priv->secondary_color = g_strdup (item->priv->secondary_color);
-	ret->priv->source_url = g_strdup (item->priv->source_url);
-	ret->priv->source_xml = g_strdup (item->priv->source_xml);
-	ret->priv->is_deleted = item->priv->is_deleted;
-	ret->priv->needs_download = item->priv->needs_download;
-	ret->priv->flags = item->priv->flags;
+	ret = cc_background_item_new (item->uri);
+	ret->name = g_strdup (item->name);
+	ret->size = g_strdup (item->size);
+	ret->placement = item->placement;
+	ret->shading = item->shading;
+	ret->primary_color = g_strdup (item->primary_color);
+	ret->secondary_color = g_strdup (item->secondary_color);
+	ret->source_url = g_strdup (item->source_url);
+	ret->source_xml = g_strdup (item->source_xml);
+	ret->is_deleted = item->is_deleted;
+	ret->needs_download = item->needs_download;
+	ret->flags = item->flags;
 
 	return ret;
 }
@@ -924,21 +903,18 @@ enum_to_str (GType type,
 void
 cc_background_item_dump (CcBackgroundItem *item)
 {
-	CcBackgroundItemPrivate *priv;
-	GString *flags;
+	g_autoptr(GString) flags = NULL;
 	int i;
 
 	g_return_if_fail (CC_IS_BACKGROUND_ITEM (item));
 
-	priv = item->priv;
-
-	g_debug ("name:\t\t\t%s", priv->name);
-	g_debug ("URI:\t\t\t%s", priv->uri ? priv->uri : "NULL");
-	if (priv->size)
-		g_debug ("size:\t\t\t'%s'", priv->size);
+	g_debug ("name:\t\t\t%s", item->name);
+	g_debug ("URI:\t\t\t%s", item->uri ? item->uri : "NULL");
+	if (item->size)
+		g_debug ("size:\t\t\t'%s'", item->size);
 	flags = g_string_new (NULL);
 	for (i = 0; i < 5; i++) {
-		if (priv->flags & (1 << i)) {
+		if (item->flags & (1 << i)) {
 			g_string_append (flags, flags_to_str (1 << i));
 			g_string_append_c (flags, ' ');
 		}
@@ -946,22 +922,21 @@ cc_background_item_dump (CcBackgroundItem *item)
 	if (flags->len == 0)
 		g_string_append (flags, "-none-");
 	g_debug ("flags:\t\t\t%s", flags->str);
-	g_string_free (flags, TRUE);
-	if (priv->primary_color)
-		g_debug ("pcolor:\t\t\t%s", priv->primary_color);
-	if (priv->secondary_color)
-		g_debug ("scolor:\t\t\t%s", priv->secondary_color);
-	g_debug ("placement:\t\t%s", enum_to_str (G_DESKTOP_TYPE_DESKTOP_BACKGROUND_STYLE, priv->placement));
-	g_debug ("shading:\t\t%s", enum_to_str (G_DESKTOP_TYPE_DESKTOP_BACKGROUND_SHADING, priv->shading));
-	if (priv->source_url)
-		g_debug ("source URL:\t\t%s", priv->source_url);
-	if (priv->source_xml)
-		g_debug ("source XML:\t\t%s", priv->source_xml);
-	g_debug ("deleted:\t\t%s", priv->is_deleted ? "yes" : "no");
-	if (priv->mime_type)
-		g_debug ("mime-type:\t\t%s", priv->mime_type);
-	g_debug ("dimensions:\t\t%d x %d", priv->width, priv->height);
-        g_debug ("modified: %"G_GUINT64_FORMAT, priv->modified);
+	if (item->primary_color)
+		g_debug ("pcolor:\t\t\t%s", item->primary_color);
+	if (item->secondary_color)
+		g_debug ("scolor:\t\t\t%s", item->secondary_color);
+	g_debug ("placement:\t\t%s", enum_to_str (G_DESKTOP_TYPE_DESKTOP_BACKGROUND_STYLE, item->placement));
+	g_debug ("shading:\t\t%s", enum_to_str (G_DESKTOP_TYPE_DESKTOP_BACKGROUND_SHADING, item->shading));
+	if (item->source_url)
+		g_debug ("source URL:\t\t%s", item->source_url);
+	if (item->source_xml)
+		g_debug ("source XML:\t\t%s", item->source_xml);
+	g_debug ("deleted:\t\t%s", item->is_deleted ? "yes" : "no");
+	if (item->mime_type)
+		g_debug ("mime-type:\t\t%s", item->mime_type);
+	g_debug ("dimensions:\t\t%d x %d", item->width, item->height);
+        g_debug ("modified: %"G_GUINT64_FORMAT, item->modified);
 	g_debug (" ");
 }
 
@@ -969,7 +944,8 @@ static gboolean
 files_equal (const char *a,
 	     const char *b)
 {
-	GFile *file1, *file2;
+	g_autoptr(GFile) file1 = NULL;
+	g_autoptr(GFile) file2 = NULL;
 	gboolean retval;
 
 	if (a == NULL &&
@@ -986,8 +962,6 @@ files_equal (const char *a,
 		retval = FALSE;
 	else
 		retval = TRUE;
-	g_object_unref (file1);
-	g_object_unref (file2);
 
 	return retval;
 }
@@ -996,12 +970,12 @@ static gboolean
 colors_equal (const char *a,
 	      const char *b)
 {
-	GdkColor color1, color2;
+	GdkRGBA color1, color2;
 
-	gdk_color_parse (a, &color1);
-	gdk_color_parse (b, &color2);
+	gdk_rgba_parse (&color1, a);
+	gdk_rgba_parse (&color2, b);
 
-	return gdk_color_equal (&color1, &color2);
+	return gdk_rgba_equal (&color1, &color2);
 }
 
 gboolean
@@ -1010,31 +984,31 @@ cc_background_item_compare (CcBackgroundItem *saved,
 {
 	CcBackgroundItemFlags flags;
 
-	flags = saved->priv->flags;
+	flags = saved->flags;
 	if (flags == 0)
 		return FALSE;
 
 	if (flags & CC_BACKGROUND_ITEM_HAS_URI) {
-		if (files_equal (saved->priv->uri, configured->priv->uri) == FALSE)
+		if (files_equal (saved->uri, configured->uri) == FALSE)
 			return FALSE;
 	}
 	if (flags & CC_BACKGROUND_ITEM_HAS_SHADING) {
-		if (saved->priv->shading != configured->priv->shading)
+		if (saved->shading != configured->shading)
 			return FALSE;
 	}
 	if (flags & CC_BACKGROUND_ITEM_HAS_PLACEMENT) {
-		if (saved->priv->placement != configured->priv->placement)
+		if (saved->placement != configured->placement)
 			return FALSE;
 	}
 	if (flags & CC_BACKGROUND_ITEM_HAS_PCOLOR) {
-		if (colors_equal (saved->priv->primary_color,
-				  configured->priv->primary_color) == FALSE) {
+		if (colors_equal (saved->primary_color,
+				  configured->primary_color) == FALSE) {
 			return FALSE;
 		}
 	}
 	if (flags & CC_BACKGROUND_ITEM_HAS_SCOLOR) {
-		if (colors_equal (saved->priv->secondary_color,
-				  configured->priv->secondary_color) == FALSE) {
+		if (colors_equal (saved->secondary_color,
+				  configured->secondary_color) == FALSE) {
 			return FALSE;
 		}
 	}

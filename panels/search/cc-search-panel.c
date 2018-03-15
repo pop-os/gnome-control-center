@@ -21,6 +21,7 @@
 #include "cc-search-panel.h"
 #include "cc-search-locations-dialog.h"
 #include "cc-search-resources.h"
+#include "shell/list-box-helper.h"
 
 #include <gio/gdesktopappinfo.h>
 #include <glib/gi18n.h>
@@ -405,6 +406,7 @@ switch_settings_mapping_get_generic (GValue *value,
         }
     }
 
+  g_free (apps);
   g_value_set_boolean (value, !!default_enabled != !!found);
 
   return TRUE;
@@ -447,10 +449,10 @@ search_panel_add_one_app_info (CcSearchPanel *self,
   gtk_widget_set_valign (self->priv->list_box, GTK_ALIGN_FILL);
 
   row = gtk_list_box_row_new ();
-  box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 6);
+  box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 10);
   gtk_container_add (GTK_CONTAINER (row), box);
   gtk_widget_set_hexpand (box, TRUE);
-  gtk_container_set_border_width (GTK_CONTAINER (box), 6);
+  gtk_container_set_border_width (GTK_CONTAINER (box), 10);
   g_object_set_data_full (G_OBJECT (row), "app-info",
                           g_object_ref (app_info), g_object_unref);
   g_object_set_data (G_OBJECT (row), "self", self);
@@ -462,8 +464,8 @@ search_panel_add_one_app_info (CcSearchPanel *self,
   else
     g_object_ref (icon);
 
-  w = gtk_image_new_from_gicon (icon, GTK_ICON_SIZE_DIALOG);
-  gtk_icon_size_lookup (GTK_ICON_SIZE_DIALOG, &width, &height);
+  w = gtk_image_new_from_gicon (icon, GTK_ICON_SIZE_DND);
+  gtk_icon_size_lookup (GTK_ICON_SIZE_DND, &width, &height);
   gtk_image_set_pixel_size (GTK_IMAGE (w), MAX (width, height));
   gtk_container_add (GTK_CONTAINER (box), w);
   g_object_unref (icon);
@@ -749,7 +751,7 @@ cc_search_panel_init (CcSearchPanel *self)
 {
   GError    *error;
   GtkWidget *widget;
-  GtkWidget *scrolled_window;
+  GtkWidget *frame;
   guint res;
 
   self->priv = G_TYPE_INSTANCE_GET_PRIVATE (self, CC_TYPE_SEARCH_PANEL, CcSearchPanelPrivate);
@@ -770,11 +772,12 @@ cc_search_panel_init (CcSearchPanel *self)
       return;
     }
 
-  scrolled_window = WID ("scrolled_window");
+  frame = WID ("search_frame");
   widget = GTK_WIDGET (gtk_list_box_new ());
   gtk_list_box_set_sort_func (GTK_LIST_BOX (widget),
                               (GtkListBoxSortFunc)list_sort_func, self, NULL);
-  gtk_container_add (GTK_CONTAINER (scrolled_window), widget);
+  gtk_list_box_set_header_func (GTK_LIST_BOX (widget), cc_list_box_update_header_func, NULL, NULL);
+  gtk_container_add (GTK_CONTAINER (frame), widget);
   self->priv->list_box = widget;
   gtk_widget_show (widget);
 

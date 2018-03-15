@@ -34,9 +34,11 @@
 #include <cups/ppd.h>
 
 #include "pp-options-dialog.h"
+#include "pp-maintenance-command.h"
 #include "pp-ppd-option-widget.h"
 #include "pp-ipp-option-widget.h"
 #include "pp-utils.h"
+#include "pp-printer.h"
 
 struct _PpOptionsDialog {
   GtkBuilder *builder;
@@ -508,12 +510,11 @@ populate_options_real (PpOptionsDialog *dialog)
 
   widget = (GtkWidget*)
     gtk_builder_get_object (dialog->builder, "options-spinner");
-  gtk_widget_hide (widget);
   gtk_spinner_stop (GTK_SPINNER (widget));
 
   widget = (GtkWidget*)
-    gtk_builder_get_object (dialog->builder, "progress-label");
-  gtk_widget_hide (widget);
+    gtk_builder_get_object (dialog->builder, "stack");
+  gtk_stack_set_visible_child_name (GTK_STACK (widget), "main-box");
 
   treeview = (GtkTreeView *)
     gtk_builder_get_object (dialog->builder, "options-categories-treeview");
@@ -777,6 +778,10 @@ populate_options (PpOptionsDialog *dialog)
       "orientation-requested-default",
       NULL};
 
+  widget = (GtkWidget*)
+    gtk_builder_get_object (dialog->builder, "stack");
+  gtk_stack_set_visible_child_name (GTK_STACK (widget), "progress-box");
+
   treeview = (GtkTreeView *)
     gtk_builder_get_object (dialog->builder, "options-categories-treeview");
 
@@ -789,12 +794,7 @@ populate_options (PpOptionsDialog *dialog)
 
   widget = (GtkWidget*)
     gtk_builder_get_object (dialog->builder, "options-spinner");
-  gtk_widget_show (widget);
   gtk_spinner_start (GTK_SPINNER (widget));
-
-  widget = (GtkWidget*)
-    gtk_builder_get_object (dialog->builder, "progress-label");
-  gtk_widget_show (widget);
 
   printer_get_ppd_async (dialog->printer_name,
                          NULL,
@@ -810,6 +810,106 @@ populate_options (PpOptionsDialog *dialog)
                             (gchar **) attributes,
                             get_ipp_attributes_cb,
                             dialog);
+}
+
+static void
+pp_maintenance_command_execute_cb (GObject      *source_object,
+                                   GAsyncResult *res,
+                                   gpointer      user_data)
+{
+  PpMaintenanceCommand *command = (PpMaintenanceCommand *) source_object;
+
+  pp_maintenance_command_execute_finish (command, res, NULL);
+
+  g_object_unref (command);
+}
+
+static gchar *
+get_testprint_filename (const gchar *datadir)
+{
+  const gchar *testprint[] = { "/data/testprint",
+                               "/data/testprint.ps",
+                               NULL };
+  gchar       *filename = NULL;
+  gint         i;
+
+  for (i = 0; testprint[i] != NULL; i++)
+    {
+      filename = g_strconcat (datadir, testprint[i], NULL);
+      if (g_access (filename, R_OK) == 0)
+        break;
+
+      g_clear_pointer (&filename, g_free);
+    }
+
+  return filename;
+}
+
+static void
+print_test_page_cb (GObject      *source_object,
+                    GAsyncResult *result,
+                    gpointer      user_data)
+{
+  pp_printer_print_file_finish (PP_PRINTER (source_object),
+                                result, NULL);
+
+  g_object_unref (source_object);
+}
+
+static void
+test_page_cb (GtkButton *button,
+              gpointer   user_data)
+{
+  PpOptionsDialog *dialog = (PpOptionsDialog*) user_data;
+  gint             i;
+
+  if (dialog->printer_name)
+    {
+      const gchar  *const dirs[] = { "/usr/share/cups",
+                                     "/usr/local/share/cups",
+                                     NULL };
+      const gchar  *datadir = NULL;
+      gchar        *filename = NULL;
+
+      datadir = getenv ("CUPS_DATADIR");
+      if (datadir != NULL)
+        {
+          filename = get_testprint_filename (datadir);
+        }
+      else
+        {
+          for (i = 0; dirs[i] != NULL && filename == NULL; i++)
+            filename = get_testprint_filename (dirs[i]);
+        }
+
+      if (filename != NULL)
+        {
+          PpPrinter *printer;
+
+          printer = pp_printer_new (dialog->printer_name);
+          pp_printer_print_file_async (printer,
+                                       filename,
+          /* Translators: Name of job which makes printer to print test page */
+                                       _("Test Page"),
+                                       NULL,
+                                       print_test_page_cb,
+                                       NULL);
+
+          g_free (filename);
+        }
+      else
+        {
+          PpMaintenanceCommand *command;
+
+          command = pp_maintenance_command_new (dialog->printer_name,
+                                                "PrintSelfTestPage",
+                                                NULL,
+          /* Translators: Name of job which makes printer to print test page */
+                                                _("Test page"));
+
+          pp_maintenance_command_execute_async (command, NULL, pp_maintenance_command_execute_cb, NULL);
+        }
+    }
 }
 
 static void
@@ -834,6 +934,7 @@ pp_options_dialog_new (GtkWindow            *parent,
                        gboolean              sensitive)
 {
   PpOptionsDialog *dialog;
+  GtkWidget       *test_page_button;
   GError          *error = NULL;
   gchar           *objects[] = { "options-dialog", NULL };
   guint            builder_result;
@@ -877,6 +978,8 @@ pp_options_dialog_new (GtkWindow            *parent,
 
   /* connect signals */
   g_signal_connect (dialog->dialog, "response", G_CALLBACK (options_dialog_response_cb), dialog);
+  test_page_button = (GtkWidget*) gtk_builder_get_object (dialog->builder, "print-test-page");
+  g_signal_connect (test_page_button, "clicked", G_CALLBACK (test_page_cb), dialog);
 
   gtk_window_set_title (GTK_WINDOW (dialog->dialog), printer_name);
 
@@ -886,6 +989,18 @@ pp_options_dialog_new (GtkWindow            *parent,
   populate_options (dialog);
 
   return dialog;
+}
+
+void
+pp_options_dialog_set_callback (PpOptionsDialog      *dialog,
+                                UserResponseCallback  user_callback,
+                                gpointer              user_data)
+{
+  if (dialog != NULL)
+    {
+      dialog->user_callback = user_callback;
+      dialog->user_data = user_data;
+    }
 }
 
 void

@@ -28,15 +28,13 @@
 
 struct _CcBackgroundGriloMiner
 {
-  GObject parent;
+  GObject parent_instance;
+
   GCancellable *cancellable;
   GList *accounts;
 };
 
-struct _CcBackgroundGriloMinerClass
-{
-  GObjectClass parent_class;
-};
+G_DEFINE_TYPE (CcBackgroundGriloMiner, cc_background_grilo_miner, G_TYPE_OBJECT)
 
 enum
 {
@@ -45,8 +43,6 @@ enum
 };
 
 static guint signals[LAST_SIGNAL] = { 0 };
-
-G_DEFINE_TYPE (CcBackgroundGriloMiner, cc_background_grilo_miner, G_TYPE_OBJECT)
 
 #define REMOTE_ITEM_COUNT 50
 
@@ -105,9 +101,9 @@ searched_online_source (GrlSource    *source,
                         const GError *error)
 {
   CcBackgroundGriloMiner *self = CC_BACKGROUND_GRILO_MINER (user_data);
-  GFile *cache_file = NULL;
+  g_autoptr(GFile) cache_file = NULL;
   const gchar *uri;
-  gchar *cache_path = NULL;
+  g_autofree gchar *cache_path = NULL;
 
   if (error != NULL)
     {
@@ -133,8 +129,6 @@ searched_online_source (GrlSource    *source,
                            self);
 
  out:
-  g_clear_object (&cache_file);
-  g_free (cache_path);
   if (remaining == 0)
     g_object_unref (self);
 }
@@ -169,7 +163,7 @@ add_online_source_cb (CcBackgroundGriloMiner *self,
   for (l = self->accounts; l != NULL && !found; l = l->next)
     {
       GoaObject *goa_object = GOA_OBJECT (l->data);
-      gchar *account_id;
+      g_autofree gchar *account_id = NULL;
 
       account_id = get_grilo_id (goa_object);
       if (g_strcmp0 (source_id, account_id) == 0)
@@ -177,8 +171,6 @@ add_online_source_cb (CcBackgroundGriloMiner *self,
           query_online_source (self, source);
           found = TRUE;
         }
-
-      g_free (account_id);
     }
 }
 
@@ -188,7 +180,7 @@ client_async_ready (GObject      *source,
                     gpointer      user_data)
 {
   CcBackgroundGriloMiner *self;
-  GError *error = NULL;
+  g_autoptr(GError) error = NULL;
   GList *accounts = NULL;
   GList *photo_accounts = NULL;
   GList *l;
@@ -200,7 +192,6 @@ client_async_ready (GObject      *source,
     {
       if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED))
         g_warning ("Failed to create GoaClient: %s", error->message);
-      g_error_free (error);
       goto out;
     }
 
@@ -231,14 +222,12 @@ client_async_ready (GObject      *source,
     {
       GoaObject *goa_object = GOA_OBJECT (l->data);
       GrlSource *source;
-      gchar *account_id;
+      g_autofree gchar *account_id = NULL;
 
       account_id = get_grilo_id (goa_object);
       source = grl_registry_lookup_source (registry, account_id);
       if (source != NULL)
         query_online_source (self, source);
-
-      g_free (account_id);
     }
 
   self->accounts = photo_accounts;
@@ -287,7 +276,7 @@ cc_background_grilo_miner_init (CcBackgroundGriloMiner *self)
 static void
 cc_background_grilo_miner_class_init (CcBackgroundGriloMinerClass *klass)
 {
-  GError *error;
+  g_autoptr(GError) error = NULL;
   GObjectClass *object_class = G_OBJECT_CLASS (klass);
   GrlRegistry *registry;
 
@@ -310,10 +299,7 @@ cc_background_grilo_miner_class_init (CcBackgroundGriloMinerClass *klass)
   error = NULL;
   if (!grl_registry_load_all_plugins (registry, FALSE, &error) ||
       !grl_registry_activate_plugin_by_id (registry, "grl-flickr", &error))
-    {
       g_warning ("%s", error->message);
-      g_error_free (error);
-    }
 }
 
 CcBackgroundGriloMiner *

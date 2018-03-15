@@ -89,15 +89,6 @@ validate (EAPMethod *parent, GError **error)
 	widget = GTK_WIDGET (gtk_builder_get_object (parent->builder, "eap_tls_private_key_password_entry"));
 	g_assert (widget);
 	password = gtk_entry_get_text (GTK_ENTRY (widget));
-	if (!password || !strlen (password)) {
-		widget_set_error (widget);
-		if (ret) {
-			g_set_error_literal (error, NMA_ERROR, NMA_ERROR_GENERIC, _("invalid EAP-TLS password: missing"));
-			ret = FALSE;
-		}
-	} else {
-		widget_unset_error (widget);
-	}
 
 	if (!eap_method_validate_filepicker (parent->builder,
 	                                     "eap_tls_private_key_button",
@@ -316,7 +307,7 @@ private_key_picker_helper (EAPMethod *parent, const char *filename, gboolean cha
 		                                 _("Unencrypted private keys are insecure"));
 		gtk_message_dialog_format_secondary_text (GTK_MESSAGE_DIALOG (dialog),
 		                                          "%s",
-		                                          _("The selected private key does not appear to be protected by a password.  This could allow your security credentials to be compromised.  Please select a password-protected private key.\n\n(You can password-protect your private key with openssl)"));
+		                                          _("The selected private key does not appear to be protected by a password. This could allow your security credentials to be compromised. Please select a password-protected private key.\n\n(You can password-protect your private key with openssl)"));
 		gtk_dialog_run (GTK_DIALOG (dialog));
 		gtk_widget_destroy (dialog);
 	}
@@ -458,7 +449,7 @@ eap_method_tls_new (WirelessSecurity *ws_parent,
 	                          fill_connection,
 	                          update_secrets,
 	                          NULL,
-	                          "/org/gnome/control-center/network/eap-method-tls.ui",
+	                          "/org/freedesktop/network-manager-applet/eap-method-tls.ui",
 	                          "eap_tls_notebook",
 	                          "eap_tls_identity_entry",
 	                          phase2);

@@ -41,7 +41,7 @@ struct CalibArea
   XYinfo       axis;
   gboolean     swap;
   gboolean     success;
-  int          device_id;
+  GdkDevice   *device;
 
   double X[4], Y[4];
   int display_width, display_height;
@@ -84,7 +84,7 @@ struct CalibArea
                                       "appear on screen to calibrate the tablet.")
 #define HELP_TEXT_ANIMATION_DURATION 300
 
-#define ERROR_MESSAGE                    N_("Mis-click detected, restarting...")
+#define ERROR_MESSAGE                    N_("Mis-click detected, restarting…")
 #define ERROR_MESSAGE_ANIMATION_DURATION 500
 
 #define ICON_SUCCESS    "emblem-ok-symbolic"
@@ -310,35 +310,29 @@ hide_error_message (CalibArea *area)
 }
 
 static gboolean
-on_button_press_event(ClutterActor       *actor,
-                      ClutterButtonEvent *event,
-                      CalibArea          *area)
+on_button_press_event (GtkWidget      *widget,
+                       GdkEventButton *event,
+                       CalibArea      *area)
 {
   gint num_clicks;
   gboolean success;
+  GdkDevice *source;
 
   if (area->success)
     return FALSE;
 
-  if (event->click_count > 1)
+  if (event->type != GDK_BUTTON_PRESS ||
+      event->button != GDK_BUTTON_PRIMARY)
     return FALSE;
 
-  /* Check matching device ID if a device ID was provided */
-  if (area->device_id > -1)
+  source = gdk_event_get_source_device ((GdkEvent *) event);
+
+  /* Check matching device if a device was provided */
+  if (area->device && area->device != source)
     {
-      ClutterInputDevice *device;
-
-      device = clutter_event_get_source_device ((ClutterEvent *) event);
-      if (device != NULL && clutter_input_device_get_device_id (device) != area->device_id) {
-        char *name;
-
-        g_object_get (G_OBJECT (device), "name", &name, NULL);
-        g_debug ("Ignoring input from device %s (%d)",
-                 name,
-                 clutter_input_device_get_device_id (device));
-        g_free (name);
-        return FALSE;
-      }
+      g_debug ("Ignoring input from device %s",
+	       gdk_device_get_name (source));
+      return FALSE;
     }
 
   /* Handle click */
@@ -661,11 +655,6 @@ set_up_stage (CalibArea *calib_area, ClutterActor *stage)
                     "completed",
                     G_CALLBACK (on_timeout),
                     calib_area);
-
-  g_signal_connect (stage,
-                    "button-press-event",
-                    G_CALLBACK (on_button_press_event),
-                    calib_area);
 }
 
 /**
@@ -677,10 +666,9 @@ set_up_stage (CalibArea *calib_area, ClutterActor *stage)
 CalibArea *
 calib_area_new (GdkScreen      *screen,
                 int             monitor,
-                int             device_id,
+                GdkDevice      *device,
                 FinishCallback  callback,
                 gpointer        user_data,
-                XYinfo         *old_axis,
                 int             threshold_doubleclick,
                 int             threshold_misclick)
 {
@@ -694,23 +682,12 @@ calib_area_new (GdkScreen      *screen,
   GtkWidget *clutter_embed;
   ClutterActor *stage;
 
-  g_return_val_if_fail (old_axis, NULL);
   g_return_val_if_fail (callback, NULL);
-
-  g_debug ("Current calibration: %d, %d, %d, %d\n",
-           old_axis->x_min,
-           old_axis->y_min,
-           old_axis->x_max,
-           old_axis->y_max);
 
   calib_area = g_new0 (CalibArea, 1);
   calib_area->callback = callback;
   calib_area->user_data = user_data;
-  calib_area->device_id = device_id;
-  calib_area->calibrator.old_axis.x_min = old_axis->x_min;
-  calib_area->calibrator.old_axis.x_max = old_axis->x_max;
-  calib_area->calibrator.old_axis.y_min = old_axis->y_min;
-  calib_area->calibrator.old_axis.y_max = old_axis->y_max;
+  calib_area->device = device;
   calib_area->calibrator.threshold_doubleclick = threshold_doubleclick;
   calib_area->calibrator.threshold_misclick = threshold_misclick;
 
@@ -739,10 +716,6 @@ calib_area_new (GdkScreen      *screen,
   if (screen == NULL)
     screen = gdk_screen_get_default ();
   gdk_screen_get_monitor_geometry (screen, monitor, &rect);
-  gtk_window_move (GTK_WINDOW (calib_area->window), rect.x, rect.y);
-  gtk_window_set_default_size (GTK_WINDOW (calib_area->window),
-                               rect.width,
-                               rect.height);
 
   calib_area->calibrator.geometry = rect;
 
@@ -764,8 +737,12 @@ calib_area_new (GdkScreen      *screen,
                     "window-state-event",
                     G_CALLBACK (on_fullscreen),
                     calib_area);
+  g_signal_connect (calib_area->window,
+                    "button-press-event",
+                    G_CALLBACK (on_button_press_event),
+                    calib_area);
 
-  gtk_window_fullscreen (GTK_WINDOW (calib_area->window));
+  gtk_window_fullscreen_on_monitor (GTK_WINDOW (calib_area->window), screen, monitor);
 
   visual = gdk_screen_get_rgba_visual (screen);
   if (visual != NULL)
@@ -780,21 +757,16 @@ calib_area_new (GdkScreen      *screen,
 /* Finishes the calibration. Note that CalibArea
  * needs to be destroyed with calib_area_free() afterwards */
 gboolean
-calib_area_finish (CalibArea *area,
-                   XYinfo    *new_axis,
-                   gboolean  *swap_xy)
+calib_area_finish (CalibArea *area)
 {
   g_return_val_if_fail (area != NULL, FALSE);
 
-  *new_axis = area->axis;
-  *swap_xy  = area->swap;
-
   if (area->success)
-    g_debug ("Final calibration: %d, %d, %d, %d\n",
-             new_axis->x_min,
-             new_axis->y_min,
-             new_axis->x_max,
-             new_axis->y_max);
+    g_debug ("Final calibration: %f, %f, %f, %f\n",
+             area->axis.x_min,
+             area->axis.y_min,
+             area->axis.x_max,
+             area->axis.y_max);
   else
     g_debug ("Calibration was aborted or timed out");
 
@@ -821,4 +793,31 @@ calib_area_get_display_size (CalibArea *area, gint *width, gint *height)
 
   *width = area->display_width;
   *height = area->display_height;
+}
+
+void
+calib_area_get_axis (CalibArea *area,
+                     XYinfo    *new_axis,
+                     gboolean  *swap_xy)
+{
+  g_return_if_fail (area != NULL);
+
+  *new_axis = area->axis;
+  *swap_xy  = area->swap;
+}
+
+void
+calib_area_get_padding (CalibArea *area,
+                        XYinfo    *padding)
+{
+  g_return_if_fail (area != NULL);
+
+  /* min/max values are monitor coordinates scaled to be between
+   * 0 and 1, padding starts at 0 on "the edge", and positive
+   * values grow towards the center of the rectangle.
+   */
+  padding->x_min = area->axis.x_min;
+  padding->y_min = area->axis.y_min;
+  padding->x_max = 1 - area->axis.x_max;
+  padding->y_max = 1 - area->axis.y_max;
 }

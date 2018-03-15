@@ -2,11 +2,97 @@
 <interface>
   <requires lib="gtk+" version="3.12"/>
   <!-- interface-naming-policy project-wide -->
+  <object class="GtkStack" id="headerbar-buttons">
+    <property name="visible">True</property>
+    <child>
+      <object class="GtkLockButton" id="lock-button">
+        <property name="visible">True</property>
+      </object>
+      <packing>
+        <property name="name">_lock</property>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkButton" id="printer-add-button">
+        <property name="visible">True</property>
+        <property name="sensitive">True</property>
+        <property name="use_underline">True</property>
+        <property name="label" translatable="yes" comments="Translators: This button adds new printer.">Add…</property>
+        <style>
+          <class name="suggested-action"/>
+        </style>
+      </object>
+      <packing>
+        <property name="name">_addprinter</property>
+      </packing>
+    </child>
+  </object>
+
+  <object class="GtkToggleButton" id="search-button">
+    <property name="visible">True</property>
+    <property name="margin-end">6</property> <!-- since we don't have access to the shell header bar -->
+    <style>
+      <class name="image-button"/>
+    </style>
+    <child>
+      <object class="GtkImage">
+        <property name="visible">True</property>
+        <property name="icon_name">system-search-symbolic</property>
+      </object>
+    </child>
+  </object>
+
+<object class="GtkOverlay" id="overlay">
+  <property name="visible">True</property>
+  <child type="overlay">
+    <object class="GtkRevealer" id="notification">
+      <property name="visible">True</property>
+      <property name="halign">GTK_ALIGN_CENTER</property>
+      <property name="valign">GTK_ALIGN_START</property>
+      <child>
+        <object class="GtkBox">
+          <property name="visible">True</property>
+          <property name="spacing">6</property>
+          <style>
+            <class name="app-notification"/>
+          </style>
+          <child>
+            <object class="GtkLabel" id="notification-label">
+              <property name="visible">True</property>
+              <property name="wrap">True</property>
+              <property name="max_width_chars">50</property>
+            </object>
+          </child>
+          <child>
+            <object class="GtkButton" id="notification-undo-button">
+              <property name="visible">True</property>
+              <property name="can_focus">True</property>
+              <property name="valign">GTK_ALIGN_CENTER</property>
+              <property name="label" translatable="yes" comments="Translators: This is the button which allows undoing the removal of the printer.">Undo</property>
+            </object>
+          </child>
+          <child>
+            <object class="GtkButton" id="notification-dismiss-button">
+              <property name="visible">True</property>
+              <property name="valign">GTK_ALIGN_CENTER</property>
+              <style>
+                <class name="flat"/>
+              </style>
+              <child>
+                <object class="GtkImage">
+                  <property name="visible">True</property>
+                  <property name="icon_name">window-close-symbolic</property>
+                </object>
+              </child>
+            </object>
+          </child>
+        </object>
+      </child>
+    </object>
+  </child>
+  <child>
+
   <object class="GtkStack" id="main-vbox">
-    <property name="margin-start">6</property>
-    <property name="margin-end">6</property>
-    <property name="margin-top">6</property>
-    <property name="margin-bottom">6</property>
     <child>
       <object class="GtkBox">
         <property name="visible">True</property>
@@ -23,538 +109,46 @@
       </packing>
     </child>
     <child>
-      <object class="GtkBox" id="hbox1">
+      <object class="GtkBox">
         <property name="visible">True</property>
-        <property name="spacing">20</property>
-        <property name="border_width">10</property>
+        <property name="orientation">GTK_ORIENTATION_VERTICAL</property>
         <child>
-          <object class="GtkBox" id="vbox4">
+          <object class="GtkSearchBar" id="search-bar">
             <property name="visible">True</property>
-            <property name="orientation">vertical</property>
+            <property name="hexpand">True</property>
+            <property name="search_mode_enabled" bind-source="search-button" bind-property="active" bind-flags="bidirectional" />
             <child>
-              <object class="GtkScrolledWindow" id="printers-scrolledwindow">
+              <object class="GtkSearchEntry" id="search-entry">
                 <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="hscrollbar_policy">never</property>
-                <property name="vscrollbar_policy">automatic</property>
-                <property name="shadow_type">in</property>
-                <child>
-                  <object class="GtkTreeView" id="printers-treeview">
-                    <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="headers_visible">False</property>
-                    <property name="width-request">200</property>
-                  </object>
-                </child>
+                <property name="width_chars">30</property>
               </object>
-              <packing>
-                <property name="expand">True</property>
-                <property name="position">0</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkToolbar" id="printers-toolbar">
-                <property name="visible">True</property>
-                <property name="icon_size">1</property>
-                <property name="icon_size_set">True</property>
-                <property name="toolbar-style">icons</property>
-                <style>
-                  <class name="inline-toolbar"/>
-                </style>
-                <child>
-                  <object class="GtkToolButton" id="printer-add-button">
-                    <property name="visible">True</property>
-                    <property name="sensitive">True</property>
-                    <property name="use_underline">True</property>
-                    <property name="icon_name">list-add-symbolic</property>
-                    <property name="label" translatable="yes">Add Printer</property>
-                  </object>
-                  <packing>
-                    <property name="expand">False</property>
-                    <property name="homogeneous">True</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkToolButton" id="printer-remove-button">
-                    <property name="visible">True</property>
-                    <property name="use_underline">True</property>
-                    <property name="icon_name">list-remove-symbolic</property>
-                    <property name="label" translatable="yes">Remove Printer</property>
-                  </object>
-                  <packing>
-                    <property name="expand">False</property>
-                    <property name="homogeneous">True</property>
-                  </packing>
-                </child>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="position">1</property>
-              </packing>
             </child>
           </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="position">0</property>
-          </packing>
         </child>
         <child>
-          <object class="GtkNotebook" id="notebook">
+          <object class="GtkScrolledWindow" id="scrolled-window">
             <property name="visible">True</property>
-            <property name="can_focus">True</property>
-            <property name="show_tabs">False</property>
-            <property name="show_border">False</property>
+            <property name="hscrollbar-policy">GTK_POLICY_NEVER</property>
+            <property name="min-content-height">490</property>
+            <property name="vexpand">True</property>
             <child>
-              <object class="GtkBox" id="vbox1">
+              <object class="GtkBox">
                 <property name="visible">True</property>
-                <property name="orientation">vertical</property>
-                <property name="spacing">10</property>
                 <child>
-                  <object class="GtkTable" id="table1">
+                  <object class="GtkListBox" id="content">
                     <property name="visible">True</property>
-                    <property name="n_rows">8</property>
-                    <property name="n_columns">3</property>
-                    <property name="column_spacing">6</property>
-                    <property name="row_spacing">6</property>
-                    <child>
-                      <object class="GtkLabel" id="supply-label">
-                        <property name="visible">True</property>
-                        <property name="xalign">1</property>
-                        <property name="label" translatable="yes" comments="Translators: By supply we mean ink, toner, staples, water, ...">Supply</property>
-                        <style>
-                          <class name="dim-label"/>
-                        </style>
-                      </object>
-                      <packing>
-                        <property name="top_attach">5</property>
-                        <property name="bottom_attach">6</property>
-                        <property name="x_options">GTK_FILL</property>
-                        <property name="y_options">GTK_FILL</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkLabel" id="label10">
-                        <property name="visible">True</property>
-                        <property name="xalign">1</property>
-                        <property name="label" translatable="yes" comments="Translators: Location of the printer (e.g. Lab, 1st floor,...).">Location</property>
-                        <style>
-                          <class name="dim-label"/>
-                        </style>
-                      </object>
-                      <packing>
-                        <property name="top_attach">2</property>
-                        <property name="bottom_attach">3</property>
-                        <property name="x_options">GTK_FILL</property>
-                        <property name="y_options">GTK_FILL</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkDrawingArea" id="supply-drawing-area">
-                        <property name="visible">True</property>
-                      </object>
-                      <packing>
-                        <property name="left_attach">1</property>
-                        <property name="right_attach">3</property>
-                        <property name="top_attach">5</property>
-                        <property name="bottom_attach">6</property>
-                        <property name="y_options">GTK_FILL</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="CcEditableEntry" id="printer-location-label">
-                        <property name="visible">True</property>
-                        <property name="halign">fill</property>
-                        <property name="text">---</property>
-                        <property name="ellipsize">PANGO_ELLIPSIZE_MIDDLE</property>
-                        <accessibility>
-                          <relation type="labelled-by" target="label10"/>
-                        </accessibility>
-                      </object>
-                      <packing>
-                        <property name="left_attach">1</property>
-                        <property name="right_attach">3</property>
-                        <property name="top_attach">2</property>
-                        <property name="bottom_attach">3</property>
-                        <property name="y_options">GTK_FILL</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="CcEditableEntry" id="printer-status-label">
-                        <property name="visible">True</property>
-                        <property name="text">Printing…</property>
-                      </object>
-                      <packing>
-                        <property name="left_attach">1</property>
-                        <property name="right_attach">2</property>
-                        <property name="top_attach">1</property>
-                        <property name="bottom_attach">2</property>
-                        <property name="y_options">GTK_FILL</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkCheckButton" id="printer-default-check-button">
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="receives_default">False</property>
-                        <property name="draw_indicator">True</property>
-                        <child>
-                          <object class="GtkLabel" id="label8">
-                            <property name="visible">True</property>
-                            <property name="label" translatable="yes" comments="Translators: This checkbox is checked when the default printer is selected.">_Default printer</property>
-                            <property name="use_underline">True</property>
-                            <attributes>
-                              <attribute name="style" value="normal"/>
-                            </attributes>
-                          </object>
-                        </child>
-                      </object>
-                      <packing>
-                        <property name="left_attach">1</property>
-                        <property name="top_attach">7</property>
-                        <property name="bottom_attach">8</property>
-                        <property name="y_options">GTK_FILL</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkLabel" id="label12">
-                        <property name="visible">True</property>
-                        <property name="label" translatable="yes"></property>
-                      </object>
-                      <packing>
-                        <property name="top_attach">7</property>
-                        <property name="bottom_attach">8</property>
-                        <property name="x_options">GTK_FILL</property>
-                        <property name="y_options">GTK_FILL</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkLabel" id="label3">
-                        <property name="visible">True</property>
-                        <property name="xalign">1</property>
-                        <property name="label" translatable="yes">Jobs</property>
-                        <style>
-                          <class name="dim-label"/>
-                        </style>
-                      </object>
-                      <packing>
-                        <property name="top_attach">6</property>
-                        <property name="bottom_attach">7</property>
-                        <property name="x_options">GTK_FILL</property>
-                        <property name="y_options"></property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="CcEditableEntry" id="printer-jobs-label">
-                        <property name="visible">True</property>
-                        <property name="text" translatable="no">0 active</property>
-                      </object>
-                      <packing>
-                        <property name="left_attach">1</property>
-                        <property name="top_attach">6</property>
-                        <property name="bottom_attach">7</property>
-                        <property name="y_options">GTK_FILL</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkButton" id="printer-jobs-button">
-                        <property name="label" translatable="yes" comments="Translators: Opens a dialog containing printer's jobs">Show _Jobs</property>
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="receives_default">True</property>
-                        <property name="use_underline">True</property>
-                        <property name="halign">GTK_ALIGN_END</property>
-                        <property name="valign">GTK_ALIGN_CENTER</property>
-                        <accessibility>
-                          <relation type="labelled-by" target="label3"/>
-                          <relation type="labelled-by" target="printer-jobs-label"/>
-                        </accessibility>
-                      </object>
-                      <packing>
-                        <property name="left_attach">2</property>
-                        <property name="right_attach">3</property>
-                        <property name="top_attach">6</property>
-                        <property name="bottom_attach">7</property>
-                        <property name="x_options">GTK_FILL</property>
-                        <property name="y_options">GTK_FILL</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="CcEditableEntry" id="printer-name-label">
-                        <property name="visible">True</property>
-                        <property name="halign">fill</property>
-                        <property name="valign">end</property>
-                        <property name="text">Printer</property>
-                        <property name="weight">700</property>
-                        <property name="scale">1.2</property>
-                        <property name="ellipsize">PANGO_ELLIPSIZE_MIDDLE</property>
-                      </object>
-                      <packing>
-                        <property name="left_attach">1</property>
-                        <property name="right_attach">2</property>
-                        <property name="y_options">GTK_FILL</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkImage" id="printer-icon">
-                        <property name="visible">True</property>
-                        <property name="halign">end</property>
-                        <property name="pixel_size">64</property>
-                        <property name="icon_name">printer</property>
-                      </object>
-                      <packing>
-                        <property name="bottom_attach">2</property>
-                        <property name="x_options">GTK_FILL</property>
-                        <property name="y_options">GTK_FILL</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkLabel" id="label14">
-                        <property name="visible">True</property>
-                        <property name="xalign">1</property>
-                        <property name="label" translatable="yes">Model</property>
-                        <style>
-                          <class name="dim-label"/>
-                        </style>
-                      </object>
-                      <packing>
-                        <property name="top_attach">3</property>
-                        <property name="bottom_attach">4</property>
-                        <property name="x_options">GTK_FILL</property>
-                        <property name="y_options">GTK_FILL</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkLabel" id="label15">
-                        <property name="visible">True</property>
-                        <property name="xalign">1</property>
-                        <property name="label" translatable="yes">IP Address</property>
-                        <style>
-                          <class name="dim-label"/>
-                        </style>
-                      </object>
-                      <packing>
-                        <property name="top_attach">4</property>
-                        <property name="bottom_attach">5</property>
-                        <property name="x_options">GTK_FILL</property>
-                        <property name="y_options">GTK_FILL</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkNotebook" id="printer-model-notebook">
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="show_tabs">False</property>
-                        <property name="show_border">False</property>
-                        <child>
-                          <object class="GtkButton" id="printer-model-button">
-                            <property name="use_action_appearance">False</property>
-                            <property name="visible">True</property>
-                            <property name="can_focus">True</property>
-                            <property name="receives_default">True</property>
-                            <property name="use_action_appearance">False</property>
-                            <property name="relief">none</property>
-                            <property name="halign">fill</property>
-                            <child>
-                              <object class="GtkLabel" id="printer-model-button-label">
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="xalign">0</property>
-                                <property name="margin-start">8</property>
-                                <property name="label" translatable="no">label</property>
-                              </object>
-                            </child>
-                            <accessibility>
-                              <relation type="labelled-by" target="label14"/>
-                            </accessibility>
-                          </object>
-                        </child>
-                        <child type="tab">
-                          <object class="GtkLabel" id="label7">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="label" translatable="yes">page 1</property>
-                          </object>
-                          <packing>
-                            <property name="tab_fill">False</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkLabel" id="printer-model-label">
-                            <property name="visible">True</property>
-                            <property name="selectable">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="xalign">0</property>
-                            <property name="label" translatable="yes">label</property>
-                          </object>
-                          <packing>
-                            <property name="position">1</property>
-                          </packing>
-                        </child>
-                        <child type="tab">
-                          <object class="GtkLabel" id="label13">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="label" translatable="yes">page 2</property>
-                          </object>
-                          <packing>
-                            <property name="position">1</property>
-                            <property name="tab_fill">False</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkLabel" id="printer-model-setting">
-                            <property name="visible">True</property>
-                            <property name="sensitive">False</property>
-                            <property name="can_focus">False</property>
-                            <property name="xalign">0</property>
-                            <property name="label" translatable="yes">Setting new driver…</property>
-                          </object>
-                          <packing>
-                            <property name="position">2</property>
-                          </packing>
-                        </child>
-                        <child type="tab">
-                          <object class="GtkLabel" id="label16">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="label" translatable="yes">page 3</property>
-                          </object>
-                          <packing>
-                            <property name="position">2</property>
-                            <property name="tab_fill">False</property>
-                          </packing>
-                        </child>
-                      </object>
-                      <packing>
-                        <property name="left_attach">1</property>
-                        <property name="right_attach">3</property>
-                        <property name="top_attach">3</property>
-                        <property name="bottom_attach">4</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="CcEditableEntry" id="printer-ip-address-label">
-                        <property name="visible">True</property>
-                        <property name="text">---</property>
-                        <accessibility>
-                          <relation type="labelled-by" target="label15"/>
-                        </accessibility>
-                      </object>
-                      <packing>
-                        <property name="left_attach">1</property>
-                        <property name="top_attach">4</property>
-                        <property name="bottom_attach">5</property>
-                        <property name="y_options">GTK_FILL</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkSwitch" id="printer-disable-switch">
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="receives_default">True</property>
-                        <property name="halign">GTK_ALIGN_END</property>
-                        <property name="valign">GTK_ALIGN_CENTER</property>
-                      </object>
-                      <packing>
-                        <property name="left_attach">2</property>
-                        <property name="right_attach">3</property>
-                        <property name="bottom_attach">2</property>
-                        <property name="x_options">GTK_FILL</property>
-                        <property name="y_options">GTK_FILL</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkLabel" id="label18">
-                        <property name="visible">True</property>
-                      </object>
-                      <packing>
-                        <property name="left_attach">2</property>
-                        <property name="right_attach">3</property>
-                        <property name="top_attach">4</property>
-                        <property name="bottom_attach">5</property>
-                        <property name="x_options">0</property>
-                        <property name="y_options">0</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkLabel" id="label20">
-                        <property name="visible">True</property>
-                      </object>
-                      <packing>
-                        <property name="left_attach">2</property>
-                        <property name="right_attach">3</property>
-                        <property name="top_attach">7</property>
-                        <property name="bottom_attach">8</property>
-                        <property name="x_options">0</property>
-                        <property name="y_options">0</property>
-                      </packing>
-                    </child>
+                    <property name="can_focus">True</property>
+                    <property name="selection-mode">GTK_SELECTION_NONE</property>
+                    <property name="margin-top">32</property>
+                    <property name="margin-bottom">32</property>
+                    <style>
+                      <class name="background"/>
+                    </style>
                   </object>
-                  <packing>
-                    <property name="expand">False</property>
-                    <property name="position">0</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkButtonBox" id="hbuttonbox1">
-                    <property name="visible">True</property>
-                    <property name="spacing">5</property>
-                    <property name="homogeneous">True</property>
-                    <child>
-                      <object class="GtkButton" id="print-test-page-button">
-                        <property name="label" translatable="yes" comments="Translators: This button executes command which prints test page.">Print _Test Page</property>
-                        <property name="use_underline">True</property>
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="receives_default">True</property>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">False</property>
-                        <property name="position">0</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkButton" id="printer-options-button">
-                        <property name="label" translatable="yes" comments="Translators: This button opens printer's options tab">_Options</property>
-                        <property name="visible">True</property>
-                        <property name="use_underline">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="receives_default">True</property>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">False</property>
-                        <property name="position">1</property>
-                      </packing>
-                    </child>
-                  </object>
-                  <packing>
-                    <property name="expand">False</property>
-                    <property name="pack_type">end</property>
-                    <property name="position">1</property>
-                  </packing>
                 </child>
               </object>
-              <packing>
-                <property name="tab_expand">True</property>
-              </packing>
-            </child>
-            <child type="tab">
-              <object class="GtkLabel" id="label2">
-                <property name="visible">True</property>
-                <property name="label">Info</property>
-              </object>
-              <packing>
-                <property name="tab_fill">False</property>
-              </packing>
             </child>
           </object>
-          <packing>
-            <property name="expand">True</property>
-            <property name="fill">True</property>
-            <property name="position">1</property>
-          </packing>
         </child>
       </object>
       <packing>
@@ -603,7 +197,7 @@
         </child>
         <child>
           <object class="GtkButton" id="printer-add-button2">
-            <property name="label" translatable="yes" comments="Translators: This button adds new printer.">Add a Printer</property>
+            <property name="label" translatable="yes" comments="Translators: This button adds new printer.">Add a Printer…</property>
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="receives_default">True</property>
@@ -636,7 +230,7 @@
             <property name="visible">True</property>
             <property name="can_focus">False</property>
             <property name="label" translatable="yes" comments="Translators: The CUPS server is not running (we can not connect to it).">Sorry! The system printing service
-doesn't seem to be available.</property>
+doesn’t seem to be available.</property>
             <style>
               <class name="dim-label"/>
             </style>
@@ -673,6 +267,10 @@ doesn't seem to be available.</property>
       </packing>
     </child>
   </object>
+
+  </child>
+</object>
+
   <object class="GtkSizeGroup" id="sizegroup1">
    <widgets>
       <widget name="back-button-1"/>

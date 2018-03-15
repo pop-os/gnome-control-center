@@ -49,29 +49,42 @@ gsd_should_ignore_unix_mount (GUnixMountEntry *mount)
                 "auto",
                 "autofs",
                 "autofs4",
+                "cgroup",
                 "cifs",
+                "configfs",
                 "cxfs",
+                "debugfs",
                 "devfs",
                 "devpts",
+                "devtmpfs",
                 "ecryptfs",
                 "fdescfs",
+                "fusectl",
                 "gfs",
                 "gfs2",
+                "gpfs",
+                "hugetlbfs",
                 "kernfs",
                 "linprocfs",
                 "linsysfs",
                 "lustre",
                 "lustre_lite",
+                "mfs",
+                "mqueue",
                 "ncpfs",
                 "nfs",
                 "nfs4",
                 "nfsd",
+                "nullfs",
                 "ocfs2",
+                "overlay",
                 "proc",
                 "procfs",
+                "pstore",
                 "ptyfs",
                 "rootfs",
                 "rpc_pipefs",
+                "securityfs",
                 "selinuxfs",
                 "smbfs",
                 "sysfs",
@@ -108,17 +121,15 @@ gboolean
 gsd_is_removable_mount (GUnixMountEntry *mount)
 {
         const char *mount_path;
-        char *path;
+        g_autofree gchar *path = NULL;
 
         mount_path = g_unix_mount_get_mount_path (mount);
         if (mount_path == NULL)
                 return FALSE;
 
         path = g_strdup_printf ("/run/media/%s", g_get_user_name ());
-        if (g_str_has_prefix (mount_path, path)) {
-                g_free (path);
+        if (g_str_has_prefix (mount_path, path))
                 return TRUE;
-        }
-        g_free (path);
+
         return FALSE;
 }

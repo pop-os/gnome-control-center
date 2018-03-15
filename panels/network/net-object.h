@@ -41,6 +41,8 @@ typedef struct _NetObjectPrivate         NetObjectPrivate;
 typedef struct _NetObject                NetObject;
 typedef struct _NetObjectClass           NetObjectClass;
 
+G_DEFINE_AUTOPTR_CLEANUP_FUNC (NetObject, g_object_unref)
+
 struct _NetObject
 {
          GObject                 parent;
@@ -52,8 +54,8 @@ struct _NetObjectClass
         GObjectClass             parent_class;
 
         /* vtable */
-        GtkWidget               *(*add_to_notebook)    (NetObject       *object,
-                                                        GtkNotebook     *notebook,
+        GtkWidget               *(*add_to_stack)       (NetObject       *object,
+                                                        GtkStack        *stack,
                                                         GtkSizeGroup    *heading_size_group);
         void                     (*delete)              (NetObject       *object);
         void                     (*refresh)             (NetObject       *object);
@@ -79,8 +81,8 @@ void             net_object_emit_removed                (NetObject      *object)
 void             net_object_delete                      (NetObject      *object);
 void             net_object_refresh                     (NetObject      *object);
 void             net_object_edit                        (NetObject      *object);
-GtkWidget       *net_object_add_to_notebook             (NetObject      *object,
-                                                         GtkNotebook    *notebook,
+GtkWidget       *net_object_add_to_stack                (NetObject      *object,
+                                                         GtkStack       *stack,
                                                          GtkSizeGroup   *heading_size_group);
 gboolean         net_object_get_removable               (NetObject      *object);
 void             net_object_set_removable               (NetObject      *object,

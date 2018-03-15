@@ -24,15 +24,12 @@
 
 #include "um-fingerprint-dialog.h"
 
-#include "fingerprint-strings.h"
-
 /* Retrieve a widget from the UI object */
 #define WID(s) GTK_WIDGET (gtk_builder_get_object (dialog, s))
 
 /* Translate fprintd strings */
 #define TR(s) dgettext("fprintd", s)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wformat-nonliteral"
+#include "fingerprint-strings.h"
 
 /* This must match the number of images on the 2nd page in the UI file */
 #define MAX_ENROLL_STAGES 5
@@ -62,9 +59,13 @@ typedef struct {
         gint state;
 } EnrollData;
 
-static void create_manager (void)
+static void
+ensure_manager (void)
 {
         GError *error = NULL;
+
+        if (manager != NULL)
+                return;
 
         connection = g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, &error);
         if (connection == NULL) {
@@ -183,12 +184,9 @@ set_fingerprint_label (GtkWidget *button)
         GVariantIter *fingers;
         GError *error = NULL;
 
-        if (manager == NULL) {
-                create_manager ();
-                if (manager == NULL) {
-                        return FALSE;
-                }
-        }
+        ensure_manager ();
+        if (manager == NULL)
+                return FALSE;
 
         device = get_first_device ();
         if (device == NULL)
@@ -232,11 +230,9 @@ delete_fingerprints (void)
         GDBusProxy *device;
         GVariant *result;
 
-        if (manager == NULL) {
-                create_manager ();
-                if (manager == NULL)
-                        return;
-        }
+        ensure_manager ();
+        if (manager == NULL)
+                return;
 
         device = get_first_device ();
         if (device == NULL)
@@ -397,7 +393,7 @@ finger_radio_button_toggled (GtkToggleButton *button, EnrollData *data)
 
         data->finger = selected_finger (data->dialog);
 
-        msg = g_strdup_printf (TR(finger_str_to_msg (data->finger, data->is_swipe)), data->name);
+        msg = finger_str_to_msg (data->finger, data->name, data->is_swipe);
         gtk_label_set_text (GTK_LABEL (WID("enroll-label")), msg);
         g_free (msg);
 }
@@ -410,7 +406,7 @@ finger_combobox_changed (GtkComboBox *combobox, EnrollData *data)
 
         data->finger = selected_finger (data->dialog);
 
-        msg = g_strdup_printf (TR(finger_str_to_msg (data->finger, data->is_swipe)), data->name);
+        msg = finger_str_to_msg (data->finger, data->name, data->is_swipe);
         gtk_label_set_text (GTK_LABEL (WID("enroll-label")), msg);
         g_free (msg);
 }
@@ -502,7 +498,7 @@ assistant_prepare (GtkAssistant *ass, GtkWidget *page, EnrollData *data)
                         /* translators:
                          * The variable is the name of the device, for example:
                          * "Could you not access "Digital Persona U.are.U 4000/4000B" device */
-                        msg = g_strdup_printf (_("Could not access '%s' device"), data->name);
+                        msg = g_strdup_printf (_("Could not access “%s” device"), data->name);
                         d = get_error_dialog (msg, error->message, GTK_WINDOW (data->ass));
                         g_error_free (error);
                         gtk_dialog_run (GTK_DIALOG (d));
@@ -544,7 +540,7 @@ assistant_prepare (GtkAssistant *ass, GtkWidget *page, EnrollData *data)
                         /* translators:
                          * The variable is the name of the device, for example:
                          * "Could you not access "Digital Persona U.are.U 4000/4000B" device */
-                        msg = g_strdup_printf (_("Could not access '%s' device"), data->name);
+                        msg = g_strdup_printf (_("Could not access “%s” device"), data->name);
                         d = get_error_dialog (msg, "net.reactivated.Fprint.Error.Internal", GTK_WINDOW (data->ass));
                         gtk_dialog_run (GTK_DIALOG (d));
                         gtk_widget_destroy (d);
@@ -585,7 +581,7 @@ assistant_prepare (GtkAssistant *ass, GtkWidget *page, EnrollData *data)
                         /* translators:
                          * The variable is the name of the device, for example:
                          * "Could you not access "Digital Persona U.are.U 4000/4000B" device */
-                        msg = g_strdup_printf (_("Could not start finger capture on '%s' device"), data->name);
+                        msg = g_strdup_printf (_("Could not start finger capture on “%s” device"), data->name);
                         d = get_error_dialog (msg, error->message, GTK_WINDOW (data->ass));
                         g_error_free (error);
                         gtk_dialog_run (GTK_DIALOG (d));
@@ -614,7 +610,7 @@ enroll_fingerprints (GtkWindow *parent,
                      GtkWidget *editable_button,
                      ActUser   *user)
 {
-        GDBusProxy *device;
+        GDBusProxy *device = NULL;
         GtkBuilder *dialog;
         EnrollData *data;
         GtkWidget *ass;
@@ -622,15 +618,9 @@ enroll_fingerprints (GtkWindow *parent,
         GVariant *result;
         GError *error = NULL;
 
-        device = NULL;
-
-        if (manager == NULL) {
-                create_manager ();
-                if (manager != NULL)
-                        device = get_first_device ();
-        } else {
+        ensure_manager ();
+        if (manager != NULL)
                 device = get_first_device ();
-        }
 
         if (manager == NULL || device == NULL) {
                 GtkWidget *d;
@@ -718,7 +708,7 @@ enroll_fingerprints (GtkWindow *parent,
          * "To enable fingerprint login, you need to save one of your fingerprints, using the
          * 'Digital Persona U.are.U 4000/4000B' device."
          */
-        msg = g_strdup_printf (_("To enable fingerprint login, you need to save one of your fingerprints, using the '%s' device."),
+        msg = g_strdup_printf (_("To enable fingerprint login, you need to save one of your fingerprints, using the “%s” device."),
                                data->name);
         gtk_label_set_text (GTK_LABEL (WID("intro-label")), msg);
         g_free (msg);
@@ -732,7 +722,7 @@ enroll_fingerprints (GtkWindow *parent,
         /* Page 2 */
         g_object_set_data (G_OBJECT (WID("page2")), "name", "enroll");
 
-        msg = g_strdup_printf (TR(finger_str_to_msg (data->finger, data->is_swipe)), data->name);
+        msg = finger_str_to_msg (data->finger, data->name, data->is_swipe);
         gtk_label_set_text (GTK_LABEL (WID("enroll-label")), msg);
         g_free (msg);
 

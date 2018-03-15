@@ -33,6 +33,8 @@
 
 #include "cc-util.h"
 
+#define SHORTCUT_DELIMITERS "+ "
+
 typedef struct {
   CcKeyboardItem *item;
   gchar          *section_title;
@@ -107,18 +109,18 @@ transform_binding_to_accel (GBinding     *binding,
                             gpointer      user_data)
 {
   CcKeyboardItem *item;
+  CcKeyCombo *combo;
   gchar *accelerator;
 
   item = CC_KEYBOARD_ITEM (g_binding_get_source (binding));
+  combo = item->primary_combo;
 
   /* Embolden the label when the shortcut is modified */
   if (!cc_keyboard_item_is_value_default (item))
     {
       gchar *tmp;
 
-      tmp = convert_keysym_state_to_string (item->keyval,
-                                            item->mask,
-                                            item->keycode);
+      tmp = convert_keysym_state_to_string (combo);
 
       accelerator = g_strdup_printf ("<b>%s</b>", tmp);
 
@@ -126,9 +128,7 @@ transform_binding_to_accel (GBinding     *binding,
     }
   else
     {
-      accelerator = convert_keysym_state_to_string (item->keyval,
-                                                    item->mask,
-                                                    item->keycode);
+      accelerator = convert_keysym_state_to_string (combo);
     }
 
   g_value_take_string (to_value, accelerator);
@@ -142,6 +142,70 @@ shortcut_modified_changed_cb (CcKeyboardItem *item,
                               GtkWidget      *button)
 {
   gtk_widget_set_child_visible (button, !cc_keyboard_item_is_value_default (item));
+}
+
+static void
+reset_all_shortcuts_cb (GtkWidget *widget,
+                        gpointer   user_data)
+{
+  CcKeyboardPanel *self;
+  RowData *data;
+
+  self = user_data;
+
+  if (widget == (GtkWidget *) self->add_shortcut_row)
+    return;
+
+  data = g_object_get_data (G_OBJECT (widget), "data");
+
+  /* Don't reset custom shortcuts */
+  if (data->item->type == CC_KEYBOARD_ITEM_TYPE_GSETTINGS_PATH)
+    return;
+
+  /* cc_keyboard_manager_reset_shortcut() already resets conflicting shortcuts,
+   * so no other check is needed here. */
+  cc_keyboard_manager_reset_shortcut (self->manager, data->item);
+}
+
+static void
+reset_all_clicked_cb (CcKeyboardPanel *self)
+{
+  GtkWidget *dialog, *toplevel, *button;
+  guint response;
+
+  toplevel = gtk_widget_get_toplevel (GTK_WIDGET (self));
+  dialog = gtk_message_dialog_new (GTK_WINDOW (toplevel),
+                                   GTK_DIALOG_MODAL | GTK_DIALOG_USE_HEADER_BAR | GTK_DIALOG_DESTROY_WITH_PARENT,
+                                   GTK_MESSAGE_WARNING,
+                                   GTK_BUTTONS_NONE,
+                                   _("Reset All Shortcuts?"));
+
+  gtk_message_dialog_format_secondary_text (GTK_MESSAGE_DIALOG (dialog),
+                                            _("Resetting the shortcuts may affect your custom shortcuts. "
+                                              "This cannot be undone."));
+
+  gtk_dialog_add_buttons (GTK_DIALOG (dialog),
+                          _("Cancel"), GTK_RESPONSE_CANCEL,
+                          _("Reset All"), GTK_RESPONSE_ACCEPT,
+                          NULL);
+
+  gtk_dialog_set_default_response (GTK_DIALOG (dialog), GTK_RESPONSE_CANCEL);
+
+  /* Make the "Reset All" button destructive */
+  button = gtk_dialog_get_widget_for_response (GTK_DIALOG (dialog), GTK_RESPONSE_ACCEPT);
+  gtk_style_context_add_class (gtk_widget_get_style_context (button), "destructive-action");
+
+  /* Reset shortcuts if accepted */
+  response = gtk_dialog_run (GTK_DIALOG (dialog));
+
+  if (response == GTK_RESPONSE_ACCEPT)
+    {
+      gtk_container_foreach (GTK_CONTAINER (self->listbox),
+                             reset_all_shortcuts_cb,
+                             self);
+    }
+
+  gtk_widget_destroy (dialog);
 }
 
 static void
@@ -270,6 +334,105 @@ remove_item (CcKeyboardPanel *self,
   g_list_free (children);
 }
 
+static gboolean
+strv_contains_prefix_or_match (gchar       **strv,
+                               const gchar  *prefix)
+{
+  guint i;
+
+  const struct {
+    const gchar *key;
+    const gchar *untranslated;
+    const gchar *synonym;
+  } key_aliases[] =
+    {
+      { "ctrl",   "Ctrl",  "ctrl" },
+      { "win",    "Super", "super" },
+      { "option",  NULL,   "alt" },
+      { "command", NULL,   "super" },
+      { "apple",   NULL,   "super" },
+    };
+
+  for (i = 0; strv[i]; i++)
+    {
+      if (g_str_has_prefix (strv[i], prefix))
+        return TRUE;
+    }
+
+  for (i = 0; i < G_N_ELEMENTS (key_aliases); i++)
+    {
+      g_autofree gchar *alias = NULL;
+      const gchar *synonym;
+
+      if (!g_str_has_prefix (key_aliases[i].key, prefix))
+        continue;
+
+      if (key_aliases[i].untranslated)
+        {
+          const gchar *translated_label;
+
+          /* Steal GTK+'s translation */
+          translated_label = g_dpgettext2 ("gtk30", "keyboard label", key_aliases[i].untranslated);
+          alias = g_utf8_strdown (translated_label, -1);
+        }
+
+      synonym = key_aliases[i].synonym;
+
+      /* If a translation or synonym of the key is in the accelerator, and we typed
+       * the key, also consider that a prefix */
+      if ((alias && g_strv_contains ((const gchar * const *) strv, alias)) ||
+          (synonym && g_strv_contains ((const gchar * const *) strv, synonym)))
+        {
+          return TRUE;
+        }
+    }
+
+  return FALSE;
+}
+
+static gboolean
+search_match_shortcut (CcKeyboardItem *item,
+                       const gchar    *search)
+{
+  CcKeyCombo *combo = item->primary_combo;
+  GStrv shortcut_tokens, search_tokens;
+  g_autofree gchar *normalized_accel = NULL;
+  g_autofree gchar *accel = NULL;
+  gboolean match;
+  guint i;
+
+  if (is_empty_binding (combo))
+    return FALSE;
+
+  match = TRUE;
+  accel = convert_keysym_state_to_string (combo);
+  normalized_accel = cc_util_normalize_casefold_and_unaccent (accel);
+
+  shortcut_tokens = g_strsplit_set (normalized_accel, SHORTCUT_DELIMITERS, -1);
+  search_tokens = g_strsplit_set (search, SHORTCUT_DELIMITERS, -1);
+
+  for (i = 0; search_tokens[i] != NULL; i++)
+    {
+      const gchar *token;
+
+      /* Strip leading and trailing whitespaces */
+      token = g_strstrip (search_tokens[i]);
+
+      if (g_utf8_strlen (token, -1) == 0)
+        continue;
+
+      match = match && strv_contains_prefix_or_match (shortcut_tokens, token);
+
+      if (!match)
+        break;
+    }
+
+  g_strfreev (shortcut_tokens);
+  g_strfreev (search_tokens);
+
+  return match;
+}
+
 static gint
 sort_function (GtkListBoxRow *a,
                GtkListBoxRow *b,
@@ -379,9 +542,12 @@ filter_function (GtkListBoxRow *row,
                  gpointer       user_data)
 {
   CcKeyboardPanel *self = user_data;
+  CcKeyboardItem *item;
   RowData *data;
   gboolean retval;
   gchar *search, *name;
+  gchar **terms;
+  guint i;
 
   if (gtk_entry_get_text_length (GTK_ENTRY (self->search_entry)) == 0)
     return TRUE;
@@ -391,13 +557,21 @@ filter_function (GtkListBoxRow *row,
     return FALSE;
 
   data = g_object_get_data (G_OBJECT (row), "data");
-  name = cc_util_normalize_casefold_and_unaccent (data->item->description);
+  item = data->item;
+  name = cc_util_normalize_casefold_and_unaccent (item->description);
   search = cc_util_normalize_casefold_and_unaccent (gtk_entry_get_text (GTK_ENTRY (self->search_entry)));
+  terms = g_strsplit (search, " ", -1);
 
-  retval = strstr (name, search) != NULL;
+  for (i = 0; terms && terms[i]; i++)
+    {
+      retval = strstr (name, terms[i]) || search_match_shortcut (item, terms[i]);
+      if (!retval)
+        break;
+    }
 
   g_free (search);
   g_free (name);
+  g_strfreev (terms);
 
   return retval;
 }
@@ -514,6 +688,7 @@ cc_keyboard_panel_class_init (CcKeyboardPanelClass *klass)
   gtk_widget_class_bind_template_child (widget_class, CcKeyboardPanel, search_button);
   gtk_widget_class_bind_template_child (widget_class, CcKeyboardPanel, search_entry);
 
+  gtk_widget_class_bind_template_callback (widget_class, reset_all_clicked_cb);
   gtk_widget_class_bind_template_callback (widget_class, shortcut_row_activated);
 }
 
@@ -541,9 +716,6 @@ cc_keyboard_panel_init (CcKeyboardPanel *self)
 
   /* Use a sizegroup to make the accelerator labels the same width */
   self->accelerator_sizegroup = gtk_size_group_new (GTK_SIZE_GROUP_HORIZONTAL);
-
-  /* Shortcut editor dialog */
-  self->shortcut_editor = cc_keyboard_shortcut_editor_new (self->manager);
 
   g_signal_connect_swapped (self->manager,
                             "shortcut-added",

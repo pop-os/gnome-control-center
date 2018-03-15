@@ -21,6 +21,7 @@
 #ifndef __PP_SAMBA_H__
 #define __PP_SAMBA_H__
 
+#include "pp-host.h"
 #include "pp-utils.h"
 
 G_BEGIN_DECLS
@@ -38,19 +39,18 @@ typedef struct _PpSambaPrivate PpSambaPrivate;
 
 struct _PpSamba
 {
-  GObject         parent_instance;
+  PpHost          parent_instance;
   PpSambaPrivate *priv;
 };
 
 struct _PpSambaClass
 {
-  GObjectClass parent_class;
+  PpHostClass parent_class;
 };
 
 GType          pp_samba_get_type           (void) G_GNUC_CONST;
 
-PpSamba       *pp_samba_new                (GtkWindow           *parent,
-                                            const gchar         *hostname);
+PpSamba       *pp_samba_new                (const gchar         *hostname);
 
 void           pp_samba_get_devices_async  (PpSamba             *samba,
                                             gboolean             auth_if_needed,
@@ -61,6 +61,10 @@ void           pp_samba_get_devices_async  (PpSamba             *samba,
 PpDevicesList *pp_samba_get_devices_finish (PpSamba             *samba,
                                             GAsyncResult        *result,
                                             GError             **error);
+
+void           pp_samba_set_auth_info      (PpSamba             *samba,
+                                            const gchar         *username,
+                                            const gchar         *password);
 
 G_END_DECLS
 

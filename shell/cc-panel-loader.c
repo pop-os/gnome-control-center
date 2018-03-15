@@ -36,18 +36,19 @@ extern GType cc_bluetooth_panel_get_type (void);
 extern GType cc_color_panel_get_type (void);
 extern GType cc_date_time_panel_get_type (void);
 extern GType cc_display_panel_get_type (void);
-extern GType cc_info_panel_get_type (void);
+extern GType cc_info_overview_panel_get_type (void);
+extern GType cc_info_default_apps_panel_get_type (void);
+extern GType cc_info_removable_media_panel_get_type (void);
 extern GType cc_keyboard_panel_get_type (void);
 extern GType cc_mouse_panel_get_type (void);
 #ifdef BUILD_NETWORK
 extern GType cc_network_panel_get_type (void);
+extern GType cc_wifi_panel_get_type (void);
 #endif /* BUILD_NETWORK */
 extern GType cc_notifications_panel_get_type (void);
 extern GType cc_goa_panel_get_type (void);
 extern GType cc_power_panel_get_type (void);
-#ifdef BUILD_PRINTERS
 extern GType cc_printers_panel_get_type (void);
-#endif /* BUILD_PRINTERS */
 extern GType cc_privacy_panel_get_type (void);
 extern GType cc_region_panel_get_type (void);
 extern GType cc_search_panel_get_type (void);
@@ -80,18 +81,19 @@ static struct {
   PANEL_TYPE("color",            cc_color_panel_get_type        ),
   PANEL_TYPE("datetime",         cc_date_time_panel_get_type    ),
   PANEL_TYPE("display",          cc_display_panel_get_type      ),
-  PANEL_TYPE("info",             cc_info_panel_get_type         ),
+  PANEL_TYPE("info-overview",    cc_info_overview_panel_get_type),
+  PANEL_TYPE("default-apps",     cc_info_default_apps_panel_get_type),
+  PANEL_TYPE("removable-media",  cc_info_removable_media_panel_get_type),
   PANEL_TYPE("keyboard",         cc_keyboard_panel_get_type     ),
   PANEL_TYPE("mouse",            cc_mouse_panel_get_type        ),
 #ifdef BUILD_NETWORK
   PANEL_TYPE("network",          cc_network_panel_get_type      ),
+  PANEL_TYPE("wifi",             cc_wifi_panel_get_type         ),
 #endif
   PANEL_TYPE("notifications",    cc_notifications_panel_get_type),
   PANEL_TYPE("online-accounts",  cc_goa_panel_get_type          ),
   PANEL_TYPE("power",            cc_power_panel_get_type        ),
-#ifdef BUILD_PRINTERS
   PANEL_TYPE("printers",         cc_printers_panel_get_type     ),
-#endif
   PANEL_TYPE("privacy",          cc_privacy_panel_get_type      ),
   PANEL_TYPE("region",           cc_region_panel_get_type       ),
   PANEL_TYPE("search",           cc_search_panel_get_type       ),
@@ -119,9 +121,9 @@ cc_panel_loader_get_panels (void)
 static int
 parse_categories (GDesktopAppInfo *app)
 {
-  const char *categories;
-  char **split;
-  int retval;
+  GStrv split;
+  const gchar *categories;
+  gint retval;
 
   categories = g_desktop_app_info_get_categories (app);
   split = g_strsplit (categories, ";", -1);
@@ -130,7 +132,6 @@ parse_categories (GDesktopAppInfo *app)
 
 #define const_strv(s) ((const gchar* const*) s)
 
-#ifdef CC_ENABLE_ALT_CATEGORIES
   if (g_strv_contains (const_strv (split), "X-GNOME-ConnectivitySettings"))
     retval = CC_CATEGORY_CONNECTIVITY;
   else if (g_strv_contains (const_strv (split), "X-GNOME-PersonalizationSettings"))
@@ -143,14 +144,6 @@ parse_categories (GDesktopAppInfo *app)
     retval = CC_CATEGORY_DETAILS;
   else if (g_strv_contains (const_strv (split), "HardwareSettings"))
     retval = CC_CATEGORY_HARDWARE;
-#else
-  if (g_strv_contains (const_strv (split), "HardwareSettings"))
-    retval = CC_CATEGORY_HARDWARE;
-  else if (g_strv_contains (const_strv (split), "X-GNOME-PersonalSettings"))
-    retval = CC_CATEGORY_PERSONAL;
-  else if (g_strv_contains (const_strv (split), "X-GNOME-SystemSettings"))
-    retval = CC_CATEGORY_SYSTEM;
-#endif
 
 #undef const_strv
 
@@ -167,23 +160,21 @@ parse_categories (GDesktopAppInfo *app)
 void
 cc_panel_loader_fill_model (CcShellModel *model)
 {
-  int i;
+  guint i;
 
   for (i = 0; i < G_N_ELEMENTS (all_panels); i++)
     {
-      GDesktopAppInfo *app;
-      char *desktop_name;
-      int category;
+      g_autoptr (GDesktopAppInfo) app;
+      g_autofree gchar *desktop_name = NULL;
+      gint category;
 
       desktop_name = g_strconcat ("gnome-", all_panels[i].name,
                                   "-panel.desktop", NULL);
       app = g_desktop_app_info_new (desktop_name);
-      g_free (desktop_name);
 
-      if (app == NULL)
+      if (!app)
         {
-          g_warning ("Ignoring broken panel %s (missing desktop file)",
-                     all_panels[i].name);
+          g_warning ("Ignoring broken panel %s (missing desktop file)", all_panels[i].name);
           continue;
         }
 
@@ -191,8 +182,11 @@ cc_panel_loader_fill_model (CcShellModel *model)
       if (G_UNLIKELY (category < 0))
         continue;
 
+      /* Consult OnlyShowIn/NotShowIn for desktop environments */
+      if (!g_desktop_app_info_get_show_in (app, NULL))
+        continue;
+
       cc_shell_model_add_item (model, category, G_APP_INFO (app), all_panels[i].name);
-      g_object_unref (app);
     }
 }
 

@@ -30,13 +30,20 @@ struct _PpHostPrivate
   gint   port;
 };
 
-G_DEFINE_TYPE (PpHost, pp_host, G_TYPE_OBJECT);
+G_DEFINE_TYPE_WITH_PRIVATE (PpHost, pp_host, G_TYPE_OBJECT);
 
 enum {
   PROP_0 = 0,
   PROP_HOSTNAME,
   PROP_PORT,
 };
+
+enum {
+  AUTHENTICATION_REQUIRED,
+  LAST_SIGNAL
+};
+
+static guint signals[LAST_SIGNAL] = { 0 };
 
 static void
 pp_host_finalize (GObject *object)
@@ -106,8 +113,6 @@ pp_host_class_init (PpHostClass *klass)
 {
   GObjectClass *gobject_class = G_OBJECT_CLASS (klass);
 
-  g_type_class_add_private (klass, sizeof (PpHostPrivate));
-
   gobject_class->set_property = pp_host_set_property;
   gobject_class->get_property = pp_host_get_property;
   gobject_class->finalize = pp_host_finalize;
@@ -125,6 +130,14 @@ pp_host_class_init (PpHostClass *klass)
                       "The port",
                       -1, G_MAXINT32, PP_HOST_UNSET_PORT,
                       G_PARAM_READWRITE));
+
+  signals[AUTHENTICATION_REQUIRED] =
+    g_signal_new ("authentication-required",
+                  G_TYPE_FROM_CLASS (klass),
+                  G_SIGNAL_RUN_LAST,
+                  G_STRUCT_OFFSET (PpHostClass, authentication_required),
+                  NULL, NULL, NULL,
+                  G_TYPE_NONE, 0);
 }
 
 static void

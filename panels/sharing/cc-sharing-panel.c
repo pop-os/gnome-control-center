@@ -65,6 +65,7 @@ _gtk_builder_get_widget (GtkBuilder  *builder,
 
 #define VINO_SCHEMA_ID "org.gnome.Vino"
 #define FILE_SHARING_SCHEMA_ID "org.gnome.desktop.file-sharing"
+#define GNOME_REMOTE_DESKTOP_SCHEMA_ID "org.gnome.desktop.remote-desktop"
 
 struct _CcSharingPanelPrivate
 {
@@ -73,6 +74,7 @@ struct _CcSharingPanelPrivate
   GtkWidget *master_switch;
   GtkWidget *hostname_entry;
 
+  GCancellable *sharing_proxy_cancellable;
   GDBusProxy *sharing_proxy;
 
   GtkWidget *media_sharing_switch;
@@ -86,7 +88,7 @@ struct _CcSharingPanelPrivate
   GCancellable *hostname_cancellable;
   GtkWidget *screen_sharing_dialog;
 
-  GDBusProxy *rfkill;
+  guint remote_desktop_name_watch;
 };
 
 #define OFF_IF_VISIBLE(x) { if (gtk_widget_is_visible(x) && gtk_widget_is_sensitive(x)) gtk_switch_set_active (GTK_SWITCH(x), FALSE); }
@@ -131,7 +133,10 @@ cc_sharing_panel_dispose (GObject *object)
 {
   CcSharingPanelPrivate *priv = CC_SHARING_PANEL (object)->priv;
 
-  g_clear_object (&priv->rfkill);
+  if (priv->remote_desktop_name_watch)
+    g_bus_unwatch_name (priv->remote_desktop_name_watch);
+  priv->remote_desktop_name_watch = 0;
+
   g_clear_object (&priv->builder);
 
   if (priv->media_sharing_dialog)
@@ -170,6 +175,8 @@ cc_sharing_panel_dispose (GObject *object)
       priv->screen_sharing_dialog = NULL;
     }
 
+  g_cancellable_cancel (priv->sharing_proxy_cancellable);
+  g_clear_object (&priv->sharing_proxy_cancellable);
   g_clear_object (&priv->sharing_proxy);
 
   G_OBJECT_CLASS (cc_sharing_panel_parent_class)->dispose (object);
@@ -193,6 +200,8 @@ cc_sharing_panel_class_init (CcSharingPanelClass *klass)
   object_class->dispose = cc_sharing_panel_dispose;
 
   panel_class->get_help_uri = cc_sharing_panel_get_help_uri;
+
+  g_type_ensure (CC_TYPE_HOSTNAME_ENTRY);
 }
 
 static void
@@ -516,7 +525,8 @@ cc_sharing_panel_new_media_sharing_row (const char     *uri_or_path,
 
   row = gtk_list_box_row_new ();
   box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
-  gtk_container_set_border_width (GTK_CONTAINER (box), 12);
+  gtk_container_set_border_width (GTK_CONTAINER (box), 3);
+  gtk_widget_set_margin_start (box, 6);
   gtk_container_add (GTK_CONTAINER (row), box);
 
   /* Find the icon and create it */
@@ -553,7 +563,7 @@ cc_sharing_panel_new_media_sharing_row (const char     *uri_or_path,
                     G_CALLBACK (cc_sharing_panel_remove_folder), self);
   g_object_set_data (G_OBJECT (w), "row", row);
 
-  g_object_set_data_full (G_OBJECT (row), "path", g_strdup (path), g_free);
+  g_object_set_data_full (G_OBJECT (row), "path", path, g_free);
 
   gtk_widget_show_all (row);
 
@@ -567,7 +577,7 @@ cc_sharing_panel_new_add_media_sharing_row (CcSharingPanel *self)
 
   row = gtk_list_box_row_new ();
   box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
-  gtk_container_set_border_width (GTK_CONTAINER (box), 12);
+  gtk_container_set_border_width (GTK_CONTAINER (box), 3);
   gtk_container_add (GTK_CONTAINER (row), box);
 
   w = gtk_image_new_from_icon_name ("list-add-symbolic", GTK_ICON_SIZE_SMALL_TOOLBAR);
@@ -651,7 +661,7 @@ cc_sharing_panel_label_activate_link (GtkLabel *label,
                                       gchar    *uri,
                                       GtkMenu  *menu)
 {
-  gtk_menu_popup (menu, NULL, NULL, NULL, NULL, 0, gtk_get_current_event_time ());
+  gtk_menu_popup_at_pointer (menu, NULL);
 
   g_object_set_data_full (G_OBJECT (menu), "uri-text", g_strdup (uri), g_free);
 
@@ -680,7 +690,7 @@ cc_sharing_panel_setup_label (CcSharingPanel *self,
   gchar *text;
 
   if (label == WID ("personal-file-sharing-label"))
-    text = g_strdup_printf (_("Personal File Sharing allows you to share your Public folder with others on your current network using: <a href=\"dav://%s\">dav://%s</a>"), hostname, hostname);
+    text = g_strdup_printf (_("File Sharing allows you to share your Public folder with others on your current network using: <a href=\"dav://%s\">dav://%s</a>"), hostname, hostname);
   else if (label == WID ("remote-login-label"))
     text = g_strdup_printf (_("When remote login is enabled, remote users can connect using the Secure Shell command:\n<a href=\"ssh %s\">ssh %s</a>"), hostname, hostname);
   else if (label == WID ("screen-sharing-label"))
@@ -779,7 +789,7 @@ cc_sharing_panel_bus_ready (GObject         *object,
                           (GVariantType*)"(s)",
                           G_DBUS_CALL_FLAGS_NONE,
                           -1,
-                          NULL,
+                          data->panel->priv->hostname_cancellable,
                           (GAsyncReadyCallback) cc_sharing_panel_get_host_name_fqdn_done,
                           data);
 }
@@ -817,7 +827,8 @@ cc_sharing_panel_setup_label_with_hostname (CcSharingPanel *self,
   get_hostname_data = g_new (GetHostNameData, 1);
   get_hostname_data->panel = self;
   get_hostname_data->label = label;
-  g_bus_get (G_BUS_TYPE_SYSTEM, NULL,
+  g_bus_get (G_BUS_TYPE_SYSTEM,
+             self->priv->hostname_cancellable,
              (GAsyncReadyCallback) cc_sharing_panel_bus_ready,
              get_hostname_data);
 }
@@ -1001,7 +1012,7 @@ screen_sharing_password_insert_text_cb (GtkEditable *editable,
 #undef MAX_PASSWORD_SIZE
 
 static void
-cc_sharing_panel_setup_screen_sharing_dialog (CcSharingPanel *self)
+cc_sharing_panel_setup_screen_sharing_dialog_vino (CcSharingPanel *self)
 {
   CcSharingPanelPrivate *priv = self->priv;
   GSettings *settings;
@@ -1063,6 +1074,107 @@ cc_sharing_panel_setup_screen_sharing_dialog (CcSharingPanel *self)
 }
 
 static void
+cc_sharing_panel_setup_screen_sharing_dialog_gnome_remote_desktop (CcSharingPanel *self)
+{
+  CcSharingPanelPrivate *priv = self->priv;
+  GtkWidget *networks, *w;
+
+  networks = cc_sharing_networks_new (self->priv->sharing_proxy, "gnome-remote-desktop");
+  gtk_widget_hide (WID ("remote-control-box"));
+  gtk_grid_attach (GTK_GRID (WID ("grid3")), networks, 0, 1, 2, 1);
+  gtk_widget_show (networks);
+
+  w = cc_sharing_switch_new (networks);
+  gtk_header_bar_pack_start (GTK_HEADER_BAR (WID ("screen-sharing-headerbar")), w);
+  self->priv->screen_sharing_switch = w;
+
+  cc_sharing_panel_bind_networks_to_label (self, networks,
+                                           WID ("screen-sharing-status-label"));
+}
+
+static void
+remote_desktop_name_appeared (GDBusConnection *connection,
+                              const gchar     *name,
+                              const gchar     *name_owner,
+                              gpointer         user_data)
+{
+  CcSharingPanel *self = CC_SHARING_PANEL (user_data);
+  CcSharingPanelPrivate *priv = self->priv;
+
+  g_bus_unwatch_name (priv->remote_desktop_name_watch);
+  priv->remote_desktop_name_watch = 0;
+
+  cc_sharing_panel_setup_screen_sharing_dialog_gnome_remote_desktop (self);
+  gtk_widget_show (WID ("screen-sharing-button"));
+}
+
+static void
+check_remote_desktop_available (CcSharingPanel *self)
+{
+  CcSharingPanelPrivate *priv = self->priv;
+
+  if (!cc_sharing_panel_check_schema_available (self, GNOME_REMOTE_DESKTOP_SCHEMA_ID))
+    return;
+
+  priv->remote_desktop_name_watch = g_bus_watch_name (G_BUS_TYPE_SESSION,
+                                                      "org.gnome.Mutter.RemoteDesktop",
+                                                      G_BUS_NAME_WATCHER_FLAGS_NONE,
+                                                      remote_desktop_name_appeared,
+                                                      NULL,
+                                                      self,
+                                                      NULL);
+}
+
+static void
+sharing_proxy_ready (GObject      *source,
+                     GAsyncResult *res,
+                     gpointer      user_data)
+{
+  CcSharingPanel *self;
+  CcSharingPanelPrivate *priv;
+  GDBusProxy *proxy;
+  GError *error = NULL;
+
+  proxy = G_DBUS_PROXY (gsd_sharing_proxy_new_for_bus_finish (res, &error));
+  if (!proxy) {
+    if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED))
+      g_warning ("Failed to get sharing proxy: %s", error->message);
+    g_error_free (error);
+    return;
+  }
+
+  self = CC_SHARING_PANEL (user_data);
+  priv = self->priv;
+  priv->sharing_proxy = proxy;
+
+  /* media sharing */
+  cc_sharing_panel_setup_media_sharing_dialog (self);
+
+  /* personal file sharing */
+  if (cc_sharing_panel_check_schema_available (self, FILE_SHARING_SCHEMA_ID))
+    cc_sharing_panel_setup_personal_file_sharing_dialog (self);
+  else
+    gtk_widget_hide (WID ("personal-file-sharing-button"));
+
+  /* remote login */
+  cc_sharing_panel_setup_remote_login_dialog (self);
+
+  /* screen sharing */
+#ifdef GDK_WINDOWING_WAYLAND
+  if (GDK_IS_WAYLAND_DISPLAY (gdk_display_get_default ()))
+    {
+      check_remote_desktop_available (self);
+      gtk_widget_hide (WID ("screen-sharing-button"));
+    }
+  else
+#endif
+  if (cc_sharing_panel_check_schema_available (self, VINO_SCHEMA_ID))
+    cc_sharing_panel_setup_screen_sharing_dialog_vino (self);
+  else
+    gtk_widget_hide (WID ("screen-sharing-button"));
+}
+
+static void
 cc_sharing_panel_init (CcSharingPanel *self)
 {
   CcSharingPanelPrivate *priv = self->priv = PANEL_PRIVATE (self);
@@ -1075,7 +1187,6 @@ cc_sharing_panel_init (CcSharingPanel *self)
       "remote-login-dialog",
       "screen-sharing-dialog",
       NULL };
-  GError *error = NULL;
 
   g_resources_register (cc_sharing_get_resource ());
 
@@ -1133,39 +1244,14 @@ cc_sharing_panel_init (CcSharingPanel *self)
   g_signal_connect (priv->master_switch, "notify::active",
                     G_CALLBACK (cc_sharing_panel_master_switch_notify), self);
 
-  self->priv->sharing_proxy = G_DBUS_PROXY (gsd_sharing_proxy_new_for_bus_sync (G_BUS_TYPE_SESSION,
-										G_DBUS_PROXY_FLAGS_NONE,
-										"org.gnome.SettingsDaemon.Sharing",
-										"/org/gnome/SettingsDaemon/Sharing",
-										NULL,
-										&error));
-  if (!self->priv->sharing_proxy) {
-    g_warning ("Failed to get sharing proxy: %s", error->message);
-    g_error_free (error);
-  }
-
-  /* media sharing */
-  cc_sharing_panel_setup_media_sharing_dialog (self);
-
-  /* personal file sharing */
-  if (cc_sharing_panel_check_schema_available (self, FILE_SHARING_SCHEMA_ID))
-    cc_sharing_panel_setup_personal_file_sharing_dialog (self);
-  else
-    gtk_widget_hide (WID ("personal-file-sharing-button"));
-
-  /* remote login */
-  cc_sharing_panel_setup_remote_login_dialog (self);
-
-  /* screen sharing */
-#ifdef GDK_WINDOWING_WAYLAND
-  if (GDK_IS_WAYLAND_DISPLAY (gdk_display_get_default ()))
-    gtk_widget_hide (WID ("screen-sharing-button"));
-  else
-#endif
-  if (cc_sharing_panel_check_schema_available (self, VINO_SCHEMA_ID))
-    cc_sharing_panel_setup_screen_sharing_dialog (self);
-  else
-    gtk_widget_hide (WID ("screen-sharing-button"));
+  priv->sharing_proxy_cancellable = g_cancellable_new ();
+  gsd_sharing_proxy_new_for_bus (G_BUS_TYPE_SESSION,
+                                 G_DBUS_PROXY_FLAGS_NONE,
+                                 "org.gnome.SettingsDaemon.Sharing",
+                                 "/org/gnome/SettingsDaemon/Sharing",
+                                 priv->sharing_proxy_cancellable,
+                                 sharing_proxy_ready,
+                                 self);
 
   /* make sure the hostname entry isn't focused by default */
   g_signal_connect_swapped (self, "map", G_CALLBACK (gtk_widget_grab_focus),

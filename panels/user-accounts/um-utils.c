@@ -25,6 +25,7 @@
 #include <sys/types.h>
 #include <limits.h>
 #include <unistd.h>
+#include <utmpx.h>
 #include <pwd.h>
 
 #include <gio/gio.h>
@@ -404,80 +405,12 @@ rounded_rectangle (cairo_t *cr,
         cairo_close_path (cr);
 }
 
-void
-down_arrow (GtkStyleContext *context,
-            cairo_t         *cr,
-            gint             x,
-            gint             y,
-            gint             width,
-            gint             height)
-{
-        GtkStateFlags flags;
-        GdkRGBA fg_color;
-        gdouble vertical_overshoot;
-        gint diameter;
-        gdouble radius;
-        gdouble x_double, y_double;
-        gdouble angle;
-        gint line_width;
-
-        flags = gtk_style_context_get_state (context);
-
-        gtk_style_context_get_color (context, flags, &fg_color);
-
-        line_width = 1;
-        angle = G_PI / 2;
-        vertical_overshoot = line_width / 2.0 * (1. / tan (G_PI / 8));
-        if (line_width % 2 == 1)
-                vertical_overshoot = ceil (0.5 + vertical_overshoot) - 0.5;
-        else
-                vertical_overshoot = ceil (vertical_overshoot);
-        diameter = (gint) MAX (3, width - 2 * vertical_overshoot);
-        diameter -= (1 - (diameter + line_width) % 2);
-        radius = diameter / 2.;
-        x_double = floor ((x + width / 2) - (radius + line_width) / 2.) + (radius + line_width) / 2.;
-
-        y_double = (y + height / 2) - 0.5;
-
-        cairo_save (cr);
-
-        cairo_translate (cr, x_double, y_double);
-        cairo_rotate (cr, angle);
-
-        cairo_move_to (cr, - radius / 2., - radius);
-        cairo_line_to (cr,   radius / 2.,   0);
-        cairo_line_to (cr, - radius / 2.,   radius);
-
-        cairo_close_path (cr);
-
-        cairo_set_line_width (cr, line_width);
-
-        gdk_cairo_set_source_rgba (cr, &fg_color);
-
-        cairo_fill_preserve (cr);
-        cairo_stroke (cr);
-
-        cairo_restore (cr);
-}
-
-static guint
-get_login_name_max (void)
-{
-#ifdef LOGIN_NAME_MAX
-        return LOGIN_NAME_MAX;
-#else
-        static gint length;
-
-        if (!length) {
-                length = sysconf (_SC_LOGIN_NAME_MAX);
-                g_assert_cmpint (length, >=, 0);
-        }
-
-        return length;
-#endif
-}
-
-#define MAXNAMELEN  get_login_name_max ()
+/* Taken from defines.h in shadow-utils. On Linux, this value is much smaller
+ * than the sysconf limit LOGIN_NAME_MAX, and values larger than this will
+ * result in failure when running useradd. We could check UT_NAMESIZE instead,
+ * but that is nonstandard. Better to use POSIX utmpx.
+ */
+#define MAXNAMELEN  (sizeof (((struct utmpx *)NULL)->ut_user))
 
 static gboolean
 is_username_used (const gchar *username)
@@ -560,20 +493,20 @@ is_valid_username (const gchar *username, gchar **tip)
 
         if (!empty && (in_use || too_long || !valid)) {
                 if (in_use) {
-                        *tip = g_strdup (_("Sorry, that user name isn't available. Please try another."));
+                        *tip = g_strdup (_("Sorry, that user name isn’t available. Please try another."));
                 }
                 else if (too_long) {
                         *tip = g_strdup_printf (_("The username is too long."));
                 }
                 else if (username[0] == '-') {
-                        *tip = g_strdup (_("The username cannot start with a '-'."));
+                        *tip = g_strdup (_("The username cannot start with a “-”."));
                 }
                 else {
                         *tip = g_strdup (_("The username should only consist of upper and lower case letters from a-z, digits and the following characters: . - _"));
                 }
         }
         else {
-                *tip = g_strdup (_("This will be used to name your home folder and can't be changed."));
+                *tip = g_strdup (_("This will be used to name your home folder and can’t be changed."));
         }
 
         return valid;
@@ -720,6 +653,15 @@ generate_username_choices (const gchar  *name,
         item2 = g_string_append (item2, last_word->str);
         item3 = g_string_append (item3, first_word->str);
         item4 = g_string_prepend (item4, last_word->str);
+
+        g_string_truncate (first_word, MAXNAMELEN);
+        g_string_truncate (last_word, MAXNAMELEN);
+
+        g_string_truncate (item0, MAXNAMELEN);
+        g_string_truncate (item1, MAXNAMELEN);
+        g_string_truncate (item2, MAXNAMELEN);
+        g_string_truncate (item3, MAXNAMELEN);
+        g_string_truncate (item4, MAXNAMELEN);
 
         items = g_hash_table_new (g_str_hash, g_str_equal);
 

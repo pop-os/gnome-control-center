@@ -35,10 +35,17 @@ static void
 render_image (UmUserImage *image)
 {
         cairo_surface_t *surface;
-        gint scale;
+        gint scale, pixel_size;
 
+        if (image->priv->user == NULL)
+                return;
+
+        pixel_size = gtk_image_get_pixel_size (GTK_IMAGE (image));
         scale = gtk_widget_get_scale_factor (GTK_WIDGET (image));
-        surface = render_user_icon (image->priv->user, UM_ICON_STYLE_NONE, 48, scale);
+        surface = render_user_icon (image->priv->user,
+                                    UM_ICON_STYLE_NONE,
+                                    pixel_size > 0 ? pixel_size : 48,
+                                    scale);
         gtk_image_set_from_surface (GTK_IMAGE (image), surface);
         cairo_surface_destroy (surface);
 }
@@ -49,16 +56,6 @@ um_user_image_set_user (UmUserImage *image,
 {
         g_clear_object (&image->priv->user);
         image->priv->user = g_object_ref (user);
-
-        render_image (image);
-}
-
-static void
-on_scale_factor_changed (GObject    *object,
-                         GParamSpec *pspec,
-                         gpointer    data)
-{
-        UmUserImage *image = UM_USER_IMAGE (object);
 
         render_image (image);
 }
@@ -86,7 +83,8 @@ um_user_image_init (UmUserImage *image)
 {
         image->priv = UM_USER_IMAGE_GET_PRIVATE (image);
 
-        g_signal_connect (image, "notify::scale-factor", G_CALLBACK (on_scale_factor_changed), NULL);
+        g_signal_connect_swapped (image, "notify::scale-factor", G_CALLBACK (render_image), image);
+        g_signal_connect_swapped (image, "notify::pixel-size", G_CALLBACK (render_image), image);
 }
 
 GtkWidget *

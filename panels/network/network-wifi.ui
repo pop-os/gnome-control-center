@@ -1473,36 +1473,92 @@ here</property>
         <col id="1">4</col>
       </row>
       <row>
-        <col id="0" translatable="yes">Reset</col>
+        <col id="0" translatable="yes" context="tab">Reset</col>
         <col id="1">5</col>
       </row>
     </data>
   </object>
-  <object class="GtkDialog" id="hotspot-dialog">
-    <property name="can_focus">False</property>
-    <property name="border_width">5</property>
-    <property name="resizable">False</property>
-    <property name="modal">True</property>
-    <property name="title" translatable="no"></property>
-    <property name="destroy_with_parent">True</property>
-    <property name="type_hint">dialog</property>
-    <child internal-child="vbox">
-      <object class="GtkBox" id="hotspot-dialog-vbox1">
+  <object class="GtkNotebook" id="notebook_view">
+    <property name="visible">True</property>
+    <property name="can_focus">True</property>
+    <property name="show_tabs">False</property>
+    <property name="show_border">False</property>
+    <child>
+      <object class="GtkBox" id="box3">
+        <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="orientation">vertical</property>
-        <property name="spacing">14</property>
         <child>
-          <object class="GtkBox" id="hotspot-dialog-box1">
+          <object class="GtkListBox" id="listbox">
+            <property name="visible">True</property>
+            <property name="can_focus">True</property>
+            <property name="selection_mode">none</property>
+            <property name="hexpand">True</property>
+            <property name="vexpand">True</property>
+          </object>
+        </child>
+      </object>
+    </child>
+    <child type="tab">
+      <object class="GtkLabel" id="label1">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="label">list</property>
+      </object>
+      <packing>
+        <property name="tab_fill">False</property>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkBox" id="box_hotspot">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="border_width">12</property>
+        <property name="orientation">vertical</property>
+        <property name="spacing">9</property>
+        <child>
+          <object class="GtkBox" id="box_hotspot_top">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="border_width">5</property>
-            <property name="spacing">12</property>
             <child>
-              <object class="GtkImage" id="hotspot-dialog-image">
+              <object class="GtkBox" id="vbox345">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="icon_name">network-wireless</property>
-                <property name="icon-size">6</property>
+                <property name="halign">start</property>
+                <property name="valign">center</property>
+                <property name="hexpand">True</property>
+                <property name="orientation">vertical</property>
+                <property name="spacing">3</property>
+                <child>
+                  <object class="GtkLabel" id="label_hotspot_title">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="xalign">0</property>
+                    <property name="label" translatable="yes">Wi-Fi Hotspot</property>
+                    <attributes>
+                      <attribute name="weight" value="bold"/>
+                      <attribute name="scale" value="1.2"/>
+                    </attributes>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkLabel" id="label_hotspot_explanation">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="xalign">0</property>
+                    <property name="label" translatable="yes">Switch off to connect to a Wi-Fi network</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -1511,14 +1567,11 @@ here</property>
               </packing>
             </child>
             <child>
-              <object class="GtkLabel" id="hotspot-dialog-title">
+              <object class="GtkSwitch" id="switch_hotspot_off">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="label" translatable="yes">Wi-Fi Hotspot</property>
-                <attributes>
-                  <attribute name="weight" value="bold"/>
-                  <attribute name="scale" value="1.2"/>
-                </attributes>
+                <property name="can_focus">True</property>
+                <property name="halign">end</property>
+                <property name="valign">center</property>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -1534,512 +1587,276 @@ here</property>
           </packing>
         </child>
         <child>
-          <object class="GtkLabel" id="hotspot-dialog-content">
+          <object class="GtkGrid" id="grid_hotspot">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="wrap">True</property>
-            <property name="width_chars">60</property>
-            <property name="max_width_chars">60</property>
+            <property name="halign">center</property>
+            <property name="valign">start</property>
+            <property name="row_spacing">10</property>
+            <property name="column_spacing">6</property>
+            <property name="column-homogeneous">True</property>
+            <child>
+              <object class="GtkLabel" id="heading_hotspot_network_name">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="xalign">1</property>
+                <property name="label" translatable="yes">Network Name</property>
+                <property name="mnemonic_widget">label_hotspot_network_name</property>
+                <style>
+                  <class name="dim-label"/>
+                </style>
+              </object>
+              <packing>
+                <property name="left_attach">0</property>
+                <property name="top_attach">0</property>
+                <property name="width">1</property>
+                <property name="height">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="heading_hotspot_connected">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="xalign">1</property>
+                <property name="label" translatable="yes">Connected Devices</property>
+                <property name="mnemonic_widget">label_hotspot_connected</property>
+                <style>
+                  <class name="dim-label"/>
+                </style>
+              </object>
+              <packing>
+                <property name="left_attach">0</property>
+                <property name="top_attach">1</property>
+                <property name="width">1</property>
+                <property name="height">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="heading_hotspot_security">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="xalign">1</property>
+                <property name="label" translatable="yes">Security type</property>
+                <property name="mnemonic_widget">label_hotspot_security</property>
+                <style>
+                  <class name="dim-label"/>
+                </style>
+              </object>
+              <packing>
+                <property name="left_attach">0</property>
+                <property name="top_attach">2</property>
+                <property name="width">1</property>
+                <property name="height">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="label_hotspot_network_name">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="xalign">0</property>
+                <property name="label"></property>
+                <property name="selectable">True</property>
+              </object>
+              <packing>
+                <property name="left_attach">1</property>
+                <property name="top_attach">0</property>
+                <property name="width">1</property>
+                <property name="height">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="label_hotspot_connected">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="xalign">0</property>
+                <property name="label"></property>
+                <property name="selectable">True</property>
+              </object>
+              <packing>
+                <property name="left_attach">1</property>
+                <property name="top_attach">1</property>
+                <property name="width">1</property>
+                <property name="height">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="label_hotspot_security">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="xalign">0</property>
+                <property name="label"></property>
+                <property name="selectable">True</property>
+              </object>
+              <packing>
+                <property name="left_attach">1</property>
+                <property name="top_attach">2</property>
+                <property name="width">1</property>
+                <property name="height">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="heading_hotspot_security_key">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="xalign">1</property>
+                <property name="label" context="Wi-Fi passkey" translatable="yes">Password</property>
+                <property name="mnemonic_widget">label_hotspot_security_key</property>
+                <style>
+                  <class name="dim-label"/>
+                </style>
+              </object>
+              <packing>
+                <property name="left_attach">0</property>
+                <property name="top_attach">3</property>
+                <property name="width">1</property>
+                <property name="height">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="label_hotspot_security_key">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="xalign">0</property>
+                <property name="label"></property>
+                <property name="selectable">True</property>
+                    <attributes>
+                      <attribute name="font-desc" value="Monospace"/>
+                    </attributes>
+              </object>
+              <packing>
+                <property name="left_attach">1</property>
+                <property name="top_attach">3</property>
+                <property name="width">1</property>
+                <property name="height">1</property>
+              </packing>
+            </child>
           </object>
           <packing>
-            <property name="expand">False</property>
+            <property name="expand">True</property>
             <property name="fill">True</property>
             <property name="position">1</property>
           </packing>
         </child>
-        <child internal-child="action_area">
-          <object class="GtkButtonBox" id="hotspot-dialog-action_area1">
-            <property name="can_focus">False</property>
-            <property name="layout_style">end</property>
-            <child>
-              <object class="GtkButton" id="hotspot-cancel-button">
-                <property name="label" translatable="yes">_Cancel</property>
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">True</property>
-                <property name="use_underline">True</property>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="position">0</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkButton" id="hotspot-turn-on-button">
-                <property name="label" translatable="yes">_Turn On</property>
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="can_default">True</property>
-                <property name="has_default">True</property>
-                <property name="receives_default">True</property>
-                <property name="use_underline">True</property>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="position">1</property>
-              </packing>
-            </child>
+      </object>
+      <packing>
+        <property name="position">1</property>
+      </packing>
+    </child>
+    <child type="tab">
+      <object class="GtkLabel" id="label33">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="label">hotspot</property>
+      </object>
+      <packing>
+        <property name="position">1</property>
+        <property name="tab_fill">False</property>
+      </packing>
+    </child>
+  </object>
+
+  <!-- Center widget -->
+  <object class="GtkBox" id="center_box">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="orientation">vertical</property>
+    <property name="halign">center</property>
+    <property name="valign">center</property>
+    <child>
+      <object class="GtkLabel" id="heading_list">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="label" translatable="yes">Wi-Fi</property>
+        <style>
+          <class name="title" />
+        </style>
+      </object>
+    </child>
+    <child>
+      <object class="GtkLabel" id="heading_status">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <style>
+          <class name="subtitle" />
+        </style>
+      </object>
+    </child>
+  </object>
+
+  <!-- Box with the On/Off switch + menu button -->
+  <object class="GtkBox" id="header_box">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="spacing">6</property>
+    <property name="halign">end</property>
+    <child>
+      <object class="GtkSwitch" id="device_off_switch">
+        <property name="visible">True</property>
+        <property name="can_focus">True</property>
+        <property name="valign">center</property>
+        <child internal-child="accessible">
+          <object class="AtkObject" id="device_off_switch-accessible">
+            <property name="accessible-name" translatable="yes">Turn Wi-Fi off</property>
           </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="pack_type">end</property>
-            <property name="position">2</property>
-          </packing>
         </child>
       </object>
     </child>
-    <action-widgets>
-      <action-widget response="-6">hotspot-cancel-button</action-widget>
-      <action-widget response="-5">hotspot-turn-on-button</action-widget>
-    </action-widgets>
-  </object>
-      <object class="GtkNotebook" id="notebook_view">
+    <child>
+      <object class="GtkMenuButton" id="header_button">
         <property name="visible">True</property>
-        <property name="can_focus">True</property>
-        <property name="show_tabs">False</property>
-        <property name="show_border">False</property>
+        <property name="can_focus">False</property>
+        <property name="popover">header_button_popover</property>
         <child>
-          <object class="GtkBox" id="box3">
+          <object class="GtkImage">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="orientation">vertical</property>
-            <child>
-              <object class="GtkBox" id="box_list">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="margin_bottom">18</property>
-                <property name="orientation">vertical</property>
-                <child>
-                  <object class="GtkBox" id="box_list_heading">
-                    <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="margin_start">12</property>
-                    <property name="margin_end">12</property>
-                    <property name="margin_top">12</property>
-                    <property name="margin_bottom">12</property>
-                    <property name="spacing">6</property>
-                    <child>
-                      <object class="GtkImage" id="heading_image">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="icon_name">network-wireless</property>
-                        <property name="icon-size">6</property>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="position">0</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkBox" id="box4">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="hexpand">True</property>
-                        <property name="orientation">vertical</property>
-                        <child>
-                          <object class="GtkLabel" id="heading_list">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="xalign">0</property>
-                            <property name="label" translatable="yes">Wi-Fi</property>
-                            <attributes>
-                              <attribute name="weight" value="bold"/>
-                              <attribute name="scale" value="1.2"/>
-                            </attributes>
-                          </object>
-                          <packing>
-                            <property name="expand">False</property>
-                            <property name="fill">True</property>
-                            <property name="position">0</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkLabel" id="heading_status">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="xalign">0</property>
-                            <property name="label">Connected</property>
-                          </object>
-                          <packing>
-                            <property name="expand">False</property>
-                            <property name="fill">True</property>
-                            <property name="position">1</property>
-                          </packing>
-                        </child>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="position">1</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkSwitch" id="device_off_switch">
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="halign">end</property>
-                        <property name="valign">center</property>
-                        <property name="hexpand">True</property>
-                        <child internal-child="accessible">
-                          <object class="AtkObject" id="device_off_switch-accessible">
-                            <property name="accessible-name" translatable="yes">Turn Wi-Fi off</property>
-                          </object>
-                        </child>
-                      </object>
-                      <packing>
-                        <property name="expand">True</property>
-                        <property name="fill">True</property>
-                        <property name="position">2</property>
-                      </packing>
-                    </child>
-                  </object>
-                  <packing>
-                    <property name="expand">True</property>
-                    <property name="fill">False</property>
-                    <property name="position">0</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkScrolledWindow" id="scrolledwindow_list">
-                    <property name="height_request">300</property>
-                    <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="margin_start">12</property>
-                    <property name="margin_end">12</property>
-                    <property name="hexpand">True</property>
-                    <property name="vexpand">True</property>
-                    <property name="hscrollbar_policy">never</property>
-                    <property name="shadow_type">in</property>
-                  </object>
-                  <packing>
-                    <property name="expand">True</property>
-                    <property name="fill">True</property>
-                    <property name="position">1</property>
-                  </packing>
-                </child>
-              </object>
-              <packing>
-                <property name="expand">True</property>
-                <property name="fill">True</property>
-                <property name="position">0</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkBox" id="list_actions">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="margin_start">12</property>
-                <property name="margin_end">12</property>
-                <property name="margin_bottom">12</property>
-                <property name="hexpand">True</property>
-                <property name="spacing">6</property>
-                <child>
-                  <object class="GtkButton" id="start_hotspot_button">
-                    <property name="label" translatable="yes">_Use as Hotspot…</property>
-                    <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="receives_default">True</property>
-                    <property name="halign">start</property>
-                    <property name="use_underline">True</property>
-                  </object>
-                  <packing>
-                    <property name="expand">False</property>
-                    <property name="fill">False</property>
-                    <property name="position">0</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkButton" id="connect_hidden_button">
-                    <property name="label" translatable="yes">_Connect to Hidden Network…</property>
-                    <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="receives_default">True</property>
-                    <property name="halign">center</property>
-                    <property name="use_underline">True</property>
-                  </object>
-                  <packing>
-                    <property name="expand">True</property>
-                    <property name="fill">False</property>
-                    <property name="position">1</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkButton" id="history_button">
-                    <property name="label" translatable="yes">_History</property>
-                    <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="receives_default">True</property>
-                    <property name="halign">end</property>
-                    <property name="use_underline">True</property>
-                  </object>
-                  <packing>
-                    <property name="expand">False</property>
-                    <property name="fill">False</property>
-                    <property name="position">2</property>
-                  </packing>
-                </child>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="position">1</property>
-              </packing>
-            </child>
+            <property name="icon_name">open-menu-symbolic</property>
           </object>
-        </child>
-        <child type="tab">
-          <object class="GtkLabel" id="label1">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="label">list</property>
-          </object>
-          <packing>
-            <property name="tab_fill">False</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkVBox" id="box_hotspot">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="border_width">12</property>
-            <property name="spacing">9</property>
-            <child>
-              <object class="GtkBox" id="box_hotspot_top">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <child>
-                  <object class="GtkBox" id="vbox345">
-                    <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="halign">start</property>
-                    <property name="valign">center</property>
-                    <property name="hexpand">True</property>
-                    <property name="orientation">vertical</property>
-                    <property name="spacing">3</property>
-                    <child>
-                      <object class="GtkLabel" id="label_hotspot_title">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="xalign">0</property>
-                        <property name="label" translatable="yes">Wi-Fi Hotspot</property>
-                        <attributes>
-                          <attribute name="weight" value="bold"/>
-                          <attribute name="scale" value="1.2"/>
-                        </attributes>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="position">0</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkLabel" id="label_hotspot_explanation">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="xalign">0</property>
-                        <property name="label" translatable="yes">Switch off to connect to a Wi-Fi network</property>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="position">1</property>
-                      </packing>
-                    </child>
-                  </object>
-                  <packing>
-                    <property name="expand">False</property>
-                    <property name="fill">True</property>
-                    <property name="position">0</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkSwitch" id="switch_hotspot_off">
-                    <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="halign">end</property>
-                    <property name="valign">center</property>
-                  </object>
-                  <packing>
-                    <property name="expand">False</property>
-                    <property name="fill">True</property>
-                    <property name="position">1</property>
-                  </packing>
-                </child>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="position">0</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkGrid" id="grid_hotspot">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="halign">center</property>
-                <property name="valign">start</property>
-                <property name="row_spacing">10</property>
-                <property name="column_spacing">6</property>
-                <property name="column-homogeneous">True</property>
-                <child>
-                  <object class="GtkLabel" id="heading_hotspot_network_name">
-                    <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="xalign">1</property>
-                    <property name="label" translatable="yes">Network Name</property>
-                    <property name="mnemonic_widget">label_hotspot_network_name</property>
-                    <style>
-                      <class name="dim-label"/>
-                    </style>
-                  </object>
-                  <packing>
-                    <property name="left_attach">0</property>
-                    <property name="top_attach">0</property>
-                    <property name="width">1</property>
-                    <property name="height">1</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkLabel" id="heading_hotspot_connected">
-                    <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="xalign">1</property>
-                    <property name="label" translatable="yes">Connected Devices</property>
-                    <property name="mnemonic_widget">label_hotspot_connected</property>
-                    <style>
-                      <class name="dim-label"/>
-                    </style>
-                  </object>
-                  <packing>
-                    <property name="left_attach">0</property>
-                    <property name="top_attach">1</property>
-                    <property name="width">1</property>
-                    <property name="height">1</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkLabel" id="heading_hotspot_security">
-                    <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="xalign">1</property>
-                    <property name="label" translatable="yes">Security type</property>
-                    <property name="mnemonic_widget">label_hotspot_security</property>
-                    <style>
-                      <class name="dim-label"/>
-                    </style>
-                  </object>
-                  <packing>
-                    <property name="left_attach">0</property>
-                    <property name="top_attach">2</property>
-                    <property name="width">1</property>
-                    <property name="height">1</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkLabel" id="label_hotspot_network_name">
-                    <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="xalign">0</property>
-                    <property name="label"></property>
-                    <property name="selectable">True</property>
-                  </object>
-                  <packing>
-                    <property name="left_attach">1</property>
-                    <property name="top_attach">0</property>
-                    <property name="width">1</property>
-                    <property name="height">1</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkLabel" id="label_hotspot_connected">
-                    <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="xalign">0</property>
-                    <property name="label"></property>
-                    <property name="selectable">True</property>
-                  </object>
-                  <packing>
-                    <property name="left_attach">1</property>
-                    <property name="top_attach">1</property>
-                    <property name="width">1</property>
-                    <property name="height">1</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkLabel" id="label_hotspot_security">
-                    <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="xalign">0</property>
-                    <property name="label"></property>
-                    <property name="selectable">True</property>
-                  </object>
-                  <packing>
-                    <property name="left_attach">1</property>
-                    <property name="top_attach">2</property>
-                    <property name="width">1</property>
-                    <property name="height">1</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkLabel" id="heading_hotspot_security_key">
-                    <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="xalign">1</property>
-                    <property name="label" context="Wi-Fi passkey" translatable="yes">Password</property>
-                    <property name="mnemonic_widget">label_hotspot_security_key</property>
-                    <style>
-                      <class name="dim-label"/>
-                    </style>
-                  </object>
-                  <packing>
-                    <property name="left_attach">0</property>
-                    <property name="top_attach">3</property>
-                    <property name="width">1</property>
-                    <property name="height">1</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkLabel" id="label_hotspot_security_key">
-                    <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="xalign">0</property>
-                    <property name="label"></property>
-                    <property name="selectable">True</property>
-                  </object>
-                  <packing>
-                    <property name="left_attach">1</property>
-                    <property name="top_attach">3</property>
-                    <property name="width">1</property>
-                    <property name="height">1</property>
-                  </packing>
-                </child>
-              </object>
-              <packing>
-                <property name="expand">True</property>
-                <property name="fill">True</property>
-                <property name="position">1</property>
-              </packing>
-            </child>
-          </object>
-          <packing>
-            <property name="position">1</property>
-          </packing>
-        </child>
-        <child type="tab">
-          <object class="GtkLabel" id="label33">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="label">hotspot</property>
-          </object>
-          <packing>
-            <property name="position">1</property>
-            <property name="tab_fill">False</property>
-          </packing>
         </child>
       </object>
+    </child>
+  </object>
+
+  <!-- Menu Popover -->
+  <object class="GtkPopoverMenu" id="header_button_popover">
+    <child>
+      <object class="GtkBox">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="margin">12</property>
+        <property name="spacing">6</property>
+        <property name="orientation">vertical</property>
+        <child>
+          <object class="GtkModelButton" id="connect_hidden_button">
+            <property name="label" translatable="yes">_Connect to Hidden Network…</property>
+            <property name="visible">True</property>
+            <property name="can_focus">True</property>
+            <property name="receives_default">True</property>
+            <property name="use_underline">True</property>
+            <property name="xalign">0.0</property>
+          </object>
+        </child>
+        <child>
+          <object class="GtkModelButton" id="start_hotspot_button">
+            <property name="label" translatable="yes">_Turn On Wi-Fi Hotspot…</property>
+            <property name="visible">True</property>
+            <property name="can_focus">True</property>
+            <property name="receives_default">True</property>
+            <property name="use_underline">True</property>
+            <property name="xalign">0.0</property>
+          </object>
+        </child>
+        <child>
+          <object class="GtkModelButton" id="history_button">
+            <property name="label" translatable="yes">_Known Wi-Fi Networks</property>
+            <property name="visible">True</property>
+            <property name="can_focus">True</property>
+            <property name="receives_default">True</property>
+            <property name="use_underline">True</property>
+            <property name="xalign">0.0</property>
+          </object>
+        </child>
+      </object>
+    </child>
+  </object>
 </interface>

@@ -24,6 +24,7 @@
 #include <string.h>
 #include <gudev/gudev.h>
 
+#include <gdk/gdkwayland.h>
 #include "gsd-device-manager-udev.h"
 
 struct _GsdUdevDeviceManager
@@ -46,7 +47,8 @@ const gchar *udev_ids[] = {
 	"ID_INPUT_KEYBOARD",
 	"ID_INPUT_TOUCHPAD",
 	"ID_INPUT_TABLET",
-	"ID_INPUT_TOUCHSCREEN"
+	"ID_INPUT_TOUCHSCREEN",
+	"ID_INPUT_TABLET_PAD",
 };
 
 static GsdDeviceType
@@ -90,8 +92,14 @@ create_device (GUdevDevice *udev_device)
 	name = g_udev_device_get_sysfs_attr (parent, "name");
 	vendor = g_udev_device_get_property (udev_device, "ID_VENDOR_ID");
 	product = g_udev_device_get_property (udev_device, "ID_MODEL_ID");
+
+	if (!vendor || !product) {
+		vendor = g_udev_device_get_sysfs_attr (udev_device, "device/id/vendor");
+		product = g_udev_device_get_sysfs_attr (udev_device, "device/id/product");
+	}
+
 	width = g_udev_device_get_property_as_int (udev_device, "ID_INPUT_WIDTH_MM");
-	height = g_udev_device_get_property_as_int (udev_device, "ID_INPUT_WIDTH_MM");
+	height = g_udev_device_get_property_as_int (udev_device, "ID_INPUT_HEIGHT_MM");
 
 	device = g_object_new (GSD_TYPE_DEVICE,
 			       "name", name,
@@ -221,6 +229,30 @@ gsd_udev_device_manager_list_devices (GsdDeviceManager *manager,
 	return devices;
 }
 
+static GsdDevice *
+gsd_udev_device_manager_lookup_device (GsdDeviceManager *manager,
+				       GdkDevice	*gdk_device)
+{
+	const gchar *node_path;
+	GHashTableIter iter;
+	GsdDevice *device;
+
+	node_path = gdk_wayland_device_get_node_path (gdk_device);
+	if (!node_path)
+		return NULL;
+
+	g_hash_table_iter_init (&iter, GSD_UDEV_DEVICE_MANAGER (manager)->devices);
+
+	while (g_hash_table_iter_next (&iter, NULL, (gpointer *) &device)) {
+		if (g_strcmp0 (node_path,
+			       gsd_device_get_device_file (device)) == 0) {
+			return device;
+		}
+	}
+
+	return NULL;
+}
+
 static void
 gsd_udev_device_manager_class_init (GsdUdevDeviceManagerClass *klass)
 {
@@ -229,4 +261,5 @@ gsd_udev_device_manager_class_init (GsdUdevDeviceManagerClass *klass)
 
 	object_class->finalize = gsd_udev_device_manager_finalize;
 	manager_class->list_devices = gsd_udev_device_manager_list_devices;
+	manager_class->lookup_device = gsd_udev_device_manager_lookup_device;
 }

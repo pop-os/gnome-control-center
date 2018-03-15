@@ -33,15 +33,15 @@
  * returning to the main loop */
 #define NUM_ITEMS_PER_BATCH 1
 
-struct CcBackgroundXmlPrivate
+struct _CcBackgroundXml
 {
+  GObject      parent_instance;
+
   GHashTable  *wp_hash;
   GAsyncQueue *item_added_queue;
   guint        item_added_id;
   GSList      *monitors; /* GSList of GFileMonitor */
 };
-
-#define CC_BACKGROUND_XML_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), CC_TYPE_BACKGROUND_XML, CcBackgroundXmlPrivate))
 
 enum {
 	ADDED,
@@ -50,17 +50,13 @@ enum {
 
 static guint signals[LAST_SIGNAL] = { 0 };
 
-static void     cc_background_xml_class_init     (CcBackgroundXmlClass *klass);
-static void     cc_background_xml_init           (CcBackgroundXml      *background_item);
-static void     cc_background_xml_finalize       (GObject              *object);
-
 G_DEFINE_TYPE (CcBackgroundXml, cc_background_xml, G_TYPE_OBJECT)
 
 static gboolean
 cc_background_xml_get_bool (const xmlNode *parent,
 			    const gchar   *prop_name)
 {
-  xmlChar * prop;
+  xmlChar *prop;
   gboolean ret_val = FALSE;
 
   g_return_val_if_fail (parent != NULL, FALSE);
@@ -73,7 +69,7 @@ cc_background_xml_get_bool (const xmlNode *parent,
     } else {
       ret_val = FALSE;
     }
-    g_free (prop);
+    xmlFree (prop);
   }
 
   return ret_val;
@@ -115,23 +111,25 @@ enum_string_to_value (GType type,
 static gboolean
 idle_emit (CcBackgroundXml *xml)
 {
-	GObject *item;
-	guint i = NUM_ITEMS_PER_BATCH;
+	gint i;
 
-	g_async_queue_lock (xml->priv->item_added_queue);
+	g_async_queue_lock (xml->item_added_queue);
 
-	while (i > 0 && (item = g_async_queue_try_pop_unlocked (xml->priv->item_added_queue)) != NULL) {
+	for (i = 0; i < NUM_ITEMS_PER_BATCH; i++) {
+		g_autoptr(GObject) item = NULL;
+
+		item = g_async_queue_try_pop_unlocked (xml->item_added_queue);
+		if (item == NULL)
+			break;
 		g_signal_emit (G_OBJECT (xml), signals[ADDED], 0, item);
-		g_object_unref (item);
-		i--;
 	}
 
-	g_async_queue_unlock (xml->priv->item_added_queue);
+	g_async_queue_unlock (xml->item_added_queue);
 
-        if (g_async_queue_length (xml->priv->item_added_queue) > 0) {
+        if (g_async_queue_length (xml->item_added_queue) > 0) {
                 return TRUE;
         } else {
-                xml->priv->item_added_id = 0;
+                xml->item_added_id = 0;
                 return FALSE;
         }
 }
@@ -140,11 +138,11 @@ static void
 emit_added_in_idle (CcBackgroundXml *xml,
 		    GObject         *object)
 {
-	g_async_queue_lock (xml->priv->item_added_queue);
-	g_async_queue_push_unlocked (xml->priv->item_added_queue, object);
-	if (xml->priv->item_added_id == 0)
-		xml->priv->item_added_id = g_idle_add ((GSourceFunc) idle_emit, xml);
-	g_async_queue_unlock (xml->priv->item_added_queue);
+	g_async_queue_lock (xml->item_added_queue);
+	g_async_queue_push_unlocked (xml->item_added_queue, object);
+	if (xml->item_added_id == 0)
+		xml->item_added_id = g_idle_add ((GSourceFunc) idle_emit, xml);
+	g_async_queue_unlock (xml->item_added_queue);
 }
 
 #define NONE "(none)"
@@ -175,12 +173,13 @@ cc_background_xml_load_xml_internal (CcBackgroundXml *xml,
 
   for (list = root->children; list != NULL; list = list->next) {
     if (!strcmp ((gchar *)list->name, "wallpaper")) {
-      CcBackgroundItem * item;
+      g_autoptr(CcBackgroundItem) item = NULL;
       CcBackgroundItemFlags flags;
-      char *uri, *cname, *id;
+      g_autofree gchar *uri = NULL;
+      g_autofree gchar *cname = NULL;
+      g_autofree gchar *id = NULL;
 
       flags = 0;
-      cname = NULL;
       item = cc_background_item_new (NULL);
 
       g_object_set (G_OBJECT (item),
@@ -194,26 +193,24 @@ cc_background_xml_load_xml_internal (CcBackgroundXml *xml,
 	} else if (!strcmp ((gchar *)wpa->name, "filename")) {
 	  if (wpa->last != NULL && wpa->last->content != NULL) {
 	    gchar *content = g_strstrip ((gchar *)wpa->last->content);
-	    char *bg_uri;
+	    g_autofree gchar *bg_uri = NULL;
 
 	    /* FIXME same rubbish as in other parts of the code */
 	    if (strcmp (content, NONE) == 0) {
 	      bg_uri = NULL;
 	    } else {
-	      GFile *file;
+	      g_autoptr(GFile) file = NULL;
 	      file = g_file_new_for_commandline_arg (content);
 	      bg_uri = g_file_get_uri (file);
-	      g_object_unref (file);
 	    }
 	    SET_FLAG(CC_BACKGROUND_ITEM_HAS_URI);
 	    g_object_set (G_OBJECT (item), "uri", bg_uri, NULL);
-	    g_free (bg_uri);
 	  } else {
 	    break;
 	  }
 	} else if (!strcmp ((gchar *)wpa->name, "name")) {
 	  if (wpa->last != NULL && wpa->last->content != NULL) {
-	    char *name;
+	    g_autofree gchar *name = NULL;
 	    nodelang = xmlNodeGetLang (wpa->last);
 
 	    g_object_get (G_OBJECT (item), "name", &name, NULL);
@@ -232,7 +229,6 @@ cc_background_xml_load_xml_internal (CcBackgroundXml *xml,
 	       }
 	    }
 
-	    g_free (name);
 	    xmlFree (nodelang);
 	  } else {
 	    break;
@@ -273,27 +269,26 @@ cc_background_xml_load_xml_internal (CcBackgroundXml *xml,
 	} else if (!strcmp ((gchar *)wpa->name, "text")) {
 	  /* Do nothing here, libxml2 is being weird */
 	} else {
-	  g_warning ("Unknown Tag: %s", wpa->name);
+	  g_warning ("Unknown Tag in %s: %s", filename, wpa->name);
 	}
       }
 
       /* Check whether the target file exists */
       {
-        GFile *file;
         const char *uri;
 
 	uri = cc_background_item_get_uri (item);
 	if (uri != NULL)
 	  {
+            g_autoptr(GFile) file = NULL;
+
             file = g_file_new_for_uri (uri);
 	    if (g_file_query_exists (file, NULL) == FALSE)
 	      {
-	        g_free (cname);
-	        g_object_unref (file);
-	        g_object_unref (item);
+	        g_clear_pointer (&cname, g_free);
+	        g_clear_object (&item);
 	        continue;
 	      }
-	    g_object_unref (file);
 	  }
       }
 
@@ -301,27 +296,20 @@ cc_background_xml_load_xml_internal (CcBackgroundXml *xml,
        * need to use proper code here */
       uri = g_filename_to_uri (filename, NULL, NULL);
       id = g_strdup_printf ("%s#%s", uri, cname);
-      g_free (cname);
-      g_free (uri);
 
       /* Make sure we don't already have this one and that filename exists */
-      if (g_hash_table_lookup (xml->priv->wp_hash, id) != NULL) {
-	g_object_unref (item);
-	g_free (id);
+      if (g_hash_table_lookup (xml->wp_hash, id) != NULL) {
 	continue;
       }
 
       g_object_set (G_OBJECT (item), "flags", flags, NULL);
-      g_hash_table_insert (xml->priv->wp_hash,
+      g_hash_table_insert (xml->wp_hash,
                            g_strdup (id),
                            g_object_ref (item));
       if (in_thread)
         emit_added_in_idle (xml, g_object_ref (item));
       else
         g_signal_emit (G_OBJECT (xml), signals[ADDED], 0, item);
-
-      g_object_unref (item);
-      g_free (id);
       retval = TRUE;
     }
   }
@@ -337,14 +325,13 @@ gnome_wp_file_changed (GFileMonitor *monitor,
 		       GFileMonitorEvent event_type,
 		       CcBackgroundXml *data)
 {
-  gchar *filename;
+  g_autofree gchar *filename = NULL;
 
   switch (event_type) {
   case G_FILE_MONITOR_EVENT_CHANGED:
   case G_FILE_MONITOR_EVENT_CREATED:
     filename = g_file_get_path (file);
     cc_background_xml_load_xml_internal (data, filename, FALSE);
-    g_free (filename);
     break;
   default:
     break;
@@ -356,20 +343,18 @@ cc_background_xml_add_monitor (GFile      *directory,
 			       CcBackgroundXml *data)
 {
   GFileMonitor *monitor;
-  GError *error = NULL;
+  g_autoptr(GError) error = NULL;
 
   monitor = g_file_monitor_directory (directory,
                                       G_FILE_MONITOR_NONE,
                                       NULL,
                                       &error);
   if (error != NULL) {
-    gchar *path;
+    g_autofree gchar *path = NULL;
 
     path = g_file_get_parse_name (directory);
     g_warning ("Unable to monitor directory %s: %s",
                path, error->message);
-    g_error_free (error);
-    g_free (path);
     return;
   }
 
@@ -377,7 +362,7 @@ cc_background_xml_add_monitor (GFile      *directory,
                     G_CALLBACK (gnome_wp_file_changed),
                     data);
 
-  data->priv->monitors = g_slist_prepend (data->priv->monitors, monitor);
+  data->monitors = g_slist_prepend (data->monitors, monitor);
 }
 
 static void
@@ -385,10 +370,9 @@ cc_background_xml_load_from_dir (const gchar      *path,
 				 CcBackgroundXml  *data,
 				 gboolean          in_thread)
 {
-  GFile *directory;
-  GFileEnumerator *enumerator;
-  GError *error = NULL;
-  GFileInfo *info;
+  g_autoptr(GFile) directory = NULL;
+  g_autoptr(GFileEnumerator) enumerator = NULL;
+  g_autoptr(GError) error = NULL;
 
   if (!g_file_test (path, G_FILE_TEST_IS_DIR)) {
     return;
@@ -402,28 +386,26 @@ cc_background_xml_load_from_dir (const gchar      *path,
                                           &error);
   if (error != NULL) {
     g_warning ("Unable to check directory %s: %s", path, error->message);
-    g_error_free (error);
-    g_object_unref (directory);
     return;
   }
 
-  while ((info = g_file_enumerator_next_file (enumerator, NULL, NULL))) {
+  while (TRUE) {
+    g_autoptr(GFileInfo) info = NULL;
     const gchar *filename;
-    gchar *fullpath;
+    g_autofree gchar *fullpath = NULL;
+
+    info = g_file_enumerator_next_file (enumerator, NULL, NULL);
+    if (info == NULL) {
+        g_file_enumerator_close (enumerator, NULL, NULL);
+        cc_background_xml_add_monitor (directory, data);
+        return;
+    }
 
     filename = g_file_info_get_name (info);
     fullpath = g_build_filename (path, filename, NULL);
-    g_object_unref (info);
 
     cc_background_xml_load_xml_internal (data, fullpath, in_thread);
-    g_free (fullpath);
   }
-  g_file_enumerator_close (enumerator, NULL, NULL);
-
-  cc_background_xml_add_monitor (directory, data);
-
-  g_object_unref (directory);
-  g_object_unref (enumerator);
 }
 
 static void
@@ -431,22 +413,21 @@ cc_background_xml_load_list (CcBackgroundXml *data,
 			     gboolean         in_thread)
 {
   const char * const *system_data_dirs;
-  gchar * datadir;
+  g_autofree gchar *datadir = NULL;
   gint i;
 
   datadir = g_build_filename (g_get_user_data_dir (),
                               "gnome-background-properties",
                               NULL);
   cc_background_xml_load_from_dir (datadir, data, in_thread);
-  g_free (datadir);
 
   system_data_dirs = g_get_system_data_dirs ();
   for (i = 0; system_data_dirs[i]; i++) {
-    datadir = g_build_filename (system_data_dirs[i],
+    g_autofree gchar *sdatadir = NULL;
+    sdatadir = g_build_filename (system_data_dirs[i],
                                 "gnome-background-properties",
 				NULL);
-    cc_background_xml_load_from_dir (datadir, data, in_thread);
-    g_free (datadir);
+    cc_background_xml_load_from_dir (sdatadir, data, in_thread);
   }
 }
 
@@ -460,7 +441,7 @@ cc_background_xml_load_list_finish (GAsyncResult  *async_result)
 	g_warn_if_fail (g_simple_async_result_get_source_tag (result) == cc_background_xml_load_list_async);
 
 	data = CC_BACKGROUND_XML (g_simple_async_result_get_op_res_gpointer (result));
-	return data->priv->wp_hash;
+	return data->wp_hash;
 }
 
 static void
@@ -479,14 +460,13 @@ void cc_background_xml_load_list_async (CcBackgroundXml *xml,
 					GAsyncReadyCallback callback,
 					gpointer user_data)
 {
-	GSimpleAsyncResult *result;
+	g_autoptr(GSimpleAsyncResult) result = NULL;
 
 	g_return_if_fail (CC_IS_BACKGROUND_XML (xml));
 
 	result = g_simple_async_result_new (G_OBJECT (xml), callback, user_data, cc_background_xml_load_list_async);
 	g_simple_async_result_set_op_res_gpointer (result, xml, NULL);
 	g_simple_async_result_run_in_thread (result, (GSimpleAsyncThreadFunc) load_list_thread, G_PRIORITY_LOW, cancellable);
-	g_object_unref (result);
 }
 
 gboolean
@@ -513,20 +493,17 @@ single_xml_added (CcBackgroundXml   *xml,
 CcBackgroundItem *
 cc_background_xml_get_item (const char *filename)
 {
-	CcBackgroundXml *xml;
-	CcBackgroundItem *item;
+	g_autoptr(CcBackgroundXml) xml = NULL;
+	CcBackgroundItem *item = NULL;
 
 	if (g_file_test (filename, G_FILE_TEST_IS_REGULAR) == FALSE)
 		return NULL;
 
 	xml = cc_background_xml_new ();
-	item = NULL;
 	g_signal_connect (G_OBJECT (xml), "added",
 			  G_CALLBACK (single_xml_added), &item);
-	if (cc_background_xml_load_xml (xml, filename) == FALSE) {
-		g_object_unref (xml);
+	if (cc_background_xml_load_xml (xml, filename) == FALSE)
 		return NULL;
-	}
 
 	return item;
 }
@@ -555,7 +532,11 @@ cc_background_xml_save (CcBackgroundItem *item,
   xmlNode *xml_item G_GNUC_UNUSED;
   const char * none = "(none)";
   const char *placement_str, *shading_str;
-  char *name, *pcolor, *scolor, *uri, *source_url;
+  g_autofree gchar *name = NULL;
+  g_autofree gchar *pcolor = NULL;
+  g_autofree gchar *scolor = NULL;
+  g_autofree gchar *uri = NULL;
+  g_autofree gchar *source_url = NULL;
   CcBackgroundItemFlags flags;
   GDesktopBackgroundStyle placement;
   GDesktopBackgroundShading shading;
@@ -586,14 +567,12 @@ cc_background_xml_save (CcBackgroundItem *item,
   if (flags & CC_BACKGROUND_ITEM_HAS_URI &&
       uri != NULL)
     {
-      GFile *file;
-      char *fname;
+      g_autoptr(GFile) file = NULL;
+      g_autofree gchar *fname = NULL;
 
       file = g_file_new_for_commandline_arg (uri);
       fname = g_file_get_path (file);
-      g_object_unref (file);
       xml_item = xmlNewTextChild (wallpaper, NULL, (xmlChar *)"filename", (xmlChar *)fname);
-      g_free (fname);
     }
   else if (flags & CC_BACKGROUND_ITEM_HAS_URI)
     {
@@ -611,12 +590,6 @@ cc_background_xml_save (CcBackgroundItem *item,
   if (source_url != NULL)
     xml_item = xmlNewTextChild (wallpaper, NULL, (xmlChar *)"source_url", (xmlChar *)source_url);
 
-  g_free (name);
-  g_free (pcolor);
-  g_free (scolor);
-  g_free (uri);
-  g_free (source_url);
-
   xmlSaveFormatFile (filename, wp, 1);
   xmlFreeDoc (wp);
 }
@@ -631,16 +604,14 @@ cc_background_xml_finalize (GObject *object)
 
         xml = CC_BACKGROUND_XML (object);
 
-        g_return_if_fail (xml->priv != NULL);
+        g_slist_free_full (xml->monitors, g_object_unref);
 
-        g_slist_free_full (xml->priv->monitors, g_object_unref);
-
-	g_clear_pointer (&xml->priv->wp_hash, g_hash_table_destroy);
-	if (xml->priv->item_added_id != 0) {
-		g_source_remove (xml->priv->item_added_id);
-		xml->priv->item_added_id = 0;
+	g_clear_pointer (&xml->wp_hash, g_hash_table_destroy);
+	if (xml->item_added_id != 0) {
+		g_source_remove (xml->item_added_id);
+		xml->item_added_id = 0;
 	}
-	g_clear_pointer (&xml->priv->item_added_queue, g_async_queue_unref);
+	g_clear_pointer (&xml->item_added_queue, g_async_queue_unref);
 }
 
 static void
@@ -657,19 +628,16 @@ cc_background_xml_class_init (CcBackgroundXmlClass *klass)
 				       NULL, NULL,
 				       g_cclosure_marshal_VOID__OBJECT,
 				       G_TYPE_NONE, 1, CC_TYPE_BACKGROUND_ITEM);
-
-        g_type_class_add_private (klass, sizeof (CcBackgroundXmlPrivate));
 }
 
 static void
 cc_background_xml_init (CcBackgroundXml *xml)
 {
-        xml->priv = CC_BACKGROUND_XML_GET_PRIVATE (xml);
-        xml->priv->wp_hash = g_hash_table_new_full (g_str_hash,
-						    g_str_equal,
-						    (GDestroyNotify) g_free,
-						    (GDestroyNotify) g_object_unref);
-	xml->priv->item_added_queue = g_async_queue_new_full ((GDestroyNotify) g_object_unref);
+        xml->wp_hash = g_hash_table_new_full (g_str_hash,
+                                              g_str_equal,
+                                              (GDestroyNotify) g_free,
+                                              (GDestroyNotify) g_object_unref);
+	xml->item_added_queue = g_async_queue_new_full ((GDestroyNotify) g_object_unref);
 }
 
 CcBackgroundXml *

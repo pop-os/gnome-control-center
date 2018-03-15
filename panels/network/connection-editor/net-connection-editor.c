@@ -34,7 +34,6 @@
 #include "ce-page-ip4.h"
 #include "ce-page-ip6.h"
 #include "ce-page-security.h"
-#include "ce-page-reset.h"
 #include "ce-page-ethernet.h"
 #include "ce-page-8021x-security.h"
 #include "ce-page-vpn.h"
@@ -51,23 +50,6 @@ static guint signals[LAST_SIGNAL] = { 0 };
 G_DEFINE_TYPE (NetConnectionEditor, net_connection_editor, G_TYPE_OBJECT)
 
 static void page_changed (CEPage *page, gpointer user_data);
-
-static void
-selection_changed (GtkTreeSelection *selection, NetConnectionEditor *editor)
-{
-        GtkWidget *widget;
-        GtkTreeModel *model;
-        GtkTreeIter iter;
-        gint page;
-
-        if (!gtk_tree_selection_get_selected (selection, &model, &iter))
-                return;
-        gtk_tree_model_get (model, &iter, 1, &page, -1);
-
-        widget = GTK_WIDGET (gtk_builder_get_object (editor->builder,
-                                                     "details_notebook"));
-        gtk_notebook_set_current_page (GTK_NOTEBOOK (widget), page);
-}
 
 static void
 cancel_editing (NetConnectionEditor *editor)
@@ -164,7 +146,6 @@ static void
 net_connection_editor_init (NetConnectionEditor *editor)
 {
         GError *error = NULL;
-        GtkTreeSelection *selection;
 
         editor->builder = gtk_builder_new ();
 
@@ -178,10 +159,6 @@ net_connection_editor_init (NetConnectionEditor *editor)
         }
 
         editor->window = GTK_WIDGET (gtk_builder_get_object (editor->builder, "details_dialog"));
-        selection = GTK_TREE_SELECTION (gtk_builder_get_object (editor->builder,
-                                                                "details_page_list_selection"));
-        g_signal_connect (selection, "changed",
-                          G_CALLBACK (selection_changed), editor);
 }
 
 void
@@ -431,6 +408,7 @@ page_initialized (CEPage *page, GError *error, NetConnectionEditor *editor)
 {
         GtkNotebook *notebook;
         GtkWidget *widget;
+        GtkWidget *label;
         gint position;
         GList *children, *l;
         gint i;
@@ -446,7 +424,10 @@ page_initialized (CEPage *page, GError *error, NetConnectionEditor *editor)
                         break;
         }
         g_list_free (children);
-        gtk_notebook_insert_page (notebook, widget, NULL, i);
+
+        label = gtk_label_new (ce_page_get_title (page));
+
+        gtk_notebook_insert_page (notebook, widget, label, i);
 
         editor->initializing_pages = g_slist_remove (editor->initializing_pages, page);
         editor->pages = g_slist_append (editor->pages, page);
@@ -506,20 +487,11 @@ get_secrets_for_page (NetConnectionEditor *editor,
 static void
 add_page (NetConnectionEditor *editor, CEPage *page)
 {
-        GtkListStore *store;
-        GtkTreeIter iter;
-        const gchar *title;
         gint position;
 
-        store = GTK_LIST_STORE (gtk_builder_get_object (editor->builder,
-                                                "details_store"));
-        title = ce_page_get_title (page);
         position = g_slist_length (editor->initializing_pages);
         g_object_set_data (G_OBJECT (page), "position", GINT_TO_POINTER (position));
-        gtk_list_store_insert_with_values (store, &iter, -1,
-                                           0, title,
-                                           1, position,
-                                           -1);
+
         editor->initializing_pages = g_slist_append (editor->initializing_pages, page);
 
         g_signal_connect (page, "changed", G_CALLBACK (page_changed), editor);
@@ -533,8 +505,9 @@ net_connection_editor_set_connection (NetConnectionEditor *editor,
         GSList *pages, *l;
         NMSettingConnection *sc;
         const gchar *type;
-        GtkTreeSelection *selection;
-        GtkTreePath *path;
+        gboolean is_wired;
+        gboolean is_wifi;
+        gboolean is_vpn;
 
         editor->is_new_connection = !nm_client_get_connection_by_uuid (editor->client,
                                                                        nm_connection_get_uuid (connection));
@@ -557,19 +530,18 @@ net_connection_editor_set_connection (NetConnectionEditor *editor,
         sc = nm_connection_get_setting_connection (connection);
         type = nm_setting_connection_get_connection_type (sc);
 
+        is_wired = g_str_equal (type, NM_SETTING_WIRED_SETTING_NAME);
+        is_wifi = g_str_equal (type, NM_SETTING_WIRELESS_SETTING_NAME);
+        is_vpn = g_str_equal (type, NM_SETTING_VPN_SETTING_NAME);
+
         if (!editor->is_new_connection)
-                add_page (editor, ce_page_details_new (editor->connection, editor->client, editor->device, editor->ap));
+                add_page (editor, ce_page_details_new (editor->connection, editor->client, editor->device, editor->ap, editor));
 
-        if (strcmp (type, NM_SETTING_WIRELESS_SETTING_NAME) == 0)
-                add_page (editor, ce_page_security_new (editor->connection, editor->client));
-        else if (strcmp (type, NM_SETTING_WIRED_SETTING_NAME) == 0)
-                add_page (editor, ce_page_8021x_security_new (editor->connection, editor->client));
-
-        if (strcmp (type, NM_SETTING_WIRELESS_SETTING_NAME) == 0)
+        if (is_wifi)
                 add_page (editor, ce_page_wifi_new (editor->connection, editor->client));
-        else if (strcmp (type, NM_SETTING_WIRED_SETTING_NAME) == 0)
+        else if (is_wired)
                 add_page (editor, ce_page_ethernet_new (editor->connection, editor->client));
-        else if (strcmp (type, NM_SETTING_VPN_SETTING_NAME) == 0)
+        else if (is_vpn)
                 add_page (editor, ce_page_vpn_new (editor->connection, editor->client));
         else {
                 /* Unsupported type */
@@ -580,8 +552,10 @@ net_connection_editor_set_connection (NetConnectionEditor *editor,
         add_page (editor, ce_page_ip4_new (editor->connection, editor->client));
         add_page (editor, ce_page_ip6_new (editor->connection, editor->client));
 
-        if (!editor->is_new_connection)
-                add_page (editor, ce_page_reset_new (editor->connection, editor->client, editor));
+        if (is_wifi)
+                add_page (editor, ce_page_security_new (editor->connection, editor->client));
+        else if (is_wired)
+                add_page (editor, ce_page_8021x_security_new (editor->connection, editor->client));
 
         pages = g_slist_copy (editor->initializing_pages);
         for (l = pages; l; l = l->next) {
@@ -596,12 +570,6 @@ net_connection_editor_set_connection (NetConnectionEditor *editor,
                 }
         }
         g_slist_free (pages);
-
-        selection = GTK_TREE_SELECTION (gtk_builder_get_object (editor->builder,
-                                                                "details_page_list_selection"));
-        path = gtk_tree_path_new_first ();
-        gtk_tree_selection_select_path (selection, path);
-        gtk_tree_path_free (path);
 }
 
 static NMConnection *
@@ -889,7 +857,7 @@ forgotten_cb (GObject *source_object,
 
         if (!nm_remote_connection_delete_finish (connection, res, &error)) {
                 if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED))
-                        g_warning ("Failed to delete conneciton %s: %s",
+                        g_warning ("Failed to delete connection %s: %s",
                                    nm_connection_get_id (NM_CONNECTION (connection)),
                                    error->message);
                 g_error_free (error);

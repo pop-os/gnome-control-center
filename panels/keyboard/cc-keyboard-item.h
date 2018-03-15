@@ -46,6 +46,12 @@ typedef enum {
 	CC_KEYBOARD_ITEM_TYPE_GSETTINGS
 } CcKeyboardItemType;
 
+typedef struct {
+  guint keyval;
+  guint keycode;
+  GdkModifierType mask;
+} CcKeyCombo;
+
 typedef struct CcKeyboardItemPrivate CcKeyboardItemPrivate;
 
 typedef struct
@@ -58,13 +64,13 @@ typedef struct
 
   /* common */
   /* FIXME move to priv? */
-  guint keyval;
-  guint keycode;
+  CcKeyCombo *primary_combo;
   BindingGroupType group;
-  GdkModifierType mask;
   GtkTreeModel *model;
   char *description;
   gboolean editable;
+  GList *key_combos;
+  GList *default_combos;
 
   /* GSettings path */
   char *gsettings_path;
