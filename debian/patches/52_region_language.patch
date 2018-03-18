@@ -277,6 +277,29 @@ Last-Update: 2013-03-21
  G_END_DECLS
  
  #endif
+--- a/panels/common/cc-language-chooser.c
++++ b/panels/common/cc-language-chooser.c
+@@ -428,7 +428,7 @@
+         priv->filter_entry = WID ("language-filter-entry");
+         priv->language_list = WID ("language-list");
+         priv->scrolledwindow = WID ("language-scrolledwindow");
+-        priv->more_item = more_widget_new ();
++//        priv->more_item = more_widget_new ();
+         /* We ref-sink here so we can reuse this widget multiple times */
+         priv->no_results = g_object_ref_sink (no_results_widget_new ());
+         gtk_widget_show_all (priv->no_results);
+--- a/panels/common/language-chooser.ui
++++ b/panels/common/language-chooser.ui
+@@ -36,7 +36,8 @@
+           <object class="GtkScrolledWindow" id="language-scrolledwindow">
+             <property name="visible">True</property>
+             <property name="hscrollbar-policy">never</property>
+-            <property name="vscrollbar-policy">never</property>
++            <property name="vscrollbar-policy">automatic</property>
++            <property name="propagate-natural-height">True</property>
+             <property name="shadow-type">in</property>
+             <property name="margin-start">6</property>
+             <property name="margin-end">6</property>
 --- a/panels/region/cc-region-panel.c
 +++ b/panels/region/cc-region-panel.c
 @@ -366,11 +366,15 @@ language_response (GtkDialog     *choose
