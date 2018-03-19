@@ -53,9 +53,11 @@ Last-Update: 2013-03-21
  panels/user-accounts/um-user-panel.c |    8 +
  4 files changed, 235 insertions(+), 56 deletions(-)
 
+Index: b/panels/common/cc-common-language.c
+===================================================================
 --- a/panels/common/cc-common-language.c
 +++ b/panels/common/cc-common-language.c
-@@ -167,6 +167,66 @@ cc_common_language_get_current_language
+@@ -167,6 +167,66 @@
          return language;
  }
  
@@ -122,7 +124,7 @@ Last-Update: 2013-03-21
  static char *
  get_lang_for_user_object_path (const char *path)
  {
-@@ -215,7 +275,7 @@ insert_language (GHashTable *ht,
+@@ -215,7 +275,7 @@
          char *label_untranslated;
          char *key;
  
@@ -131,7 +133,7 @@ Last-Update: 2013-03-21
  
          label_own_lang = gnome_get_language_from_locale (key, key);
          label_current_lang = gnome_get_language_from_locale (key, NULL);
-@@ -237,13 +297,44 @@ insert_language (GHashTable *ht,
+@@ -237,13 +297,44 @@
          g_free (label_untranslated);
  }
  
@@ -176,7 +178,7 @@ Last-Update: 2013-03-21
          insert_language (ht, "en_US.UTF-8");
          insert_language (ht, "en_GB.UTF-8");
          insert_language (ht, "de_DE.UTF-8");
-@@ -253,10 +344,32 @@ cc_common_language_get_initial_languages
+@@ -253,10 +344,32 @@
          insert_language (ht, "ja_JP.UTF-8");
          insert_language (ht, "ru_RU.UTF-8");
          insert_language (ht, "ar_EG.UTF-8");
@@ -210,7 +212,7 @@ Last-Update: 2013-03-21
  static void
  foreach_user_lang_cb (gpointer key,
                        gpointer value,
-@@ -282,31 +395,18 @@ cc_common_language_add_user_languages (G
+@@ -282,31 +395,18 @@
          GtkListStore *store = GTK_LIST_STORE (model);
          GHashTable *user_langs;
          const char *display;
@@ -246,7 +248,7 @@ Last-Update: 2013-03-21
                  display = g_hash_table_lookup (user_langs, name);
          }
  
-@@ -319,8 +419,8 @@ cc_common_language_add_user_languages (G
+@@ -319,8 +419,8 @@
          g_hash_table_foreach (user_langs, (GHFunc) foreach_user_lang_cb, store);
  
          /* And now the "Other…" selection */
@@ -257,9 +259,11 @@ Last-Update: 2013-03-21
  
          g_hash_table_destroy (user_langs);
  }
+Index: b/panels/common/cc-common-language.h
+===================================================================
 --- a/panels/common/cc-common-language.h
 +++ b/panels/common/cc-common-language.h
-@@ -44,6 +44,8 @@ guint    cc_common_language_add_availabl
+@@ -44,6 +44,8 @@
                                                       GHashTable       *user_langs);
  gboolean cc_common_language_has_font                (const gchar  *locale);
  gchar   *cc_common_language_get_current_language    (void);
@@ -268,7 +272,7 @@ Last-Update: 2013-03-21
  
  GHashTable *cc_common_language_get_initial_languages   (void);
  GHashTable *cc_common_language_get_user_languages      (void);
-@@ -56,6 +58,8 @@ void     cc_common_language_select_curre
+@@ -56,6 +58,8 @@
  
  void     cc_common_language_add_user_languages (GtkTreeModel *model);
  
@@ -277,9 +281,11 @@ Last-Update: 2013-03-21
  G_END_DECLS
  
  #endif
+Index: b/panels/region/cc-region-panel.c
+===================================================================
 --- a/panels/region/cc-region-panel.c
 +++ b/panels/region/cc-region-panel.c
-@@ -366,11 +366,15 @@ language_response (GtkDialog     *choose
+@@ -377,11 +377,15 @@
                     gint           response_id,
                     CcRegionPanel *self)
  {
@@ -298,7 +304,7 @@ Last-Update: 2013-03-21
          }
  
          gtk_widget_destroy (GTK_WIDGET (chooser));
-@@ -392,6 +396,47 @@ set_system_region (CcRegionPanel *self,
+@@ -403,6 +407,47 @@
  }
  
  static void
@@ -346,7 +352,7 @@ Last-Update: 2013-03-21
  update_region (CcRegionPanel *self,
                 const gchar   *region)
  {
-@@ -402,6 +447,7 @@ update_region (CcRegionPanel *self,
+@@ -413,6 +458,7 @@
          } else {
                  if (g_strcmp0 (region, priv->region) == 0)
                          return;
@@ -354,7 +360,7 @@ Last-Update: 2013-03-21
                  g_settings_set_string (priv->locale_settings, KEY_REGION, region);
                  if (priv->login_auto_apply)
                          set_system_region (self, region);
-@@ -582,7 +628,7 @@ update_region_from_setting (CcRegionPane
+@@ -593,7 +639,7 @@
          CcRegionPanelPrivate *priv = self->priv;
  
          g_free (priv->region);
@@ -363,7 +369,7 @@ Last-Update: 2013-03-21
          update_region_label (self);
  }
  
-@@ -611,15 +657,19 @@ update_language_from_user (CcRegionPanel
+@@ -622,15 +668,19 @@
  {
  	CcRegionPanelPrivate *priv = self->priv;
          const gchar *language = NULL;
@@ -387,7 +393,7 @@ Last-Update: 2013-03-21
          update_language_label (self);
  }
  
-@@ -1470,6 +1520,16 @@ setup_input_section (CcRegionPanel *self
+@@ -1485,6 +1535,16 @@
          update_buttons (self);
  }
  
@@ -404,7 +410,7 @@ Last-Update: 2013-03-21
  static void
  on_localed_properties_changed (GDBusProxy     *proxy,
                                 GVariant       *changed_properties,
-@@ -1484,32 +1544,46 @@ on_localed_properties_changed (GDBusProx
+@@ -1499,32 +1559,46 @@
                  const gchar **strv;
                  gsize len;
                  gint i;
@@ -460,7 +466,7 @@ Last-Update: 2013-03-21
  
                  update_language_label (self);
          }
-@@ -1579,27 +1653,24 @@ set_localed_locale (CcRegionPanel *self)
+@@ -1594,27 +1668,24 @@
  	CcRegionPanelPrivate *priv = self->priv;
          GVariantBuilder *b;
          gchar *s;
@@ -501,9 +507,11 @@ Last-Update: 2013-03-21
                  g_variant_builder_add (b, "s", s);
                  g_free (s);
          }
+Index: b/panels/user-accounts/um-user-panel.c
+===================================================================
 --- a/panels/user-accounts/um-user-panel.c
 +++ b/panels/user-accounts/um-user-panel.c
-@@ -850,8 +850,9 @@ show_user (ActUser *user, CcUserPanelPri
+@@ -840,8 +840,9 @@
  
          name = NULL;
          lang = g_strdup (act_user_get_language (user));
@@ -514,7 +522,7 @@ Last-Update: 2013-03-21
                  act_user_set_language (user, lang);
          }
  
-@@ -1009,6 +1010,7 @@ language_response (GtkDialog         *di
+@@ -999,6 +1000,7 @@
          GtkWidget *button;
          ActUser *user;
          const gchar *lang, *account_language;
@@ -522,7 +530,7 @@ Last-Update: 2013-03-21
          gchar *name = NULL;
  
          if (response_id != GTK_RESPONSE_OK) {
-@@ -1020,8 +1022,9 @@ language_response (GtkDialog         *di
+@@ -1010,8 +1012,9 @@
          account_language = act_user_get_language (user);
  
          lang = cc_language_chooser_get_language (GTK_WIDGET (dialog));
@@ -533,7 +541,7 @@ Last-Update: 2013-03-21
                          act_user_set_language (user, lang);
                  }
  
-@@ -1043,6 +1046,7 @@ change_language (GtkButton *button,
+@@ -1033,6 +1036,7 @@
  
          user = get_selected_user (d);
          current_language = act_user_get_language (user);
@@ -541,3 +549,25 @@ Last-Update: 2013-03-21
  
          if (d->language_chooser) {
  		cc_language_chooser_clear_filter (d->language_chooser);
+Index: b/panels/common/cc-language-chooser.c
+===================================================================
+--- a/panels/common/cc-language-chooser.c
++++ b/panels/common/cc-language-chooser.c
+@@ -164,7 +164,7 @@
+                 gtk_container_add (GTK_CONTAINER (priv->language_list), widget);
+         }
+ 
+-        gtk_container_add (GTK_CONTAINER (priv->language_list), GTK_WIDGET (priv->more_item));
++        /*gtk_container_add (GTK_CONTAINER (priv->language_list), GTK_WIDGET (priv->more_item));*/
+ 
+         gtk_widget_show_all (priv->language_list);
+ }
+@@ -420,7 +420,7 @@
+         priv->done_button = WID ("ok-button");
+         priv->filter_entry = WID ("language-filter-entry");
+         priv->language_list = WID ("language-list");
+-        priv->more_item = more_widget_new ();
++        /* priv->more_item = more_widget_new (); */
+         /* We ref-sink here so we can reuse this widget multiple times */
+         priv->no_results = g_object_ref_sink (no_results_widget_new ());
+         gtk_widget_show_all (priv->no_results);
