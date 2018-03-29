@@ -1,0 +1,161 @@
+From: Gunnar Hjalmarsson <gunnarhj@ubuntu.com>
+Date: Mon, 26 Feb 2018 21:20:30 +0100
+Subject: [PATCH] region: Show scrollbars if needed
+
+If we are initially showing more languages than can be fit, we should
+scroll then too.
+
+Bug: https://launchpad.net/bugs/1727710, https://launchpad.net/bugs/1758979
+Bug-Upstream: https://bugzilla.gnome.org/show_bug.cgi?id=793861
+Forwarded: https://gitlab.gnome.org/GNOME/gnome-control-center/merge_requests/12
+---
+ panels/common/cc-language-chooser.c |  8 --------
+ panels/common/language-chooser.ui   |  3 ++-
+ panels/region/cc-format-chooser.c   | 11 -----------
+ panels/region/cc-input-chooser.c    |  1 -
+ panels/region/format-chooser.ui     |  3 ++-
+ panels/region/input-chooser.ui      |  3 ++-
+ 6 files changed, 6 insertions(+), 23 deletions(-)
+
+diff --git a/panels/common/cc-language-chooser.c b/panels/common/cc-language-chooser.c
+index 961df5a0a..678c557bb 100644
+--- a/panels/common/cc-language-chooser.c
++++ b/panels/common/cc-language-chooser.c
+@@ -42,7 +42,6 @@ typedef struct {
+         GtkListBoxRow *more_item;
+         GtkWidget *filter_entry;
+         GtkWidget *language_list;
+-        GtkWidget *scrolledwindow;
+         gboolean showing_extra;
+         gchar *language;
+         gchar **filter_words;
+@@ -288,18 +287,12 @@ static void
+ show_more (GtkDialog *chooser, gboolean visible)
+ {
+         CcLanguageChooserPrivate *priv = GET_PRIVATE (chooser);
+-        GtkWidget *widget;
+         gint width, height;
+ 
+         gtk_window_get_size (GTK_WINDOW (chooser), &width, &height);
+         gtk_widget_set_size_request (GTK_WIDGET (chooser), width, height);
+         gtk_window_set_resizable (GTK_WINDOW (chooser), TRUE);
+ 
+-        widget = priv->scrolledwindow;
+-        gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (widget),
+-                                        GTK_POLICY_NEVER,
+-                                        visible ? GTK_POLICY_AUTOMATIC : GTK_POLICY_NEVER);
+-
+         gtk_widget_set_visible (priv->filter_entry, visible);
+         gtk_widget_grab_focus (visible ? priv->filter_entry : priv->language_list);
+ 
+@@ -427,7 +420,6 @@ cc_language_chooser_new (GtkWidget *parent)
+         priv->done_button = WID ("ok-button");
+         priv->filter_entry = WID ("language-filter-entry");
+         priv->language_list = WID ("language-list");
+-        priv->scrolledwindow = WID ("language-scrolledwindow");
+         priv->more_item = more_widget_new ();
+         /* We ref-sink here so we can reuse this widget multiple times */
+         priv->no_results = g_object_ref_sink (no_results_widget_new ());
+diff --git a/panels/common/language-chooser.ui b/panels/common/language-chooser.ui
+index c8228bbd9..8077e1487 100644
+--- a/panels/common/language-chooser.ui
++++ b/panels/common/language-chooser.ui
+@@ -36,7 +36,8 @@
+           <object class="GtkScrolledWindow" id="language-scrolledwindow">
+             <property name="visible">True</property>
+             <property name="hscrollbar-policy">never</property>
+-            <property name="vscrollbar-policy">never</property>
++            <property name="vscrollbar-policy">automatic</property>
++            <property name="propagate-natural-height">True</property>
+             <property name="shadow-type">in</property>
+             <property name="margin-start">6</property>
+             <property name="margin-end">6</property>
+diff --git a/panels/region/cc-format-chooser.c b/panels/region/cc-format-chooser.c
+index 4998de99d..8c451cb9c 100644
+--- a/panels/region/cc-format-chooser.c
++++ b/panels/region/cc-format-chooser.c
+@@ -41,7 +41,6 @@ typedef struct {
+         GtkListBoxRow *more_item;
+         GtkWidget *filter_entry;
+         GtkWidget *list;
+-        GtkWidget *scrolledwindow;
+         GtkWidget *date;
+         GtkWidget *time;
+         GtkWidget *date_time;
+@@ -421,18 +420,12 @@ static void
+ show_more (GtkDialog *chooser)
+ {
+         CcFormatChooserPrivate *priv = GET_PRIVATE (chooser);
+-        GtkWidget *widget;
+         gint width, height;
+ 
+         gtk_window_get_size (GTK_WINDOW (chooser), &width, &height);
+         gtk_widget_set_size_request (GTK_WIDGET (chooser), width, height);
+         gtk_window_set_resizable (GTK_WINDOW (chooser), TRUE);
+ 
+-        widget = priv->scrolledwindow;
+-        gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (widget),
+-                                        GTK_POLICY_NEVER,
+-                                        GTK_POLICY_AUTOMATIC);
+-
+         gtk_widget_show (priv->filter_entry);
+         gtk_widget_grab_focus (priv->filter_entry);
+ 
+@@ -526,7 +519,6 @@ cc_format_chooser_new (GtkWidget *parent)
+         priv->done_button = WID ("ok-button");
+         priv->filter_entry = WID ("region-filter-entry");
+         priv->list = WID ("region-list");
+-        priv->scrolledwindow = WID ("region-scrolledwindow");
+         priv->more_item = more_widget_new ();
+         /* We ref-sink here so we can reuse this widget multiple times */
+         priv->no_results = g_object_ref_sink (no_results_widget_new ());
+@@ -539,9 +531,6 @@ cc_format_chooser_new (GtkWidget *parent)
+         priv->measurement = WID ("measurement-format");
+         priv->paper = WID ("paper-format");
+ 
+-        gtk_list_box_set_adjustment (GTK_LIST_BOX (priv->list),
+-                                     gtk_scrolled_window_get_vadjustment (GTK_SCROLLED_WINDOW (priv->scrolledwindow)));
+-
+         gtk_list_box_set_sort_func (GTK_LIST_BOX (priv->list),
+                                     (GtkListBoxSortFunc)sort_regions, chooser, NULL);
+         gtk_list_box_set_filter_func (GTK_LIST_BOX (priv->list),
+diff --git a/panels/region/cc-input-chooser.c b/panels/region/cc-input-chooser.c
+index a5156ccbf..393bd2587 100644
+--- a/panels/region/cc-input-chooser.c
++++ b/panels/region/cc-input-chooser.c
+@@ -1093,7 +1093,6 @@ cc_input_chooser_new (GtkWindow    *main_window,
+   priv->no_results = g_object_ref_sink (no_results_widget_new ());
+   gtk_widget_show_all (priv->no_results);
+ 
+-  gtk_list_box_set_adjustment (GTK_LIST_BOX (priv->list), priv->adjustment);
+   gtk_list_box_set_filter_func (GTK_LIST_BOX (priv->list), list_filter, chooser, NULL);
+   gtk_list_box_set_sort_func (GTK_LIST_BOX (priv->list), (GtkListBoxSortFunc)list_sort, chooser, NULL);
+   g_signal_connect (priv->list, "row-activated", G_CALLBACK (row_activated), chooser);
+diff --git a/panels/region/format-chooser.ui b/panels/region/format-chooser.ui
+index 363dc8400..fc574a87e 100644
+--- a/panels/region/format-chooser.ui
++++ b/panels/region/format-chooser.ui
+@@ -57,7 +57,8 @@
+                     <property name="can_focus">True</property>
+                     <property name="vexpand">True</property>
+                     <property name="hscrollbar_policy">never</property>
+-                    <property name="vscrollbar_policy">never</property>
++                    <property name="vscrollbar_policy">automatic</property>
++                    <property name="propagate-natural-height">True</property>
+                     <property name="shadow_type">in</property>
+                     <child>
+                       <object class="GtkViewport" id="viewport1">
+diff --git a/panels/region/input-chooser.ui b/panels/region/input-chooser.ui
+index 41f602edd..10fcbe538 100644
+--- a/panels/region/input-chooser.ui
++++ b/panels/region/input-chooser.ui
+@@ -37,7 +37,8 @@
+           <object class="GtkScrolledWindow" id="scrolledwindow">
+             <property name="visible">True</property>
+             <property name="hscrollbar-policy">never</property>
+-            <property name="vscrollbar-policy">never</property>
++            <property name="vscrollbar-policy">automatic</property>
++            <property name="propagate-natural-height">True</property>
+             <property name="shadow-type">in</property>
+             <property name="margin-start">6</property>
+             <property name="margin-end">6</property>
