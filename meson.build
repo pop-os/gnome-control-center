@@ -1,6 +1,6 @@
 project(
   'gnome-control-center', 'c',
-  version: '3.28.0',
+  version: '3.28.1',
   license: 'GPL2+',
   meson_version: '>= 0.43.0'
 )
@@ -87,16 +87,6 @@ libgvc = subproject(
 )
 libgvc_dep = libgvc.get_variable('libgvc_dep')
 
-libgd = subproject(
-  'libgd',
-  default_options: [
-    'static=true',
-    'with-view-common=true',
-    'with-main-view=true'
-  ]
-)
-libgd_dep = libgd.get_variable('libgd_dep')
-
 goa_req_version = '>= 3.25.3'
 pulse_req_version = '>= 2.0'
 
@@ -156,7 +146,7 @@ if enable_cheese
 
   cheese_deps = [
     clutter_gtk_dep,
-    dependency('cheese'),
+    dependency('cheese', version: '>= 3.28.0'),
     dependency('cheese-gtk', version: '>= 3.5.91')
   ]
 endif
@@ -189,10 +179,6 @@ if host_is_linux
     dependency('libnma', version: '>= 1.2.0'),
     dependency('mm-glib', version: '>= 0.7')
   ]
-
-  network_manager_dep = dependency('NetworkManager')
-  nm_vpn_config_dir = join_paths(network_manager_dep.get_pkgconfig_variable('configdir'), 'VPN')
-  nm_vpn_module_dir = network_manager_dep.get_pkgconfig_variable('plugindir')
 endif
 config_h.set('BUILD_NETWORK', host_is_linux,
              description: 'Define to 1 to build the Network panel')
