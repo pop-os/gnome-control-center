@@ -1,0 +1,86 @@
+From 73c40aa3a7e48818c6af5ea1188a933c550eddcb Mon Sep 17 00:00:00 2001
+From: Benjamin Berg <bberg@redhat.com>
+Date: Wed, 25 Apr 2018 10:32:10 +0200
+Subject: [PATCH] shell: Only try to select an existing panel on startup
+
+When selecting the panel on startup based on the "last-panel" settings,
+we need to make sure that the panel exists.
+
+Note that this is a special case which does not use the internal
+set_active_panel_from_id API. Using it is currently not possible because
+the API does not report back the error and we would end up not selecting
+any panel.
+
+
+(cherry picked from commit f547d9129d6d69c0eacd24cef7cda7eca09d6106)
+---
+ shell/cc-shell-model.c | 24 ++++++++++++++++++++++++
+ shell/cc-shell-model.h |  3 +++
+ shell/cc-window.c      |  2 +-
+ 3 files changed, 28 insertions(+), 1 deletion(-)
+
+diff --git a/shell/cc-shell-model.c b/shell/cc-shell-model.c
+index 55f3e3c..2a69d6a 100644
+--- a/shell/cc-shell-model.c
++++ b/shell/cc-shell-model.c
+@@ -328,6 +328,30 @@ cc_shell_model_add_item (CcShellModel    *model,
+ }
+ 
+ gboolean
++cc_shell_model_has_panel (CcShellModel *model,
++                          const char   *id)
++{
++  GtkTreeIter iter;
++  gboolean valid;
++
++  g_assert (id);
++
++  valid = gtk_tree_model_get_iter_first (model, &iter);
++  while (valid)
++    {
++      g_autofree gchar *panel_id = NULL;
++
++      gtk_tree_model_get (model, &iter, COL_ID, &panel_id, -1);
++      if (g_str_equal (id, panel_id))
++        return TRUE;
++
++      valid = gtk_tree_model_iter_next (model, &iter);
++    }
++
++  return FALSE;
++}
++
++gboolean
+ cc_shell_model_iter_matches_search (CcShellModel *model,
+                                     GtkTreeIter  *iter,
+                                     const char   *term)
+diff --git a/shell/cc-shell-model.h b/shell/cc-shell-model.h
+index 2594071..4ba8342 100644
+--- a/shell/cc-shell-model.h
++++ b/shell/cc-shell-model.h
+@@ -98,6 +98,9 @@ void cc_shell_model_add_item (CcShellModel   *model,
+                               GAppInfo       *appinfo,
+                               const char     *id);
+ 
++gboolean cc_shell_model_has_panel (CcShellModel *model,
++                                   const char   *id);
++
+ gboolean cc_shell_model_iter_matches_search (CcShellModel *model,
+                                              GtkTreeIter  *iter,
+                                              const char   *term);
+diff --git a/shell/cc-window.c b/shell/cc-window.c
+index 557819e..9144834 100644
+--- a/shell/cc-window.c
++++ b/shell/cc-window.c
+@@ -743,7 +743,7 @@ cc_window_init (CcWindow *self)
+   /* After everything is loaded, select the last used panel, if any,
+    * or the first visible panel */
+   id = g_settings_get_string (self->settings, "last-panel");
+-  if (id != NULL && *id != '\0')
++  if (id != NULL && cc_shell_model_has_panel (self->store, id))
+     cc_panel_list_set_active_panel (CC_PANEL_LIST (self->panel_list), id);
+   else
+     cc_panel_list_activate (CC_PANEL_LIST (self->panel_list));
+--
+libgit2 0.27.0
+

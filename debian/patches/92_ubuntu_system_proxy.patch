@@ -1,0 +1,206 @@
+From f67b90b9c6287c3cd93be2b8215cdeaef68eb59e Mon Sep 17 00:00:00 2001
+From: Michael Vogt <michael.vogt@ubuntu.com>
+Date: Mon, 18 Aug 2008 18:44:27 +0200
+Subject: [PATCH] Allow setting proxy system-wide for all users
+
+---
+ panels/network/net-proxy.c      | 151 ++++++++++++++++++++++++++++++++++++++++
+ panels/network/network-proxy.ui |  15 ++++
+ 2 files changed, 166 insertions(+)
+
+diff --git a/panels/network/net-proxy.c b/panels/network/net-proxy.c
+index d1b46026a..fbc0cdbd9 100644
+--- a/panels/network/net-proxy.c
++++ b/panels/network/net-proxy.c
+@@ -25,6 +25,10 @@
+ #include <glib/gi18n.h>
+ #include <gio/gio.h>
+ 
++#include <grp.h>
++#include <unistd.h>
++#include <gdesktop-enums.h>
++
+ #include "net-proxy.h"
+ 
+ #define NET_PROXY_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), NET_TYPE_PROXY, NetProxyPrivate))
+@@ -282,6 +286,146 @@ set_ignore_hosts (const GValue       *value,
+         return g_variant_builder_end (&builder);
+ }
+ 
++
++static gboolean
++ubuntu_is_in_admin_group (int id_group)
++{
++        gid_t groups [1024];
++        int i, ngroups;
++
++        ngroups = getgroups (1024, groups);
++        if (ngroups < 0) {
++                perror ("getgroups");
++                return FALSE;
++        }
++
++        for (i = 0; i < ngroups; ++i) {
++                if (groups[i] == id_group)
++                        return TRUE;
++        }
++
++        return FALSE;
++}
++
++static gboolean
++ubuntu_is_admin ()
++{
++        struct group *admin_group;
++
++        admin_group = getgrnam ("admin");
++        if (admin_group != NULL && ubuntu_is_in_admin_group (admin_group->gr_gid))
++                return TRUE;
++
++        admin_group = getgrnam ("sudo");
++        if (admin_group != NULL && ubuntu_is_in_admin_group (admin_group->gr_gid))
++                return TRUE;
++
++        return FALSE;
++}
++
++static void
++ubuntu_reset_system_proxy (GDBusProxy *proxy, const gchar *protocol)
++{
++        GVariant *result;
++        GError *error = NULL;
++
++        result = g_dbus_proxy_call_sync (proxy, "set_proxy",
++                                         g_variant_new ("(ss)", protocol, ""),
++                                         G_DBUS_CALL_FLAGS_NONE,
++                                         -1, NULL, &error);
++        if (result)
++                g_variant_unref (result);
++        else {
++                g_warning ("Error while calling set_proxy for %s protocol: %s", protocol, error->message);
++                g_error_free (error);
++        }
++}
++
++static void
++ubuntu_set_proxy_for_protocol (GDBusProxy *proxy, const gchar *protocol, GSettings *settings)
++{
++        GVariant *result;
++        gchar *proxy_str, *host;
++        GError *error = NULL;
++        gint port;
++
++        host = g_settings_get_string (settings, "host");
++        port = g_settings_get_int (settings, "port");
++
++        if (host && *host == '\0') {
++                ubuntu_reset_system_proxy (proxy, protocol);
++        } else {
++                proxy_str = g_strdup_printf ("%s://%s:%i/", protocol, host, port);
++
++                result = g_dbus_proxy_call_sync (proxy, "set_proxy",
++                                                 g_variant_new ("(ss)", protocol, proxy_str),
++                                                 G_DBUS_CALL_FLAGS_NONE,
++                                                 -1, NULL, &error);
++                if (result)
++                        g_variant_unref (result);
++                else {
++                        g_warning ("Error while calling set_proxy for %s protocol: %s", protocol, error->message);
++                        g_error_free (error);
++                }
++                g_free (proxy_str);
++        }
++
++        g_free (host);
++        g_object_unref (settings);
++}
++
++static void
++ubuntu_on_proxy_apply_system_settings (GtkButton *button, gpointer user_data)
++{
++        GDBusConnection *bus;
++        GDBusProxy *dbus_proxy;
++        GError *error;
++        GDesktopProxyMode proxy_mode;
++        NetProxy *proxy = NET_PROXY (user_data);
++
++        error = NULL;
++        bus = g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, &error);
++        if (!bus) {
++                g_warning ("Could not retrieve system bus: %s", error->message);
++                g_error_free (error);
++
++                return;
++        }
++
++        dbus_proxy = g_dbus_proxy_new_sync (bus, 0, NULL,
++                                       "com.ubuntu.SystemService",
++                                       "/",
++                                       "com.ubuntu.SystemService",
++                                       NULL,
++                                       &error);
++        if (!dbus_proxy) {
++                g_warning ("Could not retrieve bus object: %s", error->message);
++                g_error_free (error);
++
++                return;
++        }
++
++        /* Retrieve the current settings */
++        proxy_mode = g_settings_get_enum (proxy->priv->settings, "mode");
++        switch (proxy_mode) {
++        case G_DESKTOP_PROXY_MODE_AUTO:
++        case G_DESKTOP_PROXY_MODE_NONE:
++                ubuntu_reset_system_proxy (dbus_proxy, "http");
++                ubuntu_reset_system_proxy (dbus_proxy, "https");
++                ubuntu_reset_system_proxy (dbus_proxy, "ftp");
++                ubuntu_reset_system_proxy (dbus_proxy, "socks");
++                break;
++        case G_DESKTOP_PROXY_MODE_MANUAL:
++                ubuntu_set_proxy_for_protocol (dbus_proxy, "http", g_settings_get_child (proxy->priv->settings, "http"));
++                ubuntu_set_proxy_for_protocol (dbus_proxy, "https", g_settings_get_child (proxy->priv->settings, "https"));
++                ubuntu_set_proxy_for_protocol (dbus_proxy, "ftp", g_settings_get_child (proxy->priv->settings, "ftp"));
++                ubuntu_set_proxy_for_protocol (dbus_proxy, "socks", g_settings_get_child (proxy->priv->settings, "socks"));
++                break;
++        }
++
++        g_object_unref (dbus_proxy);
++}
++
+ static void
+ net_proxy_init (NetProxy *proxy)
+ {
+@@ -304,6 +448,13 @@ net_proxy_init (NetProxy *proxy)
+                 return;
+         }
+ 
++        /* Ubuntu button for system proxy settings */
++        if (ubuntu_is_admin ()) {
++                g_signal_connect (G_OBJECT (gtk_builder_get_object (proxy->priv->builder, "system_proxy_button")), "clicked",
++                                  G_CALLBACK (ubuntu_on_proxy_apply_system_settings), proxy);
++        } else
++                gtk_widget_hide (GTK_WIDGET (gtk_builder_get_object (proxy->priv->builder, "system_proxy_button")));
++
+         proxy->priv->settings = g_settings_new ("org.gnome.system.proxy");
+         g_signal_connect (proxy->priv->settings,
+                           "changed",
+diff --git a/panels/network/network-proxy.ui b/panels/network/network-proxy.ui
+index e92ee8c62..525d04649 100644
+--- a/panels/network/network-proxy.ui
++++ b/panels/network/network-proxy.ui
+@@ -478,6 +478,15 @@
+             </child>
+           </object>
+         </child>
++        <child>
++          <object class="GtkButton" id="system_proxy_button">
++            <property name="label" translatable="yes">Apply system wide</property>
++            <property name="visible">True</property>
++            <property name="can_focus">True</property>
++            <property name="receives_default">True</property>
++            <property name="use_action_appearance">False</property>
++          </object>
++        </child>
+       </object>
+     </child>
+   </object>

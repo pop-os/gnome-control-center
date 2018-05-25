@@ -1,0 +1,72 @@
+Description: Add a new preference to lock the screen when the system suspends.
+Author: Marc Deslauriers <marc.deslauriers@canonical.com>
+Forwarded: no, likely a Ubuntu-specific preference
+Bug-Ubuntu: https://bugs.launchpad.net/bugs/938076
+
+From: Tim Lunn <tim@feathertop.org>
+Date: Mon, 3 Jun 2013 17:27:45 +1000
+Subject: [PATCH] ubuntu lock on suspend
+
+---
+ panels/privacy/cc-privacy-panel.c |  5 +++++
+ panels/privacy/privacy.ui         | 31 +++++++++++++++++++++++++++++++
+ 2 files changed, 36 insertions(+)
+
+Index: gnome-control-center-3.16.2/panels/privacy/cc-privacy-panel.c
+===================================================================
+--- gnome-control-center-3.16.2.orig/panels/privacy/cc-privacy-panel.c
++++ gnome-control-center-3.16.2/panels/privacy/cc-privacy-panel.c
+@@ -377,6 +377,11 @@ add_screen_lock (CcPrivacyPanel *self)
+   g_settings_bind (self->priv->notification_settings, "show-in-lock-screen",
+                    w, "active",
+                    G_SETTINGS_BIND_DEFAULT);
++
++  w = GTK_WIDGET (gtk_builder_get_object (self->priv->builder, "screen_lock_suspend"));
++  g_settings_bind (self->priv->lock_settings, "ubuntu-lock-on-suspend",
++                   w, "active",
++                   G_SETTINGS_BIND_DEFAULT);
+ }
+ 
+ static void
+Index: gnome-control-center-3.16.2/panels/privacy/privacy.ui
+===================================================================
+--- gnome-control-center-3.16.2.orig/panels/privacy/privacy.ui
++++ gnome-control-center-3.16.2/panels/privacy/privacy.ui
+@@ -678,6 +678,37 @@ All the information we collect is made a
+                 <property name="height">1</property>
+               </packing>
+             </child>
++            <child>
++              <object class="GtkLabel" id="label8">
++                <property name="visible">True</property>
++                <property name="can_focus">False</property>
++                <property name="xalign">0</property>
++                <property name="hexpand">True</property>
++                <property name="label" translatable="yes">Lock Screen on Suspend</property>
++                <property name="use_underline">True</property>
++                <property name="mnemonic_widget">screen_lock_suspend</property>
++              </object>
++              <packing>
++                <property name="left_attach">0</property>
++                <property name="top_attach">3</property>
++                <property name="width">1</property>
++                <property name="height">1</property>
++              </packing>
++            </child>
++            <child>
++              <object class="GtkSwitch" id="screen_lock_suspend">
++                <property name="visible">True</property>
++                <property name="can_focus">True</property>
++                <property name="halign">end</property>
++                <property name="valign">center</property>
++              </object>
++              <packing>
++                <property name="left_attach">1</property>
++                <property name="top_attach">3</property>
++                <property name="width">1</property>
++                <property name="height">1</property>
++              </packing>
++            </child>
+           </object>
+           <packing>
+             <property name="expand">False</property>

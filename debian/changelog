@@ -1,3 +1,179 @@
+gnome-control-center (1:3.28.1-0ubuntu1.18.04.1) bionic; urgency=medium
+
+  * debian/patches/0001-shell-Don-t-set-per-panel-icon.patch,
+    debian/patches/0002-shell-Icon-name-helper-returns-symbolic-name.patch,
+    debian/patches/0003-thunderbolt-new-panel-for-device-management.patch,
+    debian/patches/0004-thunderbolt-move-to-the-Devices-page.patch:
+    - backport the new upstream "thunderbolt" panel (same patches as fedora
+      is using). Also change to not use per panel icons but just the 
+      settings one, that's the right thing to do and avoid issues when
+      some panels like the thunderbolt one don't have a symbolic icon.
+      (lp: #1773378)
+  * debian/patches/git_select_panel.patch:
+    - "Only try to select an existing panel on startup", 
+       otherwise it's possible to hit a segfault (lp: #1773382)
+
+  [ Andrea Azzarone ]
+    * debian/patches/git_invalid_dereferencing.patch:
+    - Avoid dereferencing invalid pointer (lp: #1759468)
+
+ -- Sebastien Bacher <seb128@ubuntu.com>  Fri, 25 May 2018 15:51:57 +0200
+
+gnome-control-center (1:3.28.1-0ubuntu1) bionic; urgency=medium
+
+  * New upstream release (LP: #1764591)
+  * Drop Build-Depends on network-manager-dev, no longer necessary
+  * Cherry-pick 0006-build-Fix-USER_DIR_MODE-value-in-config.h.patch:
+    - Fix file permissions regression introduced in meson conversion
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Mon, 16 Apr 2018 21:46:17 -0400
+
+gnome-control-center (1:3.28.0-0ubuntu6) bionic; urgency=medium
+
+  [ Gunnar Hjalmarsson ]
+  * debian/patches/0005-region-Show-scrollbars-if-needed.patch: Apply to
+    Formats and Input Sources as well. (LP: #1758979)
+
+ -- Iain Lane <iain.lane@canonical.com>  Thu, 29 Mar 2018 17:30:50 +0100
+
+gnome-control-center (1:3.28.0-0ubuntu5) bionic; urgency=medium
+
+  * debian/patches/71_ubuntu_dock_settings.patch:
+    - add context for dock settings where left/right is translated differently
+      to mouse buttons (LP: #1719462).
+
+ -- Didier Roche <didrocks@ubuntu.com>  Wed, 28 Mar 2018 15:27:01 +0200
+
+gnome-control-center (1:3.28.0-0ubuntu4) bionic; urgency=medium
+
+  * debian/patches/ubuntu-printer-support.patch
+    - Connect to the system-config-printer-button{1,2} clicked signals
+      during init rather than in update_sensitivity.  This prevents us
+      from connecting to the signal multiple times. (LP: #1755514)
+
+ -- Ken VanDine <ken.vandine@canonical.com>  Tue, 27 Mar 2018 14:59:55 -0400
+
+gnome-control-center (1:3.28.0-0ubuntu3) bionic; urgency=medium
+
+  * debian/patches/ubuntu-white-lists.patch:
+    - remove patch, this is done in the theme now
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Thu, 22 Mar 2018 14:31:51 -0500
+
+gnome-control-center (1:3.28.0-0ubuntu2) bionic; urgency=medium
+
+  [ Gunnar Hjalmarsson ]
+   * debian/patches/52_region_language.patch:
+    - Enable scrollbar in "Language" window when needed (LP: #1727710).
+    - Hide the "Install More..." thing since we can't install languages
+      that way yet.
+
+  [ Iain Lane ]
+  * debian/patches/0005-Show-scrollbar-on-first-Language-window-if-needed.patch:
+    Split out from 52_region_language as forwarded upstream.
+
+ -- Iain Lane <iain.lane@canonical.com>  Mon, 19 Mar 2018 15:34:01 +0000
+
+gnome-control-center (1:3.28.0-0ubuntu1) bionic; urgency=medium
+
+  [ Jeremy Bicha ]
+  * New upstream release
+
+  [ Gunnar Hjalmarsson ]
+  * debian/rules:
+    - Add X-Ubuntu-Gettext-Domain to .desktop files and strip inline
+      translations (LP: #1755473).
+    - Build gnome-control-center-2.0.pot.
+  * Modify 71_ubuntu_dock_settings.patch:
+    - Drop non-existing gnome-ubuntu-panel.desktop.in from POTFILES.in.
+
+  [ Daniel van Vugt ]
+  * Add 0004-Expose-touchpad-settings-if-synaptics-is-in-use.patch
+    - Allow touchpad settings to work with xserver-xorg-input-synaptics
+      Note that this is unneeded on GNOME on Wayland where libinput is
+      always used. (LP: #1686081)
+
+  [ Andrea Azzarone ]
+  * Add auto_quit_after_goa_add.patch:
+    - Hide window after adding an online account from another app.
+      (LP: #1754651)
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Mon, 19 Mar 2018 08:37:32 -0400
+
+gnome-control-center (1:3.27.92-1ubuntu1) bionic; urgency=medium
+
+  [ Jeremy Bicha ]
+  * Sync with Debian. (LP: #1750174, LP: #1752928, LP: #1691867)
+    Remaining changes:
+    + debian/control.in:
+      - Depend on fonts-ubuntu, language-selector-gnome, and
+        whoopsie-preferences
+      - Depend on instead of Recommend network-manager-gnome and
+        system-config-printer-common
+      - Recommend ibus, unity-control-center-faces, & ubuntu-system-service
+      - Suggest instead of Recommend realmd and rygel
+      - Build-Depend on libwhoopsie-preferences-dev
+    + Split gnome-control-center-faces to a separate package so
+      that it can be used by unity-control-center
+    + Install apport hook
+    + debian/gnome-control-center-data.install:
+      - Don't install gnome-control-center.pkla since we use
+        policykit-desktop-privileges instead
+      - Install additional assets used by unity-control-center
+    * debian/ubuntu-logo-icon.png, debian/source/include-binaries,
+      debian/gnome-control-center-data.install: Include an Ubuntu logo
+    * debian/gnome-control-center-data.links:
+      - Link audio-speaker-center* to audio-speaker-mono* so that an
+        icon is shown in the test speaker panel. (LP: #1704002)
+    + debian/rules: Enable whoospie integration
+    + debian/patches:
+      - 08_lowercase_user_names.patch:
+         Disallow upper-case letters in user names for compliance with adduser
+      - 52_region_language.patch:
+         Adapt region panel to use Ubuntu style regions
+      - 64_restore_terminal_keyboard_shortcut.patch
+         Bring back terminal shortcut
+      - 70_allow_sound_above_100.patch:
+         Allow setting volume above 100% in the Ubuntu session
+      - 71_ubuntu_dock_settings.patch
+         Add Dock panel for Ubuntu session
+      - 99_add_lock-on-suspend.patch
+         Add option to lock on suspend
+      - ubuntu-gnome-version.patch:
+         Add Ubuntu branding to Details panel
+      - ubuntu-region-packagekit.patch
+         fix detection of installed language packs
+      - ubuntu-region-langpack-install.patch:
+         check for missing language packs when loading region panel to pull
+         in packs that arent included with the installer
+      - ubuntu-language-support.patch
+         Add Language Support button to Region & Language panel to
+         work around (LP: #1631750)
+      - ubuntu-printer-support.patch
+         Add Advanced Printer Settings button to work around missing printer
+         sharing feature (LP: #1718083)
+      - ubuntu-legacy-notifications.patch
+         Ubuntu ships compatibility names for .desktop that got renamed
+         upstream, those use NoDisplay but the panel doesn't respect that key,
+         skip known buggy entries for file-roller and nautilus (LP: #1716267)
+      - connectivity-switch.patch
+         Add Connectivity Checking switch to Privacy panel
+      - privacy-panel-whoopsie.patch
+         Support Ubuntu's whoopsie service in the Privacy panel
+      - ubuntu-white-lists.patch
+         Ensure lists have white background when used with Ambiance & Radiance
+  * Update connectivity-switch.patch with latest version proposed to GNOME
+  * Drop patches applied in new release:
+    - gnome-desktop327.patch
+    - monospace-wifihotspot-password.patch
+    - search-provider-locale.patch
+
+  [ Didier Roche ]
+  * Rebased 70_allow_sound_above_100.patch
+  * Dep on latest gsettings-desktop-schemas for binary
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Sat, 10 Mar 2018 15:54:34 -0500
+
 gnome-control-center (1:3.27.92-1) unstable; urgency=medium
 
   * New upstream release candidate
@@ -329,9 +505,9 @@ gnome-control-center (1:3.14.2-1) unstable; urgency=medium
 
   * New upstream translation and bugfix release.
     + Disables SSLv3 because POODLE.
-  * 30_stack_overflow.patch: patch from upstream git. Prevents stack 
+  * 30_stack_overflow.patch: patch from upstream git. Prevents stack
     overflow in sharing panel.
-  * 31_printers_border.patch: patch from upstream git. Removes unwanted 
+  * 31_printers_border.patch: patch from upstream git. Removes unwanted
     border around printer model name.
 
  -- Josselin Mouette <joss@debian.org>  Sun, 30 Nov 2014 11:08:12 +0100
@@ -789,7 +965,7 @@ gnome-control-center (1:3.0.2-3) unstable; urgency=low
 gnome-control-center (1:3.0.2-2) unstable; urgency=low
 
   [ Josselin Mouette ]
-  * Drop useless gst-alsa | gst-audiosink suggstion; suggest 
+  * Drop useless gst-alsa | gst-audiosink suggstion; suggest
     gst-pulseaudio instead.
 
   [ Michael Biebl ]
@@ -824,13 +1000,13 @@ gnome-control-center (1:3.0.2-1) experimental; urgency=low
 
   [ Josselin Mouette ]
   * Break gnome-session < 3.0 because of the sound-applet startup.
-  * 01_menu_category.patch: new patch. Put g-c-c.desktop in the Settings 
+  * 01_menu_category.patch: new patch. Put g-c-c.desktop in the Settings
     menu instead of the System one.
-  * 90_force_fallback.patch: new patch. Disable the “forced fallback 
-    mode” switch, since we already provide a xsession file for it in 
+  * 90_force_fallback.patch: new patch. Disable the “forced fallback
+    mode” switch, since we already provide a xsession file for it in
     gnome-session-fallback.
   * Break gnome-power-manager < 3.0 because of the power panel.
-  * 02_https.patch: patch from upstream git. Correctly register https 
+  * 02_https.patch: patch from upstream git. Correctly register https
     scheme together with http.
   * 03_ppd_h.patch: patch from upstream git. Include ppd.h explicitly.
   * Use dh-autoreconf to go with this patch.
@@ -1009,10 +1185,10 @@ control-center (1:2.30.1-1) unstable; urgency=low
   * New upstream release.
   * Update build-dependencies.
   * Require g-s-d 2.30.
-  * 01_fix_libslab_build.patch, 02_xrandr_assert.patch: dropped, merged 
+  * 01_fix_libslab_build.patch, 02_xrandr_assert.patch: dropped, merged
     upstream.
   * 70_relibtoolize.patch: updated for the new version.
-  * 01_ml_po.patch: new patch. Fix Malayalam translation that causes 
+  * 01_ml_po.patch: new patch. Fix Malayalam translation that causes
     GConf errors.
 
  -- Josselin Mouette <joss@debian.org>  Tue, 27 Apr 2010 20:22:38 +0200
@@ -1021,7 +1197,7 @@ control-center (1:2.28.1-2) unstable; urgency=low
 
   * Drop libxxf86misc-dev build-dependency, it is not used.
     Closes: #559694.
-  * 02_xrandr_assert.patch: stolen upstream. Fix assertion when using 
+  * 02_xrandr_assert.patch: stolen upstream. Fix assertion when using
     mirroring. Closes: #563094.
 
  -- Josselin Mouette <joss@debian.org>  Mon, 04 Jan 2010 18:26:06 +0100
@@ -1092,11 +1268,11 @@ control-center (1:2.26.0-1) unstable; urgency=low
   * Remove scrollkeeper dependency.
   * New upstream release.
   * Update build-dependencies.
-  * Remove build-deps unneeded thanks to the external libslab: librsvg, 
+  * Remove build-deps unneeded thanks to the external libslab: librsvg,
     pango.
-  * 02_build_libgnome.patch, 06_gnomedesktop_api.patch: removed, fixed 
+  * 02_build_libgnome.patch, 06_gnomedesktop_api.patch: removed, fixed
     upstream.
-  * 03_a11y_logout.patch: removed, now uses the gnome-session dbus 
+  * 03_a11y_logout.patch: removed, now uses the gnome-session dbus
     interface.
   * 05_ta_po.patch, 70_relibtoolize.patch: updated for the new version.
   * Install the autostart file in /usr/share/gnome/autostart.
@@ -1113,10 +1289,10 @@ control-center (1:2.24.0.1-5) unstable; urgency=low
 control-center (1:2.24.0.1-4) unstable; urgency=low
 
   * Set the team as primary maintainer. Closes: #523535.
-  * 02_build_libgnome.patch: new patch. Fix build failure by linking 
-    explicitly to libgnomeui for stuff incorrectly listing gnome-desktop 
+  * 02_build_libgnome.patch: new patch. Fix build failure by linking
+    explicitly to libgnomeui for stuff incorrectly listing gnome-desktop
     only as a requirement. Closes: #524308.
-  * 06_gnomedesktop_api.patch: patch to cope with the API changes in 
+  * 06_gnomedesktop_api.patch: patch to cope with the API changes in
     GnomeRR 2.26.
   * 70_relibtoolize.patch: regenerated.
   * Bump build-dependency on gnome-desktop to 2.26.
@@ -1125,8 +1301,8 @@ control-center (1:2.24.0.1-4) unstable; urgency=low
 
 control-center (1:2.24.0.1-3) unstable; urgency=low
 
-  * capplets-data.gconf-defaults: remove the keybinding settings. Now 
-    that X.org returns correctly the XF86* keys, they must be used 
+  * capplets-data.gconf-defaults: remove the keybinding settings. Now
+    that X.org returns correctly the XF86* keys, they must be used
     instead.
   * Add missing shortcuts for Home and Help.
 
@@ -1156,17 +1332,17 @@ control-center (1:2.24.0.1-2) unstable; urgency=low
 
 control-center (1:2.24.0.1-1) experimental; urgency=low
 
-  * 03_a11y_logout.patch: use gnome-panel-logout for logout when 
+  * 03_a11y_logout.patch: use gnome-panel-logout for logout when
     available.
   * New upstream release.
     + Correctly sets background without nautilus. Closes: #472902.
     + The about-me capplet correctly saves emails. Closes: #350651.
     + Resolutions are sorted in the display capplet. Closes: #509899.
   * Update build-dependencies.
-  * Build-depend on libeel 2.24 to build against the experimental 
+  * Build-depend on libeel 2.24 to build against the experimental
     version.
   * Suggest libcanberra-gtk-module instead of esound-clients.
-  * Remove obsolete files: libgnome-settings-daemon-dev.install, 
+  * Remove obsolete files: libgnome-settings-daemon-dev.install,
     gnome-control-center.dirs.
   * Switch to quilt for managing patches; build-depend on quilt.
   * 01_fix_libslab_build.patch: updated for the new version.
@@ -1178,10 +1354,10 @@ control-center (1:2.24.0.1-1) experimental; urgency=low
   * *.install: simplify a lot the installation files.
     + Remove the pkg-config files in capplets-data.
   * Remove -1 suffix in build-deps.
-  * 99_ltmain_as-needed.patch: make --as-needed work for the library as 
+  * 99_ltmain_as-needed.patch: make --as-needed work for the library as
     well.
   * debian/gnome-control-center.postinst: remove gnome-vfs conffiles.
-  * 05_ta_po.patch: new patch. Fix Tamil translation of the GConf 
+  * 05_ta_po.patch: new patch. Fix Tamil translation of the GConf
     defaults.
 
  -- Josselin Mouette <joss@debian.org>  Sun, 28 Dec 2008 12:38:50 +0100
