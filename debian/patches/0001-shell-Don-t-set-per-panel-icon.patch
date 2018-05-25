@@ -1,0 +1,47 @@
+From ec695fae92ef7470ef05211160e431f5c3486299 Mon Sep 17 00:00:00 2001
+From: Christian Kellner <christian@kellner.me>
+Date: Tue, 10 Apr 2018 09:43:22 +0200
+Subject: [PATCH 1/4] shell: Don't set per-panel icon
+
+The control center app is considered one single application with
+a single icon to represent it. Therefore get rid of per-panel
+icons.
+---
+ shell/cc-window.c | 7 +------
+ 1 file changed, 1 insertion(+), 6 deletions(-)
+
+diff --git a/shell/cc-window.c b/shell/cc-window.c
+index 557819e0c76c..33f1ddcad511 100644
+--- a/shell/cc-window.c
++++ b/shell/cc-window.c
+@@ -118,7 +118,6 @@ activate_panel (CcWindow    *self,
+                 GIcon       *gicon)
+ {
+   GtkWidget *box, *title_widget;
+-  const gchar *icon_name;
+ 
+   if (!id)
+     return FALSE;
+@@ -144,12 +143,8 @@ activate_panel (CcWindow    *self,
+   gtk_stack_set_visible_child_name (GTK_STACK (self->stack), id);
+ 
+   /* set the title of the window */
+-  icon_name = get_icon_name_from_g_icon (gicon);
+-
+   gtk_window_set_role (GTK_WINDOW (self), id);
+   gtk_header_bar_set_title (GTK_HEADER_BAR (self->panel_headerbar), name);
+-  gtk_window_set_default_icon_name (icon_name);
+-  gtk_window_set_icon_name (GTK_WINDOW (self), icon_name);
+ 
+   title_widget = cc_panel_get_title_widget (CC_PANEL (self->current_panel));
+   gtk_header_bar_set_custom_title (GTK_HEADER_BAR (self->panel_headerbar), title_widget);
+@@ -778,4 +773,4 @@ cc_window_set_search_item (CcWindow   *center,
+   gtk_search_bar_set_search_mode (GTK_SEARCH_BAR (center->search_bar), TRUE);
+   gtk_entry_set_text (GTK_ENTRY (center->search_entry), search);
+   gtk_editable_set_position (GTK_EDITABLE (center->search_entry), -1);
+-}
+\ No newline at end of file
++}
+-- 
+2.17.0
+

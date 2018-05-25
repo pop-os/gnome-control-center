@@ -1,0 +1,75 @@
+From b24a8e9aa82b64de970d8137181bf8a03b6f724a Mon Sep 17 00:00:00 2001
+From: Christian Kellner <christian@kellner.me>
+Date: Tue, 10 Apr 2018 09:47:48 +0200
+Subject: [PATCH 2/4] shell: Icon name helper returns symbolic name
+
+The helper function to get the icon name from a GIcon directly
+returns the symbolic icon now. This makes it in turn possible
+to also directly check if the theme has the icon with the symbolic
+name instead of checking of for the full colored one and then
+deriving the symbolic name from that. The latter (old) practice
+will fail if there is a symbolic icon in the theme that has no
+full color icon (like e.g. thunderbolt).
+---
+ shell/cc-window.c | 19 ++++++++++---------
+ 1 file changed, 10 insertions(+), 9 deletions(-)
+
+Index: gnome-control-center-3.28.1/shell/cc-window.c
+===================================================================
+--- gnome-control-center-3.28.1.orig/shell/cc-window.c
++++ gnome-control-center-3.28.1/shell/cc-window.c
+@@ -88,8 +88,8 @@ enum
+ };
+ 
+ /* Auxiliary methods */
+-static const gchar *
+-get_icon_name_from_g_icon (GIcon *gicon)
++static gchar *
++get_symbolic_icon_name_from_g_icon (GIcon *gicon)
+ {
+   const gchar * const *names;
+   GtkIconTheme *icon_theme;
+@@ -103,8 +103,11 @@ get_icon_name_from_g_icon (GIcon *gicon)
+ 
+   for (i = 0; names[i] != NULL; i++)
+     {
+-      if (gtk_icon_theme_has_icon (icon_theme, names[i]))
+-        return names[i];
++      g_autofree gchar *name = NULL;
++      name = g_strdup_printf ("%s-symbolic", names[i]);
++
++      if (gtk_icon_theme_has_icon (icon_theme, name))
++        return g_steal_pointer (&name);
+     }
+ 
+   return NULL;
+@@ -248,9 +251,8 @@ setup_model (CcWindow *shell)
+       g_autofree gchar *name = NULL;
+       g_autofree gchar *description = NULL;
+       g_autofree gchar *id = NULL;
+-      g_autofree gchar *symbolic_icon = NULL;
++      g_autofree gchar *icon_name = NULL;
+       g_autofree GStrv keywords = NULL;
+-      const gchar *icon_name;
+ 
+       gtk_tree_model_get (model, &iter,
+                           COL_CATEGORY, &category,
+@@ -261,8 +263,7 @@ setup_model (CcWindow *shell)
+                           COL_KEYWORDS, &keywords,
+                           -1);
+ 
+-      icon_name = get_icon_name_from_g_icon (icon);
+-      symbolic_icon = g_strdup_printf ("%s-symbolic", icon_name);
++      icon_name = get_symbolic_icon_name_from_g_icon (icon);
+ 
+       cc_panel_list_add_panel (CC_PANEL_LIST (shell->panel_list),
+                                category,
+@@ -270,7 +271,7 @@ setup_model (CcWindow *shell)
+                                name,
+                                description,
+                                keywords,
+-                               symbolic_icon);
++                               icon_name);
+ 
+       valid = gtk_tree_model_iter_next (model, &iter);
+     }
