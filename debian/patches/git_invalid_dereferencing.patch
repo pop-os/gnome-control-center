@@ -1,0 +1,61 @@
+From 7990337df76d213775ecdec18d5d3ddcf0727458 Mon Sep 17 00:00:00 2001
+From: Andrea Azzarone <azzaronea@gmail.com>
+Date: Mon, 7 May 2018 21:11:27 +0200
+Subject: [PATCH] night-ligth-dialog: Avoid dereferencing invalid pointer
+
+dialog_got_proxy_cb and dialog_got_proxy_props_cb may be called after the
+instance of CcNightLightDialog has been disposed. Make sure 'self' pointer is
+not dereferenced if not valid.
+
+Fixes: https://gitlab.gnome.org/GNOME/gnome-control-center/issues/86
+---
+ panels/display/cc-night-light-dialog.c | 17 +++++++++++++----
+ 1 file changed, 13 insertions(+), 4 deletions(-)
+
+diff --git a/panels/display/cc-night-light-dialog.c b/panels/display/cc-night-light-dialog.c
+index a2bbc683e..6f7fdb613 100644
+--- a/panels/display/cc-night-light-dialog.c
++++ b/panels/display/cc-night-light-dialog.c
+@@ -384,13 +384,18 @@ static void
+ dialog_got_proxy_cb (GObject *source_object, GAsyncResult *res, gpointer user_data)
+ {
+   CcNightLightDialog *self = (CcNightLightDialog *) user_data;
++  GDBusProxy *proxy;
+   g_autoptr(GError) error = NULL;
+-  self->proxy_color = g_dbus_proxy_new_for_bus_finish (res, &error);
+-  if (self->proxy_color == NULL)
++
++  proxy = g_dbus_proxy_new_for_bus_finish (res, &error);
++  if (proxy == NULL)
+     {
+       g_warning ("failed to connect to g-s-d: %s", error->message);
+       return;
+     }
++
++  self->proxy_color = proxy;
++
+   g_signal_connect (self->proxy_color, "g-properties-changed",
+                     G_CALLBACK (dialog_color_properties_changed_cb), self);
+   dialog_update_state (self);
+@@ -401,13 +406,17 @@ static void
+ dialog_got_proxy_props_cb (GObject *source_object, GAsyncResult *res, gpointer user_data)
+ {
+   CcNightLightDialog *self = (CcNightLightDialog *) user_data;
++  GDBusProxy *proxy;
+   g_autoptr(GError) error = NULL;
+-  self->proxy_color_props = g_dbus_proxy_new_for_bus_finish (res, &error);
+-  if (self->proxy_color_props == NULL)
++
++  proxy = g_dbus_proxy_new_for_bus_finish (res, &error);
++  if (proxy == NULL)
+     {
+       g_warning ("failed to connect to g-s-d: %s", error->message);
+       return;
+     }
++
++  self->proxy_color_props = proxy;
+ }
+ 
+ static gboolean
+-- 
+2.16.3
