@@ -1,7 +1,8 @@
 Source: gnome-control-center
 Section: gnome
 Priority: optional
-Maintainer: Debian GNOME Maintainers <pkg-gnome-maintainers@lists.alioth.debian.org>
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+XSBC-Original-Maintainer: Debian GNOME Maintainers <pkg-gnome-maintainers@lists.alioth.debian.org>
 Uploaders: @GNOME_TEAM@
 Standards-Version: 4.1.3
 Build-Depends: debhelper (>= 11.1.3),
@@ -40,6 +41,7 @@ Build-Depends: debhelper (>= 11.1.3),
                libsmbclient-dev (>= 2:3.6.12-1~),
                libupower-glib-dev (>= 0.99.0),
                libwacom-dev (>= 0.7) [linux-any],
+               libwhoopsie-preferences-dev,
                libxi-dev (>= 2:1.2),
                libx11-dev,
                libxft-dev (>= 2.1.2),
@@ -47,12 +49,12 @@ Build-Depends: debhelper (>= 11.1.3),
                libxml2-dev,
                locales,
                meson (>= 0.43.0),
-               network-manager-dev (>= 1.2.0) [linux-any],
                policykit-1,
                shared-mime-info,
                tzdata <!nocheck>
-Vcs-Svn: svn://anonscm.debian.org/pkg-gnome/desktop/unstable/gnome-control-center/
-Vcs-Browser: https://anonscm.debian.org/viewvc/pkg-gnome/desktop/unstable/gnome-control-center/
+XS-Debian-Vcs-Svn: svn://anonscm.debian.org/pkg-gnome/desktop/unstable/gnome-control-center/
+XS-Debian-Vcs-Browser: https://anonscm.debian.org/viewvc/pkg-gnome/desktop/unstable/gnome-control-center/
+Vcs-Bzr: http://code.launchpad.net/~ubuntu-desktop/gnome-control-center/ubuntu
 
 Package: gnome-control-center
 Architecture: any
@@ -67,23 +69,27 @@ Depends: ${misc:Depends},
          gnome-desktop3-data,
          gnome-settings-daemon (>= 3.25.90),
          gsettings-desktop-schemas (>= 3.27.2),
+         language-selector-gnome (>= 0.179~),
+         system-config-printer (>= 1.4),
+         whoopsie-preferences,
 Recommends: cups-pk-helper,
             gnome-online-accounts (>= 3.25.3),
             gnome-user-docs,
-            gnome-user-share,
             gkbd-capplet,
+            ibus,
             iso-codes,
             libcanberra-pulse,
             mousetweaks,
             policykit-1,
-            rygel | rygel-tracker,
-            system-config-printer-common (>= 1.4),
             network-manager-gnome (>= 0.9.8),
-            libnss-myhostname,
             cracklib-runtime,
             pulseaudio-module-bluetooth,
-            realmd
+            ubuntu-system-service,
+            gnome-control-center-faces
 Suggests: gnome-software | gnome-packagekit,
+          gnome-user-share,
+          realmd,
+          rygel | rygel-tracker,
           gstreamer1.0-pulseaudio,
           libcanberra-gtk-module,
           libcanberra-gtk3-module,
@@ -96,6 +102,16 @@ Description: utilities to configure the GNOME desktop
  .
  It also contains a front end to these applets, which can also be
  accessed with the GNOME panel or the Nautilus file manager.
+
+Package: gnome-control-center-faces
+Architecture: all
+Multi-Arch: foreign
+Depends: ${misc:Depends}
+Conflicts: unity-control-center-faces
+Replaces: unity-control-center-faces
+Provides: unity-control-center-faces
+Description: utilities to configure the GNOME desktop - faces images
+ This package contains images that can be used for user profile's icon
 
 Package: gnome-control-center-dev
 Architecture: all
