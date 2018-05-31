@@ -13,10 +13,10 @@ Origin: ubuntu
 Bug-Ubuntu: https://launchpad.net/bugs/1706524
 Bug: https://bugzilla.gnome.org/show_bug.cgi?id=710424
 
-Index: gnome-control-center-3.28.1/panels/sound/gvc-mixer-dialog.c
+Index: gnome-control-center-3.27.90/panels/sound/gvc-mixer-dialog.c
 ===================================================================
---- gnome-control-center-3.28.1.orig/panels/sound/gvc-mixer-dialog.c
-+++ gnome-control-center-3.28.1/panels/sound/gvc-mixer-dialog.c
+--- gnome-control-center-3.27.90.orig/panels/sound/gvc-mixer-dialog.c
++++ gnome-control-center-3.27.90/panels/sound/gvc-mixer-dialog.c
 @@ -44,9 +44,14 @@
  #include "gvc-speaker-test.h"
  #include "gvc-mixer-control-private.h"
@@ -215,11 +215,3 @@ Index: gnome-control-center-3.28.1/panels/sound/gvc-mixer-dialog.c
          dialog->settings = g_settings_new (KEY_SOUNDS_SCHEMA);
          g_signal_connect (dialog->settings, "changed::allow-volume-above-100-percent",
                            G_CALLBACK (allow_volume_above_100_percent_cb), dialog);
-@@ -1939,6 +2064,7 @@ gvc_mixer_dialog_finalize (GObject *obje
-         mixer_dialog = GVC_MIXER_DIALOG (object);
- 
-         g_return_if_fail (mixer_dialog != NULL);
-+        g_clear_object (&mixer_dialog->ubuntu_sound_settings);
-         g_clear_object (&mixer_dialog->settings);
-         G_OBJECT_CLASS (gvc_mixer_dialog_parent_class)->finalize (object);
- }
