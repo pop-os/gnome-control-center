@@ -51,6 +51,8 @@ enum {
 
 G_DEFINE_TYPE (NetVpn, net_vpn, NET_TYPE_OBJECT)
 
+static void nm_device_refresh_vpn_ui (NetVpn *vpn);
+
 void
 net_vpn_set_show_separator (NetVpn   *self,
                             gboolean  show_separator)
@@ -66,6 +68,7 @@ connection_changed_cb (NMConnection *connection,
                        NetVpn *vpn)
 {
         net_object_emit_changed (NET_OBJECT (vpn));
+        nm_device_refresh_vpn_ui (vpn);
 }
 
 static void
@@ -109,14 +112,14 @@ net_vpn_set_connection (NetVpn *vpn, NMConnection *connection)
         priv->connection = g_object_ref (connection);
 
         client = net_object_get_client (NET_OBJECT (vpn));
-        g_signal_connect (client,
+        g_signal_connect_object (client,
                           NM_CLIENT_CONNECTION_REMOVED,
                           G_CALLBACK (connection_removed_cb),
-                          vpn);
-        g_signal_connect (connection,
+                          vpn, 0);
+        g_signal_connect_object (connection,
                           NM_CONNECTION_CHANGED,
                           G_CALLBACK (connection_changed_cb),
-                          vpn);
+                          vpn, 0);
 
         priv->service_type = net_vpn_connection_to_type (priv->connection);
 }
@@ -381,12 +384,6 @@ net_vpn_finalize (GObject *object)
                 g_object_unref (priv->active_connection);
         }
 
-        g_signal_handlers_disconnect_by_func (priv->connection,
-                                              connection_removed_cb,
-                                              vpn);
-        g_signal_handlers_disconnect_by_func (priv->connection,
-                                              connection_changed_cb,
-                                              vpn);
         g_object_unref (priv->connection);
         g_free (priv->service_type);
 
