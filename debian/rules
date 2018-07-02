@@ -11,7 +11,23 @@ override_dh_auto_configure:
 	dh_auto_configure -- \
 		--libexecdir=/usr/lib/gnome-control-center \
 		-Dgnome_session_libexecdir=/usr/lib/gnome-session \
-		-Ddocumentation=true
+		-Ddocumentation=true \
+		-Dwhoopsie=true
 
 override_dh_missing:
 	dh_missing --fail-missing
+
+override_dh_install:
+	for f in debian/tmp/usr/share/applications/*.desktop; do \
+		sed -i -r '/[A-Z].+\[.+\]=/d' "$$f"; \
+		echo X-Ubuntu-Gettext-Domain=gnome-control-center-2.0 >> "$$f"; \
+	done
+	dh_install
+
+override_dh_translations:
+	ninja -C obj-$(DEB_HOST_GNU_TYPE) gnome-control-center-2.0-pot
+	dh_translations
+
+override_dh_clean:
+	rm -f po/gnome-control-center-2.0.pot
+	dh_clean

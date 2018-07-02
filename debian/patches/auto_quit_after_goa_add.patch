@@ -1,0 +1,29 @@
+Author: Andrea Azzarone <andrea.azzarone@canonical.com>
+Bug-Ubuntu: https://launchpad.net/bugs/1754651
+Forwarded: no
+Last-Update: 2018-03-09
+Description: hide window after adding an online account from another app
+ Some applications (e.g. gnome-calendar, gnome-todo, etc.) use gnome-control-center
+ to allow the user to add online accounts. This patch makes sure that g-c-c main window
+ is closed after the user interacted with the new-account dialog.
+
+https://gitlab.gnome.org/GNOME/gnome-control-center/issues/16
+--- gnome-control-center-3.27.92.orig/panels/online-accounts/cc-online-accounts-panel.c
++++ gnome-control-center-3.27.92/panels/online-accounts/cc-online-accounts-panel.c
+@@ -375,9 +375,14 @@ cc_goa_panel_set_property (GObject *obje
+             }
+ 
+           if (g_strcmp0 (first_arg, "add") == 0)
+-            command_add (CC_GOA_PANEL (object), parameters);
++            {
++              command_add (CC_GOA_PANEL (object), parameters);
++              g_application_quit (g_application_get_default ());
++            }
+           else if (first_arg != NULL)
+-            select_account_by_id (CC_GOA_PANEL (object), first_arg);
++            {
++              select_account_by_id (CC_GOA_PANEL (object), first_arg);
++            }
+ 
+           return;
+         }

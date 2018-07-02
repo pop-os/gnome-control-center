@@ -1,0 +1,18 @@
+Description: Debian's adduser doesn't allow uppercase letters by default
+ Save the associated string break for Ubuntu 17.04
+Author: Robert Ancell <robert.ancell@canonical.com>
+Forwarded: no
+Bug: https://launchpad.net/bugs/1600638
+
+Index: b/panels/user-accounts/um-utils.c
+===================================================================
+--- a/panels/user-accounts/um-utils.c
++++ b/panels/user-accounts/um-utils.c
+@@ -548,7 +548,6 @@ is_valid_username (const gchar *username
+                  */
+                 for (c = username; *c; c++) {
+                         if (! ((*c >= 'a' && *c <= 'z') ||
+-                               (*c >= 'A' && *c <= 'Z') ||
+                                (*c >= '0' && *c <= '9') ||
+                                (*c == '_') || (*c == '.') ||
+                                (*c == '-' && c != username)))
