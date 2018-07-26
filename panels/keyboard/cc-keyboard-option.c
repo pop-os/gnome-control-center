@@ -49,8 +49,6 @@ enum
 
 struct _CcKeyboardOption
 {
-  GObject parent_object;
-
   gchar *group;
   gchar *description;
   gchar *current_value;
@@ -58,6 +56,8 @@ struct _CcKeyboardOption
 
   const gchar * const *whitelist;
 };
+
+G_DEFINE_TYPE (CcKeyboardOption, cc_keyboard_option, G_TYPE_OBJECT);
 
 static guint keyboard_option_signals[LAST_SIGNAL] = { 0 };
 
@@ -117,10 +117,6 @@ static const gchar *xkb_option_grp_whitelist[] = {
 };
 
 static GList *objects_list = NULL;
-
-GType cc_keyboard_option_get_type (void);
-
-G_DEFINE_TYPE (CcKeyboardOption, cc_keyboard_option, G_TYPE_OBJECT);
 
 static gboolean
 strv_contains (const gchar * const *strv,
@@ -442,7 +438,7 @@ void
 cc_keyboard_option_set_selection (CcKeyboardOption *self,
                                   GtkTreeIter      *iter)
 {
-  gchar *new_value = NULL;
+  g_autofree gchar *new_value = NULL;
 
   g_return_if_fail (CC_IS_KEYBOARD_OPTION (self));
 
@@ -465,8 +461,6 @@ cc_keyboard_option_set_selection (CcKeyboardOption *self,
 
   g_settings_set_strv (input_sources_settings, XKB_OPTIONS_KEY,
                        (const gchar * const *) current_xkb_options);
-
-  g_free (new_value);
 }
 
 void

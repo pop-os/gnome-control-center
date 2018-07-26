@@ -19,17 +19,17 @@ i18n.merge_file(
 
 sources = files(
   'cc-display-panel.c',
+  'cc-display-arrangement.c',
   'cc-display-config.c',
   'cc-display-config-dbus.c',
   'cc-display-config-manager-dbus.c',
   'cc-display-config-manager.c',
   'cc-night-light-dialog.c',
   'cc-night-light-widget.c',
-  'scrollarea.c',
 )
 
 resource_data = files(
-  'display.ui',
+  'cc-night-light-dialog.ui',
   'icons/16x16/sunset.png',
   'icons/16x16/sunrise.png'
 )
@@ -58,7 +58,7 @@ cflags += [
 panels_libs += static_library(
   cappletname,
   sources: sources,
-  include_directories: top_inc,
+  include_directories: [ top_inc, common_inc ],
   dependencies: deps,
   c_args: cflags
 )

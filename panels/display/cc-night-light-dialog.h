@@ -18,20 +18,15 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef __CC_NIGHT_LIGHT_DIALOG_H__
-#define __CC_NIGHT_LIGHT_DIALOG_H__
+#pragma once
 
 #include <gtk/gtk.h>
 
 G_BEGIN_DECLS
 
 #define CC_TYPE_NIGHT_LIGHT_DIALOG (cc_night_light_dialog_get_type ())
-G_DECLARE_FINAL_TYPE (CcNightLightDialog, cc_night_light_dialog, CC, NIGHT_LIGHT_DIALOG, GObject)
+G_DECLARE_FINAL_TYPE (CcNightLightDialog, cc_night_light_dialog, CC, NIGHT_LIGHT_DIALOG, GtkDialog)
 
-CcNightLightDialog  *cc_night_light_dialog_new      (void);
-void                 cc_night_light_dialog_present  (CcNightLightDialog *self,
-                                                     GtkWindow          *parent);
+CcNightLightDialog* cc_night_light_dialog_new (void);
 
 G_END_DECLS
-
-#endif

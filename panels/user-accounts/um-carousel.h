@@ -18,8 +18,7 @@
  * Author: Felipe Borges <felipeborges@gnome.org>
  */
 
-#ifndef UM_CAROUSEL_H
-#define UM_CAROUSEL_H
+#pragma once
 
 #include <gtk/gtk.h>
 
@@ -29,7 +28,7 @@ G_BEGIN_DECLS
 
 G_DECLARE_FINAL_TYPE (UmCarouselItem, um_carousel_item, UM, CAROUSEL_ITEM, GtkRadioButton)
 
-#define UM_TYPE_CAROUSEL (um_carousel_get_type())
+#define UM_TYPE_CAROUSEL (um_carousel_get_type ())
 
 G_DECLARE_FINAL_TYPE (UmCarousel, um_carousel, UM, CAROUSEL, GtkRevealer)
 
@@ -49,5 +48,3 @@ void             um_carousel_select_item (UmCarousel     *self,
 guint            um_carousel_get_item_count (UmCarousel  *self);
 
 G_END_DECLS
-
-#endif /* UM_CAROUSEL_H */

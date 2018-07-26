@@ -33,7 +33,6 @@
 #include <cups/cups.h>
 #include <cups/ppd.h>
 
-#include "cc-editable-entry.h"
 #include "pp-details-dialog.h"
 #include "pp-ppd-selection-dialog.h"
 #include "pp-printer.h"
@@ -434,6 +433,7 @@ pp_details_dialog_new (GtkWindow            *parent,
   /* Translators: This is the title of the dialog. %s is the printer name. */
   title = g_strdup_printf (_("%s Details"), printer_name);
   gtk_label_set_label (self->dialog_title, title);
+  g_free (title);
 
   printer_url = g_strdup_printf ("<a href=\"http://%s:%d\">%s</a>", printer_address, ippPort (), printer_address);
   gtk_label_set_markup (GTK_LABEL (self->printer_address_label), printer_url);
@@ -463,18 +463,11 @@ pp_details_dialog_free (PpDetailsDialog *self)
           self->all_ppds_list = NULL;
         }
 
-      if (self->get_all_ppds_cancellable != NULL)
-        {
-          g_cancellable_cancel (self->get_all_ppds_cancellable);
-          g_clear_object (&self->get_all_ppds_cancellable);
-        }
+      g_cancellable_cancel (self->get_all_ppds_cancellable);
+      g_clear_object (&self->get_all_ppds_cancellable);
 
-      if (self->get_ppd_names_cancellable != NULL)
-        {
-          g_cancellable_cancel (self->get_ppd_names_cancellable);
-          g_object_unref (self->get_ppd_names_cancellable);
-          self->get_ppd_names_cancellable = NULL;
-        }
+      g_cancellable_cancel (self->get_ppd_names_cancellable);
+      g_clear_object (&self->get_ppd_names_cancellable);
 
       gtk_widget_destroy (GTK_WIDGET (self));
     }

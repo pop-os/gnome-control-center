@@ -18,22 +18,16 @@
  * Written by: Matthias Clasen <mclasen@redhat.com>
  */
 
-#ifndef __UM_ACCOUNT_DIALOG_H__
-#define __UM_ACCOUNT_DIALOG_H__
+#pragma once
 
 #include <act/act.h>
 #include <gtk/gtk.h>
 
 G_BEGIN_DECLS
 
-#define UM_TYPE_ACCOUNT_DIALOG      (um_account_dialog_get_type ())
-#define UM_ACCOUNT_DIALOG(obj)      (G_TYPE_CHECK_INSTANCE_CAST ((obj), UM_TYPE_ACCOUNT_DIALOG, UmAccountDialog))
-#define UM_IS_ACCOUNT_DIALOG(obj)   (G_TYPE_CHECK_INSTANCE_TYPE ((obj), UM_TYPE_ACCOUNT_DIALOG))
+#define UM_TYPE_ACCOUNT_DIALOG (um_account_dialog_get_type ())
+G_DECLARE_FINAL_TYPE (UmAccountDialog, um_account_dialog, UM, ACCOUNT_DIALOG, GtkDialog)
 
-typedef struct _UmAccountDialog UmAccountDialog;
-typedef struct _UmAccountDialogClass UmAccountDialogClass;
-
-GType            um_account_dialog_get_type (void) G_GNUC_CONST;
 UmAccountDialog *um_account_dialog_new      (void);
 void             um_account_dialog_show     (UmAccountDialog     *self,
                                              GtkWindow           *parent,
@@ -44,5 +38,3 @@ ActUser *        um_account_dialog_finish   (UmAccountDialog     *self,
                                              GAsyncResult        *result);
 
 G_END_DECLS
-
-#endif
