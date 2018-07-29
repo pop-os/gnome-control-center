@@ -28,10 +28,7 @@
 #include "gsd-common-enums.h"
 #include "gnome-settings-bus.h"
 
-typedef struct _GsdDevicePrivate GsdDevicePrivate;
-typedef struct _GsdDeviceManagerPrivate GsdDeviceManagerPrivate;
-
-struct _GsdDevicePrivate
+typedef struct
 {
 	gchar *name;
 	gchar *device_file;
@@ -40,7 +37,9 @@ struct _GsdDevicePrivate
 	GsdDeviceType type;
 	guint width;
 	guint height;
-};
+} GsdDevicePrivate;
+
+G_DEFINE_TYPE_WITH_PRIVATE (GsdDevice, gsd_device, G_TYPE_OBJECT)
 
 enum {
 	PROP_NAME = 1,
@@ -61,7 +60,6 @@ enum {
 
 static guint signals[N_SIGNALS] = { 0 };
 
-G_DEFINE_TYPE_WITH_PRIVATE (GsdDevice, gsd_device, G_TYPE_OBJECT)
 G_DEFINE_TYPE (GsdDeviceManager, gsd_device_manager, G_TYPE_OBJECT)
 
 static void
@@ -335,9 +333,8 @@ GSettings *
 gsd_device_get_settings (GsdDevice *device)
 {
 	const gchar *schema = NULL, *vendor, *product;
-	GSettings *settings;
 	GsdDeviceType type;
-	gchar *path = NULL;
+	g_autofree gchar *path = NULL;
 
 	g_return_val_if_fail (GSD_IS_DEVICE (device), NULL);
 
@@ -364,13 +361,10 @@ gsd_device_get_settings (GsdDevice *device)
 	}
 
 	if (path) {
-		settings = g_settings_new_with_path (schema, path);
-		g_free (path);
+		return g_settings_new_with_path (schema, path);
 	} else {
-		settings = g_settings_new (schema);
+		return g_settings_new (schema);
 	}
-
-	return settings;
 }
 
 const gchar *

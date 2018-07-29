@@ -29,7 +29,8 @@
 #include <NetworkManager.h>
 #endif
 
-#include "shell/list-box-helper.h"
+#include "shell/cc-object-storage.h"
+#include "list-box-helper.h"
 #include "cc-power-panel.h"
 #include "cc-power-resources.h"
 
@@ -45,20 +46,26 @@
  * #define TEST_FAKE_DEVICES
  */
 
-#define WID(b, w) (GtkWidget *) gtk_builder_get_object (b, w)
-
-CC_PANEL_REGISTER (CcPowerPanel, cc_power_panel)
-
-#define POWER_PANEL_PRIVATE(o) \
-  (G_TYPE_INSTANCE_GET_PRIVATE ((o), CC_TYPE_POWER_PANEL, CcPowerPanelPrivate))
-
-struct _CcPowerPanelPrivate
+struct _CcPowerPanel
 {
+  CcPanel        parent_instance;
+
   GSettings     *gsd_settings;
   GSettings     *session_settings;
   GCancellable  *cancellable;
-  GtkBuilder    *builder;
+  GtkWidget     *main_scroll;
+  GtkWidget     *main_box;
+  GtkWidget     *vbox_power;
+  GtkWidget     *suspend_on_battery_switch;
+  GtkWidget     *suspend_on_battery_label;
+  GtkWidget     *suspend_on_battery_delay_label;
+  GtkWidget     *suspend_on_battery_delay_combo;
+  GtkWidget     *suspend_on_ac_switch;
+  GtkWidget     *suspend_on_ac_label;
+  GtkWidget     *suspend_on_ac_delay_combo;
   GtkWidget     *automatic_suspend_dialog;
+  GtkListStore  *liststore_idle_time;
+  GtkListStore  *liststore_power_button;
   UpClient      *up_client;
   GPtrArray     *devices;
   GDBusProxy    *screen_proxy;
@@ -114,6 +121,8 @@ struct _CcPowerPanelPrivate
   GtkAdjustment *focus_adjustment;
 };
 
+CC_PANEL_REGISTER (CcPowerPanel, cc_power_panel)
+
 enum
 {
   ACTION_MODEL_TEXT,
@@ -123,38 +132,29 @@ enum
 static void
 cc_power_panel_dispose (GObject *object)
 {
-  CcPowerPanelPrivate *priv = CC_POWER_PANEL (object)->priv;
+  CcPowerPanel *self = CC_POWER_PANEL (object);
 
-  g_clear_pointer (&priv->chassis_type, g_free);
-  g_clear_object (&priv->gsd_settings);
-  g_clear_object (&priv->session_settings);
-  if (priv->cancellable != NULL)
-    {
-      g_cancellable_cancel (priv->cancellable);
-      g_object_unref (priv->cancellable);
-      priv->cancellable = NULL;
-    }
-  g_clear_pointer (&priv->automatic_suspend_dialog, gtk_widget_destroy);
-  g_clear_object (&priv->builder);
-  g_clear_object (&priv->screen_proxy);
-  g_clear_object (&priv->kbd_proxy);
-  if (priv->devices)
-    {
-      g_ptr_array_foreach (priv->devices, (GFunc) g_object_unref, NULL);
-      g_clear_pointer (&priv->devices, g_ptr_array_unref);
-    }
-  g_clear_object (&priv->up_client);
-  g_clear_object (&priv->bt_rfkill);
-  g_clear_object (&priv->bt_properties);
-  g_clear_object (&priv->iio_proxy);
+  g_clear_pointer (&self->chassis_type, g_free);
+  g_clear_object (&self->gsd_settings);
+  g_clear_object (&self->session_settings);
+  g_cancellable_cancel (self->cancellable);
+  g_clear_object (&self->cancellable);
+  g_clear_pointer (&self->automatic_suspend_dialog, gtk_widget_destroy);
+  g_clear_object (&self->screen_proxy);
+  g_clear_object (&self->kbd_proxy);
+  g_clear_pointer (&self->devices, g_ptr_array_unref);
+  g_clear_object (&self->up_client);
+  g_clear_object (&self->bt_rfkill);
+  g_clear_object (&self->bt_properties);
+  g_clear_object (&self->iio_proxy);
 #ifdef HAVE_NETWORK_MANAGER
-  g_clear_object (&priv->nm_client);
+  g_clear_object (&self->nm_client);
 #endif
-  g_clear_pointer (&priv->boxes, g_list_free);
-  g_clear_pointer (&priv->boxes_reverse, g_list_free);
-  if (priv->iio_proxy_watch_id != 0)
-    g_bus_unwatch_name (priv->iio_proxy_watch_id);
-  priv->iio_proxy_watch_id = 0;
+  g_clear_pointer (&self->boxes, g_list_free);
+  g_clear_pointer (&self->boxes_reverse, g_list_free);
+  if (self->iio_proxy_watch_id != 0)
+    g_bus_unwatch_name (self->iio_proxy_watch_id);
+  self->iio_proxy_watch_id = 0;
 
   G_OBJECT_CLASS (cc_power_panel_parent_class)->dispose (object);
 }
@@ -168,14 +168,30 @@ cc_power_panel_get_help_uri (CcPanel *panel)
 static void
 cc_power_panel_class_init (CcPowerPanelClass *klass)
 {
+  GtkWidgetClass *widget_class = GTK_WIDGET_CLASS (klass);
   GObjectClass *object_class = G_OBJECT_CLASS (klass);
   CcPanelClass *panel_class = CC_PANEL_CLASS (klass);
-
-  g_type_class_add_private (klass, sizeof (CcPowerPanelPrivate));
 
   object_class->dispose = cc_power_panel_dispose;
 
   panel_class->get_help_uri = cc_power_panel_get_help_uri;
+
+  gtk_widget_class_set_template_from_resource (widget_class, "/org/gnome/control-center/power/power.ui");
+
+  gtk_widget_class_bind_template_child (widget_class, CcPowerPanel, main_scroll);
+  gtk_widget_class_bind_template_child (widget_class, CcPowerPanel, main_box);
+  gtk_widget_class_bind_template_child (widget_class, CcPowerPanel, vbox_power);
+  gtk_widget_class_bind_template_child (widget_class, CcPowerPanel, automatic_suspend_dialog);
+  gtk_widget_class_bind_template_child (widget_class, CcPowerPanel, suspend_on_battery_switch);
+  gtk_widget_class_bind_template_child (widget_class, CcPowerPanel, suspend_on_battery_label);
+  gtk_widget_class_bind_template_child (widget_class, CcPowerPanel, suspend_on_battery_delay_label);
+  gtk_widget_class_bind_template_child (widget_class, CcPowerPanel, suspend_on_battery_delay_combo);
+  gtk_widget_class_bind_template_child (widget_class, CcPowerPanel, suspend_on_ac_switch);
+  gtk_widget_class_bind_template_child (widget_class, CcPowerPanel, suspend_on_ac_label);
+  gtk_widget_class_bind_template_child (widget_class, CcPowerPanel, suspend_on_ac_delay_combo);
+  gtk_widget_class_bind_template_child (widget_class, CcPowerPanel, automatic_suspend_dialog);
+  gtk_widget_class_bind_template_child (widget_class, CcPowerPanel, liststore_idle_time);
+  gtk_widget_class_bind_template_child (widget_class, CcPowerPanel, liststore_power_button);
 }
 
 static GtkWidget *
@@ -190,11 +206,10 @@ no_prelight_row_new (void)
 static char *
 get_chassis_type (GCancellable *cancellable)
 {
-  char *ret = NULL;
-  GError *error = NULL;
-  GVariant *inner;
-  GVariant *variant = NULL;
-  GDBusConnection *connection;
+  g_autoptr(GError) error = NULL;
+  g_autoptr(GVariant) inner = NULL;
+  g_autoptr(GVariant) variant = NULL;
+  g_autoptr(GDBusConnection) connection = NULL;
 
   connection = g_bus_get_sync (G_BUS_TYPE_SYSTEM,
                                cancellable,
@@ -203,8 +218,7 @@ get_chassis_type (GCancellable *cancellable)
     {
       if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED))
         g_warning ("system bus not available: %s", error->message);
-      g_error_free (error);
-      goto out;
+      return NULL;
     }
 
   variant = g_dbus_connection_call_sync (connection,
@@ -224,18 +238,11 @@ get_chassis_type (GCancellable *cancellable)
     {
       if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED))
         g_debug ("Failed to get property '%s': %s", "Chassis", error->message);
-      g_error_free (error);
-      goto out;
+      return NULL;
     }
 
   g_variant_get (variant, "(v)", &inner);
-  ret = g_variant_dup_string (inner, NULL);
-  g_variant_unref (inner);
-
-out:
-  g_clear_object (&connection);
-  g_clear_pointer (&variant, g_variant_unref);
-  return ret;
+  return g_variant_dup_string (inner, NULL);
 }
 
 static gchar *
@@ -289,7 +296,7 @@ get_details_string (gdouble percentage, UpDeviceState state, guint64 time)
 
   if (time > 0)
     {
-      gchar *time_string;
+      g_autofree gchar *time_string = NULL;
 
       time_string = get_timestring (time);
       switch (state)
@@ -324,7 +331,6 @@ get_details_string (gdouble percentage, UpDeviceState state, guint64 time)
             details = g_strdup_printf ("error: %s", up_device_state_to_string (state));
             break;
         }
-      g_free (time_string);
     }
   else
     {
@@ -361,14 +367,13 @@ get_details_string (gdouble percentage, UpDeviceState state, guint64 time)
 static void
 set_primary (CcPowerPanel *panel, UpDevice *device)
 {
-  CcPowerPanelPrivate *priv = panel->priv;
-  gchar *details = NULL;
+  g_autofree gchar *details = NULL;
   gdouble percentage;
   guint64 time_empty, time_full, time;
   UpDeviceState state;
   GtkWidget *box, *box2, *label;
   GtkWidget *levelbar, *row;
-  gchar *s;
+  g_autofree gchar *s = NULL;
   gdouble energy_full, energy_rate;
 
   g_object_get (device,
@@ -416,7 +421,6 @@ set_primary (CcPowerPanel *panel, UpDevice *device)
 
   s = g_strdup_printf ("%d%%", (int)(percentage + 0.5));
   label = gtk_label_new (s);
-  g_free (s);
   gtk_widget_set_halign (label, GTK_ALIGN_END);
   gtk_style_context_add_class (gtk_widget_get_style_context (label), GTK_STYLE_CLASS_DIM_LABEL);
   gtk_box_pack_start (GTK_BOX (box2), label, FALSE, TRUE, 0);
@@ -425,21 +429,18 @@ set_primary (CcPowerPanel *panel, UpDevice *device)
                                ATK_RELATION_LABELLED_BY,
                                gtk_widget_get_accessible (label));
 
-  gtk_container_add (GTK_CONTAINER (priv->battery_list), row);
-  gtk_size_group_add_widget (priv->row_sizegroup, row);
+  gtk_container_add (GTK_CONTAINER (panel->battery_list), row);
+  gtk_size_group_add_widget (panel->row_sizegroup, row);
   gtk_widget_show_all (row);
 
   g_object_set_data (G_OBJECT (row), "primary", GINT_TO_POINTER (TRUE));
 
-  g_free (details);
-
-  gtk_widget_set_visible (priv->battery_section, TRUE);
+  gtk_widget_set_visible (panel->battery_section, TRUE);
 }
 
 static void
 add_battery (CcPowerPanel *panel, UpDevice *device)
 {
-  CcPowerPanelPrivate *priv = panel->priv;
   gdouble percentage;
   UpDeviceKind kind;
   UpDeviceState state;
@@ -449,8 +450,8 @@ add_battery (CcPowerPanel *panel, UpDevice *device)
   GtkWidget *label;
   GtkWidget *levelbar;
   GtkWidget *widget;
-  gchar *s;
-  gchar *icon_name;
+  g_autofree gchar *s = NULL;
+  g_autofree gchar *icon_name = NULL;
   const gchar *name;
 
   g_object_get (device,
@@ -472,7 +473,7 @@ add_battery (CcPowerPanel *panel, UpDevice *device)
   box2 = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
   label = gtk_label_new (name);
   gtk_widget_set_halign (label, GTK_ALIGN_START);
-  gtk_size_group_add_widget (priv->battery_sizegroup, box2);
+  gtk_size_group_add_widget (panel->battery_sizegroup, box2);
   gtk_widget_set_margin_start (label, 20);
   gtk_widget_set_margin_end (label, 20);
   gtk_widget_set_margin_top (label, 6);
@@ -497,11 +498,10 @@ add_battery (CcPowerPanel *panel, UpDevice *device)
 
   s = g_strdup_printf ("%d%%", (int)percentage);
   label = gtk_label_new (s);
-  g_free (s);
   gtk_widget_set_halign (label, GTK_ALIGN_END);
   gtk_style_context_add_class (gtk_widget_get_style_context (label), GTK_STYLE_CLASS_DIM_LABEL);
   gtk_box_pack_start (GTK_BOX (box2), label, FALSE, TRUE, 0);
-  gtk_size_group_add_widget (priv->charge_sizegroup, label);
+  gtk_size_group_add_widget (panel->charge_sizegroup, label);
 
   levelbar = gtk_level_bar_new ();
   gtk_level_bar_set_value (GTK_LEVEL_BAR (levelbar), percentage / 100.0);
@@ -509,7 +509,7 @@ add_battery (CcPowerPanel *panel, UpDevice *device)
   gtk_widget_set_halign (levelbar, GTK_ALIGN_FILL);
   gtk_widget_set_valign (levelbar, GTK_ALIGN_CENTER);
   gtk_box_pack_start (GTK_BOX (box2), levelbar, TRUE, TRUE, 0);
-  gtk_size_group_add_widget (priv->level_sizegroup, levelbar);
+  gtk_size_group_add_widget (panel->level_sizegroup, levelbar);
   gtk_box_pack_start (GTK_BOX (box), box2, TRUE, TRUE, 0);
 
   atk_object_add_relationship (gtk_widget_get_accessible (levelbar),
@@ -518,13 +518,11 @@ add_battery (CcPowerPanel *panel, UpDevice *device)
 
 
   g_object_set_data (G_OBJECT (row), "kind", GINT_TO_POINTER (kind));
-  gtk_container_add (GTK_CONTAINER (priv->battery_list), row);
-  gtk_size_group_add_widget (priv->row_sizegroup, row);
+  gtk_container_add (GTK_CONTAINER (panel->battery_list), row);
+  gtk_size_group_add_widget (panel->row_sizegroup, row);
   gtk_widget_show_all (row);
 
-  g_free (icon_name);
-
-  gtk_widget_set_visible (priv->battery_section, TRUE);
+  gtk_widget_set_visible (panel->battery_section, TRUE);
 }
 
 static const char *
@@ -567,25 +565,35 @@ kind_to_description (UpDeviceKind kind)
   g_assert_not_reached ();
 }
 
+static UpDeviceLevel
+get_battery_level (UpDevice *device)
+{
+  UpDeviceLevel battery_level;
+
+  if (!g_object_class_find_property (G_OBJECT_CLASS (G_OBJECT_GET_CLASS (device)), "battery-level"))
+    return UP_DEVICE_LEVEL_NONE;
+
+  g_object_get (device, "battery-level", &battery_level, NULL);
+  return battery_level;
+}
+
 static void
 add_device (CcPowerPanel *panel, UpDevice *device)
 {
-  CcPowerPanelPrivate *priv = panel->priv;
   UpDeviceKind kind;
   UpDeviceState state;
   GtkWidget *row;
   GtkWidget *hbox;
   GtkWidget *box2;
   GtkWidget *widget;
-  GString *status;
-  GString *description;
+  g_autoptr(GString) status = NULL;
+  g_autoptr(GString) description = NULL;
   gdouble percentage;
-  gchar *name;
-  gchar *s;
+  g_autofree gchar *name = NULL;
   gboolean show_caution = FALSE;
   gboolean is_present;
+  UpDeviceLevel battery_level;
 
-  name = NULL;
   g_object_get (device,
                 "kind", &kind,
                 "percentage", &percentage,
@@ -593,12 +601,10 @@ add_device (CcPowerPanel *panel, UpDevice *device)
                 "model", &name,
                 "is-present", &is_present,
                 NULL);
+  battery_level = get_battery_level (device);
 
   if (!is_present)
-    {
-      g_free (name);
-      return;
-    }
+    return;
 
   if (kind == UP_DEVICE_KIND_UPS)
     show_caution = TRUE;
@@ -607,8 +613,6 @@ add_device (CcPowerPanel *panel, UpDevice *device)
     description = g_string_new (_(kind_to_description (kind)));
   else
     description = g_string_new (name);
-
-  g_free (name);
 
   switch (state)
     {
@@ -662,18 +666,28 @@ add_device (CcPowerPanel *panel, UpDevice *device)
   gtk_widget_set_margin_top (widget, 6);
   gtk_widget_set_margin_bottom (widget, 6);
   gtk_box_pack_start (GTK_BOX (hbox), widget, FALSE, TRUE, 0);
-  gtk_size_group_add_widget (priv->battery_sizegroup, widget);
+  gtk_size_group_add_widget (panel->battery_sizegroup, widget);
 
   box2 = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 12);
   gtk_widget_set_margin_start (box2, 20);
   gtk_widget_set_margin_end (box2, 20);
-  s = g_strdup_printf ("%d%%", (int)percentage);
-  widget = gtk_label_new (s);
-  g_free (s);
+
+  if (battery_level == UP_DEVICE_LEVEL_NONE)
+    {
+      g_autofree gchar *s = NULL;
+
+      s = g_strdup_printf ("%d%%", (int)(percentage + 0.5));
+      widget = gtk_label_new (s);
+    }
+  else
+    {
+      widget = gtk_label_new ("");
+    }
+
   gtk_widget_set_halign (widget, GTK_ALIGN_END);
   gtk_style_context_add_class (gtk_widget_get_style_context (widget), GTK_STYLE_CLASS_DIM_LABEL);
   gtk_box_pack_start (GTK_BOX (box2), widget, FALSE, TRUE, 0);
-  gtk_size_group_add_widget (priv->charge_sizegroup, widget);
+  gtk_size_group_add_widget (panel->charge_sizegroup, widget);
 
   widget = gtk_level_bar_new ();
   gtk_widget_set_halign (widget, TRUE);
@@ -681,18 +695,15 @@ add_device (CcPowerPanel *panel, UpDevice *device)
   gtk_widget_set_valign (widget, GTK_ALIGN_CENTER);
   gtk_level_bar_set_value (GTK_LEVEL_BAR (widget), percentage / 100.0f);
   gtk_box_pack_start (GTK_BOX (box2), widget, TRUE, TRUE, 0);
-  gtk_size_group_add_widget (priv->level_sizegroup, widget);
+  gtk_size_group_add_widget (panel->level_sizegroup, widget);
   gtk_box_pack_start (GTK_BOX (hbox), box2, TRUE, TRUE, 0);
   gtk_widget_show_all (row);
 
-  gtk_container_add (GTK_CONTAINER (priv->device_list), row);
-  gtk_size_group_add_widget (priv->row_sizegroup, row);
+  gtk_container_add (GTK_CONTAINER (panel->device_list), row);
+  gtk_size_group_add_widget (panel->row_sizegroup, row);
   g_object_set_data (G_OBJECT (row), "kind", GINT_TO_POINTER (kind));
 
-  g_string_free (description, TRUE);
-  g_string_free (status, TRUE);
-
-  gtk_widget_set_visible (priv->device_section, TRUE);
+  gtk_widget_set_visible (panel->device_section, TRUE);
 }
 
 static void
@@ -700,26 +711,25 @@ up_client_changed (UpClient     *client,
                    UpDevice     *device,
                    CcPowerPanel *self)
 {
-  CcPowerPanelPrivate *priv = self->priv;
-  GList *children, *l;
+  g_autoptr(GList) battery_children = NULL;
+  g_autoptr(GList) device_children = NULL;
+  GList *l;
   gint i;
   UpDeviceKind kind;
   guint n_batteries;
   gboolean on_ups;
-  UpDevice *composite;
-  gchar *s;
+  g_autoptr(UpDevice) composite = NULL;
+  g_autofree gchar *s = NULL;
 
-  children = gtk_container_get_children (GTK_CONTAINER (priv->battery_list));
-  for (l = children; l != NULL; l = l->next)
-    gtk_container_remove (GTK_CONTAINER (priv->battery_list), l->data);
-  g_list_free (children);
-  gtk_widget_hide (priv->battery_section);
+  battery_children = gtk_container_get_children (GTK_CONTAINER (self->battery_list));
+  for (l = battery_children; l != NULL; l = l->next)
+    gtk_container_remove (GTK_CONTAINER (self->battery_list), l->data);
+  gtk_widget_hide (self->battery_section);
 
-  children = gtk_container_get_children (GTK_CONTAINER (priv->device_list));
-  for (l = children; l != NULL; l = l->next)
-    gtk_container_remove (GTK_CONTAINER (priv->device_list), l->data);
-  g_list_free (children);
-  gtk_widget_hide (priv->device_section);
+  device_children = gtk_container_get_children (GTK_CONTAINER (self->device_list));
+  for (l = device_children; l != NULL; l = l->next)
+    gtk_container_remove (GTK_CONTAINER (self->device_list), l->data);
+  gtk_widget_hide (self->device_section);
 
 #ifdef TEST_FAKE_DEVICES
   {
@@ -739,7 +749,7 @@ up_client_changed (UpClient     *client,
                       "time-to-empty", 287,
                       "icon-name", "battery-full-symbolic",
                       NULL);
-        g_ptr_array_add (priv->devices, device);
+        g_ptr_array_add (self->devices, device);
         device = up_device_new ();
         g_object_set (device,
                       "kind", UP_DEVICE_KIND_KEYBOARD,
@@ -750,7 +760,7 @@ up_client_changed (UpClient     *client,
                       "time-to-empty", 250,
                       "icon-name", "battery-good-symbolic",
                       NULL);
-        g_ptr_array_add (priv->devices, device);
+        g_ptr_array_add (self->devices, device);
         device = up_device_new ();
         g_object_set (device,
                       "kind", UP_DEVICE_KIND_BATTERY,
@@ -764,14 +774,14 @@ up_client_changed (UpClient     *client,
                       "time-to-empty", 400,
                       "icon-name", "battery-full-charged-symbolic",
                       NULL);
-        g_ptr_array_add (priv->devices, device);
+        g_ptr_array_add (self->devices, device);
       }
   }
 #endif
 
   on_ups = FALSE;
   n_batteries = 0;
-  composite = up_client_get_display_device (priv->up_client);
+  composite = up_client_get_display_device (self->up_client);
   g_object_get (composite, "kind", &kind, NULL);
   if (kind == UP_DEVICE_KIND_UPS)
     {
@@ -782,9 +792,9 @@ up_client_changed (UpClient     *client,
       gboolean is_extra_battery = FALSE;
 
       /* Count the batteries */
-      for (i = 0; priv->devices != NULL && i < priv->devices->len; i++)
+      for (i = 0; self->devices != NULL && i < self->devices->len; i++)
         {
-          UpDevice *device = (UpDevice*) g_ptr_array_index (priv->devices, i);
+          UpDevice *device = (UpDevice*) g_ptr_array_index (self->devices, i);
           g_object_get (device, "kind", &kind, NULL);
           if (kind == UP_DEVICE_KIND_BATTERY)
             {
@@ -802,15 +812,14 @@ up_client_changed (UpClient     *client,
     s = g_strdup_printf ("<b>%s</b>", _("Batteries"));
   else
     s = g_strdup_printf ("<b>%s</b>", _("Battery"));
-  gtk_label_set_label (GTK_LABEL (priv->battery_heading), s);
-  g_free (s);
+  gtk_label_set_label (GTK_LABEL (self->battery_heading), s);
 
   if (!on_ups && n_batteries > 1)
     set_primary (self, composite);
 
-  for (i = 0; priv->devices != NULL && i < priv->devices->len; i++)
+  for (i = 0; self->devices != NULL && i < self->devices->len; i++)
     {
-      UpDevice *device = (UpDevice*) g_ptr_array_index (priv->devices, i);
+      UpDevice *device = (UpDevice*) g_ptr_array_index (self->devices, i);
       g_object_get (device, "kind", &kind, NULL);
       if (kind == UP_DEVICE_KIND_LINE_POWER)
         {
@@ -833,8 +842,6 @@ up_client_changed (UpClient     *client,
           add_device (self, device);
         }
     }
-
-  g_object_unref (composite);
 }
 
 static void
@@ -842,25 +849,23 @@ up_client_device_removed (UpClient     *client,
                           const char   *object_path,
                           CcPowerPanel *self)
 {
-  CcPowerPanelPrivate *priv = self->priv;
   guint i;
 
-  if (priv->devices == NULL)
+  if (self->devices == NULL)
     return;
 
-  for (i = 0; i < priv->devices->len; i++)
+  for (i = 0; i < self->devices->len; i++)
     {
-      UpDevice *device = g_ptr_array_index (priv->devices, i);
+      UpDevice *device = g_ptr_array_index (self->devices, i);
 
       if (g_strcmp0 (object_path, up_device_get_object_path (device)) == 0)
         {
-          g_object_unref (device);
-          g_ptr_array_remove_index (priv->devices, i);
+          g_ptr_array_remove_index (self->devices, i);
           break;
         }
     }
 
-  up_client_changed (self->priv->up_client, NULL, self);
+  up_client_changed (self->up_client, NULL, self);
 }
 
 static void
@@ -868,34 +873,31 @@ up_client_device_added (UpClient     *client,
                         UpDevice     *device,
                         CcPowerPanel *self)
 {
-  CcPowerPanelPrivate *priv = self->priv;
-
-  g_ptr_array_add (priv->devices, g_object_ref (device));
+  g_ptr_array_add (self->devices, g_object_ref (device));
   g_signal_connect (G_OBJECT (device), "notify",
                     G_CALLBACK (up_client_changed), self);
-  up_client_changed (priv->up_client, NULL, self);
+  up_client_changed (self->up_client, NULL, self);
 }
 
 static void
 set_brightness_cb (GObject *source_object, GAsyncResult *res, gpointer user_data)
 {
-  GError *error = NULL;
-  GVariant *result;
-  CcPowerPanelPrivate *priv = CC_POWER_PANEL (user_data)->priv;
+  CcPowerPanel *self = CC_POWER_PANEL (user_data);
+  g_autoptr(GError) error = NULL;
+  g_autoptr(GVariant) result = NULL;
   GDBusProxy *proxy = G_DBUS_PROXY (source_object);
 
   /* not setting, so pay attention to changed signals */
-  if (proxy == priv->screen_proxy)
-    priv->setting_brightness = FALSE;
-  else if (proxy == priv->kbd_proxy)
-    priv->kbd_setting_brightness = FALSE;
+  if (proxy == self->screen_proxy)
+    self->setting_brightness = FALSE;
+  else if (proxy == self->kbd_proxy)
+    self->kbd_setting_brightness = FALSE;
 
   result = g_dbus_proxy_call_finish (proxy, res, &error);
   if (result == NULL)
     {
       if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED))
         g_printerr ("Error setting brightness: %s\n", error->message);
-      g_error_free (error);
       return;
     }
 }
@@ -903,21 +905,21 @@ set_brightness_cb (GObject *source_object, GAsyncResult *res, gpointer user_data
 static void
 brightness_slider_value_changed_cb (GtkRange *range, gpointer user_data)
 {
+  CcPowerPanel *self = CC_POWER_PANEL (user_data);
   guint percentage;
-  CcPowerPanelPrivate *priv = CC_POWER_PANEL (user_data)->priv;
-  GVariant *variant;
+  g_autoptr(GVariant) variant = NULL;
   GDBusProxy *proxy;
 
   percentage = (guint) gtk_range_get_value (range);
 
-  if (range == GTK_RANGE (priv->brightness_scale))
+  if (range == GTK_RANGE (self->brightness_scale))
     {
       /* do not loop */
-      if (priv->setting_brightness)
+      if (self->setting_brightness)
         return;
 
-      priv->setting_brightness = TRUE;
-      proxy = priv->screen_proxy;
+      self->setting_brightness = TRUE;
+      proxy = self->screen_proxy;
 
       variant = g_variant_new_parsed ("('org.gnome.SettingsDaemon.Power.Screen',"
                                       "'Brightness', %v)",
@@ -926,11 +928,11 @@ brightness_slider_value_changed_cb (GtkRange *range, gpointer user_data)
   else
     {
       /* do not loop */
-      if (priv->kbd_setting_brightness)
+      if (self->kbd_setting_brightness)
         return;
 
-      priv->kbd_setting_brightness = TRUE;
-      proxy = priv->kbd_proxy;
+      self->kbd_setting_brightness = TRUE;
+      proxy = self->kbd_proxy;
 
       variant = g_variant_new_parsed ("('org.gnome.SettingsDaemon.Power.Keyboard',"
                                       "'Brightness', %v)",
@@ -940,10 +942,10 @@ brightness_slider_value_changed_cb (GtkRange *range, gpointer user_data)
   /* push this to g-s-d */
   g_dbus_proxy_call (proxy,
                      "org.freedesktop.DBus.Properties.Set",
-                     variant,
+                     g_variant_ref_sink (variant),
                      G_DBUS_CALL_FLAGS_NONE,
                      -1,
-                     priv->cancellable,
+                     self->cancellable,
                      set_brightness_cb,
                      user_data);
 }
@@ -951,12 +953,12 @@ brightness_slider_value_changed_cb (GtkRange *range, gpointer user_data)
 static void
 sync_kbd_brightness (CcPowerPanel *self)
 {
-  GVariant *result;
+  g_autoptr(GVariant) result = NULL;
   gint brightness;
   gboolean visible;
   GtkRange *range;
 
-  result = g_dbus_proxy_get_cached_property (self->priv->kbd_proxy, "Brightness");
+  result = g_dbus_proxy_get_cached_property (self->kbd_proxy, "Brightness");
   if (result)
     {
       /* set the slider */
@@ -968,29 +970,28 @@ sync_kbd_brightness (CcPowerPanel *self)
       visible = FALSE;
     }
 
-  gtk_widget_set_visible (self->priv->kbd_brightness_row, visible);
+  gtk_widget_set_visible (self->kbd_brightness_row, visible);
 
   if (visible)
     {
-      range = GTK_RANGE (self->priv->kbd_brightness_scale);
+      range = GTK_RANGE (self->kbd_brightness_scale);
       gtk_range_set_range (range, 0, 100);
       gtk_range_set_increments (range, 1, 10);
-      self->priv->kbd_setting_brightness = TRUE;
+      self->kbd_setting_brightness = TRUE;
       gtk_range_set_value (range, brightness);
-      self->priv->kbd_setting_brightness = FALSE;
-      g_variant_unref (result);
+      self->kbd_setting_brightness = FALSE;
     }
 }
 
 static void
 sync_screen_brightness (CcPowerPanel *self)
 {
-  GVariant *result;
+  g_autoptr(GVariant) result = NULL;
   gint brightness;
   gboolean visible;
   GtkRange *range;
 
-  result = g_dbus_proxy_get_cached_property (self->priv->screen_proxy, "Brightness");
+  result = g_dbus_proxy_get_cached_property (self->screen_proxy, "Brightness");
 
   if (result)
     {
@@ -1003,18 +1004,17 @@ sync_screen_brightness (CcPowerPanel *self)
       visible = FALSE;
     }
 
-  gtk_widget_set_visible (self->priv->brightness_row, visible);
-  gtk_widget_set_visible (self->priv->dim_screen_row, visible);
+  gtk_widget_set_visible (self->brightness_row, visible);
+  gtk_widget_set_visible (self->dim_screen_row, visible);
 
   if (visible)
     {
-      range = GTK_RANGE (self->priv->brightness_scale);
+      range = GTK_RANGE (self->brightness_scale);
       gtk_range_set_range (range, 0, 100);
       gtk_range_set_increments (range, 1, 10);
-      self->priv->setting_brightness = TRUE;
+      self->setting_brightness = TRUE;
       gtk_range_set_value (range, brightness);
-      self->priv->setting_brightness = FALSE;
-      g_variant_unref (result);
+      self->setting_brightness = FALSE;
     }
 }
 
@@ -1026,44 +1026,36 @@ als_switch_changed (GtkSwitch    *sw,
   gboolean enabled;
   enabled = gtk_switch_get_active (sw);
   g_debug ("Setting ALS enabled %s", enabled ? "on" : "off");
-  g_settings_set_boolean (panel->priv->gsd_settings, "ambient-enabled", enabled);
+  g_settings_set_boolean (panel->gsd_settings, "ambient-enabled", enabled);
 }
 
 static void
 als_enabled_state_changed (CcPowerPanel *self)
 {
-  CcPowerPanelPrivate *priv = self->priv;
   gboolean enabled;
   gboolean has_brightness = FALSE;
   gboolean visible = FALSE;
-  GVariant *v;
 
-  if (priv->screen_proxy != NULL)
+  if (self->screen_proxy != NULL)
     {
-      v = g_dbus_proxy_get_cached_property (priv->screen_proxy, "Brightness");
+      g_autoptr(GVariant) v = g_dbus_proxy_get_cached_property (self->screen_proxy, "Brightness");
       if (v != NULL)
-        {
-          has_brightness = g_variant_get_int32 (v) >= 0.0;
-          g_variant_unref (v);
-        }
+        has_brightness = g_variant_get_int32 (v) >= 0.0;
     }
 
-  if (priv->iio_proxy != NULL)
+  if (self->iio_proxy != NULL)
     {
-      v = g_dbus_proxy_get_cached_property (priv->iio_proxy, "HasAmbientLight");
+      g_autoptr(GVariant) v = g_dbus_proxy_get_cached_property (self->iio_proxy, "HasAmbientLight");
       if (v != NULL)
-        {
-          visible = g_variant_get_boolean (v);
-          g_variant_unref (v);
-        }
+        visible = g_variant_get_boolean (v);
     }
 
-  enabled = g_settings_get_boolean (priv->gsd_settings, "ambient-enabled");
+  enabled = g_settings_get_boolean (self->gsd_settings, "ambient-enabled");
   g_debug ("ALS enabled: %s", enabled ? "on" : "off");
-  g_signal_handlers_block_by_func (priv->als_switch, als_switch_changed, self);
-  gtk_switch_set_active (GTK_SWITCH (priv->als_switch), enabled);
-  gtk_widget_set_visible (priv->als_row, visible && has_brightness);
-  g_signal_handlers_unblock_by_func (priv->als_switch, als_switch_changed, self);
+  g_signal_handlers_block_by_func (self->als_switch, als_switch_changed, self);
+  gtk_switch_set_active (GTK_SWITCH (self->als_switch), enabled);
+  gtk_widget_set_visible (self->als_row, visible && has_brightness);
+  g_signal_handlers_unblock_by_func (self->als_switch, als_switch_changed, self);
 }
 
 static void
@@ -1079,25 +1071,24 @@ on_screen_property_change (GDBusProxy *proxy,
 static void
 got_screen_proxy_cb (GObject *source_object, GAsyncResult *res, gpointer user_data)
 {
-  GError *error = NULL;
+  g_autoptr(GError) error = NULL;
   CcPowerPanel *self;
   GDBusProxy *screen_proxy;
 
-  screen_proxy = g_dbus_proxy_new_for_bus_finish (res, &error);
+  screen_proxy = cc_object_storage_create_dbus_proxy_finish (res, &error);
   if (screen_proxy == NULL)
     {
       if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED))
         g_printerr ("Error creating screen proxy: %s\n", error->message);
-      g_error_free (error);
       return;
     }
 
   self = CC_POWER_PANEL (user_data);
-  self->priv->screen_proxy = screen_proxy;
+  self->screen_proxy = screen_proxy;
 
   /* we want to change the bar if the user presses brightness buttons */
-  g_signal_connect (screen_proxy, "g-properties-changed",
-                    G_CALLBACK (on_screen_property_change), self);
+  g_signal_connect_object (screen_proxy, "g-properties-changed",
+                           G_CALLBACK (on_screen_property_change), self, 0);
 
   sync_screen_brightness (self);
   als_enabled_state_changed (self);
@@ -1116,25 +1107,23 @@ on_kbd_property_change (GDBusProxy *proxy,
 static void
 got_kbd_proxy_cb (GObject *source_object, GAsyncResult *res, gpointer user_data)
 {
-  GError *error = NULL;
-  CcPowerPanel *self;
+  CcPowerPanel *self = CC_POWER_PANEL (user_data);
+  g_autoptr(GError) error = NULL;
   GDBusProxy *kbd_proxy;
 
-  kbd_proxy = g_dbus_proxy_new_for_bus_finish (res, &error);
+  kbd_proxy = cc_object_storage_create_dbus_proxy_finish (res, &error);
   if (kbd_proxy == NULL)
     {
       if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED))
         g_printerr ("Error creating keyboard proxy: %s\n", error->message);
-      g_error_free (error);
       return;
     }
 
-  self = CC_POWER_PANEL (user_data);
-  self->priv->kbd_proxy = kbd_proxy;
+  self->kbd_proxy = kbd_proxy;
 
   /* we want to change the bar if the user presses brightness buttons */
-  g_signal_connect (kbd_proxy, "g-properties-changed",
-                    G_CALLBACK (on_kbd_property_change), self);
+  g_signal_connect_object (kbd_proxy, "g-properties-changed",
+                           G_CALLBACK (on_kbd_property_change), self, 0);
 
   sync_kbd_brightness (self);
 }
@@ -1160,7 +1149,47 @@ combo_time_changed_cb (GtkWidget *widget, CcPowerPanel *self)
                       -1);
 
   /* set both keys */
-  g_settings_set_int (self->priv->gsd_settings, key, value);
+  g_settings_set_int (self->gsd_settings, key, value);
+}
+
+/* Copied from src/properties/bacon-video-widget-properties.c
+ * in totem */
+static char *
+time_to_string_text (gint64 msecs)
+{
+	int sec, min, hour, _time;
+	g_autofree gchar *hours;
+	g_autofree gchar *mins;
+	g_autofree gchar *secs;
+
+	_time = (int) (msecs / 1000);
+	sec = _time % 60;
+	_time = _time - sec;
+	min = (_time % (60*60)) / 60;
+	_time = _time - (min * 60);
+	hour = _time / (60*60);
+
+	hours = g_strdup_printf (g_dngettext (GETTEXT_PACKAGE, "%d hour", "%d hours", hour), hour);
+
+	mins = g_strdup_printf (g_dngettext (GETTEXT_PACKAGE, "%d minute",
+					  "%d minutes", min), min);
+
+	secs = g_strdup_printf (g_dngettext (GETTEXT_PACKAGE, "%d second",
+					  "%d seconds", sec), sec);
+
+	if (hour > 0) {
+		/* 5 hours 2 minutes 12 seconds */
+		return g_strdup_printf (C_("time", "%s %s %s"), hours, mins, secs);
+	} else if (min > 0) {
+		/* 2 minutes 12 seconds */
+		return g_strdup_printf (C_("time", "%s %s"), mins, secs);
+	} else if (sec > 0) {
+		/* 10 seconds */
+		return g_strdup (secs);
+	} else {
+		/* 0 seconds */
+		return g_strdup (_("0 seconds"));
+	}
 }
 
 static void
@@ -1184,9 +1213,24 @@ set_value_for_combo (GtkComboBox *combo_box, gint value)
       gtk_tree_model_get (model, &iter,
                           ACTION_MODEL_VALUE, &value_tmp,
                           -1);
-      if (value == value_tmp)
+      if (value_tmp == value)
         {
           gtk_combo_box_set_active_iter (combo_box, &iter);
+          return;
+        }
+      else if (value_tmp > value)
+        {
+          GtkTreeIter new;
+          g_autofree gchar *text = NULL;
+
+          /* This is an unlisted value, add it to the drop-down */
+          gtk_list_store_insert_before (GTK_LIST_STORE (model), &new, &iter);
+          text = time_to_string_text (value * 1000);
+          gtk_list_store_set (GTK_LIST_STORE (model), &new,
+                              ACTION_MODEL_TEXT, text,
+                              ACTION_MODEL_VALUE, value,
+                              -1);
+          gtk_combo_box_set_active_iter (combo_box, &new);
           return;
         }
       last = iter;
@@ -1202,7 +1246,7 @@ set_ac_battery_ui_mode (CcPowerPanel *self)
   GPtrArray *devices;
   guint i;
 
-  devices = up_client_get_devices (self->priv->up_client);
+  devices = up_client_get_devices (self->up_client);
   g_debug ("got %d devices from upower\n", devices ? devices->len : 0);
 
   for (i = 0; devices != NULL && i < devices->len; i++)
@@ -1230,15 +1274,15 @@ set_ac_battery_ui_mode (CcPowerPanel *self)
   has_batteries = FALSE;
 #endif
 
-  self->priv->has_batteries = has_batteries;
+  self->has_batteries = has_batteries;
 
   if (!has_batteries)
     {
-      gtk_widget_hide (WID (self->priv->builder, "suspend_on_battery_switch"));
-      gtk_widget_hide (WID (self->priv->builder, "suspend_on_battery_label"));
-      gtk_widget_hide (WID (self->priv->builder, "suspend_on_battery_delay_label"));
-      gtk_widget_hide (WID (self->priv->builder, "suspend_on_battery_delay_combo"));
-      gtk_label_set_label (GTK_LABEL (WID (self->priv->builder, "suspend_on_ac_label")),
+      gtk_widget_hide (self->suspend_on_battery_switch);
+      gtk_widget_hide (self->suspend_on_battery_label);
+      gtk_widget_hide (self->suspend_on_battery_delay_label);
+      gtk_widget_hide (self->suspend_on_battery_delay_combo);
+      gtk_label_set_label (GTK_LABEL (self->suspend_on_ac_label),
                            _("When _idle"));
     }
 }
@@ -1247,13 +1291,13 @@ static void
 bt_set_powered (CcPowerPanel *self,
                 gboolean      powered)
 {
-  g_dbus_proxy_call (self->priv->bt_properties,
+  g_dbus_proxy_call (self->bt_properties,
 		     "Set",
 		     g_variant_new_parsed ("('org.gnome.SettingsDaemon.Rfkill', 'BluetoothAirplaneMode', %v)",
 					   g_variant_new_boolean (!powered)),
 		     G_DBUS_CALL_FLAGS_NONE,
 		     -1,
-		     self->priv->cancellable,
+		     self->cancellable,
 		     NULL, NULL);
 }
 
@@ -1274,32 +1318,30 @@ bt_switch_changed (GtkSwitch    *sw,
 static void
 bt_powered_state_changed (CcPowerPanel *panel)
 {
-  CcPowerPanelPrivate *priv = panel->priv;
   gboolean powered, has_airplane_mode;
-  GVariant *v;
+  g_autoptr(GVariant) v1 = NULL;
+  g_autoptr(GVariant) v2 = NULL;
 
-  v = g_dbus_proxy_get_cached_property (priv->bt_rfkill, "BluetoothHasAirplaneMode");
-  has_airplane_mode = g_variant_get_boolean (v);
-  g_variant_unref (v);
+  v1 = g_dbus_proxy_get_cached_property (panel->bt_rfkill, "BluetoothHasAirplaneMode");
+  has_airplane_mode = g_variant_get_boolean (v1);
 
   if (!has_airplane_mode)
     {
       g_debug ("BluetoothHasAirplaneMode is false, hiding Bluetooth power row");
-      gtk_widget_hide (priv->bt_row);
+      gtk_widget_hide (panel->bt_row);
       return;
     }
 
-  v = g_dbus_proxy_get_cached_property (priv->bt_rfkill, "BluetoothAirplaneMode");
-  powered = !g_variant_get_boolean (v);
-  g_variant_unref (v);
+  v2 = g_dbus_proxy_get_cached_property (panel->bt_rfkill, "BluetoothAirplaneMode");
+  powered = !g_variant_get_boolean (v2);
 
   g_debug ("bt powered state changed to %s", powered ? "on" : "off");
 
-  gtk_widget_show (priv->bt_row);
+  gtk_widget_show (panel->bt_row);
 
-  g_signal_handlers_block_by_func (priv->bt_switch, bt_switch_changed, panel);
-  gtk_switch_set_active (GTK_SWITCH (priv->bt_switch), powered);
-  g_signal_handlers_unblock_by_func (priv->bt_switch, bt_switch_changed, panel);
+  g_signal_handlers_block_by_func (panel->bt_switch, bt_switch_changed, panel);
+  gtk_switch_set_active (GTK_SWITCH (panel->bt_switch), powered);
+  g_signal_handlers_unblock_by_func (panel->bt_switch, bt_switch_changed, panel);
 }
 
 #ifdef HAVE_NETWORK_MANAGER
@@ -1341,7 +1383,7 @@ wifi_switch_changed (GtkSwitch    *sw,
 
   enabled = gtk_switch_get_active (sw);
   g_debug ("Setting wifi %s", enabled ? "enabled" : "disabled");
-  nm_client_wireless_set_enabled (panel->priv->nm_client, enabled);
+  nm_client_wireless_set_enabled (panel->nm_client, enabled);
 }
 
 static gboolean
@@ -1383,9 +1425,9 @@ mobile_switch_changed (GtkSwitch    *sw,
 
   enabled = gtk_switch_get_active (sw);
   g_debug ("Setting wwan %s", enabled ? "enabled" : "disabled");
-  nm_client_wwan_set_enabled (panel->priv->nm_client, enabled);
+  nm_client_wwan_set_enabled (panel->nm_client, enabled);
   g_debug ("Setting wimax %s", enabled ? "enabled" : "disabled");
-  nm_client_wimax_set_enabled (panel->priv->nm_client, enabled);
+  nm_client_wimax_set_enabled (panel->nm_client, enabled);
 }
 
 static void
@@ -1393,12 +1435,11 @@ nm_client_state_changed (NMClient     *client,
                          GParamSpec   *pspec,
                          CcPowerPanel *self)
 {
-  CcPowerPanelPrivate *priv = self->priv;
   gboolean visible;
   gboolean active;
   gboolean sensitive;
 
-  visible = has_wifi_devices (priv->nm_client);
+  visible = has_wifi_devices (self->nm_client);
   active = nm_client_networking_get_enabled (client) &&
            nm_client_wireless_get_enabled (client) &&
            nm_client_wireless_hardware_get_enabled (client);
@@ -1407,13 +1448,13 @@ nm_client_state_changed (NMClient     *client,
 
   g_debug ("wifi state changed to %s", active ? "enabled" : "disabled");
 
-  g_signal_handlers_block_by_func (priv->wifi_switch, wifi_switch_changed, self);
-  gtk_switch_set_active (GTK_SWITCH (priv->wifi_switch), active);
-  gtk_widget_set_sensitive (priv->wifi_switch, sensitive);
-  gtk_widget_set_visible (priv->wifi_row, visible);
-  g_signal_handlers_unblock_by_func (priv->wifi_switch, wifi_switch_changed, self);
+  g_signal_handlers_block_by_func (self->wifi_switch, wifi_switch_changed, self);
+  gtk_switch_set_active (GTK_SWITCH (self->wifi_switch), active);
+  gtk_widget_set_sensitive (self->wifi_switch, sensitive);
+  gtk_widget_set_visible (self->wifi_row, visible);
+  g_signal_handlers_unblock_by_func (self->wifi_switch, wifi_switch_changed, self);
 
-  visible = has_mobile_devices (priv->nm_client);
+  visible = has_mobile_devices (self->nm_client);
   active = nm_client_networking_get_enabled (client) &&
            nm_client_wimax_get_enabled (client) &&
            nm_client_wireless_hardware_get_enabled (client);
@@ -1422,11 +1463,11 @@ nm_client_state_changed (NMClient     *client,
 
   g_debug ("mobile state changed to %s", active ? "enabled" : "disabled");
 
-  g_signal_handlers_block_by_func (priv->mobile_switch, mobile_switch_changed, self);
-  gtk_switch_set_active (GTK_SWITCH (priv->mobile_switch), active);
-  gtk_widget_set_sensitive (priv->mobile_switch, sensitive);
-  gtk_widget_set_visible (priv->mobile_row, visible);
-  g_signal_handlers_unblock_by_func (priv->mobile_switch, mobile_switch_changed, self);
+  g_signal_handlers_block_by_func (self->mobile_switch, mobile_switch_changed, self);
+  gtk_switch_set_active (GTK_SWITCH (self->mobile_switch), active);
+  gtk_widget_set_sensitive (self->mobile_switch, sensitive);
+  gtk_widget_set_visible (self->mobile_row, visible);
+  g_signal_handlers_unblock_by_func (self->mobile_switch, mobile_switch_changed, self);
 }
 
 static void
@@ -1434,10 +1475,25 @@ nm_device_changed (NMClient     *client,
                    NMDevice     *device,
                    CcPowerPanel *self)
 {
-  CcPowerPanelPrivate *priv = self->priv;
+  gtk_widget_set_visible (self->wifi_row, has_wifi_devices (self->nm_client));
+  gtk_widget_set_visible (self->mobile_row, has_mobile_devices (self->nm_client));
+}
 
-  gtk_widget_set_visible (priv->wifi_row, has_wifi_devices (priv->nm_client));
-  gtk_widget_set_visible (priv->mobile_row, has_mobile_devices (priv->nm_client));
+static void
+setup_nm_client (CcPowerPanel *self,
+                 NMClient     *client)
+{
+  self->nm_client = client;
+
+  g_signal_connect_object (self->nm_client, "notify",
+                           G_CALLBACK (nm_client_state_changed), self, 0);
+  g_signal_connect_object (self->nm_client, "device-added",
+                           G_CALLBACK (nm_device_changed), self, 0);
+  g_signal_connect_object (self->nm_client, "device-removed",
+                           G_CALLBACK (nm_device_changed), self, 0);
+
+  nm_client_state_changed (self->nm_client, NULL, self);
+  nm_device_changed (self->nm_client, NULL, self);
 }
 
 static void
@@ -1446,9 +1502,8 @@ nm_client_ready_cb (GObject *source_object,
                     gpointer user_data)
 {
   CcPowerPanel *self;
-  CcPowerPanelPrivate *priv;
   NMClient *client;
-  GError *error = NULL;
+  g_autoptr(GError) error = NULL;
 
   client = nm_client_new_finish (res, &error);
   if (!client)
@@ -1459,26 +1514,19 @@ nm_client_ready_cb (GObject *source_object,
                      error->message);
 
           self = user_data;
-          gtk_widget_set_sensitive (self->priv->wifi_row, FALSE);
-          gtk_widget_set_sensitive (self->priv->mobile_row, FALSE);
+          gtk_widget_set_sensitive (self->wifi_row, FALSE);
+          gtk_widget_set_sensitive (self->mobile_row, FALSE);
         }
-      g_error_free (error);
       return;
     }
 
   self = user_data;
-  priv = self->priv;
-  priv->nm_client = client;
 
-  g_signal_connect (priv->nm_client, "notify",
-                    G_CALLBACK (nm_client_state_changed), self);
-  g_signal_connect (priv->nm_client, "device-added",
-                    G_CALLBACK (nm_device_changed), self);
-  g_signal_connect (priv->nm_client, "device-removed",
-                    G_CALLBACK (nm_device_changed), self);
+  /* Setup the client */
+  setup_nm_client (self, client);
 
-  nm_client_state_changed (priv->nm_client, NULL, self);
-  nm_device_changed (priv->nm_client, NULL, self);
+  /* Store the object in the cache too */
+  cc_object_storage_add_object (CC_OBJECT_NMCLIENT, client);
 }
 
 #endif
@@ -1486,16 +1534,15 @@ nm_client_ready_cb (GObject *source_object,
 static gboolean
 keynav_failed (GtkWidget *list, GtkDirectionType direction, CcPowerPanel *self)
 {
-  CcPowerPanelPrivate *priv = self->priv;
   GtkWidget *next_list = NULL;
   GList *item, *boxes_list;
   gdouble value, lower, upper, page;
 
   /* Find the list in the list of GtkListBoxes */
   if (direction == GTK_DIR_DOWN)
-    boxes_list = priv->boxes;
+    boxes_list = self->boxes;
   else
-    boxes_list = priv->boxes_reverse;
+    boxes_list = self->boxes_reverse;
 
   item = g_list_find (boxes_list, list);
   g_assert (item);
@@ -1524,19 +1571,19 @@ keynav_failed (GtkWidget *list, GtkDirectionType direction, CcPowerPanel *self)
       return TRUE;
     }
 
-  value = gtk_adjustment_get_value (priv->focus_adjustment);
-  lower = gtk_adjustment_get_lower (priv->focus_adjustment);
-  upper = gtk_adjustment_get_upper (priv->focus_adjustment);
-  page  = gtk_adjustment_get_page_size (priv->focus_adjustment);
+  value = gtk_adjustment_get_value (self->focus_adjustment);
+  lower = gtk_adjustment_get_lower (self->focus_adjustment);
+  upper = gtk_adjustment_get_upper (self->focus_adjustment);
+  page  = gtk_adjustment_get_page_size (self->focus_adjustment);
 
   if (direction == GTK_DIR_UP && value > lower)
     {
-      gtk_adjustment_set_value (priv->focus_adjustment, lower);
+      gtk_adjustment_set_value (self->focus_adjustment, lower);
       return TRUE;
     }
   else if (direction == GTK_DIR_DOWN && value < upper - page)
     {
-      gtk_adjustment_set_value (priv->focus_adjustment, upper - page);
+      gtk_adjustment_set_value (self->focus_adjustment, upper - page);
       return TRUE;
     }
 
@@ -1563,7 +1610,7 @@ combo_idle_delay_changed_cb (GtkWidget *widget, CcPowerPanel *self)
                       -1);
 
   /* set both keys */
-  g_settings_set_uint (self->priv->session_settings, "idle-delay", value);
+  g_settings_set_uint (self->session_settings, "idle-delay", value);
 }
 
 static void
@@ -1586,7 +1633,7 @@ combo_power_button_changed_cb (GtkWidget *widget, CcPowerPanel *self)
                       -1);
 
   /* set both keys */
-  g_settings_set_enum (self->priv->gsd_settings, "power-button-action", value);
+  g_settings_set_enum (self->gsd_settings, "power-button-action", value);
 }
 
 static GtkWidget *
@@ -1594,7 +1641,6 @@ add_brightness_row (CcPowerPanel  *self,
 		    const char    *text,
 		    GtkWidget    **brightness_scale)
 {
-  CcPowerPanelPrivate *priv = self->priv;
   GtkWidget *row, *box, *label, *box2, *w, *scale;
 
   row = no_prelight_row_new ();
@@ -1609,11 +1655,11 @@ add_brightness_row (CcPowerPanel  *self,
   gtk_widget_set_margin_top (label, 6);
   gtk_widget_set_margin_bottom (label, 6);
   gtk_box_pack_start (GTK_BOX (box), label, FALSE, TRUE, 0);
-  gtk_size_group_add_widget (priv->battery_sizegroup, label);
+  gtk_size_group_add_widget (self->battery_sizegroup, label);
   box2 = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 12);
   w = gtk_label_new ("");
   gtk_box_pack_start (GTK_BOX (box2), w, FALSE, TRUE, 0);
-  gtk_size_group_add_widget (priv->charge_sizegroup, w);
+  gtk_size_group_add_widget (self->charge_sizegroup, w);
 
   *brightness_scale = scale = gtk_scale_new_with_range (GTK_ORIENTATION_HORIZONTAL, 0, 100, 1);
   gtk_label_set_mnemonic_widget (GTK_LABEL (label), scale);
@@ -1621,7 +1667,7 @@ add_brightness_row (CcPowerPanel  *self,
   gtk_widget_set_margin_start (scale, 20);
   gtk_widget_set_margin_end (scale, 20);
   gtk_box_pack_start (GTK_BOX (box2), scale, TRUE, TRUE, 0);
-  gtk_size_group_add_widget (priv->level_sizegroup, scale);
+  gtk_size_group_add_widget (self->level_sizegroup, scale);
   g_signal_connect (scale, "value-changed",
                     G_CALLBACK (brightness_slider_value_changed_cb), self);
 
@@ -1645,25 +1691,23 @@ iio_proxy_appeared_cb (GDBusConnection *connection,
                        gpointer user_data)
 {
   CcPowerPanel *self = CC_POWER_PANEL (user_data);
-  GError *error = NULL;
+  g_autoptr(GError) error = NULL;
 
-  self->priv->iio_proxy =
-    g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
-                                   G_DBUS_PROXY_FLAGS_NONE,
-                                   NULL,
-                                   "net.hadess.SensorProxy",
-                                   "/net/hadess/SensorProxy",
-                                   "net.hadess.SensorProxy",
-                                   NULL, &error);
+  self->iio_proxy =
+    cc_object_storage_create_dbus_proxy_sync (G_BUS_TYPE_SYSTEM,
+                                              G_DBUS_PROXY_FLAGS_NONE,
+                                              "net.hadess.SensorProxy",
+                                              "/net/hadess/SensorProxy",
+                                              "net.hadess.SensorProxy",
+                                              NULL, &error);
   if (error != NULL)
     {
       if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED))
         g_warning ("Could not create IIO sensor proxy: %s", error->message);
-      g_error_free (error);
       return;
     }
 
-  g_signal_connect_swapped (G_OBJECT (self->priv->iio_proxy), "g-properties-changed",
+  g_signal_connect_swapped (G_OBJECT (self->iio_proxy), "g-properties-changed",
                             G_CALLBACK (als_enabled_state_changed), self);
   als_enabled_state_changed (self);
 }
@@ -1674,36 +1718,31 @@ iio_proxy_vanished_cb (GDBusConnection *connection,
                        gpointer user_data)
 {
   CcPowerPanel *self = CC_POWER_PANEL (user_data);
-  g_clear_object (&self->priv->iio_proxy);
+  g_clear_object (&self->iio_proxy);
   als_enabled_state_changed (self);
 }
 
 static void
 add_power_saving_section (CcPowerPanel *self)
 {
-  CcPowerPanelPrivate *priv = self->priv;
-  GtkWidget *vbox;
   GtkWidget *widget, *box, *label, *row;
   GtkWidget *combo;
   GtkWidget *box2;
   GtkWidget *sw;
   GtkWidget *w;
   int value;
-  gchar *s;
-
-  vbox = WID (priv->builder, "vbox_power");
+  g_autofree gchar *s = NULL;
 
   s = g_strdup_printf ("<b>%s</b>", _("Power Saving"));
   label = gtk_label_new (s);
-  g_free (s);
   gtk_label_set_use_markup (GTK_LABEL (label), TRUE);
   gtk_widget_set_halign (label, GTK_ALIGN_START);
   gtk_widget_set_margin_bottom (label, 12);
-  gtk_box_pack_start (GTK_BOX (vbox), label, FALSE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (self->vbox_power), label, FALSE, TRUE, 0);
   gtk_widget_show (label);
 
   widget = gtk_list_box_new ();
-  priv->boxes_reverse = g_list_prepend (priv->boxes_reverse, widget);
+  self->boxes_reverse = g_list_prepend (self->boxes_reverse, widget);
   g_signal_connect (widget, "keynav-failed", G_CALLBACK (keynav_failed), self);
   gtk_list_box_set_selection_mode (GTK_LIST_BOX (widget), GTK_SELECTION_NONE);
   gtk_list_box_set_header_func (GTK_LIST_BOX (widget),
@@ -1722,25 +1761,25 @@ add_power_saving_section (CcPowerPanel *self)
   gtk_widget_set_margin_bottom (box, 32);
   gtk_widget_show (box);
   gtk_container_add (GTK_CONTAINER (box), widget);
-  gtk_box_pack_start (GTK_BOX (vbox), box, FALSE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (self->vbox_power), box, FALSE, TRUE, 0);
 
-  row = add_brightness_row (self, _("_Screen brightness"), &priv->brightness_scale);
-  priv->brightness_row = row;
+  row = add_brightness_row (self, _("_Screen brightness"), &self->brightness_scale);
+  self->brightness_row = row;
 
   gtk_container_add (GTK_CONTAINER (widget), row);
-  gtk_size_group_add_widget (priv->row_sizegroup, row);
+  gtk_size_group_add_widget (self->row_sizegroup, row);
 
   /* ambient light sensor */
-  priv->iio_proxy_watch_id =
+  self->iio_proxy_watch_id =
     g_bus_watch_name (G_BUS_TYPE_SYSTEM,
                       "net.hadess.SensorProxy",
                       G_BUS_NAME_WATCHER_FLAGS_NONE,
                       iio_proxy_appeared_cb,
                       iio_proxy_vanished_cb,
                       self, NULL);
-  g_signal_connect (priv->gsd_settings, "changed",
+  g_signal_connect (self->gsd_settings, "changed",
                     G_CALLBACK (als_enabled_setting_changed), self);
-  priv->als_row = row = no_prelight_row_new ();
+  self->als_row = row = no_prelight_row_new ();
   box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 50);
   gtk_container_add (GTK_CONTAINER (row), box);
   label = gtk_label_new (_("Automatic brightness"));
@@ -1752,24 +1791,24 @@ add_power_saving_section (CcPowerPanel *self)
   gtk_widget_set_margin_bottom (label, 6);
   gtk_box_pack_start (GTK_BOX (box), label, TRUE, TRUE, 0);
 
-  priv->als_switch = sw = gtk_switch_new ();
-  gtk_widget_set_margin_start (sw, 20);
-  gtk_widget_set_margin_end (sw, 20);
-  gtk_widget_set_valign (sw, GTK_ALIGN_CENTER);
-  gtk_box_pack_start (GTK_BOX (box), sw, FALSE, TRUE, 0);
-  gtk_label_set_mnemonic_widget (GTK_LABEL (label), sw);
+  self->als_switch = gtk_switch_new ();
+  gtk_widget_set_margin_start (self->als_switch, 20);
+  gtk_widget_set_margin_end (self->als_switch, 20);
+  gtk_widget_set_valign (self->als_switch, GTK_ALIGN_CENTER);
+  gtk_box_pack_start (GTK_BOX (box), self->als_switch, FALSE, TRUE, 0);
+  gtk_label_set_mnemonic_widget (GTK_LABEL (label), self->als_switch);
   gtk_container_add (GTK_CONTAINER (widget), row);
-  gtk_size_group_add_widget (priv->row_sizegroup, row);
-  g_signal_connect (G_OBJECT (priv->als_switch), "notify::active",
+  gtk_size_group_add_widget (self->row_sizegroup, row);
+  g_signal_connect (G_OBJECT (self->als_switch), "notify::active",
                     G_CALLBACK (als_switch_changed), self);
 
-  row = add_brightness_row (self, _("_Keyboard brightness"), &priv->kbd_brightness_scale);
-  priv->kbd_brightness_row = row;
+  row = add_brightness_row (self, _("_Keyboard brightness"), &self->kbd_brightness_scale);
+  self->kbd_brightness_row = row;
 
   gtk_container_add (GTK_CONTAINER (widget), row);
-  gtk_size_group_add_widget (priv->row_sizegroup, row);
+  gtk_size_group_add_widget (self->row_sizegroup, row);
 
-  priv->dim_screen_row = row = no_prelight_row_new ();
+  self->dim_screen_row = row = no_prelight_row_new ();
   box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 50);
   gtk_container_add (GTK_CONTAINER (row), box);
 
@@ -1783,7 +1822,7 @@ add_power_saving_section (CcPowerPanel *self)
   gtk_box_pack_start (GTK_BOX (box), label, TRUE, TRUE, 0);
 
   sw = gtk_switch_new ();
-  g_settings_bind (priv->gsd_settings, "idle-dim",
+  g_settings_bind (self->gsd_settings, "idle-dim",
                    sw, "active",
                    G_SETTINGS_BIND_DEFAULT);
   gtk_widget_set_margin_start (sw, 20);
@@ -1792,7 +1831,7 @@ add_power_saving_section (CcPowerPanel *self)
   gtk_box_pack_start (GTK_BOX (box), sw, FALSE, TRUE, 0);
   gtk_label_set_mnemonic_widget (GTK_LABEL (label), sw);
   gtk_container_add (GTK_CONTAINER (widget), row);
-  gtk_size_group_add_widget (priv->row_sizegroup, row);
+  gtk_size_group_add_widget (self->row_sizegroup, row);
 
   row = no_prelight_row_new ();
   box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 50);
@@ -1810,8 +1849,8 @@ add_power_saving_section (CcPowerPanel *self)
   combo = gtk_combo_box_text_new ();
   gtk_combo_box_set_entry_text_column (GTK_COMBO_BOX (combo), 0);
   gtk_combo_box_set_model (GTK_COMBO_BOX (combo),
-                           GTK_TREE_MODEL (gtk_builder_get_object (priv->builder, "liststore_idle_time")));
-  value = g_settings_get_uint (priv->session_settings, "idle-delay");
+                           GTK_TREE_MODEL (self->liststore_idle_time));
+  value = g_settings_get_uint (self->session_settings, "idle-delay");
   set_value_for_combo (GTK_COMBO_BOX (combo), value);
   g_signal_connect (combo, "changed",
                     G_CALLBACK (combo_idle_delay_changed_cb), self);
@@ -1821,10 +1860,10 @@ add_power_saving_section (CcPowerPanel *self)
   gtk_box_pack_start (GTK_BOX (box), combo, FALSE, TRUE, 0);
   gtk_label_set_mnemonic_widget (GTK_LABEL (label), combo);
   gtk_container_add (GTK_CONTAINER (widget), row);
-  gtk_size_group_add_widget (priv->row_sizegroup, row);
+  gtk_size_group_add_widget (self->row_sizegroup, row);
 
 #ifdef HAVE_NETWORK_MANAGER
-  priv->wifi_row = row = no_prelight_row_new ();
+  self->wifi_row = row = no_prelight_row_new ();
   box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 50);
   gtk_container_add (GTK_CONTAINER (row), box);
 
@@ -1845,16 +1884,16 @@ add_power_saving_section (CcPowerPanel *self)
   gtk_style_context_add_class (gtk_widget_get_style_context (w), GTK_STYLE_CLASS_DIM_LABEL);
   gtk_box_pack_start (GTK_BOX (box2), w, TRUE, TRUE, 0);
 
-  priv->wifi_switch = sw = gtk_switch_new ();
-  gtk_widget_set_margin_start (sw, 20);
-  gtk_widget_set_margin_end (sw, 20);
-  gtk_widget_set_valign (sw, GTK_ALIGN_CENTER);
-  gtk_box_pack_start (GTK_BOX (box), sw, FALSE, TRUE, 0);
-  gtk_label_set_mnemonic_widget (GTK_LABEL (label), sw);
+  self->wifi_switch = gtk_switch_new ();
+  gtk_widget_set_margin_start (self->wifi_switch, 20);
+  gtk_widget_set_margin_end (self->wifi_switch, 20);
+  gtk_widget_set_valign (self->wifi_switch, GTK_ALIGN_CENTER);
+  gtk_box_pack_start (GTK_BOX (box), self->wifi_switch, FALSE, TRUE, 0);
+  gtk_label_set_mnemonic_widget (GTK_LABEL (label), self->wifi_switch);
   gtk_container_add (GTK_CONTAINER (widget), row);
-  gtk_size_group_add_widget (priv->row_sizegroup, row);
+  gtk_size_group_add_widget (self->row_sizegroup, row);
 
-  priv->mobile_row = row = no_prelight_row_new ();
+  self->mobile_row = row = no_prelight_row_new ();
   box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 50);
   gtk_container_add (GTK_CONTAINER (row), box);
 
@@ -1875,41 +1914,47 @@ add_power_saving_section (CcPowerPanel *self)
   gtk_style_context_add_class (gtk_widget_get_style_context (w), GTK_STYLE_CLASS_DIM_LABEL);
   gtk_box_pack_start (GTK_BOX (box2), w, TRUE, TRUE, 0);
 
-  priv->mobile_switch = sw = gtk_switch_new ();
-  gtk_widget_set_margin_start (sw, 20);
-  gtk_widget_set_margin_end (sw, 20);
-  gtk_widget_set_valign (sw, GTK_ALIGN_CENTER);
-  gtk_box_pack_start (GTK_BOX (box), sw, FALSE, TRUE, 0);
-  gtk_label_set_mnemonic_widget (GTK_LABEL (label), sw);
+  self->mobile_switch = gtk_switch_new ();
+  gtk_widget_set_margin_start (self->mobile_switch, 20);
+  gtk_widget_set_margin_end (self->mobile_switch, 20);
+  gtk_widget_set_valign (self->mobile_switch, GTK_ALIGN_CENTER);
+  gtk_box_pack_start (GTK_BOX (box), self->mobile_switch, FALSE, TRUE, 0);
+  gtk_label_set_mnemonic_widget (GTK_LABEL (label), self->mobile_switch);
   gtk_container_add (GTK_CONTAINER (widget), row);
-  gtk_size_group_add_widget (priv->row_sizegroup, row);
+  gtk_size_group_add_widget (self->row_sizegroup, row);
 
-  g_signal_connect (G_OBJECT (priv->mobile_switch), "notify::active",
+  g_signal_connect (G_OBJECT (self->mobile_switch), "notify::active",
                     G_CALLBACK (mobile_switch_changed), self);
 
-  nm_client_new_async (priv->cancellable, nm_client_ready_cb, self);
+  /* Create and store a NMClient instance if it doesn't exist yet */
+  if (cc_object_storage_has_object (CC_OBJECT_NMCLIENT))
+    setup_nm_client (self, cc_object_storage_get_object (CC_OBJECT_NMCLIENT));
+  else
+    nm_client_new_async (self->cancellable, nm_client_ready_cb, self);
 
-  g_signal_connect (G_OBJECT (priv->wifi_switch), "notify::active",
+  g_signal_connect (G_OBJECT (self->wifi_switch), "notify::active",
                     G_CALLBACK (wifi_switch_changed), self);
 #endif
 
 #ifdef HAVE_BLUETOOTH
-  priv->bt_rfkill = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SESSION,
-						   G_DBUS_PROXY_FLAGS_NONE,
-						   NULL,
-						   "org.gnome.SettingsDaemon.Rfkill",
-						   "/org/gnome/SettingsDaemon/Rfkill",
-						   "org.gnome.SettingsDaemon.Rfkill",
-						   NULL, NULL);
-  if (priv->bt_rfkill)
+
+  self->bt_rfkill = cc_object_storage_create_dbus_proxy_sync (G_BUS_TYPE_SESSION,
+                                                              G_DBUS_PROXY_FLAGS_NONE,
+                                                              "org.gnome.SettingsDaemon.Rfkill",
+                                                              "/org/gnome/SettingsDaemon/Rfkill",
+                                                              "org.gnome.SettingsDaemon.Rfkill",
+                                                              NULL,
+                                                              NULL);
+
+  if (self->bt_rfkill)
     {
-      priv->bt_properties = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SESSION,
-							   G_DBUS_PROXY_FLAGS_NONE,
-							   NULL,
-							   "org.gnome.SettingsDaemon.Rfkill",
-							   "/org/gnome/SettingsDaemon/Rfkill",
-							   "org.freedesktop.DBus.Properties",
-							   NULL, NULL);
+      self->bt_properties = cc_object_storage_create_dbus_proxy_sync (G_BUS_TYPE_SESSION,
+                                                                      G_DBUS_PROXY_FLAGS_NONE,
+                                                                      "org.gnome.SettingsDaemon.Rfkill",
+                                                                      "/org/gnome/SettingsDaemon/Rfkill",
+                                                                      "org.freedesktop.DBus.Properties",
+                                                                      NULL,
+                                                                      NULL);
     }
 
   row = no_prelight_row_new ();
@@ -1933,20 +1978,20 @@ add_power_saving_section (CcPowerPanel *self)
   gtk_style_context_add_class (gtk_widget_get_style_context (label), GTK_STYLE_CLASS_DIM_LABEL);
   gtk_box_pack_start (GTK_BOX (box2), label, TRUE, TRUE, 0);
 
-  priv->bt_switch = sw = gtk_switch_new ();
-  gtk_widget_set_margin_start (sw, 20);
-  gtk_widget_set_margin_end (sw, 20);
-  gtk_widget_set_valign (sw, GTK_ALIGN_CENTER);
-  gtk_box_pack_start (GTK_BOX (box), sw, FALSE, TRUE, 0);
-  gtk_label_set_mnemonic_widget (GTK_LABEL (label), sw);
+  self->bt_switch = gtk_switch_new ();
+  gtk_widget_set_margin_start (self->bt_switch, 20);
+  gtk_widget_set_margin_end (self->bt_switch, 20);
+  gtk_widget_set_valign (self->bt_switch, GTK_ALIGN_CENTER);
+  gtk_box_pack_start (GTK_BOX (box), self->bt_switch, FALSE, TRUE, 0);
+  gtk_label_set_mnemonic_widget (GTK_LABEL (label), self->bt_switch);
   gtk_container_add (GTK_CONTAINER (widget), row);
-  gtk_size_group_add_widget (priv->row_sizegroup, row);
+  gtk_size_group_add_widget (self->row_sizegroup, row);
   gtk_widget_show_all (box);
   gtk_widget_set_no_show_all (row, TRUE);
-  priv->bt_row = row;
-  g_signal_connect_swapped (G_OBJECT (priv->bt_rfkill), "g-properties-changed",
-			G_CALLBACK (bt_powered_state_changed), self);
-  g_signal_connect (G_OBJECT (priv->bt_switch), "notify::active",
+  self->bt_row = row;
+  g_signal_connect_object (self->bt_rfkill, "g-properties-changed",
+                           G_CALLBACK (bt_powered_state_changed), self, G_CONNECT_SWAPPED);
+  g_signal_connect (G_OBJECT (self->bt_switch), "notify::active",
 		G_CALLBACK (bt_switch_changed), self);
 
   bt_powered_state_changed (self);
@@ -1960,17 +2005,16 @@ add_power_saving_section (CcPowerPanel *self)
 static void
 update_automatic_suspend_label (CcPowerPanel *self)
 {
-  CcPowerPanelPrivate *priv = self->priv;
   GsdPowerActionType ac_action;
   GsdPowerActionType battery_action;
   gint ac_timeout;
   gint battery_timeout;
   const gchar *s;
 
-  ac_action = g_settings_get_enum (priv->gsd_settings, "sleep-inactive-ac-type");
-  battery_action = g_settings_get_enum (priv->gsd_settings, "sleep-inactive-battery-type");
-  ac_timeout = g_settings_get_int (priv->gsd_settings, "sleep-inactive-ac-timeout");
-  battery_timeout = g_settings_get_int (priv->gsd_settings, "sleep-inactive-battery-timeout");
+  ac_action = g_settings_get_enum (self->gsd_settings, "sleep-inactive-ac-type");
+  battery_action = g_settings_get_enum (self->gsd_settings, "sleep-inactive-battery-type");
+  ac_timeout = g_settings_get_int (self->gsd_settings, "sleep-inactive-ac-timeout");
+  battery_timeout = g_settings_get_int (self->gsd_settings, "sleep-inactive-battery-timeout");
 
   if (ac_timeout < 0)
     g_warning ("Invalid negative timeout for 'sleep-inactive-ac-timeout': %d", ac_timeout);
@@ -1982,7 +2026,7 @@ update_automatic_suspend_label (CcPowerPanel *self)
   if (battery_action == GSD_POWER_ACTION_NOTHING || battery_timeout < 0)
     battery_timeout = NEVER;
 
-  if (priv->has_batteries)
+  if (self->has_batteries)
     {
       if (ac_timeout == NEVER && battery_timeout == NEVER)
         s = _("Off");
@@ -2001,8 +2045,8 @@ update_automatic_suspend_label (CcPowerPanel *self)
         s = _("On");
     }
 
-  if (priv->automatic_suspend_label)
-    gtk_label_set_label (GTK_LABEL (priv->automatic_suspend_label), s);
+  if (self->automatic_suspend_label)
+    gtk_label_set_label (GTK_LABEL (self->automatic_suspend_label), s);
 }
 
 static void
@@ -2020,13 +2064,12 @@ static void
 activate_row (CcPowerPanel *self,
               GtkListBoxRow *row)
 {
-  CcPowerPanelPrivate *priv = self->priv;
   GtkWidget *w;
   GtkWidget *toplevel;
 
-  if (row == GTK_LIST_BOX_ROW (priv->automatic_suspend_row))
+  if (row == GTK_LIST_BOX_ROW (self->automatic_suspend_row))
     {
-      w = priv->automatic_suspend_dialog;
+      w = self->automatic_suspend_dialog;
       toplevel = gtk_widget_get_toplevel (GTK_WIDGET (self));
       gtk_window_set_transient_for (GTK_WINDOW (w), GTK_WINDOW (toplevel));
       gtk_window_set_modal (GTK_WINDOW (w), TRUE);
@@ -2039,7 +2082,7 @@ automatic_suspend_activate (GtkWidget    *widget,
                             gboolean      cycle,
                             CcPowerPanel *self)
 {
-  activate_row (self, GTK_LIST_BOX_ROW (self->priv->automatic_suspend_row));
+  activate_row (self, GTK_LIST_BOX_ROW (self->automatic_suspend_row));
   return TRUE;
 }
 
@@ -2111,22 +2154,19 @@ static gboolean
 can_suspend_or_hibernate (CcPowerPanel *self,
                           const char   *method_name)
 {
-  CcPowerPanelPrivate *priv = self->priv;
-  GDBusConnection *connection;
-  GVariant *variant;
-  gboolean result = FALSE;
-  GError *error = NULL;
+  g_autoptr(GDBusConnection) connection = NULL;
+  g_autoptr(GVariant) variant = NULL;
+  g_autoptr(GError) error = NULL;
   const char *s;
 
   connection = g_bus_get_sync (G_BUS_TYPE_SYSTEM,
-                               priv->cancellable,
+                               self->cancellable,
                                &error);
   if (!connection)
     {
       if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED))
         g_warning ("system bus not available: %s", error->message);
-      g_error_free (error);
-      goto out;
+      return FALSE;
     }
 
   variant = g_dbus_connection_call_sync (connection,
@@ -2138,35 +2178,26 @@ can_suspend_or_hibernate (CcPowerPanel *self,
                                          NULL,
                                          G_DBUS_CALL_FLAGS_NONE,
                                          -1,
-                                         priv->cancellable,
+                                         self->cancellable,
                                          &error);
-  g_object_unref (connection);
 
   if (!variant)
     {
       if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED))
         g_debug ("Failed to call %s(): %s", method_name, error->message);
-      g_error_free (error);
-      goto out;
+      return FALSE;
     }
 
   g_variant_get (variant, "(&s)", &s);
-  if (g_strcmp0 (s, "yes") == 0)
-    result = TRUE;
-  g_variant_unref (variant);
-
- out:
-  return result;
+  return g_strcmp0 (s, "yes") == 0;
 }
 
 static void
 add_suspend_and_power_off_section (CcPowerPanel *self)
 {
-  CcPowerPanelPrivate *priv = self->priv;
-  GtkWidget *vbox;
   GtkWidget *widget, *box, *label;
-  GtkWidget *sw, *row;
-  gchar *s;
+  GtkWidget *row;
+  g_autofree gchar *s = NULL;
   gint value;
   GtkWidget *dialog;
   GtkWidget *combo;
@@ -2187,31 +2218,28 @@ add_suspend_and_power_off_section (CcPowerPanel *self)
    * For our switch/combobox combination, the second choice works
    * much better, so translate the first to the second here.
    */
-  if (g_settings_get_int (priv->gsd_settings, "sleep-inactive-ac-timeout") == 0)
+  if (g_settings_get_int (self->gsd_settings, "sleep-inactive-ac-timeout") == 0)
     {
-      g_settings_set_enum (priv->gsd_settings, "sleep-inactive-ac-type", GSD_POWER_ACTION_NOTHING);
-      g_settings_set_int (priv->gsd_settings, "sleep-inactive-ac-timeout", 3600);
+      g_settings_set_enum (self->gsd_settings, "sleep-inactive-ac-type", GSD_POWER_ACTION_NOTHING);
+      g_settings_set_int (self->gsd_settings, "sleep-inactive-ac-timeout", 3600);
     }
-  if (g_settings_get_int (priv->gsd_settings, "sleep-inactive-battery-timeout") == 0)
+  if (g_settings_get_int (self->gsd_settings, "sleep-inactive-battery-timeout") == 0)
     {
-      g_settings_set_enum (priv->gsd_settings, "sleep-inactive-battery-type", GSD_POWER_ACTION_NOTHING);
-      g_settings_set_int (priv->gsd_settings, "sleep-inactive-battery-timeout", 1800);
+      g_settings_set_enum (self->gsd_settings, "sleep-inactive-battery-type", GSD_POWER_ACTION_NOTHING);
+      g_settings_set_int (self->gsd_settings, "sleep-inactive-battery-timeout", 1800);
     }
-
-  vbox = WID (priv->builder, "vbox_power");
 
   /* Frame header */
   s = g_markup_printf_escaped ("<b>%s</b>", _("Suspend & Power Button"));
   label = gtk_label_new (s);
-  g_free (s);
   gtk_label_set_use_markup (GTK_LABEL (label), TRUE);
   gtk_widget_set_halign (label, GTK_ALIGN_START);
   gtk_widget_set_margin_bottom (label, 12);
-  gtk_box_pack_start (GTK_BOX (vbox), label, FALSE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (self->vbox_power), label, FALSE, TRUE, 0);
   gtk_widget_show (label);
 
   widget = gtk_list_box_new ();
-  priv->boxes_reverse = g_list_prepend (priv->boxes_reverse, widget);
+  self->boxes_reverse = g_list_prepend (self->boxes_reverse, widget);
   g_signal_connect (widget, "keynav-failed", G_CALLBACK (keynav_failed), self);
   gtk_list_box_set_selection_mode (GTK_LIST_BOX (widget), GTK_SELECTION_NONE);
   gtk_list_box_set_header_func (GTK_LIST_BOX (widget),
@@ -2232,16 +2260,16 @@ add_suspend_and_power_off_section (CcPowerPanel *self)
   gtk_widget_set_margin_bottom (box, 32);
   gtk_widget_show (box);
   gtk_container_add (GTK_CONTAINER (box), widget);
-  gtk_box_pack_start (GTK_BOX (vbox), box, FALSE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (self->vbox_power), box, FALSE, TRUE, 0);
 
   /* Automatic suspend row */
   if (can_suspend)
     {
-      self->priv->automatic_suspend_row = row = gtk_list_box_row_new ();
+      self->automatic_suspend_row = row = gtk_list_box_row_new ();
       box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 50);
       gtk_container_add (GTK_CONTAINER (row), box);
       label = gtk_label_new (_("_Automatic suspend"));
-      atk_object_set_name (ATK_OBJECT (gtk_widget_get_accessible (self->priv->automatic_suspend_row)), _("Automatic suspend"));
+      atk_object_set_name (ATK_OBJECT (gtk_widget_get_accessible (self->automatic_suspend_row)), _("Automatic suspend"));
       gtk_widget_set_halign (label, GTK_ALIGN_START);
       gtk_label_set_use_underline (GTK_LABEL (label), TRUE);
       gtk_widget_set_margin_start (label, 20);
@@ -2250,57 +2278,53 @@ add_suspend_and_power_off_section (CcPowerPanel *self)
       gtk_widget_set_margin_bottom (label, 6);
       gtk_box_pack_start (GTK_BOX (box), label, TRUE, TRUE, 0);
 
-      priv->automatic_suspend_label = sw = gtk_label_new ("");
-      gtk_label_set_mnemonic_widget (GTK_LABEL (label), sw);
-      g_signal_connect (sw, "mnemonic-activate",
+      self->automatic_suspend_label = gtk_label_new ("");
+      gtk_label_set_mnemonic_widget (GTK_LABEL (label), self->automatic_suspend_label);
+      g_signal_connect (self->automatic_suspend_label, "mnemonic-activate",
                         G_CALLBACK (automatic_suspend_activate), self);
-      gtk_widget_set_halign (sw, GTK_ALIGN_END);
-      gtk_widget_set_margin_start (sw, 24);
-      gtk_widget_set_margin_end (sw, 24);
-      gtk_box_pack_start (GTK_BOX (box), sw, FALSE, TRUE, 0);
+      gtk_widget_set_halign (self->automatic_suspend_label, GTK_ALIGN_END);
+      gtk_widget_set_margin_start (self->automatic_suspend_label, 24);
+      gtk_widget_set_margin_end (self->automatic_suspend_label, 24);
+      gtk_box_pack_start (GTK_BOX (box), self->automatic_suspend_label, FALSE, TRUE, 0);
       gtk_container_add (GTK_CONTAINER (widget), row);
-      gtk_size_group_add_widget (priv->row_sizegroup, row);
+      gtk_size_group_add_widget (self->row_sizegroup, row);
 
-      dialog = priv->automatic_suspend_dialog;
+      dialog = self->automatic_suspend_dialog;
       g_signal_connect (dialog, "delete-event", G_CALLBACK (gtk_widget_hide_on_delete), NULL);
-      g_signal_connect (priv->gsd_settings, "changed", G_CALLBACK (on_suspend_settings_changed), self);
+      g_signal_connect (self->gsd_settings, "changed", G_CALLBACK (on_suspend_settings_changed), self);
 
-      sw = WID (priv->builder, "suspend_on_battery_switch");
-      g_settings_bind_with_mapping (priv->gsd_settings, "sleep-inactive-battery-type",
-                                    sw, "active",
+      g_settings_bind_with_mapping (self->gsd_settings, "sleep-inactive-battery-type",
+                                    self->suspend_on_battery_switch, "active",
                                     G_SETTINGS_BIND_DEFAULT,
                                     get_sleep_type, set_sleep_type, NULL, NULL);
 
-      combo = WID (priv->builder, "suspend_on_battery_delay_combo");
-      g_object_set_data (G_OBJECT (combo), "_gsettings_key", "sleep-inactive-battery-timeout");
-      value = g_settings_get_int (priv->gsd_settings, "sleep-inactive-battery-timeout");
-      set_value_for_combo (GTK_COMBO_BOX (combo), value);
-      g_signal_connect (combo, "changed",
+      g_object_set_data (G_OBJECT (self->suspend_on_battery_delay_combo), "_gsettings_key", "sleep-inactive-battery-timeout");
+      value = g_settings_get_int (self->gsd_settings, "sleep-inactive-battery-timeout");
+      set_value_for_combo (GTK_COMBO_BOX (self->suspend_on_battery_delay_combo), value);
+      g_signal_connect (self->suspend_on_battery_delay_combo, "changed",
                         G_CALLBACK (combo_time_changed_cb), self);
-      g_object_bind_property (sw, "active", combo, "sensitive",
+      g_object_bind_property (self->suspend_on_battery_switch, "active", self->suspend_on_battery_delay_combo, "sensitive",
                               G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
 
-      sw = WID (priv->builder, "suspend_on_ac_switch");
-      g_settings_bind_with_mapping (priv->gsd_settings, "sleep-inactive-ac-type",
-                                    sw, "active",
+      g_settings_bind_with_mapping (self->gsd_settings, "sleep-inactive-ac-type",
+                                    self->suspend_on_ac_switch, "active",
                                     G_SETTINGS_BIND_DEFAULT,
                                     get_sleep_type, set_sleep_type, NULL, NULL);
 
-      combo = WID (priv->builder, "suspend_on_ac_delay_combo");
-      g_object_set_data (G_OBJECT (combo), "_gsettings_key", "sleep-inactive-ac-timeout");
-      value = g_settings_get_int (priv->gsd_settings, "sleep-inactive-ac-timeout");
-      set_value_for_combo (GTK_COMBO_BOX (combo), value);
-      g_signal_connect (combo, "changed",
+      g_object_set_data (G_OBJECT (self->suspend_on_ac_delay_combo), "_gsettings_key", "sleep-inactive-ac-timeout");
+      value = g_settings_get_int (self->gsd_settings, "sleep-inactive-ac-timeout");
+      set_value_for_combo (GTK_COMBO_BOX (self->suspend_on_ac_delay_combo), value);
+      g_signal_connect (self->suspend_on_ac_delay_combo, "changed",
                         G_CALLBACK (combo_time_changed_cb), self);
-      g_object_bind_property (sw, "active", combo, "sensitive",
+      g_object_bind_property (self->suspend_on_ac_switch, "active", self->suspend_on_ac_delay_combo, "sensitive",
                               G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE);
 
       set_ac_battery_ui_mode (self);
       update_automatic_suspend_label (self);
     }
 
-  if (g_strcmp0 (priv->chassis_type, "vm") == 0 ||
-      g_strcmp0 (priv->chassis_type, "tablet") == 0)
+  if (g_strcmp0 (self->chassis_type, "vm") == 0 ||
+      g_strcmp0 (self->chassis_type, "tablet") == 0)
     goto out;
 
   /* Power button row */
@@ -2319,10 +2343,10 @@ add_suspend_and_power_off_section (CcPowerPanel *self)
 
   combo = gtk_combo_box_text_new ();
   gtk_combo_box_set_entry_text_column (GTK_COMBO_BOX (combo), 0);
-  model = GTK_TREE_MODEL (gtk_builder_get_object (priv->builder, "liststore_power_button"));
+  model = GTK_TREE_MODEL (self->liststore_power_button);
   populate_power_button_model (model, can_suspend, can_hibernate);
   gtk_combo_box_set_model (GTK_COMBO_BOX (combo), model);
-  button_value = g_settings_get_enum (priv->gsd_settings, "power-button-action");
+  button_value = g_settings_get_enum (self->gsd_settings, "power-button-action");
   set_value_for_combo (GTK_COMBO_BOX (combo), button_value);
   g_signal_connect (combo, "changed",
                     G_CALLBACK (combo_power_button_changed_cb), self);
@@ -2332,7 +2356,7 @@ add_suspend_and_power_off_section (CcPowerPanel *self)
   gtk_box_pack_start (GTK_BOX (box), combo, FALSE, TRUE, 0);
   gtk_label_set_mnemonic_widget (GTK_LABEL (label), combo);
   gtk_container_add (GTK_CONTAINER (widget), row);
-  gtk_size_group_add_widget (priv->row_sizegroup, row);
+  gtk_size_group_add_widget (self->row_sizegroup, row);
 
 out:
   gtk_widget_show_all (widget);
@@ -2365,29 +2389,24 @@ battery_sort_func (gconstpointer a, gconstpointer b, gpointer data)
 static void
 add_battery_section (CcPowerPanel *self)
 {
-  CcPowerPanelPrivate *priv = self->priv;
-  GtkWidget *vbox;
   GtkWidget *widget, *box;
   GtkWidget *frame;
-  gchar *s;
+  g_autofree gchar *s = NULL;
 
-  vbox = WID (priv->builder, "vbox_power");
-
-  priv->battery_section = box = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
+  self->battery_section = box = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
   gtk_widget_set_margin_bottom (box, 32);
-  gtk_box_pack_start (GTK_BOX (vbox), box, FALSE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (self->vbox_power), box, FALSE, TRUE, 0);
 
   s = g_markup_printf_escaped ("<b>%s</b>", _("Battery"));
-  priv->battery_heading = widget = gtk_label_new (s);
-  g_free (s);
+  self->battery_heading = widget = gtk_label_new (s);
   gtk_label_set_use_markup (GTK_LABEL (widget), TRUE);
   gtk_widget_set_halign (widget, GTK_ALIGN_START);
   gtk_widget_set_margin_bottom (widget, 12);
   gtk_widget_set_margin_bottom (box, 32);
   gtk_box_pack_start (GTK_BOX (box), widget, FALSE, TRUE, 0);
 
-  priv->battery_list = widget = GTK_WIDGET (gtk_list_box_new ());
-  priv->boxes_reverse = g_list_prepend (priv->boxes_reverse, priv->battery_list);
+  self->battery_list = widget = GTK_WIDGET (gtk_list_box_new ());
+  self->boxes_reverse = g_list_prepend (self->boxes_reverse, self->battery_list);
   g_signal_connect (widget, "keynav-failed", G_CALLBACK (keynav_failed), self);
   gtk_list_box_set_selection_mode (GTK_LIST_BOX (widget), GTK_SELECTION_NONE);
   gtk_list_box_set_header_func (GTK_LIST_BOX (widget),
@@ -2396,12 +2415,12 @@ add_battery_section (CcPowerPanel *self)
   gtk_list_box_set_sort_func (GTK_LIST_BOX (widget),
                               (GtkListBoxSortFunc)battery_sort_func, NULL, NULL);
 
-  atk_object_add_relationship (ATK_OBJECT (gtk_widget_get_accessible (priv->battery_heading)),
+  atk_object_add_relationship (ATK_OBJECT (gtk_widget_get_accessible (self->battery_heading)),
                                ATK_RELATION_LABEL_FOR,
-                               ATK_OBJECT (gtk_widget_get_accessible (priv->battery_list)));
-  atk_object_add_relationship (ATK_OBJECT (gtk_widget_get_accessible (priv->battery_list)),
+                               ATK_OBJECT (gtk_widget_get_accessible (self->battery_list)));
+  atk_object_add_relationship (ATK_OBJECT (gtk_widget_get_accessible (self->battery_list)),
                                ATK_RELATION_LABELLED_BY,
-                               ATK_OBJECT (gtk_widget_get_accessible (priv->battery_heading)));
+                               ATK_OBJECT (gtk_widget_get_accessible (self->battery_heading)));
 
   frame = gtk_frame_new (NULL);
   gtk_frame_set_shadow_type (GTK_FRAME (frame), GTK_SHADOW_IN);
@@ -2414,29 +2433,24 @@ add_battery_section (CcPowerPanel *self)
 static void
 add_device_section (CcPowerPanel *self)
 {
-  CcPowerPanelPrivate *priv = self->priv;
-  GtkWidget *vbox;
   GtkWidget *widget, *box;
   GtkWidget *frame;
-  gchar *s;
+  g_autofree gchar *s = NULL;
 
-  vbox = WID (priv->builder, "vbox_power");
-
-  priv->device_section = box = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
+  self->device_section = box = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
   gtk_widget_set_margin_top (box, 6);
   gtk_widget_set_margin_bottom (box, 32);
-  gtk_box_pack_start (GTK_BOX (vbox), box, FALSE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (self->vbox_power), box, FALSE, TRUE, 0);
 
   s = g_markup_printf_escaped ("<b>%s</b>", _("Devices"));
-  priv->device_heading = widget = gtk_label_new (s);
-  g_free (s);
+  self->device_heading = widget = gtk_label_new (s);
   gtk_label_set_use_markup (GTK_LABEL (widget), TRUE);
   gtk_widget_set_halign (widget, GTK_ALIGN_START);
   gtk_widget_set_margin_bottom (widget, 12);
   gtk_box_pack_start (GTK_BOX (box), widget, FALSE, TRUE, 0);
 
-  priv->device_list = widget = gtk_list_box_new ();
-  priv->boxes_reverse = g_list_prepend (priv->boxes_reverse, priv->device_list);
+  self->device_list = widget = gtk_list_box_new ();
+  self->boxes_reverse = g_list_prepend (self->boxes_reverse, self->device_list);
   g_signal_connect (widget, "keynav-failed", G_CALLBACK (keynav_failed), self);
   gtk_list_box_set_selection_mode (GTK_LIST_BOX (widget), GTK_SELECTION_NONE);
   gtk_list_box_set_header_func (GTK_LIST_BOX (widget),
@@ -2445,12 +2459,12 @@ add_device_section (CcPowerPanel *self)
   gtk_list_box_set_sort_func (GTK_LIST_BOX (widget),
                               (GtkListBoxSortFunc)battery_sort_func, NULL, NULL);
 
-  atk_object_add_relationship (ATK_OBJECT (gtk_widget_get_accessible (priv->device_heading)),
+  atk_object_add_relationship (ATK_OBJECT (gtk_widget_get_accessible (self->device_heading)),
                                ATK_RELATION_LABEL_FOR,
-                               ATK_OBJECT (gtk_widget_get_accessible (priv->device_list)));
-  atk_object_add_relationship (ATK_OBJECT (gtk_widget_get_accessible (priv->device_list)),
+                               ATK_OBJECT (gtk_widget_get_accessible (self->device_list)));
+  atk_object_add_relationship (ATK_OBJECT (gtk_widget_get_accessible (self->device_list)),
                                ATK_RELATION_LABELLED_BY,
-                               ATK_OBJECT (gtk_widget_get_accessible (priv->device_heading)));
+                               ATK_OBJECT (gtk_widget_get_accessible (self->device_heading)));
 
   frame = gtk_frame_new (NULL);
   gtk_frame_set_shadow_type (GTK_FRAME (frame), GTK_SHADOW_IN);
@@ -2482,94 +2496,70 @@ on_content_size_changed (GtkWidget *widget, GtkAllocation *allocation, gpointer 
 static void
 cc_power_panel_init (CcPowerPanel *self)
 {
-  CcPowerPanelPrivate *priv;
-  GError     *error;
-  GtkWidget  *widget;
-  GtkWidget  *box;
-  guint       i;
+  guint i;
 
-  priv = self->priv = POWER_PANEL_PRIVATE (self);
   g_resources_register (cc_power_get_resource ());
 
-  priv->builder = gtk_builder_new ();
+  gtk_widget_init_template (GTK_WIDGET (self));
 
-  error = NULL;
-  gtk_builder_add_from_resource (self->priv->builder,
-                                 "/org/gnome/control-center/power/power.ui",
-                                 &error);
+  self->cancellable = g_cancellable_new ();
 
-  if (error != NULL)
-    {
-      g_warning ("Could not load interface file: %s", error->message);
-      g_error_free (error);
-      return;
-    }
+  cc_object_storage_create_dbus_proxy (G_BUS_TYPE_SESSION,
+                                       G_DBUS_PROXY_FLAGS_NONE,
+                                       "org.gnome.SettingsDaemon.Power",
+                                       "/org/gnome/SettingsDaemon/Power",
+                                       "org.gnome.SettingsDaemon.Power.Screen",
+                                       self->cancellable,
+                                       got_screen_proxy_cb,
+                                       self);
+  cc_object_storage_create_dbus_proxy (G_BUS_TYPE_SESSION,
+                                       G_DBUS_PROXY_FLAGS_NONE,
+                                       "org.gnome.SettingsDaemon.Power",
+                                       "/org/gnome/SettingsDaemon/Power",
+                                       "org.gnome.SettingsDaemon.Power.Keyboard",
+                                       self->cancellable,
+                                       got_kbd_proxy_cb,
+                                       self);
 
-  priv->automatic_suspend_dialog = WID (priv->builder, "automatic_suspend_dialog");
+  self->chassis_type = get_chassis_type (self->cancellable);
 
-  priv->cancellable = g_cancellable_new ();
+  self->up_client = up_client_new ();
 
-  g_dbus_proxy_new_for_bus (G_BUS_TYPE_SESSION,
-                            G_DBUS_PROXY_FLAGS_NONE,
-                            NULL,
-                            "org.gnome.SettingsDaemon.Power",
-                            "/org/gnome/SettingsDaemon/Power",
-                            "org.gnome.SettingsDaemon.Power.Screen",
-                            priv->cancellable,
-                            got_screen_proxy_cb,
-                            self);
-  g_dbus_proxy_new_for_bus (G_BUS_TYPE_SESSION,
-                            G_DBUS_PROXY_FLAGS_NONE,
-                            NULL,
-                            "org.gnome.SettingsDaemon.Power",
-                            "/org/gnome/SettingsDaemon/Power",
-                            "org.gnome.SettingsDaemon.Power.Keyboard",
-                            priv->cancellable,
-                            got_kbd_proxy_cb,
-                            self);
+  self->gsd_settings = g_settings_new ("org.gnome.settings-daemon.plugins.power");
+  self->session_settings = g_settings_new ("org.gnome.desktop.session");
 
-  priv->chassis_type = get_chassis_type (priv->cancellable);
-
-  priv->up_client = up_client_new ();
-
-  priv->gsd_settings = g_settings_new ("org.gnome.settings-daemon.plugins.power");
-  priv->session_settings = g_settings_new ("org.gnome.desktop.session");
-
-  priv->row_sizegroup = gtk_size_group_new (GTK_SIZE_GROUP_VERTICAL);
-  priv->battery_sizegroup = gtk_size_group_new (GTK_SIZE_GROUP_HORIZONTAL);
-  priv->charge_sizegroup = gtk_size_group_new (GTK_SIZE_GROUP_HORIZONTAL);
-  priv->level_sizegroup = gtk_size_group_new (GTK_SIZE_GROUP_HORIZONTAL);
+  self->row_sizegroup = gtk_size_group_new (GTK_SIZE_GROUP_VERTICAL);
+  self->battery_sizegroup = gtk_size_group_new (GTK_SIZE_GROUP_HORIZONTAL);
+  self->charge_sizegroup = gtk_size_group_new (GTK_SIZE_GROUP_HORIZONTAL);
+  self->level_sizegroup = gtk_size_group_new (GTK_SIZE_GROUP_HORIZONTAL);
 
   add_battery_section (self);
   add_device_section (self);
   add_power_saving_section (self);
   add_suspend_and_power_off_section (self);
 
-  priv->boxes = g_list_copy (priv->boxes_reverse);
-  priv->boxes = g_list_reverse (priv->boxes);
+  self->boxes = g_list_copy (self->boxes_reverse);
+  self->boxes = g_list_reverse (self->boxes);
 
   /* populate batteries */
-  g_signal_connect (priv->up_client, "device-added", G_CALLBACK (up_client_device_added), self);
-  g_signal_connect (priv->up_client, "device-removed", G_CALLBACK (up_client_device_removed), self);
+  g_signal_connect (self->up_client, "device-added", G_CALLBACK (up_client_device_added), self);
+  g_signal_connect (self->up_client, "device-removed", G_CALLBACK (up_client_device_removed), self);
 
-  priv->devices = up_client_get_devices (priv->up_client);
-  for (i = 0; priv->devices != NULL && i < priv->devices->len; i++) {
-    UpDevice *device = g_ptr_array_index (priv->devices, i);
+  self->devices = up_client_get_devices (self->up_client);
+  /* up_client_get_devices doesn't set a free function, we'll set it so we don't need to do it.
+   * https://bugs.freedesktop.org/show_bug.cgi?id=106740
+   */
+  g_ptr_array_set_free_func (self->devices, g_object_unref);
+  for (i = 0; self->devices != NULL && i < self->devices->len; i++) {
+    UpDevice *device = g_ptr_array_index (self->devices, i);
     g_signal_connect (G_OBJECT (device), "notify",
                       G_CALLBACK (up_client_changed), self);
   }
-  up_client_changed (priv->up_client, NULL, self);
+  up_client_changed (self->up_client, NULL, self);
 
-  widget = WID (priv->builder, "main_box");
-  box = gtk_scrolled_window_new (NULL, NULL);
-  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (box),
-                                  GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
-  g_signal_connect (widget, "size-allocate",
+  g_signal_connect (self->main_box, "size-allocate",
                     G_CALLBACK (on_content_size_changed), NULL);
-  gtk_widget_show (box);
-  gtk_container_add (GTK_CONTAINER (self), box);
-  gtk_container_add (GTK_CONTAINER (box), widget);
 
-  priv->focus_adjustment = gtk_scrolled_window_get_vadjustment (GTK_SCROLLED_WINDOW (box));
-  gtk_container_set_focus_vadjustment (GTK_CONTAINER (widget), priv->focus_adjustment);
+  self->focus_adjustment = gtk_scrolled_window_get_vadjustment (GTK_SCROLLED_WINDOW (self->main_scroll));
+  gtk_container_set_focus_vadjustment (GTK_CONTAINER (self->main_box), self->focus_adjustment);
 }

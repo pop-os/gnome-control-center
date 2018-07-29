@@ -94,7 +94,7 @@ find_conflict (CcUniquenessData *data,
   if (data->orig_item && cc_keyboard_item_equal (data->orig_item, item))
     return FALSE;
 
-  for (l = item->key_combos; l; l = l->next)
+  for (l = cc_keyboard_item_get_key_combos (item); l; l = l->next)
     {
       CcKeyCombo *combo = l->data;
 
@@ -203,8 +203,8 @@ have_key_for_group (CcKeyboardManager *self,
         {
           CcKeyboardItem *item = g_ptr_array_index (keys, i);
 
-          if (item->type == CC_KEYBOARD_ITEM_TYPE_GSETTINGS &&
-              g_strcmp0 (name, item->key) == 0)
+          if (cc_keyboard_item_get_item_type (item) == CC_KEYBOARD_ITEM_TYPE_GSETTINGS &&
+              g_strcmp0 (name, cc_keyboard_item_get_key (item)) == 0)
             {
               return TRUE;
             }
@@ -228,7 +228,8 @@ add_shortcuts (CcKeyboardManager *self)
     {
       BindingGroupType group;
       GPtrArray *keys;
-      gchar *id, *title;
+      g_autofree gchar *id = NULL;
+      g_autofree gchar *title = NULL;
       gint i;
 
       gtk_tree_model_get (sections_model,
@@ -258,7 +259,7 @@ add_shortcuts (CcKeyboardManager *self)
               gtk_list_store_append (self->shortcuts_model, &new_row);
               gtk_list_store_set (self->shortcuts_model,
                                   &new_row,
-                                  DETAIL_DESCRIPTION_COLUMN, item->description,
+                                  DETAIL_DESCRIPTION_COLUMN, cc_keyboard_item_get_description (item),
                                   DETAIL_KEYENTRY_COLUMN, item,
                                   DETAIL_TYPE_COLUMN, SHORTCUT_TYPE_KEY_ENTRY,
                                   -1);
@@ -272,9 +273,6 @@ add_shortcuts (CcKeyboardManager *self)
         }
 
       can_continue = gtk_tree_model_iter_next (sections_model, &sections_iter);
-
-      g_free (title);
-      g_free (id);
     }
 }
 
@@ -364,8 +362,7 @@ append_section (CcKeyboardManager  *self,
         }
 
       cc_keyboard_item_set_hidden (item, keys_list[i].hidden);
-      item->model = shortcut_model;
-      item->group = group;
+      cc_keyboard_item_set_model (item, shortcut_model, group);
 
       g_ptr_array_add (keys_array, item);
     }
@@ -431,11 +428,10 @@ append_sections_from_file (CcKeyboardManager  *self,
   keys = (KeyListEntry *) g_array_free (keylist->entries, FALSE);
   if (keylist->package)
     {
-      char *localedir;
+      g_autofree gchar *localedir = NULL;
 
       localedir = g_build_filename (datadir, "locale", NULL);
       bindtextdomain (keylist->package, localedir);
-      g_free (localedir);
 
       title = dgettext (keylist->package, keylist->name);
     } else {
@@ -471,7 +467,7 @@ append_sections_from_file (CcKeyboardManager  *self,
 static void
 append_sections_from_gsettings (CcKeyboardManager *self)
 {
-  char **custom_paths;
+  g_auto(GStrv) custom_paths = NULL;
   GArray *entries;
   KeyListEntry key = { 0, 0, 0, 0, 0, 0, 0 };
   int i;
@@ -491,7 +487,6 @@ append_sections_from_gsettings (CcKeyboardManager *self)
       else
         g_free (key.name);
     }
-  g_strfreev (custom_paths);
 
   if (entries->len > 0)
     {
@@ -524,7 +519,7 @@ reload_sections (CcKeyboardManager *self)
   GHashTable *loaded_files;
   GDir *dir;
   gchar *default_wm_keybindings[] = { "Mutter", "GNOME Shell", NULL };
-  gchar **wm_keybindings;
+  g_auto(GStrv) wm_keybindings = NULL;
   const gchar * const * data_dirs;
   guint i;
 
@@ -565,21 +560,18 @@ reload_sections (CcKeyboardManager *self)
   data_dirs = g_get_system_data_dirs ();
   for (i = 0; data_dirs[i] != NULL; i++)
     {
-      char *dir_path;
+      g_autofree gchar *dir_path = NULL;
       const gchar *name;
 
       dir_path = g_build_filename (data_dirs[i], "gnome-control-center", "keybindings", NULL);
 
       dir = g_dir_open (dir_path, 0, NULL);
       if (!dir)
-        {
-          g_free (dir_path);
-          continue;
-        }
+        continue;
 
       for (name = g_dir_read_name (dir) ; name ; name = g_dir_read_name (dir))
         {
-          gchar *path;
+          g_autofree gchar *path = NULL;
 
           if (g_str_has_suffix (name, ".xml") == FALSE)
             continue;
@@ -593,15 +585,12 @@ reload_sections (CcKeyboardManager *self)
           g_hash_table_insert (loaded_files, g_strdup (name), GINT_TO_POINTER (1));
           path = g_build_filename (dir_path, name, NULL);
           append_sections_from_file (self, path, data_dirs[i], wm_keybindings);
-          g_free (path);
         }
 
-      g_free (dir_path);
       g_dir_close (dir);
     }
 
   g_hash_table_destroy (loaded_files);
-  g_strfreev (wm_keybindings);
 
   /* Load custom keybindings */
   append_sections_from_gsettings (self);
@@ -754,7 +743,7 @@ CcKeyboardItem*
 cc_keyboard_manager_create_custom_shortcut (CcKeyboardManager *self)
 {
   CcKeyboardItem *item;
-  gchar *settings_path;
+  g_autofree gchar *settings_path = NULL;
 
   g_return_val_if_fail (CC_IS_KEYBOARD_MANAGER (self), NULL);
 
@@ -762,10 +751,8 @@ cc_keyboard_manager_create_custom_shortcut (CcKeyboardManager *self)
 
   settings_path = find_free_settings_path (self->binding_settings);
   cc_keyboard_item_load_from_gsettings_path (item, settings_path, TRUE);
-  g_free (settings_path);
 
-  item->model = GTK_TREE_MODEL (self->shortcuts_model);
-  item->group = BINDING_GROUP_USER;
+  cc_keyboard_item_set_model (item, GTK_TREE_MODEL (self->shortcuts_model), BINDING_GROUP_USER);
 
   return item;
 }
@@ -811,7 +798,7 @@ cc_keyboard_manager_add_custom_shortcut (CcKeyboardManager *self,
   for (i = 0; settings_paths[i]; i++)
     g_variant_builder_add (&builder, "s", settings_paths[i]);
 
-  g_variant_builder_add (&builder, "s", item->gsettings_path);
+  g_variant_builder_add (&builder, "s", cc_keyboard_item_get_gsettings_path (item));
 
   g_settings_set_value (self->binding_settings, "custom-keybindings", g_variant_builder_end (&builder));
 
@@ -838,6 +825,7 @@ cc_keyboard_manager_remove_custom_shortcut  (CcKeyboardManager *self,
   GPtrArray *keys_array;
   GVariantBuilder builder;
   gboolean valid;
+  GSettings *settings;
   char **settings_paths;
   int i;
 
@@ -863,20 +851,21 @@ cc_keyboard_manager_remove_custom_shortcut  (CcKeyboardManager *self,
 
   /* Shortcut not found or not a custom shortcut */
   g_assert (valid);
-  g_assert (item->type == CC_KEYBOARD_ITEM_TYPE_GSETTINGS_PATH);
+  g_assert (cc_keyboard_item_get_item_type (item) == CC_KEYBOARD_ITEM_TYPE_GSETTINGS_PATH);
 
-  g_settings_delay (item->settings);
-  g_settings_reset (item->settings, "name");
-  g_settings_reset (item->settings, "command");
-  g_settings_reset (item->settings, "binding");
-  g_settings_apply (item->settings);
+  settings = cc_keyboard_item_get_settings (item);
+  g_settings_delay (settings);
+  g_settings_reset (settings, "name");
+  g_settings_reset (settings, "command");
+  g_settings_reset (settings, "binding");
+  g_settings_apply (settings);
   g_settings_sync ();
 
   settings_paths = g_settings_get_strv (self->binding_settings, "custom-keybindings");
   g_variant_builder_init (&builder, G_VARIANT_TYPE ("as"));
 
   for (i = 0; settings_paths[i]; i++)
-    if (strcmp (settings_paths[i], item->gsettings_path) != 0)
+    if (strcmp (settings_paths[i], cc_keyboard_item_get_gsettings_path (item)) != 0)
       g_variant_builder_add (&builder, "s", settings_paths[i]);
 
   g_settings_set_value (self->binding_settings,
@@ -973,7 +962,7 @@ cc_keyboard_manager_reset_shortcut (CcKeyboardManager *self,
   g_return_if_fail (CC_IS_KEYBOARD_ITEM (item));
 
   /* Disables any shortcut that conflicts with the new shortcut's value */
-  for (l = item->default_combos; l; l = l->next)
+  for (l = cc_keyboard_item_get_default_combos (item); l; l = l->next)
     {
       CcKeyCombo *combo = l->data;
       CcKeyboardItem *collision;

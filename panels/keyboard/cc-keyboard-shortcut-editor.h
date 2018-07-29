@@ -18,8 +18,7 @@
  * Authors: Georges Basile Stavracas Neto <georges.stavracas@gmail.com>
  */
 
-#ifndef CC_KEYBOARD_SHORTCUT_EDITOR_H
-#define CC_KEYBOARD_SHORTCUT_EDITOR_H
+#pragma once
 
 #include <gtk/gtk.h>
 
@@ -28,15 +27,14 @@
 
 G_BEGIN_DECLS
 
-#define CC_TYPE_KEYBOARD_SHORTCUT_EDITOR (cc_keyboard_shortcut_editor_get_type())
+#define CC_TYPE_KEYBOARD_SHORTCUT_EDITOR (cc_keyboard_shortcut_editor_get_type ())
+G_DECLARE_FINAL_TYPE (CcKeyboardShortcutEditor, cc_keyboard_shortcut_editor, CC, KEYBOARD_SHORTCUT_EDITOR, GtkDialog)
 
 typedef enum
 {
   CC_SHORTCUT_EDITOR_CREATE,
   CC_SHORTCUT_EDITOR_EDIT
 } CcShortcutEditorMode;
-
-G_DECLARE_FINAL_TYPE (CcKeyboardShortcutEditor, cc_keyboard_shortcut_editor, CC, KEYBOARD_SHORTCUT_EDITOR, GtkDialog)
 
 GtkWidget*           cc_keyboard_shortcut_editor_new             (CcKeyboardManager        *manager);
 
@@ -51,6 +49,4 @@ void                 cc_keyboard_shortcut_editor_set_mode        (CcKeyboardShor
                                                                   CcShortcutEditorMode      mode);
 
 G_END_DECLS
-
-#endif /* CC_KEYBOARD_SHORTCUT_EDITOR_H */
 

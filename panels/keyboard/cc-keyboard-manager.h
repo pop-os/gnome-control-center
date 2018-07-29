@@ -20,8 +20,7 @@
  *
  */
 
-#ifndef CC_KEYBOARD_MANAGER_H
-#define CC_KEYBOARD_MANAGER_H
+#pragma once
 
 #include <glib-object.h>
 
@@ -29,8 +28,7 @@
 
 G_BEGIN_DECLS
 
-#define CC_TYPE_KEYBOARD_MANAGER (cc_keyboard_manager_get_type())
-
+#define CC_TYPE_KEYBOARD_MANAGER (cc_keyboard_manager_get_type ())
 G_DECLARE_FINAL_TYPE (CcKeyboardManager, cc_keyboard_manager, CC, KEYBOARD_MANAGER, GObject)
 
 CcKeyboardManager*   cc_keyboard_manager_new                     (void);
@@ -56,6 +54,4 @@ void                 cc_keyboard_manager_reset_shortcut          (CcKeyboardMana
                                                                   CcKeyboardItem     *item);
 
 G_END_DECLS
-
-#endif /* CC_KEYBOARD_MANAGER_H */
 
