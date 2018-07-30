@@ -1,3 +1,86 @@
+gnome-control-center (1:3.28.2-1ubuntu1) UNRELEASED; urgency=medium
+
+  * Merge with Debian (LP: #1784396)
+    Remaining changes:
+    + debian/control.in:
+      - Depend on language-selector-gnome and whoopsie-preferences
+      - Depend on instead of Recommend network-manager-gnome and
+        system-config-printer-common
+      - Recommend ibus
+      - Suggest instead of Recommend gnome-user-share, realmd and rygel
+      - Build-Depend on libwhoopsie-preferences-dev
+      - Don't recommend libnss-myhostname since systemd-resolved handles this
+        functionality
+    + Split gnome-control-center-faces to a separate package so
+      that it can be used by unity-control-center & recommend this
+    + Install apport hook
+    + debian/gnome-control-center-data.install:
+      - Don't install gnome-control-center.pkla since we use
+        policykit-desktop-privileges instead
+      - Install additional assets used by unity-control-center
+    * debian/ubuntu-logo-icon.png, debian/source/include-binaries,
+      debian/gnome-control-center-data.install: Include an Ubuntu logo
+    * debian/gnome-control-center-data.links:
+      - Link audio-speaker-center* to audio-speaker-mono* so that an
+        icon is shown in the test speaker panel. (LP: #1704002)
+    + debian/rules: Enable whoospie integration
+    + debian/patches:
+      - 08_lowercase_user_names.patch:
+         Disallow upper-case letters in user names for compliance with adduser
+      - 52_region_language.patch:
+         Adapt region panel to use Ubuntu style regions
+      - 64_restore_terminal_keyboard_shortcut.patch
+         Bring back terminal shortcut
+      - 70_allow_sound_above_100.patch:
+         Allow setting volume above 100% in the Ubuntu session
+      - 71_ubuntu_dock_settings.patch
+         Add Dock panel for Ubuntu session
+      - 99_add_lock-on-suspend.patch
+         Add option to lock on suspend
+      - distro-logo.patch:
+         Add Ubuntu branding to Details panel
+      - ubuntu-region-packagekit.patch
+         fix detection of installed language packs
+      - ubuntu-region-langpack-install.patch:
+         check for missing language packs when loading region panel to pull
+         in packs that arent included with the installer
+      - ubuntu-language-support.patch
+         Add Language Support button to Region & Language panel to
+         work around
+      - ubuntu-printer-support.patch
+         Add Advanced Printer Settings button to work around missing printer
+         sharing feature
+      - ubuntu-legacy-notifications.patch
+         Ubuntu ships compatibility names for .desktop that got renamed
+         upstream, those use NoDisplay but the panel doesn't respect that key,
+         skip known buggy entries for file-roller and nautilus
+      - connectivity-switch.patch
+         Add Connectivity Checking switch to Privacy panel
+      - privacy-panel-whoopsie.patch
+         Support Ubuntu's whoopsie service in the Privacy panel
+      - auto_quit_after_goa_add.patch
+         Hide window after adding an online account from another app.
+      - debian/patches/0001-shell-Don-t-set-per-panel-icon.patch,
+        debian/patches/0002-shell-Icon-name-helper-returns-symbolic-name.patch,
+        debian/patches/0003-thunderbolt-new-panel-for-device-management.patch,
+        debian/patches/0004-thunderbolt-move-to-the-Devices-page.patch:
+         backport the new upstream "thunderbolt" panel (same patches as fedora
+         is using). Also change to not use per panel icons but just the
+         settings one, that's the right thing to do and avoid issues when some
+         panels like the thunderbolt one don't have a symbolic icon.
+
+ -- Iain Lane <laney@debian.org>  Mon, 30 Jul 2018 11:56:54 +0100
+
+gnome-control-center (1:3.28.2-1) unstable; urgency=medium
+
+  * Team upload
+  * New upstream release 3.28.2
+    - Fixes file permissions regression introduced in meson conversion
+      (Closes: #900911)
+  * Standards-Version: 4.1.4 (no changes required)
+
+ -- Simon McVittie <smcv@debian.org>  Wed, 27 Jun 2018 09:18:33 +0100
+
 gnome-control-center (1:3.28.2-0ubuntu2) UNRELEASED; urgency=medium
 
   [ Didier Roche ]
@@ -20,6 +103,19 @@ gnome-control-center (1:3.28.2-0ubuntu1) cosmic; urgency=medium
     - remove, it's included in the new version
 
  -- Sebastien Bacher <seb128@ubuntu.com>  Thu, 05 Jul 2018 16:52:46 +0200
+
+gnome-control-center (1:3.28.1-1) unstable; urgency=medium
+
+  [ Gunnar Hjalmarsson ]
+  * d/p/0005-Show-scrollbar-on-first-Language-window-if-needed.patch:
+    - If the list of languages in the region & language panel is too long,
+      show a scroll bar.
+
+  [ Michael Biebl ]
+  * New upstream version 3.28.1
+  * Drop Build-Depends on network-manager-dev, no longer necessary
+
+ -- Michael Biebl <biebl@debian.org>  Wed, 11 Apr 2018 18:20:17 +0200
 
 gnome-control-center (1:3.28.1-0ubuntu5) cosmic; urgency=medium
 
@@ -93,6 +189,22 @@ gnome-control-center (1:3.28.1-0ubuntu1) bionic; urgency=medium
     - Fix file permissions regression introduced in meson conversion
 
  -- Jeremy Bicha <jbicha@ubuntu.com>  Mon, 16 Apr 2018 21:46:17 -0400
+
+gnome-control-center (1:3.28.0-1) unstable; urgency=medium
+
+  [ Simon McVittie ]
+  * New upstream stable release
+  * Switch Vcs-* to salsa.debian.org git
+  * d/gbp.conf: Add
+  * Refresh patches via gbp pq
+
+  [ Daniel van Vugt ]
+  * Add 0004-Expose-touchpad-settings-if-synaptics-is-in-use.patch
+    - Allow touchpad settings to work with xserver-xorg-input-synaptics
+      Note that this is unneeded on GNOME on Wayland where libinput is
+      always used. (LP: #1686081)
+
+ -- Jeremy Bicha <jbicha@debian.org>  Sun, 18 Mar 2018 20:14:00 -0400
 
 gnome-control-center (1:3.28.0-0ubuntu6) bionic; urgency=medium
 
