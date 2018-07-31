@@ -1,38 +1,33 @@
-Description: Add a new preference to lock the screen when the system suspends.
-Author: Marc Deslauriers <marc.deslauriers@canonical.com>
-Forwarded: no, likely a Ubuntu-specific preference
-Bug-Ubuntu: https://bugs.launchpad.net/bugs/938076
-
 From: Tim Lunn <tim@feathertop.org>
 Date: Mon, 3 Jun 2013 17:27:45 +1000
-Subject: [PATCH] ubuntu lock on suspend
+Subject: Add "Lock Screen on Suspend" option
 
 ---
  panels/privacy/cc-privacy-panel.c |  5 +++++
  panels/privacy/privacy.ui         | 31 +++++++++++++++++++++++++++++++
  2 files changed, 36 insertions(+)
 
-Index: gnome-control-center-3.16.2/panels/privacy/cc-privacy-panel.c
-===================================================================
---- gnome-control-center-3.16.2.orig/panels/privacy/cc-privacy-panel.c
-+++ gnome-control-center-3.16.2/panels/privacy/cc-privacy-panel.c
-@@ -377,6 +377,11 @@ add_screen_lock (CcPrivacyPanel *self)
-   g_settings_bind (self->priv->notification_settings, "show-in-lock-screen",
+diff --git a/panels/privacy/cc-privacy-panel.c b/panels/privacy/cc-privacy-panel.c
+index a477aa5..19db8cf 100644
+--- a/panels/privacy/cc-privacy-panel.c
++++ b/panels/privacy/cc-privacy-panel.c
+@@ -415,6 +415,11 @@ add_screen_lock (CcPrivacyPanel *self)
+   g_settings_bind (self->notification_settings, "show-in-lock-screen",
                     w, "active",
                     G_SETTINGS_BIND_DEFAULT);
 +
-+  w = GTK_WIDGET (gtk_builder_get_object (self->priv->builder, "screen_lock_suspend"));
-+  g_settings_bind (self->priv->lock_settings, "ubuntu-lock-on-suspend",
++  w = GTK_WIDGET (gtk_builder_get_object (self->builder, "screen_lock_suspend"));
++  g_settings_bind (self->lock_settings, "ubuntu-lock-on-suspend",
 +                   w, "active",
 +                   G_SETTINGS_BIND_DEFAULT);
  }
  
  static void
-Index: gnome-control-center-3.16.2/panels/privacy/privacy.ui
-===================================================================
---- gnome-control-center-3.16.2.orig/panels/privacy/privacy.ui
-+++ gnome-control-center-3.16.2/panels/privacy/privacy.ui
-@@ -678,6 +678,37 @@ All the information we collect is made a
+diff --git a/panels/privacy/privacy.ui b/panels/privacy/privacy.ui
+index c15b653..3dc6cea 100644
+--- a/panels/privacy/privacy.ui
++++ b/panels/privacy/privacy.ui
+@@ -703,6 +703,37 @@ All the information we collect is made anonymous, and we will never share your d
                  <property name="height">1</property>
                </packing>
              </child>

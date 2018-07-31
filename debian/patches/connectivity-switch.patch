@@ -1,4 +1,3 @@
-From d74cab0971600a6ac721d895e11e812ab5cd011a Mon Sep 17 00:00:00 2001
 From: James Henstridge <james@jamesh.id.au>
 Date: Wed, 9 Aug 2017 22:30:21 +0800
 Subject: [PATCH] panels/privacy: add network connectivity checking toggle
@@ -13,25 +12,27 @@ is supported.
 
 https://bugzilla.gnome.org/show_bug.cgi?id=737362
 ---
- panels/privacy/cc-privacy-panel.c | 75 ++++++++++++++++++++++++++++++++++
+ panels/privacy/cc-privacy-panel.c | 76 ++++++++++++++++++++++++++++++++++
  panels/privacy/meson.build        |  7 +++-
  panels/privacy/privacy.ui         | 86 +++++++++++++++++++++++++++++++++++++++
- 3 files changed, 167 insertions(+), 1 deletion(-)
+ 3 files changed, 168 insertions(+), 1 deletion(-)
 
 diff --git a/panels/privacy/cc-privacy-panel.c b/panels/privacy/cc-privacy-panel.c
-index 428dafef7..86755ba16 100644
+index 19db8cf..5d49b80 100644
 --- a/panels/privacy/cc-privacy-panel.c
 +++ b/panels/privacy/cc-privacy-panel.c
-@@ -18,6 +18,8 @@
+@@ -18,14 +18,22 @@
   * Author: Matthias Clasen <mclasen@redhat.com>
   */
  
 +#include <config.h>
 +
- #include "shell/list-box-helper.h"
+ #include "shell/cc-object-storage.h"
+ #include "list-box-helper.h"
++
  #include "cc-privacy-panel.h"
  #include "cc-privacy-resources.h"
-@@ -25,6 +27,11 @@
+ #include "cc-util.h"
  
  #include <gio/gdesktopappinfo.h>
  #include <glib/gi18n.h>
@@ -41,9 +42,9 @@ index 428dafef7..86755ba16 100644
 +typedef struct _NMClient NMClient;
 +#endif
  
- CC_PANEL_REGISTER (CcPrivacyPanel, cc_privacy_panel)
+ #define WID(s) GTK_WIDGET (gtk_builder_get_object (self->builder, s))
  
-@@ -75,6 +82,10 @@ struct _CcPrivacyPanelPrivate
+@@ -76,6 +84,10 @@ struct _CcPrivacyPanel
    GHashTable *location_app_switches;
  
    GtkSizeGroup *location_icon_size_group;
@@ -53,8 +54,8 @@ index 428dafef7..86755ba16 100644
 +  GtkWidget *connectivity_check_row;
  };
  
- static char *
-@@ -1242,6 +1253,66 @@ add_abrt (CcPrivacyPanel *self)
+ CC_PANEL_REGISTER (CcPrivacyPanel, cc_privacy_panel)
+@@ -1243,6 +1255,66 @@ add_abrt (CcPrivacyPanel *self)
                                                  NULL);
  }
  
@@ -89,22 +90,22 @@ index 428dafef7..86755ba16 100644
 +  GtkWidget *w;
 +  GtkWidget *dialog;
 +
-+  self->priv->nm_client = nm_client_new (NULL, NULL);
-+  if (!self->priv->nm_client)
++  self->nm_client = nm_client_new (NULL, NULL);
++  if (!self->nm_client)
 +    return;
 +
-+  w = get_connectivity_check_label (self->priv->nm_client);
-+  self->priv->connectivity_check_row = add_row (self, _("Connectivity Checking"), "connectivity_check_dialog", w);
-+  g_object_bind_property (self->priv->nm_client, NM_CLIENT_CONNECTIVITY_CHECK_AVAILABLE,
-+                          self->priv->connectivity_check_row, "visible",
++  w = get_connectivity_check_label (self->nm_client);
++  self->connectivity_check_row = add_row (self, _("Connectivity Checking"), "connectivity_check_dialog", w);
++  g_object_bind_property (self->nm_client, NM_CLIENT_CONNECTIVITY_CHECK_AVAILABLE,
++                          self->connectivity_check_row, "visible",
 +                          G_BINDING_SYNC_CREATE);
 +
-+  dialog = self->priv->connectivity_check_dialog;
++  dialog = self->connectivity_check_dialog;
 +  g_signal_connect (dialog, "delete-event",
 +                    G_CALLBACK (gtk_widget_hide_on_delete), NULL);
 +
-+  w = GTK_WIDGET (gtk_builder_get_object (self->priv->builder, "connectivity_check_switch"));
-+  g_object_bind_property (self->priv->nm_client, NM_CLIENT_CONNECTIVITY_CHECK_ENABLED,
++  w = GTK_WIDGET (gtk_builder_get_object (self->builder, "connectivity_check_switch"));
++  g_object_bind_property (self->nm_client, NM_CLIENT_CONNECTIVITY_CHECK_ENABLED,
 +                          w, "active",
 +                          G_BINDING_BIDIRECTIONAL | G_BINDING_SYNC_CREATE);
 +}
@@ -121,33 +122,33 @@ index 428dafef7..86755ba16 100644
  static void
  cc_privacy_panel_finalize (GObject *object)
  {
-@@ -1273,6 +1344,8 @@ cc_privacy_panel_finalize (GObject *object)
-   g_clear_pointer (&priv->location_apps_perms, g_variant_unref);
-   g_clear_pointer (&priv->location_apps_data, g_variant_unref);
-   g_clear_pointer (&priv->location_app_switches, g_hash_table_unref);
-+  g_clear_object (&priv->nm_client);
-+  g_clear_pointer (&priv->connectivity_check_dialog, gtk_widget_destroy);
+@@ -1274,6 +1346,8 @@ cc_privacy_panel_finalize (GObject *object)
+   g_clear_pointer (&self->location_apps_perms, g_variant_unref);
+   g_clear_pointer (&self->location_apps_data, g_variant_unref);
+   g_clear_pointer (&self->location_app_switches, g_hash_table_unref);
++  g_clear_object (&self->nm_client);
++  g_clear_pointer (&self->connectivity_check_dialog, gtk_widget_destroy);
  
    G_OBJECT_CLASS (cc_privacy_panel_parent_class)->finalize (object);
  }
-@@ -1338,6 +1411,7 @@ cc_privacy_panel_init (CcPrivacyPanel *self)
-   self->priv->trash_dialog = GTK_WIDGET (gtk_builder_get_object (self->priv->builder, "trash_dialog"));
-   self->priv->software_dialog = GTK_WIDGET (gtk_builder_get_object (self->priv->builder, "software_dialog"));
-   self->priv->abrt_dialog = GTK_WIDGET (gtk_builder_get_object (self->priv->builder, "abrt_dialog"));
-+  self->priv->connectivity_check_dialog = GTK_WIDGET (gtk_builder_get_object (self->priv->builder, "connectivity_check_dialog"));
+@@ -1338,6 +1412,7 @@ cc_privacy_panel_init (CcPrivacyPanel *self)
+   self->trash_dialog = GTK_WIDGET (gtk_builder_get_object (self->builder, "trash_dialog"));
+   self->software_dialog = GTK_WIDGET (gtk_builder_get_object (self->builder, "software_dialog"));
+   self->abrt_dialog = GTK_WIDGET (gtk_builder_get_object (self->builder, "abrt_dialog"));
++  self->connectivity_check_dialog = GTK_WIDGET (gtk_builder_get_object (self->builder, "connectivity_check_dialog"));
  
    frame = WID ("frame");
    widget = gtk_list_box_new ();
-@@ -1372,6 +1446,7 @@ cc_privacy_panel_init (CcPrivacyPanel *self)
+@@ -1372,6 +1447,7 @@ cc_privacy_panel_init (CcPrivacyPanel *self)
    add_trash_temp (self);
    add_software (self);
    add_abrt (self);
 +  add_connectivity_check (self);
  
-   g_signal_connect (self->priv->lockdown_settings, "changed",
+   g_signal_connect (self->lockdown_settings, "changed",
                      G_CALLBACK (on_lockdown_settings_changed), self);
 diff --git a/panels/privacy/meson.build b/panels/privacy/meson.build
-index a929451e8..b1eec8ad5 100644
+index a929451..b1eec8a 100644
 --- a/panels/privacy/meson.build
 +++ b/panels/privacy/meson.build
 @@ -29,12 +29,17 @@ sources += gnome.compile_resources(
@@ -170,10 +171,10 @@ index a929451e8..b1eec8ad5 100644
    c_args: cflags
  )
 diff --git a/panels/privacy/privacy.ui b/panels/privacy/privacy.ui
-index c15b653b6..731f89605 100644
+index 3dc6cea..65754a4 100644
 --- a/panels/privacy/privacy.ui
 +++ b/panels/privacy/privacy.ui
-@@ -1059,4 +1059,90 @@ All the information we collect is made anonymous, and we will never share your d
+@@ -1090,4 +1090,90 @@ All the information we collect is made anonymous, and we will never share your d
      </child>
    </object>
  
@@ -264,5 +265,3 @@ index c15b653b6..731f89605 100644
 +  </object>
 +
  </interface>
--- 
-2.15.1

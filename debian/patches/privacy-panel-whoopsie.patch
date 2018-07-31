@@ -3,18 +3,18 @@ Date: Thu, 14 Sep 2017 10:58:16 +0800
 Subject: [PATCH] panels/privacy: add Whoopsie support to privacy panel
 
 ---
- meson.build                       |   9 ++
- meson_options.txt                 |   1 +
- panels/privacy/cc-privacy-panel.c | 204 +++++++++++++++++++++++++++++++++++---
+ meson.build                       |  11 ++-
+ meson_options.txt                 |   3 +-
+ panels/privacy/cc-privacy-panel.c | 200 +++++++++++++++++++++++++++++++++++---
  panels/privacy/meson.build        |   3 +
  panels/privacy/privacy.ui         |  86 +++++++++++++++-
- 5 files changed, 288 insertions(+), 15 deletions(-)
+ 5 files changed, 286 insertions(+), 17 deletions(-)
 
 diff --git a/meson.build b/meson.build
-index 90ee21c..0d1f52f 100644
+index 9885baf..41101f0 100644
 --- a/meson.build
 +++ b/meson.build
-@@ -172,6 +172,14 @@ endif
+@@ -181,6 +181,14 @@ endif
  config_h.set('HAVE_WAYLAND', enable_wayland,
               description: 'Define to 1 if Wayland is enabled')
  
@@ -29,31 +29,34 @@ index 90ee21c..0d1f52f 100644
  if host_is_linux
    # network manager
    network_manager_deps = [
-@@ -268,6 +276,7 @@ output += '** IBus (Region panel IBus support): ' + enable_ibus.to_string() + '\
- output += '** NetworkManager (Network panel): ' + host_is_linux.to_string() + '\n'
- output += '** wacom (Wacom tablet panel): ' + host_is_linux_not_s390.to_string() + '\n'
- output += '** Wayland: ' + enable_wayland.to_string() + '\n'
-+output += '** Whoopsie: ' + enable_whoopsie.to_string() + '\n'
- output += '** gnome-session libexecdir: ' + gnome_session_libexecdir + '\n'
- output += 'End options'
- message(output)
+@@ -281,5 +289,6 @@ output += '     IBus (Region panel IBus support) ........... ' + enable_ibus.to_
+ output += '     NetworkManager (Network panel) ............. ' + host_is_linux.to_string() + '\n'
+ output += '     Wacom (Wacom tablet panel) ................. ' + host_is_linux_not_s390.to_string() + '\n'
+ output += '     Wayland .................................... ' + enable_wayland.to_string() + '\n'
++output += '     Whoopsie  .................................. ' + enable_whoopsie.to_string() + '\n'
+ 
+-message(output)
+\ No newline at end of file
++message(output)
 diff --git a/meson_options.txt b/meson_options.txt
-index 7498af4..acf69f5 100644
+index a347168..ce462a7 100644
 --- a/meson_options.txt
 +++ b/meson_options.txt
-@@ -2,4 +2,5 @@ option('cheese', type: 'boolean', value: true, description: 'build with cheese w
- option('documentation', type: 'boolean', value: false, description: 'build documentation')
+@@ -3,4 +3,5 @@ option('documentation', type: 'boolean', value: false, description: 'build docum
  option('gnome_session_libexecdir', type: 'string', value: '', description: 'Directory for gnome-session\'s libexecdir')
  option('ibus', type: 'boolean', value: true, description: 'build with IBus support')
+ option('tracing', type: 'boolean', value: false, description: 'add extra debugging information')
+-option('wayland', type: 'boolean', value: true, description: 'build with Wayland support')
+\ No newline at end of file
++option('wayland', type: 'boolean', value: true, description: 'build with Wayland support')
 +option('whoopsie', type: 'boolean', value: false, description: 'build with Whoopsie support')
- option('wayland', type: 'boolean', value: true, description: 'build with Wayland support')
 diff --git a/panels/privacy/cc-privacy-panel.c b/panels/privacy/cc-privacy-panel.c
-index 9cc604b..602bcf0 100644
+index 5d49b80..9cbba92 100644
 --- a/panels/privacy/cc-privacy-panel.c
 +++ b/panels/privacy/cc-privacy-panel.c
-@@ -33,6 +33,12 @@
- typedef struct _NMClient NMClient;
- #endif
+@@ -37,6 +37,12 @@ typedef struct _NMClient NMClient;
+ 
+ #define WID(s) GTK_WIDGET (gtk_builder_get_object (self->builder, s))
  
 +#ifdef HAVE_WHOOPSIE
 +#  include <whoopsie-preferences/libwhoopsie-preferences.h>
@@ -61,10 +64,10 @@ index 9cc604b..602bcf0 100644
 +typedef struct _WhoopsiePreferences WhoopsiePreferences;
 +#endif
 +
- CC_PANEL_REGISTER (CcPrivacyPanel, cc_privacy_panel)
- 
- #define WID(s) GTK_WIDGET (gtk_builder_get_object (self->priv->builder, s))
-@@ -71,7 +77,13 @@ struct _CcPrivacyPanelPrivate
+ #define REMEMBER_RECENT_FILES "remember-recent-files"
+ #define RECENT_FILES_MAX_AGE "recent-files-max-age"
+ #define REMOVE_OLD_TRASH_FILES "remove-old-trash-files"
+@@ -73,7 +79,13 @@ struct _CcPrivacyPanel
  
    GtkWidget  *abrt_dialog;
    GtkWidget  *abrt_row;
@@ -78,8 +81,8 @@ index 9cc604b..602bcf0 100644
  
    GCancellable *cancellable;
  
-@@ -1210,25 +1222,129 @@ abrt_vanished_cb (GDBusConnection *connection,
-   gtk_widget_hide (self->priv->abrt_row);
+@@ -1207,25 +1219,129 @@ abrt_vanished_cb (GDBusConnection *connection,
+   gtk_widget_hide (self->abrt_row);
  }
  
 +#ifdef HAVE_WHOOPSIE
@@ -95,22 +98,22 @@ index 9cc604b..602bcf0 100644
 +
 +  if (report_crashes)
 +    {
-+      gtk_label_set_text (GTK_LABEL (self->priv->abrt_status),
++      gtk_label_set_text (GTK_LABEL (self->abrt_status),
 +                          automatically_report ? _("Automatic") : _("Manual"));
-+      gtk_widget_set_sensitive (self->priv->whoopsie_error_autoreport_radio, TRUE);
-+      gtk_widget_set_sensitive (self->priv->whoopsie_error_manualreport_radio, TRUE);
++      gtk_widget_set_sensitive (self->whoopsie_error_autoreport_radio, TRUE);
++      gtk_widget_set_sensitive (self->whoopsie_error_manualreport_radio, TRUE);
 +    } else {
-+      gtk_label_set_text (GTK_LABEL (self->priv->abrt_status), _("Never"));
-+      gtk_widget_set_sensitive (self->priv->whoopsie_error_autoreport_radio, FALSE);
-+      gtk_widget_set_sensitive (self->priv->whoopsie_error_manualreport_radio, FALSE);
++      gtk_label_set_text (GTK_LABEL (self->abrt_status), _("Never"));
++      gtk_widget_set_sensitive (self->whoopsie_error_autoreport_radio, FALSE);
++      gtk_widget_set_sensitive (self->whoopsie_error_manualreport_radio, FALSE);
 +    }
 +
-+  gtk_switch_set_state (GTK_SWITCH (self->priv->whoopsie_error_report_switch), report_crashes);
++  gtk_switch_set_state (GTK_SWITCH (self->whoopsie_error_report_switch), report_crashes);
 +  if (automatically_report)
 +    {
-+      gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (self->priv->whoopsie_error_autoreport_radio), TRUE);
++      gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (self->whoopsie_error_autoreport_radio), TRUE);
 +    } else {
-+      gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (self->priv->whoopsie_error_manualreport_radio), TRUE);
++      gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (self->whoopsie_error_manualreport_radio), TRUE);
 +    }
 +}
 +
@@ -138,10 +141,10 @@ index 9cc604b..602bcf0 100644
 +  CcPrivacyPanel *self = user_data;
 +  gboolean old_report_crashes;
 +
-+  old_report_crashes = whoopsie_preferences_get_report_crashes (self->priv->whoopsie);
++  old_report_crashes = whoopsie_preferences_get_report_crashes (self->whoopsie);
 +  if (state != old_report_crashes)
 +    {
-+      whoopsie_preferences_call_set_report_crashes (self->priv->whoopsie,
++      whoopsie_preferences_call_set_report_crashes (self->whoopsie,
 +                                                    state, NULL,
 +                                                    whoopsie_set_report_crashes_done,
 +                                                    NULL);
@@ -176,10 +179,10 @@ index 9cc604b..602bcf0 100644
 +
 +  automatically_report = gtk_toggle_button_get_active (button);
 +
-+  old_report_mode = whoopsie_preferences_get_automatically_report_crashes (self->priv->whoopsie);
++  old_report_mode = whoopsie_preferences_get_automatically_report_crashes (self->whoopsie);
 +  if (automatically_report != old_report_mode )
 +    {
-+      whoopsie_preferences_call_set_automatically_report_crashes (self->priv->whoopsie,
++      whoopsie_preferences_call_set_automatically_report_crashes (self->whoopsie,
 +                                                    automatically_report, NULL,
 +                                                    whoopsie_set_report_crashes_mode_done,
 +                                                    NULL);
@@ -197,29 +200,29 @@ index 9cc604b..602bcf0 100644
    char *os_name, *url, *msg;
 +  GError *error = NULL;
  
--  w = get_abrt_label (self->priv->privacy_settings, REPORT_TECHNICAL_PROBLEMS);
--  self->priv->abrt_row = add_row (self, _("Problem Reporting"), "abrt_dialog", w);
-+  self->priv->abrt_status = gtk_label_new ("");
-+  self->priv->abrt_row = add_row (self, _("Problem Reporting"), "abrt_dialog", self->priv->abrt_status);
-   gtk_widget_hide (self->priv->abrt_row);
+-  w = get_abrt_label (self->privacy_settings, REPORT_TECHNICAL_PROBLEMS);
+-  self->abrt_row = add_row (self, _("Problem Reporting"), "abrt_dialog", w);
++  self->abrt_status = gtk_label_new ("");
++  self->abrt_row = add_row (self, _("Problem Reporting"), "abrt_dialog", self->abrt_status);
+   gtk_widget_hide (self->abrt_row);
  
-   dialog = self->priv->abrt_dialog;
+   dialog = self->abrt_dialog;
    g_signal_connect (dialog, "delete-event",
                      G_CALLBACK (gtk_widget_hide_on_delete), NULL);
  
--  w = GTK_WIDGET (gtk_builder_get_object (self->priv->builder, "abrt_switch"));
--  g_settings_bind (self->priv->privacy_settings, REPORT_TECHNICAL_PROBLEMS,
+-  w = GTK_WIDGET (gtk_builder_get_object (self->builder, "abrt_switch"));
+-  g_settings_bind (self->privacy_settings, REPORT_TECHNICAL_PROBLEMS,
 -                   w, "active",
 -                   G_SETTINGS_BIND_DEFAULT);
-+  self->priv->abrt_switch = GTK_WIDGET (gtk_builder_get_object (self->priv->builder, "abrt_switch"));
++  self->abrt_switch = GTK_WIDGET (gtk_builder_get_object (self->builder, "abrt_switch"));
  
    os_name = get_os_name ();
    /* translators: '%s' is the distributor's name, such as 'Fedora' */
-@@ -1249,13 +1365,69 @@ add_abrt (CcPrivacyPanel *self)
-   gtk_label_set_markup (GTK_LABEL (gtk_builder_get_object (self->priv->builder, "abrt_policy_linklabel")), msg);
+@@ -1246,13 +1362,69 @@ add_abrt (CcPrivacyPanel *self)
+   gtk_label_set_markup (GTK_LABEL (gtk_builder_get_object (self->builder, "abrt_policy_linklabel")), msg);
    g_free (msg);
  
--  self->priv->abrt_watch_id = g_bus_watch_name (G_BUS_TYPE_SYSTEM,
+-  self->abrt_watch_id = g_bus_watch_name (G_BUS_TYPE_SYSTEM,
 -                                                "org.freedesktop.problems.daemon",
 -                                                G_BUS_NAME_WATCHER_FLAGS_NONE,
 -                                                abrt_appeared_cb,
@@ -228,37 +231,37 @@ index 9cc604b..602bcf0 100644
 -                                                NULL);
 +#ifdef HAVE_WHOOPSIE
 +  /* check for whoopsie */
-+  self->priv->whoopsie = whoopsie_preferences_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
-+                                                                      G_DBUS_PROXY_FLAGS_NONE,
-+                                                                      "com.ubuntu.WhoopsiePreferences",
-+                                                                      "/com/ubuntu/WhoopsiePreferences",
-+                                                                      NULL, &error);
++  self->whoopsie = whoopsie_preferences_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
++                                                                G_DBUS_PROXY_FLAGS_NONE,
++                                                                "com.ubuntu.WhoopsiePreferences",
++                                                                "/com/ubuntu/WhoopsiePreferences",
++                                                                NULL, &error);
 +
-+  if (self->priv->whoopsie)
++  if (self->whoopsie)
 +    {
 +      g_debug ("Whoopsie available");
 +
-+      GtkWidget *whoopsie_grid = GTK_WIDGET(gtk_builder_get_object(self->priv->builder, "whoopsie_grid"));
++      GtkWidget *whoopsie_grid = GTK_WIDGET(gtk_builder_get_object(self->builder, "whoopsie_grid"));
 +      gtk_widget_set_visible (whoopsie_grid, TRUE);
-+      GtkWidget *abrt_grid = GTK_WIDGET(gtk_builder_get_object(self->priv->builder, "abrt_grid"));
++      GtkWidget *abrt_grid = GTK_WIDGET(gtk_builder_get_object(self->builder, "abrt_grid"));
 +      gtk_widget_set_visible (abrt_grid, FALSE);
 +      g_clear_object (&whoopsie_grid);
 +      g_clear_object (&abrt_grid);
 +
-+      self->priv->whoopsie_error_report_switch = GTK_WIDGET(gtk_builder_get_object(self->priv->builder, "whoopsie_error_report_switch"));
-+      self->priv->whoopsie_error_autoreport_radio = GTK_WIDGET(gtk_builder_get_object(self->priv->builder, "whoopsie_error_autoreport_radio"));
-+      self->priv->whoopsie_error_manualreport_radio = GTK_WIDGET(gtk_builder_get_object(self->priv->builder, "whoopsie_error_manualreport_radio"));
++      self->whoopsie_error_report_switch = GTK_WIDGET(gtk_builder_get_object(self->builder, "whoopsie_error_report_switch"));
++      self->whoopsie_error_autoreport_radio = GTK_WIDGET(gtk_builder_get_object(self->builder, "whoopsie_error_autoreport_radio"));
++      self->whoopsie_error_manualreport_radio = GTK_WIDGET(gtk_builder_get_object(self->builder, "whoopsie_error_manualreport_radio"));
 +
-+      g_signal_connect (self->priv->whoopsie, "g-properties-changed",
++      g_signal_connect (self->whoopsie, "g-properties-changed",
 +                        G_CALLBACK (whoopsie_properties_changed), self);
-+      whoopsie_properties_changed (self->priv->whoopsie, NULL, NULL, self);
++      whoopsie_properties_changed (self->whoopsie, NULL, NULL, self);
 +
-+      g_signal_connect (self->priv->whoopsie_error_report_switch, "state-set",
++      g_signal_connect (self->whoopsie_error_report_switch, "state-set",
 +                        G_CALLBACK (whoopsie_error_report_switch_state_set), self);
-+      g_signal_connect (self->priv->whoopsie_error_autoreport_radio, "toggled",
++      g_signal_connect (self->whoopsie_error_autoreport_radio, "toggled",
 +                        G_CALLBACK (whoopsie_error_autoreport_mode_toggle_cb), self);
 +
-+      gtk_widget_show (self->priv->abrt_row);
++      gtk_widget_show (self->abrt_row);
 +    }
 +  else
 +#endif
@@ -269,19 +272,19 @@ index 9cc604b..602bcf0 100644
 +          g_error_free (error);
 +        }
 +
-+      g_settings_bind_with_mapping (self->priv->privacy_settings,
++      g_settings_bind_with_mapping (self->privacy_settings,
 +                                    REPORT_TECHNICAL_PROBLEMS,
-+                                    self->priv->abrt_status, "label",
++                                    self->abrt_status, "label",
 +                                    G_SETTINGS_BIND_GET,
 +                                    abrt_label_mapping_get,
 +                                    NULL,
 +                                    NULL,
 +                                    NULL);
-+      g_settings_bind (self->priv->privacy_settings, REPORT_TECHNICAL_PROBLEMS,
-+                       self->priv->abrt_switch, "active",
++      g_settings_bind (self->privacy_settings, REPORT_TECHNICAL_PROBLEMS,
++                       self->abrt_switch, "active",
 +                       G_SETTINGS_BIND_DEFAULT);
 +
-+      self->priv->abrt_watch_id = g_bus_watch_name (G_BUS_TYPE_SYSTEM,
++      self->abrt_watch_id = g_bus_watch_name (G_BUS_TYPE_SYSTEM,
 +                                                    "org.freedesktop.problems.daemon",
 +                                                    G_BUS_NAME_WATCHER_FLAGS_NONE,
 +                                                    abrt_appeared_cb,
@@ -292,17 +295,6 @@ index 9cc604b..602bcf0 100644
  }
  
  #if defined(BUILD_NETWORK) && NM_CHECK_VERSION(1,10,0)
-@@ -1346,6 +1518,10 @@ cc_privacy_panel_finalize (GObject *object)
-   g_clear_object (&priv->cancellable);
-   g_clear_object (&priv->perm_store);
-   g_clear_object (&priv->location_icon_size_group);
-+  g_clear_object (&priv->whoopsie);
-+  g_clear_object (&priv->whoopsie_error_report_switch);
-+  g_clear_object (&priv->whoopsie_error_autoreport_radio);
-+  g_clear_object (&priv->whoopsie_error_manualreport_radio);
-   g_clear_pointer (&priv->location_apps_perms, g_variant_unref);
-   g_clear_pointer (&priv->location_apps_data, g_variant_unref);
-   g_clear_pointer (&priv->location_app_switches, g_hash_table_unref);
 diff --git a/panels/privacy/meson.build b/panels/privacy/meson.build
 index b1eec8a..3215b79 100644
 --- a/panels/privacy/meson.build
@@ -318,7 +310,7 @@ index b1eec8a..3215b79 100644
  cflags += '-DGNOMELOCALEDIR="@0@"'.format(control_center_localedir)
  
 diff --git a/panels/privacy/privacy.ui b/panels/privacy/privacy.ui
-index 65754a4..6cbc427 100644
+index 65754a4..ee3a827 100644
 --- a/panels/privacy/privacy.ui
 +++ b/panels/privacy/privacy.ui
 @@ -1039,7 +1039,7 @@ All the information we collect is made anonymous, and we will never share your d

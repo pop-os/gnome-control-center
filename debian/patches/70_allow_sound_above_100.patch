@@ -1,27 +1,34 @@
-Description: Allow volume to bet set above 100%.
- Some systems have low maximum volume set (like x220), allow, from an option
- in gnome-control-center to set it above that 100% limit from g-s-d
- (keyboard) and gnome-shell.
- Only show the above 100% volume option if:
- 1. you are in an ubuntu session
- 2. the selected output supports amplified volume. If so:
-    present the settings to google that on and off. It will enable
-    GNOME Shell and media keys to set the sound above 100%. If not
-    enabled, volume and sliders are all capped to 100%. (LP: #1706524)
- Modified from original patch in unity-control-center from Lars Uebernickel.
+From: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Date: Tue, 31 Jul 2018 04:44:12 +0100
+Subject: Allow volume to bet set above 100%.
+
+Some systems have low maximum volume set (like x220), allow, from an option
+in gnome-control-center to set it above that 100% limit from g-s-d
+(keyboard) and gnome-shell.
+Only show the above 100% volume option if:
+1. you are in an ubuntu session
+2. the selected output supports amplified volume. If so:
+   present the settings to google that on and off. It will enable
+   GNOME Shell and media keys to set the sound above 100%. If not
+   enabled, volume and sliders are all capped to 100%. (LP: #1706524)
+Modified from original patch in unity-control-center from Lars Uebernickel.
 Origin: ubuntu
 Bug-Ubuntu: https://launchpad.net/bugs/1706524
 Bug: https://bugzilla.gnome.org/show_bug.cgi?id=710424
+---
+ panels/sound/gvc-mixer-dialog.c | 134 ++++++++++++++++++++++++++++++++++++++--
+ panels/sound/meson.build        |   2 +-
+ 2 files changed, 131 insertions(+), 5 deletions(-)
 
-Index: gnome-control-center-3.28.1/panels/sound/gvc-mixer-dialog.c
-===================================================================
---- gnome-control-center-3.28.1.orig/panels/sound/gvc-mixer-dialog.c
-+++ gnome-control-center-3.28.1/panels/sound/gvc-mixer-dialog.c
+diff --git a/panels/sound/gvc-mixer-dialog.c b/panels/sound/gvc-mixer-dialog.c
+index e3e1efc..acd6972 100644
+--- a/panels/sound/gvc-mixer-dialog.c
++++ b/panels/sound/gvc-mixer-dialog.c
 @@ -44,9 +44,14 @@
  #include "gvc-speaker-test.h"
  #include "gvc-mixer-control-private.h"
  
-+#include "shell/list-box-helper.h"
++#include "list-box-helper.h"
 +
  #define KEY_SOUNDS_SCHEMA "org.gnome.desktop.sound"
  #define SCALE_SIZE 128
@@ -41,7 +48,7 @@ Index: gnome-control-center-3.28.1/panels/sound/gvc-mixer-dialog.c
  
          GSettings       *settings;
          gboolean         allow_volume_above_100_percent;
-@@ -189,11 +196,17 @@ update_output_settings (GvcMixerDialog
+@@ -189,11 +196,17 @@ update_output_settings (GvcMixerDialog      *dialog,
                  return;
          }
  
@@ -60,7 +67,7 @@ Index: gnome-control-center-3.28.1/panels/sound/gvc-mixer-dialog.c
  
  	/* Update the adjustment in case the previous bar wasn't decibel
  	 * capable, and we clipped it */
-@@ -1581,6 +1594,37 @@ on_test_speakers_clicked (GvcComboBox *w
+@@ -1581,6 +1594,37 @@ on_test_speakers_clicked (GvcComboBox *widget,
          gtk_widget_destroy (d);
  }
  
@@ -98,7 +105,7 @@ Index: gnome-control-center-3.28.1/panels/sound/gvc-mixer-dialog.c
  static GObject *
  gvc_mixer_dialog_constructor (GType                  type,
                                guint                  n_construct_properties,
-@@ -1592,8 +1636,12 @@ gvc_mixer_dialog_constructor (GType
+@@ -1592,8 +1636,12 @@ gvc_mixer_dialog_constructor (GType                  type,
          GtkWidget        *label;
          GtkWidget        *sw;
          GtkWidget        *box;
@@ -111,7 +118,7 @@ Index: gnome-control-center-3.28.1/panels/sound/gvc-mixer-dialog.c
          GSList           *streams;
          GSList           *l;
          GvcMixerStream   *stream;
-@@ -1609,9 +1657,30 @@ gvc_mixer_dialog_constructor (GType
+@@ -1609,9 +1657,30 @@ gvc_mixer_dialog_constructor (GType                  type,
  
          self->output_stream_box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 12);
          gtk_widget_set_margin_top (self->output_stream_box, 12);
@@ -145,7 +152,7 @@ Index: gnome-control-center-3.28.1/panels/sound/gvc-mixer-dialog.c
          self->output_bar = create_bar (self, TRUE, TRUE);
          gvc_channel_bar_set_name (GVC_CHANNEL_BAR (self->output_bar),
                                    _("_Output volume:"));
-@@ -1619,6 +1688,50 @@ gvc_mixer_dialog_constructor (GType
+@@ -1619,6 +1688,50 @@ gvc_mixer_dialog_constructor (GType                  type,
          gtk_box_pack_start (GTK_BOX (self->output_stream_box),
                              self->output_bar, TRUE, TRUE, 12);
  
@@ -196,7 +203,7 @@ Index: gnome-control-center-3.28.1/panels/sound/gvc-mixer-dialog.c
          self->notebook = gtk_notebook_new ();
          gtk_box_pack_start (GTK_BOX (main_vbox),
                              self->notebook,
-@@ -1921,6 +2034,18 @@ gvc_mixer_dialog_init (GvcMixerDialog *d
+@@ -1921,6 +2034,18 @@ gvc_mixer_dialog_init (GvcMixerDialog *dialog)
          dialog->bars = g_hash_table_new (NULL, NULL);
          dialog->size_group = gtk_size_group_new (GTK_SIZE_GROUP_HORIZONTAL);
  
@@ -215,7 +222,7 @@ Index: gnome-control-center-3.28.1/panels/sound/gvc-mixer-dialog.c
          dialog->settings = g_settings_new (KEY_SOUNDS_SCHEMA);
          g_signal_connect (dialog->settings, "changed::allow-volume-above-100-percent",
                            G_CALLBACK (allow_volume_above_100_percent_cb), dialog);
-@@ -1939,6 +2064,7 @@ gvc_mixer_dialog_finalize (GObject *obje
+@@ -1939,6 +2064,7 @@ gvc_mixer_dialog_finalize (GObject *object)
          mixer_dialog = GVC_MIXER_DIALOG (object);
  
          g_return_if_fail (mixer_dialog != NULL);
@@ -223,3 +230,16 @@ Index: gnome-control-center-3.28.1/panels/sound/gvc-mixer-dialog.c
          g_clear_object (&mixer_dialog->settings);
          G_OBJECT_CLASS (gvc_mixer_dialog_parent_class)->finalize (object);
  }
+diff --git a/panels/sound/meson.build b/panels/sound/meson.build
+index 5a3bc9a..eed88d4 100644
+--- a/panels/sound/meson.build
++++ b/panels/sound/meson.build
+@@ -57,7 +57,7 @@ sources = files(
+ panels_libs += static_library(
+   cappletname,
+   sources: sources,
+-  include_directories: top_inc,
++  include_directories: [ top_inc, common_inc ],
+   dependencies: deps,
+   c_args: cflags,
+   link_with: libgvcgtk

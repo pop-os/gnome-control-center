@@ -1,27 +1,36 @@
-Description: Allow tweaking some settings for Ubuntu Dock
- Expose some of the settings that most users will find useful for our
- Ubuntu Dock installation. Those are located in its own panel for now:
- * change intellihide true/hide mode
- * change dock icon size
- * modify placement of the launcher (all monitor, primary or any monitors)
+From: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Date: Tue, 31 Jul 2018 04:44:12 +0100
+Subject: Allow tweaking some settings for Ubuntu Dock
+
+Expose some of the settings that most users will find useful for our
+Ubuntu Dock installation. Those are located in its own panel for now:
+* change intellihide true/hide mode
+* change dock icon size
+* modify placement of the launcher (all monitor, primary or any monitors)
 Origin: ubuntu
-Author: didrocks@ubuntu.com
 Forwarded: not-needed
-
 ---
- panels/meson.build                             |    1 
- panels/ubuntu/cc-ubuntu-panel.c                |  442 +++++++++++++++++++++++++
- panels/ubuntu/cc-ubuntu-panel.h                |   39 ++
- panels/ubuntu/gnome-ubuntu-panel.desktop.in.in |   16 
- panels/ubuntu/meson.build                      |   40 ++
- panels/ubuntu/ubuntu.gresource.xml             |    6 
- panels/ubuntu/ubuntu.ui                        |  100 +++++
- po/POTFILES.in                                 |    3 
- shell/cc-panel-list.c                          |    1 
- shell/cc-panel-loader.c                        |    2 
- shell/window.ui                                |    2 
- 11 files changed, 652 insertions(+), 1 deletion(-)
+ panels/meson.build                             |   1 +
+ panels/ubuntu/cc-ubuntu-panel.c                | 442 +++++++++++++++++++++++++
+ panels/ubuntu/cc-ubuntu-panel.h                |  39 +++
+ panels/ubuntu/gnome-ubuntu-panel.desktop.in.in |  16 +
+ panels/ubuntu/meson.build                      |  40 +++
+ panels/ubuntu/ubuntu.gresource.xml             |   6 +
+ panels/ubuntu/ubuntu.ui                        | 100 ++++++
+ po/POTFILES.in                                 |   3 +
+ shell/cc-panel-list.c                          |   1 +
+ shell/cc-panel-loader.c                        |   2 +
+ shell/window.ui                                |   2 +-
+ 11 files changed, 651 insertions(+), 1 deletion(-)
+ create mode 100644 panels/ubuntu/cc-ubuntu-panel.c
+ create mode 100644 panels/ubuntu/cc-ubuntu-panel.h
+ create mode 100644 panels/ubuntu/gnome-ubuntu-panel.desktop.in.in
+ create mode 100644 panels/ubuntu/meson.build
+ create mode 100644 panels/ubuntu/ubuntu.gresource.xml
+ create mode 100644 panels/ubuntu/ubuntu.ui
 
+diff --git a/panels/meson.build b/panels/meson.build
+index 37a3436..5df8d14 100644
 --- a/panels/meson.build
 +++ b/panels/meson.build
 @@ -17,6 +17,7 @@ panels = [
@@ -32,6 +41,9 @@ Forwarded: not-needed
    'universal-access',
    'user-accounts'
  ]
+diff --git a/panels/ubuntu/cc-ubuntu-panel.c b/panels/ubuntu/cc-ubuntu-panel.c
+new file mode 100644
+index 0000000..6904178
 --- /dev/null
 +++ b/panels/ubuntu/cc-ubuntu-panel.c
 @@ -0,0 +1,442 @@
@@ -62,7 +74,7 @@ Forwarded: not-needed
 +#include <gio/gio.h>
 +#include <gio/gdesktopappinfo.h>
 +
-+#include "shell/list-box-helper.h"
++#include "list-box-helper.h"
 +#include "cc-ubuntu-panel.h"
 +#include "cc-ubuntu-resources.h"
 +
@@ -477,6 +489,9 @@ Forwarded: not-needed
 +  object_class->dispose = cc_ubuntu_panel_dispose;
 +  object_class->finalize = cc_ubuntu_panel_finalize;
 +}
+diff --git a/panels/ubuntu/cc-ubuntu-panel.h b/panels/ubuntu/cc-ubuntu-panel.h
+new file mode 100644
+index 0000000..9d10767
 --- /dev/null
 +++ b/panels/ubuntu/cc-ubuntu-panel.h
 @@ -0,0 +1,39 @@
@@ -519,6 +534,9 @@ Forwarded: not-needed
 +G_END_DECLS
 +
 +#endif /* _CC_EDIT_DIALOG_H_ */
+diff --git a/panels/ubuntu/gnome-ubuntu-panel.desktop.in.in b/panels/ubuntu/gnome-ubuntu-panel.desktop.in.in
+new file mode 100644
+index 0000000..76bc608
 --- /dev/null
 +++ b/panels/ubuntu/gnome-ubuntu-panel.desktop.in.in
 @@ -0,0 +1,16 @@
@@ -538,6 +556,9 @@ Forwarded: not-needed
 +X-GNOME-Bugzilla-Version=@VERSION@
 +# Translators: those are keywords for the ubuntu control-center panel
 +Keywords=Dock;Launcher;
+diff --git a/panels/ubuntu/meson.build b/panels/ubuntu/meson.build
+new file mode 100644
+index 0000000..9190ef1
 --- /dev/null
 +++ b/panels/ubuntu/meson.build
 @@ -0,0 +1,40 @@
@@ -581,6 +602,9 @@ Forwarded: not-needed
 +  dependencies: common_deps,
 +  c_args: cflags
 +)
+diff --git a/panels/ubuntu/ubuntu.gresource.xml b/panels/ubuntu/ubuntu.gresource.xml
+new file mode 100644
+index 0000000..4c91793
 --- /dev/null
 +++ b/panels/ubuntu/ubuntu.gresource.xml
 @@ -0,0 +1,6 @@
@@ -590,6 +614,9 @@ Forwarded: not-needed
 +    <file preprocess="xml-stripblanks">ubuntu.ui</file>
 +  </gresource>
 +</gresources>
+diff --git a/panels/ubuntu/ubuntu.ui b/panels/ubuntu/ubuntu.ui
+new file mode 100644
+index 0000000..d00c838
 --- /dev/null
 +++ b/panels/ubuntu/ubuntu.ui
 @@ -0,0 +1,100 @@
@@ -693,21 +720,25 @@ Forwarded: not-needed
 +    </child>
 +  </object>
 +</interface>
+diff --git a/po/POTFILES.in b/po/POTFILES.in
+index c52dff8..18d5d09 100644
 --- a/po/POTFILES.in
 +++ b/po/POTFILES.in
-@@ -183,6 +183,9 @@ panels/sound/gvc-mixer-dialog.c
- panels/sound/gvc-sound-theme-chooser.c
- panels/sound/gvc-speaker-test.c
- panels/sound/sound-theme-file-utils.c
+@@ -189,6 +189,9 @@ panels/thunderbolt/cc-bolt-device-entry.c
+ panels/thunderbolt/cc-bolt-panel.c
+ panels/thunderbolt/cc-bolt-panel.ui
+ panels/thunderbolt/gnome-thunderbolt-panel.desktop.in.in
 +panels/ubuntu/cc-ubuntu-panel.c
 +panels/ubuntu/gnome-ubuntu-panel.desktop.in.in
 +panels/ubuntu/ubuntu.ui
  panels/universal-access/cc-ua-panel.c
  panels/universal-access/gnome-universal-access-panel.desktop.in.in
  panels/universal-access/uap.ui
+diff --git a/shell/cc-panel-list.c b/shell/cc-panel-list.c
+index 2c0c708..6ab9c15 100644
 --- a/shell/cc-panel-list.c
 +++ b/shell/cc-panel-list.c
-@@ -277,6 +277,7 @@ static const gchar * const panel_order[]
+@@ -329,6 +329,7 @@ static const gchar * const panel_order[] = {
    "mobile-broadband",
    "bluetooth",
    "background",
@@ -715,24 +746,28 @@ Forwarded: not-needed
    "notifications",
    "search",
    "region",
+diff --git a/shell/cc-panel-loader.c b/shell/cc-panel-loader.c
+index 6b5c6e3..f01a0b5 100644
 --- a/shell/cc-panel-loader.c
 +++ b/shell/cc-panel-loader.c
-@@ -55,6 +55,7 @@ extern GType cc_search_panel_get_type (v
- extern GType cc_sharing_panel_get_type (void);
- extern GType cc_sound_panel_get_type (void);
+@@ -59,6 +59,7 @@ extern GType cc_sound_panel_get_type (void);
+ extern GType cc_bolt_panel_get_type (void);
+ #endif /* BUILD_THUNDERBOLT */
  extern GType cc_ua_panel_get_type (void);
 +extern GType cc_ubuntu_panel_get_type(void);
  extern GType cc_user_panel_get_type (void);
  #ifdef BUILD_WACOM
  extern GType cc_wacom_panel_get_type (void);
-@@ -99,6 +100,7 @@ static struct {
-   PANEL_TYPE("search",           cc_search_panel_get_type       ),
-   PANEL_TYPE("sharing",          cc_sharing_panel_get_type      ),
-   PANEL_TYPE("sound",            cc_sound_panel_get_type        ),
-+  PANEL_TYPE("ubuntu",           cc_ubuntu_panel_get_type       ),
-   PANEL_TYPE("universal-access", cc_ua_panel_get_type           ),
-   PANEL_TYPE("user-accounts",    cc_user_panel_get_type         ),
- #ifdef BUILD_WACOM
+@@ -112,6 +113,7 @@ static struct {
+   PANEL_TYPE("search",           cc_search_panel_get_type,               NULL),
+   PANEL_TYPE("sharing",          cc_sharing_panel_get_type,              NULL),
+   PANEL_TYPE("sound",            cc_sound_panel_get_type,                NULL),
++  PANEL_TYPE("ubuntu",           cc_ubuntu_panel_get_type,               NULL),
+ #ifdef BUILD_THUNDERBOLT
+   PANEL_TYPE("thunderbolt",      cc_bolt_panel_get_type,                 NULL),
+ #endif
+diff --git a/shell/window.ui b/shell/window.ui
+index eca04a9..84da945 100644
 --- a/shell/window.ui
 +++ b/shell/window.ui
 @@ -5,7 +5,7 @@
