@@ -36,11 +36,6 @@ struct _GsdX11DeviceManager
 	GHashTable *gdk_devices;
 };
 
-struct _GsdX11DeviceManagerClass
-{
-	GsdDeviceManagerClass parent_class;
-};
-
 GsdDevice  * gsd_x11_device_manager_lookup_gdk_device (GsdDeviceManager *manager,
 						       GdkDevice	*gdk_device);
 
@@ -149,15 +144,14 @@ static void
 init_devices (GsdX11DeviceManager *manager,
 	      GdkDeviceType	   device_type)
 {
-	GList *devices, *l;
+	g_autoptr(GList) devices = NULL;
+	GList *l;
 
 	devices = gdk_device_manager_list_devices (manager->device_manager,
 						   device_type);
 
 	for (l = devices; l; l = l->next)
 		add_device (manager, l->data);
-
-	g_list_free (devices);
 }
 
 static void

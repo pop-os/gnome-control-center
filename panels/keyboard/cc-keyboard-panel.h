@@ -19,20 +19,16 @@
  */
 
 
-#ifndef _CC_KEYBOARD_PANEL_H
-#define _CC_KEYBOARD_PANEL_H
+#pragma once
 
 #include <shell/cc-panel.h>
 #include <gtk/gtk.h>
 
 G_BEGIN_DECLS
 
-#define CC_TYPE_KEYBOARD_PANEL (cc_keyboard_panel_get_type())
-
+#define CC_TYPE_KEYBOARD_PANEL (cc_keyboard_panel_get_type ())
 G_DECLARE_FINAL_TYPE (CcKeyboardPanel, cc_keyboard_panel, CC, KEYBOARD_PANEL, CcPanel)
 
 CcKeyboardItem*      cc_keyboard_panel_create_custom_item        (CcKeyboardPanel    *self);
 
 G_END_DECLS
-
-#endif /* _CC_KEYBOARD_PANEL_H */

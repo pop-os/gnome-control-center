@@ -506,6 +506,20 @@ authenticate_samba_server (GtkButton *button,
     }
 }
 
+static gboolean
+stack_key_press_cb (GtkWidget *widget,
+                    GdkEvent  *event,
+                    gpointer   user_data)
+{
+  PpNewPrinterDialog        *dialog = (PpNewPrinterDialog *) user_data;
+  PpNewPrinterDialogPrivate *priv = dialog->priv;
+
+  gtk_widget_grab_focus (WID ("search-entry"));
+  gtk_main_do_event (event);
+
+  return TRUE;
+}
+
 static void
 pp_new_printer_dialog_init (PpNewPrinterDialog *dialog)
 {
@@ -556,6 +570,8 @@ pp_new_printer_dialog_init (PpNewPrinterDialog *dialog)
   widget = WID ("unlock-button");
   g_signal_connect (widget, "clicked", G_CALLBACK (authenticate_samba_server), dialog);
 
+  g_signal_connect (WID ("stack"), "key-press-event", G_CALLBACK (stack_key_press_cb), dialog);
+
   /* Authentication form widgets */
   g_signal_connect (WID ("username-entry"), "changed", G_CALLBACK (auth_entries_changed), dialog);
   g_signal_connect (WID ("password-entry"), "changed", G_CALLBACK (auth_entries_changed), dialog);
@@ -602,6 +618,8 @@ pp_new_printer_dialog_finalize (GObject *object)
     }
 
   g_clear_pointer (&priv->dialog, gtk_widget_destroy);
+
+  g_clear_pointer (&priv->list, ppd_list_free);
 
   if (priv->builder)
     g_clear_object (&priv->builder);
@@ -1557,11 +1575,8 @@ search_for_remote_printers (THostSearchData *data)
 {
   PpNewPrinterDialogPrivate *priv = data->dialog->priv;
 
-  if (priv->remote_host_cancellable != NULL)
-    {
-      g_cancellable_cancel (priv->remote_host_cancellable);
-      g_clear_object (&priv->remote_host_cancellable);
-    }
+  g_cancellable_cancel (priv->remote_host_cancellable);
+  g_clear_object (&priv->remote_host_cancellable);
 
   priv->remote_host_cancellable = g_cancellable_new ();
 
