@@ -1,17 +1,15 @@
-From 4ddd4652a96c214f9df2b46a74f2ce8ead586643 Mon Sep 17 00:00:00 2001
 From: Jeremy Bicha <jbicha@ubuntu.com>
 Date: Thu, 14 Sep 2017 09:23:42 -0400
 Subject: [PATCH] region: Add Language Selector button
 
 Workaround for https://launchpad.net/bugs/1631750
-
 ---
  panels/region/cc-region-panel.c | 30 ++++++++++++++++++++++++++++++
  panels/region/region.ui         | 26 ++++++++++++++++++++++++++
  2 files changed, 56 insertions(+)
 
 diff --git a/panels/region/cc-region-panel.c b/panels/region/cc-region-panel.c
-index bdac8a81c..6ebbe7dd1 100644
+index 04a1854..23bf3a9 100644
 --- a/panels/region/cc-region-panel.c
 +++ b/panels/region/cc-region-panel.c
 @@ -110,6 +110,7 @@ struct _CcRegionPanel {
@@ -22,7 +20,7 @@ index bdac8a81c..6ebbe7dd1 100644
  
          GSettings *input_settings;
          GnomeXkbInfo *xkb_info;
-@@ -1219,6 +1220,33 @@ show_selected_settings (CcRegionPanel *self)
+@@ -1277,6 +1278,33 @@ show_selected_settings (CcRegionPanel *self)
                  g_warning ("Failed to launch input source setup: %s", error->message);
  }
  
@@ -56,7 +54,7 @@ index bdac8a81c..6ebbe7dd1 100644
  static void
  show_selected_layout (CcRegionPanel *self)
  {
-@@ -1662,6 +1690,7 @@ cc_region_panel_class_init (CcRegionPanelClass * klass)
+@@ -1739,6 +1767,7 @@ cc_region_panel_class_init (CcRegionPanelClass * klass)
          gtk_widget_class_bind_template_child (widget_class, CcRegionPanel, restart_button);
          gtk_widget_class_bind_template_child (widget_class, CcRegionPanel, login_label);
          gtk_widget_class_bind_template_child (widget_class, CcRegionPanel, language_list);
@@ -64,7 +62,7 @@ index bdac8a81c..6ebbe7dd1 100644
  
          gtk_widget_class_bind_template_callback (widget_class, restart_now);
          gtk_widget_class_bind_template_callback (widget_class, show_input_options);
-@@ -1671,6 +1700,7 @@ cc_region_panel_class_init (CcRegionPanelClass * klass)
+@@ -1748,6 +1777,7 @@ cc_region_panel_class_init (CcRegionPanelClass * klass)
          gtk_widget_class_bind_template_callback (widget_class, move_selected_input_down);
          gtk_widget_class_bind_template_callback (widget_class, show_selected_settings);
          gtk_widget_class_bind_template_callback (widget_class, show_selected_layout);
@@ -73,7 +71,7 @@ index bdac8a81c..6ebbe7dd1 100644
  
  static void
 diff --git a/panels/region/region.ui b/panels/region/region.ui
-index db3aff58a..d4f473833 100644
+index db3aff5..d4f4738 100644
 --- a/panels/region/region.ui
 +++ b/panels/region/region.ui
 @@ -546,6 +546,32 @@
@@ -109,5 +107,3 @@ index db3aff58a..d4f473833 100644
            </object>
          </child>
        </object>
--- 
-2.17.1
