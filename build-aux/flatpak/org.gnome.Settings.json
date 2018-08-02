@@ -1,7 +1,7 @@
 {
     "app-id" : "org.gnome.Settings",
     "runtime" : "org.gnome.Platform",
-    "runtime-version" : "3.28",
+    "runtime-version" : "master",
     "sdk" : "org.gnome.Sdk",
     "command" : "gnome-control-center",
     "rename-desktop-file" : "gnome-control-center.desktop",
@@ -201,6 +201,9 @@
         {
             "name" : "gnome-online-accounts",
             "buildsystem" : "autotools",
+            "build-options" : {
+                "cflags" : "-Wno-error"
+            },
             "config-opts" : [
                 "--disable-telepathy",
                 "--disable-documentation"
@@ -302,7 +305,9 @@
             "sources" : [
                 {
                     "type" : "git",
-                    "url" : "git://anongit.freedesktop.org/NetworkManager/NetworkManager"
+                    "tag" : "1.12.0",
+                    "commit" : "8964dbe8bc9cbe7300a48bffe86faee6b149fbf2",
+                    "url" : "https://gitlab.freedesktop.org/NetworkManager/NetworkManager.git"
                 }
             ]
         },
@@ -392,6 +397,28 @@
                     "type" : "archive",
                     "url" : "https://www.openldap.org/software/download/OpenLDAP/openldap-release/openldap-2.4.46.tgz",
                     "sha256" : "9a90dcb86b99ae790ccab93b7585a31fbcbeec8c94bf0f7ab0ca0a87ea0c4b2d"
+                }
+            ]
+        },
+        {
+            "name" : "libtirpc",
+            "buildsystem" : "autotools",
+            "sources" : [
+                {
+                    "type" : "archive",
+                    "url" : "http://downloads.sourceforge.net/sourceforge/libtirpc/libtirpc-1.0.3.tar.bz2",
+                    "sha256" : "86c3a78fc1bddefa96111dd233124c703b22a78884203c55c3e06b3be6a0fd5e"
+                }
+            ]
+        },
+        {
+            "name" : "rpcsvc-proto",
+            "buildsystem" : "autotools",
+            "sources" : [
+                {
+                    "type" : "archive",
+                    "url" : "https://github.com/thkukuk/rpcsvc-proto/archive/v1.4.tar.gz",
+                    "sha256" : "eaa227686b84e8ae20181d2119c0ccac29d82371441844008019a134dafe3613"
                 }
             ]
         },
