@@ -126,7 +126,7 @@ index 9357c3e..4add980 100644
  static char *
  get_lang_for_user_object_path (const char *path)
  {
-@@ -201,10 +261,13 @@ insert_language (GHashTable *ht,
+@@ -201,30 +261,64 @@
          g_autofree gchar *label_own_lang = NULL;
          g_autofree gchar *label_current_lang = NULL;
          g_autofree gchar *label_untranslated = NULL;
@@ -143,10 +143,19 @@ index 9357c3e..4add980 100644
  
          /* We don't have a translation for the label in
           * its own language? */
-@@ -218,13 +281,44 @@ insert_language (GHashTable *ht,
-         }
- }
- 
+         if (g_strcmp0 (label_own_lang, label_untranslated) == 0) {
+                 if (g_strcmp0 (label_current_lang, label_untranslated) == 0)
+-                        g_hash_table_insert (ht, g_strdup (lang), g_strdup (label_untranslated));
++                        g_hash_table_insert (ht, g_strdup (key), g_strdup (label_untranslated));
+                 else
+-                        g_hash_table_insert (ht, g_strdup (lang), g_strdup (label_current_lang));
++                        g_hash_table_insert (ht, g_strdup (key), g_strdup (label_current_lang));
+         } else {
+-                g_hash_table_insert (ht, g_strdup (lang), g_strdup (label_own_lang));
++                g_hash_table_insert (ht, g_strdup (key), g_strdup (label_own_lang));
++        }
++}
++
 +gchar **
 +cc_common_language_get_installed_languages (void)
 +{
@@ -159,13 +168,13 @@ index 9357c3e..4add980 100644
 +                g_warning ("Couldn't get installed languages: %s", error->message);
 +                g_error_free (error);
 +                return NULL;
-+        }
+         }
 +        langs = g_strsplit (output, "\n", 0);
 +
 +        g_free(output);
 +        return langs;
-+}
-+
+ }
+ 
  GHashTable *
  cc_common_language_get_initial_languages (void)
  {
