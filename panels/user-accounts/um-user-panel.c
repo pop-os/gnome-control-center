@@ -837,10 +837,6 @@ show_user (ActUser *user, CcUserPanel *self)
 
         name = NULL;
         lang = g_strdup (act_user_get_language (user));
-        if ((!lang || *lang == '\0') && act_user_get_uid (user) == getuid ()) {
-                lang = cc_common_language_get_current_language ();
-                act_user_set_language (user, lang);
-        }
 
         if (lang && *lang != '\0') {
                 name = gnome_get_language_from_locale (lang, NULL);
@@ -1489,7 +1485,7 @@ cc_user_panel_dispose (GObject *object)
                 gtk_dialog_response (GTK_DIALOG (self->account_dialog), GTK_RESPONSE_DELETE_EVENT);
                 self->account_dialog = NULL;
         }
-        g_clear_pointer (&self->language_chooser, gtk_widget_destroy);
+        g_clear_pointer ((GtkWidget **)&self->language_chooser, gtk_widget_destroy);
         g_clear_object (&self->permission);
         G_OBJECT_CLASS (cc_user_panel_parent_class)->dispose (object);
 }

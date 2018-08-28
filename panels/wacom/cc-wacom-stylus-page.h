@@ -18,54 +18,15 @@
  *          Bastien Nocera <hadess@hadess.net>
  */
 
-
-#ifndef _CC_WACOM_STYLUS_PAGE_H
-#define _CC_WACOM_STYLUS_PAGE_H
+#pragma once
 
 #include <gtk/gtk.h>
 #include "cc-wacom-tool.h"
 
 G_BEGIN_DECLS
 
-#define CC_TYPE_WACOM_STYLUS_PAGE cc_wacom_stylus_page_get_type()
-
-#define CC_WACOM_STYLUS_PAGE(obj) \
-  (G_TYPE_CHECK_INSTANCE_CAST ((obj), \
-  CC_TYPE_WACOM_STYLUS_PAGE, CcWacomStylusPage))
-
-#define CC_WACOM_STYLUS_PAGE_CLASS(klass) \
-  (G_TYPE_CHECK_CLASS_CAST ((klass), \
-  CC_TYPE_WACOM_STYLUS_PAGE, CcWacomStylusPageClass))
-
-#define CC_IS_WACOM_STYLUS_PAGE(obj) \
-  (G_TYPE_CHECK_INSTANCE_TYPE ((obj), \
-  CC_TYPE_WACOM_STYLUS_PAGE))
-
-#define CC_IS_WACOM_STYLUS_PAGE_CLASS(klass) \
-  (G_TYPE_CHECK_CLASS_TYPE ((klass), \
-  CC_TYPE_WACOM_STYLUS_PAGE))
-
-#define CC_WACOM_STYLUS_PAGE_GET_CLASS(obj) \
-  (G_TYPE_INSTANCE_GET_CLASS ((obj), \
-  CC_TYPE_WACOM_STYLUS_PAGE, CcWacomStylusPageClass))
-
-typedef struct _CcWacomStylusPage CcWacomStylusPage;
-typedef struct _CcWacomStylusPageClass CcWacomStylusPageClass;
-typedef struct _CcWacomStylusPagePrivate CcWacomStylusPagePrivate;
-
-struct _CcWacomStylusPage
-{
-  GtkBox parent;
-
-  CcWacomStylusPagePrivate *priv;
-};
-
-struct _CcWacomStylusPageClass
-{
-  GtkBoxClass parent_class;
-};
-
-GType cc_wacom_stylus_page_get_type (void) G_GNUC_CONST;
+#define CC_TYPE_WACOM_STYLUS_PAGE (cc_wacom_stylus_page_get_type ())
+G_DECLARE_FINAL_TYPE (CcWacomStylusPage, cc_wacom_stylus_page, CC, WACOM_STYLUS_PAGE, GtkBox)
 
 GtkWidget * cc_wacom_stylus_page_new (CcWacomTool *stylus);
 
@@ -75,5 +36,3 @@ void cc_wacom_stylus_page_set_navigation (CcWacomStylusPage *page,
 					  GtkNotebook *notebook);
 
 G_END_DECLS
-
-#endif /* _CC_WACOM_STYLUS_PAGE_H */
