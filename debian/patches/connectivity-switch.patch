@@ -17,22 +17,20 @@ https://bugzilla.gnome.org/show_bug.cgi?id=737362
  panels/privacy/privacy.ui         | 86 +++++++++++++++++++++++++++++++++++++++
  3 files changed, 168 insertions(+), 1 deletion(-)
 
-diff --git a/panels/privacy/cc-privacy-panel.c b/panels/privacy/cc-privacy-panel.c
-index 19db8cf..5d49b80 100644
---- a/panels/privacy/cc-privacy-panel.c
-+++ b/panels/privacy/cc-privacy-panel.c
-@@ -18,14 +18,22 @@
+Index: gnome-control-center-3.29.92/panels/privacy/cc-privacy-panel.c
+===================================================================
+--- gnome-control-center-3.29.92.orig/panels/privacy/cc-privacy-panel.c
++++ gnome-control-center-3.29.92/panels/privacy/cc-privacy-panel.c
+@@ -18,6 +18,8 @@
   * Author: Matthias Clasen <mclasen@redhat.com>
   */
  
 +#include <config.h>
 +
- #include "shell/cc-object-storage.h"
  #include "list-box-helper.h"
-+
  #include "cc-privacy-panel.h"
  #include "cc-privacy-resources.h"
- #include "cc-util.h"
+@@ -25,6 +27,11 @@
  
  #include <gio/gdesktopappinfo.h>
  #include <glib/gi18n.h>
@@ -44,7 +42,7 @@ index 19db8cf..5d49b80 100644
  
  #define WID(s) GTK_WIDGET (gtk_builder_get_object (self->builder, s))
  
-@@ -76,6 +84,10 @@ struct _CcPrivacyPanel
+@@ -75,6 +82,10 @@ struct _CcPrivacyPanel
    GHashTable *location_app_switches;
  
    GtkSizeGroup *location_icon_size_group;
@@ -55,7 +53,7 @@ index 19db8cf..5d49b80 100644
  };
  
  CC_PANEL_REGISTER (CcPrivacyPanel, cc_privacy_panel)
-@@ -1243,6 +1255,66 @@ add_abrt (CcPrivacyPanel *self)
+@@ -1244,6 +1255,66 @@ add_abrt (CcPrivacyPanel *self)
                                                  NULL);
  }
  
@@ -122,7 +120,7 @@ index 19db8cf..5d49b80 100644
  static void
  cc_privacy_panel_finalize (GObject *object)
  {
-@@ -1274,6 +1346,8 @@ cc_privacy_panel_finalize (GObject *object)
+@@ -1275,6 +1346,8 @@ cc_privacy_panel_finalize (GObject *obje
    g_clear_pointer (&self->location_apps_perms, g_variant_unref);
    g_clear_pointer (&self->location_apps_data, g_variant_unref);
    g_clear_pointer (&self->location_app_switches, g_hash_table_unref);
@@ -131,7 +129,7 @@ index 19db8cf..5d49b80 100644
  
    G_OBJECT_CLASS (cc_privacy_panel_parent_class)->finalize (object);
  }
-@@ -1338,6 +1412,7 @@ cc_privacy_panel_init (CcPrivacyPanel *self)
+@@ -1339,6 +1412,7 @@ cc_privacy_panel_init (CcPrivacyPanel *s
    self->trash_dialog = GTK_WIDGET (gtk_builder_get_object (self->builder, "trash_dialog"));
    self->software_dialog = GTK_WIDGET (gtk_builder_get_object (self->builder, "software_dialog"));
    self->abrt_dialog = GTK_WIDGET (gtk_builder_get_object (self->builder, "abrt_dialog"));
@@ -139,7 +137,7 @@ index 19db8cf..5d49b80 100644
  
    frame = WID ("frame");
    widget = gtk_list_box_new ();
-@@ -1372,6 +1447,7 @@ cc_privacy_panel_init (CcPrivacyPanel *self)
+@@ -1373,6 +1447,7 @@ cc_privacy_panel_init (CcPrivacyPanel *s
    add_trash_temp (self);
    add_software (self);
    add_abrt (self);
@@ -147,10 +145,10 @@ index 19db8cf..5d49b80 100644
  
    g_signal_connect (self->lockdown_settings, "changed",
                      G_CALLBACK (on_lockdown_settings_changed), self);
-diff --git a/panels/privacy/meson.build b/panels/privacy/meson.build
-index a929451..b1eec8a 100644
---- a/panels/privacy/meson.build
-+++ b/panels/privacy/meson.build
+Index: gnome-control-center-3.29.92/panels/privacy/meson.build
+===================================================================
+--- gnome-control-center-3.29.92.orig/panels/privacy/meson.build
++++ gnome-control-center-3.29.92/panels/privacy/meson.build
 @@ -29,12 +29,17 @@ sources += gnome.compile_resources(
    export: true
  )
@@ -170,11 +168,11 @@ index a929451..b1eec8a 100644
 +  dependencies: deps,
    c_args: cflags
  )
-diff --git a/panels/privacy/privacy.ui b/panels/privacy/privacy.ui
-index 3dc6cea..65754a4 100644
---- a/panels/privacy/privacy.ui
-+++ b/panels/privacy/privacy.ui
-@@ -1090,4 +1090,90 @@ All the information we collect is made anonymous, and we will never share your d
+Index: gnome-control-center-3.29.92/panels/privacy/privacy.ui
+===================================================================
+--- gnome-control-center-3.29.92.orig/panels/privacy/privacy.ui
++++ gnome-control-center-3.29.92/panels/privacy/privacy.ui
+@@ -1090,4 +1090,90 @@ All the information we collect is made a
      </child>
    </object>
  
