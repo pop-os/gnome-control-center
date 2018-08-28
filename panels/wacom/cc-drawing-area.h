@@ -17,21 +17,15 @@
  * Author: Carlos Garnacho <carlosg@gnome.org>
  */
 
-#ifndef _CC_DRAWING_AREA_H
-#define _CC_DRAWING_AREA_H
+#pragma once
 
 #include <gtk/gtk.h>
 
 G_BEGIN_DECLS
 
-#define CC_TYPE_DRAWING_AREA cc_drawing_area_get_type()
-
+#define CC_TYPE_DRAWING_AREA (cc_drawing_area_get_type ())
 G_DECLARE_FINAL_TYPE (CcDrawingArea, cc_drawing_area, CC, DRAWING_AREA, GtkEventBox)
 
-GType      cc_drawing_area_get_type (void) G_GNUC_CONST;
-
-GtkWidget *cc_drawing_area_new      (void);
+GtkWidget *cc_drawing_area_new (void);
 
 G_END_DECLS
-
-#endif /* _CC_DRAWING_AREA_H */

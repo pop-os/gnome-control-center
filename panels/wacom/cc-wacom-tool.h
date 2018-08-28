@@ -18,8 +18,7 @@
  *
  */
 
-#ifndef __CC_WACOM_TOOL_H__
-#define __CC_WACOM_TOOL_H__
+#pragma once
 
 #include "config.h"
 #include "gsd-device-manager.h"
@@ -27,7 +26,6 @@
 #include <glib.h>
 
 #define CC_TYPE_WACOM_TOOL (cc_wacom_tool_get_type ())
-
 G_DECLARE_FINAL_TYPE (CcWacomTool, cc_wacom_tool, CC, WACOM_TOOL, GObject)
 
 CcWacomTool   * cc_wacom_tool_new             (guint64        serial,
@@ -44,5 +42,3 @@ GSettings     * cc_wacom_tool_get_settings    (CcWacomTool   *tool);
 
 guint           cc_wacom_tool_get_num_buttons (CcWacomTool   *tool);
 gboolean        cc_wacom_tool_get_has_eraser  (CcWacomTool   *tool);
-
-#endif /* __CC_WACOM_TOOL_H__ */

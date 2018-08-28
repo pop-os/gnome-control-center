@@ -17,8 +17,8 @@
  * Authors: Carlos Garnacho <carlosg@gnome.org>
  *
  */
-#ifndef __CC_WACOM_DEVICE_H__
-#define __CC_WACOM_DEVICE_H__
+
+#pragma once
 
 #include "config.h"
 #include <glib-object.h>
@@ -30,7 +30,6 @@
 #include <libgnome-desktop/gnome-rr.h>
 
 #define CC_TYPE_WACOM_DEVICE (cc_wacom_device_get_type ())
-
 G_DECLARE_FINAL_TYPE (CcWacomDevice, cc_wacom_device, CC, WACOM_DEVICE, GObject)
 
 WacomDeviceDatabase *
@@ -62,5 +61,3 @@ guint           cc_wacom_device_get_num_buttons (CcWacomDevice *wacom_device);
 
 GSettings     * cc_wacom_device_get_button_settings (CcWacomDevice *device,
 						     guint          button);
-
-#endif /* __CC_WACOM_DEVICE_H__ */
