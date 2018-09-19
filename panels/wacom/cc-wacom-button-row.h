@@ -17,34 +17,15 @@
  * along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __CC_WACOM_BUTTON_ROW_H__
-#define __CC_WACOM_BUTTON_ROW_H__
+#pragma once
 
 #include <gtk/gtk.h>
 #include <gdesktop-enums.h>
 
 G_BEGIN_DECLS
 
-#define CC_WACOM_TYPE_BUTTON_ROW         (cc_wacom_button_row_get_type ())
-#define CC_WACOM_BUTTON_ROW(o)           (G_TYPE_CHECK_INSTANCE_CAST ((o), CC_WACOM_TYPE_BUTTON_ROW, CcWacomButtonRow))
-#define CC_WACOM_BUTTON_ROW_CLASS(k)     (G_TYPE_CHECK_CLASS_CAST ((k), GTK_TYPE_WACOM_BUTTON_ROW, CcWacomButtonRowClass))
-#define CC_WACOM_IS_BUTTON_ROW(o)        (G_TYPE_CHECK_INSTANCE_TYPE ((o), CC_WACOM_TYPE_BUTTON_ROW))
-#define CC_WACOM_IS_BUTTON_ROW_CLASS(k)  (G_TYPE_CHECK_CLASS_TYPE ((k), CC_WACOM_TYPE_BUTTON_ROW))
-#define CC_WACOM_BUTTON_ROW_GET_CLASS(o) (G_TYPE_INSTANCE_GET_CLASS ((o), CC_WACOM_TYPE_BUTTON_ROW, CcWacomButtonRowClass))
-
-typedef struct _CcWacomButtonRow        CcWacomButtonRow;
-typedef struct _CcWacomButtonRowClass   CcWacomButtonRowClass;
-typedef struct _CcWacomButtonRowPrivate CcWacomButtonRowPrivate;
-
-struct _CcWacomButtonRow {
-  GtkListBoxRow parent;
-
-  CcWacomButtonRowPrivate *priv;
-};
-
-struct _CcWacomButtonRowClass {
-  GtkListBoxRowClass parent_class;
-};
+#define CC_WACOM_TYPE_BUTTON_ROW (cc_wacom_button_row_get_type ())
+G_DECLARE_FINAL_TYPE (CcWacomButtonRow, cc_wacom_button_row, CC, WACOM_BUTTON_ROW, GtkListBoxRow)
 
 static struct {
   GDesktopPadButtonAction  action_type;
@@ -56,11 +37,7 @@ static struct {
   { G_DESKTOP_PAD_BUTTON_ACTION_HELP, NC_("Wacom action-type", "Show On-Screen Help") }
 };
 
-GType       cc_wacom_button_row_get_type (void);
-
 GtkWidget * cc_wacom_button_row_new      (guint      button,
                                           GSettings *settings);
 
 G_END_DECLS
-
-#endif /* __CC_WACOM_PAGE_H__ */

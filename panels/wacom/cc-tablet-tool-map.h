@@ -18,8 +18,7 @@
  *
  */
 
-#ifndef __CC_TABLET_TOOL_MAP_H__
-#define __CC_TABLET_TOOL_MAP_H__
+#pragma once
 
 #include "config.h"
 #include <gtk/gtk.h>
@@ -29,7 +28,6 @@
 G_BEGIN_DECLS
 
 #define CC_TYPE_TABLET_TOOL_MAP (cc_tablet_tool_map_get_type ())
-
 G_DECLARE_FINAL_TYPE (CcTabletToolMap, cc_tablet_tool_map, CC, TABLET_TOOL_MAP, GObject)
 
 CcTabletToolMap * cc_tablet_tool_map_new        (void);
@@ -44,5 +42,3 @@ void              cc_tablet_tool_map_add_relation (CcTabletToolMap *map,
 						   CcWacomTool     *tool);
 
 G_END_DECLS
-
-#endif /* __CC_TABLET_TOOL_MAP_H__ */
