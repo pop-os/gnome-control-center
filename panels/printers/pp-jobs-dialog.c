@@ -31,7 +31,7 @@
 
 #include <cups/cups.h>
 
-#include "shell/list-box-helper.h"
+#include "list-box-helper.h"
 #include "pp-jobs-dialog.h"
 #include "pp-utils.h"
 #include "pp-job.h"
@@ -422,11 +422,8 @@ update_jobs_list (PpJobsDialog *dialog)
 
   if (dialog->printer_name != NULL)
     {
-      if (dialog->get_jobs_cancellable != NULL)
-        {
-          g_cancellable_cancel (dialog->get_jobs_cancellable);
-          g_clear_object (&dialog->get_jobs_cancellable);
-        }
+      g_cancellable_cancel (dialog->get_jobs_cancellable);
+      g_clear_object (&dialog->get_jobs_cancellable);
 
       dialog->get_jobs_cancellable = g_cancellable_new ();
 
@@ -664,11 +661,8 @@ pp_jobs_dialog_set_callback (PpJobsDialog         *dialog,
 void
 pp_jobs_dialog_free (PpJobsDialog *dialog)
 {
-  if (dialog->get_jobs_cancellable != NULL)
-    {
-      g_cancellable_cancel (dialog->get_jobs_cancellable);
-      g_clear_object (&dialog->get_jobs_cancellable);
-    }
+  g_cancellable_cancel (dialog->get_jobs_cancellable);
+  g_clear_object (&dialog->get_jobs_cancellable);
 
   gtk_widget_destroy (GTK_WIDGET (dialog->dialog));
   dialog->dialog = NULL;

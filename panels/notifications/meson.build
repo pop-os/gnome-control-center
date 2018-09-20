@@ -19,11 +19,11 @@ i18n.merge_file(
 
 sources = files(
   'cc-notifications-panel.c',
-  'cc-edit-dialog.c'
+  'cc-app-notifications-dialog.c'
 )
 
 resource_data = files(
-  'edit-dialog.ui',
+  'cc-app-notifications-dialog.ui',
   'notifications.ui'
 )
 
@@ -40,7 +40,7 @@ cflags += '-DGNOMELOCALEDIR="@0@"'.format(control_center_localedir)
 panels_libs += static_library(
   cappletname,
   sources: sources,
-  include_directories: top_inc,
+  include_directories: [ top_inc, common_inc ],
   dependencies: common_deps,
   c_args: cflags
 )

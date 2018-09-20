@@ -68,9 +68,10 @@ static void   um_account_dialog_response  (GtkDialog *dialog,
                                                                       UmAccountDialogClass))
 
 struct _UmAccountDialog {
-        GtkDialog parent;
+        GtkDialog parent_instance;
+
         GtkWidget *stack;
-        GSimpleAsyncResult *async;
+        GTask *task;
         GCancellable *cancellable;
         GPermission *permission;
         GtkSpinner *spinner;
@@ -116,10 +117,6 @@ struct _UmAccountDialog {
         GtkEntry *join_name;
         GtkEntry *join_password;
         gboolean join_prompted;
-};
-
-struct _UmAccountDialogClass {
-        GtkDialogClass parent_class;
 };
 
 G_DEFINE_TYPE (UmAccountDialog, um_account_dialog, GTK_TYPE_DIALOG);
@@ -181,14 +178,13 @@ static void
 complete_dialog (UmAccountDialog *self,
                  ActUser         *user)
 {
-        if (user != NULL) {
-                g_simple_async_result_set_op_res_gpointer (self->async,
-                                                           g_object_ref (user),
-                                                           g_object_unref);
-        }
-
-        g_simple_async_result_complete_in_idle (self->async);
         gtk_widget_hide (GTK_WIDGET (self));
+
+        if (user != NULL)
+                g_object_ref (user);
+
+        g_task_return_pointer (self->task, user, g_object_unref);
+        g_clear_object (&self->task);
 }
 
 static void
@@ -272,6 +268,7 @@ update_password_strength (UmAccountDialog *self)
         const gchar *password;
         const gchar *username;
         const gchar *hint;
+        const gchar *verify;
         gint strength_level;
 
         password = gtk_entry_get_text (GTK_ENTRY (self->local_password));
@@ -288,6 +285,11 @@ update_password_strength (UmAccountDialog *self)
                 set_entry_generation_icon (GTK_ENTRY (self->local_password));
         } else {
                 clear_entry_validation_error (GTK_ENTRY (self->local_password));
+        }
+
+        verify = gtk_entry_get_text (GTK_ENTRY (self->local_verify));
+        if (strlen (verify) == 0) {
+                gtk_widget_set_sensitive (self->local_verify, strength_level > 1);
         }
 
         return strength_level;
@@ -454,17 +456,18 @@ update_password_match (UmAccountDialog *self)
 {
         const gchar *password;
         const gchar *verify;
+        const gchar *message = "";
 
         password = gtk_entry_get_text (GTK_ENTRY (self->local_password));
         verify = gtk_entry_get_text (GTK_ENTRY (self->local_verify));
         if (strlen (verify) != 0) {
                 if (strcmp (password, verify) != 0) {
-                        gtk_label_set_label (GTK_LABEL (self->local_verify_hint), _("Passwords do not match."));
+                        message = _("The passwords do not match.");
                 } else {
-                        gtk_label_set_label (GTK_LABEL (self->local_verify_hint), "");
                         set_entry_validation_checkmark (GTK_ENTRY (self->local_verify));
                 }
         }
+        gtk_label_set_label (GTK_LABEL (self->local_verify_hint), message);
 }
 
 static void
@@ -480,6 +483,7 @@ on_generate (GtkEntry             *entry,
         gtk_entry_set_text (GTK_ENTRY (self->local_password), pwd);
         gtk_entry_set_text (GTK_ENTRY (self->local_verify), pwd);
         gtk_entry_set_visibility (GTK_ENTRY (self->local_password), TRUE);
+        gtk_widget_set_sensitive (self->local_verify, TRUE);
 
         g_free (pwd);
 }
@@ -508,6 +512,20 @@ on_password_focus_out (GtkEntry *entry,
         }
 
         local_password_timeout (self);
+
+        return FALSE;
+}
+
+static gboolean
+on_password_key_press_cb (GtkEntry *entry,
+                          GdkEvent *event,
+                          gpointer  user_data)
+{
+        UmAccountDialog *self = UM_ACCOUNT_DIALOG (user_data);
+        GdkEventKey *key = (GdkEventKey *)event;
+
+        if (key->keyval == GDK_KEY_Tab)
+               local_password_timeout (self);
 
         return FALSE;
 }
@@ -575,6 +593,7 @@ local_init (UmAccountDialog *self)
         gtk_widget_set_sensitive (self->local_password, FALSE);
         g_signal_connect (self->local_password, "notify::text", G_CALLBACK (on_password_changed), self);
         g_signal_connect_after (self->local_password, "focus-out-event", G_CALLBACK (on_password_focus_out), self);
+        g_signal_connect (self->local_password, "key-press-event", G_CALLBACK (on_password_key_press_cb), self);
         g_signal_connect_swapped (self->local_password, "activate", G_CALLBACK (dialog_validate), self);
         g_signal_connect (self->local_password, "icon-press", G_CALLBACK (on_generate), self);
 
@@ -895,7 +914,7 @@ on_join_login (GObject *source,
                 return;
         }
 
-        um_realm_login_finish (result, &creds, &error);
+        creds = um_realm_login_finish (result, &error);
 
         /* Logged in as admin successfully, use creds to join domain */
         if (error == NULL) {
@@ -1001,7 +1020,7 @@ on_realm_login (GObject *source,
                 return;
         }
 
-        um_realm_login_finish (result, &creds, &error);
+        creds = um_realm_login_finish (result, &error);
 
         /*
          * User login is valid, but cannot authenticate right now (eg: user needs
@@ -1530,7 +1549,7 @@ um_account_dialog_dispose (GObject *obj)
                 self->enterprise_domain_timeout_id = 0;
         }
 
-        g_clear_pointer (&self->join_dialog, gtk_widget_destroy);
+        g_clear_pointer ((GtkWidget **)&self->join_dialog, gtk_widget_destroy);
 
         G_OBJECT_CLASS (um_account_dialog_parent_class)->dispose (obj);
 }
@@ -1600,14 +1619,14 @@ um_account_dialog_show (UmAccountDialog     *self,
         g_return_if_fail (UM_IS_ACCOUNT_DIALOG (self));
 
         /* Make sure not already doing an operation */
-        g_return_if_fail (self->async == NULL);
-
-        self->async = g_simple_async_result_new (G_OBJECT (self), callback, user_data,
-                                                 um_account_dialog_show);
+        g_return_if_fail (self->task == NULL);
 
         if (self->cancellable)
                 g_object_unref (self->cancellable);
         self->cancellable = g_cancellable_new ();
+
+        self->task = g_task_new (G_OBJECT (self), self->cancellable, callback, user_data);
+        g_task_set_source_tag (self->task, um_account_dialog_show);
 
         g_clear_object (&self->permission);
         self->permission = permission ? g_object_ref (permission) : NULL;
@@ -1627,17 +1646,10 @@ ActUser *
 um_account_dialog_finish (UmAccountDialog     *self,
                           GAsyncResult        *result)
 {
-        ActUser *user;
-
         g_return_val_if_fail (UM_IS_ACCOUNT_DIALOG (self), NULL);
-        g_return_val_if_fail (g_simple_async_result_is_valid (result, G_OBJECT (self),
-                              um_account_dialog_show), NULL);
-        g_return_val_if_fail (result == G_ASYNC_RESULT (self->async), NULL);
+        g_return_val_if_fail (g_task_is_valid (result, G_OBJECT (self)), NULL);
+        g_return_val_if_fail (g_async_result_is_tagged (result, um_account_dialog_show), NULL);
+        g_return_val_if_fail (result == G_ASYNC_RESULT (self->task), NULL);
 
-        user = g_simple_async_result_get_op_res_gpointer (self->async);
-        if (user != NULL)
-                g_object_ref (user);
-
-        g_clear_object (&self->async);
-        return user;
+        return g_task_propagate_pointer (self->task, NULL);
 }

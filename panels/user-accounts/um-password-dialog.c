@@ -69,6 +69,7 @@ update_password_strength (UmPasswordDialog *um)
         const gchar *username;
         gint strength_level;
         const gchar *hint;
+        const gchar *verify;
 
         if (um->user == NULL) {
                 return 0;
@@ -90,6 +91,11 @@ update_password_strength (UmPasswordDialog *um)
                 set_entry_generation_icon (GTK_ENTRY (um->password_entry));
         } else {
                 clear_entry_validation_error (GTK_ENTRY (um->password_entry));
+        }
+
+        verify = gtk_entry_get_text (GTK_ENTRY (um->verify_entry));
+        if (strlen (verify) == 0) {
+                gtk_widget_set_sensitive (um->verify_entry, strength_level > 1);
         }
 
         return strength_level;
@@ -275,20 +281,20 @@ update_password_match (UmPasswordDialog *um)
 {
         const char *password;
         const char *verify;
+        const char *message = "";
 
         password = gtk_entry_get_text (GTK_ENTRY (um->password_entry));
         verify = gtk_entry_get_text (GTK_ENTRY (um->verify_entry));
 
-        if (strlen (password) > 0 && strlen (verify) > 0) {
+        if (strlen (verify) > 0) {
                 if (strcmp (password, verify) != 0) {
-                        gtk_label_set_label (GTK_LABEL (um->verify_hint),
-                                             _("The passwords do not match."));
+                        message = _("The passwords do not match.");
                 }
                 else {
-                        gtk_label_set_label (GTK_LABEL (um->verify_hint), "");
                         set_entry_validation_checkmark (GTK_ENTRY (um->verify_entry));
                 }
         }
+        gtk_label_set_label (GTK_LABEL (um->verify_hint), message);
 }
 
 static gboolean
@@ -340,6 +346,19 @@ password_entry_focus_out (GtkWidget        *entry,
         }
 
         password_entry_timeout (um);
+
+        return FALSE;
+}
+
+static gboolean
+password_key_press (GtkEntry         *entry,
+                    GdkEvent         *event,
+                    UmPasswordDialog *um)
+{
+        GdkEventKey *key = (GdkEventKey *)event;
+
+        if (key->keyval == GDK_KEY_Tab)
+               password_entry_timeout (um);
 
         return FALSE;
 }
@@ -424,6 +443,7 @@ on_generate (GtkEntry             *entry,
         gtk_entry_set_text (GTK_ENTRY (um->password_entry), pwd);
         gtk_entry_set_text (GTK_ENTRY (um->verify_entry), pwd);
         gtk_entry_set_visibility (GTK_ENTRY (um->password_entry), TRUE);
+        gtk_widget_set_sensitive (um->verify_entry, TRUE);
 
         g_free (pwd);
 }
@@ -475,6 +495,8 @@ um_password_dialog_new (void)
                           G_CALLBACK (password_entry_changed), um);
         g_signal_connect_after (widget, "focus-out-event",
                                 G_CALLBACK (password_entry_focus_out), um);
+        g_signal_connect (widget, "key-press-event",
+                          G_CALLBACK (password_key_press), um);
         g_signal_connect_swapped (widget, "activate", G_CALLBACK (password_entry_timeout), um);
         gtk_entry_set_visibility (GTK_ENTRY (widget), FALSE);
         um->password_entry = widget;

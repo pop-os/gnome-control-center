@@ -26,8 +26,9 @@
 #include <gio/gio.h>
 
 #include "cc-application.h"
+#include "cc-log.h"
+#include "cc-object-storage.h"
 #include "cc-panel-loader.h"
-#include "cc-shell-log.h"
 #include "cc-window.h"
 
 #if defined(HAVE_WACOM) || defined(HAVE_CHEESE)
@@ -38,19 +39,38 @@ struct _CcApplication
 {
   GtkApplication  parent;
 
+  CcShellModel   *model;
+
   CcWindow       *window;
 };
+
+static void cc_application_quit    (GSimpleAction *simple,
+                                    GVariant      *parameter,
+                                    gpointer       user_data);
+
+static void launch_panel_activated (GSimpleAction *action,
+                                    GVariant      *parameter,
+                                    gpointer       user_data);
+
+static void help_activated         (GSimpleAction *action,
+                                    GVariant      *parameter,
+                                    gpointer       user_data);
 
 G_DEFINE_TYPE (CcApplication, cc_application, GTK_TYPE_APPLICATION)
 
 const GOptionEntry all_options[] = {
   { "version", 0, 0, G_OPTION_ARG_NONE, NULL, N_("Display version number"), NULL },
   { "verbose", 'v', 0, G_OPTION_ARG_NONE, NULL, N_("Enable verbose mode"), NULL },
-  { "overview", 'o', 0, G_OPTION_ARG_NONE, NULL, N_("Show the overview"), NULL },
   { "search", 's', 0, G_OPTION_ARG_STRING, NULL, N_("Search for the string"), "SEARCH" },
   { "list", 'l', 0, G_OPTION_ARG_NONE, NULL, N_("List possible panel names and exit"), NULL },
   { G_OPTION_REMAINING, '\0', 0, G_OPTION_ARG_FILENAME_ARRAY, NULL, N_("Panel to display"), N_("[PANEL] [ARGUMENT…]") },
   { NULL, 0, 0, 0, NULL, NULL, NULL } /* end the list */
+};
+
+static const GActionEntry cc_app_actions[] = {
+  { "launch-panel", launch_panel_activated, "(sav)", NULL, NULL, { 0 } },
+  { "help", help_activated, NULL, NULL, NULL, { 0 } },
+  { "quit", cc_application_quit, NULL, NULL, NULL, { 0 } }
 };
 
 static void
@@ -80,19 +100,18 @@ launch_panel_activated (GSimpleAction *action,
                         gpointer       user_data)
 {
   CcApplication *self = CC_APPLICATION (user_data);
-  GError *error = NULL;
+  g_autoptr (GVariant) parameters = NULL;
+  g_autoptr (GError) error = NULL;
   gchar *panel_id;
-  GVariant *parameters;
 
   g_variant_get (parameter, "(&s@av)", &panel_id, &parameters);
+
   g_debug ("gnome-control-center: 'launch-panel' activated for panel '%s' with %"G_GSIZE_FORMAT" arguments",
-      panel_id, g_variant_n_children (parameters));
+           panel_id,
+           g_variant_n_children (parameters));
+
   if (!cc_shell_set_active_panel_from_id (CC_SHELL (self->window), panel_id, parameters, &error))
-    {
-      g_warning ("Failed to activate the '%s' panel: %s", panel_id, error->message);
-      g_error_free (error);
-    }
-  g_variant_unref (parameters);
+    g_warning ("Failed to activate the '%s' panel: %s", panel_id, error->message);
 
   /* Now present the window */
   g_application_activate (G_APPLICATION (self));
@@ -110,15 +129,14 @@ cc_application_handle_local_options (GApplication *application,
 
   if (g_variant_dict_contains (options, "list"))
     {
-      GList *panels, *l;
+      g_autoptr(GList) panels = NULL;
+      g_autoptr(GList) l = NULL;
 
       panels = cc_panel_loader_get_panels ();
 
       g_print ("%s\n", _("Available panels:"));
       for (l = panels; l != NULL; l = l->next)
         g_print ("\t%s\n", (char *) l->data);
-
-      g_list_free (panels);
 
       return 0;
     }
@@ -130,27 +148,26 @@ static int
 cc_application_command_line (GApplication            *application,
                              GApplicationCommandLine *command_line)
 {
-  CcApplication *self = CC_APPLICATION (application);
+  CcApplication *self;
+  g_autofree GStrv start_panels = NULL;
   GVariantDict *options;
   int retval = 0;
   char *search_str;
-  GStrv start_panels = NULL;
   gboolean debug;
 
+  self = CC_APPLICATION (application);
   options = g_application_command_line_get_options_dict (command_line);
 
   debug = g_variant_dict_contains (options, "verbose");
-  cc_shell_log_set_debug (debug);
+
+  if (debug)
+    cc_log_init ();
 
   gtk_window_present (GTK_WINDOW (self->window));
 
   if (g_variant_dict_lookup (options, "search", "&s", &search_str))
     {
       cc_window_set_search_item (self->window, search_str);
-    }
-  else if (g_variant_dict_contains (options, "overview"))
-    {
-      cc_window_set_overview_page (self->window);
     }
   else if (g_variant_dict_lookup (options, G_OPTION_REMAINING, "^a&ay", &start_panels))
     {
@@ -178,16 +195,11 @@ cc_application_command_line (GApplication            *application,
           g_warning ("Could not load setting panel \"%s\": %s", start_id,
                      (err) ? err->message : "Unknown error");
           retval = 1;
+
           if (err)
-            {
-              g_error_free (err);
-              err = NULL;
-            }
+            g_clear_error (&err);
         }
     }
-
-  g_free (start_panels);
-  start_panels = NULL;
 
   return retval;
 }
@@ -215,10 +227,14 @@ static void
 cc_application_startup (GApplication *application)
 {
   CcApplication *self = CC_APPLICATION (application);
-  GMenu *menu;
   GMenu *section;
-  GSimpleAction *action;
+  GMenu *menu;
   const gchar *help_accels[] = { "F1", NULL };
+
+  g_action_map_add_action_entries (G_ACTION_MAP (self),
+                                   cc_app_actions,
+                                   G_N_ELEMENTS (cc_app_actions),
+                                   self);
 
   G_APPLICATION_CLASS (cc_application_parent_class)->startup (application);
 
@@ -229,25 +245,6 @@ cc_application_startup (GApplication *application)
       return;
     }
 #endif /* HAVE_WACOM || HAVE_CHEESE */
-
-  action = g_simple_action_new ("help", NULL);
-  g_action_map_add_action (G_ACTION_MAP (application), G_ACTION (action));
-  g_signal_connect (action, "activate", G_CALLBACK (help_activated), self);
-  g_object_unref (action);
-
-  action = g_simple_action_new ("quit", NULL);
-  g_action_map_add_action (G_ACTION_MAP (application), G_ACTION (action));
-  g_signal_connect (action, "activate", G_CALLBACK (cc_application_quit), self);
-  g_object_unref (action);
-
-  /* Launch panel by id. The parameter is a (panel_id, array_of_panel_parameters)
-   * tuple. The GVariant-containing array usually is just the same array of
-   * strings that would be generated by passing panel-specific arguments on
-   * the command line. */
-  action = g_simple_action_new ("launch-panel", G_VARIANT_TYPE ("(sav)"));
-  g_action_map_add_action (G_ACTION_MAP (application), G_ACTION (action));
-  g_signal_connect (action, "activate", G_CALLBACK (launch_panel_activated), self);
-  g_object_unref (action);
 
   menu = g_menu_new ();
 
@@ -264,7 +261,17 @@ cc_application_startup (GApplication *application)
   gtk_application_set_accels_for_action (GTK_APPLICATION (application),
                                          "app.help", help_accels);
 
-  self->window = cc_window_new (GTK_APPLICATION (application));
+  self->model = cc_shell_model_new ();
+  self->window = cc_window_new (GTK_APPLICATION (application), self->model);
+}
+
+static void
+cc_application_finalize (GObject *object)
+{
+  /* Destroy the object storage cache when finalizing */
+  cc_object_storage_destroy ();
+
+  G_OBJECT_CLASS (cc_application_parent_class)->finalize (object);
 }
 
 static GObject *
@@ -292,6 +299,7 @@ cc_application_class_init (CcApplicationClass *klass)
   GObjectClass *object_class = G_OBJECT_CLASS (klass);
   GApplicationClass *application_class = G_APPLICATION_CLASS (klass);
 
+  object_class->finalize = cc_application_finalize;
   object_class->constructor = cc_application_constructor;
   application_class->activate = cc_application_activate;
   application_class->startup = cc_application_startup;
@@ -302,6 +310,8 @@ cc_application_class_init (CcApplicationClass *klass)
 static void
 cc_application_init (CcApplication *self)
 {
+  cc_object_storage_initialize ();
+
   g_application_add_main_option_entries (G_APPLICATION (self), all_options);
 }
 
@@ -312,4 +322,12 @@ cc_application_new (void)
                        "application-id", "org.gnome.ControlCenter",
                        "flags", G_APPLICATION_HANDLES_COMMAND_LINE,
                        NULL);
+}
+
+CcShellModel *
+cc_application_get_model (CcApplication *self)
+{
+  g_return_val_if_fail (CC_IS_APPLICATION (self), NULL);
+
+  return self->model;
 }
