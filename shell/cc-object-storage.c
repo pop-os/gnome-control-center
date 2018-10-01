@@ -30,7 +30,7 @@ struct _CcObjectStorage
 G_DEFINE_TYPE (CcObjectStorage, cc_object_storage, G_TYPE_OBJECT)
 
 /* Singleton instance */
-CcObjectStorage *_instance = NULL;
+static CcObjectStorage *_instance = NULL;
 
 /* GTask API to create a new D-Bus proxy */
 typedef struct
@@ -239,6 +239,8 @@ cc_object_storage_create_dbus_proxy_sync (GBusType          bus_type,
 
   key = g_strdup_printf ("CcObjectStorage::dbus-proxy(%s,%s,%s)", name, path, interface);
 
+  g_debug ("Creating D-Bus proxy for %s", key);
+
   /* Check if a DBus proxy with that signature is already available; if it is,
    * return that instead of a new one.
    */
@@ -315,6 +317,8 @@ cc_object_storage_create_dbus_proxy (GBusType             bus_type,
   /* Check if the D-Bus proxy is already created */
   key = g_strdup_printf ("CcObjectStorage::dbus-proxy(%s,%s,%s)", name, path, interface);
 
+  g_debug ("Asynchronously creating D-Bus proxy for %s", key);
+
   if (g_hash_table_contains (_instance->id_to_object, key))
     {
       /* Mark this GTask as already cached, so we can call the right assertions
@@ -362,22 +366,14 @@ cc_object_storage_create_dbus_proxy_finish (GAsyncResult  *result,
   g_assert (!error || !*error);
 
   task_data = g_task_get_task_data (task);
+  g_assert (task_data != NULL);
 
   key = g_strdup_printf ("CcObjectStorage::dbus-proxy(%s,%s,%s)",
                          task_data->name,
                          task_data->path,
                          task_data->interface);
 
-  /* Either we have the object stored right when trying to create it - in which case,
-   * task_data->cached == TRUE and cc_object_storage_has_object (key) == TRUE - or we
-   * didn't have a cached proxy before, and we shouldn't have it now.
-   *
-   * This is to force consumers of this code to *never* try to create the same D-Bus
-   * proxy asynchronously multiple times. Trying to do so is considered a programming
-   * error.
-   */
-  g_assert (task_data != NULL);
-  g_assert (task_data->cached == cc_object_storage_has_object (key));
+  g_debug ("Finished creating D-Bus proxy for %s", key);
 
   /* Retrieve the newly created proxy */
   proxy = g_task_propagate_pointer (task, &local_error);
@@ -388,6 +384,16 @@ cc_object_storage_create_dbus_proxy_finish (GAsyncResult  *result,
       g_propagate_error (error, g_steal_pointer (&local_error));
       return NULL;
     }
+
+  /* Either we have the object stored right when trying to create it - in which case,
+   * task_data->cached == TRUE and cc_object_storage_has_object (key) == TRUE - or we
+   * didn't have a cached proxy before, and we shouldn't have it now.
+   *
+   * This is to force consumers of this code to *never* try to create the same D-Bus
+   * proxy asynchronously multiple times. Trying to do so is considered a programming
+   * error.
+   */
+  g_assert (task_data->cached == cc_object_storage_has_object (key));
 
   /* If the proxy is already cached, destroy the newly created and used the cached proxy
    * instead.
@@ -402,7 +408,7 @@ cc_object_storage_create_dbus_proxy_finish (GAsyncResult  *result,
 }
 
 /**
- * cc_object_storage_init:
+ * cc_object_storage_initialize:
  *
  * Initializes the single CcObjectStorage. This must be called only once,
  * and before every other method of this object.
