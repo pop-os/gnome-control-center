@@ -1,3 +1,113 @@
+gnome-control-center (1:3.30.1-1ubuntu1) UNRELEASED; urgency=medium
+
+  * Merge with debian unstable (LP: #1795460)
+    Remaining changes:
+    + debian/control.in:
+      - Depend on language-selector-gnome and whoopsie-preferences
+      - Depend on instead of Recommend system-config-printer
+      - Recommend ibus and ubuntu-system-service
+      - Suggest instead of Recommend gnome-user-share, realmd and rygel
+      - Build-Depend on dh-migrations and libwhoopsie-preferences-dev
+      - Don't recommend libnss-myhostname since systemd-resolved handles this
+        functionality
+      - Bump dep on g-s-d and schema
+    + Split gnome-control-center-faces to a separate package so that it can be
+      used by unity-control-center & recommend this
+    + Install apport hook
+    + debian/gnome-control-center-data.install:
+      - Don't install gnome-control-center.pkla since we use
+        policykit-desktop-privileges instead
+      - Install additional assets used by unity-control-center
+    + debian/ubuntu-logo-icon.png, debian/source/include-binaries,
+      debian/gnome-control-center-data.install: Include an Ubuntu logo
+    + debian/gnome-control-center-data.links:
+      - Link audio-speaker-center* to audio-speaker-mono* so that an
+        icon is shown in the test speaker panel.
+    + debian/rules: Enable whoospie integration
+    + Add migration script to transition from old user settings to new one.
+    + debian/patches:
+      - 08_lowercase_user_names.patch:
+         Disallow upper-case letters in user names for compliance with adduser
+      - 52_region_language.patch:
+         Adapt region panel to use Ubuntu style regions
+      - 64_restore_terminal_keyboard_shortcut.patch
+         Bring back terminal shortcut
+      - 70_allow_sound_above_100.patch:
+         Allow setting volume above 100% in the Ubuntu session
+      - 71_ubuntu_dock_settings.patch
+         Add Dock panel for Ubuntu session
+      - 99_add_lock-on-suspend.patch
+         Add option to lock on suspend
+      - auto_quit_after_goa_add.patch
+         Hide window after adding an online account from another app.
+      - connectivity-switch.patch
+         Add Connectivity Checking switch to Privacy panel
+      - distro-logo.patch:
+         Add Ubuntu branding to Details panel
+      - privacy-panel-whoopsie.patch
+         Support Ubuntu's whoopsie service in the Privacy panel
+      - ubuntu-language-support.patch
+         Add Language Support button to Region & Language panel to work around
+      - ubuntu-legacy-notifications.patch
+         Ubuntu ships compatibility names for .desktop that got renamed
+         upstream, those use NoDisplay but the panel doesn't respect that key,
+         skip known buggy entries for file-roller and nautilus
+      - ubuntu-printer-support.patch
+         Add Advanced Printer Settings button to work around missing printer
+         sharing feature
+      - ubuntu-region-langpack-install.patch:
+         Check for missing language packs when loading region panel to pull
+         in packs that aren't included with the installer
+      - ubuntu-region-packagekit.patch
+         Fix detection of installed language packs
+
+ -- Andrea Azzarone <andrea.azzarone@canonical.com>  Tue, 02 Oct 2018 17:42:10 +0100
+
+gnome-control-center (1:3.30.1-1) unstable; urgency=medium
+
+  * New upstream release
+    - d/p/Fix-icons-in-translations.patch:
+    - d/p/Update-Belarusian-translation.patch:
+    - d/p/Update-German-translation.patch:
+    - d/p/Update-Russian-translation.patch:
+    - d/p/Updated-Czech-translation-1.patch:
+    - d/p/Updated-Czech-translation-2.patch:
+    - d/p/Updated-Czech-translation.patch:
+    - d/p/color-Fix-fallout-from-the-GtkTemplate-port.patch:
+    - d/p/region-Cancel-async-permission-requests-when-panel-is-clo.patch:
+    - d/p/region-Do-not-release-locale-keys-in-IM-hash-table.patch:
+    - d/p/region-Don-t-leak-GFile-objects.patch:
+    - d/p/region-Fix-language-section-not-being-marked-insensitive.patch:
+    - d/p/region-Remove-duplicate-cancellable-code.patch:
+    - d/p/region-Replace-tab-characters-with-spaces.patch:
+      Drop patches applied upstream.
+  * debian/rules:
+    - Bump Standards-Version to 4.2.1 (no changes required)
+    - Don't include gnome-get-source.mk because it's no longer required since
+      Debian Policy 4.1.4
+
+ -- Andrea Azzarone <andrea.azzarone@canonical.com>  Mon, 01 Oct 2018 16:37:52 +0100
+
+gnome-control-center (1:3.30.0-2) unstable; urgency=medium
+
+  * Team upload
+  * d/patches: Update from upstream gnome-3-30 branch at commit
+    3.30.0-21-g230f659a3 (excluding CI and Flatpak changes) for bug fixes
+    and translation updates
+  * Release to unstable
+    - d/gbp.conf, d/control: Switch branches for unstable
+    - d/watch: Watch for upstream stable (even-numbered) releases
+
+ -- Simon McVittie <smcv@debian.org>  Thu, 20 Sep 2018 12:49:10 +0100
+
+gnome-control-center (1:3.30.0-1) experimental; urgency=medium
+
+  * Team upload
+  * d/gbp.conf: Update from glib2.0
+  * New upstream release
+
+ -- Simon McVittie <smcv@debian.org>  Wed, 19 Sep 2018 14:55:49 +0100
+
 gnome-control-center (1:3.30.0-0ubuntu1) cosmic; urgency=medium
 
   * Update to 3.30.0
