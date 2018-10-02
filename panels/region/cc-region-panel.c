@@ -68,7 +68,7 @@ typedef enum {
 } SystemOp;
 
 struct _CcRegionPanel {
-	CcPanel      parent_instance;
+        CcPanel      parent_instance;
 
         GtkWidget   *login_button;
         GtkWidget   *login_label;
@@ -81,7 +81,6 @@ struct _CcRegionPanel {
         GCancellable *cancellable;
 
         GtkWidget *restart_revealer;
-        gchar *needs_restart_file_path;
 
         GtkWidget     *language_section;
         GtkListBoxRow *language_row;
@@ -115,7 +114,6 @@ struct _CcRegionPanel {
 #ifdef HAVE_IBUS
         IBusBus *ibus;
         GHashTable *ibus_engines;
-        GCancellable *ibus_cancellable;
 #endif
 };
 
@@ -124,8 +122,8 @@ CC_PANEL_REGISTER (CcRegionPanel, cc_region_panel)
 static void
 cc_region_panel_finalize (GObject *object)
 {
-	CcRegionPanel *self = CC_REGION_PANEL (object);
-	GtkWidget *chooser;
+        CcRegionPanel *self = CC_REGION_PANEL (object);
+        GtkWidget *chooser;
 
         g_cancellable_cancel (self->cancellable);
         g_clear_object (&self->cancellable);
@@ -148,9 +146,6 @@ cc_region_panel_finalize (GObject *object)
         g_clear_object (&self->xkb_info);
 #ifdef HAVE_IBUS
         g_clear_object (&self->ibus);
-        if (self->ibus_cancellable)
-                g_cancellable_cancel (self->ibus_cancellable);
-        g_clear_object (&self->ibus_cancellable);
         g_clear_pointer (&self->ibus_engines, g_hash_table_destroy);
 #endif
         g_free (self->language);
@@ -158,13 +153,11 @@ cc_region_panel_finalize (GObject *object)
         g_free (self->system_language);
         g_free (self->system_region);
 
-        g_clear_pointer (&self->needs_restart_file_path, g_free);
-
         chooser = g_object_get_data (G_OBJECT (self), "input-chooser");
         if (chooser)
                 gtk_widget_destroy (chooser);
 
-	G_OBJECT_CLASS (cc_region_panel_parent_class)->finalize (object);
+        G_OBJECT_CLASS (cc_region_panel_parent_class)->finalize (object);
 }
 
 static void
@@ -185,11 +178,24 @@ cc_region_panel_get_help_uri (CcPanel *panel)
         return "help:gnome-help/prefs-language";
 }
 
+static GFile *
+get_needs_restart_file (void)
+{
+        g_autofree gchar *path = NULL;
+
+        path = g_build_filename (g_get_user_runtime_dir (),
+                                 "gnome-control-center-region-needs-restart",
+                                 NULL);
+        return g_file_new_for_path (path);
+}
+
 static void
 restart_now (CcRegionPanel *self)
 {
-        g_file_delete (g_file_new_for_path (self->needs_restart_file_path),
-                                            NULL, NULL);
+        g_autoptr(GFile) file = NULL;
+
+        file = get_needs_restart_file ();
+        g_file_delete (file, NULL, NULL);
 
         g_dbus_proxy_call (self->session,
                            "Logout",
@@ -204,6 +210,9 @@ set_restart_notification_visible (CcRegionPanel *self,
                                   gboolean       visible)
 {
         g_autofree gchar *current_locale = NULL;
+        g_autoptr(GFile) file = NULL;
+        g_autoptr(GFileOutputStream) output_stream = NULL;
+        g_autoptr(GError) error = NULL;
 
         if (locale) {
                 current_locale = g_strdup (setlocale (LC_MESSAGES, NULL));
@@ -215,15 +224,18 @@ set_restart_notification_visible (CcRegionPanel *self,
         if (locale)
                 setlocale (LC_MESSAGES, current_locale);
 
-        if (!visible) {
-                g_file_delete (g_file_new_for_path (self->needs_restart_file_path),
-                                                    NULL, NULL);
+        file = get_needs_restart_file ();
 
+        if (!visible) {
+                g_file_delete (file, NULL, NULL);
                 return;
         }
 
-        if (!g_file_set_contents (self->needs_restart_file_path, "", -1, NULL))
-                g_warning ("Unable to create %s", self->needs_restart_file_path);
+        output_stream = g_file_create (file, G_FILE_CREATE_NONE, NULL, &error);
+        if (output_stream == NULL) {
+                if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_EXISTS))
+                        g_warning ("Unable to create %s: %s", g_file_get_path (file), error->message);
+        }
 }
 
 typedef struct {
@@ -512,7 +524,7 @@ activate_language_row (CcRegionPanel *self,
                 } else if (g_permission_get_can_acquire (self->permission)) {
                         self->op = CHOOSE_LANGUAGE;
                         g_permission_acquire_async (self->permission,
-                                                    NULL,
+                                                    self->cancellable,
                                                     permission_acquired,
                                                     self);
                 }
@@ -522,7 +534,7 @@ activate_language_row (CcRegionPanel *self,
                 } else if (g_permission_get_can_acquire (self->permission)) {
                         self->op = CHOOSE_REGION;
                         g_permission_acquire_async (self->permission,
-                                                    NULL,
+                                                    self->cancellable,
                                                     permission_acquired,
                                                     self);
                 }
@@ -668,8 +680,6 @@ fetch_ibus_engines_result (GObject       *object,
                 return;
         }
 
-        g_clear_object (&self->ibus_cancellable);
-
         /* Maps engine ids to engine description objects */
         self->ibus_engines = g_hash_table_new_full (g_str_hash, g_str_equal, NULL, g_object_unref);
 
@@ -690,11 +700,9 @@ fetch_ibus_engines_result (GObject       *object,
 static void
 fetch_ibus_engines (CcRegionPanel *self)
 {
-        self->ibus_cancellable = g_cancellable_new ();
-
         ibus_bus_list_engines_async (self->ibus,
                                      -1,
-                                     self->ibus_cancellable,
+                                     self->cancellable,
                                      (GAsyncReadyCallback)fetch_ibus_engines_result,
                                      self);
 
@@ -1061,7 +1069,7 @@ add_input (CcRegionPanel *self)
         } else if (g_permission_get_can_acquire (self->permission)) {
                 self->op = ADD_INPUT;
                 g_permission_acquire_async (self->permission,
-                                            NULL,
+                                            self->cancellable,
                                             permission_acquired,
                                             self);
         }
@@ -1122,7 +1130,7 @@ remove_selected_input (CcRegionPanel *self)
         } else if (g_permission_get_can_acquire (self->permission)) {
                 self->op = REMOVE_INPUT;
                 g_permission_acquire_async (self->permission,
-                                            NULL,
+                                            self->cancellable,
                                             permission_acquired,
                                             self);
         }
@@ -1172,7 +1180,7 @@ move_selected_input (CcRegionPanel *self,
         } else if (g_permission_get_can_acquire (self->permission)) {
                 self->op = op;
                 g_permission_acquire_async (self->permission,
-                                            NULL,
+                                            self->cancellable,
                                             permission_acquired,
                                             self);
         }
@@ -1633,19 +1641,20 @@ session_proxy_ready (GObject      *source,
 static void
 cc_region_panel_class_init (CcRegionPanelClass * klass)
 {
-	GtkWidgetClass *widget_class = GTK_WIDGET_CLASS (klass);
-	GObjectClass *object_class = G_OBJECT_CLASS (klass);
-	CcPanelClass *panel_class = CC_PANEL_CLASS (klass);
+        GtkWidgetClass *widget_class = GTK_WIDGET_CLASS (klass);
+        GObjectClass *object_class = G_OBJECT_CLASS (klass);
+        CcPanelClass *panel_class = CC_PANEL_CLASS (klass);
 
-	panel_class->get_help_uri = cc_region_panel_get_help_uri;
+        panel_class->get_help_uri = cc_region_panel_get_help_uri;
 
         object_class->constructed = cc_region_panel_constructed;
-	object_class->finalize = cc_region_panel_finalize;
+        object_class->finalize = cc_region_panel_finalize;
 
         gtk_widget_class_set_template_from_resource (widget_class, "/org/gnome/control-center/region/region.ui");
 
         gtk_widget_class_bind_template_child (widget_class, CcRegionPanel, language_row);
         gtk_widget_class_bind_template_child (widget_class, CcRegionPanel, language_label);
+        gtk_widget_class_bind_template_child (widget_class, CcRegionPanel, language_section);
         gtk_widget_class_bind_template_child (widget_class, CcRegionPanel, formats_row);
         gtk_widget_class_bind_template_child (widget_class, CcRegionPanel, formats_label);
         gtk_widget_class_bind_template_child (widget_class, CcRegionPanel, restart_revealer);
@@ -1675,6 +1684,8 @@ cc_region_panel_class_init (CcRegionPanelClass * klass)
 static void
 cc_region_panel_init (CcRegionPanel *self)
 {
+        g_autoptr(GFile) needs_restart_file = NULL;
+
         g_resources_register (cc_region_get_resource ());
 
         gtk_widget_init_template (GTK_WIDGET (self));
@@ -1697,9 +1708,7 @@ cc_region_panel_init (CcRegionPanel *self)
         setup_language_section (self);
         setup_input_section (self);
 
-        self->needs_restart_file_path = g_build_filename (g_get_user_runtime_dir (),
-                                                          "gnome-control-center-region-needs-restart",
-                                                          NULL);
-        if (g_file_query_exists (g_file_new_for_path (self->needs_restart_file_path), NULL))
+        needs_restart_file = get_needs_restart_file ();
+        if (g_file_query_exists (needs_restart_file, NULL))
                 set_restart_notification_visible (self, NULL, TRUE);
 }
