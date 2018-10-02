@@ -10,10 +10,10 @@ Subject: [PATCH] panels/privacy: add Whoopsie support to privacy panel
  panels/privacy/privacy.ui         |  86 +++++++++++++++-
  5 files changed, 286 insertions(+), 17 deletions(-)
 
-Index: gnome-control-center-3.29.92/meson.build
-===================================================================
---- gnome-control-center-3.29.92.orig/meson.build
-+++ gnome-control-center-3.29.92/meson.build
+diff --git a/meson.build b/meson.build
+index 2a8519c..5ef0cd5 100644
+--- a/meson.build
++++ b/meson.build
 @@ -181,6 +181,14 @@ endif
  config_h.set('HAVE_WAYLAND', enable_wayland,
               description: 'Define to 1 if Wayland is enabled')
@@ -29,7 +29,7 @@ Index: gnome-control-center-3.29.92/meson.build
  if host_is_linux
    # network manager
    network_manager_deps = [
-@@ -281,5 +289,6 @@ output += '     IBus (Region panel IBus
+@@ -281,5 +289,6 @@ output += '     IBus (Region panel IBus support) ........... ' + enable_ibus.to_
  output += '     NetworkManager (Network panel) ............. ' + host_is_linux.to_string() + '\n'
  output += '     Wacom (Wacom tablet panel) ................. ' + host_is_linux_not_s390.to_string() + '\n'
  output += '     Wayland .................................... ' + enable_wayland.to_string() + '\n'
@@ -38,11 +38,11 @@ Index: gnome-control-center-3.29.92/meson.build
 -message(output)
 \ No newline at end of file
 +message(output)
-Index: gnome-control-center-3.29.92/meson_options.txt
-===================================================================
---- gnome-control-center-3.29.92.orig/meson_options.txt
-+++ gnome-control-center-3.29.92/meson_options.txt
-@@ -3,4 +3,5 @@ option('documentation', type: 'boolean',
+diff --git a/meson_options.txt b/meson_options.txt
+index a347168..ce462a7 100644
+--- a/meson_options.txt
++++ b/meson_options.txt
+@@ -3,4 +3,5 @@ option('documentation', type: 'boolean', value: false, description: 'build docum
  option('gnome_session_libexecdir', type: 'string', value: '', description: 'Directory for gnome-session\'s libexecdir')
  option('ibus', type: 'boolean', value: true, description: 'build with IBus support')
  option('tracing', type: 'boolean', value: false, description: 'add extra debugging information')
@@ -50,10 +50,10 @@ Index: gnome-control-center-3.29.92/meson_options.txt
 \ No newline at end of file
 +option('wayland', type: 'boolean', value: true, description: 'build with Wayland support')
 +option('whoopsie', type: 'boolean', value: false, description: 'build with Whoopsie support')
-Index: gnome-control-center-3.29.92/panels/privacy/cc-privacy-panel.c
-===================================================================
---- gnome-control-center-3.29.92.orig/panels/privacy/cc-privacy-panel.c
-+++ gnome-control-center-3.29.92/panels/privacy/cc-privacy-panel.c
+diff --git a/panels/privacy/cc-privacy-panel.c b/panels/privacy/cc-privacy-panel.c
+index 8f1abbd..71d5588 100644
+--- a/panels/privacy/cc-privacy-panel.c
++++ b/panels/privacy/cc-privacy-panel.c
 @@ -35,6 +35,12 @@ typedef struct _NMClient NMClient;
  
  #define WID(s) GTK_WIDGET (gtk_builder_get_object (self->builder, s))
@@ -81,7 +81,7 @@ Index: gnome-control-center-3.29.92/panels/privacy/cc-privacy-panel.c
  
    GCancellable *cancellable;
  
-@@ -1207,25 +1219,129 @@ abrt_vanished_cb (GDBusConnection *conne
+@@ -1207,25 +1219,129 @@ abrt_vanished_cb (GDBusConnection *connection,
    gtk_widget_hide (self->abrt_row);
  }
  
@@ -295,10 +295,10 @@ Index: gnome-control-center-3.29.92/panels/privacy/cc-privacy-panel.c
  }
  
  #if defined(BUILD_NETWORK) && NM_CHECK_VERSION(1,10,0)
-Index: gnome-control-center-3.29.92/panels/privacy/meson.build
-===================================================================
---- gnome-control-center-3.29.92.orig/panels/privacy/meson.build
-+++ gnome-control-center-3.29.92/panels/privacy/meson.build
+diff --git a/panels/privacy/meson.build b/panels/privacy/meson.build
+index b1eec8a..3215b79 100644
+--- a/panels/privacy/meson.build
++++ b/panels/privacy/meson.build
 @@ -33,6 +33,9 @@ deps = common_deps
  if host_is_linux
    deps += network_manager_deps
@@ -309,11 +309,11 @@ Index: gnome-control-center-3.29.92/panels/privacy/meson.build
  
  cflags += '-DGNOMELOCALEDIR="@0@"'.format(control_center_localedir)
  
-Index: gnome-control-center-3.29.92/panels/privacy/privacy.ui
-===================================================================
---- gnome-control-center-3.29.92.orig/panels/privacy/privacy.ui
-+++ gnome-control-center-3.29.92/panels/privacy/privacy.ui
-@@ -1039,7 +1039,7 @@ All the information we collect is made a
+diff --git a/panels/privacy/privacy.ui b/panels/privacy/privacy.ui
+index 65754a4..ee3a827 100644
+--- a/panels/privacy/privacy.ui
++++ b/panels/privacy/privacy.ui
+@@ -1039,7 +1039,7 @@ All the information we collect is made anonymous, and we will never share your d
            </packing>
          </child>
          <child>
@@ -322,17 +322,10 @@ Index: gnome-control-center-3.29.92/panels/privacy/privacy.ui
              <property name="visible">True</property>
              <property name="can_focus">False</property>
              <property name="margin_start">12</property>
-@@ -1079,6 +1079,90 @@ All the information we collect is made a
-                 <property name="height">1</property>
-               </packing>
-             </child>
-+          </object>
-+          <packing>
-+            <property name="expand">False</property>
-+            <property name="fill">True</property>
-+            <property name="position">2</property>
-+          </packing>
-+        </child>
+@@ -1086,6 +1086,90 @@ All the information we collect is made anonymous, and we will never share your d
+             <property name="position">2</property>
+           </packing>
+         </child>
 +        <child>
 +          <object class="GtkGrid" id="whoopsie_grid">
 +            <property name="visible">False</property>
@@ -410,6 +403,13 @@ Index: gnome-control-center-3.29.92/panels/privacy/privacy.ui
 +                <property name="height">1</property>
 +              </packing>
 +            </child>
-           </object>
-           <packing>
-             <property name="expand">False</property>
++          </object>
++          <packing>
++            <property name="expand">False</property>
++            <property name="fill">True</property>
++            <property name="position">2</property>
++          </packing>
++        </child>
+       </object>
+     </child>
+   </object>

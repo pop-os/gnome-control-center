@@ -8,10 +8,10 @@ Subject: [PATCH 3/3] Modify the input-chooser dialog to allow for the
  panels/region/cc-region-panel.c     | 8 ++++++++
  2 files changed, 12 insertions(+), 2 deletions(-)
 
-Index: gnome-control-center-3.29.92/panels/common/cc-language-chooser.c
-===================================================================
---- gnome-control-center-3.29.92.orig/panels/common/cc-language-chooser.c
-+++ gnome-control-center-3.29.92/panels/common/cc-language-chooser.c
+diff --git a/panels/common/cc-language-chooser.c b/panels/common/cc-language-chooser.c
+index 421585f..52fc02e 100644
+--- a/panels/common/cc-language-chooser.c
++++ b/panels/common/cc-language-chooser.c
 @@ -123,7 +123,7 @@ more_widget_new (void)
          row = gtk_list_box_row_new ();
          box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 10);
@@ -21,7 +21,7 @@ Index: gnome-control-center-3.29.92/panels/common/cc-language-chooser.c
  
          arrow = gtk_image_new_from_icon_name ("view-more-symbolic", GTK_ICON_SIZE_MENU);
          gtk_style_context_add_class (gtk_widget_get_style_context (arrow), "dim-label");
-@@ -176,7 +176,7 @@ add_all_languages (CcLanguageChooser *ch
+@@ -176,7 +176,7 @@ add_all_languages (CcLanguageChooser *chooser)
          gchar **locale_ids;
          GHashTable *initial;
  
@@ -30,7 +30,7 @@ Index: gnome-control-center-3.29.92/panels/common/cc-language-chooser.c
          initial = cc_common_language_get_initial_languages ();
          add_languages (chooser, locale_ids, initial);
          g_hash_table_destroy (initial);
-@@ -287,6 +287,8 @@ show_more (CcLanguageChooser *chooser, g
+@@ -287,6 +287,8 @@ show_more (CcLanguageChooser *chooser, gboolean visible)
          chooser->showing_extra = visible;
  
          gtk_list_box_invalidate_filter (GTK_LIST_BOX (chooser->language_listbox));
@@ -39,11 +39,11 @@ Index: gnome-control-center-3.29.92/panels/common/cc-language-chooser.c
  }
  static void
  set_locale_id (CcLanguageChooser *chooser,
-Index: gnome-control-center-3.29.92/panels/region/cc-region-panel.c
-===================================================================
---- gnome-control-center-3.29.92.orig/panels/region/cc-region-panel.c
-+++ gnome-control-center-3.29.92/panels/region/cc-region-panel.c
-@@ -331,6 +331,9 @@ static void
+diff --git a/panels/region/cc-region-panel.c b/panels/region/cc-region-panel.c
+index 7f78dbd..1e4ffdc 100644
+--- a/panels/region/cc-region-panel.c
++++ b/panels/region/cc-region-panel.c
+@@ -343,6 +343,9 @@ static void
  update_language (CcRegionPanel *self,
                   const gchar   *language)
  {
@@ -53,7 +53,7 @@ Index: gnome-control-center-3.29.92/panels/region/cc-region-panel.c
          if (self->login) {
                  set_system_language (self, language);
          } else {
-@@ -659,6 +662,11 @@ setup_language_section (CcRegionPanel *s
+@@ -671,6 +674,11 @@ setup_language_section (CcRegionPanel *self)
  
          update_language_from_user (self);
          update_region_from_setting (self);

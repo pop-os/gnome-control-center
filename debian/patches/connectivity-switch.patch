@@ -12,15 +12,15 @@ is supported.
 
 https://bugzilla.gnome.org/show_bug.cgi?id=737362
 ---
- panels/privacy/cc-privacy-panel.c | 76 ++++++++++++++++++++++++++++++++++
+ panels/privacy/cc-privacy-panel.c | 75 ++++++++++++++++++++++++++++++++++
  panels/privacy/meson.build        |  7 +++-
  panels/privacy/privacy.ui         | 86 +++++++++++++++++++++++++++++++++++++++
- 3 files changed, 168 insertions(+), 1 deletion(-)
+ 3 files changed, 167 insertions(+), 1 deletion(-)
 
-Index: gnome-control-center-3.29.92/panels/privacy/cc-privacy-panel.c
-===================================================================
---- gnome-control-center-3.29.92.orig/panels/privacy/cc-privacy-panel.c
-+++ gnome-control-center-3.29.92/panels/privacy/cc-privacy-panel.c
+diff --git a/panels/privacy/cc-privacy-panel.c b/panels/privacy/cc-privacy-panel.c
+index d8b5424..8f1abbd 100644
+--- a/panels/privacy/cc-privacy-panel.c
++++ b/panels/privacy/cc-privacy-panel.c
 @@ -18,6 +18,8 @@
   * Author: Matthias Clasen <mclasen@redhat.com>
   */
@@ -120,7 +120,7 @@ Index: gnome-control-center-3.29.92/panels/privacy/cc-privacy-panel.c
  static void
  cc_privacy_panel_finalize (GObject *object)
  {
-@@ -1275,6 +1346,8 @@ cc_privacy_panel_finalize (GObject *obje
+@@ -1275,6 +1346,8 @@ cc_privacy_panel_finalize (GObject *object)
    g_clear_pointer (&self->location_apps_perms, g_variant_unref);
    g_clear_pointer (&self->location_apps_data, g_variant_unref);
    g_clear_pointer (&self->location_app_switches, g_hash_table_unref);
@@ -129,7 +129,7 @@ Index: gnome-control-center-3.29.92/panels/privacy/cc-privacy-panel.c
  
    G_OBJECT_CLASS (cc_privacy_panel_parent_class)->finalize (object);
  }
-@@ -1339,6 +1412,7 @@ cc_privacy_panel_init (CcPrivacyPanel *s
+@@ -1339,6 +1412,7 @@ cc_privacy_panel_init (CcPrivacyPanel *self)
    self->trash_dialog = GTK_WIDGET (gtk_builder_get_object (self->builder, "trash_dialog"));
    self->software_dialog = GTK_WIDGET (gtk_builder_get_object (self->builder, "software_dialog"));
    self->abrt_dialog = GTK_WIDGET (gtk_builder_get_object (self->builder, "abrt_dialog"));
@@ -137,7 +137,7 @@ Index: gnome-control-center-3.29.92/panels/privacy/cc-privacy-panel.c
  
    frame = WID ("frame");
    widget = gtk_list_box_new ();
-@@ -1373,6 +1447,7 @@ cc_privacy_panel_init (CcPrivacyPanel *s
+@@ -1373,6 +1447,7 @@ cc_privacy_panel_init (CcPrivacyPanel *self)
    add_trash_temp (self);
    add_software (self);
    add_abrt (self);
@@ -145,10 +145,10 @@ Index: gnome-control-center-3.29.92/panels/privacy/cc-privacy-panel.c
  
    g_signal_connect (self->lockdown_settings, "changed",
                      G_CALLBACK (on_lockdown_settings_changed), self);
-Index: gnome-control-center-3.29.92/panels/privacy/meson.build
-===================================================================
---- gnome-control-center-3.29.92.orig/panels/privacy/meson.build
-+++ gnome-control-center-3.29.92/panels/privacy/meson.build
+diff --git a/panels/privacy/meson.build b/panels/privacy/meson.build
+index a929451e..b1eec8a 100644
+--- a/panels/privacy/meson.build
++++ b/panels/privacy/meson.build
 @@ -29,12 +29,17 @@ sources += gnome.compile_resources(
    export: true
  )
@@ -168,11 +168,11 @@ Index: gnome-control-center-3.29.92/panels/privacy/meson.build
 +  dependencies: deps,
    c_args: cflags
  )
-Index: gnome-control-center-3.29.92/panels/privacy/privacy.ui
-===================================================================
---- gnome-control-center-3.29.92.orig/panels/privacy/privacy.ui
-+++ gnome-control-center-3.29.92/panels/privacy/privacy.ui
-@@ -1090,4 +1090,90 @@ All the information we collect is made a
+diff --git a/panels/privacy/privacy.ui b/panels/privacy/privacy.ui
+index 3dc6cea..65754a4 100644
+--- a/panels/privacy/privacy.ui
++++ b/panels/privacy/privacy.ui
+@@ -1090,4 +1090,90 @@ All the information we collect is made anonymous, and we will never share your d
      </child>
    </object>
  
