@@ -5,10 +5,10 @@ Subject: [PATCH] panels/privacy: add Whoopsie support to privacy panel
 ---
  meson.build                       |  11 ++-
  meson_options.txt                 |   3 +-
- panels/privacy/cc-privacy-panel.c | 200 +++++++++++++++++++++++++++++++++++---
+ panels/privacy/cc-privacy-panel.c | 201 +++++++++++++++++++++++++++++++++++---
  panels/privacy/meson.build        |   3 +
  panels/privacy/privacy.ui         |  86 +++++++++++++++-
- 5 files changed, 286 insertions(+), 17 deletions(-)
+ 5 files changed, 287 insertions(+), 17 deletions(-)
 
 diff --git a/meson.build b/meson.build
 index 2a8519c..5ef0cd5 100644
@@ -51,7 +51,7 @@ index a347168..ce462a7 100644
 +option('wayland', type: 'boolean', value: true, description: 'build with Wayland support')
 +option('whoopsie', type: 'boolean', value: false, description: 'build with Whoopsie support')
 diff --git a/panels/privacy/cc-privacy-panel.c b/panels/privacy/cc-privacy-panel.c
-index 8f1abbd..71d5588 100644
+index 8f1abbd..04291fd 100644
 --- a/panels/privacy/cc-privacy-panel.c
 +++ b/panels/privacy/cc-privacy-panel.c
 @@ -35,6 +35,12 @@ typedef struct _NMClient NMClient;
@@ -295,6 +295,14 @@ index 8f1abbd..71d5588 100644
  }
  
  #if defined(BUILD_NETWORK) && NM_CHECK_VERSION(1,10,0)
+@@ -1348,6 +1520,7 @@ cc_privacy_panel_finalize (GObject *object)
+   g_clear_pointer (&self->location_app_switches, g_hash_table_unref);
+   g_clear_object (&self->nm_client);
+   g_clear_pointer (&self->connectivity_check_dialog, gtk_widget_destroy);
++  g_clear_object (&self->whoopsie);
+ 
+   G_OBJECT_CLASS (cc_privacy_panel_parent_class)->finalize (object);
+ }
 diff --git a/panels/privacy/meson.build b/panels/privacy/meson.build
 index b1eec8a..3215b79 100644
 --- a/panels/privacy/meson.build
