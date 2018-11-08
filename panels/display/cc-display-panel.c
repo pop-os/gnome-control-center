@@ -36,6 +36,10 @@
 #include "cc-night-light-dialog.h"
 #include "cc-display-resources.h"
 
+/* The minimum supported size for the panel */
+#define MINIMUM_WIDTH 740
+#define MINIMUM_HEIGHT 530
+
 #define PANEL_PADDING   32
 #define SECTION_PADDING 32
 #define HEADING_PADDING 12
@@ -538,6 +542,7 @@ orientation_row_activated (CcDisplayPanel *panel,
   CcDisplayRotation rotation = GPOINTER_TO_UINT (g_object_get_data (G_OBJECT (row), "rotation"));
 
   cc_display_monitor_set_rotation (panel->current_output, rotation);
+  cc_display_config_snap_output (panel->current_config, panel->current_output);
   update_apply_button (panel);
 }
 
@@ -601,13 +606,31 @@ make_orientation_row (CcDisplayPanel *panel, CcDisplayMonitor *output)
   return row;
 }
 
+static gboolean
+display_mode_supported_at_scale (CcDisplayMode *mode, double scale)
+{
+  int width, height;
+
+  cc_display_mode_get_resolution (mode, &width, &height);
+
+  return width / scale >= MINIMUM_WIDTH && height / scale >= MINIMUM_HEIGHT;
+}
+
 static void
 resolution_row_activated (CcDisplayPanel *panel,
                           GtkListBoxRow  *row)
 {
   CcDisplayMode *mode = g_object_get_data (G_OBJECT (row), "mode");
+  double scale = cc_display_monitor_get_scale (panel->current_output);
 
   cc_display_monitor_set_mode (panel->current_output, mode);
+
+  /* Restore 1.0 scaling if the previous scale is not supported at the
+   * new resolution. */
+  if (!display_mode_supported_at_scale (mode, scale))
+    cc_display_monitor_set_scale (panel->current_output, 1.0);
+
+  cc_display_config_snap_output (panel->current_config, panel->current_output);
   update_apply_button (panel);
 }
 
@@ -627,6 +650,10 @@ make_resolution_popover (CcDisplayPanel *panel)
       CcDisplayMode *mode = l->data;
       GtkWidget *row;
       GtkWidget *child;
+
+      /* Exclude unusable low resolutions */
+      if (!display_mode_supported_at_scale (mode, 1.0))
+        continue;
 
       child = make_popover_label (get_resolution_string (mode));
 
@@ -769,7 +796,7 @@ n_supported_scales (CcDisplayMode *mode)
   const double *scales = cc_display_mode_get_supported_scales (mode);
   guint n = 0;
 
-  while (scales[n] != 0.0)
+  while (scales[n] != 0.0 && display_mode_supported_at_scale (mode, scales[n]))
     n++;
 
   return n;
@@ -802,6 +829,7 @@ scale_buttons_active (CcDisplayPanel *panel,
   if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (button)))
     {
       cc_display_monitor_set_scale (panel->current_output, scale);
+      cc_display_config_snap_output (panel->current_config, panel->current_output);
       update_apply_button (panel);
     }
 }
@@ -818,6 +846,23 @@ make_label_for_scale (double scale)
 {
   g_autofree gchar *text = g_strdup_printf (" %d %% ", (int) (round_scale_for_ui (scale)*100));
   return gtk_label_new (text);
+}
+
+static void
+scale_buttons_sync (GtkWidget        *bbox,
+                    CcDisplayMonitor *output)
+{
+  g_autoptr(GList) children;
+  GList *l;
+
+  children = gtk_container_get_children (GTK_CONTAINER (bbox));
+  for (l = children; l; l = l->next)
+    {
+      GtkWidget *button = l->data;
+      double scale = *(double*) g_object_get_data (G_OBJECT (button), "scale");
+      if (scale == cc_display_monitor_get_scale (output))
+        gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (button), TRUE);
+    }
 }
 
 #define MAX_N_SCALES 5
@@ -843,8 +888,12 @@ setup_scale_buttons (GtkWidget        *bbox,
   group = NULL;
   for (scale = scales, i = 0; *scale != 0.0 && i < MAX_N_SCALES; scale++, i++)
     {
-      GtkWidget *button = gtk_radio_button_new_from_widget (group);
+      GtkWidget *button;
 
+      if (!display_mode_supported_at_scale (mode, *scale))
+        continue;
+
+      button = gtk_radio_button_new_from_widget (group);
       gtk_button_set_image (GTK_BUTTON (button), make_label_for_scale (*scale));
       gtk_toggle_button_set_mode (GTK_TOGGLE_BUTTON (button), FALSE);
 
@@ -856,26 +905,11 @@ setup_scale_buttons (GtkWidget        *bbox,
       group = GTK_RADIO_BUTTON (button);
     }
 
+  scale_buttons_sync (bbox, output);
+
   gtk_widget_show_all (bbox);
 }
 #undef MAX_N_SCALES
-
-static void
-scale_buttons_sync (GtkWidget        *bbox,
-                    CcDisplayMonitor *output)
-{
-  g_autoptr(GList) children;
-  GList *l;
-
-  children = gtk_container_get_children (GTK_CONTAINER (bbox));
-  for (l = children; l; l = l->next)
-    {
-      GtkWidget *button = l->data;
-      double scale = *(double*) g_object_get_data (G_OBJECT (button), "scale");
-      if (scale == cc_display_monitor_get_scale (output))
-        gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (button), TRUE);
-    }
-}
 
 static GtkWidget *
 make_scale_row (CcDisplayPanel *panel, CcDisplayMonitor *output)
@@ -896,11 +930,9 @@ make_scale_row (CcDisplayPanel *panel, CcDisplayMonitor *output)
   g_object_set_data (G_OBJECT (bbox), "panel", panel);
   g_signal_connect_object (output, "mode", G_CALLBACK (setup_scale_buttons),
                            bbox, G_CONNECT_SWAPPED);
-  setup_scale_buttons (bbox, output);
-
   g_signal_connect_object (output, "scale", G_CALLBACK (scale_buttons_sync),
                            bbox, G_CONNECT_SWAPPED);
-  scale_buttons_sync (bbox, output);
+  setup_scale_buttons (bbox, output);
 
   gtk_widget_show_all (row);
   gtk_widget_set_no_show_all (row, TRUE);
@@ -919,6 +951,7 @@ underscanning_switch_active (CcDisplayPanel *panel,
 {
   cc_display_monitor_set_underscanning (panel->current_output,
                                         gtk_switch_get_active (GTK_SWITCH (button)));
+  cc_display_config_snap_output (panel->current_config, panel->current_output);
   update_apply_button (panel);
 }
 
@@ -1660,6 +1693,7 @@ output_switch_active (CcDisplayPanel *panel,
 {
   cc_display_monitor_set_active (panel->current_output,
                                  gtk_switch_get_active (GTK_SWITCH (button)));
+  cc_display_config_snap_output (panel->current_config, panel->current_output);
   update_apply_button (panel);
 }
 
