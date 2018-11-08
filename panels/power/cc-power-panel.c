@@ -1708,8 +1708,9 @@ iio_proxy_appeared_cb (GDBusConnection *connection,
       return;
     }
 
-  g_signal_connect_swapped (G_OBJECT (self->iio_proxy), "g-properties-changed",
-                            G_CALLBACK (als_enabled_state_changed), self);
+  g_signal_connect_object (G_OBJECT (self->iio_proxy), "g-properties-changed",
+                           G_CALLBACK (als_enabled_state_changed), self,
+                           G_CONNECT_SWAPPED);
   als_enabled_state_changed (self);
 }
 
@@ -1893,6 +1894,8 @@ add_power_saving_section (CcPowerPanel *self)
   gtk_label_set_mnemonic_widget (GTK_LABEL (label), self->wifi_switch);
   gtk_container_add (GTK_CONTAINER (widget), row);
   gtk_size_group_add_widget (self->row_sizegroup, row);
+  gtk_widget_show_all (row);
+  gtk_widget_set_no_show_all (self->wifi_row, TRUE);
 
   self->mobile_row = row = no_prelight_row_new ();
   box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 50);
@@ -1923,6 +1926,8 @@ add_power_saving_section (CcPowerPanel *self)
   gtk_label_set_mnemonic_widget (GTK_LABEL (label), self->mobile_switch);
   gtk_container_add (GTK_CONTAINER (widget), row);
   gtk_size_group_add_widget (self->row_sizegroup, row);
+  gtk_widget_show_all (row);
+  gtk_widget_set_no_show_all (self->mobile_row, TRUE);
 
   g_signal_connect (G_OBJECT (self->mobile_switch), "notify::active",
                     G_CALLBACK (mobile_switch_changed), self);
