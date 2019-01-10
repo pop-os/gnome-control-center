@@ -1,0 +1,68 @@
+From: Jeremy Bicha <jbicha@ubuntu.com>
+Date: Thu, 3 Jan 2019 15:58:30 -0500
+Subject: printers: Set mnemonic widget for labels
+
+This allows screen readers to read the label for each widget.
+
+(cherry picked from commit cb634107328b546addc373641c5389d78a64a831)
+---
+ panels/printers/details-dialog.ui   | 4 ++++
+ panels/printers/pp-options-dialog.c | 2 ++
+ 2 files changed, 6 insertions(+)
+
+diff --git a/panels/printers/details-dialog.ui b/panels/printers/details-dialog.ui
+index f1a617e..d4b7e34 100644
+--- a/panels/printers/details-dialog.ui
++++ b/panels/printers/details-dialog.ui
+@@ -37,6 +37,7 @@
+               <object class="GtkLabel">
+                 <property name="label" translatable="yes">Name</property>
+                 <property name="halign">end</property>
++                <property name="mnemonic_widget">printer_name_entry</property>
+                 <style>
+                   <class name="dim-label"/>
+                 </style>
+@@ -62,6 +63,7 @@
+               <object class="GtkLabel">
+                 <property name="label" translatable="yes">Location</property>
+                 <property name="halign">end</property>
++                <property name="mnemonic_widget">printer_location_entry</property>
+                 <style>
+                   <class name="dim-label"/>
+                 </style>
+@@ -86,6 +88,7 @@
+               <object class="GtkLabel">
+                 <property name="label" translatable="yes">Address</property>
+                 <property name="halign">end</property>
++                <property name="mnemonic_widget">printer_address_label</property>
+                 <style>
+                   <class name="dim-label"/>
+                 </style>
+@@ -110,6 +113,7 @@
+               <object class="GtkLabel">
+                 <property name="label" translatable="yes">Driver</property>
+                 <property name="halign">end</property>
++                <property name="mnemonic_widget">printer_model_label</property>
+                 <style>
+                   <class name="dim-label"/>
+                 </style>
+diff --git a/panels/printers/pp-options-dialog.c b/panels/printers/pp-options-dialog.c
+index 366808f..6a032f7 100644
+--- a/panels/printers/pp-options-dialog.c
++++ b/panels/printers/pp-options-dialog.c
+@@ -350,6 +350,7 @@ ipp_option_add (IPPAttribute *attr_supported,
+       position = grid_get_height (grid);
+ 
+       label = gtk_label_new (option_display_name);
++      gtk_label_set_mnemonic_widget (label, widget);
+       context = gtk_widget_get_style_context (label);
+       gtk_style_context_add_class (context, "dim-label");
+       gtk_widget_set_halign (label, GTK_ALIGN_END);
+@@ -382,6 +383,7 @@ ppd_option_add (ppd_option_t  option,
+       position = grid_get_height (grid);
+ 
+       label = gtk_label_new (ppd_option_name_translate (&option));
++      gtk_label_set_mnemonic_widget (label, widget);
+       context = gtk_widget_get_style_context (label);
+       gtk_style_context_add_class (context, "dim-label");
+       gtk_widget_set_halign (label, GTK_ALIGN_END);

@@ -1,0 +1,39 @@
+From: Jeremy Bicha <jbicha@ubuntu.com>
+Date: Thu, 3 Jan 2019 15:14:28 -0500
+Subject: datetime: Use accessible-description instead of -name for Hour &
+ Minute
+
+In my testing, default orca didn't seem to read the "Hour" or "Minute"
+words when we used accessible-name but it does work with
+accessible-description.
+
+This is the only place we used accessible-name in gnome-control-center
+but we use accessible-description in a few other places.
+
+(cherry picked from commit d9212cf3fa6a879ab846975cf8e8cfb879733c24)
+---
+ panels/datetime/datetime.ui | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/panels/datetime/datetime.ui b/panels/datetime/datetime.ui
+index 5213a80..7ac24d7 100644
+--- a/panels/datetime/datetime.ui
++++ b/panels/datetime/datetime.ui
+@@ -106,7 +106,7 @@
+                     <signal name="value-changed" handler="change_time" object="CcDateTimePanel" swapped="yes"/>
+                     <child internal-child="accessible">
+                       <object class="AtkObject" id="h_spinbutton-atkobject">
+-                        <property name="AtkObject::accessible-name" translatable="yes">Hour</property>
++                        <property name="AtkObject::accessible-description" translatable="yes">Hour</property>
+                       </object>
+                     </child>
+                   </object>
+@@ -145,7 +145,7 @@
+                     <signal name="value-changed" handler="change_time" object="CcDateTimePanel" swapped="yes"/>
+                     <child internal-child="accessible">
+                       <object class="AtkObject" id="m_spinbutton-atkobject">
+-                        <property name="AtkObject::accessible-name" translatable="yes">Minute</property>
++                        <property name="AtkObject::accessible-description" translatable="yes">Minute</property>
+                       </object>
+                     </child>
+                   </object>
