@@ -1,3 +1,81 @@
+gnome-control-center (1:3.30.2-3ubuntu1) UNRELEASED; urgency=medium
+
+  * Merge with debian unstable. Remaining changes:
+    + debian/control.in:
+      - Depend on language-selector-gnome and whoopsie-preferences
+      - Depend on instead of Recommend system-config-printer
+      - Recommend ibus and ubuntu-system-service
+      - Suggest instead of Recommend gnome-user-share, realmd and rygel
+      - Build-Depend on dh-migrations and libwhoopsie-preferences-dev
+      - Don't recommend libnss-myhostname since systemd-resolved handles this
+        functionality
+      - Bump dep on g-s-d and schema
+    + Split gnome-control-center-faces to a separate package so that it can be
+      used by unity-control-center & recommend this
+    + Install apport hook
+    + debian/gnome-control-center-data.install:
+      - Don't install gnome-control-center.pkla since we use
+        policykit-desktop-privileges instead
+      - Install additional assets used by unity-control-center
+    + debian/ubuntu-logo-icon.png, debian/source/include-binaries,
+      debian/gnome-control-center-data.install: Include an Ubuntu logo
+    + debian/gnome-control-center-data.links:
+      - Link audio-speaker-center* to audio-speaker-mono* so that an
+        icon is shown in the test speaker panel.
+    + debian/rules: Enable whoospie integration
+    + Add migration script to transition from old user settings to new one.
+    + debian/patches:
+      - 52_region_language.patch:
+         Adapt region panel to use Ubuntu style regions
+      - 64_restore_terminal_keyboard_shortcut.patch
+         Bring back terminal shortcut
+      - 70_allow_sound_above_100.patch:
+         Allow setting volume above 100% in the Ubuntu session
+      - 71_ubuntu_dock_settings.patch
+         Add Dock panel for Ubuntu session
+      - 99_add_lock-on-suspend.patch
+         Add option to lock on suspend
+      - auto_quit_after_goa_add.patch
+         Hide window after adding an online account from another app.
+      - connectivity-switch.patch
+         Add Connectivity Checking switch to Privacy panel
+      - distro-logo.patch:
+         Add Ubuntu branding to Details panel
+      - privacy-panel-whoopsie.patch
+         Support Ubuntu's whoopsie service in the Privacy panel
+      - ubuntu-language-support.patch
+         Add Language Support button to Region & Language panel to work around
+      - ubuntu-legacy-notifications.patch
+         Ubuntu ships compatibility names for .desktop that got renamed
+         upstream, those use NoDisplay but the panel doesn't respect that key,
+         skip known buggy entries for file-roller and nautilus
+      - ubuntu-printer-support.patch
+         Add Advanced Printer Settings button to work around missing printer
+         sharing feature
+      - ubuntu-region-langpack-install.patch:
+         Check for missing language packs when loading region panel to pull
+         in packs that aren't included with the installer
+      - ubuntu-region-packagekit.patch
+         Fix detection of installed language packs
+
+ -- Iain Lane <iain.lane@canonical.com>  Mon, 14 Jan 2019 15:11:38 +0000
+
+gnome-control-center (1:3.30.2-3) unstable; urgency=medium
+
+  * Cherry-pick 8 commits to improve accessibility
+    - Include fix for reversed Repeat Keys speed slider (LP: #1736883)
+
+ -- Jeremy Bicha <jbicha@debian.org>  Thu, 10 Jan 2019 09:08:13 -0500
+
+gnome-control-center (1:3.30.2-2) unstable; urgency=medium
+
+  * Drop Build-Depend on gnome-common & intltool (Closes: #829788)
+  * Restore -Wl,-O1 to our LDFLAGS
+  * Enable all hardening flags
+  * Bump Standards-Version to 4.3.0
+
+ -- Jeremy Bicha <jbicha@debian.org>  Sun, 23 Dec 2018 11:17:33 -0500
+
 gnome-control-center (1:3.30.2-1ubuntu1) disco; urgency=medium
 
   * Merge with debian unstable (LP: #1802313). Remaining changes:
@@ -3530,5 +3608,3 @@ gnome-core (0.13-1) unstable; urgency=low
   * Initial Release.
 
  -- Jim Pick <jim@jimpick.com>  Mon, 16 Mar 1998 15:27:43 -0800
-
-
