@@ -22,14 +22,17 @@ sources = files(
   'cc-format-chooser.c',
   'cc-ibus-utils.c',
   'cc-input-chooser.c',
-  'cc-input-options.c'
+  'cc-input-row.c',
+  'cc-input-source.c',
+  'cc-input-source-ibus.c',
+  'cc-input-source-xkb.c',
 )
 
 resource_data = files(
   'cc-format-chooser.ui',
-  'input-chooser.ui',
-  'input-options.ui',
-  'region.ui'
+  'cc-input-chooser.ui',
+  'cc-region-panel.ui',
+  'view-layout-symbolic.svg',
 )
 
 sources += gnome.compile_resources(

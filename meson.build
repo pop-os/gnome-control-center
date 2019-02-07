@@ -1,8 +1,8 @@
 project(
   'gnome-control-center', 'c',
-        version : '3.30.2',
+        version : '3.31.90',
         license : 'GPL2+',
-  meson_version : '>= 0.43.0'
+  meson_version : '>= 0.48.0'
 )
 
 control_center_prefix = get_option('prefix')
@@ -96,11 +96,26 @@ libgvc = subproject(
 )
 libgvc_dep = libgvc.get_variable('libgvc_dep')
 
+libhandy_dep = dependency('libhandy-0.0', version: '>= 0.0.7', required: false)
+if not libhandy_dep.found()
+  libhandy = subproject(
+    'libhandy',
+    default_options: [
+      'examples=false',
+      'glade_catalog=disabled',
+      'introspection=disabled',
+      'static=true',
+      'tests=false',
+      'vapi=false',
+    ]
+  )
+  libhandy_dep = libhandy.get_variable('libhandy_dep')
+endif
+
 goa_req_version = '>= 3.25.3'
 pulse_req_version = '>= 2.0'
 
 accounts_dep = dependency('accountsservice', version: '>= 0.6.39')
-clutter_gtk_dep = dependency('clutter-gtk-1.0', required: false)
 colord_dep = dependency('colord', version: '>= 0.1.34')
 gdk_pixbuf_dep = dependency('gdk-pixbuf-2.0', version: '>= 2.23.0')
 gio_dep = dependency('gio-2.0')
@@ -108,12 +123,12 @@ glib_dep = dependency('glib-2.0', version: '>= 2.53.0')
 gnome_desktop_dep = dependency('gnome-desktop-3.0', version: '>= 3.27.90')
 gnome_settings_dep = dependency('gnome-settings-daemon', version: '>= 3.25.90')
 goa_dep = dependency('goa-1.0', version: goa_req_version)
-gsettings_desktop_dep = dependency('gsettings-desktop-schemas', version: '>= 3.27.2')
+gsettings_desktop_dep = dependency('gsettings-desktop-schemas', version: '>= 3.31.0')
 libxml_dep = dependency('libxml-2.0')
 polkit_gobject_dep = dependency('polkit-gobject-1', version: '>= 0.103')
 pulse_dep = dependency('libpulse', version: pulse_req_version)
 pulse_mainloop_dep = dependency('libpulse-mainloop-glib', version: pulse_req_version)
-upower_glib_dep = dependency('upower-glib', version: '>= 0.99.6')
+upower_glib_dep = dependency('upower-glib', version: '>= 0.99.8')
 x11_dep = dependency('x11')
 xi_dep = dependency('xi', version: '>= 1.2')
 
@@ -123,6 +138,7 @@ common_deps = [
   gio_dep,
   glib_dep,
   gsettings_desktop_dep,
+  libhandy_dep,
   dependency('gio-unix-2.0'),
   dependency('gthread-2.0'),
   dependency('gtk+-3.0', version: '>= 3.22.20')
@@ -151,10 +167,7 @@ endforeach
 # Optional dependency for the user accounts panel
 enable_cheese = get_option('cheese')
 if enable_cheese
-  assert(clutter_gtk_dep.found(), 'cheese support requested, but clutter-gtk library is not available. Use -Dcheese=false to build without it.')
-
   cheese_deps = [
-    clutter_gtk_dep,
     dependency('cheese', version: '>= 3.28.0'),
     dependency('cheese-gtk', version: '>= 3.5.91')
   ]
@@ -181,6 +194,11 @@ endif
 config_h.set('HAVE_WAYLAND', enable_wayland,
              description: 'Define to 1 if Wayland is enabled')
 
+# thunderbolt
+config_h.set10('HAVE_FN_EXPLICIT_BZERO',
+               cc.has_function('explicit_bzero', prefix: '''#include <string.h>'''),
+               description: 'Define if explicit_bzero is available')
+
 if host_is_linux
   # network manager
   network_manager_deps = [
@@ -198,15 +216,10 @@ if host_is_linux_not_s390
   # gnome-bluetooth
   gnome_bluetooth_dep = dependency('gnome-bluetooth-1.0', version: '>= 3.18.2')
 
-  # Wacom
-  assert(clutter_gtk_dep.found(), 'clutter-gtk library is required for wacom support, but is not available.')
-
   libwacom_dep = dependency('libwacom', version: '>= 0.7')
 
   wacom_deps = [
-    clutter_gtk_dep,
     libwacom_dep,
-    dependency('clutter-1.0', version: '>= 1.11.3'),
   ]
   config_h.set('HAVE_WACOM_3D_STYLUS', libwacom_dep.version().version_compare('>= 0.27'),
                description: 'Define to 1 if libwacom provides definition for 3D styli')

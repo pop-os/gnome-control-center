@@ -18,8 +18,7 @@
  *          Marek Kasik <mkasik@redhat.com>
  */
 
-#ifndef __PP_PRINTER_H__
-#define __PP_PRINTER_H__
+#pragma once
 
 #include <glib-object.h>
 #include <gio/gio.h>
@@ -29,7 +28,6 @@
 G_BEGIN_DECLS
 
 #define PP_TYPE_PRINTER (pp_printer_get_type ())
-
 G_DECLARE_FINAL_TYPE (PpPrinter, pp_printer, PP, PRINTER, GObject)
 
 GType        pp_printer_get_type      (void) G_GNUC_CONST;
@@ -78,5 +76,3 @@ gboolean     pp_printer_print_file_finish (PpPrinter         *printer,
                                            GError           **error);
 
 G_END_DECLS
-
-#endif /* __PP_PRINTER_H__ */

@@ -29,6 +29,7 @@
 #include "cc-bolt-device-entry.h"
 
 #include "bolt-client.h"
+#include "bolt-names.h"
 #include "bolt-str.h"
 
 #include "cc-bolt-panel.h"
@@ -205,6 +206,14 @@ bolt_client_ready (GObject      *source,
                            panel,
                            0);
 
+  /* Treat security-level changes, which should rarely happen, as
+   * if the name owner changed, i.e. as if boltd got restarted */
+  g_signal_connect_object (client,
+                           "notify::security-level",
+                           G_CALLBACK (on_bolt_name_owner_changed_cb),
+                           panel,
+                           0);
+
   panel->client = client;
 
   cc_bolt_device_dialog_set_client (panel->device_dialog, client);
@@ -341,25 +350,25 @@ cc_bolt_panel_add_device (CcBoltPanel *panel,
   if (type != BOLT_DEVICE_PERIPHERAL)
     return FALSE;
 
-  entry = cc_bolt_device_entry_new (dev);
+  entry = cc_bolt_device_entry_new (dev, FALSE);
   path = g_dbus_proxy_get_object_path (G_DBUS_PROXY (dev));
 
   /* add to the list box */
-  gtk_widget_show_all (GTK_WIDGET (entry));
+  gtk_widget_show (GTK_WIDGET (entry));
 
   status = bolt_device_get_status (dev);
 
   if (bolt_status_is_pending (status))
     {
       gtk_container_add (GTK_CONTAINER (panel->pending_list), GTK_WIDGET (entry));
-      gtk_widget_show_all (GTK_WIDGET (panel->pending_list));
-      gtk_widget_show_all (GTK_WIDGET (panel->pending_box));
+      gtk_widget_show (GTK_WIDGET (panel->pending_list));
+      gtk_widget_show (GTK_WIDGET (panel->pending_box));
     }
   else
     {
       gtk_container_add (GTK_CONTAINER (panel->devices_list), GTK_WIDGET (entry));
-      gtk_widget_show_all (GTK_WIDGET (panel->devices_list));
-      gtk_widget_show_all (GTK_WIDGET (panel->devices_box));
+      gtk_widget_show (GTK_WIDGET (panel->devices_list));
+      gtk_widget_show (GTK_WIDGET (panel->devices_box));
     }
 
   g_signal_connect_object (entry,
@@ -387,7 +396,7 @@ cc_bolt_panel_del_device_entry (CcBoltPanel       *panel,
   if (cc_bolt_device_dialog_device_equal (panel->device_dialog, dev))
     {
       gtk_widget_hide (GTK_WIDGET (panel->device_dialog));
-      cc_bolt_device_dialog_set_device (panel->device_dialog, NULL);
+      cc_bolt_device_dialog_set_device (panel->device_dialog, NULL, NULL);
     }
 
   p = gtk_widget_get_parent (GTK_WIDGET (entry));
@@ -440,7 +449,7 @@ cc_panel_list_box_migrate (CcBoltPanel       *panel,
 
   gtk_container_remove (GTK_CONTAINER (from), target);
   gtk_container_add (GTK_CONTAINER (to), target);
-  gtk_widget_show_all (GTK_WIDGET (to));
+  gtk_widget_show (GTK_WIDGET (to));
 
   from_box = cc_bolt_panel_box_for_listbox (panel, from);
   to_box = cc_bolt_panel_box_for_listbox (panel, to);
@@ -470,11 +479,11 @@ cc_bolt_panel_set_no_thunderbolt (CcBoltPanel *panel,
 static void
 cc_bolt_panel_name_owner_changed (CcBoltPanel *panel)
 {
+  g_autofree char *name_owner = NULL;
   BoltClient *client = panel->client;
   BoltSecurity sl;
   gboolean notb = TRUE;
   const char *text = NULL;
-  const char *name_owner;
 
   name_owner = g_dbus_proxy_get_name_owner (G_DBUS_PROXY (panel->client));
 
@@ -505,7 +514,7 @@ cc_bolt_panel_name_owner_changed (CcBoltPanel *panel)
       break;
 
     case BOLT_SECURITY_UNKNOWN:
-      text = NULL;
+      text = _("Thunderbolt security level could not be determined.");;
       break;
     }
 
@@ -649,8 +658,11 @@ static void
 on_device_entry_row_activated_cb (CcBoltPanel   *panel,
                                   GtkListBoxRow *row)
 {
+  g_autoptr(GPtrArray) parents = NULL;
   CcBoltDeviceEntry *entry;
   BoltDevice *device;
+  BoltDevice *iter;
+  const char *parent;
 
   if (!CC_IS_BOLT_DEVICE_ENTRY (row))
     return;
@@ -658,7 +670,35 @@ on_device_entry_row_activated_cb (CcBoltPanel   *panel,
   entry = CC_BOLT_DEVICE_ENTRY (row);
   device = cc_bolt_device_entry_get_device (entry);
 
-  cc_bolt_device_dialog_set_device (panel->device_dialog, device);
+  /* walk up the chain and collect all parents */
+  parents = g_ptr_array_new_with_free_func (g_object_unref);
+  iter = device;
+
+  parent = bolt_device_get_parent (iter);
+  while (parent != NULL)
+    {
+      g_autofree char *path = NULL;
+      CcBoltDeviceEntry *child;
+      BoltDevice *dev;
+
+      path = bolt_gen_object_path (BOLT_DBUS_PATH_DEVICES, parent);
+
+      /* NB: the host device is not a peripheral and thus not
+       * in the hash table; therefore when get a NULL back, we
+       * should have reached the end of the chain */
+      child = g_hash_table_lookup (panel->devices, path);
+      if (!child)
+	break;
+
+      dev = cc_bolt_device_entry_get_device (child);
+      g_ptr_array_add (parents, g_object_ref (dev));
+      iter = dev;
+
+      parent = bolt_device_get_parent (iter);
+    }
+
+  cc_bolt_device_dialog_set_device (panel->device_dialog, device, parents);
+
   gtk_window_resize (GTK_WINDOW (panel->device_dialog), 1, 1);
   gtk_widget_show (GTK_WIDGET (panel->device_dialog));
 }
@@ -672,7 +712,7 @@ on_device_dialog_delete_event_cb (GtkWidget   *widget,
 
   dialog = CC_BOLT_DEVICE_DIALOG (widget);
 
-  cc_bolt_device_dialog_set_device (dialog, NULL);
+  cc_bolt_device_dialog_set_device (dialog, NULL, NULL);
   gtk_widget_hide (widget);
 
   return TRUE;
@@ -862,7 +902,7 @@ cc_bolt_panel_dispose (GObject *object)
   g_cancellable_cancel (panel->cancel);
 
   /* Must be destroyed in dispose, not finalize. */
-  g_clear_pointer (&panel->device_dialog, gtk_widget_destroy);
+  g_clear_pointer ((GtkWidget **) &panel->device_dialog, gtk_widget_destroy);
 
   G_OBJECT_CLASS (cc_bolt_panel_parent_class)->dispose (object);
 }
