@@ -9,19 +9,19 @@ Subject: [PATCH 3/3] Modify the input-chooser dialog to allow for the
  2 files changed, 12 insertions(+), 2 deletions(-)
 
 diff --git a/panels/common/cc-language-chooser.c b/panels/common/cc-language-chooser.c
-index 421585f..52fc02e 100644
+index 5a1d6e0..b2542f3 100644
 --- a/panels/common/cc-language-chooser.c
 +++ b/panels/common/cc-language-chooser.c
-@@ -123,7 +123,7 @@ more_widget_new (void)
-         row = gtk_list_box_row_new ();
+@@ -122,7 +122,7 @@ more_widget_new (void)
          box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 10);
+         gtk_widget_show (box);
          gtk_container_add (GTK_CONTAINER (row), box);
 -        gtk_widget_set_tooltip_text (box, _("More…"));
 +        gtk_widget_set_tooltip_text (box, _("Install More…"));
  
          arrow = gtk_image_new_from_icon_name ("view-more-symbolic", GTK_ICON_SIZE_MENU);
-         gtk_style_context_add_class (gtk_widget_get_style_context (arrow), "dim-label");
-@@ -176,7 +176,7 @@ add_all_languages (CcLanguageChooser *chooser)
+         gtk_widget_show (arrow);
+@@ -175,7 +175,7 @@ add_all_languages (CcLanguageChooser *chooser)
          gchar **locale_ids;
          GHashTable *initial;
  
@@ -30,20 +30,20 @@ index 421585f..52fc02e 100644
          initial = cc_common_language_get_initial_languages ();
          add_languages (chooser, locale_ids, initial);
          g_hash_table_destroy (initial);
-@@ -287,6 +287,8 @@ show_more (CcLanguageChooser *chooser, gboolean visible)
-         chooser->showing_extra = visible;
- 
+@@ -282,6 +282,8 @@ filter_changed (CcLanguageChooser *chooser)
+         chooser->filter_words = g_strsplit_set (g_strstrip (filter_contents), " ", 0);
+         gtk_list_box_set_placeholder (GTK_LIST_BOX (chooser->language_listbox), chooser->no_results);
          gtk_list_box_invalidate_filter (GTK_LIST_BOX (chooser->language_listbox));
 +
 +        gtk_window_set_title (GTK_WINDOW (chooser), _("Install Language"));
  }
+ 
  static void
- set_locale_id (CcLanguageChooser *chooser,
 diff --git a/panels/region/cc-region-panel.c b/panels/region/cc-region-panel.c
-index 8cf805e..331e869 100644
+index e1bb26a..4781513 100644
 --- a/panels/region/cc-region-panel.c
 +++ b/panels/region/cc-region-panel.c
-@@ -343,6 +343,9 @@ static void
+@@ -361,6 +361,9 @@ static void
  update_language (CcRegionPanel *self,
                   const gchar   *language)
  {
@@ -53,7 +53,7 @@ index 8cf805e..331e869 100644
          if (self->login) {
                  set_system_language (self, language);
          } else {
-@@ -671,6 +674,11 @@ setup_language_section (CcRegionPanel *self)
+@@ -673,6 +676,11 @@ setup_language_section (CcRegionPanel *self)
  
          update_language_from_user (self);
          update_region_from_setting (self);

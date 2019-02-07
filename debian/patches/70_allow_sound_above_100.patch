@@ -1,6 +1,6 @@
-From: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
-Date: Tue, 31 Jul 2018 04:44:12 +0100
-Subject: Allow volume to bet set above 100%.
+From: Jeremy Bicha <jbicha@debian.org>
+Date: Sat, 9 Feb 2019 16:32:03 -0500
+Subject: Allow volume to be set above 100%.
 
 Some systems have low maximum volume set (like x220), allow, from an option
 in gnome-control-center to set it above that 100% limit from g-s-d
@@ -12,234 +12,169 @@ Only show the above 100% volume option if:
    GNOME Shell and media keys to set the sound above 100%. If not
    enabled, volume and sliders are all capped to 100%. (LP: #1706524)
 Modified from original patch in unity-control-center from Lars Uebernickel.
+Adapted for Ubuntu gnome-control-center by Didier Roche
+Updated for GNOME 3.32 by Jeremy Bicha
 Origin: ubuntu
 Bug-Ubuntu: https://launchpad.net/bugs/1706524
 Bug: https://bugzilla.gnome.org/show_bug.cgi?id=710424
 ---
- panels/sound/gvc-mixer-dialog.c | 134 ++++++++++++++++++++++++++++++++++++++--
- panels/sound/meson.build        |   2 +-
- 2 files changed, 131 insertions(+), 5 deletions(-)
+ panels/sound/cc-sound-panel.c  | 19 +++++++++
+ panels/sound/cc-sound-panel.ui | 87 ++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 106 insertions(+)
 
-diff --git a/panels/sound/gvc-mixer-dialog.c b/panels/sound/gvc-mixer-dialog.c
-index e3e1efc..959d44d 100644
---- a/panels/sound/gvc-mixer-dialog.c
-+++ b/panels/sound/gvc-mixer-dialog.c
-@@ -44,9 +44,14 @@
- #include "gvc-speaker-test.h"
- #include "gvc-mixer-control-private.h"
- 
-+#include "list-box-helper.h"
-+
- #define KEY_SOUNDS_SCHEMA "org.gnome.desktop.sound"
- #define SCALE_SIZE 128
- 
-+#define AMPLIFIED_SETTINGS "org.gnome.desktop.sound"
-+#define AMPLIFIED_KEY "allow-volume-above-100-percent"
-+
- struct _GvcMixerDialog
+diff --git a/panels/sound/cc-sound-panel.c b/panels/sound/cc-sound-panel.c
+index 0c28980..a7675d1 100644
+--- a/panels/sound/cc-sound-panel.c
++++ b/panels/sound/cc-sound-panel.c
+@@ -66,6 +66,9 @@ struct _CcSoundPanel
+   CcProfileComboBox *output_profile_combo_box;
+   GtkListBoxRow     *output_profile_row;
+   CcVolumeSlider    *output_volume_slider;
++  CcVolumeSlider    *output_volume_slider_ubuntu;
++  GtkWidget         *allow_amplify_switch;
++  GtkWidget         *ubuntu_output_box;
+   CcStreamListBox   *stream_list_box;
+   GtkListBoxRow     *subwoofer_row;
+   CcSubwooferSlider *subwoofer_slider;
+@@ -89,6 +92,8 @@ allow_amplified_changed_cb (CcSoundPanel *self)
  {
-         GtkBox           parent_instance;
-@@ -78,6 +83,8 @@ struct _GvcMixerDialog
-         GtkWidget       *audible_bell_button;
-         GtkWidget       *test_dialog;
-         GtkSizeGroup    *size_group;
-+        GtkWidget       *amplified_volume_box;
-+        GSettings       *ubuntu_sound_settings;
- 
-         GSettings       *settings;
-         gboolean         allow_volume_above_100_percent;
-@@ -189,11 +196,17 @@ update_output_settings (GvcMixerDialog      *dialog,
-                 return;
-         }
- 
-+        gboolean can_amplify = gvc_mixer_stream_get_can_decibel (stream);
-+        if (dialog->ubuntu_sound_settings != NULL && can_amplify) {
-+            gtk_widget_set_sensitive(dialog->amplified_volume_box, can_amplify);
-+            can_amplify = g_settings_get_boolean(dialog->ubuntu_sound_settings, AMPLIFIED_KEY);
-+        }
-+
-         gvc_channel_bar_set_base_volume (GVC_CHANNEL_BAR (dialog->output_bar),
-                                          gvc_mixer_stream_get_base_volume (stream));
-         gvc_channel_bar_set_is_amplified (GVC_CHANNEL_BAR (dialog->output_bar),
-                                           dialog->allow_volume_above_100_percent &&
--                                          gvc_mixer_stream_get_can_decibel (stream));
-+                                          can_amplify);
- 
- 	/* Update the adjustment in case the previous bar wasn't decibel
- 	 * capable, and we clipped it */
-@@ -1581,6 +1594,37 @@ on_test_speakers_clicked (GvcComboBox *widget,
-         gtk_widget_destroy (d);
+   cc_volume_slider_set_is_amplified (self->output_volume_slider,
+                                      g_settings_get_boolean (self->sound_settings, "allow-volume-above-100-percent"));
++  cc_volume_slider_set_is_amplified (self->output_volume_slider_ubuntu,
++                                     g_settings_get_boolean (self->sound_settings, "allow-volume-above-100-percent"));
  }
  
-+static void
-+on_amplify_changed (GSettings      *settings,
-+                    const char     *key,
-+                    GvcMixerDialog *dialog)
-+{
-+        GtkTreeSelection *selection = gtk_tree_view_get_selection (GTK_TREE_VIEW (dialog->output_treeview));
-+        GtkTreeModel     *model;
-+        GtkTreeIter       iter;
-+        gboolean          active;
-+        guint             id;
-+        GvcMixerUIDevice *output;
-+
-+        if (gtk_tree_selection_get_selected (selection, &model, &iter) == FALSE) {
-+                g_debug ("Could not get default output from selection");
-+                return;
-+        }
-+
-+        gtk_tree_model_get (model, &iter,
-+                            ID_COLUMN, &id,
-+                            ACTIVE_COLUMN, &active,
-+                            -1);
-+        if (!active)
-+                return;
-+
-+        output = gvc_mixer_control_lookup_output_id (dialog->mixer_control, id);
-+
-+        // refresh our output bar UI
-+        update_output_settings(dialog, output);
-+}
-+
-+
- static GObject *
- gvc_mixer_dialog_constructor (GType                  type,
-                               guint                  n_construct_properties,
-@@ -1592,8 +1636,12 @@ gvc_mixer_dialog_constructor (GType                  type,
-         GtkWidget        *label;
-         GtkWidget        *sw;
-         GtkWidget        *box;
-+        GtkWidget        *row;
-         GtkWidget        *sbox;
-         GtkWidget        *ebox;
-+        GtkWidget        *frame;
-+        GtkWidget        *allow_amplify_switch;
-+        GtkWidget        *output_box;
-         GSList           *streams;
-         GSList           *l;
-         GvcMixerStream   *stream;
-@@ -1609,9 +1657,30 @@ gvc_mixer_dialog_constructor (GType                  type,
+ static void
+@@ -108,6 +113,7 @@ output_device_changed_cb (CcSoundPanel *self)
+     stream = gvc_mixer_control_get_stream_from_device (self->mixer_control, device);
  
-         self->output_stream_box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 12);
-         gtk_widget_set_margin_top (self->output_stream_box, 12);
--        gtk_box_pack_start (GTK_BOX (main_vbox),
--                            self->output_stream_box,
--                            FALSE, FALSE, 0);
-+        if (self->ubuntu_sound_settings != NULL) {
-+                frame = gtk_frame_new (NULL);
-+                gtk_box_pack_start (GTK_BOX (main_vbox), frame, FALSE, FALSE, 20);
-+                gtk_widget_set_margin_start (frame, 4);
-+                gtk_widget_set_margin_end (frame, 4);
-+
-+                output_box = gtk_list_box_new ();
-+                gtk_container_add (GTK_CONTAINER (frame), output_box);
-+                gtk_list_box_set_selection_mode (GTK_LIST_BOX (output_box), GTK_SELECTION_NONE);
-+                gtk_list_box_set_header_func (GTK_LIST_BOX (output_box), cc_list_box_update_header_func, NULL, NULL);
-+                
-+                gtk_widget_set_margin_start (self->output_stream_box, 8);
-+                gtk_widget_set_margin_end (self->output_stream_box, 8);
-+                gtk_widget_set_margin_top (self->output_stream_box, 10);
-+                gtk_widget_set_margin_bottom (self->output_stream_box, 10);
-+                gtk_widget_set_valign (self->output_stream_box, TRUE);
-+
-+                row = gtk_list_box_row_new ();
-+                gtk_container_add (GTK_CONTAINER (row), self->output_stream_box);
-+                gtk_container_add (GTK_CONTAINER (output_box), GTK_WIDGET (row));
-+        } else
-+                gtk_box_pack_start (GTK_BOX (main_vbox),
-+                                self->output_stream_box,
-+                                FALSE, FALSE, 0);
-         self->output_bar = create_bar (self, TRUE, TRUE);
-         gvc_channel_bar_set_name (GVC_CHANNEL_BAR (self->output_bar),
-                                   _("_Output volume:"));
-@@ -1619,6 +1688,50 @@ gvc_mixer_dialog_constructor (GType                  type,
-         gtk_box_pack_start (GTK_BOX (self->output_stream_box),
-                             self->output_bar, TRUE, TRUE, 12);
+   cc_volume_slider_set_stream (self->output_volume_slider, stream);
++  cc_volume_slider_set_stream (self->output_volume_slider_ubuntu, stream);
+   cc_level_bar_set_stream (self->output_level_bar, stream, CC_LEVEL_BAR_STREAM_TYPE_OUTPUT);
  
-+        if (self->ubuntu_sound_settings != NULL) {
-+                row = gtk_list_box_row_new ();
-+                self->amplified_volume_box = gtk_grid_new ();
-+                gtk_container_add (GTK_CONTAINER (row), self->amplified_volume_box);
-+                gtk_container_add (GTK_CONTAINER (output_box), GTK_WIDGET (row));
-+
-+                gtk_widget_set_margin_start (self->amplified_volume_box, 20);
-+                gtk_widget_set_margin_end (self->amplified_volume_box, 20);
-+                gtk_widget_set_margin_top (self->amplified_volume_box, 10);
-+                gtk_widget_set_margin_bottom (self->amplified_volume_box, 10);
-+                gtk_grid_set_row_spacing (GTK_GRID (self->amplified_volume_box), 2);
-+                gtk_grid_set_column_spacing (GTK_GRID (self->amplified_volume_box), 16);
-+
-+                label = gtk_label_new (NULL);
-+                gtk_label_set_markup (GTK_LABEL (label), _("<b>Over-Amplification</b>"));
-+                gtk_widget_set_valign (self->amplified_volume_box, GTK_ALIGN_CENTER);
-+                gtk_widget_set_halign (label, GTK_ALIGN_START);
-+                gtk_widget_set_hexpand (label, TRUE);
-+                gtk_label_set_use_underline (GTK_LABEL (label), TRUE);
-+                gtk_grid_attach (GTK_GRID (self->amplified_volume_box), label, 0, 0, 1, 1);
-+
-+                allow_amplify_switch = gtk_switch_new ();
-+                g_settings_bind (self->ubuntu_sound_settings, AMPLIFIED_KEY,
-+                                allow_amplify_switch, "active", G_SETTINGS_BIND_DEFAULT);
-+                gtk_widget_set_halign (allow_amplify_switch, GTK_ALIGN_END);
-+                gtk_widget_set_valign (allow_amplify_switch, GTK_ALIGN_CENTER);
-+                gtk_grid_attach (GTK_GRID (self->amplified_volume_box), allow_amplify_switch, 1, 0, 1, 2);
-+                gtk_label_set_mnemonic_widget (GTK_LABEL (label), allow_amplify_switch);
-+
-+                label = gtk_label_new (_("Allows raising the volume above 100%. This can result in a loss of audio quality; it is better to increase application volume settings, if possible."));
-+                gtk_widget_set_halign (label, GTK_ALIGN_START);
-+                gtk_label_set_line_wrap (GTK_LABEL (label), TRUE);
-+                GtkStyleContext *context = gtk_widget_get_style_context (GTK_WIDGET (label));
-+                gtk_style_context_add_class (context, "dim-label");
-+                PangoAttribute *scale = pango_attr_scale_new (0.9);
-+                PangoAttrList *attr_lst = pango_attr_list_new();
-+                pango_attr_list_insert (attr_lst, scale);
-+                gtk_label_set_attributes (GTK_LABEL (label), attr_lst);
-+                gtk_grid_attach (GTK_GRID (self->amplified_volume_box), label, 0, 1, 1, 1);
-+
-+                g_signal_connect (self->ubuntu_sound_settings, "changed::" AMPLIFIED_KEY,
-+                                  G_CALLBACK (on_amplify_changed), self);
-+        }
-+
-         self->notebook = gtk_notebook_new ();
-         gtk_box_pack_start (GTK_BOX (main_vbox),
-                             self->notebook,
-@@ -1921,6 +2034,18 @@ gvc_mixer_dialog_init (GvcMixerDialog *dialog)
-         dialog->bars = g_hash_table_new (NULL, NULL);
-         dialog->size_group = gtk_size_group_new (GTK_SIZE_GROUP_HORIZONTAL);
+   if (stream != NULL)
+@@ -206,6 +212,9 @@ cc_sound_panel_class_init (CcSoundPanelClass *klass)
+   gtk_widget_class_bind_template_child (widget_class, CcSoundPanel, output_profile_combo_box);
+   gtk_widget_class_bind_template_child (widget_class, CcSoundPanel, output_profile_row);
+   gtk_widget_class_bind_template_child (widget_class, CcSoundPanel, output_volume_slider);
++  gtk_widget_class_bind_template_child (widget_class, CcSoundPanel, output_volume_slider_ubuntu);
++  gtk_widget_class_bind_template_child (widget_class, CcSoundPanel, allow_amplify_switch);
++  gtk_widget_class_bind_template_child (widget_class, CcSoundPanel, ubuntu_output_box);
+   gtk_widget_class_bind_template_child (widget_class, CcSoundPanel, stream_list_box);
+   gtk_widget_class_bind_template_child (widget_class, CcSoundPanel, subwoofer_row);
+   gtk_widget_class_bind_template_child (widget_class, CcSoundPanel, subwoofer_slider);
+@@ -250,6 +259,16 @@ cc_sound_panel_init (CcSoundPanel *self)
+                            G_CONNECT_SWAPPED);
+   allow_amplified_changed_cb (self);
  
-+        if (strstr (g_getenv("XDG_CURRENT_DESKTOP"), "ubuntu") != NULL) {
-+                GSettingsSchema *schema;
-+                schema = g_settings_schema_source_lookup (g_settings_schema_source_get_default(),
-+                                                          AMPLIFIED_SETTINGS, TRUE);
++  if (strstr (g_getenv("XDG_CURRENT_DESKTOP"), "ubuntu") != NULL) {
++    gtk_widget_set_visible(self->ubuntu_output_box, TRUE);
++    gtk_widget_set_visible(GTK_WIDGET (self->output_volume_slider), FALSE);
++    g_settings_bind (self->sound_settings, "allow-volume-above-100-percent",
++                     self->allow_amplify_switch, "active", G_SETTINGS_BIND_DEFAULT);
++  } else {
++    gtk_widget_set_visible(self->ubuntu_output_box, FALSE);
++    gtk_widget_set_visible(GTK_WIDGET (self->output_volume_slider), TRUE);
++  }
 +
-+                if (schema != NULL)
-+                {
-+                        dialog->ubuntu_sound_settings = g_settings_new_full (schema, NULL, NULL);
-+                        g_settings_schema_unref (schema);
-+                }
-+        }
-+
-         dialog->settings = g_settings_new (KEY_SOUNDS_SCHEMA);
-         g_signal_connect (dialog->settings, "changed::allow-volume-above-100-percent",
-                           G_CALLBACK (allow_volume_above_100_percent_cb), dialog);
-@@ -1939,6 +2064,7 @@ gvc_mixer_dialog_finalize (GObject *object)
-         mixer_dialog = GVC_MIXER_DIALOG (object);
+   self->mixer_control = gvc_mixer_control_new ("GNOME Settings");
+   gvc_mixer_control_open (self->mixer_control);
  
-         g_return_if_fail (mixer_dialog != NULL);
-+        g_clear_object (&mixer_dialog->ubuntu_sound_settings);
-         g_clear_object (&mixer_dialog->settings);
-         G_OBJECT_CLASS (gvc_mixer_dialog_parent_class)->finalize (object);
- }
-diff --git a/panels/sound/meson.build b/panels/sound/meson.build
-index 5a3bc9a..eed88d4 100644
---- a/panels/sound/meson.build
-+++ b/panels/sound/meson.build
-@@ -57,7 +57,7 @@ sources = files(
- panels_libs += static_library(
-   cappletname,
-   sources: sources,
--  include_directories: top_inc,
-+  include_directories: [ top_inc, common_inc ],
-   dependencies: deps,
-   c_args: cflags,
-   link_with: libgvcgtk
+diff --git a/panels/sound/cc-sound-panel.ui b/panels/sound/cc-sound-panel.ui
+index a6ce920..b667b53 100644
+--- a/panels/sound/cc-sound-panel.ui
++++ b/panels/sound/cc-sound-panel.ui
+@@ -38,6 +38,93 @@
+                     <property name="visible">True</property>
+                   </object>
+                 </child>
++                <child>
++                  <object class="GtkListBox" id="ubuntu_output_box">
++                    <property name="visible">False</property>
++                    <property name="can_focus">False</property>
++                    <child>
++                      <object class="GtkListBoxRow">
++                        <property name="width_request">100</property>
++                        <property name="height_request">80</property>
++                        <property name="visible">True</property>
++                        <property name="can_focus">True</property>
++                        <child>
++                          <object class="CcVolumeSlider" id="output_volume_slider_ubuntu">
++                            <property name="visible">True</property>
++                          </object>
++                        </child>
++                      </object>
++                    </child>
++                    <child>
++                      <object class="GtkListBoxRow">
++                        <property name="width_request">100</property>
++                        <property name="height_request">80</property>
++                        <property name="visible">True</property>
++                        <property name="can_focus">True</property>
++                        <child>
++                          <object class="GtkGrid">
++                            <property name="visible">True</property>
++                            <property name="can_focus">False</property>
++                            <property name="margin_left">20</property>
++                            <property name="margin_right">20</property>
++                            <property name="margin_top">10</property>
++                            <property name="margin_bottom">10</property>
++                            <property name="row_spacing">2</property>
++                            <property name="column_spacing">16</property>
++                            <child>
++                              <object class="GtkLabel" id="allow_amplify_label">
++                                <property name="visible">True</property>
++                                <property name="can_focus">False</property>
++                                <property name="halign">start</property>
++                                <property name="valign">center</property>
++                                <property name="label" translatable="yes">Over-Amplification</property>
++                                <property name="mnemonic-widget">allow_amplify_switch</property>
++                                <attributes>
++                                  <attribute name="weight" value="bold"/>
++                                </attributes>
++                              </object>
++                              <packing>
++                                <property name="left_attach">0</property>
++                                <property name="top_attach">0</property>
++                              </packing>
++                            </child>
++                            <child>
++                              <object class="GtkSwitch" id="allow_amplify_switch">
++                                <property name="visible">True</property>
++                                <property name="can_focus">True</property>
++                                <property name="halign">end</property>
++                                <property name="valign">center</property>
++                              </object>
++                              <packing>
++                                <property name="left_attach">1</property>
++                                <property name="top_attach">0</property>
++                                <property name="height">2</property>
++                              </packing>
++                            </child>
++                            <child>
++                              <object class="GtkLabel" id="allow_amplify_desc">
++                                <property name="visible">True</property>
++                                <property name="can_focus">False</property>
++                                <property name="label" translatable="yes">Allows raising the volume above 100%. This can result in a loss of audio quality; it is better to increase application volume settings, if possible.</property>
++                                <property name="wrap">True</property>
++                                <attributes>
++                                  <attribute name="scale" value="0.9"/>
++                                </attributes>
++                                <style>
++                                  <class name="dim-label"/>
++                                </style>
++                              </object>
++                              <packing>
++                                <property name="left_attach">0</property>
++                                <property name="top_attach">1</property>
++                              </packing>
++                            </child>
++                          </object>
++                        </child>
++                      </object>
++                    </child>
++                  </object>
++                </child>
+                 <child>
+                   <object class="GtkLabel">
+                     <property name="visible">True</property>

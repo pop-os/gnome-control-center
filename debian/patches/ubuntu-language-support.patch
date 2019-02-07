@@ -4,24 +4,24 @@ Subject: [PATCH] region: Add Language Selector button
 
 Workaround for https://launchpad.net/bugs/1631750
 ---
- panels/region/cc-region-panel.c | 30 ++++++++++++++++++++++++++++++
- panels/region/region.ui         | 26 ++++++++++++++++++++++++++
+ panels/region/cc-region-panel.c  | 30 ++++++++++++++++++++++++++++++
+ panels/region/cc-region-panel.ui | 26 ++++++++++++++++++++++++++
  2 files changed, 56 insertions(+)
 
 diff --git a/panels/region/cc-region-panel.c b/panels/region/cc-region-panel.c
-index 331e869..fce8626 100644
+index 4781513..cdee608 100644
 --- a/panels/region/cc-region-panel.c
 +++ b/panels/region/cc-region-panel.c
-@@ -108,6 +108,7 @@ struct _CcRegionPanel {
-         GtkWidget *show_layout;
-         GtkWidget *restart_button;
-         GtkWidget *language_list;
-+        GtkWidget *language_support_button;
- 
-         GSettings *input_settings;
-         GnomeXkbInfo *xkb_info;
-@@ -1284,6 +1285,33 @@ show_selected_settings (CcRegionPanel *self)
-                 g_warning ("Failed to launch input source setup: %s", error->message);
+@@ -72,6 +72,7 @@ struct _CcRegionPanel {
+         GtkListBox      *language_list;
+         GtkListBoxRow   *language_row;
+         GtkFrame        *language_section_frame;
++        GtkButton       *language_support_button;
+         GtkLabel        *next_source;
+         GtkLabel        *next_source_label;
+         GtkListBoxRow   *no_inputs_row;
+@@ -1307,6 +1308,33 @@ setup_input_section (CcRegionPanel *self)
+                 return g_strdup (str);
  }
  
 +
@@ -52,29 +52,29 @@ index 331e869..fce8626 100644
 +}
 +
  static void
- show_selected_layout (CcRegionPanel *self)
- {
-@@ -1748,6 +1776,7 @@ cc_region_panel_class_init (CcRegionPanelClass * klass)
-         gtk_widget_class_bind_template_child (widget_class, CcRegionPanel, restart_button);
-         gtk_widget_class_bind_template_child (widget_class, CcRegionPanel, login_label);
+ on_localed_properties_changed (CcRegionPanel  *self,
+                                GVariant       *changed_properties,
+@@ -1641,6 +1669,7 @@ cc_region_panel_class_init (CcRegionPanelClass * klass)
          gtk_widget_class_bind_template_child (widget_class, CcRegionPanel, language_list);
+         gtk_widget_class_bind_template_child (widget_class, CcRegionPanel, language_row);
+         gtk_widget_class_bind_template_child (widget_class, CcRegionPanel, language_section_frame);
 +        gtk_widget_class_bind_template_child (widget_class, CcRegionPanel, language_support_button);
+         gtk_widget_class_bind_template_child (widget_class, CcRegionPanel, next_source);
+         gtk_widget_class_bind_template_child (widget_class, CcRegionPanel, next_source_label);
+         gtk_widget_class_bind_template_child (widget_class, CcRegionPanel, no_inputs_row);
+@@ -1654,6 +1683,7 @@ cc_region_panel_class_init (CcRegionPanelClass * klass)
  
+         gtk_widget_class_bind_template_callback (widget_class, input_row_activated_cb);
          gtk_widget_class_bind_template_callback (widget_class, restart_now);
-         gtk_widget_class_bind_template_callback (widget_class, show_input_options);
-@@ -1757,6 +1786,7 @@ cc_region_panel_class_init (CcRegionPanelClass * klass)
-         gtk_widget_class_bind_template_callback (widget_class, move_selected_input_down);
-         gtk_widget_class_bind_template_callback (widget_class, show_selected_settings);
-         gtk_widget_class_bind_template_callback (widget_class, show_selected_layout);
 +        gtk_widget_class_bind_template_callback (widget_class, show_language_support);
  }
  
  static void
-diff --git a/panels/region/region.ui b/panels/region/region.ui
-index 53ebb48..46e3862 100644
---- a/panels/region/region.ui
-+++ b/panels/region/region.ui
-@@ -544,6 +544,32 @@
+diff --git a/panels/region/cc-region-panel.ui b/panels/region/cc-region-panel.ui
+index 728ee8f..a7dfc40 100644
+--- a/panels/region/cc-region-panel.ui
++++ b/panels/region/cc-region-panel.ui
+@@ -307,6 +307,32 @@
                 </style>
                </object>
              </child>
@@ -106,4 +106,4 @@ index 53ebb48..46e3862 100644
 +            </child>
            </object>
          </child>
-       </object>
+ 

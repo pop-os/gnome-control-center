@@ -15,7 +15,7 @@ Bug: https://bugzilla.gnome.org/show_bug.cgi?id=692532
  2 files changed, 78 insertions(+)
 
 diff --git a/panels/printers/cc-printers-panel.c b/panels/printers/cc-printers-panel.c
-index f05a3ec..4d20ab7 100644
+index 2333e92..87ad965 100644
 --- a/panels/printers/cc-printers-panel.c
 +++ b/panels/printers/cc-printers-panel.c
 @@ -25,6 +25,7 @@
@@ -26,7 +26,7 @@ index f05a3ec..4d20ab7 100644
  #include <glib/gi18n-lib.h>
  #include <glib/gstdio.h>
  #include <polkit/polkit.h>
-@@ -1107,6 +1108,32 @@ printer_add_cb (GtkToolButton *toolbutton,
+@@ -985,6 +986,32 @@ printer_add_cb (GtkToolButton *toolbutton,
                      self);
  }
  
@@ -59,20 +59,20 @@ index f05a3ec..4d20ab7 100644
  static void
  update_sensitivity (gpointer user_data)
  {
-@@ -1424,6 +1451,14 @@ cc_printers_panel_init (CcPrintersPanel *self)
-     gtk_builder_get_object (priv->builder, "printer-add-button2");
+@@ -1271,6 +1298,14 @@ cc_printers_panel_init (CcPrintersPanel *self)
+     gtk_builder_get_object (self->builder, "printer-add-button2");
    g_signal_connect (widget, "clicked", G_CALLBACK (printer_add_cb), self);
  
-+  widget = (GtkWidget*) gtk_builder_get_object (priv->builder, "system-config-printer-button1");
++  widget = (GtkWidget*) gtk_builder_get_object (self->builder, "system-config-printer-button1");
 +  g_signal_connect_swapped (widget, "clicked",
 +                            G_CALLBACK (show_system_config_printer), NULL);
 +
-+  widget = (GtkWidget*) gtk_builder_get_object (priv->builder, "system-config-printer-button2");
++  widget = (GtkWidget*) gtk_builder_get_object (self->builder, "system-config-printer-button2");
 +  g_signal_connect_swapped (widget, "clicked",
 +                            G_CALLBACK (show_system_config_printer), NULL);
 +
    widget = (GtkWidget*)
-     gtk_builder_get_object (priv->builder, "content");
+     gtk_builder_get_object (self->builder, "content");
    gtk_list_box_set_filter_func (GTK_LIST_BOX (widget),
 diff --git a/panels/printers/printers.ui b/panels/printers/printers.ui
 index 2894b7e..d0584f4 100644
