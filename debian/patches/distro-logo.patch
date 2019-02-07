@@ -12,12 +12,12 @@ https://src.fedoraproject.org/rpms/gnome-control-center/blob/master/f/distro-log
 Edited by Jeremy Bicha to use a larger font for the distro version
 and drop the "Version" string from the GNOME version line
 ---
- panels/info/cc-info-overview-panel.c |  2 +-
- panels/info/info-overview.ui         | 15 +++++++++------
+ panels/info/cc-info-overview-panel.c  |  2 +-
+ panels/info/cc-info-overview-panel.ui | 15 +++++++++------
  2 files changed, 10 insertions(+), 7 deletions(-)
 
 diff --git a/panels/info/cc-info-overview-panel.c b/panels/info/cc-info-overview-panel.c
-index 7758271..131106c 100644
+index e2276a2..6ae98d0 100644
 --- a/panels/info/cc-info-overview-panel.c
 +++ b/panels/info/cc-info-overview-panel.c
 @@ -772,7 +772,7 @@ info_overview_panel_setup_overview (CcInfoOverviewPanel *self)
@@ -29,61 +29,61 @@ index 7758271..131106c 100644
        gtk_label_set_text (GTK_LABEL (priv->version_label), text);
      }
  
-diff --git a/panels/info/info-overview.ui b/panels/info/info-overview.ui
-index 219a83c..66acb80 100644
---- a/panels/info/info-overview.ui
-+++ b/panels/info/info-overview.ui
-@@ -12,13 +12,14 @@
-       <object class="GtkBox">
-         <property name="visible">True</property>
-         <property name="can_focus">False</property>
--        <property name="spacing">18</property>
-+        <property name="spacing">6</property>
-         <property name="orientation">vertical</property>
-         <child>
-           <object class="GtkImage" id="system_image">
-             <property name="visible">True</property>
-             <property name="can_focus">False</property>
--            <property name="resource">/org/gnome/control-center/info/GnomeLogoVerticalMedium.svg</property>
-+            <property name="pixel_size">128</property>
-+            <property name="icon_name">ubuntu-logo-icon</property>
-           </object>
-           <packing>
-             <property name="expand">False</property>
-@@ -27,13 +28,15 @@
-           </packing>
-         </child>
-         <child>
--          <object class="GtkLabel" id="version_label">
-+          <object class="GtkLabel" id="os_name_label">
-             <property name="visible">True</property>
-             <property name="can_focus">False</property>
-             <property name="label">Version 3.0</property>
-             <property name="selectable">True</property>
-+            <property name="margin-bottom">24</property>
-             <attributes>
-               <attribute name="scale" value="1.25"/>
-+              <attribute name="size" value="16000"/>
-             </attributes>
-           </object>
-           <packing>
-@@ -118,8 +121,8 @@
-                 <property name="visible">True</property>
+diff --git a/panels/info/cc-info-overview-panel.ui b/panels/info/cc-info-overview-panel.ui
+index ce675d3..24e30ed 100644
+--- a/panels/info/cc-info-overview-panel.ui
++++ b/panels/info/cc-info-overview-panel.ui
+@@ -24,13 +24,14 @@
                  <property name="can_focus">False</property>
-                 <property name="xalign">1</property>
--                <property name="label" translatable="yes" comments="To translators: this field contains the distro name and version">OS name</property>
--                <property name="mnemonic_widget">os_name_label</property>
-+                <property name="label">GNOME</property>
-+                <property name="mnemonic_widget">version_label</property>
-                 <style>
-                  <class name="dim-label"/>
-                 </style>
-@@ -228,7 +231,7 @@
-               </packing>
-             </child>
-             <child>
--              <object class="GtkLabel" id="os_name_label">
-+              <object class="GtkLabel" id="version_label">
-                 <property name="visible">True</property>
-                 <property name="can_focus">False</property>
-                 <property name="xalign">0</property>
+                 <property name="valign">center</property>
+                 <property name="halign">center</property>
+-                <property name="spacing">18</property>
++                <property name="spacing">6</property>
+                 <property name="orientation">vertical</property>
+                 <child>
+                   <object class="GtkImage" id="system_image">
+                     <property name="visible">True</property>
+                     <property name="can_focus">False</property>
+-                    <property name="resource">/org/gnome/control-center/info/GnomeLogoVerticalMedium.svg</property>
++                    <property name="pixel_size">128</property>
++                    <property name="pixbuf">/usr/share/images/vendor-logos/logo.svg</property>
+                   </object>
+                   <packing>
+                     <property name="expand">False</property>
+@@ -39,13 +40,15 @@
+                   </packing>
+                 </child>
+                 <child>
+-                  <object class="GtkLabel" id="version_label">
++                  <object class="GtkLabel" id="os_name_label">
+                     <property name="visible">True</property>
+                     <property name="can_focus">False</property>
+                     <property name="label">Version 3.0</property>
+                     <property name="selectable">True</property>
++                    <property name="margin-bottom">24</property>
+                     <attributes>
+                       <attribute name="scale" value="1.25"/>
++                      <attribute name="size" value="16000"/>
+                     </attributes>
+                   </object>
+                   <packing>
+@@ -130,8 +133,8 @@
+                         <property name="visible">True</property>
+                         <property name="can_focus">False</property>
+                         <property name="xalign">1</property>
+-                        <property name="label" translatable="yes" comments="To translators: this field contains the distro name and version">OS name</property>
+-                        <property name="mnemonic_widget">os_name_label</property>
++                        <property name="label">GNOME</property>
++                        <property name="mnemonic_widget">version_label</property>
+                         <style>
+                          <class name="dim-label"/>
+                         </style>
+@@ -243,7 +246,7 @@
+                       </packing>
+                     </child>
+                     <child>
+-                      <object class="GtkLabel" id="os_name_label">
++                      <object class="GtkLabel" id="version_label">
+                         <property name="visible">True</property>
+                         <property name="can_focus">False</property>
+                         <property name="ellipsize">end</property>

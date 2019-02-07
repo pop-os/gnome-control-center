@@ -18,8 +18,9 @@
  *
  */
 
-#ifndef _CC_PANEL_LOADER_H
-#define _CC_PANEL_LOADER_H
+#pragma once
+
+#include "config.h"
 
 #include <glib.h>
 #include <glib-object.h>
@@ -28,12 +29,24 @@
 
 G_BEGIN_DECLS
 
+typedef struct
+{
+  const gchar           *name;
+
+#ifndef CC_PANEL_LOADER_NO_GTYPES
+  GType                (*get_type)(void);
+  CcPanelStaticInitFunc static_init_func;
+#endif
+} CcPanelLoaderVtable;
+
 void     cc_panel_loader_fill_model     (CcShellModel  *model);
-GList   *cc_panel_loader_get_panels     (void);
+void     cc_panel_loader_list_panels    (void);
 CcPanel *cc_panel_loader_load_by_name   (CcShell       *shell,
                                          const char    *name,
                                          GVariant      *parameters);
 
+void    cc_panel_loader_override_vtable (CcPanelLoaderVtable *override_vtable,
+                                         gsize                n_elements);
+
 G_END_DECLS
 
-#endif

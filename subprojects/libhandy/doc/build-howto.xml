@@ -1,0 +1,89 @@
+<?xml version="1.0"?>
+<!DOCTYPE refentry PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN"
+               "http://www.oasis-open.org/docbook/xml/4.3/docbookx.dtd" [
+  <!ENTITY % local.common.attrib "xmlns:xi  CDATA  #FIXED 'http://www.w3.org/2003/XInclude'">
+  <!ENTITY % gtkdocentities SYSTEM "xml/gtkdocentities.ent">
+  %gtkdocentities;
+]>
+
+<refentry id="build-howto">
+  <refmeta>
+    <refentrytitle>Compiling with &package_string;</refentrytitle>
+    <manvolnum>3</manvolnum>
+  </refmeta>
+
+  <refnamediv>
+    <refname>Compiling with &package_string;</refname><refpurpose>Notes on compiling</refpurpose>
+  </refnamediv>
+
+  <refsect2>
+    <title>Using pkg-config</title>
+
+    <para> Like other GNOME libraries,
+    <application>&package_string;</application> uses
+    <application>pkg-config</application> to provide compiler options. The
+    package name is
+    "<literal>&package_ver_str;</literal>". So in
+    your <literal>configure</literal> script, you might specify something
+    like: </para>
+
+    <informalexample><programlisting>
+      PKG_CHECK_MODULES(LIBHANDY, [&package_string;-&package_api_version;])
+      AC_SUBST(LIBHANDY_CFLAGS)
+      AC_SUBST(LIBHANDY_LIBS)
+    </programlisting></informalexample>
+
+    <para>
+      Or if using meson/ninja use a <literal>dependency('&package_string;-&package_api_version;')
+    </literal> dependency.
+    </para>
+
+    <para>
+      The "<literal>&package_api_version;</literal>" in the package name is the "API version"
+      (indicating "the version of the <application>&package_string;</application> API
+      that first appeared in version &package_api_version;") and is essentially just part of
+      the package name.
+    </para>
+
+    <para>
+      When using the <productname>meson build system</productname> you can declare a dependency like
+    </para>
+    <informalexample><programlisting>
+      dependency('libhandy-0.0')
+    </programlisting></informalexample>
+
+  </refsect2>
+
+  <refsect2>
+    <title>Acknowledge the Unstability</title>
+
+    <para>
+      Since the library is young and is still changing a lot, in order to use it you are required to acknowledge that your are using an unstable API.
+      To do so, <literal>HANDY_USE_UNSTABLE_API</literal> must be defined for compilation to succeed.
+    </para>
+
+    <para>
+      From C code or any compatible language, you can prefix your inclusioin of the libhandy header like so:
+    </para>
+
+    <informalexample><programlisting>
+      #define HANDY_USE_UNSTABLE_API
+      #include &lt;handy.h&gt;
+    </programlisting></informalexample>
+
+    <para>
+      Including individual headers rather than <literal>handy.h</literal> is not
+      recommended.
+    </para>
+    <para>
+      You can also acknoledge this with the definition option of your C compiler, like <literal>-DHANDY_USE_UNSTABLE_API</literal>.
+      This is required from Vala.
+    </para>
+
+    <para>
+      To use libhandy from Vala, you must define the acknowledgment in C via <literal>-X -DHANDY_USE_UNSTABLE_API</literal>.
+      If your build system uses a two pass compilation and hence your Vala compiler outputs C (Meson, Automake, or using the <literal>--ccode</literal> Vala compiler option trigger that) then you must add <literal>-DHANDY_USE_UNSTABLE_API</literal> to your C compiler argments instead.
+    </para>
+  </refsect2>
+
+</refentry>

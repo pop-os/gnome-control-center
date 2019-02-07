@@ -1,6 +1,6 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 8 -*-
  *
- * Copyright (C) 2010 Red Hat, Inc.
+ * Copyright (C) 2018 Canonical Ltd.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -16,12 +16,9 @@
  * along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _CC_SOUND_PANEL_H
-#define _CC_SOUND_PANEL_H
+#pragma once
 
 #include <shell/cc-panel.h>
-#include "gvc-mixer-control.h"
-#include "gvc-mixer-dialog.h"
 
 G_BEGIN_DECLS
 
@@ -29,6 +26,3 @@ G_BEGIN_DECLS
 G_DECLARE_FINAL_TYPE (CcSoundPanel, cc_sound_panel, CC, SOUND_PANEL, CcPanel)
 
 G_END_DECLS
-
-#endif /* _CC_SOUND_PANEL_H */
-

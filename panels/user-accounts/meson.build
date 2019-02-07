@@ -94,13 +94,19 @@ i18n.merge_file(
 )
 
 common_sources = files(
+  'cc-add-user-dialog.c',
+  'cc-realm-manager.c',
   'pw-utils.c',
-  'um-account-dialog.c',
-  'um-realm-manager.c',
-  'um-utils.c'
+  'user-utils.c',
 )
 
 resource_data = files(
+  'cc-add-user-dialog.ui',
+  'cc-avatar-chooser.ui',
+  'cc-carousel.ui',
+  'cc-login-history-dialog.ui',
+  'cc-password-dialog.ui',
+  'cc-user-panel.ui',
   'data/icons/left-index-finger.png',
   'data/icons/left-little-finger.png',
   'data/icons/left-middle-finger.png',
@@ -113,21 +119,16 @@ resource_data = files(
   'data/icons/right-middle-finger.png',
   'data/icons/right-ring-finger.png',
   'data/icons/right-thumb.png',
-  'data/account-dialog.ui',
   'data/account-fingerprint.ui',
   'data/carousel.css',
-  'data/carousel.ui',
-  'data/history-dialog.ui',
   'data/join-dialog.ui',
-  'data/password-dialog.ui',
   'data/user-accounts-dialog.css',
-  'data/user-accounts-dialog.ui'
 )
 
 common_sources += gnome.compile_resources(
-  'um-resources',
+  'cc-' + cappletname + '-resources',
   cappletname + '.gresource.xml',
-  c_name: 'um',
+  c_name: 'cc_' + cappletname.underscorify(),
   dependencies: resource_data,
   export: true
 )
@@ -135,25 +136,24 @@ common_sources += gnome.compile_resources(
 realmd_namespace = 'org.freedesktop.realmd'
 
 common_sources += gnome.gdbus_codegen(
-  'um-realm-generated',
+  'cc-realm-generated',
   'data/' + realmd_namespace + '.xml',
   interface_prefix: realmd_namespace + '.',
-  namespace: 'UmRealm',
+  namespace: 'CcRealm',
   object_manager: true,
   annotations: ['org.freedesktop.realmd.Realm', 'org.gtk.GDBus.C.Name', 'Common']
 )
 
 sources = common_sources + files(
+  'cc-avatar-chooser.c',
+  'cc-carousel.c',
   'cc-crop-area.c',
+  'cc-login-history-dialog.c',
+  'cc-password-dialog.c',
+  'cc-user-image.c',
+  'cc-user-panel.c',
   'run-passwd.c',
-  'um-account-type.c',
-  'um-carousel.c',
   'um-fingerprint-dialog.c',
-  'um-history-dialog.c',
-  'um-password-dialog.c',
-  'um-photo-dialog.c',
-  'um-user-image.c',
-  'um-user-panel.c'
 )
 
 # Kerberos support
@@ -185,18 +185,6 @@ panels_libs += static_library(
   cappletname,
   sources: sources,
   include_directories: [top_inc, shell_inc],
-  dependencies: deps,
-  c_args: cflags
-)
-
-name = 'frob-account-dialog'
-
-sources = common_sources + files(name + '.c')
-
-executable(
-  name,
-  sources,
-  include_directories: top_inc,
   dependencies: deps,
   c_args: cflags
 )

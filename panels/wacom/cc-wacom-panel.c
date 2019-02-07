@@ -346,6 +346,7 @@ update_current_tool (CcWacomPanel  *panel,
 	CcWacomTool *stylus;
 	GsdDevice *gsd_device;
 	guint64 serial, id;
+	gboolean added;
 
 	if (!tool)
 		return;
@@ -363,34 +364,54 @@ update_current_tool (CcWacomPanel  *panel,
 
 	/* Check whether we already know this tool, nothing to do then */
 	serial = gdk_device_tool_get_serial (tool);
+
+	/* The wacom driver sends serial-less tools with a serial of
+	 * 1, libinput uses 0. No device exists with serial 1, let's reset
+	 * it here so everything else works as expected.
+	 */
+	if (serial == 1)
+		serial = 0;
+
 	stylus = cc_tablet_tool_map_lookup_tool (panel->tablet_tool_map,
 						 wacom_device, serial);
 
 	if (!stylus) {
-		gboolean added;
-
 		id = gdk_device_tool_get_hardware_id (tool);
+
+		/* The wacom driver sends a hw id of 0x2 for stylus and 0xa
+		 * for eraser for devices that don't have a true HW id.
+		 * Reset those to 0 so we can use the same code-paths
+		 * libinput uses.
+		 * The touch ID is 0x3, let's ignore that because we don't
+		 * have a touch tool and it only happens when the wacom
+		 * driver handles the touch device.
+		 */
+		if (id == 0x2 || id == 0xa)
+			id = 0;
+		else if (id == 0x3)
+			return;
+
 		stylus = cc_wacom_tool_new (serial, id, wacom_device);
 		if (!stylus)
 			return;
+        }
 
-		added = add_stylus (panel, stylus);
+	added = add_stylus (panel, stylus);
 
-		if (added) {
-			if (panel->stylus_notebook ==
-			    gtk_stack_get_visible_child (GTK_STACK (panel->stack))) {
-				GtkWidget *widget;
-				gint page;
+	if (added) {
+		if (panel->stylus_notebook ==
+		    gtk_stack_get_visible_child (GTK_STACK (panel->stack))) {
+			GtkWidget *widget;
+			gint page;
 
-				widget = g_hash_table_lookup (panel->stylus_pages, stylus);
-				page = gtk_notebook_page_num (GTK_NOTEBOOK (panel->stylus_notebook), widget);
-				gtk_notebook_set_current_page (GTK_NOTEBOOK (panel->stylus_notebook), page);
-			} else {
-				gtk_container_child_set (GTK_CONTAINER (panel->stack),
-							 panel->stylus_notebook,
-							 "needs-attention", TRUE,
-							 NULL);
-			}
+			widget = g_hash_table_lookup (panel->stylus_pages, stylus);
+			page = gtk_notebook_page_num (GTK_NOTEBOOK (panel->stylus_notebook), widget);
+			gtk_notebook_set_current_page (GTK_NOTEBOOK (panel->stylus_notebook), page);
+		} else {
+			gtk_container_child_set (GTK_CONTAINER (panel->stack),
+						 panel->stylus_notebook,
+						 "needs-attention", TRUE,
+						 NULL);
 		}
 	}
 

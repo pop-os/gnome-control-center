@@ -70,44 +70,14 @@
             <property name="hscrollbar_policy">never</property>
             <property name="min_content_height">500</property>
             <child>
-              <object class="GtkGrid">
+              <object class="HdyColumn">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="row-spacing">18</property>
-                <property name="column-spacing">18</property>
-                <property name="orientation">vertical</property>
-                <property name="margin_start">32</property>
-                <property name="margin_end">32</property>
+                <property name="maximum_width">600</property>
+                <property name="linear_growth_width">400</property>
                 <property name="margin_top">32</property>
                 <property name="margin_bottom">32</property>
-                <property name="hexpand">True</property>
-                <property name="width-request">300</property>
-
-                <!--
-                  Stub boxes to pull the widgets to the middle, and yet allow them to
-                  grow and cover a third of the available space
-                -->
-                <child>
-                  <object class="GtkBox">
-                    <property name="visible">True</property>
-                    <property name="hexpand">True</property>
-                  </object>
-                  <packing>
-                    <property name="top-attach">0</property>
-                    <property name="left-attach">0</property>
-                  </packing>
-                </child>
-
-                <child>
-                  <object class="GtkBox">
-                    <property name="visible">True</property>
-                    <property name="hexpand">True</property>
-                  </object>
-                  <packing>
-                    <property name="top-attach">0</property>
-                    <property name="left-attach">2</property>
-                  </packing>
-                </child>
+                <property name="margin_start">12</property>
+                <property name="margin_end">12</property>
 
                 <child>
                   <object class="GtkBox">
@@ -116,17 +86,21 @@
                     <property name="spacing">12</property>
                     <property name="orientation">vertical</property>
                     <property name="hexpand">True</property>
-                    <property name="width-request">300</property>
 
                     <child>
-                      <object class="GtkLabel">
+                      <object class="GtkLabel" id="accounts_label">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+                        <property name="wrap">True</property>
+                        <property name="justify">center</property>
                         <property name="label" translatable="yes">Connect to your data in the cloud</property>
                         <property name="margin_bottom">20</property>
                         <attributes>
                           <attribute name="scale" value="1.66" />
                         </attributes>
+                        <accessibility>
+                          <relation target="accounts_listbox" type="label-for"/>
+                        </accessibility>
                       </object>
                     </child>
                     <child>
@@ -146,12 +120,15 @@
                             <property name="can_focus">True</property>
                             <property name="selection_mode">none</property>
                             <signal name="row-activated" handler="on_listbox_row_activated" object="CcGoaPanel" swapped="yes" />
+                            <accessibility>
+                              <relation target="accounts_label" type="labelled-by"/>
+                            </accessibility>
                           </object>
                         </child>
                       </object>
                     </child>
                     <child>
-                      <object class="GtkLabel">
+                      <object class="GtkLabel" id="providers_label">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="margin-top">20</property>
@@ -160,6 +137,9 @@
                         <attributes>
                           <attribute name="weight" value="bold" />
                         </attributes>
+                        <accessibility>
+                          <relation target="providers_listbox" type="label-for"/>
+                        </accessibility>
                       </object>
                     </child>
                     <child>
@@ -172,6 +152,9 @@
                             <property name="can_focus">True</property>
                             <property name="selection_mode">none</property>
                             <signal name="row-activated" handler="on_provider_row_activated" object="CcGoaPanel" swapped="yes" />
+                            <accessibility>
+                              <relation target="providers_label" type="labelled-by"/>
+                            </accessibility>
                             <child>
                               <object class="GtkListBoxRow" id="more_providers_row">
                                 <property name="visible">True</property>
@@ -192,10 +175,6 @@
                       </object>
                     </child>
                   </object>
-                  <packing>
-                    <property name="top-attach">0</property>
-                    <property name="left-attach">1</property>
-                  </packing>
                 </child>
               </object>
             </child>

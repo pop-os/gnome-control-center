@@ -20,8 +20,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef __NET_DEVICE_SIMPLE_H
-#define __NET_DEVICE_SIMPLE_H
+#pragma once
 
 #include <glib-object.h>
 
@@ -29,22 +28,8 @@
 
 G_BEGIN_DECLS
 
-#define NET_TYPE_DEVICE_SIMPLE          (net_device_simple_get_type ())
-#define NET_DEVICE_SIMPLE(o)            (G_TYPE_CHECK_INSTANCE_CAST ((o), NET_TYPE_DEVICE_SIMPLE, NetDeviceSimple))
-#define NET_DEVICE_SIMPLE_CLASS(k)      (G_TYPE_CHECK_CLASS_CAST((k), NET_TYPE_DEVICE_SIMPLE, NetDeviceSimpleClass))
-#define NET_IS_DEVICE_SIMPLE(o)         (G_TYPE_CHECK_INSTANCE_TYPE ((o), NET_TYPE_DEVICE_SIMPLE))
-#define NET_IS_DEVICE_SIMPLE_CLASS(k)   (G_TYPE_CHECK_CLASS_TYPE ((k), NET_TYPE_DEVICE_SIMPLE))
-#define NET_DEVICE_SIMPLE_GET_CLASS(o)  (G_TYPE_INSTANCE_GET_CLASS ((o), NET_TYPE_DEVICE_SIMPLE, NetDeviceSimpleClass))
-
-typedef struct _NetDeviceSimplePrivate   NetDeviceSimplePrivate;
-typedef struct _NetDeviceSimple          NetDeviceSimple;
-typedef struct _NetDeviceSimpleClass     NetDeviceSimpleClass;
-
-struct _NetDeviceSimple
-{
-         NetDevice               parent;
-         NetDeviceSimplePrivate *priv;
-};
+#define NET_TYPE_DEVICE_SIMPLE (net_device_simple_get_type ())
+G_DECLARE_DERIVABLE_TYPE (NetDeviceSimple, net_device_simple, NET, DEVICE_SIMPLE, NetDevice)
 
 struct _NetDeviceSimpleClass
 {
@@ -52,8 +37,6 @@ struct _NetDeviceSimpleClass
 
         char                    *(*get_speed)  (NetDeviceSimple *device_simple);
 };
-
-GType net_device_simple_get_type               (void);
 
 char *net_device_simple_get_speed              (NetDeviceSimple *device_simple);
 
@@ -65,6 +48,3 @@ void  net_device_simple_set_show_separator     (NetDeviceSimple *device_simple,
                                                 gboolean         show_separator);
 
 G_END_DECLS
-
-#endif /* __NET_DEVICE_SIMPLE_H */
-

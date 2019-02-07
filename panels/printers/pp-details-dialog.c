@@ -54,8 +54,7 @@ struct _PpDetailsDialog {
   gchar        *printer_location;
   gchar        *ppd_file_name;
   PPDList      *all_ppds_list;
-  GCancellable *get_all_ppds_cancellable;
-  GCancellable *get_ppd_names_cancellable;
+  GCancellable *cancellable;
 
   /* Dialogs */
   PpPPDSelectionDialog *pp_ppd_selection_dialog;
@@ -126,15 +125,13 @@ printer_name_changed (GtkEditable *editable,
 {
   PpDetailsDialog *self = (PpDetailsDialog *) user_data;
   const gchar *name;
-  gchar *title;
+  g_autofree gchar *title = NULL;
 
   name = gtk_entry_get_text (GTK_ENTRY (self->printer_name_entry));
 
   /* Translators: This is the title of the dialog. %s is the printer name. */
   title = g_strdup_printf (_("%s Details"), name);
   gtk_label_set_label (self->dialog_title, title);
-
-  g_free (title);
 }
 
 static void
@@ -173,7 +170,7 @@ get_ppd_names_cb (PPDName     **names,
           gtk_label_set_text (self->printer_model_label, names[0]->ppd_display_name);
           printer_set_ppd_async (printer_name,
                                  names[0]->ppd_name,
-                                 self->get_ppd_names_cancellable,
+                                 self->cancellable,
                                  set_ppd_cb,
                                  self);
           ppd_names_free (names);
@@ -194,10 +191,9 @@ search_for_drivers (GtkButton       *button,
   gtk_stack_set_visible_child_name (self->printer_model_stack, "loading");
   gtk_widget_set_sensitive (self->search_for_drivers_button, FALSE);
 
-  self->get_ppd_names_cancellable = g_cancellable_new ();
   get_ppd_names_async (self->printer_name,
                        1,
-                       self->get_ppd_names_cancellable,
+                       self->cancellable,
                        get_ppd_names_cb,
                        self);
 }
@@ -221,27 +217,21 @@ ppd_selection_dialog_response_cb (GtkDialog *dialog,
 
   if (response_id == GTK_RESPONSE_OK)
     {
-      gchar *ppd_name;
+      g_autofree gchar *ppd_name = NULL;
 
       ppd_name = pp_ppd_selection_dialog_get_ppd_name (self->pp_ppd_selection_dialog);
 
       if (self->printer_name && ppd_name)
         {
-          GCancellable *cancellable;
-
-          cancellable = g_cancellable_new ();
-
           printer_set_ppd_async (self->printer_name,
                                  ppd_name,
-                                 cancellable,
+                                 self->cancellable,
                                  set_ppd_cb,
                                  self);
 
           g_clear_pointer (&self->ppd_file_name, g_free);
           self->ppd_file_name = g_strdup (ppd_name);
         }
-
-      g_free (ppd_name);
     }
 
   pp_ppd_selection_dialog_free (self->pp_ppd_selection_dialog);
@@ -259,17 +249,14 @@ get_all_ppds_async_cb (PPDList  *ppds,
   if (self->pp_ppd_selection_dialog)
     pp_ppd_selection_dialog_set_ppd_list (self->pp_ppd_selection_dialog,
                                           self->all_ppds_list);
-
-  g_object_unref (self->get_all_ppds_cancellable);
-  self->get_all_ppds_cancellable = NULL;
 }
 
 static void
 select_ppd_in_dialog (GtkButton       *button,
                       PpDetailsDialog *self)
 {
-  gchar *device_id = NULL;
-  gchar *manufacturer = NULL;
+  g_autofree gchar *device_id = NULL;
+  g_autofree gchar *manufacturer = NULL;
 
   g_clear_pointer (&self->ppd_file_name, g_free);
   self->ppd_file_name = g_strdup (cupsGetPPD (self->printer_name));
@@ -301,8 +288,7 @@ select_ppd_in_dialog (GtkButton       *button,
 
        if (self->all_ppds_list == NULL)
          {
-           self->get_all_ppds_cancellable = g_cancellable_new ();
-           get_all_ppds_async (self->get_all_ppds_cancellable, get_all_ppds_async_cb, self);
+           get_all_ppds_async (self->cancellable, get_all_ppds_async_cb, self);
          }
 
         self->pp_ppd_selection_dialog = pp_ppd_selection_dialog_new (
@@ -311,9 +297,6 @@ select_ppd_in_dialog (GtkButton       *button,
           manufacturer,
           ppd_selection_dialog_response_cb,
           self);
-
-        g_free (manufacturer);
-        g_free (device_id);
     }
 }
 
@@ -344,7 +327,7 @@ select_ppd_manually (GtkButton       *button,
 
   if (gtk_dialog_run (GTK_DIALOG (dialog)) == GTK_RESPONSE_ACCEPT)
     {
-      gchar *ppd_filename;
+      g_autofree gchar *ppd_filename = NULL;
 
       ppd_filename = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (dialog));
 
@@ -352,12 +335,10 @@ select_ppd_manually (GtkButton       *button,
         {
           printer_set_ppd_file_async (self->printer_name,
                                       ppd_filename,
-                                      NULL,
+                                      self->cancellable,
                                       set_ppd_cb,
                                       self);
         }
-
-      g_free (ppd_filename);
     }
 
   gtk_widget_destroy (dialog);
@@ -376,6 +357,8 @@ static void
 pp_details_dialog_init (PpDetailsDialog *self)
 {
   gtk_widget_init_template (GTK_WIDGET (self));
+
+  self->cancellable = g_cancellable_new ();
 }
 
 static void
@@ -403,7 +386,7 @@ pp_details_dialog_class_init (PpDetailsDialogClass *klass)
   signals[PRINTER_RENAMED] = g_signal_new ("printer-renamed",
                                            G_TYPE_FROM_CLASS (klass),
                                            G_SIGNAL_RUN_LAST,
-                                           G_STRUCT_OFFSET (PpDetailsDialogClass, printer_renamed),
+                                           0,
                                            NULL, NULL, NULL,
                                            G_TYPE_NONE, 1,
                                            G_TYPE_STRING);
@@ -418,8 +401,8 @@ pp_details_dialog_new (GtkWindow            *parent,
                        gboolean              sensitive)
 {
   PpDetailsDialog *self;
-  gchar           *title;
-  gchar           *printer_url;
+  g_autofree gchar *title = NULL;
+  g_autofree gchar *printer_url = NULL;
 
   self = g_object_new (PP_DETAILS_DIALOG_TYPE,
                        "transient-for", parent,
@@ -433,11 +416,9 @@ pp_details_dialog_new (GtkWindow            *parent,
   /* Translators: This is the title of the dialog. %s is the printer name. */
   title = g_strdup_printf (_("%s Details"), printer_name);
   gtk_label_set_label (self->dialog_title, title);
-  g_free (title);
 
   printer_url = g_strdup_printf ("<a href=\"http://%s:%d\">%s</a>", printer_address, ippPort (), printer_address);
   gtk_label_set_markup (GTK_LABEL (self->printer_address_label), printer_url);
-  g_free (printer_url);
 
   gtk_entry_set_text (GTK_ENTRY (self->printer_name_entry), printer_name);
   gtk_entry_set_text (GTK_ENTRY (self->printer_location_entry), printer_location);
@@ -463,11 +444,8 @@ pp_details_dialog_free (PpDetailsDialog *self)
           self->all_ppds_list = NULL;
         }
 
-      g_cancellable_cancel (self->get_all_ppds_cancellable);
-      g_clear_object (&self->get_all_ppds_cancellable);
-
-      g_cancellable_cancel (self->get_ppd_names_cancellable);
-      g_clear_object (&self->get_ppd_names_cancellable);
+      g_cancellable_cancel (self->cancellable);
+      g_clear_object (&self->cancellable);
 
       gtk_widget_destroy (GTK_WIDGET (self));
     }

@@ -18,8 +18,7 @@
  * Author: Marek Kasik <mkasik@redhat.com>
  */
 
-#ifndef __PP_IPP_OPTION_WIDGET_H__
-#define __PP_IPP_OPTION_WIDGET_H__
+#pragma once
 
 #include <gtk/gtk.h>
 #include <cups/cups.h>
@@ -29,35 +28,8 @@
 
 G_BEGIN_DECLS
 
-#define PP_TYPE_IPP_OPTION_WIDGET                  (pp_ipp_option_widget_get_type ())
-#define PP_IPP_OPTION_WIDGET(obj)                  (G_TYPE_CHECK_INSTANCE_CAST ((obj), PP_TYPE_IPP_OPTION_WIDGET, PpIPPOptionWidget))
-#define PP_IPP_OPTION_WIDGET_CLASS(klass)          (G_TYPE_CHECK_CLASS_CAST ((klass),  PP_TYPE_IPP_OPTION_WIDGET, PpIPPOptionWidgetClass))
-#define PP_IS_IPP_OPTION_WIDGET(obj)               (G_TYPE_CHECK_INSTANCE_TYPE ((obj), PP_TYPE_IPP_OPTION_WIDGET))
-#define PP_IS_IPP_OPTION_WIDGET_CLASS(klass)       (G_TYPE_CHECK_CLASS_TYPE ((klass),  PP_TYPE_IPP_OPTION_WIDGET))
-#define PP_IPP_OPTION_WIDGET_GET_CLASS(obj)        (G_TYPE_INSTANCE_GET_CLASS ((obj),  PP_TYPE_IPP_OPTION_WIDGET, PpIPPOptionWidgetClass))
-
-typedef struct _PpIPPOptionWidget         PpIPPOptionWidget;
-typedef struct _PpIPPOptionWidgetClass    PpIPPOptionWidgetClass;
-typedef struct PpIPPOptionWidgetPrivate   PpIPPOptionWidgetPrivate;
-
-struct _PpIPPOptionWidget
-{
-  GtkHBox parent_instance;
-
-  PpIPPOptionWidgetPrivate *priv;
-};
-
-struct _PpIPPOptionWidgetClass
-{
-  GtkHBoxClass parent_class;
-
-  void (*changed) (PpIPPOptionWidget *widget);
-};
-
-typedef void (*IPPOptionCallback) (GtkWidget *widget,
-                                   gpointer   user_data);
-
-GType	     pp_ipp_option_widget_get_type  (void) G_GNUC_CONST;
+#define PP_TYPE_IPP_OPTION_WIDGET (pp_ipp_option_widget_get_type ())
+G_DECLARE_FINAL_TYPE (PpIPPOptionWidget, pp_ipp_option_widget, PP, IPP_OPTION_WIDGET, GtkBox)
 
 GtkWidget   *pp_ipp_option_widget_new (IPPAttribute *attr_supported,
                                        IPPAttribute *attr_default,
@@ -65,5 +37,3 @@ GtkWidget   *pp_ipp_option_widget_new (IPPAttribute *attr_supported,
                                        const gchar  *printer);
 
 G_END_DECLS
-
-#endif /* __PP_IPP_OPTION_WIDGET_H__ */

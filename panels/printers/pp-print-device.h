@@ -18,8 +18,7 @@
  * Author: Marek Kasik <mkasik@redhat.com>
  */
 
-#ifndef __PP_PRINT_DEVICE_H__
-#define __PP_PRINT_DEVICE_H__
+#pragma once
 
 #include <glib-object.h>
 #include <gio/gio.h>
@@ -28,14 +27,6 @@ G_BEGIN_DECLS
 
 #define PP_TYPE_PRINT_DEVICE (pp_print_device_get_type ())
 G_DECLARE_FINAL_TYPE (PpPrintDevice, pp_print_device, PP, PRINT_DEVICE, GObject)
-
-typedef struct _PpPrintDevicePrivate PpPrintDevicePrivate;
-
-struct _PpPrintDevice
-{
-  GObject               parent_instance;
-  PpPrintDevicePrivate *priv;
-};
 
 PpPrintDevice *pp_print_device_new                       (void);
 PpPrintDevice *pp_print_device_copy                      (PpPrintDevice *device);
@@ -55,5 +46,3 @@ gint           pp_print_device_get_acquisition_method    (PpPrintDevice *device)
 gboolean       pp_print_device_is_network_device         (PpPrintDevice *device);
 
 G_END_DECLS
-
-#endif /* __PP_PRINT_DEVICE_H__ */
