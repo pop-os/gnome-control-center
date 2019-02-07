@@ -89,7 +89,7 @@
 
    G_OBJECT_CLASS (cc_info_overview_panel_parent_class)->dispose (object);
  }
-@@ -863,6 +877,69 @@ cc_info_overview_panel_finalize (GObject
+@@ -863,6 +877,70 @@ cc_info_overview_panel_finalize (GObject
  }
 
  static void
@@ -109,7 +109,7 @@
 +  gtk_label_set_text (label, model_text ? model_text : "");
 +}
 +
-+void s76_firmware_connect_schedule (GtkButton *button, FirmwareScheduleData *data)
++static void s76_firmware_connect_schedule (GtkButton *button, FirmwareScheduleData *data)
 +{
 +  CcInfoOverviewPanelPrivate *priv = (CcInfoOverviewPanelPrivate*) data->data;
 +  g_info ("scheduling upgrade of firmware to %s", priv->firmware_version->bios);
@@ -142,10 +142,11 @@
 +
 +static void
 +s76_firmware_dialog (GtkButton *button,
-+                      CcInfoOverviewPanel *self)
++                     CcInfoOverviewPanel *self)
 +{
 +  CcInfoOverviewPanelPrivate *priv = cc_info_overview_panel_get_instance_private (self);
 +
++  g_info ("opening firmware dialog for bios %s", priv->firmware_version->bios);
 +  FirmwareUpdateDialog dialog = firmware_dialog_new (
 +    priv->firmware_version->bios,
 +    priv->firmware_version->changes
@@ -159,7 +160,7 @@
  cc_info_overview_panel_class_init (CcInfoOverviewPanelClass *klass)
  {
    GObjectClass *object_class = G_OBJECT_CLASS (klass);
-@@ -888,6 +965,14 @@ cc_info_overview_panel_class_init (CcInf
+@@ -888,6 +966,14 @@ cc_info_overview_panel_class_init (CcInf
    gtk_widget_class_bind_template_child_private (widget_class, CcInfoOverviewPanel, grid1);
    gtk_widget_class_bind_template_child_private (widget_class, CcInfoOverviewPanel, label18);
 
@@ -174,7 +175,7 @@
    g_type_ensure (CC_TYPE_HOSTNAME_ENTRY);
  }
 
-@@ -909,6 +994,24 @@ cc_info_overview_panel_init (CcInfoOverv
+@@ -909,6 +995,24 @@ cc_info_overview_panel_init (CcInfoOverv
 
    info_overview_panel_setup_overview (self);
    info_overview_panel_setup_virt (self);
@@ -186,16 +187,16 @@
 +  set_computer_label (GTK_LABEL (priv->computer_label));
 +  set_model_label (GTK_LABEL (priv->model_label));
 +
-+  g_signal_connect (priv->firmware_button, "clicked", G_CALLBACK (s76_firmware_dialog), self);
-+
 +  s76_firmware_check (
-+    priv->firmware_daemon,
-+    priv->firmware_version,
++    &priv->firmware_daemon,
++    &priv->firmware_version,
 +    GTK_BUTTON (priv->firmware_button),
 +    GTK_LABEL (priv->firmware_upgrade_label),
-+    priv->firmware_digest,
-+    priv->firmware_changelog
++    &priv->firmware_digest,
++    &priv->firmware_changelog
 +  );
++
++  g_signal_connect (priv->firmware_button, "clicked", G_CALLBACK (s76_firmware_dialog), self);
  }
 
  GtkWidget *
@@ -799,7 +800,7 @@
 +                                     gchar **digest, gchar **changelog);
 --- /dev/null
 +++ gnome-control-center-3.30.2/panels/info/s76-firmware-dialog.c
-@@ -0,0 +1,90 @@
+@@ -0,0 +1,91 @@
 +#include <s76-firmware-dialog.h>
 +#include <glib.h>
 +#include <glib/gi18n.h>
@@ -820,7 +821,8 @@
 +  GString *strbuf = g_string_new (NULL);
 +  FoldData data = { strbuf, pattern };
 +  g_ptr_array_foreach (array, join_str_lambda, &data);
-+  return g_string_free (strbuf, FALSE);
++  gchar *output = g_string_free (data.output, FALSE);
++  return output;
 +}
 +
 +FirmwareUpdateDialog firmware_dialog_new (gchar *version, GPtrArray *changes) {
@@ -935,44 +937,46 @@
 +int firmware_dialog_run(FirmwareUpdateDialog *dialog);
 --- /dev/null
 +++ gnome-control-center-3.30.2/panels/info/s76-firmware.c
-@@ -0,0 +1,45 @@
+@@ -0,0 +1,47 @@
 +#include "s76-firmware.h"
 +#include <glib/gi18n.h>
 +
++static void print (gchar *element, gpointer data) {
++  g_info ("firmware description: %s", element);
++}
++
 +void s76_firmware_check (
-+  S76FirmwareDaemon  *firmware_daemon,
-+  S76FirmwareVersion *firmware_version,
-+  GtkButton          *firmware_button,
-+  GtkLabel           *firmware_label,
-+  gchar              *firmware_digest,
-+  gchar              *firmware_changelog
++  S76FirmwareDaemon  **firmware_daemon,
++  S76FirmwareVersion **firmware_version,
++  GtkButton           *firmware_button,
++  GtkLabel            *firmware_label,
++  gchar              **firmware_digest,
++  gchar              **firmware_changelog
 +) {
-+  gtk_widget_hide (firmware_button);
++  gtk_widget_hide (GTK_WIDGET (firmware_button));
 +  const gchar *label;
 +
 +  if (g_file_test ("/sys/firmware/efi", G_FILE_TEST_IS_DIR)) {
 +    label = _("No Updates Available");
 +
-+    g_clear_pointer (&firmware_version, s76_firmware_version_free);
-+    g_slice_free (S76FirmwareVersion, firmware_version);
-+    g_slice_free (S76FirmwareDaemon, firmware_daemon);
++    *firmware_daemon = g_slice_new0 (S76FirmwareDaemon);
++    *firmware_version = g_slice_new0 (S76FirmwareVersion);
++    **firmware_version = s76_firmware_version_new ();
 +
-+    firmware_daemon = g_slice_new0 (S76FirmwareDaemon);
-+    firmware_version = g_slice_new0 (S76FirmwareVersion);
-+    *firmware_version = s76_firmware_version_new ();
-+
-+    if (!s76_firmware_daemon_connect (firmware_daemon)) {
++    if (!s76_firmware_daemon_connect (*firmware_daemon)) {
 +      int needs_update = s76_firmware_daemon_needs_update (
-+        firmware_daemon,
-+        firmware_version,
-+        &firmware_digest,
-+        &firmware_changelog
++        *firmware_daemon,
++        *firmware_version,
++        firmware_digest,
++        firmware_changelog
 +      );
 +
 +      if (needs_update == S76_FIRMWARE_NEEDS_UPDATE) {
-+        g_info ("firmware update is available: %s", firmware_version->bios);
++        g_info ("firmware update is available: %s", (*firmware_version)->bios);
++        g_ptr_array_foreach ((*firmware_version)->changes, print, NULL);
++
 +        label = _("Firmware Updates Available");
-+        gtk_widget_show (firmware_button);
++        gtk_widget_show (GTK_WIDGET (firmware_button));
 +      }
 +    }
 +  } else {
@@ -989,9 +993,9 @@
 +#include "s76-firmware-daemon.h"
 +#include "s76-firmware-dialog.h"
 +
-+void s76_firmware_check(S76FirmwareDaemon *firmware_daemon,
-+                        S76FirmwareVersion *firmware_version,
++void s76_firmware_check(S76FirmwareDaemon  **firmware_daemon,
++                        S76FirmwareVersion **firmware_version,
 +                        GtkButton *firmware_button,
 +                        GtkLabel *firmware_label,
-+                        gchar *firmware_digest,
-+                        gchar *firmware_changelog);
++                        gchar **firmware_digest,
++                        gchar **firmware_changelog);
