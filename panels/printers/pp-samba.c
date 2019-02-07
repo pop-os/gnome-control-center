@@ -28,8 +28,10 @@
 
 #define POLL_DELAY 100000
 
-struct _PpSambaPrivate
+struct _PpSamba
 {
+  PpHost    parent_instance;
+
   /* Auth info */
   gchar    *server;
   gchar    *share;
@@ -44,15 +46,13 @@ G_DEFINE_TYPE (PpSamba, pp_samba, PP_TYPE_HOST);
 static void
 pp_samba_finalize (GObject *object)
 {
-  PpSambaPrivate *priv;
+  PpSamba *self = PP_SAMBA (object);
 
-  priv = PP_SAMBA (object)->priv;
-
-  g_free (priv->server);
-  g_free (priv->share);
-  g_free (priv->workgroup);
-  g_free (priv->username);
-  g_free (priv->password);
+  g_clear_pointer (&self->server, g_free);
+  g_clear_pointer (&self->share, g_free);
+  g_clear_pointer (&self->workgroup, g_free);
+  g_clear_pointer (&self->username, g_free);
+  g_clear_pointer (&self->password, g_free);
 
   G_OBJECT_CLASS (pp_samba_parent_class)->finalize (object);
 }
@@ -62,17 +62,12 @@ pp_samba_class_init (PpSambaClass *klass)
 {
   GObjectClass *gobject_class = G_OBJECT_CLASS (klass);
 
-  g_type_class_add_private (klass, sizeof (PpSambaPrivate));
-
   gobject_class->finalize = pp_samba_finalize;
 }
 
 static void
 pp_samba_init (PpSamba *samba)
 {
-  samba->priv = G_TYPE_INSTANCE_GET_PRIVATE (samba,
-                                             PP_TYPE_SAMBA,
-                                             PpSambaPrivate);
 }
 
 PpSamba *
@@ -120,21 +115,19 @@ pp_samba_set_auth_info (PpSamba     *samba,
                         const gchar *username,
                         const gchar *password)
 {
-  PpSambaPrivate *priv = samba->priv;
-
-  g_free (priv->username);
+  g_free (samba->username);
   if ((username != NULL) && (username[0] != '\0'))
-    priv->username = g_strdup (username);
+    samba->username = g_strdup (username);
   else
-    priv->username = NULL;
+    samba->username = NULL;
 
-  g_free (priv->password);
+  g_free (samba->password);
   if ((password != NULL) && (password[0] != '\0'))
-    priv->password = g_strdup (password);
+    samba->password = g_strdup (password);
   else
-    priv->password = NULL;
+    samba->password = NULL;
 
-  priv->waiting = FALSE;
+  samba->waiting = FALSE;
 }
 
 static void
@@ -148,20 +141,20 @@ auth_fn (SMBCCTX    *smb_context,
          char       *password,
          int         pwmaxlen)
 {
-  PpSamba *samba;
-  GSource *source;
-  SMBData *data;
+  PpSamba           *samba;
+  g_autoptr(GSource) source = NULL;
+  SMBData           *data;
 
   data = (SMBData *) smbc_getOptionUserData (smb_context);
   samba = data->samba;
 
   if (!data->cancelled)
     {
-      samba->priv->server = g_strdup (server);
-      samba->priv->share = g_strdup (share);
-      samba->priv->workgroup = g_strdup (workgroup);
-      samba->priv->username = g_strdup (username);
-      samba->priv->password = g_strdup (password);
+      samba->server = g_strdup (server);
+      samba->share = g_strdup (share);
+      samba->workgroup = g_strdup (workgroup);
+      samba->username = g_strdup (username);
+      samba->password = g_strdup (password);
 
       source = g_idle_source_new ();
       g_source_set_callback (source,
@@ -169,16 +162,15 @@ auth_fn (SMBCCTX    *smb_context,
                              data,
                              NULL);
       g_source_attach (source, data->context);
-      g_source_unref (source);
 
-      samba->priv->waiting = TRUE;
+      samba->waiting = TRUE;
 
       /*
        * smbclient needs to get authentication data
        * from this synchronous callback so we are blocking
        * until we get them
        */
-      while (samba->priv->waiting)
+      while (samba->waiting)
         {
           g_usleep (POLL_DELAY);
         }
@@ -186,23 +178,23 @@ auth_fn (SMBCCTX    *smb_context,
       /* Samba tries to call the auth_fn again if we just set the values
        * to NULL when we want to cancel the authentication 
        */
-      if (samba->priv->username == NULL && samba->priv->password == NULL)
+      if (samba->username == NULL && samba->password == NULL)
         data->cancelled = TRUE;
 
-      if (samba->priv->username != NULL)
+      if (samba->username != NULL)
         {
-          if (g_strcmp0 (username, samba->priv->username) != 0)
-            g_strlcpy (username, samba->priv->username, unmaxlen);
+          if (g_strcmp0 (username, samba->username) != 0)
+            g_strlcpy (username, samba->username, unmaxlen);
         }
       else
         {
           username[0] = '\0';
         }
 
-      if (samba->priv->password != NULL)
+      if (samba->password != NULL)
         {
-          if (g_strcmp0 (password, samba->priv->password) != 0)
-            g_strlcpy (password, samba->priv->password, pwmaxlen);
+          if (g_strcmp0 (password, samba->password) != 0)
+            g_strlcpy (password, samba->password, pwmaxlen);
         }
       else
         {
@@ -290,11 +282,8 @@ list_dir (SMBCCTX      *smb_context,
 
       while (dir && (dirent = smbclient_readdir (smb_context, dir)))
         {
-          gchar *device_name;
-          gchar *device_uri;
-          gchar *subdirname = NULL;
-          gchar *subpath = NULL;
-          gchar *uri;
+          g_autofree gchar *subdirname = NULL;
+          g_autofree gchar *subpath = NULL;
 
           if (dirent->smbc_type == SMBC_WORKGROUP)
             {
@@ -310,6 +299,10 @@ list_dir (SMBCCTX      *smb_context,
 
           if (dirent->smbc_type == SMBC_PRINTER_SHARE)
             {
+              g_autofree gchar *uri = NULL;
+              g_autofree gchar *device_name = NULL;
+              g_autofree gchar *device_uri = NULL;
+
               uri = g_strdup_printf ("%s/%s", dirname, dirent->name);
               device_uri = g_uri_escape_string (uri,
                                                 G_URI_RESERVED_CHARS_GENERIC_DELIMITERS
@@ -317,7 +310,7 @@ list_dir (SMBCCTX      *smb_context,
                                                 FALSE);
 
               device_name = g_strdup (dirent->name);
-              device_name = g_strcanon (device_name, ALLOWED_CHARACTERS, '-');
+              g_strcanon (device_name, ALLOWED_CHARACTERS, '-');
 
               device = g_object_new (PP_TYPE_PRINT_DEVICE,
                                      "device-uri", device_uri,
@@ -329,10 +322,6 @@ list_dir (SMBCCTX      *smb_context,
                                      "host-name", dirname,
                                      NULL);
 
-              g_free (device_name);
-              g_free (device_uri);
-              g_free (uri);
-
               data->devices->devices = g_list_append (data->devices->devices, device);
             }
 
@@ -343,8 +332,6 @@ list_dir (SMBCCTX      *smb_context,
                         subpath,
                         cancellable,
                         data);
-              g_free (subdirname);
-              g_free (subpath);
             }
         }
 
@@ -354,21 +341,18 @@ list_dir (SMBCCTX      *smb_context,
 }
 
 static void
-_pp_samba_get_devices_thread (GSimpleAsyncResult *res,
-                              GObject            *object,
-                              GCancellable       *cancellable)
+_pp_samba_get_devices_thread (GTask        *task,
+                              gpointer      source_object,
+                              gpointer      task_data,
+                              GCancellable *cancellable)
 {
   static GMutex   mutex;
-  SMBData        *data;
+  SMBData        *data = (SMBData *) task_data;
   SMBCCTX        *smb_context;
-  gchar          *dirname;
-  gchar          *path;
-  gchar          *hostname = NULL;
 
-  data = g_simple_async_result_get_op_res_gpointer (res);
   data->devices = g_new0 (PpDevicesList, 1);
   data->devices->devices = NULL;
-  data->samba = PP_SAMBA (object);
+  data->samba = PP_SAMBA (source_object);
 
   g_mutex_lock (&mutex);
 
@@ -377,15 +361,17 @@ _pp_samba_get_devices_thread (GSimpleAsyncResult *res,
     {
       if (smbc_init_context (smb_context))
         {
+          g_autofree gchar *hostname = NULL;
+          g_autofree gchar *dirname = NULL;
+          g_autofree gchar *path = NULL;
+
           smbc_setOptionUserData (smb_context, data);
 
-          g_object_get (object, "hostname", &hostname, NULL);
+          g_object_get (source_object, "hostname", &hostname, NULL);
           if (hostname != NULL)
             {
               dirname = g_strdup_printf ("smb://%s", hostname);
               path = g_strdup_printf ("//%s", hostname);
-
-              g_free (hostname);
             }
           else
             {
@@ -395,15 +381,14 @@ _pp_samba_get_devices_thread (GSimpleAsyncResult *res,
 
           smbc_setFunctionAuthDataWithContext (smb_context, anonymous_auth_fn);
           list_dir (smb_context, dirname, path, cancellable, data);
-
-          g_free (dirname);
-          g_free (path);
         }
 
       smbc_free_context (smb_context, 1);
     }
 
   g_mutex_unlock (&mutex);
+
+  g_task_return_pointer (task, g_steal_pointer (&data->devices), (GDestroyNotify) pp_devices_list_free);
 }
 
 void
@@ -413,25 +398,21 @@ pp_samba_get_devices_async (PpSamba             *samba,
                             GAsyncReadyCallback  callback,
                             gpointer             user_data)
 {
-  GSimpleAsyncResult *res;
-  SMBData            *data;
-  gchar              *hostname = NULL;
+  g_autoptr(GTask)  task = NULL;
+  SMBData          *data;
+  g_autofree gchar *hostname = NULL;
 
   g_object_get (G_OBJECT (samba), "hostname", &hostname, NULL);
 
-  res = g_simple_async_result_new (G_OBJECT (samba), callback, user_data, pp_samba_get_devices_async);
+  task = g_task_new (samba, cancellable, callback, user_data);
   data = g_new0 (SMBData, 1);
   data->devices = NULL;
   data->context = g_main_context_default ();
   data->hostname_set = hostname != NULL;
   data->auth_if_needed = auth_if_needed;
 
-  g_simple_async_result_set_check_cancellable (res, cancellable);
-  g_simple_async_result_set_op_res_gpointer (res, data, (GDestroyNotify) smb_data_free);
-  g_simple_async_result_run_in_thread (res, _pp_samba_get_devices_thread, 0, cancellable);
-
-  g_free (hostname);
-  g_object_unref (res);
+  g_task_set_task_data (task, data, (GDestroyNotify) smb_data_free);
+  g_task_run_in_thread (task, _pp_samba_get_devices_thread);
 }
 
 PpDevicesList *
@@ -439,18 +420,7 @@ pp_samba_get_devices_finish (PpSamba       *samba,
                              GAsyncResult  *res,
                              GError       **error)
 {
-  GSimpleAsyncResult *simple = G_SIMPLE_ASYNC_RESULT (res);
-  SMBData            *data;
-  PpDevicesList      *result;
-
-  g_warn_if_fail (g_simple_async_result_get_source_tag (simple) == pp_samba_get_devices_async);
-
-  if (g_simple_async_result_propagate_error (simple, error))
-    return NULL;
-
-  data = g_simple_async_result_get_op_res_gpointer (simple);
-  result = data->devices;
-  data->devices = NULL;
-
-  return result;
+  g_return_val_if_fail (g_task_is_valid (res, samba), NULL);
+  g_return_val_if_fail (error == NULL || *error == NULL, NULL);
+  return g_task_propagate_pointer (G_TASK (res), error);
 }

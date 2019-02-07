@@ -33,10 +33,29 @@
 #include <cheese-gtk.h>
 #endif /* HAVE_CHEESE */
 
+#define HANDY_USE_UNSTABLE_API
+#include <handy.h>
+
 #include "cc-application.h"
 
+static void
+initialize_dependencies (gint    *argc,
+                         gchar ***argv)
+{
+  #ifdef GDK_WINDOWING_X11
+    XInitThreads ();
+  #endif
+
+  #ifdef HAVE_CHEESE
+    cheese_gtk_init (argc, argv);
+  #endif /* HAVE_CHEESE */
+
+    hdy_init (argc, argv);
+}
+
 int
-main (int argc, char **argv)
+main (gint    argc,
+      gchar **argv)
 {
   g_autoptr(GtkApplication) application = NULL;
 
@@ -44,13 +63,7 @@ main (int argc, char **argv)
   bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");
   textdomain (GETTEXT_PACKAGE);
 
-#ifdef GDK_WINDOWING_X11
-  XInitThreads ();
-#endif
-
-#ifdef HAVE_CHEESE
-  cheese_gtk_init (&argc, &argv);
-#endif /* HAVE_CHEESE */
+  initialize_dependencies (&argc, &argv);
 
   application = cc_application_new ();
 

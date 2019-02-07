@@ -90,8 +90,8 @@ static gint signals [LAST_SIGNAL] = { 0, };
  * Auxiliary methods
  */
 static GtkWidget*
-get_listbox_from_view (CcPanelList     *self,
-                       CcPanelListView  view)
+get_widget_from_view (CcPanelList     *self,
+                      CcPanelListView  view)
 {
   switch (view)
     {
@@ -106,6 +106,9 @@ get_listbox_from_view (CcPanelList     *self,
 
     case CC_PANEL_LIST_SEARCH:
       return self->search_listbox;
+
+    case CC_PANEL_LIST_WIDGET:
+      return gtk_stack_get_child_by_name (GTK_STACK (self), "custom-widget");
 
     default:
       return NULL;
@@ -172,6 +175,54 @@ get_view_from_listbox (CcPanelList *self,
 }
 
 static void
+switch_to_view (CcPanelList     *self,
+                CcPanelListView  view)
+{
+  GtkWidget *visible_child;
+  gboolean should_crossfade;
+
+  CC_ENTRY;
+
+  if (self->view == view)
+    CC_RETURN ();
+
+  CC_TRACE_MSG ("Switching to view: %d", view);
+
+  self->previous_view = self->view;
+  self->view = view;
+
+  /*
+   * When changing to or from the search view, the animation should
+   * be crossfade. Otherwise, it's the previous-forward movement.
+   */
+  should_crossfade = view == CC_PANEL_LIST_SEARCH ||
+                     self->previous_view == CC_PANEL_LIST_SEARCH;
+
+  gtk_stack_set_transition_type (GTK_STACK (self),
+                                 should_crossfade ? GTK_STACK_TRANSITION_TYPE_CROSSFADE :
+                                                    GTK_STACK_TRANSITION_TYPE_SLIDE_LEFT_RIGHT);
+
+  visible_child = get_widget_from_view (self, view);
+
+  gtk_stack_set_visible_child (GTK_STACK (self), visible_child);
+
+  /* For non-search views, make sure the displayed panel matches the
+   * newly selected row
+   */
+  if (self->autoselect_panel &&
+      view != CC_PANEL_LIST_SEARCH &&
+      self->previous_view != CC_PANEL_LIST_WIDGET)
+    {
+      cc_panel_list_activate (self);
+    }
+
+  g_object_notify_by_pspec (G_OBJECT (self), properties[PROP_VIEW]);
+  g_object_notify_by_pspec (G_OBJECT (self), properties[PROP_SEARCH_MODE]);
+
+  CC_EXIT;
+}
+
+static void
 update_search (CcPanelList *self)
 {
   /*
@@ -182,12 +233,12 @@ update_search (CcPanelList *self)
       g_utf8_strlen (self->search_query, -1) > 0)
     {
       if (self->view == CC_PANEL_LIST_MAIN)
-        cc_panel_list_set_view (self, CC_PANEL_LIST_SEARCH);
+        switch_to_view (self, CC_PANEL_LIST_SEARCH);
     }
   else
     {
       if (self->view == CC_PANEL_LIST_SEARCH)
-        cc_panel_list_set_view (self, self->previous_view);
+        switch_to_view (self, self->previous_view);
     }
 
   gtk_list_box_invalidate_filter (GTK_LIST_BOX (self->search_listbox));
@@ -212,7 +263,7 @@ row_data_new (CcPanelCategory     category,
               const gchar        *id,
               const gchar        *name,
               const gchar        *description,
-              gchar             **keywords,
+              const GStrv         keywords,
               const gchar        *icon,
               CcPanelVisibility   visibility)
 {
@@ -335,6 +386,7 @@ static const gchar * const panel_order[] = {
   "universal-access",
   "online-accounts",
   "privacy",
+  "applications",
   "sharing",
   "sound",
   "power",
@@ -529,14 +581,14 @@ row_activated_cb (GtkWidget     *listbox,
   /* Details */
   if (row == self->details_row)
     {
-      cc_panel_list_set_view (self, CC_PANEL_LIST_DETAILS);
+      switch_to_view (self, CC_PANEL_LIST_DETAILS);
       goto out;
     }
 
   /* Devices */
   if (row == self->devices_row)
     {
-      cc_panel_list_set_view (self, CC_PANEL_LIST_DEVICES);
+      switch_to_view (self, CC_PANEL_LIST_DEVICES);
       goto out;
     }
 
@@ -560,9 +612,21 @@ row_activated_cb (GtkWidget     *listbox,
    * Since we're not sure that the activated row is in the
    * current view, set the view here.
    */
-  cc_panel_list_set_view (self, get_view_from_listbox (self, listbox));
+  switch_to_view (self, get_view_from_listbox (self, listbox));
 
   data = g_object_get_data (G_OBJECT (row), "data");
+
+  /* If the activated row is relative to the current panel, and it has
+   * a custom widget, show the custom widget again.
+   */
+  if (g_strcmp0 (data->id, self->current_panel_id) == 0 &&
+      self->previous_view != CC_PANEL_LIST_SEARCH &&
+      gtk_stack_get_child_by_name (GTK_STACK (self), "custom-widget") != NULL)
+    {
+      CC_TRACE_MSG ("Switching to panel widget");
+
+      switch_to_view (self, CC_PANEL_LIST_WIDGET);
+    }
 
   g_signal_emit (self, signals[SHOW_PANEL], 0, data->id);
 
@@ -582,6 +646,8 @@ search_row_activated_cb (GtkWidget     *listbox,
   GtkWidget *real_listbox;
   RowData *data;
   GList *children, *l;
+
+  CC_ENTRY;
 
   data = g_object_get_data (G_OBJECT (row), "data");
 
@@ -624,6 +690,8 @@ search_row_activated_cb (GtkWidget     *listbox,
     }
 
   g_list_free (children);
+
+  CC_EXIT;
 }
 
 static void
@@ -685,7 +753,7 @@ cc_panel_list_set_property (GObject      *object,
       break;
 
     case PROP_VIEW:
-      cc_panel_list_set_view (self, g_value_get_int (value));
+      switch_to_view (self, g_value_get_int (value));
       break;
 
     default:
@@ -827,7 +895,9 @@ cc_panel_list_activate (CcPanelList *self)
 
   g_return_val_if_fail (CC_IS_PANEL_LIST (self), FALSE);
 
-  listbox = get_listbox_from_view (self, self->view);
+  listbox = get_widget_from_view (self, self->view);
+  if (!GTK_IS_LIST_BOX (listbox))
+    CC_RETURN (FALSE);
 
   /* Select the first visible row */
   do
@@ -883,43 +953,33 @@ cc_panel_list_get_view (CcPanelList *self)
 }
 
 void
-cc_panel_list_set_view (CcPanelList     *self,
-                        CcPanelListView  view)
+cc_panel_list_go_previous (CcPanelList *self)
 {
+  CcPanelListView previous_view;
+
   g_return_if_fail (CC_IS_PANEL_LIST (self));
 
-  if (self->view != view)
-    {
-      GtkWidget *visible_child;
-      gboolean should_crossfade;
+  previous_view = self->previous_view;
 
-      self->previous_view = self->view;
-      self->view = view;
+  /* The back button is only visible and clickable outside the main view. If
+   * the previous view is the widget view itself, it means we went from:
+   *
+   *   Main → Details or Devices → Widget
+   *
+   * to
+   *
+   *   Main → Details or Devices
+   *
+   * A similar situation may happen with search.
+   *
+   * To avoid a loop (Details or Devices → Widget → Details or Devices → ...),
+   * make sure to go back to the main view when the current view is details or
+   * devices.
+   */
+  if (previous_view == CC_PANEL_LIST_WIDGET || previous_view == CC_PANEL_LIST_SEARCH)
+    previous_view = CC_PANEL_LIST_MAIN;
 
-      /*
-       * When changing to or from the search view, the animation should
-       * be crossfade. Otherwise, it's the previous-forward movement.
-       */
-      should_crossfade = view == CC_PANEL_LIST_SEARCH ||
-                         self->previous_view == CC_PANEL_LIST_SEARCH;
-
-      gtk_stack_set_transition_type (GTK_STACK (self),
-                                     should_crossfade ? GTK_STACK_TRANSITION_TYPE_CROSSFADE :
-                                                        GTK_STACK_TRANSITION_TYPE_SLIDE_LEFT_RIGHT);
-
-      visible_child = get_listbox_from_view (self, view);
-
-      gtk_stack_set_visible_child (GTK_STACK (self), visible_child);
-
-      /* For non-search views, make sure the displayed panel matches the
-       * newly selected row
-       */
-      if (self->autoselect_panel && view != CC_PANEL_LIST_SEARCH)
-        cc_panel_list_activate (self);
-
-      g_object_notify_by_pspec (G_OBJECT (self), properties[PROP_VIEW]);
-      g_object_notify_by_pspec (G_OBJECT (self), properties[PROP_SEARCH_MODE]);
-    }
+  switch_to_view (self, previous_view);
 }
 
 void
@@ -928,7 +988,7 @@ cc_panel_list_add_panel (CcPanelList        *self,
                          const gchar        *id,
                          const gchar        *title,
                          const gchar        *description,
-                         gchar             **keywords,
+                         const GStrv         keywords,
                          const gchar        *icon,
                          CcPanelVisibility   visibility)
 {
@@ -952,6 +1012,12 @@ cc_panel_list_add_panel (CcPanelList        *self,
 
   g_hash_table_insert (self->id_to_data, data->id, data);
   g_hash_table_insert (self->id_to_search_data, search_data->id, search_data);
+
+  /* Only show the Devices/Details rows when there's at least one panel */
+  if (category == CC_CATEGORY_DEVICES)
+    gtk_widget_show (GTK_WIDGET (self->devices_row));
+  else if (category == CC_CATEGORY_DETAILS)
+    gtk_widget_show (GTK_WIDGET (self->details_row));
 }
 
 /**
@@ -1011,7 +1077,8 @@ cc_panel_list_set_active_panel (CcPanelList *self,
    */
   self->autoselect_panel = FALSE;
 
-  g_signal_emit_by_name (data->row, "activate");
+  if (self->view != CC_PANEL_LIST_WIDGET)
+    g_signal_emit_by_name (data->row, "activate");
 
   /* Store the current panel id */
   g_clear_pointer (&self->current_panel_id, g_free);
@@ -1054,4 +1121,24 @@ cc_panel_list_set_panel_visibility (CcPanelList       *self,
 
   gtk_widget_set_visible (data->row, visibility == CC_PANEL_VISIBLE);
   gtk_widget_set_visible (search_data->row, visibility =! CC_PANEL_HIDDEN);
+}
+
+void
+cc_panel_list_add_sidebar_widget (CcPanelList *self,
+                                  GtkWidget   *widget)
+{
+  g_return_if_fail (CC_IS_PANEL_LIST (self));
+
+  if (widget)
+    {
+      gtk_stack_add_named (GTK_STACK (self), widget, "custom-widget");
+      switch_to_view (self, CC_PANEL_LIST_WIDGET);
+    }
+  else
+    {
+      widget = get_widget_from_view (self, CC_PANEL_LIST_WIDGET);
+
+      if (widget)
+        gtk_container_remove (GTK_CONTAINER (self), widget);
+    }
 }

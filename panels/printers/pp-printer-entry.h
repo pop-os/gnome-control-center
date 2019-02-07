@@ -17,19 +17,13 @@
  * Author: Felipe Borges <felipeborges@gnome.org>
  */
 
-#ifndef PP_PRINTER_ENTRY_H
-#define PP_PRINTER_ENTRY_H
+#pragma once
 
 #include <gtk/gtk.h>
 #include <cups/cups.h>
 
 #define PP_PRINTER_ENTRY_TYPE (pp_printer_entry_get_type ())
-#define PP_PRINTER_ENTRY(obj) (G_TYPE_CHECK_INSTANCE_CAST ((obj), PP_PRINTER_ENTRY_TYPE, PpPrinterEntry))
-
-typedef struct _PpPrinterEntry      PpPrinterEntry;
-typedef struct _PpPrinterEntryClass PpPrinterEntryClass;
-
-GType       pp_printer_entry_get_type (void);
+G_DECLARE_FINAL_TYPE (PpPrinterEntry, pp_printer_entry, PP, PRINTER_ENTRY, GtkListBoxRow)
 
 PpPrinterEntry *pp_printer_entry_new  (cups_dest_t printer,
                                        gboolean    is_authorized);
@@ -41,5 +35,3 @@ GSList         *pp_printer_entry_get_size_group_widgets (PpPrinterEntry *self);
 void            pp_printer_entry_show_jobs_dialog (PpPrinterEntry *self);
 
 void            pp_printer_entry_authenticate_jobs (PpPrinterEntry *self);
-
-#endif /* PP_PRINTER_ENTRY_H */
