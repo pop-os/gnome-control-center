@@ -1,31 +1,3 @@
-Description: <short summary of the patch>
- TODO: Put a short summary on the line above and replace this paragraph
- with a longer explanation of this change. Complete the meta-information
- with other relevant fields (see below for details). To make it easier, the
- information below has been extracted from the changelog. Adjust it or drop
- it.
- .
- gnome-control-center (1:3.30.2-1ubuntu0.18.10.2pop1) cosmic; urgency=medium
- .
-   * Rebase on upstream
-     - Delete the whoopsie patch
-     - Add System76's HiDPI daemon integration
-     - Enable sound over 100% for Pop
-Author: Michael Aaron Murphy <michael@system76.com>
-
----
-The information above should follow the Patch Tagging Guidelines, please
-checkout http://dep.debian.net/deps/dep3/ to learn about the format. Here
-are templates for supplementary fields that you might want to add:
-
-Origin: <vendor|upstream|other>, <url of original patch>
-Bug: <url in upstream bugtracker>
-Bug-Debian: https://bugs.debian.org/<bugnumber>
-Bug-Ubuntu: https://launchpad.net/bugs/<bugnumber>
-Forwarded: <no|not-needed|url proving that it has been forwarded>
-Reviewed-By: <name and email of someone who approved the patch>
-Last-Update: 2019-02-07
-
 --- gnome-control-center-3.30.2.orig/meson.build
 +++ gnome-control-center-3.30.2/meson.build
 @@ -125,7 +125,8 @@ common_deps = [
@@ -36,12 +8,12 @@ Last-Update: 2019-02-07
 +  dependency('gtk+-3.0', version: '>= 3.22.20'),
 +  dependency ('json-glib-1.0')
  ]
- 
+
  # Check for CUPS 1.4 or newer
 @@ -162,6 +163,10 @@ endif
  config_h.set('HAVE_CHEESE', enable_cheese,
               description: 'Define to 1 to enable cheese webcam support')
- 
+
 +# Testing
 +config_h.set('TEST_MODE', get_option('testing'),
 +             description: 'Enable test code paths')
@@ -52,7 +24,7 @@ Last-Update: 2019-02-07
 @@ -282,4 +287,4 @@ output += '     NetworkManager (Network
  output += '     Wacom (Wacom tablet panel) ................. ' + host_is_linux_not_s390.to_string() + '\n'
  output += '     Wayland .................................... ' + enable_wayland.to_string() + '\n'
- 
+
 -message(output)
 \ No newline at end of file
 +message(output)
@@ -65,41 +37,38 @@ Last-Update: 2019-02-07
 -option('wayland', type: 'boolean', value: true, description: 'build with Wayland support')
 \ No newline at end of file
 +option('wayland', type: 'boolean', value: true, description: 'build with Wayland support')
-+option('testing', type: 'boolean', value: true, description: 'build for testing')
++option('testing', type: 'boolean', value: false, description: 'build for testing')
 --- gnome-control-center-3.30.2.orig/panels/info/cc-info-overview-panel.c
 +++ gnome-control-center-3.30.2/panels/info/cc-info-overview-panel.c
 @@ -25,6 +25,7 @@
- 
+
  #include "cc-info-resources.h"
  #include "info-cleanup.h"
 +#include "list-box-helper.h"
- 
+
  #include <glib.h>
  #include <glib/gi18n.h>
-@@ -46,10 +47,11 @@
+@@ -46,10 +47,10 @@
  #include <gdk/gdkx.h>
  #endif
- 
+
 -#include "gsd-disk-space-helper.h"
 -
  #include "cc-info-overview-panel.h"
 -
 +#include "dmi-info.h"
-+#include "firmware-upgrade.h"
 +#include "gsd-disk-space-helper.h"
-+#include "s76-firmware-daemon.h"
- 
++#include "s76-firmware.h"
+
  typedef struct {
    /* Will be one or 2 GPU name strings, or "Unknown" */
-@@ -70,6 +72,19 @@ typedef struct
+@@ -70,6 +71,17 @@ typedef struct
    GtkWidget      *virt_type_label;
    GtkWidget      *updates_button;
- 
+
 +  /* Pop fields */
 +  GtkWidget      *computer_label;
 +  GtkWidget      *model_label;
-+  GtkWidget      *os_upgrade_button;
-+  GtkWidget      *os_refresh_button;
 +  GtkWidget      *firmware_upgrade_label;
 +  GtkWidget      *firmware_button;
 +
@@ -111,37 +80,18 @@ Last-Update: 2019-02-07
    /* Virtualisation labels */
    GtkWidget      *label8;
    GtkWidget      *grid1;
-@@ -94,6 +109,9 @@ struct _CcInfoOverviewPanel
- 
-   /*< private >*/
-  CcInfoOverviewPanelPrivate *priv;
-+
-+ // Pop-specific
-+ GtkWidget *os_upgrades_listbox;
- };
- 
- static void get_primary_disc_info_start (CcInfoOverviewPanel *self);
-@@ -776,7 +794,7 @@ info_overview_panel_setup_overview (CcIn
-       gtk_label_set_text (GTK_LABEL (priv->version_label), text);
-     }
- 
--  glibtop_get_mem (&mem);
-+  glibtop_get_mem(&mem);
-   memory_text = g_format_size_full (mem.total, G_FORMAT_SIZE_IEC_UNITS);
-   gtk_label_set_text (GTK_LABEL (priv->memory_label), memory_text ? memory_text : "");
- 
-@@ -837,6 +855,8 @@ cc_info_overview_panel_dispose (GObject
+@@ -837,6 +849,8 @@ cc_info_overview_panel_dispose (GObject
    CcInfoOverviewPanelPrivate *priv = cc_info_overview_panel_get_instance_private (CC_INFO_OVERVIEW_PANEL (object));
- 
+
    g_clear_pointer (&priv->graphics_data, graphics_data_free);
 +  g_clear_pointer (&priv->firmware_version, s76_firmware_version_free);
-+  g_slice_free(S76FirmwareDaemon, priv->firmware_daemon);
- 
++  g_slice_free (S76FirmwareDaemon, priv->firmware_daemon);
+
    G_OBJECT_CLASS (cc_info_overview_panel_parent_class)->dispose (object);
  }
-@@ -863,6 +883,88 @@ cc_info_overview_panel_finalize (GObject
+@@ -863,6 +877,69 @@ cc_info_overview_panel_finalize (GObject
  }
- 
+
  static void
 +set_computer_label (GtkLabel *label)
 +{
@@ -159,20 +109,8 @@ Last-Update: 2019-02-07
 +  gtk_label_set_text (label, model_text ? model_text : "");
 +}
 +
-+static void
-+pop_refresh (GObject *gobject, GParamSpec *pspec, CcInfoOverviewPanel *self)
++void s76_firmware_connect_schedule (GtkButton *button, FirmwareScheduleData *data)
 +{
-+  printf("refreshing\n");
-+}
-+
-+static void
-+pop_upgrade (GObject *gobject, GParamSpec *pspec, CcInfoOverviewPanel *self)
-+{
-+  printf("upgrading\n");
-+}
-+
-+static void
-+s76_firmware_connect_schedule (GtkButton *button, FirmwareScheduleData *data) {
 +  CcInfoOverviewPanelPrivate *priv = (CcInfoOverviewPanelPrivate*) data->data;
 +  g_info ("scheduling upgrade of firmware to %s", priv->firmware_version->bios);
 +
@@ -203,7 +141,7 @@ Last-Update: 2019-02-07
 +}
 +
 +static void
-+pop_firmware_upgrade (GtkButton *button,
++s76_firmware_dialog (GtkButton *button,
 +                      CcInfoOverviewPanel *self)
 +{
 +  CcInfoOverviewPanelPrivate *priv = cc_info_overview_panel_get_instance_private (self);
@@ -218,98 +156,48 @@ Last-Update: 2019-02-07
 +}
 +
 +static void
-+setup_listbox (CcInfoOverviewPanel *self,
-+               GtkWidget       *listbox)
-+{
-+  gtk_list_box_set_header_func (GTK_LIST_BOX (listbox), cc_list_box_update_header_func, NULL, NULL);
-+}
-+
-+static void
  cc_info_overview_panel_class_init (CcInfoOverviewPanelClass *klass)
  {
    GObjectClass *object_class = G_OBJECT_CLASS (klass);
-@@ -888,10 +990,60 @@ cc_info_overview_panel_class_init (CcInf
+@@ -888,6 +965,14 @@ cc_info_overview_panel_class_init (CcInf
    gtk_widget_class_bind_template_child_private (widget_class, CcInfoOverviewPanel, grid1);
    gtk_widget_class_bind_template_child_private (widget_class, CcInfoOverviewPanel, label18);
- 
-+  // Pop!_OS-specific changes
+
++  // Pop!_OS extra details
 +  gtk_widget_class_bind_template_child_private (widget_class, CcInfoOverviewPanel, computer_label);
 +  gtk_widget_class_bind_template_child_private (widget_class, CcInfoOverviewPanel, model_label);
-+  gtk_widget_class_bind_template_child_private (widget_class, CcInfoOverviewPanel, os_upgrade_button);
-+  gtk_widget_class_bind_template_child_private (widget_class, CcInfoOverviewPanel, os_refresh_button);
++
++  // Pop!_OS firmware listbox
 +  gtk_widget_class_bind_template_child_private (widget_class, CcInfoOverviewPanel, firmware_upgrade_label);
 +  gtk_widget_class_bind_template_child_private (widget_class, CcInfoOverviewPanel, firmware_button);
-+  gtk_widget_class_bind_template_child (widget_class, CcInfoOverviewPanel, os_upgrades_listbox);
-+  gtk_widget_class_bind_template_callback (widget_class, pop_refresh);
-+  gtk_widget_class_bind_template_callback (widget_class, pop_upgrade);
 +
    g_type_ensure (CC_TYPE_HOSTNAME_ENTRY);
  }
- 
- static void
-+s76_firmware_check (CcInfoOverviewPanelPrivate *priv)
-+{
-+  g_debug ("s76_firmware_check");
-+  gtk_widget_hide (priv->firmware_button);
-+  const gchar *label;
-+
-+  if (g_file_test ("/sys/firmware/efi", G_FILE_TEST_IS_DIR)) {
-+    label = _("No Updates Available");
-+
-+    g_clear_pointer (&priv->firmware_version, s76_firmware_version_free);
-+    g_slice_free (S76FirmwareVersion, priv->firmware_version);
-+    g_slice_free (S76FirmwareDaemon, priv->firmware_daemon);
-+
-+    priv->firmware_daemon = g_slice_new0 (S76FirmwareDaemon);
-+    priv->firmware_version = g_slice_new0 (S76FirmwareVersion);
-+    *priv->firmware_version = s76_firmware_version_new ();
-+
-+    if (!s76_firmware_daemon_connect (priv->firmware_daemon)) {
-+      int needs_update = s76_firmware_daemon_needs_update (
-+        priv->firmware_daemon,
-+        priv->firmware_version,
-+        &priv->firmware_digest,
-+        &priv->firmware_changelog
-+      );
-+
-+      if (needs_update == S76_FIRMWARE_NEEDS_UPDATE) {
-+        g_info ("firmware update is available: %s", priv->firmware_version->bios);
-+        gtk_label_set_label (GTK_LABEL (priv->firmware_upgrade_label), _("Firmware Updates Available"));
-+        gtk_widget_show (priv->firmware_button);
-+      }
-+    }
-+  } else {
-+    label = _("Only Supported on EFI Installs");
-+  }
-+
-+  gtk_label_set_label (GTK_LABEL (priv->firmware_upgrade_label), label);
-+}
-+
-+static void
- cc_info_overview_panel_init (CcInfoOverviewPanel *self)
- {
-   CcInfoOverviewPanelPrivate *priv = cc_info_overview_panel_get_instance_private (self);
-@@ -909,6 +1061,21 @@ cc_info_overview_panel_init (CcInfoOverv
- 
+
+@@ -909,6 +994,24 @@ cc_info_overview_panel_init (CcInfoOverv
+
    info_overview_panel_setup_overview (self);
    info_overview_panel_setup_virt (self);
 +
 +  // Pop-specific details
-+  setup_listbox (self, self->os_upgrades_listbox);
-+
 +  GtkSizeGroup *button_group = gtk_size_group_new (GTK_SIZE_GROUP_HORIZONTAL);
-+  gtk_size_group_add_widget (button_group, priv->os_upgrade_button);
-+  gtk_size_group_add_widget (button_group, priv->os_refresh_button);
 +  gtk_size_group_add_widget (button_group, priv->firmware_button);
 +
 +  set_computer_label (GTK_LABEL (priv->computer_label));
 +  set_model_label (GTK_LABEL (priv->model_label));
 +
-+  g_signal_connect (priv->firmware_button, "clicked", G_CALLBACK (pop_firmware_upgrade), self);
++  g_signal_connect (priv->firmware_button, "clicked", G_CALLBACK (s76_firmware_dialog), self);
 +
-+  s76_firmware_check (priv);
++  s76_firmware_check (
++    priv->firmware_daemon,
++    priv->firmware_version,
++    GTK_BUTTON (priv->firmware_button),
++    GTK_LABEL (priv->firmware_upgrade_label),
++    priv->firmware_digest,
++    priv->firmware_changelog
++  );
  }
- 
+
  GtkWidget *
 --- /dev/null
 +++ gnome-control-center-3.30.2/panels/info/dmi-info.c
@@ -341,142 +229,6 @@ Last-Update: 2019-02-07
 +char *get_product_name (void);
 +char *get_product_version (void);
 +char *get_sys_vendor (void);
---- /dev/null
-+++ gnome-control-center-3.30.2/panels/info/firmware-upgrade.c
-@@ -0,0 +1,90 @@
-+#include <firmware-upgrade.h>
-+#include <glib.h>
-+#include <glib/gi18n.h>
-+
-+static void cancel_dialog (GtkButton *button, GtkDialog *dialog);
-+
-+typedef struct {
-+  GString *output;
-+  gchar   *pattern;
-+} FoldData;
-+
-+static void join_str_lambda (gchar *element, FoldData *data) {
-+  g_string_append (data->output, data->pattern);
-+  g_string_append (data->output, element);
-+}
-+
-+static gchar *join_str (GPtrArray *array, gchar *pattern) {
-+  GString *strbuf = g_string_new (NULL);
-+  FoldData data = { strbuf, pattern };
-+  g_ptr_array_foreach (array, join_str_lambda, &data);
-+  return g_string_free (strbuf, FALSE);
-+}
-+
-+FirmwareUpdateDialog firmware_dialog_new (gchar *version, GPtrArray *changes) {
-+  GtkLabel *title = (GtkLabel*) gtk_label_new ("<b>Firmware Update</b>");
-+  gtk_label_set_use_markup (title, TRUE);
-+
-+  g_autofree gchar *changelog = join_str (changes, "\t* ");
-+
-+  GtkLabel *text = (GtkLabel*) gtk_label_new (
-+    g_strdup_printf (_("Firmware version %s is available. Fixes and features"
-+      " include:\n\n%s\n\nIf you're on a laptop, <b>plug into power</b>"
-+      " before you begin."), version, changelog)
-+  );
-+
-+  gtk_label_set_line_wrap (text, TRUE);
-+  gtk_label_set_use_markup (text, TRUE);
-+  gtk_widget_set_valign (GTK_WIDGET (text), GTK_ALIGN_START);
-+
-+  GtkWidget *icon = gtk_image_new_from_icon_name ("application-x-cd-image", 6);
-+  gtk_widget_set_valign (GTK_WIDGET (icon), GTK_ALIGN_START);
-+
-+  GtkDialog *dialog = (GtkDialog*) g_object_new (GTK_TYPE_DIALOG,
-+                                    "use-header-bar", TRUE,
-+                                    NULL);
-+
-+  GtkButton *cancel = GTK_BUTTON (gtk_button_new_with_label ("Cancel"));
-+  g_signal_connect(cancel, "clicked", G_CALLBACK (cancel_dialog), dialog);
-+
-+  GtkButton *reboot = GTK_BUTTON (gtk_button_new_with_label ("Reboot and Install"));
-+  gtk_style_context_add_class (
-+    gtk_widget_get_style_context ((GtkWidget*) reboot),
-+    GTK_STYLE_CLASS_DESTRUCTIVE_ACTION
-+  );
-+
-+  GtkHeaderBar *header = GTK_HEADER_BAR (gtk_dialog_get_header_bar (dialog));
-+  gtk_header_bar_set_custom_title (header, GTK_WIDGET (title));
-+  gtk_header_bar_set_show_close_button (header, FALSE);
-+  gtk_header_bar_pack_start (header, GTK_WIDGET (cancel));
-+  gtk_header_bar_pack_end (header, GTK_WIDGET (reboot));
-+
-+  GtkContainer *box = GTK_CONTAINER (gtk_dialog_get_content_area (dialog));
-+  gtk_orientable_set_orientation (GTK_ORIENTABLE (box), GTK_ORIENTATION_HORIZONTAL);
-+  gtk_container_set_border_width (box, 12);
-+  gtk_box_set_spacing (GTK_BOX (box), 6);
-+  gtk_container_add (box, GTK_WIDGET (icon));
-+  gtk_container_add (box, GTK_WIDGET (text));
-+
-+  g_signal_connect_swapped (dialog, "response", G_CALLBACK(gtk_widget_destroy), dialog);
-+  gtk_widget_show_all (GTK_WIDGET (dialog));
-+
-+  FirmwareUpdateDialog firmware_dialog = { reboot, dialog };
-+  return firmware_dialog;
-+}
-+
-+void firmware_dialog_connect_reboot (FirmwareUpdateDialog *dialog, GCallback callback, gpointer data) {
-+  FirmwareScheduleData *cbdata = g_slice_new0 (FirmwareScheduleData);
-+  cbdata->dialog = dialog->dialog;
-+  cbdata->data = data;
-+
-+  g_signal_connect (dialog->reboot, "clicked", callback, cbdata);
-+}
-+
-+int firmware_dialog_run (FirmwareUpdateDialog *dialog) {
-+  return gtk_dialog_run (dialog->dialog);
-+}
-+
-+static void cancel_dialog (GtkButton *button, GtkDialog *dialog) {
-+  gtk_dialog_response (dialog, GTK_RESPONSE_CANCEL);
-+}
---- /dev/null
-+++ gnome-control-center-3.30.2/panels/info/firmware-upgrade.h
-@@ -0,0 +1,40 @@
-+/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*-
-+ *
-+ * Copyright (C) 2019 System76
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation; either version 2 of the License, or
-+ * (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program; if not, see <http://www.gnu.org/licenses/>.
-+ *
-+ */
-+
-+#include <glib.h>
-+#include <glib-object.h>
-+#include <gobject/gvaluecollector.h>
-+#include <gtk/gtk.h>
-+
-+typedef struct {
-+    GtkButton *reboot;
-+    GtkDialog *dialog;
-+} FirmwareUpdateDialog;
-+
-+typedef struct {
-+  GtkDialog *dialog;
-+  gpointer data;
-+} FirmwareScheduleData;
-+
-+FirmwareUpdateDialog firmware_dialog_new(gchar *version, GPtrArray *changes);
-+
-+void firmware_dialog_connect_reboot(FirmwareUpdateDialog *dialog,
-+                                    GCallback callback, gpointer data);
-+
-+int firmware_dialog_run(FirmwareUpdateDialog *dialog);
 --- gnome-control-center-3.30.2.orig/panels/info/info-overview.ui
 +++ gnome-control-center-3.30.2/panels/info/info-overview.ui
 @@ -69,6 +69,67 @@
@@ -673,163 +425,11 @@ Last-Update: 2019-02-07
                  <property name="left-attach">2</property>
                </packing>
              </child>
-@@ -303,6 +364,252 @@
+@@ -303,6 +364,100 @@
              <property name="position">2</property>
            </packing>
          </child>
 +        <!-- Pop!_OS-specific UI widgets -->
-+        <child>
-+          <object class="GtkLabel" id="os_upgrades">
-+            <property name="halign">start</property>
-+            <property name="use-markup">True</property>
-+            <property name="visible">True</property>
-+            <property name="margin-top">12</property>
-+            <property name="label" translatable="yes">&lt;b&gt;OS Upgrade and Refresh&lt;/b&gt;</property>
-+          </object>
-+          <packing>
-+            <property name="expand">True</property>
-+            <property name="fill">True</property>
-+            <property name="position">3</property>
-+          </packing>
-+        </child>
-+        <child>
-+          <object class="GtkFrame" id="os_upgrades_frame">
-+            <property name="visible">True</property>
-+            <property name="can_focus">False</property>
-+            <property name="label_xalign">0</property>
-+            <property name="shadow_type">in</property>
-+            <property name="margin_top">6</property>
-+            <child>
-+              <object class="GtkListBox" id="os_upgrades_listbox">
-+                <property name="visible">True</property>
-+                <property name="can_focus">True</property>
-+                <property name="selection_mode">none</property>
-+                <!-- OS upgrade option -->
-+                <child>
-+                  <object class="GtkListBoxRow" id="os_upgrades_row">
-+                    <property name="visible">True</property>
-+                    <property name="can_focus">True</property>
-+                    <child>
-+                      <object class="GtkBox" id="os_upgrades_box">
-+                        <property name="visible">True</property>
-+                        <property name="can_focus">False</property>
-+                        <property name="spacing">50</property>
-+                        <child>
-+                          <object class="GtkLabel" id="os_upgrade_label">
-+                            <property name="visible">True</property>
-+                            <property name="can_focus">False</property>
-+                            <property name="margin_start">20</property>
-+                            <property name="margin_end">20</property>
-+                            <property name="margin_top">6</property>
-+                            <property name="margin_bottom">6</property>
-+                            <property name="xalign">0.0</property>
-+                            <property name="label" translatable="yes">Pop!__OS 19.04 is available</property>
-+                            <property name="use_underline">True</property>
-+                            <property name="mnemonic_widget">os_upgrade_button</property>
-+                          </object>
-+                          <packing>
-+                            <property name="expand">True</property>
-+                            <property name="fill">True</property>
-+                            <property name="position">0</property>
-+                          </packing>
-+                        </child>
-+                        <child>
-+                          <object class="GtkButton" id="os_upgrade_button">
-+                            <property name="visible">True</property>
-+                            <property name="can_focus">False</property>
-+                            <property name="valign">center</property>
-+                            <property name="margin_start">20</property>
-+                            <property name="margin_end">20</property>
-+                            <signal name="clicked" handler="pop_upgrade" object="CcInfoOverviewPanel" swapped="no"/>
-+                            <child>
-+                              <object class="GtkLabel">
-+                                <property name="use-markup">True</property>
-+                                <property name="visible">True</property>
-+                                <property name="label" translatable="yes">&lt;b&gt;Upgrade&lt;/b&gt;</property>
-+                              </object>
-+                            </child>
-+                            <style>
-+                              <class name="suggested-action"/>
-+                            </style>
-+                          </object>
-+                          <packing>
-+                            <property name="expand">False</property>
-+                            <property name="fill">True</property>
-+                            <property name="position">1</property>
-+                          </packing>
-+                        </child>
-+                      </object>
-+                    </child>
-+                  </object>
-+                </child>
-+                <!-- End of OS upgrade option / Beginning of OS refresh option -->
-+                <child>
-+                  <object class="GtkListBoxRow" id="os_refresh_row">
-+                    <property name="visible">True</property>
-+                    <property name="can_focus">True</property>
-+                    <child>
-+                      <object class="GtkBox" id="os_refresh_box">
-+                        <property name="visible">True</property>
-+                        <property name="can_focus">False</property>
-+                        <property name="spacing">50</property>
-+                        <child>
-+                          <object class="GtkLabel" id="os_refresh_label">
-+                            <property name="visible">True</property>
-+                            <property name="can_focus">False</property>
-+                            <property name="margin_start">20</property>
-+                            <property name="margin_end">20</property>
-+                            <property name="margin_top">6</property>
-+                            <property name="margin_bottom">6</property>
-+                            <property name="xalign">0</property>
-+                            <property name="label" translatable="yes">Refresh OS Install</property>
-+                            <property name="use_underline">True</property>
-+                            <property name="mnemonic_widget">os_refresh_button</property>
-+                          </object>
-+                          <packing>
-+                            <property name="expand">True</property>
-+                            <property name="fill">True</property>
-+                            <property name="position">0</property>
-+                          </packing>
-+                        </child>
-+                        <child>
-+                          <object class="GtkButton" id="os_refresh_button">
-+                            <property name="visible">True</property>
-+                            <property name="can_focus">False</property>
-+                            <property name="valign">center</property>
-+                            <property name="margin_start">20</property>
-+                            <property name="margin_end">20</property>
-+                            <signal name="clicked" handler="pop_refresh" object="CcInfoOverviewPanel" swapped="no"/>
-+                            <child>
-+                              <object class="GtkLabel">
-+                                <property name="use-markup">True</property>
-+                                <property name="visible">True</property>
-+                                <property name="label" translatable="yes">&lt;b&gt;Refresh&lt;/b&gt;</property>
-+                              </object>
-+                            </child>
-+                            <style>
-+                              <class name="suggested-action"/>
-+                            </style>
-+                          </object>
-+                          <packing>
-+                            <property name="expand">False</property>
-+                            <property name="fill">True</property>
-+                            <property name="position">1</property>
-+                          </packing>
-+                        </child>
-+                      </object>
-+                    </child>
-+                  </object>
-+                </child>
-+                <!-- End of OS refresh option -->
-+              </object>
-+            </child>
-+          </object>
-+          <packing>
-+            <property name="expand">False</property>
-+            <property name="fill">True</property>
-+            <property name="position">4</property>
-+          </packing>
-+        </child>
 +        <!-- Firmware Option -->
 +        <child>
 +          <object class="GtkLabel" id="firmware_upgrade">
@@ -928,25 +528,19 @@ Last-Update: 2019-02-07
              <property name="visible">True</property>
 --- gnome-control-center-3.30.2.orig/panels/info/meson.build
 +++ gnome-control-center-3.30.2/panels/info/meson.build
-@@ -41,7 +41,10 @@ sources = files(gsd_sources) + files(
+@@ -41,7 +41,11 @@ sources = files(gsd_sources) + files(
    'cc-info-default-apps-panel.c',
    'cc-info-overview-panel.c',
    'cc-info-removable-media-panel.c',
 -  'info-cleanup.c'
 +  'dmi-info.c',
-+  'firmware-upgrade.c',
 +  'info-cleanup.c',
++  's76-firmware.c',
 +  's76-firmware-daemon.c',
++  's76-firmware-dialog.c',
  )
- 
+
  resource_data = files(
-@@ -94,4 +97,4 @@ script = configure_file(
- run_target(
-   script_name,
-   command: script
--)
-+)
-\ No newline at end of file
 --- /dev/null
 +++ gnome-control-center-3.30.2/panels/info/s76-firmware-daemon.c
 @@ -0,0 +1,202 @@
@@ -1205,3 +799,201 @@ Last-Update: 2019-02-07
 +int s76_firmware_daemon_needs_update(S76FirmwareDaemon *daemon,
 +                                     S76FirmwareVersion *sversion,
 +                                     gchar **digest, gchar **changelog);
+--- /dev/null
++++ gnome-control-center-3.30.2/panels/info/s76-firmware-dialog.c
+@@ -0,0 +1,90 @@
++#include <s76-firmware-dialog.h>
++#include <glib.h>
++#include <glib/gi18n.h>
++
++static void cancel_dialog (GtkButton *button, GtkDialog *dialog);
++
++typedef struct {
++  GString *output;
++  gchar   *pattern;
++} FoldData;
++
++static void join_str_lambda (gchar *element, FoldData *data) {
++  g_string_append (data->output, data->pattern);
++  g_string_append (data->output, element);
++}
++
++static gchar *join_str (GPtrArray *array, gchar *pattern) {
++  GString *strbuf = g_string_new (NULL);
++  FoldData data = { strbuf, pattern };
++  g_ptr_array_foreach (array, join_str_lambda, &data);
++  return g_string_free (strbuf, FALSE);
++}
++
++FirmwareUpdateDialog firmware_dialog_new (gchar *version, GPtrArray *changes) {
++  GtkLabel *title = (GtkLabel*) gtk_label_new ("<b>Firmware Update</b>");
++  gtk_label_set_use_markup (title, TRUE);
++
++  g_autofree gchar *changelog = join_str (changes, "\t* ");
++
++  GtkLabel *text = (GtkLabel*) gtk_label_new (
++    g_strdup_printf (_("Firmware version %s is available. Fixes and features"
++      " include:\n\n%s\n\nIf you're on a laptop, <b>plug into power</b>"
++      " before you begin."), version, changelog)
++  );
++
++  gtk_label_set_line_wrap (text, TRUE);
++  gtk_label_set_use_markup (text, TRUE);
++  gtk_widget_set_valign (GTK_WIDGET (text), GTK_ALIGN_START);
++
++  GtkWidget *icon = gtk_image_new_from_icon_name ("application-x-cd-image", 6);
++  gtk_widget_set_valign (GTK_WIDGET (icon), GTK_ALIGN_START);
++
++  GtkDialog *dialog = (GtkDialog*) g_object_new (GTK_TYPE_DIALOG,
++                                    "use-header-bar", TRUE,
++                                    NULL);
++
++  GtkButton *cancel = GTK_BUTTON (gtk_button_new_with_label ("Cancel"));
++  g_signal_connect(cancel, "clicked", G_CALLBACK (cancel_dialog), dialog);
++
++  GtkButton *reboot = GTK_BUTTON (gtk_button_new_with_label ("Reboot and Install"));
++  gtk_style_context_add_class (
++    gtk_widget_get_style_context ((GtkWidget*) reboot),
++    GTK_STYLE_CLASS_DESTRUCTIVE_ACTION
++  );
++
++  GtkHeaderBar *header = GTK_HEADER_BAR (gtk_dialog_get_header_bar (dialog));
++  gtk_header_bar_set_custom_title (header, GTK_WIDGET (title));
++  gtk_header_bar_set_show_close_button (header, FALSE);
++  gtk_header_bar_pack_start (header, GTK_WIDGET (cancel));
++  gtk_header_bar_pack_end (header, GTK_WIDGET (reboot));
++
++  GtkContainer *box = GTK_CONTAINER (gtk_dialog_get_content_area (dialog));
++  gtk_orientable_set_orientation (GTK_ORIENTABLE (box), GTK_ORIENTATION_HORIZONTAL);
++  gtk_container_set_border_width (box, 12);
++  gtk_box_set_spacing (GTK_BOX (box), 6);
++  gtk_container_add (box, GTK_WIDGET (icon));
++  gtk_container_add (box, GTK_WIDGET (text));
++
++  g_signal_connect_swapped (dialog, "response", G_CALLBACK(gtk_widget_destroy), dialog);
++  gtk_widget_show_all (GTK_WIDGET (dialog));
++
++  FirmwareUpdateDialog firmware_dialog = { reboot, dialog };
++  return firmware_dialog;
++}
++
++void firmware_dialog_connect_reboot (FirmwareUpdateDialog *dialog, GCallback callback, gpointer data) {
++  FirmwareScheduleData *cbdata = g_slice_new0 (FirmwareScheduleData);
++  cbdata->dialog = dialog->dialog;
++  cbdata->data = data;
++
++  g_signal_connect (dialog->reboot, "clicked", callback, cbdata);
++}
++
++int firmware_dialog_run (FirmwareUpdateDialog *dialog) {
++  return gtk_dialog_run (dialog->dialog);
++}
++
++static void cancel_dialog (GtkButton *button, GtkDialog *dialog) {
++  gtk_dialog_response (dialog, GTK_RESPONSE_CANCEL);
++}
+--- /dev/null
++++ gnome-control-center-3.30.2/panels/info/s76-firmware-dialog.h
+@@ -0,0 +1,40 @@
++/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*-
++ *
++ * Copyright (C) 2019 System76
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, see <http://www.gnu.org/licenses/>.
++ *
++ */
++
++#include <glib.h>
++#include <glib-object.h>
++#include <gobject/gvaluecollector.h>
++#include <gtk/gtk.h>
++
++typedef struct {
++    GtkButton *reboot;
++    GtkDialog *dialog;
++} FirmwareUpdateDialog;
++
++typedef struct {
++  GtkDialog *dialog;
++  gpointer data;
++} FirmwareScheduleData;
++
++FirmwareUpdateDialog firmware_dialog_new(gchar *version, GPtrArray *changes);
++
++void firmware_dialog_connect_reboot(FirmwareUpdateDialog *dialog,
++                                    GCallback callback, gpointer data);
++
++int firmware_dialog_run(FirmwareUpdateDialog *dialog);
+--- /dev/null
++++ gnome-control-center-3.30.2/panels/info/s76-firmware.c
+@@ -0,0 +1,45 @@
++#include "s76-firmware.h"
++#include <glib/gi18n.h>
++
++void s76_firmware_check (
++  S76FirmwareDaemon  *firmware_daemon,
++  S76FirmwareVersion *firmware_version,
++  GtkButton          *firmware_button,
++  GtkLabel           *firmware_label,
++  gchar              *firmware_digest,
++  gchar              *firmware_changelog
++) {
++  gtk_widget_hide (firmware_button);
++  const gchar *label;
++
++  if (g_file_test ("/sys/firmware/efi", G_FILE_TEST_IS_DIR)) {
++    label = _("No Updates Available");
++
++    g_clear_pointer (&firmware_version, s76_firmware_version_free);
++    g_slice_free (S76FirmwareVersion, firmware_version);
++    g_slice_free (S76FirmwareDaemon, firmware_daemon);
++
++    firmware_daemon = g_slice_new0 (S76FirmwareDaemon);
++    firmware_version = g_slice_new0 (S76FirmwareVersion);
++    *firmware_version = s76_firmware_version_new ();
++
++    if (!s76_firmware_daemon_connect (firmware_daemon)) {
++      int needs_update = s76_firmware_daemon_needs_update (
++        firmware_daemon,
++        firmware_version,
++        &firmware_digest,
++        &firmware_changelog
++      );
++
++      if (needs_update == S76_FIRMWARE_NEEDS_UPDATE) {
++        g_info ("firmware update is available: %s", firmware_version->bios);
++        label = _("Firmware Updates Available");
++        gtk_widget_show (firmware_button);
++      }
++    }
++  } else {
++    label = _("Only Supported on EFI Installs");
++  }
++
++  gtk_label_set_label (firmware_label, label);
++}
+--- /dev/null
++++ gnome-control-center-3.30.2/panels/info/s76-firmware.h
+@@ -0,0 +1,11 @@
++#include "gtk/gtk.h"
++
++#include "s76-firmware-daemon.h"
++#include "s76-firmware-dialog.h"
++
++void s76_firmware_check(S76FirmwareDaemon *firmware_daemon,
++                        S76FirmwareVersion *firmware_version,
++                        GtkButton *firmware_button,
++                        GtkLabel *firmware_label,
++                        gchar *firmware_digest,
++                        gchar *firmware_changelog);
