@@ -38,13 +38,34 @@ Last-Update: 2019-02-07
  ]
  
  # Check for CUPS 1.4 or newer
-@@ -282,4 +283,4 @@ output += '     NetworkManager (Network
+@@ -162,6 +163,10 @@ endif
+ config_h.set('HAVE_CHEESE', enable_cheese,
+              description: 'Define to 1 to enable cheese webcam support')
+ 
++# Testing
++config_h.set('TEST_MODE', get_option('testing'),
++             description: 'Enable test code paths')
++
+ # IBus support
+ enable_ibus = get_option('ibus')
+ if enable_ibus
+@@ -282,4 +287,4 @@ output += '     NetworkManager (Network
  output += '     Wacom (Wacom tablet panel) ................. ' + host_is_linux_not_s390.to_string() + '\n'
  output += '     Wayland .................................... ' + enable_wayland.to_string() + '\n'
  
 -message(output)
 \ No newline at end of file
 +message(output)
+--- gnome-control-center-3.30.2.orig/meson_options.txt
++++ gnome-control-center-3.30.2/meson_options.txt
+@@ -3,4 +3,5 @@ option('documentation', type: 'boolean',
+ option('gnome_session_libexecdir', type: 'string', value: '', description: 'Directory for gnome-session\'s libexecdir')
+ option('ibus', type: 'boolean', value: true, description: 'build with IBus support')
+ option('tracing', type: 'boolean', value: false, description: 'add extra debugging information')
+-option('wayland', type: 'boolean', value: true, description: 'build with Wayland support')
+\ No newline at end of file
++option('wayland', type: 'boolean', value: true, description: 'build with Wayland support')
++option('testing', type: 'boolean', value: true, description: 'build for testing')
 --- gnome-control-center-3.30.2.orig/panels/info/cc-info-overview-panel.c
 +++ gnome-control-center-3.30.2/panels/info/cc-info-overview-panel.c
 @@ -25,6 +25,7 @@
@@ -118,10 +139,27 @@ Last-Update: 2019-02-07
  
    G_OBJECT_CLASS (cc_info_overview_panel_parent_class)->dispose (object);
  }
-@@ -863,6 +883,58 @@ cc_info_overview_panel_finalize (GObject
+@@ -863,6 +883,88 @@ cc_info_overview_panel_finalize (GObject
  }
  
  static void
++set_computer_label (GtkLabel *label)
++{
++  g_autofree char *product_name = get_product_name ();
++  g_autofree char *sys_vendor = get_sys_vendor ();
++  g_autofree char *computer_text = g_strconcat (sys_vendor, " ", product_name, NULL);
++
++  gtk_label_set_text (label, computer_text ? computer_text : "");
++}
++
++static void
++set_model_label (GtkLabel *label)
++{
++  g_autofree char *model_text = get_product_version ();
++  gtk_label_set_text (label, model_text ? model_text : "");
++}
++
++static void
 +pop_refresh (GObject *gobject, GParamSpec *pspec, CcInfoOverviewPanel *self)
 +{
 +  printf("refreshing\n");
@@ -134,21 +172,34 @@ Last-Update: 2019-02-07
 +}
 +
 +static void
-+pop_reboot (GtkButton *button, RebootCbData *data) {
++s76_firmware_connect_schedule (GtkButton *button, FirmwareScheduleData *data) {
 +  CcInfoOverviewPanelPrivate *priv = (CcInfoOverviewPanelPrivate*) data->data;
 +  g_info ("scheduling upgrade of firmware to %s", priv->firmware_version->bios);
++
++  const gchar *scheduled_label = _("Firmware Upgrade Scheduled");
++
++#ifdef TEST_MODE
++  g_info ("faking firmware scheduling");
++  gtk_widget_hide (priv->firmware_button);
++  gtk_widget_set_halign (GTK_WIDGET (priv->firmware_upgrade_label), GTK_ALIGN_CENTER);
++  gtk_label_set_label (GTK_LABEL (priv->firmware_upgrade_label), scheduled_label);
++#else
 +  if (!s76_firmware_daemon_schedule (priv->firmware_daemon, priv->firmware_digest)) {
 +    gtk_widget_hide (priv->firmware_button);
-+    gtk_label_set_label (GTK_LABEL (priv->firmware_upgrade_label), _("Firmware Upgrade Scheduled"));
++    gtk_widget_set_halign (GTK_WIDGET (priv->firmware_upgrade_label), GTK_ALIGN_CENTER);
++    gtk_label_set_label (GTK_LABEL (priv->firmware_upgrade_label), scheduled_label);
 +
 +    g_info ("rebooting to install firmware upgrade");
 +    char *argv[1];
 +    argv[0] = "reboot";
 +    g_spawn_sync (NULL, argv, NULL, G_SPAWN_DEFAULT, NULL, NULL, NULL, NULL, NULL, NULL);
++  } else {
++    g_warning ("failed to schedule firmware upgrade");
 +  }
++#endif
 +
-+  g_slice_free (RebootCbData, data);
 +  gtk_dialog_response(data->dialog, GTK_RESPONSE_CLOSE);
++  g_slice_free (FirmwareScheduleData, data);
 +}
 +
 +static void
@@ -162,7 +213,7 @@ Last-Update: 2019-02-07
 +    priv->firmware_version->changes
 +  );
 +
-+  firmware_dialog_connect_reboot (&dialog, G_CALLBACK (pop_reboot), priv);
++  firmware_dialog_connect_reboot (&dialog, G_CALLBACK (s76_firmware_connect_schedule), priv);
 +  firmware_dialog_run (&dialog);
 +}
 +
@@ -177,7 +228,7 @@ Last-Update: 2019-02-07
  cc_info_overview_panel_class_init (CcInfoOverviewPanelClass *klass)
  {
    GObjectClass *object_class = G_OBJECT_CLASS (klass);
-@@ -888,6 +960,17 @@ cc_info_overview_panel_class_init (CcInf
+@@ -888,10 +990,60 @@ cc_info_overview_panel_class_init (CcInf
    gtk_widget_class_bind_template_child_private (widget_class, CcInfoOverviewPanel, grid1);
    gtk_widget_class_bind_template_child_private (widget_class, CcInfoOverviewPanel, label18);
  
@@ -195,31 +246,19 @@ Last-Update: 2019-02-07
    g_type_ensure (CC_TYPE_HOSTNAME_ENTRY);
  }
  
-@@ -909,6 +992,51 @@ cc_info_overview_panel_init (CcInfoOverv
- 
-   info_overview_panel_setup_overview (self);
-   info_overview_panel_setup_virt (self);
-+
-+  // Pop-specific details
-+  setup_listbox (self, self->os_upgrades_listbox);
-+
-+  GtkSizeGroup *button_group = gtk_size_group_new (GTK_SIZE_GROUP_HORIZONTAL);
-+  gtk_size_group_add_widget (button_group, priv->os_upgrade_button);
-+  gtk_size_group_add_widget (button_group, priv->os_refresh_button);
-+  gtk_size_group_add_widget (button_group, priv->firmware_button);
-+
-+  g_autofree char *computer_text = get_product_name ();
-+  gtk_label_set_text (GTK_LABEL (priv->computer_label), computer_text ? computer_text : "");
-+
-+  g_autofree char *model_text = get_product_version ();
-+  gtk_label_set_text (GTK_LABEL (priv->model_label), model_text ? model_text : "");
-+
+ static void
++s76_firmware_check (CcInfoOverviewPanelPrivate *priv)
++{
++  g_debug ("s76_firmware_check");
 +  gtk_widget_hide (priv->firmware_button);
 +  const gchar *label;
 +
 +  if (g_file_test ("/sys/firmware/efi", G_FILE_TEST_IS_DIR)) {
-+    g_signal_connect (priv->firmware_button, "clicked", G_CALLBACK (pop_firmware_upgrade), self);
 +    label = _("No Updates Available");
++
++    g_clear_pointer (&priv->firmware_version, s76_firmware_version_free);
++    g_slice_free (S76FirmwareVersion, priv->firmware_version);
++    g_slice_free (S76FirmwareDaemon, priv->firmware_daemon);
 +
 +    priv->firmware_daemon = g_slice_new0 (S76FirmwareDaemon);
 +    priv->firmware_version = g_slice_new0 (S76FirmwareVersion);
@@ -244,15 +283,39 @@ Last-Update: 2019-02-07
 +  }
 +
 +  gtk_label_set_label (GTK_LABEL (priv->firmware_upgrade_label), label);
++}
++
++static void
+ cc_info_overview_panel_init (CcInfoOverviewPanel *self)
+ {
+   CcInfoOverviewPanelPrivate *priv = cc_info_overview_panel_get_instance_private (self);
+@@ -909,6 +1061,21 @@ cc_info_overview_panel_init (CcInfoOverv
+ 
+   info_overview_panel_setup_overview (self);
+   info_overview_panel_setup_virt (self);
++
++  // Pop-specific details
++  setup_listbox (self, self->os_upgrades_listbox);
++
++  GtkSizeGroup *button_group = gtk_size_group_new (GTK_SIZE_GROUP_HORIZONTAL);
++  gtk_size_group_add_widget (button_group, priv->os_upgrade_button);
++  gtk_size_group_add_widget (button_group, priv->os_refresh_button);
++  gtk_size_group_add_widget (button_group, priv->firmware_button);
++
++  set_computer_label (GTK_LABEL (priv->computer_label));
++  set_model_label (GTK_LABEL (priv->model_label));
++
++  g_signal_connect (priv->firmware_button, "clicked", G_CALLBACK (pop_firmware_upgrade), self);
++
++  s76_firmware_check (priv);
  }
  
  GtkWidget *
 --- /dev/null
 +++ gnome-control-center-3.30.2/panels/info/dmi-info.c
-@@ -0,0 +1,18 @@
+@@ -0,0 +1,21 @@
 +#include <dmi-info.h>
 +#include <glib.h>
-+#include <glib/gstdio.h>
 +
 +static char *get_sys_info (gchar *path) {
 +  g_autofree gchar *buffer = NULL;
@@ -268,32 +331,51 @@ Last-Update: 2019-02-07
 +char *get_product_version (void) {
 +  return get_sys_info ("/sys/class/dmi/id/product_version");
 +}
++
++char *get_sys_vendor (void) {
++  return get_sys_info ("/sys/class/dmi/id/sys_vendor");
++}
 --- /dev/null
 +++ gnome-control-center-3.30.2/panels/info/dmi-info.h
-@@ -0,0 +1,2 @@
+@@ -0,0 +1,3 @@
 +char *get_product_name (void);
 +char *get_product_version (void);
++char *get_sys_vendor (void);
 --- /dev/null
 +++ gnome-control-center-3.30.2/panels/info/firmware-upgrade.c
-@@ -0,0 +1,82 @@
+@@ -0,0 +1,90 @@
 +#include <firmware-upgrade.h>
 +#include <glib.h>
 +#include <glib/gi18n.h>
 +
 +static void cancel_dialog (GtkButton *button, GtkDialog *dialog);
-+static void fold_changelog_str (gpointer input, gpointer output);
++
++typedef struct {
++  GString *output;
++  gchar   *pattern;
++} FoldData;
++
++static void join_str_lambda (gchar *element, FoldData *data) {
++  g_string_append (data->output, data->pattern);
++  g_string_append (data->output, element);
++}
++
++static gchar *join_str (GPtrArray *array, gchar *pattern) {
++  GString *strbuf = g_string_new (NULL);
++  FoldData data = { strbuf, pattern };
++  g_ptr_array_foreach (array, join_str_lambda, &data);
++  return g_string_free (strbuf, FALSE);
++}
 +
 +FirmwareUpdateDialog firmware_dialog_new (gchar *version, GPtrArray *changes) {
 +  GtkLabel *title = (GtkLabel*) gtk_label_new ("<b>Firmware Update</b>");
 +  gtk_label_set_use_markup (title, TRUE);
 +
-+  GString *strbuf = g_string_new (NULL);
-+  g_ptr_array_foreach (changes, fold_changelog_str, strbuf);
-+  g_autofree gchar *changelog = g_string_free (strbuf, FALSE);
++  g_autofree gchar *changelog = join_str (changes, "\t* ");
 +
 +  GtkLabel *text = (GtkLabel*) gtk_label_new (
 +    g_strdup_printf (_("Firmware version %s is available. Fixes and features"
-+      " include:\n\n%s\nIf you're on a laptop, <b>plug into power</b>"
++      " include:\n\n%s\n\nIf you're on a laptop, <b>plug into power</b>"
 +      " before you begin."), version, changelog)
 +  );
 +
@@ -338,7 +420,7 @@ Last-Update: 2019-02-07
 +}
 +
 +void firmware_dialog_connect_reboot (FirmwareUpdateDialog *dialog, GCallback callback, gpointer data) {
-+  RebootCbData *cbdata = g_slice_new0 (RebootCbData);
++  FirmwareScheduleData *cbdata = g_slice_new0 (FirmwareScheduleData);
 +  cbdata->dialog = dialog->dialog;
 +  cbdata->data = data;
 +
@@ -351,12 +433,6 @@ Last-Update: 2019-02-07
 +
 +static void cancel_dialog (GtkButton *button, GtkDialog *dialog) {
 +  gtk_dialog_response (dialog, GTK_RESPONSE_CANCEL);
-+}
-+
-+static void fold_changelog_str (gpointer input, gpointer output) {
-+  g_string_append ((GString*) output, "\t* ");
-+  g_string_append ((GString*) output, (gchar*) input);
-+  g_string_append_c ((GString*) output, '\n');
 +}
 --- /dev/null
 +++ gnome-control-center-3.30.2/panels/info/firmware-upgrade.h
@@ -393,7 +469,7 @@ Last-Update: 2019-02-07
 +typedef struct {
 +  GtkDialog *dialog;
 +  gpointer data;
-+} RebootCbData;
++} FirmwareScheduleData;
 +
 +FirmwareUpdateDialog firmware_dialog_new(gchar *version, GPtrArray *changes);
 +
