@@ -3,53 +3,68 @@ Date: Mon, 3 Jun 2013 17:27:45 +1000
 Subject: Add "Lock Screen on Suspend" option
 
 ---
- panels/privacy/cc-privacy-panel.c |  5 +++++
- panels/privacy/privacy.ui         | 31 +++++++++++++++++++++++++++++++
- 2 files changed, 36 insertions(+)
+ panels/privacy/cc-privacy-panel.c  |  6 ++++++
+ panels/privacy/cc-privacy-panel.ui | 35 +++++++++++++++++++++++++++++++++--
+ 2 files changed, 39 insertions(+), 2 deletions(-)
 
 diff --git a/panels/privacy/cc-privacy-panel.c b/panels/privacy/cc-privacy-panel.c
-index 27f0826..d8b5424 100644
+index 91f5457..4ed6214 100644
 --- a/panels/privacy/cc-privacy-panel.c
 +++ b/panels/privacy/cc-privacy-panel.c
-@@ -414,6 +414,11 @@ add_screen_lock (CcPrivacyPanel *self)
+@@ -74,6 +74,7 @@ struct _CcPrivacyPanel
+   GtkLabel    *retain_history_label;
+   GtkDialog   *screen_lock_dialog;
+   GtkGrid     *screen_lock_dialog_grid;
++  GtkSwitch   *screen_lock_suspend_switch;
+   GtkSwitch   *show_notifications_switch;
+   GtkDialog   *software_dialog;
+   GtkSwitch   *software_usage_switch;
+@@ -428,6 +429,10 @@ add_screen_lock (CcPrivacyPanel *self)
    g_settings_bind (self->notification_settings, "show-in-lock-screen",
-                    w, "active",
+                    self->show_notifications_switch, "active",
                     G_SETTINGS_BIND_DEFAULT);
 +
-+  w = GTK_WIDGET (gtk_builder_get_object (self->builder, "screen_lock_suspend"));
 +  g_settings_bind (self->lock_settings, "ubuntu-lock-on-suspend",
-+                   w, "active",
++                   self->screen_lock_suspend_switch, "active",
 +                   G_SETTINGS_BIND_DEFAULT);
  }
  
  static void
-diff --git a/panels/privacy/privacy.ui b/panels/privacy/privacy.ui
-index c15b653..3dc6cea 100644
---- a/panels/privacy/privacy.ui
-+++ b/panels/privacy/privacy.ui
-@@ -703,6 +703,37 @@ All the information we collect is made anonymous, and we will never share your d
+@@ -1435,6 +1440,7 @@ cc_privacy_panel_class_init (CcPrivacyPanelClass *klass)
+   gtk_widget_class_bind_template_child (widget_class, CcPrivacyPanel, retain_history_label);
+   gtk_widget_class_bind_template_child (widget_class, CcPrivacyPanel, screen_lock_dialog);
+   gtk_widget_class_bind_template_child (widget_class, CcPrivacyPanel, screen_lock_dialog_grid);
++  gtk_widget_class_bind_template_child (widget_class, CcPrivacyPanel, screen_lock_suspend_switch);
+   gtk_widget_class_bind_template_child (widget_class, CcPrivacyPanel, show_notifications_switch);
+   gtk_widget_class_bind_template_child (widget_class, CcPrivacyPanel, software_dialog);
+   gtk_widget_class_bind_template_child (widget_class, CcPrivacyPanel, software_usage_switch);
+diff --git a/panels/privacy/cc-privacy-panel.ui b/panels/privacy/cc-privacy-panel.ui
+index c043116..0de3d4b 100644
+--- a/panels/privacy/cc-privacy-panel.ui
++++ b/panels/privacy/cc-privacy-panel.ui
+@@ -385,6 +385,37 @@
                  <property name="height">1</property>
                </packing>
              </child>
 +            <child>
-+              <object class="GtkLabel" id="label8">
++              <object class="GtkLabel" id="screen_lock_suspend_label">
 +                <property name="visible">True</property>
 +                <property name="can_focus">False</property>
 +                <property name="xalign">0</property>
 +                <property name="hexpand">True</property>
 +                <property name="label" translatable="yes">Lock Screen on Suspend</property>
 +                <property name="use_underline">True</property>
-+                <property name="mnemonic_widget">screen_lock_suspend</property>
++                <property name="mnemonic_widget">screen_lock_suspend_switch</property>
 +              </object>
 +              <packing>
 +                <property name="left_attach">0</property>
-+                <property name="top_attach">3</property>
++                <property name="top_attach">2</property>
 +                <property name="width">1</property>
 +                <property name="height">1</property>
 +              </packing>
 +            </child>
 +            <child>
-+              <object class="GtkSwitch" id="screen_lock_suspend">
++              <object class="GtkSwitch" id="screen_lock_suspend_switch">
 +                <property name="visible">True</property>
 +                <property name="can_focus">True</property>
 +                <property name="halign">end</property>
@@ -57,11 +72,29 @@ index c15b653..3dc6cea 100644
 +              </object>
 +              <packing>
 +                <property name="left_attach">1</property>
-+                <property name="top_attach">3</property>
++                <property name="top_attach">2</property>
 +                <property name="width">1</property>
 +                <property name="height">1</property>
 +              </packing>
 +            </child>
-           </object>
-           <packing>
-             <property name="expand">False</property>
+             <child>
+               <object class="GtkLabel">
+                 <property name="visible">True</property>
+@@ -397,7 +428,7 @@
+               </object>
+               <packing>
+                 <property name="left_attach">0</property>
+-                <property name="top_attach">2</property>
++                <property name="top_attach">3</property>
+                 <property name="width">1</property>
+                 <property name="height">1</property>
+               </packing>
+@@ -411,7 +442,7 @@
+               </object>
+               <packing>
+                 <property name="left_attach">1</property>
+-                <property name="top_attach">2</property>
++                <property name="top_attach">3</property>
+                 <property name="width">1</property>
+                 <property name="height">1</property>
+               </packing>
