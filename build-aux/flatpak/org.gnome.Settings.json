@@ -5,7 +5,6 @@
     "sdk" : "org.gnome.Sdk",
     "command" : "gnome-control-center",
     "rename-desktop-file" : "gnome-control-center.desktop",
-    "rename-icon" : "gnome-control-center",
     "tags" : [
         "devel"
     ],
@@ -110,10 +109,14 @@
         },
         {
             "name" : "accountservice",
-            "buildsystem" : "autotools",
+            "buildsystem" : "meson",
             "config-opts" : [
-                "--disable-systemd",
-                "--disable-elogind"
+                "-Ddocbook=false",
+                "-Delogind=false",
+                "-Dgtk_doc=false",
+                "-Dintrospection=false",
+                "-Dsystemd=false",
+                "-Dsystemdsystemunitdir=no"
             ],
             "sources" : [
                 {
@@ -499,6 +502,33 @@
                 {
                     "type" : "git",
                     "url" : "https://gitlab.gnome.org/GNOME/cheese.git"
+                }
+            ]
+        },
+        {
+            "name" : "libhandy",
+            "buildsystem" : "meson",
+            "config-opts" : [
+                "-Dexamples=false",
+                "-Dglade_catalog=disabled",
+                "-Dintrospection=disabled",
+                "-Dtests=false",
+                "-Dvapi=false"
+            ],
+            "sources" : [
+                {
+                    "type" : "git",
+                    "url" : "https://source.puri.sm/Librem5/libhandy.git"
+                }
+            ]
+        },
+        {
+            "name" : "gsound",
+            "buildsystem" : "autotools",
+            "sources" : [
+                {
+                    "type" : "git",
+                    "url" : "https://gitlab.gnome.org/GNOME/gsound.git"
                 }
             ]
         },

@@ -151,8 +151,24 @@ cc_display_monitor_init (CcDisplayMonitor *self)
 }
 
 static void
+cc_display_monitor_finalize (GObject *object)
+{
+  CcDisplayMonitor *self = CC_DISPLAY_MONITOR (object);
+  CcDisplayMonitorPrivate *priv = CC_DISPLAY_MONITOR_GET_PRIVATE (self);
+
+  g_clear_pointer (&priv->ui_name, g_free);
+  g_clear_pointer (&priv->ui_number_name, g_free);
+
+  G_OBJECT_CLASS (cc_display_monitor_parent_class)->finalize (object);
+}
+
+static void
 cc_display_monitor_class_init (CcDisplayMonitorClass *klass)
 {
+  GObjectClass *gobject_class = G_OBJECT_CLASS (klass);
+
+  gobject_class->finalize = cc_display_monitor_finalize;
+
   g_signal_new ("rotation",
                 CC_TYPE_DISPLAY_MONITOR,
                 G_SIGNAL_RUN_LAST,
@@ -369,6 +385,12 @@ cc_display_monitor_get_ui_number_name (CcDisplayMonitor *self)
   return CC_DISPLAY_MONITOR_GET_PRIVATE (self)->ui_number_name;
 }
 
+char *
+cc_display_monitor_dup_ui_number_name (CcDisplayMonitor *self)
+{
+  return g_strdup (CC_DISPLAY_MONITOR_GET_PRIVATE (self)->ui_number_name);
+}
+
 static void
 cc_display_monitor_set_ui_info (CcDisplayMonitor *self, gint ui_number, gchar *ui_name)
 {
@@ -436,6 +458,8 @@ cc_display_config_finalize (GObject *object)
   CcDisplayConfigPrivate *priv = CC_DISPLAY_CONFIG_GET_PRIVATE (self);
 
   g_list_free (priv->ui_sorted_monitors);
+
+  G_OBJECT_CLASS (cc_display_config_parent_class)->finalize (object);
 }
 
 static void
@@ -489,6 +513,21 @@ gboolean
 cc_display_config_is_applicable (CcDisplayConfig *self)
 {
   return CC_DISPLAY_CONFIG_GET_CLASS (self)->is_applicable (self);
+}
+
+void
+cc_display_config_set_mode_on_all_outputs (CcDisplayConfig *config,
+                                           CcDisplayMode   *mode)
+{
+  GList *outputs, *l;
+
+  outputs = cc_display_config_get_monitors (config);
+  for (l = outputs; l; l = l->next)
+    {
+      CcDisplayMonitor *output = l->data;
+      cc_display_monitor_set_mode (output, mode);
+      cc_display_monitor_set_position (output, 0, 0);
+    }
 }
 
 gboolean

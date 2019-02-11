@@ -28,17 +28,16 @@
 #include "pp-ipp-option-widget.h"
 #include "pp-utils.h"
 
-#define PP_IPP_OPTION_WIDGET_GET_PRIVATE(o)  \
-  (G_TYPE_INSTANCE_GET_PRIVATE ((o), PP_TYPE_IPP_OPTION_WIDGET, PpIPPOptionWidgetPrivate))
-
 static void pp_ipp_option_widget_finalize (GObject *object);
 
-static gboolean construct_widget   (PpIPPOptionWidget *widget);
-static void     update_widget      (PpIPPOptionWidget *widget);
-static void     update_widget_real (PpIPPOptionWidget *widget);
+static gboolean construct_widget   (PpIPPOptionWidget *self);
+static void     update_widget      (PpIPPOptionWidget *self);
+static void     update_widget_real (PpIPPOptionWidget *self);
 
-struct PpIPPOptionWidgetPrivate
+struct _PpIPPOptionWidget
 {
+  GtkBox parent_instance;
+
   GtkWidget *switch_button;
   GtkWidget *spin_button;
   GtkWidget *combo;
@@ -102,77 +101,41 @@ pp_ipp_option_widget_class_init (PpIPPOptionWidgetClass *class)
   object_class = G_OBJECT_CLASS (class);
 
   object_class->finalize = pp_ipp_option_widget_finalize;
-
-  g_type_class_add_private (class, sizeof (PpIPPOptionWidgetPrivate));
 }
 
 static void
-pp_ipp_option_widget_init (PpIPPOptionWidget *widget)
+pp_ipp_option_widget_init (PpIPPOptionWidget *self)
 {
-  PpIPPOptionWidgetPrivate *priv;
-
-  gtk_orientable_set_orientation (GTK_ORIENTABLE (widget),
+  gtk_orientable_set_orientation (GTK_ORIENTABLE (self),
                                   GTK_ORIENTATION_HORIZONTAL);
-  priv = widget->priv = PP_IPP_OPTION_WIDGET_GET_PRIVATE (widget);
 
-  priv->switch_button = NULL;
-  priv->spin_button = NULL;
-  priv->combo = NULL;
-  priv->box = NULL;
+  self->switch_button = NULL;
+  self->spin_button = NULL;
+  self->combo = NULL;
+  self->box = NULL;
 
-  priv->printer_name = NULL;
-  priv->option_name = NULL;
+  self->printer_name = NULL;
+  self->option_name = NULL;
 
-  priv->option_supported = NULL;
-  priv->option_default = NULL;
+  self->option_supported = NULL;
+  self->option_default = NULL;
 
-  priv->ipp_attribute = NULL;
+  self->ipp_attribute = NULL;
 }
 
 static void
 pp_ipp_option_widget_finalize (GObject *object)
 {
-  PpIPPOptionWidget *widget = PP_IPP_OPTION_WIDGET (object);
-  PpIPPOptionWidgetPrivate *priv = widget->priv;
+  PpIPPOptionWidget *self = PP_IPP_OPTION_WIDGET (object);
 
-  if (priv)
-    {
-      if (priv->option_name)
-        {
-          g_free (priv->option_name);
-          priv->option_name = NULL;
-        }
+  g_cancellable_cancel (self->cancellable);
 
-      if (priv->printer_name)
-        {
-          g_free (priv->printer_name);
-          priv->printer_name = NULL;
-        }
-
-      if (priv->option_supported)
-        {
-          ipp_attribute_free (priv->option_supported);
-          priv->option_supported = NULL;
-        }
-
-      if (priv->option_default)
-        {
-          ipp_attribute_free (priv->option_default);
-          priv->option_default = NULL;
-        }
-
-      if (priv->ipp_attribute)
-        {
-          g_hash_table_unref (priv->ipp_attribute);
-          priv->ipp_attribute = NULL;
-        }
-
-      if (priv->cancellable)
-        {
-          g_cancellable_cancel (priv->cancellable);
-          g_object_unref (priv->cancellable);
-        }
-    }
+  g_clear_pointer (&self->option_name, g_free);
+  g_clear_pointer (&self->printer_name, g_free);
+  g_clear_pointer (&self->option_supported, ipp_attribute_free);
+  g_clear_pointer (&self->option_default, ipp_attribute_free);
+  g_clear_pointer (&self->ipp_attribute, g_hash_table_unref);
+  g_clear_object (&self->cancellable);
 
   G_OBJECT_CLASS (pp_ipp_option_widget_parent_class)->finalize (object);
 }
@@ -183,33 +146,30 @@ pp_ipp_option_widget_new (IPPAttribute *attr_supported,
                           const gchar  *option_name,
                           const gchar  *printer)
 {
-  PpIPPOptionWidgetPrivate *priv;
-  PpIPPOptionWidget        *widget = NULL;
+  PpIPPOptionWidget *self = NULL;
 
   if (attr_supported && option_name && printer)
     {
-      widget = g_object_new (PP_TYPE_IPP_OPTION_WIDGET, NULL);
+      self = g_object_new (PP_TYPE_IPP_OPTION_WIDGET, NULL);
 
-      priv = PP_IPP_OPTION_WIDGET_GET_PRIVATE (widget);
+      self->printer_name = g_strdup (printer);
+      self->option_name = g_strdup (option_name);
+      self->option_supported = ipp_attribute_copy (attr_supported);
+      self->option_default = ipp_attribute_copy (attr_default);
 
-      priv->printer_name = g_strdup (printer);
-      priv->option_name = g_strdup (option_name);
-      priv->option_supported = ipp_attribute_copy (attr_supported);
-      priv->option_default = ipp_attribute_copy (attr_default);
-
-      if (construct_widget (widget))
+      if (construct_widget (self))
         {
-          update_widget_real (widget);
+          update_widget_real (self);
         }
       else
         {
-          g_object_ref_sink (widget);
-          g_object_unref (widget);
-          widget = NULL;
+          g_object_ref_sink (self);
+          g_object_unref (self);
+          self = NULL;
         }
     }
 
-  return (GtkWidget *) widget;
+  return (GtkWidget *) self;
 }
 
 enum {
@@ -270,18 +230,17 @@ set_cb (GtkTreeModel *model,
         GtkTreeIter  *iter,
         gpointer      data)
 {
-  struct ComboSet *set_data = data;
-  gboolean         found;
-  char            *value;
+  struct ComboSet  *set_data = data;
+  g_autofree gchar *value = NULL;
 
   gtk_tree_model_get (model, iter, VALUE_COLUMN, &value, -1);
-  found = (strcmp (value, set_data->value) == 0);
-  g_free (value);
+  if (strcmp (value, set_data->value) == 0)
+    {
+      gtk_combo_box_set_active_iter (set_data->combo, iter);
+      return TRUE;
+    }
 
-  if (found)
-    gtk_combo_box_set_active_iter (set_data->combo, iter);
-
-  return found;
+  return FALSE;
 }
 
 static void
@@ -317,19 +276,17 @@ static void
 printer_add_option_async_cb (gboolean success,
                              gpointer user_data)
 {
-  PpIPPOptionWidget        *widget = (PpIPPOptionWidget *) user_data;
-  PpIPPOptionWidgetPrivate *priv = widget->priv;
+  PpIPPOptionWidget *self = user_data;
 
   update_widget (user_data);
-  g_clear_object (&priv->cancellable);
+  g_clear_object (&self->cancellable);
 }
 
 static void
 switch_changed_cb (GtkWidget         *switch_button,
                    GParamSpec        *pspec,
-                   PpIPPOptionWidget *widget)
+                   PpIPPOptionWidget *self)
 {
-  PpIPPOptionWidgetPrivate  *priv = widget->priv;
   gchar                    **values;
 
   values = g_new0 (gchar *, 2);
@@ -339,159 +296,156 @@ switch_changed_cb (GtkWidget         *switch_button,
   else
     values[0] = g_strdup ("False");
 
-  if (priv->cancellable)
+  if (self->cancellable)
     {
-      g_cancellable_cancel (priv->cancellable);
-      g_object_unref (priv->cancellable);
+      g_cancellable_cancel (self->cancellable);
+      g_object_unref (self->cancellable);
     }
 
-  priv->cancellable = g_cancellable_new ();
-  printer_add_option_async (priv->printer_name,
-                            priv->option_name,
+  self->cancellable = g_cancellable_new ();
+  printer_add_option_async (self->printer_name,
+                            self->option_name,
                             values,
                             TRUE,
-                            priv->cancellable,
+                            self->cancellable,
                             printer_add_option_async_cb,
-                            widget);
+                            self);
 
   g_strfreev (values);
 }
 
 static void
 combo_changed_cb (GtkWidget         *combo,
-                  PpIPPOptionWidget *widget)
+                  PpIPPOptionWidget *self)
 {
-  PpIPPOptionWidgetPrivate  *priv = widget->priv;
   gchar                    **values;
 
   values = g_new0 (gchar *, 2);
   values[0] = combo_box_get (combo);
 
-  if (priv->cancellable)
+  if (self->cancellable)
     {
-      g_cancellable_cancel (priv->cancellable);
-      g_object_unref (priv->cancellable);
+      g_cancellable_cancel (self->cancellable);
+      g_object_unref (self->cancellable);
     }
 
-  priv->cancellable = g_cancellable_new ();
-  printer_add_option_async (priv->printer_name,
-                            priv->option_name,
+  self->cancellable = g_cancellable_new ();
+  printer_add_option_async (self->printer_name,
+                            self->option_name,
                             values,
                             TRUE,
-                            priv->cancellable,
+                            self->cancellable,
                             printer_add_option_async_cb,
-                            widget);
+                            self);
 
   g_strfreev (values);
 }
 
 static void
 spin_button_changed_cb (GtkWidget         *spin_button,
-                        PpIPPOptionWidget *widget)
+                        PpIPPOptionWidget *self)
 {
-  PpIPPOptionWidgetPrivate  *priv = widget->priv;
   gchar                    **values;
 
   values = g_new0 (gchar *, 2);
   values[0] = g_strdup_printf ("%d", gtk_spin_button_get_value_as_int (GTK_SPIN_BUTTON (spin_button)));
 
-  if (priv->cancellable)
+  if (self->cancellable)
     {
-      g_cancellable_cancel (priv->cancellable);
-      g_object_unref (priv->cancellable);
+      g_cancellable_cancel (self->cancellable);
+      g_object_unref (self->cancellable);
     }
 
-  priv->cancellable = g_cancellable_new ();
-  printer_add_option_async (priv->printer_name,
-                            priv->option_name,
+  self->cancellable = g_cancellable_new ();
+  printer_add_option_async (self->printer_name,
+                            self->option_name,
                             values,
                             TRUE,
-                            priv->cancellable,
+                            self->cancellable,
                             printer_add_option_async_cb,
-                            widget);
+                            self);
 
   g_strfreev (values);
 }
 
 static gboolean
-construct_widget (PpIPPOptionWidget *widget)
+construct_widget (PpIPPOptionWidget *self)
 {
-  PpIPPOptionWidgetPrivate *priv = widget->priv;
   gboolean                  trivial_option = FALSE;
   gboolean                  result = FALSE;
-  gchar                    *value;
   gint                      i;
 
-  if (priv->option_supported)
+  if (self->option_supported)
     {
-      switch (priv->option_supported->attribute_type)
+      switch (self->option_supported->attribute_type)
         {
           case IPP_ATTRIBUTE_TYPE_INTEGER:
-            if (priv->option_supported->num_of_values <= 1)
+            if (self->option_supported->num_of_values <= 1)
               trivial_option = TRUE;
             break;
 
           case IPP_ATTRIBUTE_TYPE_STRING:
-            if (priv->option_supported->num_of_values <= 1)
+            if (self->option_supported->num_of_values <= 1)
               trivial_option = TRUE;
             break;
 
           case IPP_ATTRIBUTE_TYPE_RANGE:
-            if (priv->option_supported->attribute_values[0].lower_range ==
-                priv->option_supported->attribute_values[0].upper_range)
+            if (self->option_supported->attribute_values[0].lower_range ==
+                self->option_supported->attribute_values[0].upper_range)
               trivial_option = TRUE;
             break;
         }
 
       if (!trivial_option)
         {
-          switch (priv->option_supported->attribute_type)
+          switch (self->option_supported->attribute_type)
             {
               case IPP_ATTRIBUTE_TYPE_BOOLEAN:
-                  priv->switch_button = gtk_switch_new ();
+                  self->switch_button = gtk_switch_new ();
 
-                  gtk_box_pack_start (GTK_BOX (widget), priv->switch_button, FALSE, FALSE, 0);
-                  g_signal_connect (priv->switch_button, "notify::active", G_CALLBACK (switch_changed_cb), widget);
+                  gtk_box_pack_start (GTK_BOX (self), self->switch_button, FALSE, FALSE, 0);
+                  g_signal_connect (self->switch_button, "notify::active", G_CALLBACK (switch_changed_cb), self);
                   break;
 
               case IPP_ATTRIBUTE_TYPE_INTEGER:
-                  priv->combo = combo_box_new ();
+                  self->combo = combo_box_new ();
 
-                  for (i = 0; i < priv->option_supported->num_of_values; i++)
+                  for (i = 0; i < self->option_supported->num_of_values; i++)
                     {
-                      value = g_strdup_printf ("%d", priv->option_supported->attribute_values[i].integer_value);
-                      combo_box_append (priv->combo,
-                                        ipp_choice_translate (priv->option_name,
+                      g_autofree gchar *value = NULL;
+
+                      value = g_strdup_printf ("%d", self->option_supported->attribute_values[i].integer_value);
+                      combo_box_append (self->combo,
+                                        ipp_choice_translate (self->option_name,
                                                               value),
                                         value);
-                      g_free (value);
                     }
 
-                  gtk_box_pack_start (GTK_BOX (widget), priv->combo, FALSE, FALSE, 0);
-                  g_signal_connect (priv->combo, "changed", G_CALLBACK (combo_changed_cb), widget);
+                  gtk_box_pack_start (GTK_BOX (self), self->combo, FALSE, FALSE, 0);
+                  g_signal_connect (self->combo, "changed", G_CALLBACK (combo_changed_cb), self);
                   break;
 
               case IPP_ATTRIBUTE_TYPE_STRING:
-                  priv->combo = combo_box_new ();
+                  self->combo = combo_box_new ();
 
-                  for (i = 0; i < priv->option_supported->num_of_values; i++)
-                    combo_box_append (priv->combo,
-                                      ipp_choice_translate (priv->option_name,
-                                                            priv->option_supported->attribute_values[i].string_value),
-                                      priv->option_supported->attribute_values[i].string_value);
+                  for (i = 0; i < self->option_supported->num_of_values; i++)
+                    combo_box_append (self->combo,
+                                      ipp_choice_translate (self->option_name,
+                                                            self->option_supported->attribute_values[i].string_value),
+                                      self->option_supported->attribute_values[i].string_value);
 
-                  gtk_box_pack_start (GTK_BOX (widget), priv->combo, FALSE, FALSE, 0);
-                  g_signal_connect (priv->combo, "changed", G_CALLBACK (combo_changed_cb), widget);
+                  gtk_box_pack_start (GTK_BOX (self), self->combo, FALSE, FALSE, 0);
+                  g_signal_connect (self->combo, "changed", G_CALLBACK (combo_changed_cb), self);
                   break;
 
               case IPP_ATTRIBUTE_TYPE_RANGE:
-                  priv->spin_button = gtk_spin_button_new_with_range (
-                                        priv->option_supported->attribute_values[0].lower_range,
-                                        priv->option_supported->attribute_values[0].upper_range,
+                  self->spin_button = gtk_spin_button_new_with_range (
+                                        self->option_supported->attribute_values[0].lower_range,
+                                        self->option_supported->attribute_values[0].upper_range,
                                         1);
 
-                  gtk_box_pack_start (GTK_BOX (widget), priv->spin_button, FALSE, FALSE, 0);
-                  g_signal_connect (priv->spin_button, "value-changed", G_CALLBACK (spin_button_changed_cb), widget);
+                  gtk_box_pack_start (GTK_BOX (self), self->spin_button, FALSE, FALSE, 0);
+                  g_signal_connect (self->spin_button, "value-changed", G_CALLBACK (spin_button_changed_cb), self);
                   break;
 
               default:
@@ -506,97 +460,91 @@ construct_widget (PpIPPOptionWidget *widget)
 }
 
 static void
-update_widget_real (PpIPPOptionWidget *widget)
+update_widget_real (PpIPPOptionWidget *self)
 {
-  PpIPPOptionWidgetPrivate *priv = widget->priv;
   IPPAttribute             *attr = NULL;
-  gchar                    *value;
-  gchar                    *attr_name;
 
-  if (priv->option_default)
+  if (self->option_default)
     {
-      attr = ipp_attribute_copy (priv->option_default);
+      attr = ipp_attribute_copy (self->option_default);
 
-      ipp_attribute_free (priv->option_default);
-      priv->option_default = NULL;
+      ipp_attribute_free (self->option_default);
+      self->option_default = NULL;
     }
-  else if (priv->ipp_attribute)
+  else if (self->ipp_attribute)
     {
-      attr_name = g_strdup_printf ("%s-default", priv->option_name);
-      attr = ipp_attribute_copy (g_hash_table_lookup (priv->ipp_attribute, attr_name));
+      g_autofree gchar *attr_name = g_strdup_printf ("%s-default", self->option_name);
+      attr = ipp_attribute_copy (g_hash_table_lookup (self->ipp_attribute, attr_name));
 
-      g_free (attr_name);
-      g_hash_table_unref (priv->ipp_attribute);
-      priv->ipp_attribute = NULL;
+      g_hash_table_unref (self->ipp_attribute);
+      self->ipp_attribute = NULL;
     }
 
-  switch (priv->option_supported->attribute_type)
+  switch (self->option_supported->attribute_type)
     {
       case IPP_ATTRIBUTE_TYPE_BOOLEAN:
-        g_signal_handlers_block_by_func (priv->switch_button, switch_changed_cb, widget);
+        g_signal_handlers_block_by_func (self->switch_button, switch_changed_cb, self);
 
         if (attr && attr->num_of_values > 0 &&
             attr->attribute_type == IPP_ATTRIBUTE_TYPE_BOOLEAN)
           {
-            gtk_switch_set_active (GTK_SWITCH (priv->switch_button),
+            gtk_switch_set_active (GTK_SWITCH (self->switch_button),
                                    attr->attribute_values[0].boolean_value);
           }
 
-        g_signal_handlers_unblock_by_func (priv->switch_button, switch_changed_cb, widget);
+        g_signal_handlers_unblock_by_func (self->switch_button, switch_changed_cb, self);
         break;
 
       case IPP_ATTRIBUTE_TYPE_INTEGER:
-        g_signal_handlers_block_by_func (priv->combo, combo_changed_cb, widget);
+        g_signal_handlers_block_by_func (self->combo, combo_changed_cb, self);
 
         if (attr && attr->num_of_values > 0 &&
             attr->attribute_type == IPP_ATTRIBUTE_TYPE_INTEGER)
           {
-            value = g_strdup_printf ("%d", attr->attribute_values[0].integer_value);
-            combo_box_set (priv->combo, value);
-            g_free (value);
+            g_autofree gchar *value = g_strdup_printf ("%d", attr->attribute_values[0].integer_value);
+            combo_box_set (self->combo, value);
           }
         else
           {
-            value = g_strdup_printf ("%d", priv->option_supported->attribute_values[0].integer_value);
-            combo_box_set (priv->combo, value);
-            g_free (value);
+            g_autofree gchar *value = g_strdup_printf ("%d", self->option_supported->attribute_values[0].integer_value);
+            combo_box_set (self->combo, value);
           }
 
-        g_signal_handlers_unblock_by_func (priv->combo, combo_changed_cb, widget);
+        g_signal_handlers_unblock_by_func (self->combo, combo_changed_cb, self);
         break;
 
       case IPP_ATTRIBUTE_TYPE_STRING:
-        g_signal_handlers_block_by_func (priv->combo, combo_changed_cb, widget);
+        g_signal_handlers_block_by_func (self->combo, combo_changed_cb, self);
 
         if (attr && attr->num_of_values > 0 &&
             attr->attribute_type == IPP_ATTRIBUTE_TYPE_STRING)
           {
-            combo_box_set (priv->combo, attr->attribute_values[0].string_value);
+            combo_box_set (self->combo, attr->attribute_values[0].string_value);
           }
         else
           {
-            combo_box_set (priv->combo, priv->option_supported->attribute_values[0].string_value);
+            combo_box_set (self->combo, self->option_supported->attribute_values[0].string_value);
           }
 
-        g_signal_handlers_unblock_by_func (priv->combo, combo_changed_cb, widget);
+        g_signal_handlers_unblock_by_func (self->combo, combo_changed_cb, self);
         break;
 
       case IPP_ATTRIBUTE_TYPE_RANGE:
-        g_signal_handlers_block_by_func (priv->spin_button, spin_button_changed_cb, widget);
+        g_signal_handlers_block_by_func (self->spin_button, spin_button_changed_cb, self);
 
         if (attr && attr->num_of_values > 0 &&
             attr->attribute_type == IPP_ATTRIBUTE_TYPE_INTEGER)
           {
-            gtk_spin_button_set_value (GTK_SPIN_BUTTON (priv->spin_button),
+            gtk_spin_button_set_value (GTK_SPIN_BUTTON (self->spin_button),
                                        attr->attribute_values[0].integer_value);
           }
         else
           {
-            gtk_spin_button_set_value (GTK_SPIN_BUTTON (priv->spin_button),
-                                       priv->option_supported->attribute_values[0].lower_range);
+            gtk_spin_button_set_value (GTK_SPIN_BUTTON (self->spin_button),
+                                       self->option_supported->attribute_values[0].lower_range);
           }
 
-        g_signal_handlers_unblock_by_func (priv->spin_button, spin_button_changed_cb, widget);
+        g_signal_handlers_unblock_by_func (self->spin_button, spin_button_changed_cb, self);
         break;
 
       default:
@@ -610,30 +558,28 @@ static void
 get_ipp_attributes_cb (GHashTable *table,
                        gpointer    user_data)
 {
-  PpIPPOptionWidget        *widget = (PpIPPOptionWidget *) user_data;
-  PpIPPOptionWidgetPrivate *priv = widget->priv;
+  PpIPPOptionWidget *self = user_data;
 
-  if (priv->ipp_attribute)
-    g_hash_table_unref (priv->ipp_attribute);
+  if (self->ipp_attribute)
+    g_hash_table_unref (self->ipp_attribute);
 
-  priv->ipp_attribute = table;
+  self->ipp_attribute = table;
 
-  update_widget_real (widget);
+  update_widget_real (self);
 }
 
 static void
-update_widget (PpIPPOptionWidget *widget)
+update_widget (PpIPPOptionWidget *self)
 {
-  PpIPPOptionWidgetPrivate  *priv = widget->priv;
   gchar                    **attributes_names;
 
   attributes_names = g_new0 (gchar *, 2);
-  attributes_names[0] = g_strdup_printf ("%s-default", priv->option_name);
+  attributes_names[0] = g_strdup_printf ("%s-default", self->option_name);
 
-  get_ipp_attributes_async (priv->printer_name,
+  get_ipp_attributes_async (self->printer_name,
                             attributes_names,
                             get_ipp_attributes_cb,
-                            widget);
+                            self);
 
   g_strfreev (attributes_names);
 }

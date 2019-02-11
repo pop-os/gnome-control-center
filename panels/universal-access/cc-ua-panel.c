@@ -240,7 +240,7 @@ cc_ua_panel_class_init (CcUaPanelClass *klass)
 
   object_class->dispose = cc_ua_panel_dispose;
 
-  gtk_widget_class_set_template_from_resource (widget_class, "/org/gnome/control-center/universal-access/uap.ui");
+  gtk_widget_class_set_template_from_resource (widget_class, "/org/gnome/control-center/universal-access/cc-ua-panel.ui");
 
   gtk_widget_class_bind_template_child (widget_class, CcUaPanel, cursor_blinking_dialog);
   gtk_widget_class_bind_template_child (widget_class, CcUaPanel, cursor_blinking_scale);
@@ -368,8 +368,10 @@ cursor_size_setup (CcUaPanel *self)
 
       cursor_image_name = g_strdup_printf ("/org/gnome/control-center/universal-access/left_ptr_%dpx.png", cursor_sizes[i]);
       image = gtk_image_new_from_resource (cursor_image_name);
+      gtk_widget_show (image);
 
       button = gtk_radio_button_new_from_widget (GTK_RADIO_BUTTON (last_radio_button));
+      gtk_widget_show (button);
       last_radio_button = button;
       gtk_toggle_button_set_mode (GTK_TOGGLE_BUTTON (button), FALSE);
       g_object_set_data (G_OBJECT (button), "cursor-size", GUINT_TO_POINTER (cursor_sizes[i]));
@@ -384,8 +386,6 @@ cursor_size_setup (CcUaPanel *self)
       if (current_cursor_size == cursor_sizes[i])
         gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (button), TRUE);
     }
-
-  gtk_widget_show_all (self->cursor_size_grid);
 }
 
 /* seeing section */

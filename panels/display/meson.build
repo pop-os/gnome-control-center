@@ -24,14 +24,14 @@ sources = files(
   'cc-display-config-dbus.c',
   'cc-display-config-manager-dbus.c',
   'cc-display-config-manager.c',
+  'cc-display-settings.c',
   'cc-night-light-dialog.c',
-  'cc-night-light-widget.c',
 )
 
 resource_data = files(
+  'cc-display-panel.ui',
+  'cc-display-settings.ui',
   'cc-night-light-dialog.ui',
-  'icons/16x16/sunset.png',
-  'icons/16x16/sunrise.png'
 )
 
 sources += gnome.compile_resources(

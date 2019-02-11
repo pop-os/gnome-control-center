@@ -18,8 +18,7 @@
  * Author: Felipe Borges <feborges@redhat.com>
  */
 
-#ifndef __PP_JOB_H__
-#define __PP_JOB_H__
+#pragma once
 
 #include <gtk/gtk.h>
 #include <glib-object.h>
@@ -30,11 +29,6 @@ G_BEGIN_DECLS
 
 #define PP_TYPE_JOB (pp_job_get_type ())
 G_DECLARE_FINAL_TYPE (PpJob, pp_job, PP, JOB, GObject)
-
-struct _PpJob
-{
-  GObject parent_instance;
-};
 
 void           pp_job_set_hold_until_async       (PpJob                *job,
                                                   const gchar          *job_hold_until);
@@ -63,5 +57,3 @@ gboolean       pp_job_authenticate_finish        (PpJob                *job,
                                                   GError              **error);
 
 G_END_DECLS
-
-#endif

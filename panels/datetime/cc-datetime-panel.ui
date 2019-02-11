@@ -1,0 +1,438 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <!-- interface-requires gtk+ 3.10 -->
+  <object class="GtkLockButton" id="lock_button">
+    <property name="visible">True</property>
+    <property name="can_focus">True</property>
+  </object>
+  <object class="GtkListStore" id="city_liststore">
+    <columns>
+      <!-- column-name city-human-readable -->
+      <column type="gchararray"/>
+      <!-- column-name zone -->
+      <column type="gchararray"/>
+    </columns>
+  </object>
+  <object class="GtkTreeModelSort" id="city_modelsort">
+    <property name="model">city_liststore</property>
+  </object>
+  <object class="GtkListStore" id="month_liststore">
+    <columns>
+      <!-- column-name gchararray1 -->
+      <column type="gchararray"/>
+    </columns>
+    <data>
+      <row>
+        <col id="0" translatable="yes">January</col>
+      </row>
+      <row>
+        <col id="0" translatable="yes">February</col>
+      </row>
+      <row>
+        <col id="0" translatable="yes">March</col>
+      </row>
+      <row>
+        <col id="0" translatable="yes">April</col>
+      </row>
+      <row>
+        <col id="0" translatable="yes">May</col>
+      </row>
+      <row>
+        <col id="0" translatable="yes">June</col>
+      </row>
+      <row>
+        <col id="0" translatable="yes">July</col>
+      </row>
+      <row>
+        <col id="0" translatable="yes">August</col>
+      </row>
+      <row>
+        <col id="0" translatable="yes">September</col>
+      </row>
+      <row>
+        <col id="0" translatable="yes">October</col>
+      </row>
+      <row>
+        <col id="0" translatable="yes">November</col>
+      </row>
+      <row>
+        <col id="0" translatable="yes">December</col>
+      </row>
+    </data>
+  </object>
+  <object class="GtkDialog" id="datetime_dialog">
+    <property name="can_focus">False</property>
+    <property name="title" translatable="yes">Date &amp; Time</property>
+    <property name="resizable">False</property>
+    <property name="type_hint">dialog</property>
+    <property name="use_header_bar">1</property>
+    <signal name="delete-event" handler="gtk_widget_hide_on_delete"/>
+    <child internal-child="vbox">
+      <object class="GtkBox" id="dialog_vbox2">
+        <property name="can_focus">False</property>
+        <property name="orientation">vertical</property>
+        <property name="spacing">2</property>
+        <child>
+          <object class="GtkBox" id="time_box">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <property name="margin_start">28</property>
+            <property name="margin_end">40</property>
+            <property name="margin_top">28</property>
+            <property name="margin_bottom">28</property>
+            <property name="spacing">24</property>
+            <child>
+              <object class="GtkGrid" id="time_grid">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="halign">start</property>
+                <property name="margin_start">12</property>
+                <property name="margin_end">12</property>
+                <property name="margin_top">12</property>
+                <property name="margin_bottom">12</property>
+                <property name="hexpand">True</property>
+                <property name="column_spacing">6</property>
+                <style>
+                  <class name="gnome-control-center-datetime-setup-time"/>
+                </style>
+                <child>
+                  <object class="GtkSpinButton" id="h_spinbutton">
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="max_length">2</property>
+                    <property name="invisible_char">●</property>
+                    <property name="xalign">0.5</property>
+                    <property name="input_purpose">digits</property>
+                    <property name="orientation">vertical</property>
+                    <property name="numeric">True</property>
+                    <property name="wrap">True</property>
+                    <signal name="output" handler="format_hours_combobox" object="CcDateTimePanel" swapped="no"/>
+                    <signal name="value-changed" handler="change_time" object="CcDateTimePanel" swapped="yes"/>
+                    <child internal-child="accessible">
+                      <object class="AtkObject" id="h_spinbutton-atkobject">
+                        <property name="AtkObject::accessible-description" translatable="yes">Hour</property>
+                      </object>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="left_attach">0</property>
+                    <property name="top_attach">0</property>
+                    <property name="width">1</property>
+                    <property name="height">1</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkLabel" id="label2">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="label" translatable="yes" comments="Translator: this is the separator between hours and minutes, like in HH∶MM">∶</property>
+                  </object>
+                  <packing>
+                    <property name="left_attach">1</property>
+                    <property name="top_attach">0</property>
+                    <property name="width">1</property>
+                    <property name="height">1</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkSpinButton" id="m_spinbutton">
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="max_length">2</property>
+                    <property name="invisible_char">●</property>
+                    <property name="xalign">0.5</property>
+                    <property name="input_purpose">digits</property>
+                    <property name="orientation">vertical</property>
+                    <property name="numeric">True</property>
+                    <property name="wrap">True</property>
+                    <signal name="output" handler="format_minutes_combobox" object="CcDateTimePanel" swapped="no"/>
+                    <signal name="value-changed" handler="change_time" object="CcDateTimePanel" swapped="yes"/>
+                    <child internal-child="accessible">
+                      <object class="AtkObject" id="m_spinbutton-atkobject">
+                        <property name="AtkObject::accessible-description" translatable="yes">Minute</property>
+                      </object>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="left_attach">2</property>
+                    <property name="top_attach">0</property>
+                    <property name="width">1</property>
+                    <property name="height">1</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkAlignment" id="am_pm_alignment">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="xscale">0</property>
+                    <property name="yscale">0</property>
+                    <property name="left_padding">6</property>
+                    <property name="right_padding">6</property>
+                    <child>
+                      <object class="GtkButton" id="am_pm_button">
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="receives_default">True</property>
+                        <signal name="clicked" handler="am_pm_button_clicked" object="CcDateTimePanel" swapped="no"/>
+                        <style>
+                          <class name="gnome-control-center-ampm-toggle-button"/>
+                        </style>
+                        <child>
+                          <object class="GtkStack" id="am_pm_stack">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <signal name="notify::visible-child" handler="am_pm_stack_visible_child_changed_cb" object="CcDateTimePanel" swapped="yes"/>
+                            <child>
+                              <placeholder/>
+                            </child>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="left_attach">3</property>
+                    <property name="top_attach">0</property>
+                    <property name="width">1</property>
+                    <property name="height">1</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">1</property>
+          </packing>
+        </child>
+      </object>
+    </child>
+  </object>
+  <object class="GtkDialog" id="timezone_dialog">
+    <property name="can_focus">False</property>
+    <property name="title" translatable="yes">Time Zone</property>
+    <property name="resizable">False</property>
+    <property name="type_hint">dialog</property>
+    <property name="use_header_bar">1</property>
+    <signal name="delete-event" handler="gtk_widget_hide_on_delete"/>
+    <child internal-child="headerbar">
+      <object class="GtkHeaderBar" id="dialog_header_bar">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="show_close_button">True</property>
+        <child type="title">
+            <object class="GtkSearchEntry" id="timezone_searchentry">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="halign">center</property>
+                <property name="margin_start">5</property>
+                <property name="margin_end">5</property>
+                <property name="width_chars">40</property>
+                <property name="primary_icon_name">edit-find-symbolic</property>
+                <property name="primary_icon_activatable">False</property>
+                <property name="primary_icon_sensitive">False</property>
+                <property name="placeholder_text" translatable="yes">Search for a city</property>
+            </object>
+        </child>
+      </object>
+    </child>
+    <child internal-child="vbox">
+      <object class="GtkBox" id="dialog_vbox7">
+        <property name="can_focus">False</property>
+        <property name="orientation">vertical</property>
+        <property name="spacing">2</property>
+        <child>
+          <object class="GtkFrame" id="aspectmap">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <property name="margin_start">5</property>
+            <property name="margin_end">5</property>
+            <property name="margin_top">5</property>
+            <property name="margin_bottom">5</property>
+            <property name="label_xalign">0</property>
+            <child>
+              <placeholder/>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">2</property>
+          </packing>
+        </child>
+      </object>
+    </child>
+  </object>
+  <template class="CcDateTimePanel" parent="CcPanel">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <child>
+      <object class="GtkScrolledWindow">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="hscrollbar-policy">never</property>
+        <child>
+          <object class="HdyColumn">
+            <property name="visible">True</property>
+            <property name="maximum_width">600</property>
+            <property name="linear_growth_width">400</property>
+            <property name="margin_top">32</property>
+            <property name="margin_bottom">32</property>
+            <property name="margin_start">12</property>
+            <property name="margin_end">12</property>
+
+            <child>
+              <object class="GtkBox">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="orientation">vertical</property>
+                <property name="spacing">32</property>
+                <child>
+                  <object class="GtkFrame" id="frame">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="label_xalign">0</property>
+                    <property name="shadow_type">in</property>
+                    <child>
+                      <object class="GtkListBox" id="listbox1">
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="selection_mode">none</property>
+                        <signal name="row-activated" handler="list_box_row_activated" object="CcDateTimePanel" swapped="no"/>
+                        <signal name="keynav-failed" handler="keynav_failed" object="CcDateTimePanel" swapped="no"/>
+                        <child>
+                          <object class="HdyActionRow" id="auto_datetime_row">
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <property name="title" translatable="yes">Automatic _Date &amp; Time</property>
+                            <property name="subtitle" translatable="yes">Requires internet access</property>
+                            <property name="use_underline">True</property>
+                            <child type="action">
+                              <object class="GtkSwitch" id="network_time_switch">
+                                <property name="visible">True</property>
+                                <property name="can_focus">True</property>
+                                <property name="valign">center</property>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">1</property>
+                              </packing>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="HdyActionRow" id="auto_timezone_row">
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <property name="title" translatable="yes">Automatic Time _Zone</property>
+                            <property name="subtitle" translatable="yes">Requires location services enabled and internet access</property>
+                            <property name="use_underline">True</property>
+                            <child type="action">
+                              <object class="GtkSwitch" id="auto_timezone_switch">
+                                <property name="visible">True</property>
+                                <property name="can_focus">True</property>
+                                <property name="valign">center</property>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="HdyActionRow" id="datetime_button">
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <property name="title" translatable="yes">Date &amp; _Time</property>
+                            <property name="use_underline">True</property>
+                            <child type="action">
+                              <object class="GtkLabel" id="datetime_label">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="xalign">0</property>
+                                <property name="label">20 June 2012, 6:45 AM</property>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="HdyActionRow" id="timezone_button">
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <property name="title" translatable="yes">Time Z_one</property>
+                            <property name="use_underline">True</property>
+                            <child type="action">
+                              <object class="GtkLabel" id="timezone_label">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="ellipsize">end</property>
+                                <property name="xalign">0</property>
+                                <property name="label">GMT+1 (London, United Kingdom)</property>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkFrame" id="timeformat_frame">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="label_xalign">0</property>
+                    <property name="shadow_type">in</property>
+                    <child>
+                      <object class="GtkListBox" id="listbox2">
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="selection_mode">none</property>
+                        <signal name="row-activated" handler="list_box_row_activated" object="CcDateTimePanel" swapped="no"/>
+                        <signal name="keynav-failed" handler="keynav_failed" object="CcDateTimePanel" swapped="no"/>
+                        <child>
+                          <object class="HdyActionRow" id="timeformat_row">
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <property name="title" translatable="yes">Time _Format</property>
+                            <property name="use_underline">True</property>
+                            <child type="action">
+                              <object class="GtkComboBoxText" id="format_combobox">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="valign">center</property>
+                                <signal name="notify::active-id" handler="change_clock_settings" object="CcDateTimePanel" swapped="no"/>
+                                <items>
+                                  <item id="24h" translatable="yes">24-hour</item>
+                                  <item id="12h" translatable="yes">AM / PM</item>
+                                </items>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+              </object>
+            </child>
+      </object>
+    </child>
+      </object>
+    </child>
+  </template>
+</interface>
+

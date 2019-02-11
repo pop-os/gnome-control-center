@@ -1,0 +1,544 @@
+libhandy (0.0.7) experimental; urgency=medium
+
+  [ Adrien Plazas ]
+  * glade: Add row widgets to the widget classes.  They are missing and don't
+    appear in Glade.
+  * glade: Add that HdySearchBar. It's in libhandy since 0.0.6
+  * action-row: Handle show_all()
+    This avoids an empty image, an empty subtitle and an empty prefixes box
+    to be visible when calling show_all(), as they are handled by the row
+    itself.
+  * action-row: Add the Since annotation to properties
+  * example: Make the row with no action non-activatable
+  * tests: Init libhandy.
+    This ensures we run the test the same way applications are expected to
+    run libhandy.
+  * docs: Add section for new symbols in 0.0.7
+  * action-row: Add the activatable-widget property.
+    This allows to bind the activation of the row by a click or a mnemonic
+    to the activation of a widget.
+  * action-row: Chain up the parent dispose method
+  * combo-row: Release the model on dispose.
+    This avoids errors when trying to disconnect signals on finalization.
+  * combo-box: Rename selected_position to selecxted_index.
+    This will better match the name for its accessors which will be added in
+    the next commit.
+  * combo-row: Add the selected-index property.
+    This allows to access the selected item.
+  * main: Explicitely load the resources in hdy_init()
+    This is mandatory to use resources of a static version of libhandy, and
+    is hence mandatory to allow to build libhandy as a static library.
+  * meson: Bump Meson to 0.47.0.
+    This is required to use the feature option type in the next commit.
+  * meson: Make introspection and the Glade catalog features.
+    This avoids having to disable them when their dependencies aren't
+    available and it will allow to disable them properly when libhandy will
+    be allowed to be built as a static library in the next commit.
+  * meson: Allow to build as a static library.
+    This also disables the Glade catalog as it doesn't work with a static
+    libhandy.
+  * action-row: Drop pointers to internals on destruction.
+    This avoids crashes when trying to access pointers to already dropped
+    widgets.
+    Fixes https://source.puri.sm/Librem5/libhandy/issues/69
+  * expander-row: Drop pointers to internals on destruction.
+    This avoids crashes when trying to access pointers to already dropped
+    widgets.
+    Fixes https://source.puri.sm/Librem5/libhandy/issues/69
+  * examples: Make the Dialog section look nicer.
+    This improves the spacing, adds and icon and adds a description to the
+    Dialog section.
+  * dialog: Close when pressing the back button.
+    Close the dialog instead of destroying it when clicking the back button.
+    This is the same behavior as when pressing escape or clicking the close
+    button and allows the dialog to be reused as some applications like to
+    do.
+    Fixes https://source.puri.sm/Librem5/libhandy/issues/70
+
+  [ louib ]
+  * Add GNOME Contacts as example
+
+  [ Guido Günther ]
+  * HdyComboRow: Don't use g_autoptr for GEnumClass
+    g_autoptr for GEnumClass was added post 2.56, so using it makes it
+    harder for people to package for distros. Not using g_autoptr there
+    doesn't make the code much less readable.
+  * HdyDialer: Don't use class method slot for 'delete'
+    We used the one of 'submit' so far due to a c'n'p error. (Closes: #67)
+  * HdyComboRow: hdy_combo_row_get_model: Add missing scope annotation
+  * gitlab-ci: Build static library.
+    The library build is sufficiently different that we want to run the
+    build and tests.
+  * Release libhandy 0.0.7
+
+  [ David Cordero ]
+  * Update documentation regarding build dependencies
+
+  [ Zander Brown ]
+  * Implement HdyDialog, an adaptive GtkDialog
+    https://source.puri.sm/Librem5/libhandy/issues/52
+  * example: Add to example application.
+    Silly simple demo of HdyDialog.
+
+  [ Benjamin Berg ]
+  * combo-row: Rework selected-index property setting and notification.
+    The notify::selected-index signal was not selected in most cases. Rework
+    the selection handling to ensure that it is always emited when it changes
+    or if the module is replaced.
+    Also fixed are a few checks on whether the selection index is valid.
+
+ -- Guido Günther <agx@sigxcpu.org>  Fri, 18 Jan 2019 14:38:30 +0100
+
+libhandy (0.0.6) experimental; urgency=medium
+
+  [ Adrien Plazas ]
+  * Set relevant ATK roles.
+    This will help the widgets to be more accessible.
+  * doc: Rephrase the unstability ack section.
+    Rephrase the documentation explaining how to include libhandy in a way
+    that could include other languages such as Vala.
+  * doc: Document the unstability ack for Vala
+  * Guard header inclusions with #pragma once.
+    This standardizes the header inclusion guards to #pragma once, which
+    shouldn't be a problem as we already were using it in some files.
+  * hacking: Document header inclusion guard preferences
+  * example: Disable more libhandy options in Flatpak.
+    Disable generation of the GObject Introspection files, the VAPI and the
+    tests in the example Flatpak as they are not used by it.
+  * arrow: Use a measure() method.
+    This will simplify porting to GTK+ 4.
+  * column: Use a measure() method.
+    This will simplify porting to GTK+ 4.
+  * dialer-button: Use a measure() method.
+    This will simplify porting to GTK+ 4.
+  * leaflet: Use a measure() method.
+    This will simplify porting to GTK+ 4.
+  * init: Make the arguments optional.
+    Annotate the arguments of hdy_init() with (optional) to specify that NULL
+    arguments are valid. This also replaces the deprecated (allow-none) by
+    (nullable) to specify that the array pointed at by argv can be NULL.
+  * init: Document that libhandy can't be reinitialized
+  * Normalize and document private header guards
+  * Add HdySearchBar.
+    This is similar to GtkSearchBar except it allows the central widget
+    (typically a GtkEntry) to fill all the available space. This is needed to
+    manage an entry's width via a HdyColumn, letting the entry (and by
+    extention the search bar) have a limited maximum width while allowing it to
+    shrink to accomodate smaller windows.
+  * example: Add the 'Search bar' page.
+    This adds a demo of HdySearchBar.
+  * example: Put the content in a scrolled window.
+    This ensures the example can fit windows of any height.  This also makes
+    the stack containing the content non vertically homogeneous so the
+    scrollbar appears only on examples needing it, while keeping it
+    horizontally homogeneous for to keep when the leaflets will be folded
+    consistent.
+  * build: Set the shared object install directory.
+    This is required for Meson subprojects to work as intended.
+  * build: Do not install hdy-public-types.c.
+    There is no point in installing this generated C file.
+  * leaflet: Allow editing the children list when looping through it.
+    This avoids potential crashes when destroying a leaflet and this avoids
+    leaks as not all children where looped through as the children list was
+    edited while being looped through when destroying the leaflet.  This fixes
+    https://source.puri.sm/Librem5/libhandy/issues/42.
+  * Add hdy_list_box_separator_header()
+    This list box header update function is commonly used by many applications
+    and is going to be used by HdyComboRow which is going to be added to
+    libhandy later.This makes it available for everyone.
+  * examples: Use hdy_list_box_separator_header()
+    This makes the code simpler.
+  * Add HdyActionRow.
+    This implements a very commonly used list box row pattern and make it
+    convenient to use. It is going to be used as the base class for many
+    other commonly used row types.
+  * examples: Use HdyRow.
+    This makes the code simpler and demoes the widget.
+  * Add HdyExpanderRow
+  * Add HdyEnumValueObject.
+    This will be used in the next commit to use enumeration values in a
+    GListModel.
+  * Add HdyComboRow
+  * examples: Add the Lists page.
+    This page presents GtkListBox related widgets like HdyRow and its
+    descendants.
+  * examples: Put the scrolled window in the end pane size group.
+    This fixes the fold synchronization of the leaflets in the example
+    application's window.
+
+  [ Guido Günther ]
+  * hdy-enums: Make build reproducible.
+    Use @basename@ instead of @filename@ since the later uses the full
+    path which varies across builds.
+  * HACKING: Clarify braces in if-else.
+    Document common practice in the other files.
+  * spec: Sort dependencies
+  * spec: Build-depend on libgladeui-2.0
+  * gitlab-ci: Deduplicate tags
+  * gitlab-ci: Build on Fedora as well.
+    This gives us more confidence that we build succesfully and without
+    warnings on an OS much used by GNOME developers.  It also makes sure we
+    validate the spec file.
+  * gitlab-ci: Switch to clang-tools
+    clang-3.9 does not contain scan-build anymore.
+  * HdyHeaderGroup: Cleanup references to header bars in dispose.
+    The dispose heandler is meant to break refs to other objects, not
+    finalize.
+  * HdyHeaderGroup: Disconnect from header bar's signals during dispose.  The
+    header bars might still emit signals which leads to CRITICALS or actual
+    crashes. Fixes parts of #56
+  * docs: Add section for new symbols in 0.0.6
+  * Annotate APIs new in 0.0.6
+  * Release libhandy 0.0.6
+
+  [ Alexander Mikhaylenko ]
+  * init: Add (transfer none) to argv parameter.
+    This allows to call the function from Vala more easily.
+  * header-group: Ref itself instead of header bars.
+    When adding a header bar, ref the header group and connect to 'destroy'
+    signal of the header bar. When a header bar is destroyed or
+    hdy_header_group_remove_header_bar() is called, unref the header bar and
+    remove it from the list.
+    This way, a non-empty header group is only destroyed after every header
+    bar it contains has been removed from the group or destroyed.
+    Fixes #56
+  * Revert "HdyHeaderGroup: Disconnect from header bar's signals during
+    dispose"
+    Since commit c5bf27d44022bdfa94b3f560aac8c22115e06363 header bars are
+    destroyed before header group, so when destroying the header group, the
+    list of header bars is always empty, so there's nothing to unref anymore.
+    Reverts commit 14e5fc7b923440a99c3a62635cf895e73c5a49cd.
+
+  [ tallero ]
+  * build: Don't use -fstack-protector-strong on mingw64.
+    This unbreaks compilation on that platform. (Closes: #64)
+
+ -- Guido Günther <agx@sigxcpu.org>  Mon, 17 Dec 2018 16:26:19 +0100
+
+libhandy (0.0.5) experimental; urgency=medium
+
+  [ Guido Günther ]
+  * Release libhandy 0.0.5
+  * meson: Properly depend on the generated headers.
+    This fixes dependency problems with the generated headers such as
+        https://arm01.puri.sm/job/debs/job/deb-libhandy-buster-armhf/263/console
+    See
+        http://mesonbuild.com/Wrap-best-practices-and-tips.html#eclare-generated-headers-explicitly
+  * debian: Make sure we create a strict shlibs file libhandy's ABI changes a
+    lot so make sure we generate dependencies that always require the upstream
+    version built against.
+  * debian: Mark buil-deps for tests as <!nocheck>
+  * gitlab-ci: Deduplicate before_script
+  * gitlab-ci: Build with clang (scan-build) as well.
+    We currently don't fail on warnings:
+        https://github.com/mesonbuild/meson/issues/4334
+  * HdyLeaflet: Remove unused initializations spotted by clang
+  * doc: Add that virtual methods carry the class prefix (Closes: #53)
+  * docs: Add libhandy users.  This allows to find in uses examples easily.
+  * docs: Mention meson as well.  Fewer and fewer GNOME projects use
+    autotools.
+  * docs: Drop package_ver_str from include path.  We add this in the
+    pkg-config file so no need to specify it again.
+  * Add i18n infrastructure
+  * Add hdy_init() This initializes i18n. (Closes: #36)
+  * meson: Depend on glib that supports g_auto*. Related to #33
+  * HACKING: document using g_auto* is o.k. (Closes: #33)
+  * HACKING: Use syntax highlighting.
+  * Drop Jenkinsfile.  We run in gitlab-ci now
+  * build: Detect if ld supports a version script.  This is e.g. not the case
+    for Clang on OSX. (Closes: #58)
+
+  [ Jeremy Bicha ]
+  * debian: Have libhandy-0.0-dev depend on libgtk-3-dev (Closes: #910384)
+  * debian: Use dh --with gir so that gir1.2-handy gets its dependencies set
+    correctly
+  * debian: Simplify debian/rules.
+
+  [ Adrien Plazas ]
+  * example: Drop Glade support in flatpak build.
+  * main: Init public GObject types in hdy_init() This will avoid our users to
+    manually ensure libhandy widget types are loaded before using them in
+    GtkBuilder templates.
+    Fixes https://source.puri.sm/Librem5/libhandy/issues/20
+  * dialer: Descend from GtkBin directly.
+    Makes HdyDialer descend from GtkBin directly rather than from
+    GtkEventBox. GtkEventBox will be dropped in GTK+ 4 and brings no
+    functionality to HdyDialer.
+  * example: Rename margin-left/right to margin-start/end.
+    Left and right margin names are not RTL friendly and will be dropped in
+    GTK+ 4.
+  * HACKING.md: Rename margin-left to margin-start.
+    Left and right margin names are not RTL friendly and will be dropped in
+    GTK+ 4.
+  * titlebar: Fix a mention of HdyLeaflet in the docs
+  * example: Do not access event fields.
+    This is needed to port to GTK+ 4 as these fields will be private.
+  * dialer: Do not access event fields.
+    This is needed to port to GTK+ 4 as these fields will be private.
+
+  [ Alexander Mikhaylenko ]
+  * example: Remove styles present in GTK+ 3.24.1.
+    Libhandy requires `gtk+-3.0 >= 3.24.1` anyway, so these styles aren't
+    necessary, and also break upstream `.devel` style.
+
+  [ Jan Tojnar ]
+  * Use pkg-config for obtaining glade catalogdir
+
+ -- Guido Günther <agx@sigxcpu.org>  Wed, 07 Nov 2018 11:17:14 +0100
+
+libhandy (0.0.4) experimental; urgency=medium
+
+  [ Mohammed Sadiq ]
+  * dialer-button: Fix emitting signal.
+    As the properties where set to not explicitly fire ::notify, no
+    signals where emitted. Let it be not explicit so that
+    the signal will be emitted on change
+  * ci: Enable code coverage.
+    GitLab pages isn't supported now. So simply store the artifacts.
+  * README: Add build and coverage status images
+  * dialer: Handle delete button long press.
+    Make the delete button clear the whole user input on long press
+
+  [ Alexander Mikhaylenko ]
+  * example: Remove sidebar border less aggressively.
+    Applying the style to every element inside 'stacksidebar' also removes
+    border from unrelated elements such as scrollbars. Hence only remove it
+    from lists.
+
+  [ Adrien Plazas ]
+  * leaflet: Add the folded property.
+    This is a boolean equivalent of the fold property, it is a needed
+    convenience as is can be used in GtkBuilder declarations while the fold
+    property is more convenient to use from C as it enables stronger typing.
+  * example: Bind back and close buttons visibility to fold.
+    Directly bind whether the back button and the close button are visible
+    to whether the headerbar is folded.
+  * Add HdyHeaderGroup
+  * example: Use a HdyHeaderGroup.
+    This automatically updates the headerbars' window decoration layout.
+  * dialer-button: Replace digit and letters by symbols.
+    Unify the digit and the letters of a dialer button as its symbols. This
+    allows to make the code simpler by limiting the number of special cases.
+    digit. This also handles Unicode characters.
+  * dialer-cycle-button: Don't make the secondary label dim.
+    This helps making it clear that these symbols are available, contrary to
+    the dim ones from a regular dialer button.
+  * dialer-button: Make the secondary label smaller.
+    Makes the secondary text smaller to better match the mockups for Calls.
+  * Add CSS names to the widgets
+  * leaflet: Document the fold and folded properties
+  * dialer: Set buttons checked instead setting relief.
+    When digit keys are pressed, check the buttons state to checked rather
+    than changing the relief.
+  * dialer: Add the relief property.
+    This allows to set the relief of the dialer buttons.
+  * header-group: Drop forgotten log.
+    This was accidentally left in.
+    Fixes https://source.puri.sm/Librem5/libhandy/issues/47
+  * example: Let the Column panel reach narrower widths.
+    Readjust the column widget's margins and ellipsize its labels to let it
+    reach narrower widths.
+  * example: Separate the listbox items
+  * example: Let the Dialer panel reach narrower widths.
+    Put the dialer into a column rather than forcing its width to let it
+    reach narrower widths.
+  * example: Enlarge the dialer label.
+    This makes the dialed number more readable.
+  * example: Let the Welcome panel reach narrower widths.
+    Let the welcome panel's labels wrap to let it reach narrower widths.
+  * header-group: Sanitize the decoration layout.
+    Checks whether the decoration layout is NULL, empty or has at least one
+    colon.
+    Fixes https://source.puri.sm/Librem5/libhandy/issues/44
+  * header-group: Better handle references of header bars.
+    Take a reference when adding a header bar, release them on destruction
+    and don't take extra references on the focused child. This avoids using
+    pointers to dead header bars or to leak them.
+  * header-group: Fix the type of the focus property.
+    This also fixes the types of the accessor functions.
+    Fixes https://source.puri.sm/Librem5/libhandy/issues/46
+  * header-group: Fix the docs of the focus property.
+    This also improves the documentation of its accessor functions.
+  * header-group: Guard the focused header bar setter.
+    Better guard the focused header bar setter by checking that the set
+    header bar actually is one and is part of the group.
+  * meson: Require GTK+ 3.24.1 or newer.
+    GTK+ 3.24.1 received style fixes required for HdyTitleBar to work as
+    expected.
+
+  [ Felix Pojtinger ]
+  * docs: Format README to enable syntax highlighting.
+    This also adds code fences and blanks around headers.
+
+  [ Guido Günther ]
+  * Depend on generated headers.
+    If tests or examples are built early we want that hdy-enums.h is alread
+    there.
+  * docs: Add HdyFold.
+    This makes sure it can be linked to by HdyLeaflet.
+  * HdyLealflet: Use glib-mkenums.
+    This makes the enums clickable in the HdyLeaflet documentation
+    and makes the code smaller.
+  * HdyFold: Use glib-mkenums.
+    This makes the enums clickable in the HdyLeaflet documentation,
+    HdyFold usable in GtkBuild and makes the code smaller.
+  * HdyHeaderGroup: Document hdy_group_set_focus()
+    This makes newer newer Gir scanner happy (and is a good thing anyway).
+  * debian: Update shared library symbols
+  * d/rules: Set a proper locale for the tests.
+  * Check the debian package build during CI as well.
+    This make sure we notice build breackage before it hits Jenkins to build
+    the official debs.
+  * ci: Fail on gtkdoc warnings.
+    Gitlab seems to get confused by the '!' expression so use if instead.
+  * tests: Test hdy_header_group_{get,set}_focus
+  * HdyDialer: Apply 'keypad' style class.
+    This applies the 'keypad' style class to both the keypad itself and its
+    buttons. This allows to style the buttons and the keypad in the
+    application.
+  * glade: Verify catalog data via xmllint
+  * debian: Add dependenies for running xmllint.
+    This also makes sure we have it available during CI
+  * HdyHeaderGroup: Allow to get and remove the headerbars
+  * debian: Add new symbols
+  * glade: Add a module so we can handle HdyHeaderGroup
+  * run: Add glade lib to LD_LIBRARY_PATH.
+    This makes it simple to test the built version.
+  * Move glade catalog from data/ to glade/
+    Given that there will be more complex widgets lets keep the catalog
+    and module together.
+  * glade: Use a custom DTD.
+    Glades DTD is not up to date. Use a custom copy until this is fixed
+    upstream:
+        https://gitlab.gnome.org/GNOME/glade/merge_requests/11
+    We do this as a separate commit so we can revert it once upstream glade is
+    fixed.
+  * glade: Support HdyHeaderGroup (Closes: #38)
+  * debian: Ship glade module
+
+ -- Guido Günther <agx@sigxcpu.org>  Fri, 05 Oct 2018 18:32:42 +0200
+
+libhandy (0.0.3) experimental; urgency=medium
+
+  [ Adrien Plazas ]
+  * New HdyTitleBar widget. This coupled with a transparent headerbar
+    background can work around graphical glitches when animation header bars
+    in a leaflet.
+  * column: Add the linear-growth-width property
+  * glade: Fix the generic name of HdyArrows
+  * flatpak: Switch the runtime of the example to master.
+  * column: Add a missing break statement.
+  * leaflet: Hide children on transition end only when folded.
+  * leaflet: Init mode transition positions to the final values.
+  * example: Always show a close button.
+  * example: Load custom style from CSS resource
+  * example: Draw the right color for sidebar separators.
+  * example: Use separators to separate the panels.
+  * leaflet: Start the child transition only when folded.
+
+  [ Christopher Davis ]
+  * Add HdyColumn to libhandy.xml for glade.
+
+  [ Heather Ellsworth ]
+  * Add issue template
+
+  [ Jordan Petridis ]
+  * leaflet: initialize a variable.
+
+  [ Guido Günther ]
+  * HdyButton: Chain up to parent on finalize
+  * gitlab-ci: Fail on compile warnings
+  * meson: Warn about possible uninitialized variables
+  * HdyLeaflet: Fix two uninitialized variables
+  * Update list of compiler warnings from phosh
+    and fix the fallout.
+
+ -- Guido Günther <agx@sigxcpu.org>  Wed, 12 Sep 2018 12:03:54 +0200
+
+libhandy (0.0.2) experimental; urgency=medium
+
+  [ Guido Günther ]
+  * Use source.puri.sm instead of code.puri.sm.
+  * Add AUTHORS file
+  * gitlab-ci: Build on Debian buster using provided build-deps.
+  * arrows: test object construction
+  * Multiple gtk-doc fixes
+  * docs: Abort on warnings.
+  * DialerButton: free letters
+
+  [ Adrien Plazas ]
+  * dialer: Make the grid visible and forbid show all.
+  * example: Drop usage of show_all()
+  * dialer: Add column-spacing and row-spacing props.
+  * example: Change the grid's spacing and minimum size request.
+  * flatpak: Allow access to the dconf config dir.
+  * Replace phone-dial-symbolic by call-start-symbolic.
+  * column: Fix height for width request.
+
+ -- Guido Günther <agx@sigxcpu.org>  Wed, 18 Jul 2018 13:12:10 +0200
+
+libhandy (0.0.1) experimental; urgency=medium
+
+  [ Guido Günther ]
+  * Release 0.0.1
+
+  [ Adrien Plazas ]
+  * Add HdyColumn widget
+
+ -- Guido Günther <agx@sigxcpu.org>  Sat, 09 Jun 2018 09:12:06 +0200
+
+libhandy (0.0~git20180517) unstable; urgency=medium
+
+  * Add an arrows widget.
+    The widget prints a number of arrows one by one to indicate a sliding
+    direction. Number of arrows and animation duration are configurable.
+  * Add symbols file
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 17 May 2018 15:51:01 +0200
+
+libhandy (0.0~git20180429) unstable; urgency=medium
+
+  [ Guido Günther ]
+  * New git snapshot
+  * HdyDialer: Emit symbol-clicked signal.  This signal is emitted when a
+    symbol button (numbers or '#' or '*') is clicked.
+  * HdyDialer: Emit signal when delete button was clicked.
+  * dialer: Make it simple to clear the stored number.
+    This also makes sure we don't send multiple number changed events
+    when nothing changed.
+  * dialer: Delay number notify.  On button press send out the number changed
+    signal at the very end so listeners can process the button event prior to
+    the number update event.
+
+  [ Adrien Plazas ]
+  * leaflet: Refactor homogeneity.
+    This makes factorizes the homogeneity functions of HdyLeaflet to make
+    the code a bit shorter.
+  * build: Add '--c-include=handy.h' GIR options back.
+    This is necessary for introspection to know the header file to use.
+  * dialer: Check params of the 'number' prop accessors.
+    Sanitize the parameters of the 'number' property accessor. This will
+    warn or misusages of the API at runtime and avoid potential crashes.
+  * dialer: Style cleanup of the 'number' prop accessors.
+    Use gchar instead of char, use GNOME style pointer spacing and name the
+    number parameter 'number'. This is all cosmetic but will make the code
+    look a bit more GNOME-like.
+  * example: Drop hardcoded default window size.
+    This avoid overridding with the one we set in the the .ui file of the
+    window.
+  * example: Move window title to .ui file.
+    This avoid hardcoding values when we can put them in the UI description.
+  * example-window: Make the default size more phone-like
+
+  [ Bob Ham ]
+  * dialer: Add "show-action-buttons" property.
+    Add a new boolean "show-action-buttons" property that specifies
+    whether the submit and delete buttons are displayed.
+
+ -- Guido Günther <agx@sigxcpu.org>  Sun, 29 Apr 2018 12:01:58 +0200
+
+libhandy (0.0~git20180402) unstable; urgency=medium
+
+  * Initial release
+
+ -- Guido Günther <agx@sigxcpu.org>  Mon, 02 Apr 2018 12:17:44 +0200

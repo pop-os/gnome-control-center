@@ -40,8 +40,6 @@
 #include <gtk/gtk.h>
 #include <gio/gio.h>
 
-#define CC_PANEL_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), CC_TYPE_PANEL, CcPanelPrivate))
-
 typedef struct
 {
   gchar    *id;
@@ -57,6 +55,12 @@ G_DEFINE_ABSTRACT_TYPE_WITH_PRIVATE (CcPanel, cc_panel, GTK_TYPE_BIN)
 
 enum
 {
+  SIDEBAR_ACTIVATED,
+  LAST_SIGNAL
+};
+
+enum
+{
   PROP_0,
   PROP_SHELL,
   PROP_PARAMETERS,
@@ -64,6 +68,8 @@ enum
 };
 
 static GParamSpec *properties [N_PROPS];
+
+static guint signals [LAST_SIGNAL] = { 0 };
 
 static void
 cc_panel_set_property (GObject      *object,
@@ -146,70 +152,20 @@ cc_panel_finalize (GObject *object)
 }
 
 static void
-cc_panel_get_preferred_width (GtkWidget *widget,
-                              gint      *minimum,
-                              gint      *natural)
-{
-  GtkBin *bin = GTK_BIN (widget);
-  GtkWidget *child;
-
-  if (minimum != NULL)
-    *minimum = 0;
-
-  if (natural != NULL)
-    *natural = 0;
-
-  if ((child = gtk_bin_get_child (bin)))
-    gtk_widget_get_preferred_width (child, minimum, natural);
-}
-
-static void
-cc_panel_get_preferred_height (GtkWidget *widget,
-                               gint      *minimum,
-                               gint      *natural)
-{
-  GtkBin *bin = GTK_BIN (widget);
-  GtkWidget *child;
-
-  if (minimum != NULL)
-    *minimum = 0;
-
-  if (natural != NULL)
-    *natural = 0;
-
-  if ((child = gtk_bin_get_child (bin)))
-    gtk_widget_get_preferred_height (child, minimum, natural);
-}
-
-static void
-cc_panel_size_allocate (GtkWidget     *widget,
-                        GtkAllocation *allocation)
-{
-  GtkAllocation child_allocation;
-  GtkWidget *child;
-
-  gtk_widget_set_allocation (widget, allocation);
-
-  child_allocation = *allocation;
-
-  child = gtk_bin_get_child (GTK_BIN (widget));
-  g_assert (child);
-  gtk_widget_size_allocate (child, &child_allocation);
-}
-
-static void
 cc_panel_class_init (CcPanelClass *klass)
 {
   GObjectClass *object_class = G_OBJECT_CLASS (klass);
-  GtkWidgetClass *widget_class = GTK_WIDGET_CLASS (klass);
 
   object_class->get_property = cc_panel_get_property;
   object_class->set_property = cc_panel_set_property;
   object_class->finalize = cc_panel_finalize;
 
-  widget_class->get_preferred_width = cc_panel_get_preferred_width;
-  widget_class->get_preferred_height = cc_panel_get_preferred_height;
-  widget_class->size_allocate = cc_panel_size_allocate;
+  signals[SIDEBAR_ACTIVATED] = g_signal_new ("sidebar-activated",
+                                             G_TYPE_FROM_CLASS (object_class),
+                                             G_SIGNAL_RUN_LAST,
+                                             0, NULL, NULL,
+                                             g_cclosure_marshal_VOID__VOID,
+                                             G_TYPE_NONE, 0);
 
   properties[PROP_SHELL] = g_param_spec_object ("shell",
                                                 "Shell",
@@ -252,18 +208,7 @@ cc_panel_get_shell (CcPanel *panel)
   return priv->shell;
 }
 
-GPermission *
-cc_panel_get_permission (CcPanel *panel)
-{
-  CcPanelClass *class = CC_PANEL_GET_CLASS (panel);
-
-  if (class->get_permission)
-    return class->get_permission (panel);
-
-  return NULL;
-}
-
-const char *
+const gchar*
 cc_panel_get_help_uri (CcPanel *panel)
 {
   CcPanelClass *class = CC_PANEL_GET_CLASS (panel);
@@ -281,6 +226,24 @@ cc_panel_get_title_widget (CcPanel *panel)
 
   if (class->get_title_widget)
     return class->get_title_widget (panel);
+
+  return NULL;
+}
+
+GtkWidget*
+cc_panel_get_sidebar_widget (CcPanel *panel)
+{
+  CcPanelClass *class = CC_PANEL_GET_CLASS (panel);
+
+  if (class->get_sidebar_widget)
+    {
+      GtkWidget *sidebar_widget;
+
+      sidebar_widget = class->get_sidebar_widget (panel);
+      g_assert (sidebar_widget != NULL);
+
+      return sidebar_widget;
+    }
 
   return NULL;
 }

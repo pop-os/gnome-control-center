@@ -34,10 +34,20 @@ get_pwq (void)
 
         if (settings == NULL) {
                 gchar *err = NULL;
+                gint rv = 0;
+
                 settings = pwquality_default_settings ();
                 pwquality_set_int_value (settings, PWQ_SETTING_MAX_SEQUENCE, 4);
-                if (pwquality_read_config (settings, NULL, (gpointer)&err) < 0) {
-                        g_error ("failed to read pwquality configuration: %s\n", err);
+
+                rv = pwquality_read_config (settings, NULL, (gpointer)&err);
+                if (rv < 0) {
+                        g_warning ("failed to read pwquality configuration: %s\n",
+                                   pwquality_strerror (NULL, 0, rv, err));
+                        pwquality_free_settings (settings);
+
+                        /* Load just default settings in case of failure. */
+                        settings = pwquality_default_settings ();
+                        pwquality_set_int_value (settings, PWQ_SETTING_MAX_SEQUENCE, 4);
                 }
         }
 
@@ -48,9 +58,12 @@ gint
 pw_min_length (void)
 {
         gint value = 0;
+        gint rv;
 
-        if (pwquality_get_int_value (get_pwq (), PWQ_SETTING_MIN_LENGTH, &value) < 0) {
-                g_error ("Failed to read pwquality setting\n" );
+        rv = pwquality_get_int_value (get_pwq (), PWQ_SETTING_MIN_LENGTH, &value);
+        if (rv < 0) {
+                g_warning ("Failed to read pwquality setting: %s\n",
+                           pwquality_strerror (NULL, 0, rv, NULL));
         }
 
         return value;
@@ -65,8 +78,8 @@ pw_generate (void)
         rv = pwquality_generate (get_pwq (), 0, &res);
 
         if (rv < 0) {
-                g_error ("Password generation failed: %s\n",
-                         pwquality_strerror (NULL, 0, rv, NULL));
+                g_warning ("Password generation failed: %s\n",
+                           pwquality_strerror (NULL, 0, rv, NULL));
                 return NULL;
         }
 
