@@ -439,7 +439,9 @@ search_panel_add_one_app_info (CcSearchPanel *self,
   gtk_widget_set_valign (self->list_box, GTK_ALIGN_FILL);
 
   row = gtk_list_box_row_new ();
+  gtk_widget_show (row);
   box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 10);
+  gtk_widget_show (box);
   gtk_container_add (GTK_CONTAINER (row), box);
   gtk_widget_set_hexpand (box, TRUE);
   gtk_container_set_border_width (GTK_CONTAINER (box), 10);
@@ -455,14 +457,19 @@ search_panel_add_one_app_info (CcSearchPanel *self,
     g_object_ref (icon);
 
   w = gtk_image_new_from_gicon (icon, GTK_ICON_SIZE_DND);
+  gtk_widget_show (w);
   gtk_icon_size_lookup (GTK_ICON_SIZE_DND, &width, &height);
   gtk_image_set_pixel_size (GTK_IMAGE (w), MAX (width, height));
   gtk_container_add (GTK_CONTAINER (box), w);
 
   w = gtk_label_new (g_app_info_get_name (app_info));
+  gtk_widget_show (w);
+  gtk_label_set_ellipsize (GTK_LABEL (w), PANGO_ELLIPSIZE_END);
+  gtk_label_set_xalign (GTK_LABEL (w), 0.0f);
   gtk_container_add (GTK_CONTAINER (box), w);
 
   w = gtk_switch_new ();
+  gtk_widget_show (w);
   gtk_widget_set_valign (w, GTK_ALIGN_CENTER);
   gtk_box_pack_end (GTK_BOX (box), w, FALSE, FALSE, 0);
 
@@ -484,8 +491,6 @@ search_panel_add_one_app_info (CcSearchPanel *self,
                                     switch_settings_mapping_set_default_disabled,
                                     row, NULL);
     }
-
-  gtk_widget_show_all (row);
 }
 
 static void
@@ -693,8 +698,10 @@ cc_search_panel_constructed (GObject *object)
 
   /* add the disable all switch */
   box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 6);
+  gtk_widget_show (box);
 
   widget = gtk_switch_new ();
+  gtk_widget_show (widget);
   gtk_widget_set_valign (widget, GTK_ALIGN_CENTER);
   gtk_box_pack_start (GTK_BOX (box), widget, FALSE, FALSE, 4);
 
@@ -708,7 +715,6 @@ cc_search_panel_constructed (GObject *object)
                           G_BINDING_DEFAULT |
                           G_BINDING_SYNC_CREATE);
 
-  gtk_widget_show_all (box);
   cc_shell_embed_widget_in_header (cc_panel_get_shell (CC_PANEL (self)), box);
 }
 
@@ -762,7 +768,7 @@ cc_search_panel_class_init (CcSearchPanelClass *klass)
   oclass->finalize = cc_search_panel_finalize;
 
   gtk_widget_class_set_template_from_resource (widget_class,
-                                               "/org/gnome/control-center/search/search.ui");
+                                               "/org/gnome/control-center/search/cc-search-panel.ui");
 
   gtk_widget_class_bind_template_child (widget_class, CcSearchPanel, up_button);
   gtk_widget_class_bind_template_child (widget_class, CcSearchPanel, down_button);

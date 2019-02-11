@@ -19,8 +19,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef __NET_VPN_H
-#define __NET_VPN_H
+#pragma once
 
 #include <glib-object.h>
 #include <NetworkManager.h>
@@ -29,33 +28,10 @@
 
 G_BEGIN_DECLS
 
-#define NET_TYPE_VPN          (net_vpn_get_type ())
-#define NET_VPN(o)            (G_TYPE_CHECK_INSTANCE_CAST ((o), NET_TYPE_VPN, NetVpn))
-#define NET_VPN_CLASS(k)      (G_TYPE_CHECK_CLASS_CAST((k), NET_TYPE_VPN, NetVpnClass))
-#define NET_IS_VPN(o)         (G_TYPE_CHECK_INSTANCE_TYPE ((o), NET_TYPE_VPN))
-#define NET_IS_VPN_CLASS(k)   (G_TYPE_CHECK_CLASS_TYPE ((k), NET_TYPE_VPN))
-#define NET_VPN_GET_CLASS(o)  (G_TYPE_INSTANCE_GET_CLASS ((o), NET_TYPE_VPN, NetVpnClass))
+#define NET_TYPE_VPN (net_vpn_get_type ())
+G_DECLARE_FINAL_TYPE (NetVpn, net_vpn, NET, VPN, NetObject)
 
-typedef struct _NetVpnPrivate         NetVpnPrivate;
-typedef struct _NetVpn                NetVpn;
-typedef struct _NetVpnClass           NetVpnClass;
-
-struct _NetVpn
-{
-         NetObject               parent;
-         NetVpnPrivate          *priv;
-};
-
-struct _NetVpnClass
-{
-        NetObjectClass               parent_class;
-};
-
-GType            net_vpn_get_type               (void);
 void             net_vpn_set_show_separator     (NetVpn   *self,
                                                  gboolean  show_separator);
 
 G_END_DECLS
-
-#endif /* __NET_VPN_H */
-

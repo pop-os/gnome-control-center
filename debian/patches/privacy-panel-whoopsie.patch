@@ -1,0 +1,438 @@
+From: James Henstridge <james@jamesh.id.au>
+Date: Thu, 14 Sep 2017 10:58:16 +0800
+Subject: [PATCH] panels/privacy: add Whoopsie support to privacy panel
+
+---
+ meson.build                        |   9 ++
+ meson_options.txt                  |   3 +-
+ panels/privacy/cc-privacy-panel.c  | 205 ++++++++++++++++++++++++++++++++++---
+ panels/privacy/cc-privacy-panel.ui |  86 +++++++++++++++-
+ panels/privacy/meson.build         |   4 +
+ 5 files changed, 290 insertions(+), 17 deletions(-)
+
+diff --git a/meson.build b/meson.build
+index bc8e208..b356315 100644
+--- a/meson.build
++++ b/meson.build
+@@ -199,6 +199,14 @@ config_h.set10('HAVE_FN_EXPLICIT_BZERO',
+                cc.has_function('explicit_bzero', prefix: '''#include <string.h>'''),
+                description: 'Define if explicit_bzero is available')
+ 
++# Whoopsie (Ubuntu error reporting service)
++enable_whoopsie = get_option('whoopsie')
++if enable_whoopsie
++  whoopsie_dep = dependency('libwhoopsie-preferences')
++endif
++config_h.set('HAVE_WHOOPSIE', enable_whoopsie,
++             description: 'Define to 1 if Whoopsie is enabled')
++
+ if host_is_linux
+   # network manager
+   network_manager_deps = [
+@@ -294,5 +302,6 @@ output += '     IBus (Region panel IBus support) ........... ' + enable_ibus.to_
+ output += '     NetworkManager (Network panel) ............. ' + host_is_linux.to_string() + '\n'
+ output += '     Wacom (Wacom tablet panel) ................. ' + host_is_linux_not_s390.to_string() + '\n'
+ output += '     Wayland .................................... ' + enable_wayland.to_string() + '\n'
++output += '     Whoopsie  .................................. ' + enable_whoopsie.to_string() + '\n'
+ 
+ message(output)
+diff --git a/meson_options.txt b/meson_options.txt
+index a347168..ce462a7 100644
+--- a/meson_options.txt
++++ b/meson_options.txt
+@@ -3,4 +3,5 @@ option('documentation', type: 'boolean', value: false, description: 'build docum
+ option('gnome_session_libexecdir', type: 'string', value: '', description: 'Directory for gnome-session\'s libexecdir')
+ option('ibus', type: 'boolean', value: true, description: 'build with IBus support')
+ option('tracing', type: 'boolean', value: false, description: 'add extra debugging information')
+-option('wayland', type: 'boolean', value: true, description: 'build with Wayland support')
+\ No newline at end of file
++option('wayland', type: 'boolean', value: true, description: 'build with Wayland support')
++option('whoopsie', type: 'boolean', value: false, description: 'build with Whoopsie support')
+diff --git a/panels/privacy/cc-privacy-panel.c b/panels/privacy/cc-privacy-panel.c
+index 6f48ac9..163a65e 100644
+--- a/panels/privacy/cc-privacy-panel.c
++++ b/panels/privacy/cc-privacy-panel.c
+@@ -33,6 +33,12 @@
+ typedef struct _NMClient NMClient;
+ #endif
+ 
++#ifdef HAVE_WHOOPSIE
++#  include <whoopsie-preferences/libwhoopsie-preferences.h>
++#else
++typedef struct _WhoopsiePreferences WhoopsiePreferences;
++#endif
++
+ #define REMEMBER_RECENT_FILES "remember-recent-files"
+ #define RECENT_FILES_MAX_AGE "recent-files-max-age"
+ #define REMOVE_OLD_TRASH_FILES "remove-old-trash-files"
+@@ -93,9 +99,17 @@ struct _CcPrivacyPanel
+   GSettings  *notification_settings;
+   GSettings  *location_settings;
+ 
++  GtkWidget     *abrt_grid;
++  GtkLabel      *abrt_status;
+   GtkListBoxRow *abrt_row;
+   guint          abrt_watch_id;
+ 
++  WhoopsiePreferences *whoopsie;
++  GtkWidget           *whoopsie_error_report_switch;
++  GtkWidget           *whoopsie_error_autoreport_radio;
++  GtkWidget           *whoopsie_error_manualreport_radio;
++  GtkWidget           *whoopsie_grid;
++
+   GtkListBoxRow *connectivity_row;
+   GtkDialog     *connectivity_dialog;
+   GtkSwitch     *connectivity_switch;
+@@ -1268,24 +1282,130 @@ abrt_vanished_cb (GDBusConnection *connection,
+   gtk_widget_hide (GTK_WIDGET (self->abrt_row));
+ }
+ 
++#ifdef HAVE_WHOOPSIE
++static void
++whoopsie_properties_changed (WhoopsiePreferences *whoopsie,
++                             GVariant            *changed_properties,
++                             const char *const   *invalidated_properties,
++                             gpointer             user_data)
++{
++  CcPrivacyPanel *self = user_data;
++  gboolean report_crashes = whoopsie_preferences_get_report_crashes (whoopsie);
++  gboolean automatically_report = whoopsie_preferences_get_automatically_report_crashes (whoopsie);
++
++  if (report_crashes)
++    {
++      gtk_label_set_label (self->abrt_status,
++                          automatically_report ? _("Automatic") : _("Manual"));
++      gtk_widget_set_sensitive (self->whoopsie_error_autoreport_radio, TRUE);
++      gtk_widget_set_sensitive (self->whoopsie_error_manualreport_radio, TRUE);
++    } else {
++      gtk_label_set_text (self->abrt_status, _("Never"));
++      gtk_widget_set_sensitive (self->whoopsie_error_autoreport_radio, FALSE);
++      gtk_widget_set_sensitive (self->whoopsie_error_manualreport_radio, FALSE);
++    }
++
++  gtk_switch_set_state (GTK_SWITCH (self->whoopsie_error_report_switch), report_crashes);
++  if (automatically_report)
++    {
++      gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (self->whoopsie_error_autoreport_radio), TRUE);
++    } else {
++      gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (self->whoopsie_error_manualreport_radio), TRUE);
++    }
++}
++
++static void
++whoopsie_set_report_crashes_done (GObject *source_object,
++                                  GAsyncResult *res,
++                                  gpointer user_data)
++{
++  WhoopsiePreferences *whoopsie = WHOOPSIE_PREFERENCES (source_object);
++  GError *error = NULL;
++
++  if (!whoopsie_preferences_call_set_report_crashes_finish (whoopsie,
++                                                           res, &error))
++    {
++      g_warning ("Failed to toggle crash reporting: %s", error->message);
++      g_error_free (error);
++    }
++}
++
++static gboolean
++whoopsie_error_report_switch_state_set (GtkSwitch  *sw G_GNUC_UNUSED,
++                                        gboolean    state,
++                                        gpointer    user_data)
++{
++  CcPrivacyPanel *self = user_data;
++  gboolean old_report_crashes;
++
++  old_report_crashes = whoopsie_preferences_get_report_crashes (self->whoopsie);
++  if (state != old_report_crashes)
++    {
++      whoopsie_preferences_call_set_report_crashes (self->whoopsie,
++                                                    state, NULL,
++                                                    whoopsie_set_report_crashes_done,
++                                                    NULL);
++    }
++
++  return FALSE;
++}
++
++static void
++whoopsie_set_report_crashes_mode_done (GObject *source_object,
++                                       GAsyncResult *res,
++                                       gpointer user_data)
++{
++  WhoopsiePreferences *whoopsie = WHOOPSIE_PREFERENCES (source_object);
++  GError *error = NULL;
++
++  if (!whoopsie_preferences_call_set_automatically_report_crashes_finish (whoopsie,
++                                                                          res, &error))
++    {
++      g_warning ("Failed to toggle crash reporting mode: %s", error->message);
++      g_error_free (error);
++    }
++}
++
++static gboolean
++whoopsie_error_autoreport_mode_toggle_cb (GtkToggleButton *button,
++                                          gpointer  user_data)
++{
++  CcPrivacyPanel *self = user_data;
++  gboolean automatically_report;
++  gboolean old_report_mode;
++
++  automatically_report = gtk_toggle_button_get_active (button);
++
++  old_report_mode = whoopsie_preferences_get_automatically_report_crashes (self->whoopsie);
++  if (automatically_report != old_report_mode )
++    {
++      whoopsie_preferences_call_set_automatically_report_crashes (self->whoopsie,
++                                                    automatically_report, NULL,
++                                                    whoopsie_set_report_crashes_mode_done,
++                                                    NULL);
++    }
++
++  return FALSE;
++}
++#endif
++
+ static void
+ add_abrt (CcPrivacyPanel *self)
+ {
+-  GtkWidget *w;
+   char *os_name, *url, *msg;
++  GError *error = NULL;
+ 
+-  w = get_abrt_label (self->privacy_settings, REPORT_TECHNICAL_PROBLEMS);
+-  gtk_widget_show (w);
+-  self->abrt_row = add_row (self, _("Problem Reporting"), self->abrt_dialog, GTK_WIDGET (w));
++  self->abrt_status = GTK_LABEL (gtk_label_new (""));
++  gtk_widget_show (GTK_WIDGET (self->abrt_status));
++  self->abrt_row = add_row (self,
++                            _("Problem Reporting"),
++                            self->abrt_dialog,
++                            GTK_WIDGET (self->abrt_status));
+   gtk_widget_hide (GTK_WIDGET (self->abrt_row));
+ 
+   g_signal_connect (self->abrt_dialog, "delete-event",
+                     G_CALLBACK (gtk_widget_hide_on_delete), NULL);
+ 
+-  g_settings_bind (self->privacy_settings, REPORT_TECHNICAL_PROBLEMS,
+-                   self->abrt_switch, "active",
+-                   G_SETTINGS_BIND_DEFAULT);
+-
+   os_name = get_os_name ();
+   /* translators: '%s' is the distributor's name, such as 'Fedora' */
+   msg = g_strdup_printf (_("Sending reports of technical problems helps us improve %s. Reports are sent anonymously and are scrubbed of personal data."),
+@@ -1305,13 +1425,61 @@ add_abrt (CcPrivacyPanel *self)
+   gtk_label_set_markup (self->abrt_policy_link_label, msg);
+   g_free (msg);
+ 
+-  self->abrt_watch_id = g_bus_watch_name (G_BUS_TYPE_SYSTEM,
+-                                                "org.freedesktop.problems.daemon",
+-                                                G_BUS_NAME_WATCHER_FLAGS_NONE,
+-                                                abrt_appeared_cb,
+-                                                abrt_vanished_cb,
+-                                                self,
+-                                                NULL);
++#ifdef HAVE_WHOOPSIE
++  /* check for whoopsie */
++  self->whoopsie = whoopsie_preferences_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
++                                                                G_DBUS_PROXY_FLAGS_NONE,
++                                                                "com.ubuntu.WhoopsiePreferences",
++                                                                "/com/ubuntu/WhoopsiePreferences",
++                                                                NULL, &error);
++
++  if (self->whoopsie)
++    {
++      g_debug ("Whoopsie available");
++
++      gtk_widget_set_visible (self->whoopsie_grid, TRUE);
++      gtk_widget_set_visible (self->abrt_grid, FALSE);
++
++      g_signal_connect (self->whoopsie, "g-properties-changed",
++                        G_CALLBACK (whoopsie_properties_changed), self);
++      whoopsie_properties_changed (self->whoopsie, NULL, NULL, self);
++
++      g_signal_connect (self->whoopsie_error_report_switch, "state-set",
++                        G_CALLBACK (whoopsie_error_report_switch_state_set), self);
++      g_signal_connect (self->whoopsie_error_autoreport_radio, "toggled",
++                        G_CALLBACK (whoopsie_error_autoreport_mode_toggle_cb), self);
++
++      gtk_widget_show (GTK_WIDGET (self->abrt_row));
++    }
++  else
++#endif
++    {
++      if (error)
++        {
++          g_debug ("Whoopsie unavailable: %s", error->message);
++          g_error_free (error);
++        }
++
++      g_settings_bind_with_mapping (self->privacy_settings,
++                                    REPORT_TECHNICAL_PROBLEMS,
++                                    GTK_WIDGET (self->abrt_status), "label",
++                                    G_SETTINGS_BIND_GET,
++                                    abrt_label_mapping_get,
++                                    NULL,
++                                    NULL,
++                                    NULL);
++      g_settings_bind (self->privacy_settings, REPORT_TECHNICAL_PROBLEMS,
++                       self->abrt_switch, "active",
++                       G_SETTINGS_BIND_DEFAULT);
++
++      self->abrt_watch_id = g_bus_watch_name (G_BUS_TYPE_SYSTEM,
++                                                    "org.freedesktop.problems.daemon",
++                                                    G_BUS_NAME_WATCHER_FLAGS_NONE,
++                                                    abrt_appeared_cb,
++                                                    abrt_vanished_cb,
++                                                    self,
++                                                    NULL);
++    }
+ }
+ 
+ #if defined(BUILD_NETWORK)
+@@ -1400,6 +1568,7 @@ cc_privacy_panel_finalize (GObject *object)
+   g_clear_object (&self->cancellable);
+   g_clear_object (&self->perm_store);
+   g_clear_object (&self->location_icon_size_group);
++  g_clear_object (&self->whoopsie);
+   g_clear_pointer (&self->location_apps_perms, g_variant_unref);
+   g_clear_pointer (&self->location_apps_data, g_variant_unref);
+   g_clear_pointer (&self->location_app_switches, g_hash_table_unref);
+@@ -1485,6 +1654,7 @@ cc_privacy_panel_class_init (CcPrivacyPanelClass *klass)
+   gtk_widget_class_set_template_from_resource (widget_class, "/org/gnome/control-center/privacy/cc-privacy-panel.ui");
+ 
+   gtk_widget_class_bind_template_child (widget_class, CcPrivacyPanel, abrt_dialog);
++  gtk_widget_class_bind_template_child (widget_class, CcPrivacyPanel, abrt_grid);
+   gtk_widget_class_bind_template_child (widget_class, CcPrivacyPanel, abrt_explanation_label);
+   gtk_widget_class_bind_template_child (widget_class, CcPrivacyPanel, abrt_policy_link_label);
+   gtk_widget_class_bind_template_child (widget_class, CcPrivacyPanel, abrt_switch);
+@@ -1520,4 +1690,9 @@ cc_privacy_panel_class_init (CcPrivacyPanelClass *klass)
+   gtk_widget_class_bind_template_child (widget_class, CcPrivacyPanel, software_dialog);
+   gtk_widget_class_bind_template_child (widget_class, CcPrivacyPanel, software_usage_switch);
+   gtk_widget_class_bind_template_child (widget_class, CcPrivacyPanel, trash_dialog);
++  gtk_widget_class_bind_template_child (widget_class, CcPrivacyPanel, trash_dialog);
++  gtk_widget_class_bind_template_child (widget_class, CcPrivacyPanel, whoopsie_error_report_switch);
++  gtk_widget_class_bind_template_child (widget_class, CcPrivacyPanel, whoopsie_error_autoreport_radio);
++  gtk_widget_class_bind_template_child (widget_class, CcPrivacyPanel, whoopsie_error_manualreport_radio);
++  gtk_widget_class_bind_template_child (widget_class, CcPrivacyPanel, whoopsie_grid);
+ }
+diff --git a/panels/privacy/cc-privacy-panel.ui b/panels/privacy/cc-privacy-panel.ui
+index e5be774..f555416 100644
+--- a/panels/privacy/cc-privacy-panel.ui
++++ b/panels/privacy/cc-privacy-panel.ui
+@@ -1249,7 +1249,7 @@ All the information we collect is made anonymous, and we will never share your d
+           </packing>
+         </child>
+         <child>
+-          <object class="GtkGrid">
++          <object class="GtkGrid" id="abrt_grid">
+             <property name="visible">True</property>
+             <property name="can_focus">False</property>
+             <property name="margin_start">12</property>
+@@ -1296,6 +1296,90 @@ All the information we collect is made anonymous, and we will never share your d
+             <property name="position">2</property>
+           </packing>
+         </child>
++        <child>
++          <object class="GtkGrid" id="whoopsie_grid">
++            <property name="visible">False</property>
++            <property name="can_focus">False</property>
++            <property name="margin_start">12</property>
++            <property name="margin_end">6</property>
++            <property name="margin_top">12</property>
++            <property name="margin_bottom">12</property>
++            <property name="row_spacing">12</property>
++            <property name="column_spacing">6</property>
++            <child>
++              <object class="GtkLabel" id="whoopsie_error_report_label">
++                <property name="visible">True</property>
++                <property name="can_focus">False</property>
++                <property name="hexpand">True</property>
++                <property name="xalign">0</property>
++                <property name="label" translatable="yes">Send error reports to Canonical</property>
++                <property name="use_underline">True</property>
++                <property name="mnemonic_widget">whoopsie_error_report_switch</property>
++              </object>
++              <packing>
++                <property name="left_attach">0</property>
++                <property name="top_attach">0</property>
++                <property name="width">1</property>
++                <property name="height">1</property>
++              </packing>
++            </child>
++            <child>
++              <object class="GtkSwitch" id="whoopsie_error_report_switch">
++                <property name="visible">True</property>
++                <property name="can_focus">True</property>
++                <property name="halign">end</property>
++              </object>
++              <packing>
++                <property name="left_attach">1</property>
++                <property name="top_attach">0</property>
++                <property name="width">1</property>
++                <property name="height">1</property>
++              </packing>
++            </child>
++            <child>
++              <object class="GtkRadioButton" id="whoopsie_error_autoreport_radio">
++                <property name="label" translatable="yes">Send reports automatically</property>
++                <property name="visible">True</property>
++                <property name="can_focus">True</property>
++                <property name="receives_default">False</property>
++                <property name="xalign">0</property>
++                <property name="active">True</property>
++                <property name="draw_indicator">True</property>
++                <property name="use_underline">True</property>
++              </object>
++              <packing>
++                <property name="left_attach">0</property>
++                <property name="top_attach">1</property>
++                <property name="width">2</property>
++                <property name="height">1</property>
++              </packing>
++            </child>
++            <child>
++              <object class="GtkRadioButton" id="whoopsie_error_manualreport_radio">
++                <property name="label" translatable="yes">Show a dialog for each error before reporting</property>
++                <property name="visible">True</property>
++                <property name="can_focus">True</property>
++                <property name="receives_default">False</property>
++                <property name="xalign">0</property>
++                <property name="active">True</property>
++                <property name="draw_indicator">True</property>
++                <property name="group">whoopsie_error_autoreport_radio</property>
++                <property name="use_underline">True</property>
++              </object>
++              <packing>
++                <property name="left_attach">0</property>
++                <property name="top_attach">2</property>
++                <property name="width">2</property>
++                <property name="height">1</property>
++              </packing>
++            </child>
++          </object>
++          <packing>
++            <property name="expand">False</property>
++            <property name="fill">True</property>
++            <property name="position">2</property>
++          </packing>
++        </child>
+       </object>
+     </child>
+   </object>
+diff --git a/panels/privacy/meson.build b/panels/privacy/meson.build
+index 121e0f5..ab96244 100644
+--- a/panels/privacy/meson.build
++++ b/panels/privacy/meson.build
+@@ -34,6 +34,10 @@ if host_is_linux
+   deps += network_manager_deps
+ endif
+ 
++if enable_whoopsie
++  deps += whoopsie_dep
++endif
++
+ cflags += '-DGNOMELOCALEDIR="@0@"'.format(control_center_localedir)
+ 
+ panels_libs += static_library(

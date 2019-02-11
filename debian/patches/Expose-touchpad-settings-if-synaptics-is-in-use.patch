@@ -16,14 +16,14 @@ This patch requires a companion patch in mutter which GNOME has rejected.
 https://gitlab.gnome.org/GNOME/mutter/merge_requests/37
 ---
  panels/mouse/cc-mouse-caps-helper.c   |  7 +++++++
- panels/mouse/gnome-mouse-properties.c | 18 ++++++++----------
- 2 files changed, 15 insertions(+), 10 deletions(-)
+ panels/mouse/gnome-mouse-properties.c | 16 +++++++++-------
+ 2 files changed, 16 insertions(+), 7 deletions(-)
 
 diff --git a/panels/mouse/cc-mouse-caps-helper.c b/panels/mouse/cc-mouse-caps-helper.c
-index acbe9c9..108fde2 100644
+index 69546b2..39534b9 100644
 --- a/panels/mouse/cc-mouse-caps-helper.c
 +++ b/panels/mouse/cc-mouse-caps-helper.c
-@@ -37,6 +37,13 @@ touchpad_check_capabilities_x11 (gboolean *have_two_finger_scrolling,
+@@ -38,6 +38,13 @@ touchpad_check_capabilities_x11 (gboolean *have_two_finger_scrolling,
  	unsigned long nitems, bytes_after;
  	unsigned char *data;
  
@@ -34,14 +34,14 @@ index acbe9c9..108fde2 100644
 +		return TRUE;
 +	}
 +
+         gdisplay = gdk_display_get_default ();
          display = GDK_DISPLAY_XDISPLAY (gdk_display_get_default ());
  	prop_scroll_methods = XInternAtom (display, "libinput Scroll Methods Available", False);
- 	prop_tapping_enabled = XInternAtom (display, "libinput Tapping Enabled", False);
 diff --git a/panels/mouse/gnome-mouse-properties.c b/panels/mouse/gnome-mouse-properties.c
-index 5af1293..3005125 100644
+index 102778f..6e42518 100644
 --- a/panels/mouse/gnome-mouse-properties.c
 +++ b/panels/mouse/gnome-mouse-properties.c
-@@ -78,7 +78,6 @@ struct _CcMouseProperties
+@@ -79,7 +79,6 @@ struct _CcMouseProperties
  	gboolean have_mouse;
  	gboolean have_touchpad;
  	gboolean have_touchscreen;
@@ -49,18 +49,16 @@ index 5af1293..3005125 100644
  
  	gboolean left_handed;
  	GtkGesture *left_gesture;
-@@ -98,10 +97,6 @@ setup_touchpad_options (CcMouseProperties *self)
+@@ -99,7 +98,7 @@ setup_touchpad_options (CcMouseProperties *self)
  	gboolean have_edge_scrolling;
  	gboolean have_tap_to_click;
  
--	gtk_widget_set_visible (self->touchpad_frame, !self->have_synaptics);
--	if (self->have_synaptics)
--		return;
--
- 	gtk_widget_set_visible (self->touchpad_frame, self->have_touchpad);
- 	if (!self->have_touchpad)
+-	if (self->have_synaptics || !self->have_touchpad) {
++	if (!self->have_touchpad) {
+ 		gtk_widget_hide (self->touchpad_frame);
  		return;
-@@ -312,7 +307,10 @@ device_changed (GsdDeviceManager *device_manager,
+ 	}
+@@ -332,7 +331,10 @@ device_changed (GsdDeviceManager *device_manager,
  		GsdDevice *device,
  		CcMouseProperties *self)
  {
@@ -72,7 +70,7 @@ index 5af1293..3005125 100644
  
  	setup_touchpad_options (self);
  
-@@ -412,11 +410,11 @@ cc_mouse_properties_init (CcMouseProperties *self)
+@@ -436,11 +438,11 @@ cc_mouse_properties_init (CcMouseProperties *self)
  						 G_CALLBACK (device_changed), self);
  
  	self->have_mouse = mouse_is_present ();

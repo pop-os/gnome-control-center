@@ -33,8 +33,6 @@
 #include "gvc-mixer-stream-private.h"
 #include "gvc-channel-map-private.h"
 
-#define GVC_MIXER_STREAM_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), GVC_TYPE_MIXER_STREAM, GvcMixerStreamPrivate))
-
 static guint32 stream_serial = 1;
 
 struct GvcMixerStreamPrivate
@@ -86,7 +84,7 @@ enum
 
 static void     gvc_mixer_stream_finalize   (GObject            *object);
 
-G_DEFINE_ABSTRACT_TYPE (GvcMixerStream, gvc_mixer_stream, G_TYPE_OBJECT)
+G_DEFINE_ABSTRACT_TYPE_WITH_PRIVATE (GvcMixerStream, gvc_mixer_stream, G_TYPE_OBJECT)
 
 static void
 free_port (GvcMixerStreamPort *p)
@@ -993,13 +991,12 @@ gvc_mixer_stream_class_init (GvcMixerStreamClass *klass)
                                                              "The index of the card for this stream",
                                                              PA_INVALID_INDEX, G_MAXLONG, PA_INVALID_INDEX,
                                                              G_PARAM_READWRITE|G_PARAM_CONSTRUCT));
-        g_type_class_add_private (klass, sizeof (GvcMixerStreamPrivate));
 }
 
 static void
 gvc_mixer_stream_init (GvcMixerStream *stream)
 {
-        stream->priv = GVC_MIXER_STREAM_GET_PRIVATE (stream);
+        stream->priv = gvc_mixer_stream_get_instance_private (stream);
 }
 
 static void
@@ -1041,8 +1038,7 @@ gvc_mixer_stream_finalize (GObject *object)
         g_free (mixer_stream->priv->human_port);
         mixer_stream->priv->human_port = NULL;
 
-        g_list_foreach (mixer_stream->priv->ports, (GFunc) free_port, NULL);
-        g_list_free (mixer_stream->priv->ports);
+        g_list_free_full (mixer_stream->priv->ports, (GDestroyNotify) free_port);
         mixer_stream->priv->ports = NULL;
 
        if (mixer_stream->priv->change_volume_op) {

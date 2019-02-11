@@ -23,8 +23,6 @@
 #include "gvc-mixer-ui-device.h"
 #include "gvc-mixer-card.h"
 
-#define GVC_MIXER_UI_DEVICE_GET_PRIVATE(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GVC_TYPE_MIXER_UI_DEVICE, GvcMixerUIDevicePrivate))
-
 struct GvcMixerUIDevicePrivate
 {
         gchar                      *first_line_desc;
@@ -64,7 +62,7 @@ static void     gvc_mixer_ui_device_finalize   (GObject               *object);
 static void     gvc_mixer_ui_device_set_icon_name (GvcMixerUIDevice *device,
                                                    const char       *icon_name);
 
-G_DEFINE_TYPE (GvcMixerUIDevice, gvc_mixer_ui_device, G_TYPE_OBJECT);
+G_DEFINE_TYPE_WITH_PRIVATE (GvcMixerUIDevice, gvc_mixer_ui_device, G_TYPE_OBJECT)
 
 static guint32
 get_next_output_serial (void)
@@ -131,29 +129,29 @@ gvc_mixer_ui_device_set_property  (GObject      *object,
         case PROP_DESC_LINE_1:
                 g_free (self->priv->first_line_desc);
                 self->priv->first_line_desc = g_value_dup_string (value);
-                g_debug ("gvc-mixer-output-set-property - 1st line: %s\n",
+                g_debug ("gvc-mixer-output-set-property - 1st line: %s",
                          self->priv->first_line_desc);
                 break;
         case PROP_DESC_LINE_2:
                 g_free (self->priv->second_line_desc);
                 self->priv->second_line_desc = g_value_dup_string (value);
-                g_debug ("gvc-mixer-output-set-property - 2nd line: %s\n",
+                g_debug ("gvc-mixer-output-set-property - 2nd line: %s",
                          self->priv->second_line_desc);
                 break;
         case PROP_CARD:
                 self->priv->card = g_value_get_pointer (value);
-                g_debug ("gvc-mixer-output-set-property - card: %p\n",
+                g_debug ("gvc-mixer-output-set-property - card: %p",
                          self->priv->card);
                 break;
         case PROP_PORT_NAME:
                 g_free (self->priv->port_name);
                 self->priv->port_name = g_value_dup_string (value);
-                g_debug ("gvc-mixer-output-set-property - card port name: %s\n",
+                g_debug ("gvc-mixer-output-set-property - card port name: %s",
                          self->priv->port_name);
                 break;
         case PROP_STREAM_ID:
                 self->priv->stream_id = g_value_get_uint (value);
-                g_debug ("gvc-mixer-output-set-property - sink/source id: %i\n",
+                g_debug ("gvc-mixer-output-set-property - sink/source id: %i",
                          self->priv->stream_id);
                 break;
         case PROP_UI_DEVICE_TYPE:
@@ -161,7 +159,7 @@ gvc_mixer_ui_device_set_property  (GObject      *object,
                 break;
         case PROP_PORT_AVAILABLE:
                 self->priv->port_available = g_value_get_boolean (value);
-                g_debug ("gvc-mixer-output-set-property - port available %i, value passed in %i \n",
+                g_debug ("gvc-mixer-output-set-property - port available %i, value passed in %i",
                          self->priv->port_available, g_value_get_boolean (value));
                 break;
         case PROP_ICON_NAME:
@@ -192,7 +190,7 @@ gvc_mixer_ui_device_constructor (GType                  type,
 static void
 gvc_mixer_ui_device_init (GvcMixerUIDevice *device)
 {
-        device->priv = GVC_MIXER_UI_DEVICE_GET_PRIVATE (device);
+        device->priv = gvc_mixer_ui_device_get_instance_private (device);
 }
 
 static void
@@ -290,8 +288,6 @@ gvc_mixer_ui_device_class_init (GvcMixerUIDeviceClass *klass)
                                      NULL,
                                      G_PARAM_READWRITE|G_PARAM_CONSTRUCT);
         g_object_class_install_property (object_class, PROP_ICON_NAME, pspec);
-
-        g_type_class_add_private (klass, sizeof (GvcMixerUIDevicePrivate));
 }
 
 /* Removes the part of the string that starts with skip_prefix

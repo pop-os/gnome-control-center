@@ -70,7 +70,8 @@ cc_display_mode_dbus_equal (const CcDisplayModeDBus *m1,
 
   return m1->width == m2->width &&
     m1->height == m2->height &&
-    m1->refresh_rate == m2->refresh_rate;
+    m1->refresh_rate == m2->refresh_rate &&
+    (m1->flags & MODE_INTERLACED) == (m2->flags & MODE_INTERLACED);
 }
 
 static void
@@ -1047,6 +1048,9 @@ cc_display_config_dbus_equal (CcDisplayConfig *pself,
   CcDisplayConfigDBus *self = CC_DISPLAY_CONFIG_DBUS (pself);
   CcDisplayConfigDBus *other = CC_DISPLAY_CONFIG_DBUS (pother);
   GList *l;
+
+  cc_display_config_dbus_ensure_non_offset_coords (self);
+  cc_display_config_dbus_ensure_non_offset_coords (other);
 
   for (l = self->monitors; l != NULL; l = l->next)
     {

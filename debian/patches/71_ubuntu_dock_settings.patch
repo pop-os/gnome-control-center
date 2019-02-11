@@ -20,8 +20,7 @@ Forwarded: not-needed
  po/POTFILES.in                                 |   3 +
  shell/cc-panel-list.c                          |   1 +
  shell/cc-panel-loader.c                        |   2 +
- shell/cc-window.ui                             |   2 +-
- 11 files changed, 651 insertions(+), 1 deletion(-)
+ 10 files changed, 650 insertions(+)
  create mode 100644 panels/ubuntu/cc-ubuntu-panel.c
  create mode 100644 panels/ubuntu/cc-ubuntu-panel.h
  create mode 100644 panels/ubuntu/gnome-ubuntu-panel.desktop.in.in
@@ -30,10 +29,10 @@ Forwarded: not-needed
  create mode 100644 panels/ubuntu/ubuntu.ui
 
 diff --git a/panels/meson.build b/panels/meson.build
-index 37a3436..5df8d14 100644
+index 95a44bb..e88f11b 100644
 --- a/panels/meson.build
 +++ b/panels/meson.build
-@@ -17,6 +17,7 @@ panels = [
+@@ -18,6 +18,7 @@ panels = [
    'search',
    'sharing',
    'sound',
@@ -721,10 +720,10 @@ index 0000000..d00c838
 +  </object>
 +</interface>
 diff --git a/po/POTFILES.in b/po/POTFILES.in
-index 43c542b..1572f77 100644
+index 5de542c..baaf430 100644
 --- a/po/POTFILES.in
 +++ b/po/POTFILES.in
-@@ -189,6 +189,9 @@ panels/thunderbolt/cc-bolt-device-entry.c
+@@ -195,6 +195,9 @@ panels/thunderbolt/cc-bolt-device-entry.c
  panels/thunderbolt/cc-bolt-panel.c
  panels/thunderbolt/cc-bolt-panel.ui
  panels/thunderbolt/gnome-thunderbolt-panel.desktop.in.in
@@ -732,13 +731,13 @@ index 43c542b..1572f77 100644
 +panels/ubuntu/gnome-ubuntu-panel.desktop.in.in
 +panels/ubuntu/ubuntu.ui
  panels/universal-access/cc-ua-panel.c
+ panels/universal-access/cc-ua-panel.ui
  panels/universal-access/gnome-universal-access-panel.desktop.in.in
- panels/universal-access/uap.ui
 diff --git a/shell/cc-panel-list.c b/shell/cc-panel-list.c
-index 39a46b4..9790a43 100644
+index 5bdc4c8..325434b 100644
 --- a/shell/cc-panel-list.c
 +++ b/shell/cc-panel-list.c
-@@ -329,6 +329,7 @@ static const gchar * const panel_order[] = {
+@@ -380,6 +380,7 @@ static const gchar * const panel_order[] = {
    "mobile-broadband",
    "bluetooth",
    "background",
@@ -747,10 +746,10 @@ index 39a46b4..9790a43 100644
    "search",
    "region",
 diff --git a/shell/cc-panel-loader.c b/shell/cc-panel-loader.c
-index 6b5c6e3..f01a0b5 100644
+index 5eeb44e..107215a 100644
 --- a/shell/cc-panel-loader.c
 +++ b/shell/cc-panel-loader.c
-@@ -59,6 +59,7 @@ extern GType cc_sound_panel_get_type (void);
+@@ -61,6 +61,7 @@ extern GType cc_sound_panel_get_type (void);
  extern GType cc_bolt_panel_get_type (void);
  #endif /* BUILD_THUNDERBOLT */
  extern GType cc_ua_panel_get_type (void);
@@ -758,7 +757,7 @@ index 6b5c6e3..f01a0b5 100644
  extern GType cc_user_panel_get_type (void);
  #ifdef BUILD_WACOM
  extern GType cc_wacom_panel_get_type (void);
-@@ -112,6 +113,7 @@ static struct {
+@@ -110,6 +111,7 @@ static CcPanelLoaderVtable default_panels[] =
    PANEL_TYPE("search",           cc_search_panel_get_type,               NULL),
    PANEL_TYPE("sharing",          cc_sharing_panel_get_type,              NULL),
    PANEL_TYPE("sound",            cc_sound_panel_get_type,                NULL),
