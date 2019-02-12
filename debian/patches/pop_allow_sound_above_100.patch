@@ -1,13 +1,13 @@
-Index: gnome-control-center-3.30.1/panels/sound/gvc-mixer-dialog.c
+Index: gnome-control-center/panels/sound/cc-sound-panel.c
 ===================================================================
---- gnome-control-center-3.30.1.orig/panels/sound/gvc-mixer-dialog.c
-+++ gnome-control-center-3.30.1/panels/sound/gvc-mixer-dialog.c
-@@ -2034,7 +2034,7 @@ gvc_mixer_dialog_init (GvcMixerDialog *d
-         dialog->bars = g_hash_table_new (NULL, NULL);
-         dialog->size_group = gtk_size_group_new (GTK_SIZE_GROUP_HORIZONTAL);
+--- gnome-control-center.orig/panels/sound/cc-sound-panel.c
++++ gnome-control-center/panels/sound/cc-sound-panel.c
+@@ -259,7 +259,7 @@ cc_sound_panel_init (CcSoundPanel *self)
+                            G_CONNECT_SWAPPED);
+   allow_amplified_changed_cb (self);
  
--        if (strstr (g_getenv("XDG_CURRENT_DESKTOP"), "ubuntu") != NULL) {
-+        if ((strstr (g_getenv("XDG_CURRENT_DESKTOP"), "ubuntu") != NULL) || (strstr (g_getenv("XDG_CURRENT_DESKTOP"), "pop") != NULL)) {
-                 GSettingsSchema *schema;
-                 schema = g_settings_schema_source_lookup (g_settings_schema_source_get_default(),
-                                                           AMPLIFIED_SETTINGS, TRUE);
+-  if (strstr (g_getenv("XDG_CURRENT_DESKTOP"), "ubuntu") != NULL) {
++  if ((strstr (g_getenv("XDG_CURRENT_DESKTOP"), "ubuntu") != NULL) || (strstr (g_getenv("XDG_CURRENT_DESKTOP"), "pop") != NULL)) {
+     gtk_widget_set_visible(self->ubuntu_output_box, TRUE);
+     gtk_widget_set_visible(GTK_WIDGET (self->output_volume_slider), FALSE);
+     g_settings_bind (self->sound_settings, "allow-volume-above-100-percent",
