@@ -19,11 +19,11 @@ Bug-Ubuntu: https://launchpad.net/bugs/1706524
 Bug: https://bugzilla.gnome.org/show_bug.cgi?id=710424
 ---
  panels/sound/cc-sound-panel.c  | 19 +++++++++
- panels/sound/cc-sound-panel.ui | 87 ++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 106 insertions(+)
+ panels/sound/cc-sound-panel.ui | 92 ++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 111 insertions(+)
 
 diff --git a/panels/sound/cc-sound-panel.c b/panels/sound/cc-sound-panel.c
-index 0c28980..a7675d1 100644
+index 0c28980..3e65bae 100644
 --- a/panels/sound/cc-sound-panel.c
 +++ b/panels/sound/cc-sound-panel.c
 @@ -66,6 +66,9 @@ struct _CcSoundPanel
@@ -32,7 +32,7 @@ index 0c28980..a7675d1 100644
    CcVolumeSlider    *output_volume_slider;
 +  CcVolumeSlider    *output_volume_slider_ubuntu;
 +  GtkWidget         *allow_amplify_switch;
-+  GtkWidget         *ubuntu_output_box;
++  GtkWidget         *ubuntu_output_frame;
    CcStreamListBox   *stream_list_box;
    GtkListBoxRow     *subwoofer_row;
    CcSubwooferSlider *subwoofer_slider;
@@ -59,7 +59,7 @@ index 0c28980..a7675d1 100644
    gtk_widget_class_bind_template_child (widget_class, CcSoundPanel, output_volume_slider);
 +  gtk_widget_class_bind_template_child (widget_class, CcSoundPanel, output_volume_slider_ubuntu);
 +  gtk_widget_class_bind_template_child (widget_class, CcSoundPanel, allow_amplify_switch);
-+  gtk_widget_class_bind_template_child (widget_class, CcSoundPanel, ubuntu_output_box);
++  gtk_widget_class_bind_template_child (widget_class, CcSoundPanel, ubuntu_output_frame);
    gtk_widget_class_bind_template_child (widget_class, CcSoundPanel, stream_list_box);
    gtk_widget_class_bind_template_child (widget_class, CcSoundPanel, subwoofer_row);
    gtk_widget_class_bind_template_child (widget_class, CcSoundPanel, subwoofer_slider);
@@ -68,12 +68,12 @@ index 0c28980..a7675d1 100644
    allow_amplified_changed_cb (self);
  
 +  if (strstr (g_getenv("XDG_CURRENT_DESKTOP"), "ubuntu") != NULL) {
-+    gtk_widget_set_visible(self->ubuntu_output_box, TRUE);
++    gtk_widget_set_visible(self->ubuntu_output_frame, TRUE);
 +    gtk_widget_set_visible(GTK_WIDGET (self->output_volume_slider), FALSE);
 +    g_settings_bind (self->sound_settings, "allow-volume-above-100-percent",
 +                     self->allow_amplify_switch, "active", G_SETTINGS_BIND_DEFAULT);
 +  } else {
-+    gtk_widget_set_visible(self->ubuntu_output_box, FALSE);
++    gtk_widget_set_visible(self->ubuntu_output_frame, FALSE);
 +    gtk_widget_set_visible(GTK_WIDGET (self->output_volume_slider), TRUE);
 +  }
 +
@@ -81,17 +81,20 @@ index 0c28980..a7675d1 100644
    gvc_mixer_control_open (self->mixer_control);
  
 diff --git a/panels/sound/cc-sound-panel.ui b/panels/sound/cc-sound-panel.ui
-index a6ce920..b667b53 100644
+index a6ce920..be2563b 100644
 --- a/panels/sound/cc-sound-panel.ui
 +++ b/panels/sound/cc-sound-panel.ui
-@@ -38,6 +38,93 @@
+@@ -38,6 +38,98 @@
                      <property name="visible">True</property>
                    </object>
                  </child>
 +                <child>
-+                  <object class="GtkListBox" id="ubuntu_output_box">
++                  <object class="GtkFrame" id="ubuntu_output_frame">
 +                    <property name="visible">False</property>
-+                    <property name="can_focus">False</property>
++                <child>
++                  <object class="GtkListBox" id="ubuntu_output_box">
++                    <property name="visible">True</property>
++                    <property name="selection_mode">none</property>
 +                    <child>
 +                      <object class="GtkListBoxRow">
 +                        <property name="width_request">100</property>
@@ -174,6 +177,8 @@ index a6ce920..b667b53 100644
 +                      </object>
 +                    </child>
 +                  </object>
++                </child>
++                </object>
 +                </child>
                  <child>
                    <object class="GtkLabel">
