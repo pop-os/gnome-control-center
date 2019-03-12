@@ -6,7 +6,7 @@
 #include "config.h"
 #include "hdy-main-private.h"
 #include <gio/gio.h>
-#include <glib/gi18n.h>
+#include <glib/gi18n-lib.h>
 
 static gint hdy_initialized = FALSE;
 
@@ -42,7 +42,6 @@ hdy_init (int *argc, char ***argv)
   if (hdy_initialized)
     return TRUE;
 
-  textdomain (GETTEXT_PACKAGE);
   bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");
   bindtextdomain (GETTEXT_PACKAGE, LOCALEDIR);
   g_resources_register (hdy_get_resource ());

@@ -4,7 +4,8 @@
  * SPDX-License-Identifier: LGPL-2.1+
  */
 
-#include <glib/gi18n.h>
+#include "config.h"
+#include <glib/gi18n-lib.h>
 
 #include "gtkprogresstrackerprivate.h"
 #include "hdy-leaflet.h"
@@ -44,7 +45,7 @@
  * HdyLeafletChildTransitionType:
  * @HDY_LEAFLET_CHILD_TRANSITION_TYPE_NONE: No transition
  * @HDY_LEAFLET_CHILD_TRANSITION_TYPE_CROSSFADE: A cross-fade
- * @HDY_LEAFLET_CHILD_TRANSITION_TYPE_SLIDE: Slide from left, right, up or down according to orientation, text direction and order
+ * @HDY_LEAFLET_CHILD_TRANSITION_TYPE_SLIDE: Slide from left, right, up or down according to the orientation, text direction and the children order
  * @HDY_LEAFLET_CHILD_TRANSITION_TYPE_OVER: Cover the old page or uncover the new page, sliding from or towards the end according to orientation, text direction and children order
  * @HDY_LEAFLET_CHILD_TRANSITION_TYPE_UNDER: Uncover the new page or cover the old page, sliding from or towards the start according to orientation, text direction and children order
  *
@@ -118,6 +119,8 @@ typedef struct
   gboolean homogeneous[HDY_FOLD_MAX][GTK_ORIENTATION_MAX];
 
   GtkOrientation orientation;
+
+  gboolean move_bin_window_request;
 
   struct {
     HdyLeafletModeTransitionType type;
@@ -327,6 +330,39 @@ get_bin_window_y (HdyLeaflet          *self,
 }
 
 static void
+move_resize_bin_window (HdyLeaflet    *self,
+                        GtkAllocation *allocation,
+                        gboolean       resize)
+{
+  HdyLeafletPrivate *priv = hdy_leaflet_get_instance_private (self);
+  GtkAllocation alloc;
+  gboolean move;
+
+  if (priv->bin_window == NULL)
+    return;
+
+  if (allocation == NULL) {
+    gtk_widget_get_allocation (GTK_WIDGET (self), &alloc);
+    allocation = &alloc;
+  }
+
+  move = priv->move_bin_window_request || is_window_moving_child_transition (self);
+
+  if (move && resize)
+    gdk_window_move_resize (priv->bin_window,
+                            get_bin_window_x (self, allocation), get_bin_window_y (self, allocation),
+                            allocation->width, allocation->height);
+  else if (move)
+    gdk_window_move (priv->bin_window,
+                     get_bin_window_x (self, allocation), get_bin_window_y (self, allocation));
+  else if (resize)
+    gdk_window_resize (priv->bin_window,
+                       allocation->width, allocation->height);
+
+  priv->move_bin_window_request = FALSE;
+}
+
+static void
 hdy_leaflet_child_progress_updated (HdyLeaflet *self)
 {
   HdyLeafletPrivate *priv = hdy_leaflet_get_instance_private (self);
@@ -337,12 +373,7 @@ hdy_leaflet_child_progress_updated (HdyLeaflet *self)
       !priv->homogeneous[HDY_FOLD_FOLDED][GTK_ORIENTATION_HORIZONTAL])
     gtk_widget_queue_resize (GTK_WIDGET (self));
 
-  if (priv->bin_window != NULL && is_window_moving_child_transition (self)) {
-    GtkAllocation allocation;
-    gtk_widget_get_allocation (GTK_WIDGET (self), &allocation);
-    gdk_window_move (priv->bin_window,
-                     get_bin_window_x (self, &allocation), get_bin_window_y (self, &allocation));
-  }
+  move_resize_bin_window (self, NULL, FALSE);
 
   if (gtk_progress_tracker_get_state (&priv->child_transition.tracker) == GTK_PROGRESS_STATE_AFTER) {
     if (priv->child_transition.last_visible_surface != NULL) {
@@ -410,6 +441,27 @@ hdy_leaflet_unschedule_child_ticks (HdyLeaflet *self)
     priv->child_transition.tick_id = 0;
     g_object_notify_by_pspec (G_OBJECT (self), props[PROP_CHILD_TRANSITION_RUNNING]);
   }
+}
+
+static void
+hdy_leaflet_stop_child_transition (HdyLeaflet *self)
+{
+  HdyLeafletPrivate *priv = hdy_leaflet_get_instance_private (self);
+
+  hdy_leaflet_unschedule_child_ticks (self);
+  priv->child_transition.active_type = HDY_LEAFLET_CHILD_TRANSITION_TYPE_NONE;
+  gtk_progress_tracker_finish (&priv->child_transition.tracker);
+  if (priv->child_transition.last_visible_surface != NULL) {
+    cairo_surface_destroy (priv->child_transition.last_visible_surface);
+    priv->child_transition.last_visible_surface = NULL;
+  }
+  if (priv->last_visible_child != NULL) {
+    gtk_widget_set_child_visible (priv->last_visible_child->widget, FALSE);
+    priv->last_visible_child = NULL;
+  }
+
+  /* Move the bin window back in place as a child transition might have moved it. */
+  priv->move_bin_window_request = TRUE;
 }
 
 static void
@@ -679,18 +731,7 @@ hdy_leaflet_start_mode_transition (HdyLeaflet *self,
   /* FIXME PROP_REVEAL_CHILD needs to be implemented. */
   /* g_object_notify_by_pspec (G_OBJECT (revealer), props[PROP_REVEAL_CHILD]); */
 
-  /* Stop the ongoing child transition, */
-  hdy_leaflet_unschedule_child_ticks (self);
-  priv->child_transition.active_type = HDY_LEAFLET_CHILD_TRANSITION_TYPE_NONE;
-  gtk_progress_tracker_finish (&priv->child_transition.tracker);
-  if (priv->child_transition.last_visible_surface != NULL) {
-    cairo_surface_destroy (priv->child_transition.last_visible_surface);
-    priv->child_transition.last_visible_surface = NULL;
-  }
-  if (priv->last_visible_child != NULL) {
-    gtk_widget_set_child_visible (priv->last_visible_child->widget, FALSE);
-    priv->last_visible_child = NULL;
-  }
+  hdy_leaflet_stop_child_transition (self);
 
   transition = priv->mode_transition.type;
   if (gtk_widget_get_mapped (widget) &&
@@ -1790,13 +1831,7 @@ hdy_leaflet_size_allocate (GtkWidget     *widget,
     gdk_window_move_resize (priv->view_window,
                             allocation->x, allocation->y,
                             allocation->width, allocation->height);
-    if (priv->bin_window != NULL && is_window_moving_child_transition (self))
-      gdk_window_move_resize (priv->bin_window,
-                              get_bin_window_x (self, allocation), get_bin_window_y (self, allocation),
-                              allocation->width, allocation->height);
-    else
-      gdk_window_resize (priv->bin_window,
-                         allocation->width, allocation->height);
+    move_resize_bin_window (self, allocation, TRUE);
   }
 
   /* Prepare children information. */

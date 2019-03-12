@@ -1,6 +1,6 @@
 project(
   'gnome-control-center', 'c',
-        version : '3.31.92',
+        version : '3.32.0.1',
         license : 'GPL2+',
   meson_version : '>= 0.48.0'
 )
@@ -96,7 +96,7 @@ libgvc = subproject(
 )
 libgvc_dep = libgvc.get_variable('libgvc_dep')
 
-libhandy_dep = dependency('libhandy-0.0', version: '>= 0.0.8', required: false)
+libhandy_dep = dependency('libhandy-0.0', version: '>= 0.0.9', required: false)
 if not libhandy_dep.found()
   libhandy = subproject(
     'libhandy',
