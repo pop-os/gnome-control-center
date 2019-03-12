@@ -1,0 +1,733 @@
+From 1e617a5405ae86bd12eba36813027bf86b610c7f Mon Sep 17 00:00:00 2001
+From: Robert Ancell <robert.ancell@canonical.com>
+Date: Wed, 20 Feb 2019 11:33:19 +0100
+Subject: [PATCH 7/7] applications: Show snap interface controls
+
+---
+ .../applications/applications.gresource.xml   |   1 +
+ panels/applications/cc-applications-panel.c   | 101 +++-
+ panels/applications/cc-snap-row.c             | 430 ++++++++++++++++++
+ panels/applications/cc-snap-row.h             |  35 ++
+ panels/applications/cc-snap-row.ui            |  53 +++
+ panels/applications/meson.build               |   1 +
+ po/POTFILES.in                                |   1 +
+ 7 files changed, 621 insertions(+), 1 deletion(-)
+ create mode 100644 panels/applications/cc-snap-row.c
+ create mode 100644 panels/applications/cc-snap-row.h
+ create mode 100644 panels/applications/cc-snap-row.ui
+
+diff --git a/panels/applications/applications.gresource.xml b/panels/applications/applications.gresource.xml
+index d23f1b2e0..b77aaba45 100644
+--- a/panels/applications/applications.gresource.xml
++++ b/panels/applications/applications.gresource.xml
+@@ -5,6 +5,7 @@
+     <file preprocess="xml-stripblanks">cc-applications-panel.ui</file>
+     <file preprocess="xml-stripblanks">cc-applications-row.ui</file>
+     <file preprocess="xml-stripblanks">cc-info-row.ui</file>
++    <file preprocess="xml-stripblanks">cc-snap-row.ui</file>
+     <file preprocess="xml-stripblanks">cc-toggle-row.ui</file>
+     <file>cc-applications-panel.css</file>
+   </gresource>
+diff --git a/panels/applications/cc-applications-panel.c b/panels/applications/cc-applications-panel.c
+index b5786e0c8..ac7da0619 100644
+--- a/panels/applications/cc-applications-panel.c
++++ b/panels/applications/cc-applications-panel.c
+@@ -22,6 +22,9 @@
+ 
+ #include <config.h>
+ #include <glib/gi18n.h>
++#ifdef HAVE_SNAP
++#include <snapd-glib/snapd-glib.h>
++#endif
+ 
+ #include <gio/gdesktopappinfo.h>
+ 
+@@ -31,6 +34,9 @@
+ #include "cc-info-row.h"
+ #include "cc-action-row.h"
+ #include "cc-applications-resources.h"
++#ifdef HAVE_SNAP
++#include "cc-snap-row.h"
++#endif
+ #include "globs.h"
+ #include "list-box-helper.h"
+ #include "search.h"
+@@ -227,7 +233,6 @@ get_portal_app_id (GAppInfo *info)
+       snap_name = g_desktop_app_info_get_string (G_DESKTOP_APP_INFO (info), "X-SnapInstanceName");
+       if (snap_name != NULL)
+         return snap_name;
+-
+     }
+ 
+   return NULL;
+@@ -521,6 +526,95 @@ location_cb (CcApplicationsPanel *self)
+ 
+ /* --- permissions section --- */
+ 
++#ifdef HAVE_SNAP
++static void
++remove_snap_permissions (CcApplicationsPanel *self)
++{
++  g_autoptr(GList) rows = NULL;
++  GList *link;
++
++  rows = gtk_container_get_children (GTK_CONTAINER (self->permission_list));
++  for (link = rows; link; link = link->next)
++    {
++      GtkWidget *row = link->data;
++
++      if (row == self->builtin)
++        break;
++
++      if (CC_IS_SNAP_ROW (row))
++        gtk_container_remove (GTK_CONTAINER (self->permission_list), GTK_WIDGET (row));
++    }
++}
++
++static gboolean
++add_snap_permissions (CcApplicationsPanel *self,
++                      GAppInfo            *info,
++                      const gchar         *app_id)
++{
++  const gchar *snap_name;
++  g_autoptr(GList) rows = NULL;
++  gint index;
++  g_autoptr(SnapdClient) client = NULL;
++  g_autoptr(GPtrArray) plugs = NULL;
++  g_autoptr(GPtrArray) slots = NULL;
++  gint added = 0;
++  g_autoptr(GError) error = NULL;
++
++  if (!g_str_has_prefix (app_id, PORTAL_SNAP_PREFIX))
++    return FALSE;
++  snap_name = app_id + strlen (PORTAL_SNAP_PREFIX);
++
++  rows = gtk_container_get_children (GTK_CONTAINER (self->permission_list));
++  index = g_list_index (rows, self->builtin);
++  g_assert (index >= 0);
++
++  client = snapd_client_new ();
++  if (!snapd_client_get_interfaces_sync (client, &plugs, &slots, NULL, &error))
++    {
++      g_warning ("Failed to get snap interfaces: %s", error->message);
++      return FALSE;
++    }
++
++  for (int i = 0; i < plugs->len; i++)
++    {
++      SnapdPlug *plug = g_ptr_array_index (plugs, i);
++      CcSnapRow *row;
++      g_autoptr(GPtrArray) available_slots = NULL;
++      const gchar * const hidden_interfaces[] = { "content",
++                                                  "desktop", "desktop-legacy",
++                                                  "mir",
++                                                  "unity7", "unity8",
++                                                  "x11",
++                                                  NULL };
++
++      if (g_strcmp0 (snapd_plug_get_snap (plug), snap_name) != 0)
++        continue;
++
++      /* Ignore interfaces that are too low level to make sense to show or disable */
++      if (g_strv_contains (hidden_interfaces, snapd_plug_get_interface (plug)))
++        continue;
++
++      available_slots = g_ptr_array_new_with_free_func (g_object_unref);
++      for (int j = 0; j < slots->len; j++)
++        {
++          SnapdSlot *slot = g_ptr_array_index (slots, j);
++          if (g_strcmp0 (snapd_plug_get_interface (plug), snapd_slot_get_interface (slot)) != 0)
++            continue;
++
++          g_ptr_array_add (available_slots, g_object_ref (slot));
++        }
++
++      row = cc_snap_row_new (self->cancellable, plug, available_slots);
++      gtk_widget_show (GTK_WIDGET (row));
++      gtk_list_box_insert (GTK_LIST_BOX (self->permission_list), GTK_WIDGET (row), index);
++      index++;
++      added++;
++    }
++
++    return added > 0;
++}
++#endif
++
+ static gint
+ add_static_permission_row (CcApplicationsPanel *self,
+                            const gchar         *title,
+@@ -649,6 +743,11 @@ update_permission_section (CcApplicationsPanel *self,
+   gtk_widget_set_visible (self->no_location, set && disabled);
+   has_any |= set;
+ 
++#ifdef HAVE_SNAP
++  remove_snap_permissions (self);
++  has_any |= add_snap_permissions (self, info, portal_app_id);
++#endif
++
+   remove_static_permissions (self);
+   has_builtin = add_static_permissions (self, info, portal_app_id);
+   gtk_widget_set_visible (self->builtin, has_builtin);
+diff --git a/panels/applications/cc-snap-row.c b/panels/applications/cc-snap-row.c
+new file mode 100644
+index 000000000..937257582
+--- /dev/null
++++ b/panels/applications/cc-snap-row.c
+@@ -0,0 +1,430 @@
++/* cc-snap-row.c
++ *
++ * Copyright 2019 Canonical Ltd.
++ *
++ * This program is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ *
++ * SPDX-License-Identifier: GPL-3.0-or-later
++ */
++
++#include <config.h>
++#include <glib/gi18n.h>
++
++#include "cc-snap-row.h"
++#include "cc-applications-resources.h"
++
++struct _CcSnapRow
++{
++  GtkListBoxRow parent;
++
++  GtkLabel     *title_label;
++  GtkSwitch    *slot_toggle;
++  GtkComboBox  *slots_combo;
++  GtkListStore *slots_combo_model;
++
++  GCancellable *cancellable;
++
++  SnapdPlug    *plug;
++  SnapdSlot    *connected_slot;
++  GPtrArray    *slots;
++};
++
++G_DEFINE_TYPE (CcSnapRow, cc_snap_row, GTK_TYPE_LIST_BOX_ROW)
++
++typedef struct
++{
++  CcSnapRow *self;
++  SnapdSlot *slot;
++} ConnectData;
++
++static const gchar *
++get_label (const gchar *interface_name)
++{
++  if (strcmp (interface_name, "account-control") == 0)
++    return _("Add user accounts and change passwords");
++  else if (strcmp (interface_name, "alsa") == 0)
++    return _("Play and record sound");
++  else if (strcmp (interface_name, "avahi-observe") == 0)
++    return _("Detect network devices using mDNS/DNS-SD (Bonjour/zeroconf)");
++  else if (strcmp (interface_name, "bluetooth-control") == 0)
++    return _("Access bluetooth hardware directly");
++  else if (strcmp (interface_name, "bluez") == 0)
++    return _("Use bluetooth devices");
++  else if (strcmp (interface_name, "camera") == 0)
++    return _("Use your camera");
++  else if (strcmp (interface_name, "cups-control") == 0)
++    return _("Print documents");
++  else if (strcmp (interface_name, "joystick") == 0)
++    return _("Use any connected joystick");
++  else if (strcmp (interface_name, "docker") == 0)
++    return _("Allow connecting to the Docker service");
++  else if (strcmp (interface_name, "gsettings") == 0)
++    return _("Can change settings");
++  else if (strcmp (interface_name, "firewall-control") == 0)
++    return _("Configure network firewall");
++  else if (strcmp (interface_name, "fuse-support") == 0)
++    return _("Setup and use privileged FUSE filesystems");
++  else if (strcmp (interface_name, "fwupd") == 0)
++    return _("Update firmware on this device");
++  else if (strcmp (interface_name, "hardware-observe") == 0)
++    return _("Access hardware information");
++  else if (strcmp (interface_name, "hardware-random-control") == 0)
++    return _("Provide entropy to hardware random number generator");
++  else if (strcmp (interface_name, "hardware-random-observe") == 0)
++    return _("Use hardware-generated random numbers");
++  else if (strcmp (interface_name, "home") == 0)
++    return _("Access files in your home folder");
++  else if (strcmp (interface_name, "libvirt") == 0)
++    return _("Access libvirt service");
++  else if (strcmp (interface_name, "locale-control") == 0)
++    return _("Change system language and region settings");
++  else if (strcmp (interface_name, "location-control") == 0)
++    return _("Change location settings and providers");
++  else if (strcmp (interface_name, "location-observe") == 0)
++    return _("Access your location");
++  else if (strcmp (interface_name, "log-observe") == 0)
++    return _("Read system and application logs");
++  else if (strcmp (interface_name, "lxd") == 0)
++    return _("Access LXD service");
++  else if (strcmp (interface_name, "media-hub") == 0)
++    return _("access the media-hub service");
++  else if (strcmp (interface_name, "modem-manager") == 0)
++    return _("Use and configure modems");
++  else if (strcmp (interface_name, "mount-observe") == 0)
++    return _("Read system mount information and disk quotas");
++  else if (strcmp (interface_name, "mpris") == 0)
++    return _("Control music and video players");
++  else if (strcmp (interface_name, "network") == 0)
++    return _("Has network access");
++  else if (strcmp (interface_name, "network-control") == 0)
++    return _("Change low-level network settings");
++  else if (strcmp (interface_name, "network-manager") == 0)
++    return _("Access the NetworkManager service to read and change network settings");
++  else if (strcmp (interface_name, "network-observe") == 0)
++    return _("Read access to network settings");
++  else if (strcmp (interface_name, "network-setup-control") == 0)
++    return _("Change network settings");
++  else if (strcmp (interface_name, "network-setup-observe") == 0)
++    return _("Read network settings");
++  else if (strcmp (interface_name, "ofono") == 0)
++    return _("Access the ofono service to read and change network settings for mobile telephony");
++  else if (strcmp (interface_name, "openvtswitch") == 0)
++    return _("Control Open vSwitch hardware");
++  else if (strcmp (interface_name, "optical-drive") == 0)
++    return _("Read from CD/DVD");
++  else if (strcmp (interface_name, "password-manager-service") == 0)
++    return _("Read, add, change, or remove saved passwords");
++  else if (strcmp (interface_name, "ppp") == 0)
++    return _("Access pppd and ppp devices for configuring Point-to-Point Protocol connections");
++  else if (strcmp (interface_name, "process-control") == 0)
++    return _("Pause or end any process on the system");
++  else if (strcmp (interface_name, "pulseaudio") == 0)
++    return _("Play and record sound");
++  else if (strcmp (interface_name, "raw-usb") == 0)
++    return _("Access USB hardware directly");
++  else if (strcmp (interface_name, "removable-media") == 0)
++    return _("Read/write files on removable storage devices");
++  else if (strcmp (interface_name, "screen-inhibit-control") == 0)
++    return _("Prevent screen sleep/lock");
++  else if (strcmp (interface_name, "serial-port") == 0)
++    return _("Access serial port hardware");
++  else if (strcmp (interface_name, "shutdown") == 0)
++    return _("Restart or power off the device");
++  else if (strcmp (interface_name, "snapd-control") == 0)
++    return _("Install, remove and configure software");
++  else if (strcmp (interface_name, "storage-framework-service") == 0)
++    return _("Access Storage Framework service");
++  else if (strcmp (interface_name, "system-observe") == 0)
++    return _("Read process and system information");
++  else if (strcmp (interface_name, "system-trace") == 0)
++    return _("Monitor and control any running program");
++  else if (strcmp (interface_name, "time-control") == 0)
++    return _("Change the date and time");
++  else if (strcmp (interface_name, "timeserver-control") == 0)
++    return _("Change time server settings");
++  else if (strcmp (interface_name, "timezone-control") == 0)
++    return _("Change the time zone");
++  else if (strcmp (interface_name, "udisks2") == 0)
++    return _("Access the UDisks2 service for configuring disks and removable media");
++  else if (strcmp (interface_name, "unity8-calendar") == 0)
++    return _("Read/change shared calendar events in Ubuntu Unity 8");
++  else if (strcmp (interface_name, "unity8-contacts") == 0)
++    return _("Read/change shared contacts in Ubuntu Unity 8");
++  else if (strcmp (interface_name, "upower-observe") == 0)
++    return _("Access energy usage data");
++  else if (strcmp (interface_name, "u2f-devices") == 0)
++    return _("Read/write access to U2F devices exposed");
++  else
++    return interface_name;
++}
++
++static void
++update_state (CcSnapRow *self)
++{
++  gboolean have_single_option;
++  GtkTreeIter iter;
++
++  have_single_option = self->slots->len == 1;
++  gtk_widget_set_visible (GTK_WIDGET (self->slot_toggle), have_single_option);
++  gtk_widget_set_visible (GTK_WIDGET (self->slots_combo), !have_single_option);
++
++  gtk_switch_set_active (self->slot_toggle, self->connected_slot != NULL);
++
++  if (gtk_tree_model_get_iter_first (GTK_TREE_MODEL (self->slots_combo_model), &iter))
++   {
++     do
++      {
++        SnapdSlot *slot;
++
++        gtk_tree_model_get (GTK_TREE_MODEL (self->slots_combo_model), &iter, 0, &slot, -1);
++        if (slot == self->connected_slot)
++          gtk_combo_box_set_active_iter (self->slots_combo, &iter);
++      } while (gtk_tree_model_iter_next (GTK_TREE_MODEL (self->slots_combo_model), &iter));
++   }
++}
++
++static void
++disable_controls (CcSnapRow *self)
++{
++  gtk_widget_set_sensitive (GTK_WIDGET (self->slot_toggle), FALSE);
++  gtk_widget_set_sensitive (GTK_WIDGET (self->slots_combo), FALSE);
++}
++
++static void
++enable_controls (CcSnapRow *self)
++{
++  gtk_widget_set_sensitive (GTK_WIDGET (self->slot_toggle), TRUE);
++  gtk_widget_set_sensitive (GTK_WIDGET (self->slots_combo), TRUE);
++}
++
++static ConnectData *
++connect_data_new (CcSnapRow *self, SnapdSlot *slot)
++{
++  ConnectData *data;
++
++  data = g_new0 (ConnectData, 1);
++  data->self = self;
++  data->slot = g_object_ref (slot);
++
++  return data;
++}
++
++static void
++connect_data_free (ConnectData *data)
++{
++  g_clear_object (&data->slot);
++  g_free (data);
++}
++
++G_DEFINE_AUTOPTR_CLEANUP_FUNC (ConnectData, connect_data_free)
++
++static void
++connect_interface_cb (GObject *client, GAsyncResult *result, gpointer user_data)
++{
++  g_autoptr(ConnectData) data = user_data;
++  CcSnapRow *self = data->self;
++  SnapdSlot *slot = data->slot;
++  g_autoptr(GError) error = NULL;
++
++  if (snapd_client_connect_interface_finish (SNAPD_CLIENT (client), result, &error))
++    {
++      g_clear_object (&self->connected_slot);
++      self->connected_slot = g_object_ref (slot);
++    }
++  else
++    {
++      if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED))
++        return;
++      g_warning ("Failed to connect interface: %s", error->message);
++    }
++
++  update_state (self);
++  enable_controls (self);
++}
++
++static void
++connect_plug (CcSnapRow *self, SnapdSlot *slot)
++{
++  g_autoptr(SnapdClient) client = NULL;
++
++  /* already connected */
++  if (self->connected_slot == slot)
++    return;
++
++  disable_controls (self);
++
++  client = snapd_client_new ();
++  snapd_client_connect_interface_async (client,
++                                        snapd_plug_get_snap (self->plug), snapd_plug_get_name (self->plug),
++                                        snapd_slot_get_snap (slot), snapd_slot_get_name (slot),
++                                        NULL, NULL,
++                                        self->cancellable,
++                                        connect_interface_cb, connect_data_new (self, slot));
++}
++
++static void
++disconnect_interface_cb (GObject *client, GAsyncResult *result, gpointer user_data)
++{
++  CcSnapRow *self = user_data;
++  g_autoptr(GError) error = NULL;
++
++  if (snapd_client_disconnect_interface_finish (SNAPD_CLIENT (client), result, &error))
++    {
++      g_clear_object (&self->connected_slot);
++    }
++  else
++    {
++      if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED))
++        return;
++      g_warning ("Failed to disconnect interface: %s", error->message);
++    }
++
++  update_state (self);
++  enable_controls (self);
++}
++
++static void
++disconnect_plug (CcSnapRow *self)
++{
++  g_autoptr(SnapdClient) client = NULL;
++
++  /* already disconnected */
++  if (self->connected_slot == NULL)
++    return;
++
++  disable_controls (self);
++
++  client = snapd_client_new ();
++  snapd_client_disconnect_interface_async (client,
++                                           snapd_plug_get_snap (self->plug), snapd_plug_get_name (self->plug),
++                                           NULL, NULL,
++                                           NULL, NULL,
++                                           self->cancellable,
++                                           disconnect_interface_cb, self);
++}
++
++static void
++switch_changed_cb (CcSnapRow *self)
++{
++  if (gtk_switch_get_active (self->slot_toggle))
++    {
++      if (self->slots->len == 1)
++        connect_plug (self, g_ptr_array_index (self->slots, 0));
++    }
++  else
++    disconnect_plug (self);
++}
++
++static void
++combo_changed_cb (CcSnapRow *self)
++{
++  GtkTreeIter iter;
++  SnapdSlot *slot = NULL;
++
++  if (!gtk_combo_box_get_active_iter (self->slots_combo, &iter))
++    return;
++
++  gtk_tree_model_get (GTK_TREE_MODEL (self->slots_combo_model), &iter, 0, &slot, -1);
++  if (slot != NULL)
++    connect_plug (self, slot);
++  else
++    disconnect_plug (self);
++}
++
++static void
++cc_snap_row_finalize (GObject *object)
++{
++  CcSnapRow *self = CC_SNAP_ROW (object);
++
++  g_clear_object (&self->cancellable);
++  g_clear_object (&self->plug);
++  g_clear_pointer (&self->slots, g_ptr_array_unref);
++
++  G_OBJECT_CLASS (cc_snap_row_parent_class)->finalize (object);
++}
++
++static void
++cc_snap_row_class_init (CcSnapRowClass *klass)
++{
++  GObjectClass *object_class = G_OBJECT_CLASS (klass);
++  GtkWidgetClass *widget_class = GTK_WIDGET_CLASS (klass);
++
++  object_class->finalize = cc_snap_row_finalize;
++
++  gtk_widget_class_set_template_from_resource (widget_class, "/org/gnome/control-center/applications/cc-snap-row.ui");
++
++  gtk_widget_class_bind_template_child (widget_class, CcSnapRow, title_label);
++  gtk_widget_class_bind_template_child (widget_class, CcSnapRow, slot_toggle);
++  gtk_widget_class_bind_template_child (widget_class, CcSnapRow, slots_combo);
++  gtk_widget_class_bind_template_child (widget_class, CcSnapRow, slots_combo_model);
++
++  gtk_widget_class_bind_template_callback (widget_class, combo_changed_cb);
++  gtk_widget_class_bind_template_callback (widget_class, switch_changed_cb);
++}
++
++static void
++cc_snap_row_init (CcSnapRow *self)
++{
++  gtk_widget_init_template (GTK_WIDGET (self));
++}
++
++CcSnapRow *
++cc_snap_row_new (GCancellable *cancellable, SnapdPlug *plug, GPtrArray *slots)
++{
++  CcSnapRow *self;
++  GPtrArray *connections;
++  GtkTreeIter iter;
++
++  g_return_val_if_fail (SNAPD_IS_PLUG (plug), NULL);
++
++  self = CC_SNAP_ROW (g_object_new (CC_TYPE_SNAP_ROW, NULL));
++
++  self->cancellable = g_object_ref (cancellable);
++  self->plug = g_object_ref (plug);
++  self->slots = g_ptr_array_ref (slots);
++
++  connections = snapd_plug_get_connections (plug);
++  if (connections->len > 0)
++    {
++      SnapdConnection *connection = g_ptr_array_index (connections, 0);
++
++      for (int i = 0; i < slots->len; i++)
++        {
++          SnapdSlot *slot = g_ptr_array_index (slots, i);
++
++          if (g_strcmp0 (snapd_slot_get_snap (slot), snapd_connection_get_snap (connection)) == 0 &&
++              g_strcmp0 (snapd_slot_get_name (slot), snapd_connection_get_name (connection)) == 0)
++            self->connected_slot = slot;
++      }
++    }
++
++  gtk_label_set_label (self->title_label, get_label (snapd_plug_get_interface (plug)));
++
++  /* Add option into combo box */
++  gtk_list_store_append (self->slots_combo_model, &iter);
++  gtk_list_store_set (self->slots_combo_model, &iter, 1, "--", -1);
++  for (int i = 0; i < slots->len; i++)
++    {
++      SnapdSlot *slot = g_ptr_array_index (slots, i);
++      g_autofree gchar *label = NULL;
++
++      label = g_strdup_printf ("%s:%s", snapd_slot_get_snap (slot), snapd_slot_get_name (slot));
++      gtk_list_store_append (self->slots_combo_model, &iter);
++      gtk_list_store_set (self->slots_combo_model, &iter, 0, slot, 1, label, -1);
++    }
++
++  update_state (self);
++
++  return self;
++}
+diff --git a/panels/applications/cc-snap-row.h b/panels/applications/cc-snap-row.h
+new file mode 100644
+index 000000000..26563bd8d
+--- /dev/null
++++ b/panels/applications/cc-snap-row.h
+@@ -0,0 +1,35 @@
++/* cc-snap-row.h
++ *
++ * Copyright 2019 Canonical Ltd.
++ *
++ * This program is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ *
++ * SPDX-License-Identifier: GPL-3.0-or-later
++ */
++
++#pragma once
++
++#include <gtk/gtk.h>
++#include <snapd-glib/snapd-glib.h>
++
++G_BEGIN_DECLS
++
++#define CC_TYPE_SNAP_ROW (cc_snap_row_get_type())
++G_DECLARE_FINAL_TYPE (CcSnapRow, cc_snap_row, CC, SNAP_ROW, GtkListBoxRow)
++
++CcSnapRow* cc_snap_row_new      (GCancellable *cancellable,
++                                 SnapdPlug    *plug,
++                                 GPtrArray    *slots);
++
++G_END_DECLS
+diff --git a/panels/applications/cc-snap-row.ui b/panels/applications/cc-snap-row.ui
+new file mode 100644
+index 000000000..fb485c99e
+--- /dev/null
++++ b/panels/applications/cc-snap-row.ui
+@@ -0,0 +1,53 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<interface>
++  <object class="GtkListStore" id="slots_combo_model">
++    <columns>
++      <!-- column-name slot -->
++      <column type="GObject"/>
++      <!-- column-name label -->
++      <column type="gchararray"/>
++    </columns>
++  </object>
++  <template class="CcSnapRow" parent="GtkListBoxRow">
++    <property name="visible">True</property>
++    <property name="can-focus">True</property>
++    <property name="activatable">False</property>
++    <child>
++      <object class="GtkBox">
++        <property name="visible">True</property>
++        <property name="border-width">12</property>
++        <property name="spacing">12</property>
++        <child>
++          <object class="GtkLabel" id="title_label">
++            <property name="visible">True</property>
++            <property name="xalign">0</property>
++            <property name="hexpand">1</property>
++          </object>
++        </child>
++        <child>
++          <object class="GtkSwitch" id="slot_toggle">
++            <property name="visible">True</property>
++            <property name="valign">center</property>
++            <signal name="notify::active" handler="switch_changed_cb" swapped="yes"/>
++          </object>
++        </child>
++        <child>
++          <object class="GtkComboBox" id="slots_combo">
++            <property name="visible">True</property>
++            <property name="valign">center</property>
++            <property name="model">slots_combo_model</property>
++            <signal name="changed" handler="combo_changed_cb" swapped="yes"/>
++            <child>
++              <object class="GtkCellRendererText">
++                <property name="ellipsize">end</property>
++              </object>
++              <attributes>
++                <attribute name="text">1</attribute>
++              </attributes>
++            </child>
++          </object>
++        </child>
++      </object>
++    </child>
++  </template>
++</interface>
+diff --git a/panels/applications/meson.build b/panels/applications/meson.build
+index b405fc212..fe844b8c1 100644
+--- a/panels/applications/meson.build
++++ b/panels/applications/meson.build
+@@ -42,6 +42,7 @@ deps = common_deps
+ 
+ if enable_snap
+   deps += snapd_glib_deps
++  sources += files('cc-snap-row.c')
+ endif
+ 
+ cflags += '-DGNOMELOCALEDIR="@0@"'.format(control_center_localedir)
+diff --git a/po/POTFILES.in b/po/POTFILES.in
+index 1d8b48beb..679f4b54c 100644
+--- a/po/POTFILES.in
++++ b/po/POTFILES.in
+@@ -2,6 +2,7 @@
+ # Please keep this file sorted alphabetically.
+ panels/applications/cc-applications-panel.c
+ panels/applications/cc-applications-panel.ui
++panels/applications/cc-snap-row.c
+ panels/applications/gnome-applications-panel.desktop.in.in
+ panels/background/background.ui
+ panels/background/bg-colors-source.c
+-- 
+2.20.1
+
