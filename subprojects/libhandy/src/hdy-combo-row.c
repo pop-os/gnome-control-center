@@ -4,10 +4,12 @@
  * SPDX-License-Identifier: LGPL-2.1+
  */
 
+#include "config.h"
 #include "hdy-combo-row.h"
 
-#include <glib/gi18n.h>
+#include <glib/gi18n-lib.h>
 #include "hdy-list-box.h"
+#include "hdy-style-private.h"
 
 /**
  * SECTION:hdy-combo-row
@@ -322,7 +324,7 @@ hdy_combo_row_class_init (HdyComboRowClass *klass)
   g_object_class_install_properties (object_class, LAST_PROP, props);
 
   gtk_widget_class_set_template_from_resource (widget_class,
-                                               "/sm/puri/handy/dialer/ui/hdy-combo-row.ui");
+                                               "/sm/puri/handy/ui/hdy-combo-row.ui");
   gtk_widget_class_bind_template_child_private (widget_class, HdyComboRow, current);
   gtk_widget_class_bind_template_child_private (widget_class, HdyComboRow, image);
   gtk_widget_class_bind_template_child_private (widget_class, HdyComboRow, list);
@@ -335,12 +337,10 @@ list_init (HdyComboRow *self)
   HdyComboRowPrivate *priv = hdy_combo_row_get_instance_private (self);
   g_autoptr (GtkCssProvider) provider = gtk_css_provider_new ();
 
-  /* This makes the list's background transparent. */
-  gtk_css_provider_load_from_data (GTK_CSS_PROVIDER (provider),
-                                   "list { border-style: none; background-color: transparent; }", -1, NULL);
+  gtk_css_provider_load_from_resource (provider, "/sm/puri/handy/style/hdy-combo-row-list.css");
   gtk_style_context_add_provider (gtk_widget_get_style_context (GTK_WIDGET (priv->list)),
                                   GTK_STYLE_PROVIDER (provider),
-                                  GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+                                  HDY_STYLE_PROVIDER_PRIORITY);
 }
 
 static void

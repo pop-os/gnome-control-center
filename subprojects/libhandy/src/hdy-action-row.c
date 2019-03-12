@@ -4,9 +4,10 @@
  * SPDX-License-Identifier: LGPL-2.1+
  */
 
+#include "config.h"
 #include "hdy-action-row.h"
 
-#include <glib/gi18n.h>
+#include <glib/gi18n-lib.h>
 
 /**
  * SECTION:hdy-action-row
@@ -71,10 +72,11 @@ enum {
 static GParamSpec *props[LAST_PROP];
 
 static void
-row_activated_cb (HdyActionRow        *self,
+row_activated_cb (HdyActionRow  *self,
                   GtkListBoxRow *row)
 {
-  if (self == HDY_ACTION_ROW (row))
+  /* No need to use GTK_LIST_BOX_ROW() for a pointer comparison. */
+  if ((GtkListBoxRow *) self == row)
     hdy_action_row_activate (self);
 }
 
@@ -379,7 +381,7 @@ hdy_action_row_class_init (HdyActionRowClass *klass)
   g_object_class_install_properties (object_class, LAST_PROP, props);
 
   gtk_widget_class_set_template_from_resource (widget_class,
-                                               "/sm/puri/handy/dialer/ui/hdy-action-row.ui");
+                                               "/sm/puri/handy/ui/hdy-action-row.ui");
   gtk_widget_class_bind_template_child_private (widget_class, HdyActionRow, box);
   gtk_widget_class_bind_template_child_private (widget_class, HdyActionRow, header);
   gtk_widget_class_bind_template_child_private (widget_class, HdyActionRow, image);
