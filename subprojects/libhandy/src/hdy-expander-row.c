@@ -4,9 +4,11 @@
  * SPDX-License-Identifier: LGPL-2.1+
  */
 
+#include "config.h"
 #include "hdy-expander-row.h"
 
-#include <glib/gi18n.h>
+#include <glib/gi18n-lib.h>
+#include "hdy-style-private.h"
 
 /**
  * SECTION:hdy-expander-row
@@ -29,6 +31,7 @@ typedef struct
   GtkRevealer *revealer;
   GtkSeparator *separator;
 
+  gboolean expanded;
   gboolean enable_expansion;
   gboolean show_enable_switch;
 } HdyExpanderRowPrivate;
@@ -37,12 +40,11 @@ G_DEFINE_TYPE_WITH_PRIVATE (HdyExpanderRow, hdy_expander_row, HDY_TYPE_ACTION_RO
 
 enum {
   PROP_0,
+  PROP_EXPANDED,
   PROP_ENABLE_EXPANSION,
   PROP_SHOW_ENABLE_SWITCH,
   LAST_PROP,
 };
-
-#define ANIMATION_TRANSITION "transition: 200ms cubic-bezier(0.25, 0.46, 0.45, 0.94);\n"
 
 static GParamSpec *props[LAST_PROP];
 
@@ -51,37 +53,25 @@ arrow_init (HdyExpanderRow *self)
 {
   HdyExpanderRowPrivate *priv = hdy_expander_row_get_instance_private (self);
   g_autoptr (GtkCssProvider) provider = gtk_css_provider_new ();
-  static const gchar *style =
-    "row button:checked:dir(ltr) image,\n"
-    "row button:checked:dir(rtl) image {\n"
-    ANIMATION_TRANSITION
-    "  -gtk-icon-transform: rotate(0turn);\n"
-    "}\n"
-    "row button:not(checked):dir(ltr) image {\n"
-    ANIMATION_TRANSITION
-    "  -gtk-icon-transform: rotate(-0.25turn);\n"
-    "}\n"
-    "row button:not(checked):dir(rtl) image {\n"
-    ANIMATION_TRANSITION
-    "  -gtk-icon-transform: rotate(0.25turn);\n"
-    "}";
 
-  /* This animated the arrow's roation. */
-  gtk_css_provider_load_from_data (GTK_CSS_PROVIDER (provider), style, -1, NULL);
+  gtk_css_provider_load_from_resource (provider, "/sm/puri/handy/style/hdy-expander-row-arrow.css");
   gtk_style_context_add_provider (gtk_widget_get_style_context (GTK_WIDGET (priv->image)),
                                   GTK_STYLE_PROVIDER (provider),
-                                  GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+                                  HDY_STYLE_PROVIDER_PRIORITY);
 }
 
 static void
 hdy_expander_row_get_property (GObject    *object,
-                                      guint       prop_id,
-                                      GValue     *value,
-                                      GParamSpec *pspec)
+                               guint       prop_id,
+                               GValue     *value,
+                               GParamSpec *pspec)
 {
   HdyExpanderRow *self = HDY_EXPANDER_ROW (object);
 
   switch (prop_id) {
+  case PROP_EXPANDED:
+    g_value_set_boolean (value, hdy_expander_row_get_expanded (self));
+    break;
   case PROP_ENABLE_EXPANSION:
     g_value_set_boolean (value, hdy_expander_row_get_enable_expansion (self));
     break;
@@ -95,13 +85,16 @@ hdy_expander_row_get_property (GObject    *object,
 
 static void
 hdy_expander_row_set_property (GObject      *object,
-                                      guint         prop_id,
-                                      const GValue *value,
-                                      GParamSpec   *pspec)
+                               guint         prop_id,
+                               const GValue *value,
+                               GParamSpec   *pspec)
 {
   HdyExpanderRow *self = HDY_EXPANDER_ROW (object);
 
   switch (prop_id) {
+  case PROP_EXPANDED:
+    hdy_expander_row_set_expanded (self, g_value_get_boolean (value));
+    break;
   case PROP_ENABLE_EXPANSION:
     hdy_expander_row_set_enable_expansion (self, g_value_get_boolean (value));
     break;
@@ -191,7 +184,7 @@ hdy_expander_row_activate (HdyActionRow *row)
   HdyExpanderRow *self = HDY_EXPANDER_ROW (row);
   HdyExpanderRowPrivate *priv = hdy_expander_row_get_instance_private (self);
 
-  gtk_revealer_set_reveal_child (priv->revealer, priv->enable_expansion);
+  hdy_expander_row_set_expanded (self, priv->enable_expansion);
 
   HDY_ACTION_ROW_CLASS (hdy_expander_row_parent_class)->activate (row);
 }
@@ -213,6 +206,18 @@ hdy_expander_row_class_init (HdyExpanderRowClass *klass)
   container_class->forall = hdy_expander_row_forall;
 
   row_class->activate = hdy_expander_row_activate;
+
+  /**
+   * HdyExpanderRow:expanded:
+   *
+   * %TRUE if the row is expanded.
+   */
+  props[PROP_EXPANDED] =
+    g_param_spec_boolean ("expanded",
+                          _("Expanded"),
+                          _("Whether the row is expanded"),
+                          FALSE,
+                          G_PARAM_READWRITE | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
    * HdyExpanderRow:enable-expansion:
@@ -241,7 +246,7 @@ hdy_expander_row_class_init (HdyExpanderRowClass *klass)
   g_object_class_install_properties (object_class, LAST_PROP, props);
 
   gtk_widget_class_set_template_from_resource (widget_class,
-                                               "/sm/puri/handy/dialer/ui/hdy-expander-row.ui");
+                                               "/sm/puri/handy/ui/hdy-expander-row.ui");
   gtk_widget_class_bind_template_child_private (widget_class, HdyExpanderRow, box);
   gtk_widget_class_bind_template_child_private (widget_class, HdyExpanderRow, button);
   gtk_widget_class_bind_template_child_private (widget_class, HdyExpanderRow, image);
@@ -258,8 +263,8 @@ hdy_expander_row_init (HdyExpanderRow *self)
   gtk_widget_init_template (GTK_WIDGET (self));
 
   arrow_init (self);
-
-  priv->enable_expansion = TRUE;
+  hdy_expander_row_set_enable_expansion (self, TRUE);
+  hdy_expander_row_set_expanded (self, FALSE);
 
   g_object_bind_property (self, "show-enable-switch", priv->separator, "visible", G_BINDING_SYNC_CREATE);
   g_object_bind_property (self, "show-enable-switch", priv->enable_switch, "visible", G_BINDING_BIDIRECTIONAL | G_BINDING_SYNC_CREATE);
@@ -281,6 +286,40 @@ HdyExpanderRow *
 hdy_expander_row_new (void)
 {
   return g_object_new (HDY_TYPE_EXPANDER_ROW, NULL);
+}
+
+gboolean
+hdy_expander_row_get_expanded (HdyExpanderRow *self)
+{
+  HdyExpanderRowPrivate *priv;
+
+  g_return_val_if_fail (HDY_IS_EXPANDER_ROW (self), FALSE);
+
+  priv = hdy_expander_row_get_instance_private (self);
+
+  return priv->expanded;
+}
+
+void
+hdy_expander_row_set_expanded (HdyExpanderRow *self,
+                               gboolean        expanded)
+{
+  HdyExpanderRowPrivate *priv;
+
+  g_return_if_fail (HDY_IS_EXPANDER_ROW (self));
+
+  priv = hdy_expander_row_get_instance_private (self);
+
+  expanded = !!expanded && priv->enable_expansion;
+
+  if (priv->expanded == expanded)
+    return;
+
+  priv->expanded = expanded;
+
+  gtk_revealer_set_reveal_child (priv->revealer, expanded);
+
+  g_object_notify_by_pspec (G_OBJECT (self), props[PROP_EXPANDED]);
 }
 
 /**
@@ -329,7 +368,7 @@ hdy_expander_row_set_enable_expansion (HdyExpanderRow *self,
 
   priv->enable_expansion = !!enable_expansion;
 
-  gtk_revealer_set_reveal_child (priv->revealer, priv->enable_expansion);
+  hdy_expander_row_set_expanded (self, priv->enable_expansion);
 
   g_object_notify_by_pspec (G_OBJECT (self), props[PROP_ENABLE_EXPANSION]);
 }

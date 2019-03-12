@@ -22,10 +22,10 @@ Bug: https://bugzilla.gnome.org/show_bug.cgi?id=710424
  panels/sound/cc-sound-panel.ui | 92 ++++++++++++++++++++++++++++++++++++++++++
  2 files changed, 111 insertions(+)
 
-diff --git a/panels/sound/cc-sound-panel.c b/panels/sound/cc-sound-panel.c
-index 0c28980..3e65bae 100644
---- a/panels/sound/cc-sound-panel.c
-+++ b/panels/sound/cc-sound-panel.c
+Index: gnome-control-center-3.32.0.1/panels/sound/cc-sound-panel.c
+===================================================================
+--- gnome-control-center-3.32.0.1.orig/panels/sound/cc-sound-panel.c
++++ gnome-control-center-3.32.0.1/panels/sound/cc-sound-panel.c
 @@ -66,6 +66,9 @@ struct _CcSoundPanel
    CcProfileComboBox *output_profile_combo_box;
    GtkListBoxRow     *output_profile_row;
@@ -36,7 +36,7 @@ index 0c28980..3e65bae 100644
    CcStreamListBox   *stream_list_box;
    GtkListBoxRow     *subwoofer_row;
    CcSubwooferSlider *subwoofer_slider;
-@@ -89,6 +92,8 @@ allow_amplified_changed_cb (CcSoundPanel *self)
+@@ -89,6 +92,8 @@ allow_amplified_changed_cb (CcSoundPanel
  {
    cc_volume_slider_set_is_amplified (self->output_volume_slider,
                                       g_settings_get_boolean (self->sound_settings, "allow-volume-above-100-percent"));
@@ -45,7 +45,7 @@ index 0c28980..3e65bae 100644
  }
  
  static void
-@@ -108,6 +113,7 @@ output_device_changed_cb (CcSoundPanel *self)
+@@ -108,6 +113,7 @@ output_device_changed_cb (CcSoundPanel *
      stream = gvc_mixer_control_get_stream_from_device (self->mixer_control, device);
  
    cc_volume_slider_set_stream (self->output_volume_slider, stream);
@@ -53,7 +53,7 @@ index 0c28980..3e65bae 100644
    cc_level_bar_set_stream (self->output_level_bar, stream, CC_LEVEL_BAR_STREAM_TYPE_OUTPUT);
  
    if (stream != NULL)
-@@ -206,6 +212,9 @@ cc_sound_panel_class_init (CcSoundPanelClass *klass)
+@@ -206,6 +212,9 @@ cc_sound_panel_class_init (CcSoundPanelC
    gtk_widget_class_bind_template_child (widget_class, CcSoundPanel, output_profile_combo_box);
    gtk_widget_class_bind_template_child (widget_class, CcSoundPanel, output_profile_row);
    gtk_widget_class_bind_template_child (widget_class, CcSoundPanel, output_volume_slider);
@@ -80,15 +80,14 @@ index 0c28980..3e65bae 100644
    self->mixer_control = gvc_mixer_control_new ("GNOME Settings");
    gvc_mixer_control_open (self->mixer_control);
  
-diff --git a/panels/sound/cc-sound-panel.ui b/panels/sound/cc-sound-panel.ui
-index a6ce920..be2563b 100644
---- a/panels/sound/cc-sound-panel.ui
-+++ b/panels/sound/cc-sound-panel.ui
+Index: gnome-control-center-3.32.0.1/panels/sound/cc-sound-panel.ui
+===================================================================
+--- gnome-control-center-3.32.0.1.orig/panels/sound/cc-sound-panel.ui
++++ gnome-control-center-3.32.0.1/panels/sound/cc-sound-panel.ui
 @@ -38,6 +38,98 @@
-                     <property name="visible">True</property>
                    </object>
                  </child>
-+                <child>
+                 <child>
 +                  <object class="GtkFrame" id="ubuntu_output_frame">
 +                    <property name="visible">False</property>
 +                <child>
@@ -180,6 +179,7 @@ index a6ce920..be2563b 100644
 +                </child>
 +                </object>
 +                </child>
-                 <child>
++                <child>
                    <object class="GtkLabel">
                      <property name="visible">True</property>
+                     <property name="xalign">0</property>

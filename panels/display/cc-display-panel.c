@@ -633,8 +633,10 @@ set_current_output (CcDisplayPanel   *panel,
     {
       if (output)
         cc_display_monitor_set_active (output, TRUE);
-      if (panel->current_output)
+      if (panel->current_output && output != panel->current_output)
         cc_display_monitor_set_active (panel->current_output, FALSE);
+
+      update_apply_button (panel);
     }
 
   panel->current_output = output;
@@ -754,14 +756,9 @@ rebuild_ui (CcDisplayPanel *panel)
    * And only in that mode do we allow mirroring. */
   if (n_outputs == 2 && !panel->lid_is_closed)
     {
-      CcDisplayConfigType types, type;
-
       gtk_widget_set_visible (panel->config_type_switcher_frame, TRUE);
-      type = cc_panel_get_selected_type (panel);
-      types = config_find_types (panel);
 
-      if (!(type & types))
-        cc_panel_set_selected_type (panel, config_select_type (panel));
+      cc_panel_set_selected_type (panel, config_select_type (panel));
     }
   else
     {
