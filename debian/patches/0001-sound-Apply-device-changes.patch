@@ -1,0 +1,35 @@
+From f0812644aeaa56d26468dc11e9af7dffc31c0f16 Mon Sep 17 00:00:00 2001
+From: Robert Ancell <robert.ancell@canonical.com>
+Date: Thu, 14 Mar 2019 10:58:59 +1300
+Subject: [PATCH] sound: Apply device changes
+
+Was missing the code to actually apply the changes.
+---
+ panels/sound/cc-sound-panel.c | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/panels/sound/cc-sound-panel.c b/panels/sound/cc-sound-panel.c
+index 0c28980f6..3ebc20771 100644
+--- a/panels/sound/cc-sound-panel.c
++++ b/panels/sound/cc-sound-panel.c
+@@ -122,6 +122,8 @@ output_device_changed_cb (CcSoundPanel *self)
+ 
+   gtk_widget_set_visible (GTK_WIDGET (self->fade_row), can_fade);
+   gtk_widget_set_visible (GTK_WIDGET (self->subwoofer_row), has_lfe);
++
++  gvc_mixer_control_change_output (self->mixer_control, device);
+ }
+ 
+ static void
+@@ -140,6 +142,8 @@ input_device_changed_cb (CcSoundPanel *self)
+ 
+   cc_volume_slider_set_stream (self->input_volume_slider, stream);
+   cc_level_bar_set_stream (self->input_level_bar, stream, CC_LEVEL_BAR_STREAM_TYPE_INPUT);
++
++  gvc_mixer_control_change_input (self->mixer_control, device);
+ }
+ 
+ static void
+-- 
+2.20.1
+
