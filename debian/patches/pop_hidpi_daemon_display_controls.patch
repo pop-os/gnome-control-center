@@ -1,0 +1,201 @@
+Index: gnome-control-center-3.28.2/panels/display/cc-display-panel.c
+===================================================================
+--- gnome-control-center-3.28.2.orig/panels/display/cc-display-panel.c
++++ gnome-control-center-3.28.2/panels/display/cc-display-panel.c
+@@ -75,6 +75,8 @@ struct _CcDisplayPanelPrivate
+   CcNightLightDialog *night_light_dialog;
+   GSettings *settings_color;
+
++  GSettings *settings_hidpi;
++
+   UpClient *up_client;
+   gboolean lid_is_closed;
+
+@@ -110,6 +112,8 @@ static const gchar *
+ get_frequency_string (CcDisplayMode *mode);
+ static GtkWidget *
+ make_night_light_widget (CcDisplayPanel *panel);
++static GtkWidget *
++make_hidpi_widget (CcDisplayPanel *panel);
+ static gboolean
+ should_show_rotation (CcDisplayPanel *panel,
+                       CcDisplayMonitor  *output);
+@@ -334,6 +338,7 @@ cc_display_panel_dispose (GObject *objec
+   g_clear_object (&priv->thumbnail_factory);
+   g_clear_object (&priv->settings_color);
+   g_clear_object (&priv->night_light_dialog);
++  g_clear_object (&priv->settings_hidpi);
+   g_clear_object (&priv->main_size_group);
+
+   g_cancellable_cancel (priv->shell_cancellable);
+@@ -1260,6 +1265,9 @@ make_single_output_ui (CcDisplayPanel *p
+
+   gtk_container_add (GTK_CONTAINER (frame), make_output_ui (panel));
+
++  if (priv->settings_hidpi)
++    gtk_container_add (GTK_CONTAINER (vbox), make_hidpi_widget (panel));
++
+   gtk_container_add (GTK_CONTAINER (vbox), make_night_light_widget (panel));
+
+   g_clear_object (&priv->rows_size_group);
+@@ -1541,6 +1549,9 @@ make_two_join_ui (CcDisplayPanel *panel)
+   g_signal_connect_object (panel, "current-output", G_CALLBACK (replace_current_output_ui),
+                            frame, G_CONNECT_SWAPPED);
+
++  if (priv->settings_hidpi)
++    gtk_container_add (GTK_CONTAINER (vbox), make_hidpi_widget (panel));
++
+   gtk_container_add (GTK_CONTAINER (vbox), make_night_light_widget (panel));
+
+   g_clear_object (&priv->rows_size_group);
+@@ -1603,6 +1614,9 @@ make_two_single_ui (CcDisplayPanel *pane
+   g_signal_connect_object (panel, "current-output", G_CALLBACK (replace_current_output_ui),
+                            frame, G_CONNECT_SWAPPED);
+
++  if (priv->settings_hidpi)
++    gtk_container_add (GTK_CONTAINER (vbox), make_hidpi_widget (panel));
++
+   gtk_container_add (GTK_CONTAINER (vbox), make_night_light_widget (panel));
+
+   g_clear_object (&priv->rows_size_group);
+@@ -1741,6 +1755,9 @@ make_two_mirror_ui (CcDisplayPanel *pane
+   gtk_container_add (GTK_CONTAINER (listbox),
+                      make_mirror_resolution_row (panel, priv->current_output));
+
++  if (priv->settings_hidpi)
++    gtk_container_add (GTK_CONTAINER (vbox), make_hidpi_widget (panel));
++
+   gtk_container_add (GTK_CONTAINER (vbox), make_night_light_widget (panel));
+
+   g_clear_object (&priv->rows_size_group);
+@@ -2038,6 +2055,9 @@ make_multi_output_ui (CcDisplayPanel *pa
+   g_signal_connect_object (panel, "current-output", G_CALLBACK (replace_current_output_ui),
+                            frame, G_CONNECT_SWAPPED);
+
++  if (priv->settings_hidpi)
++    gtk_container_add (GTK_CONTAINER (frame), make_hidpi_widget (panel));
++
+   gtk_container_add (GTK_CONTAINER (vbox), make_night_light_widget (panel));
+
+   g_clear_object (&priv->rows_size_group);
+@@ -3058,6 +3078,23 @@ cc_display_panel_night_light_activated (
+ }
+
+ static void
++cc_display_panel_hidpi_mode_activated (CcDisplayPanel *panel)
++{
++  CcDisplayPanelPrivate *priv = panel->priv;
++  gint mode;
++
++  mode = g_settings_get_enum (priv->settings_hidpi, "mode");
++  if (mode == 0)
++    {
++      g_settings_set_enum (priv->settings_hidpi, "mode", 1);
++    }
++  else
++    {
++      g_settings_set_enum (priv->settings_hidpi, "mode", 0);
++    }
++}
++
++static void
+ mapped_cb (CcDisplayPanel *panel)
+ {
+   CcDisplayPanelPrivate *priv = panel->priv;
+@@ -3235,6 +3272,84 @@ make_night_light_widget (CcDisplayPanel
+ }
+
+ static void
++hidpi_sync_switch (GtkWidget *witch, GSettings *settings)
++{
++  gboolean ret = g_settings_get_boolean (settings, "enable");
++  gtk_switch_set_state (GTK_SWITCH (witch),
++                       ret);
++}
++
++static void
++hidpi_sync_label (GtkWidget *label, GSettings *settings)
++{
++  gboolean ret = g_settings_get_enum (settings, "mode");
++  gtk_label_set_label (GTK_LABEL (label),
++                       ret ? _("HiDPI") : _("LoDPI"));
++}
++
++static void
++settings_hidpi_changed_cb (GSettings *settings, gchar *key, GtkWidget *label)
++{
++  if (g_strcmp0 (key, "enable") == 0)
++    hidpi_sync_switch (label, settings);
++}
++
++static void
++settings_hidpi_mode_changed_cb (GSettings *settings, gchar *key, GtkWidget *label)
++{
++  if (g_strcmp0 (key, "mode") == 0)
++    hidpi_sync_label (label, settings);
++}
++
++static GtkWidget *
++make_hidpi_widget (CcDisplayPanel *self)
++{
++  CcDisplayPanelPrivate *priv = DISPLAY_PANEL_PRIVATE (self);
++  GtkWidget *frame, *label;
++  GtkWidget *row_enable, *row_mode;
++  GtkWidget *state_switch, *state_label;
++  GtkWidget *hidpi_listbox;
++
++  frame = make_frame (_("HiDPI Daemon"),
++                      _("Adjust displays to match scale and provide compatibility with legacy applications."));
++  //Adjust displays resolution to match scaling and provide compatibility with legacy applications.
++  //Adjust displays based on physical size and resolution to match scale and provide compatibility with legacy applications.
++  hidpi_listbox = make_list_box ();
++  gtk_container_add (GTK_CONTAINER (frame), hidpi_listbox);
++
++  label = gtk_label_new (_("_Enabled"));
++  gtk_label_set_use_underline (GTK_LABEL (label), TRUE);
++
++  state_switch = gtk_switch_new ();
++  g_signal_connect_object (priv->settings_hidpi, "changed",
++                           G_CALLBACK (settings_hidpi_changed_cb), state_switch, 0);
++  hidpi_sync_switch (state_switch, priv->settings_hidpi);
++
++  row_enable = make_row (priv->rows_size_group, label, state_switch);
++  g_settings_bind (priv->settings_hidpi, "enable",
++			 GTK_WIDGET (state_switch), "active",
++			 G_SETTINGS_BIND_DEFAULT);
++  gtk_container_add (GTK_CONTAINER (hidpi_listbox), row_enable);
++
++  label = gtk_label_new (_("_Mode"));
++  gtk_label_set_use_underline (GTK_LABEL (label), TRUE);
++
++  state_label = gtk_label_new ("hidpi");
++  g_signal_connect_object (priv->settings_hidpi, "changed",
++                           G_CALLBACK (settings_hidpi_mode_changed_cb), state_label, 0);
++  hidpi_sync_label (state_label, priv->settings_hidpi);
++
++  row_mode = make_row (priv->rows_size_group, label, state_label);
++  g_signal_connect_object (row_mode, "activated",
++                           G_CALLBACK (cc_display_panel_hidpi_mode_activated),
++                           self, G_CONNECT_SWAPPED);
++  gtk_container_add (GTK_CONTAINER (hidpi_listbox), row_mode);
++
++  gtk_widget_set_margin_top (frame, SECTION_PADDING);
++  return frame;
++}
++
++static void
+ session_bus_ready (GObject        *source,
+                    GAsyncResult   *res,
+                    CcDisplayPanel *self)
+@@ -3297,6 +3412,11 @@ cc_display_panel_init (CcDisplayPanel *s
+   priv->night_light_dialog = cc_night_light_dialog_new ();
+   priv->settings_color = g_settings_new ("org.gnome.settings-daemon.plugins.color");
+
++  GSettingsSchema *hidpi_schema = g_settings_schema_source_lookup(g_settings_schema_source_get_default(),
++                                                            "com.system76.hidpi", TRUE);
++  if (hidpi_schema)
++    priv->settings_hidpi = g_settings_new ("com.system76.hidpi");
++
+   self->priv->up_client = up_client_new ();
+   if (up_client_get_lid_is_present (self->priv->up_client))
+     {
