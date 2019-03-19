@@ -1,16 +1,16 @@
-Index: gnome-control-center-3.28.2/panels/display/cc-display-panel.c
+Index: gnome-control-center/panels/display/cc-display-panel.c
 ===================================================================
---- gnome-control-center-3.28.2.orig/panels/display/cc-display-panel.c
-+++ gnome-control-center-3.28.2/panels/display/cc-display-panel.c
+--- gnome-control-center.orig/panels/display/cc-display-panel.c
++++ gnome-control-center/panels/display/cc-display-panel.c
 @@ -75,6 +75,8 @@ struct _CcDisplayPanelPrivate
    CcNightLightDialog *night_light_dialog;
    GSettings *settings_color;
-
+ 
 +  GSettings *settings_hidpi;
 +
    UpClient *up_client;
    gboolean lid_is_closed;
-
+ 
 @@ -110,6 +112,8 @@ static const gchar *
  get_frequency_string (CcDisplayMode *mode);
  static GtkWidget *
@@ -26,61 +26,61 @@ Index: gnome-control-center-3.28.2/panels/display/cc-display-panel.c
    g_clear_object (&priv->night_light_dialog);
 +  g_clear_object (&priv->settings_hidpi);
    g_clear_object (&priv->main_size_group);
-
+ 
    g_cancellable_cancel (priv->shell_cancellable);
 @@ -1260,6 +1265,9 @@ make_single_output_ui (CcDisplayPanel *p
-
+ 
    gtk_container_add (GTK_CONTAINER (frame), make_output_ui (panel));
-
+ 
 +  if (priv->settings_hidpi)
 +    gtk_container_add (GTK_CONTAINER (vbox), make_hidpi_widget (panel));
 +
    gtk_container_add (GTK_CONTAINER (vbox), make_night_light_widget (panel));
-
+ 
    g_clear_object (&priv->rows_size_group);
 @@ -1541,6 +1549,9 @@ make_two_join_ui (CcDisplayPanel *panel)
    g_signal_connect_object (panel, "current-output", G_CALLBACK (replace_current_output_ui),
                             frame, G_CONNECT_SWAPPED);
-
+ 
 +  if (priv->settings_hidpi)
 +    gtk_container_add (GTK_CONTAINER (vbox), make_hidpi_widget (panel));
 +
    gtk_container_add (GTK_CONTAINER (vbox), make_night_light_widget (panel));
-
+ 
    g_clear_object (&priv->rows_size_group);
 @@ -1603,6 +1614,9 @@ make_two_single_ui (CcDisplayPanel *pane
    g_signal_connect_object (panel, "current-output", G_CALLBACK (replace_current_output_ui),
                             frame, G_CONNECT_SWAPPED);
-
+ 
 +  if (priv->settings_hidpi)
 +    gtk_container_add (GTK_CONTAINER (vbox), make_hidpi_widget (panel));
 +
    gtk_container_add (GTK_CONTAINER (vbox), make_night_light_widget (panel));
-
+ 
    g_clear_object (&priv->rows_size_group);
 @@ -1741,6 +1755,9 @@ make_two_mirror_ui (CcDisplayPanel *pane
    gtk_container_add (GTK_CONTAINER (listbox),
                       make_mirror_resolution_row (panel, priv->current_output));
-
+ 
 +  if (priv->settings_hidpi)
 +    gtk_container_add (GTK_CONTAINER (vbox), make_hidpi_widget (panel));
 +
    gtk_container_add (GTK_CONTAINER (vbox), make_night_light_widget (panel));
-
+ 
    g_clear_object (&priv->rows_size_group);
 @@ -2038,6 +2055,9 @@ make_multi_output_ui (CcDisplayPanel *pa
    g_signal_connect_object (panel, "current-output", G_CALLBACK (replace_current_output_ui),
                             frame, G_CONNECT_SWAPPED);
-
+ 
 +  if (priv->settings_hidpi)
 +    gtk_container_add (GTK_CONTAINER (frame), make_hidpi_widget (panel));
 +
    gtk_container_add (GTK_CONTAINER (vbox), make_night_light_widget (panel));
-
+ 
    g_clear_object (&priv->rows_size_group);
 @@ -3058,6 +3078,23 @@ cc_display_panel_night_light_activated (
  }
-
+ 
  static void
 +cc_display_panel_hidpi_mode_activated (CcDisplayPanel *panel)
 +{
@@ -104,7 +104,7 @@ Index: gnome-control-center-3.28.2/panels/display/cc-display-panel.c
    CcDisplayPanelPrivate *priv = panel->priv;
 @@ -3235,6 +3272,84 @@ make_night_light_widget (CcDisplayPanel
  }
-
+ 
  static void
 +hidpi_sync_switch (GtkWidget *witch, GSettings *settings)
 +{
@@ -190,7 +190,7 @@ Index: gnome-control-center-3.28.2/panels/display/cc-display-panel.c
 @@ -3297,6 +3412,11 @@ cc_display_panel_init (CcDisplayPanel *s
    priv->night_light_dialog = cc_night_light_dialog_new ();
    priv->settings_color = g_settings_new ("org.gnome.settings-daemon.plugins.color");
-
+ 
 +  GSettingsSchema *hidpi_schema = g_settings_schema_source_lookup(g_settings_schema_source_get_default(),
 +                                                            "com.system76.hidpi", TRUE);
 +  if (hidpi_schema)
