@@ -1,0 +1,43 @@
+From 99077fd471c15d1711a5fe706be77079bf09ea84 Mon Sep 17 00:00:00 2001
+From: Robert Ancell <robert.ancell@canonical.com>
+Date: Tue, 19 Feb 2019 15:44:58 +0100
+Subject: [PATCH 1/7] applications: Fix wrong IDs being passed to portal
+ permission store
+
+There were two cases of the app ID being used instead of the Flatpak ID.
+---
+ panels/applications/cc-applications-panel.c | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/panels/applications/cc-applications-panel.c b/panels/applications/cc-applications-panel.c
+index b4aae5838..16b423292 100644
+--- a/panels/applications/cc-applications-panel.c
++++ b/panels/applications/cc-applications-panel.c
+@@ -495,13 +495,13 @@ set_location_allowed (CcApplicationsPanel *self,
+   perms[1] = "0";
+   perms[2] = NULL;
+ 
+-  set_flatpak_permissions (self, "location", "location", self->current_app_id, perms);
++  set_flatpak_permissions (self, "location", "location", self->current_flatpak_id, perms);
+ }
+ 
+ static void
+ location_cb (CcApplicationsPanel *self)
+ {
+-  if (self->current_app_id)
++  if (self->current_flatpak_id)
+     set_location_allowed (self, cc_toggle_row_get_allowed (CC_TOGGLE_ROW (self->location)));
+ }
+ 
+@@ -650,7 +650,7 @@ update_integration_section (CcApplicationsPanel *self,
+                             GAppInfo            *info)
+ {
+   g_autofree gchar *app_id = get_app_id (info);
+-  g_autofree gchar *flatpak_id = get_app_id (info);
++  g_autofree gchar *flatpak_id = get_flatpak_id (info);
+   gboolean set, allowed, disabled;
+   gboolean has_any = FALSE;
+ 
+-- 
+2.20.1
+

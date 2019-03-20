@@ -4,7 +4,8 @@
  * SPDX-License-Identifier: LGPL-2.1+
  */
 
-#include <glib/gi18n.h>
+#include "config.h"
+#include <glib/gi18n-lib.h>
 
 #include "hdy-dialer.h"
 #include "hdy-dialer-button.h"
@@ -503,7 +504,7 @@ hdy_dialer_class_init (HdyDialerClass *klass)
                   G_TYPE_CHAR);
 
   gtk_widget_class_set_template_from_resource (widget_class,
-                                               "/sm/puri/handy/dialer/ui/hdy-dialer.ui");
+                                               "/sm/puri/handy/ui/hdy-dialer.ui");
   for (int i=0; i < 10; i++) {
     g_autofree gchar *name = g_strdup_printf("btn_%d", i);
     g_return_if_fail (name);
