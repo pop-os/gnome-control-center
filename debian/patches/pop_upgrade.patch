@@ -47,7 +47,7 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
    G_OBJECT_CLASS (cc_info_overview_panel_parent_class)->dispose (object);
  }
  
-@@ -960,6 +974,301 @@ s76_firmware_dialog (GtkButton *button,
+@@ -960,6 +974,308 @@ s76_firmware_dialog (GtkButton *button,
  }
  
  static void
@@ -76,14 +76,17 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
 +{
 +  g_info ("pop_upgrade: package fetch event");
 +
-+  GVariant *inner = g_variant_get_child_value (parameters, 0);
++  g_autoptr(GVariant) inner = g_variant_get_child_value (parameters, 0);
++  g_autoptr(GVariant) p1 = g_variant_get_child_value (parameters, 1);
++  g_autoptr(GVariant) p2 = g_variant_get_child_value (parameters, 2);
++
 +  gsize length = 0;
 +  const gchar *temp_str = g_variant_get_string (inner, &length);
 +  g_autofree gchar *package = g_strndup (temp_str, length);
 +
 +  if (NULL != package) {
-+    guint32 completed = g_variant_get_uint32 (g_variant_get_child_value (parameters, 1));
-+    guint32 total = g_variant_get_uint32 (g_variant_get_child_value (parameters, 2));
++    guint32 completed = g_variant_get_uint32 (p1);
++    guint32 total = g_variant_get_uint32 (p2);
 +    double percent = (double) completed / (double) total;
 +
 +    g_info ("fetched %s (%d/%d: %f)", package, completed, total, percent);
@@ -97,7 +100,7 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
 +                              GVariant *parameters)
 +{
 +  g_info ("pop_upgrade: package fetching event");
-+  GVariant *inner = g_variant_get_child_value (parameters, 0);
++  g_autoptr(GVariant) inner = g_variant_get_child_value (parameters, 0);
 +  gsize length = 0;
 +  const gchar *temp_str = g_variant_get_string (inner, &length);
 +  g_autofree gchar *package = g_strndup (temp_str, length);
@@ -153,8 +156,10 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
 +{
 +  g_info ("pop_upgrade: recovery download progress event");
 +
-+  guint64 progress = g_variant_get_uint64 (g_variant_get_child_value (parameters, 0));
-+  guint64 total = g_variant_get_uint64 (g_variant_get_child_value (parameters, 1));
++  g_autoptr(GVariant) p0 = g_variant_get_child_value (parameters, 0);
++  g_autoptr(GVariant) p1 = g_variant_get_child_value (parameters, 1);
++  guint64 progress = g_variant_get_uint64 (p0);
++  guint64 total = g_variant_get_uint64 (p1);
 +
 +  double fraction = (double) total / (double) progress;
 +  g_autofree gchar *desc = g_strdup_printf (
@@ -171,7 +176,8 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
 +                         GVariant *parameters, const gchar *(*callback)(guint8))
 +{
 +  g_info ("pop_upgrade: processing event");
-+  guint8 event = g_variant_get_byte (g_variant_get_child_value (parameters, 0));
++  g_autoptr(GVariant) inner = g_variant_get_child_value (parameters, 0);
++  guint8 event = g_variant_get_byte (inner);
 +  const gchar *msg = (*callback)(event);
 +  if (NULL != msg) {
 +    gtk_progress_bar_set_text (GTK_PROGRESS_BAR (self->pop_upgrade.os.progress), msg);
@@ -183,7 +189,8 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
 +                          GVariant *parameters, const gchar *ok, const gchar *err)
 +{
 +  g_info ("pop_upgrade: processing result");
-+  guint8 result = g_variant_get_byte (g_variant_get_child_value (parameters, 0));
++  g_autoptr(GVariant) inner = g_variant_get_child_value (parameters, 0);
++  guint8 result = g_variant_get_byte (inner);
 +  if (0 == result) {
 +    gtk_progress_bar_set_text (GTK_PROGRESS_BAR (self->pop_upgrade.os.progress), ok);
 +    return TRUE;
@@ -349,7 +356,7 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
  cc_info_overview_panel_class_init (CcInfoOverviewPanelClass *klass)
  {
    GObjectClass *object_class = G_OBJECT_CLASS (klass);
-@@ -994,21 +1303,30 @@ cc_info_overview_panel_class_init (CcInf
+@@ -994,21 +1310,30 @@ cc_info_overview_panel_class_init (CcInf
    gtk_widget_class_bind_template_child_private (widget_class, CcInfoOverviewPanel, firmware_upgrade_label);
    gtk_widget_class_bind_template_child_private (widget_class, CcInfoOverviewPanel, firmware_button);
  
@@ -383,7 +390,7 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
  
    if (self->permission != NULL) {
            g_signal_connect (self->permission, "notify",
-@@ -1028,6 +1346,48 @@ set_permissions (CcInfoOverviewPanelPriv
+@@ -1028,6 +1353,48 @@ set_permissions (CcInfoOverviewPanelPriv
  }
  
  static void
@@ -432,7 +439,7 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
  cc_info_overview_panel_init (CcInfoOverviewPanel *self)
  {
    CcInfoOverviewPanelPrivate *priv = cc_info_overview_panel_get_instance_private (self);
-@@ -1047,8 +1407,11 @@ cc_info_overview_panel_init (CcInfoOverv
+@@ -1047,8 +1414,11 @@ cc_info_overview_panel_init (CcInfoOverv
    info_overview_panel_setup_virt (self);
  
    // Pop-specific details
@@ -444,7 +451,7 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
  
    set_computer_label (GTK_LABEL (priv->computer_label));
    set_model_label (GTK_LABEL (priv->model_label));
-@@ -1062,9 +1425,17 @@ cc_info_overview_panel_init (CcInfoOverv
+@@ -1062,9 +1432,17 @@ cc_info_overview_panel_init (CcInfoOverv
      &priv->firmware_changelog
    );
  
@@ -525,7 +532,7 @@ Index: gnome-control-center/panels/info/pop-upgrade.c
 ===================================================================
 --- /dev/null
 +++ gnome-control-center/panels/info/pop-upgrade.c
-@@ -0,0 +1,309 @@
+@@ -0,0 +1,307 @@
 +#include "pop-upgrade.h"
 +#include <glib/gi18n.h>
 +
@@ -687,7 +694,6 @@ Index: gnome-control-center/panels/info/pop-upgrade.c
 +                                     G_DBUS_CALL_FLAGS_NONE, -1, NULL, error);
 +
 +    if (*error != NULL) {
-+        g_warning("error happened");
 +        g_warning ("failed to call %s on PopUpgrade: %s", METHOD_RELEASE_CHECK, (*error)->message);
 +        return -1;
 +    }
@@ -743,19 +749,17 @@ Index: gnome-control-center/panels/info/pop-upgrade.c
 +
 +int pop_upgrade_daemon_status (PopUpgradeDaemon *self, GError **error, PopUpgradeDaemonStatus *status) {
 +    g_info ("checking the status of the Pop upgrade daemon");
-+    g_autoptr(GVariant) retval = NULL;
 +
 +    if (NULL == self || NULL == self->proxy) {
 +      g_warning ("pop_upgrade_daemon_status called with null daemon/proxy");
 +      return -1;
 +    }
 +
-+    retval = g_dbus_proxy_call_sync (self->proxy, METHOD_STATUS, NULL,
-+                                     G_DBUS_CALL_FLAGS_NONE, -1, NULL, error);
++    g_autoptr(GVariant) retval = g_dbus_proxy_call_sync (self->proxy, METHOD_STATUS, NULL,
++                                                         G_DBUS_CALL_FLAGS_NONE, -1, NULL, error);
 +
 +    if (error != NULL && *error != NULL) {
 +        g_warning ("failed to call %s on PopUpgrade: %s", METHOD_STATUS, (*error)->message);
-+        g_variant_unref (retval);
 +        return -1;
 +    }
 +
@@ -765,6 +769,7 @@ Index: gnome-control-center/panels/info/pop-upgrade.c
 +      g_warning ("failed to call %s on PopUpgrade: expected %s, but received nothing", METHOD_STATUS, expected);
 +      return -2;
 +    }
++
 +    status->status = g_variant_get_byte (
 +      g_variant_get_child_value (retval, 0)
 +    );
