@@ -49,11 +49,14 @@
 #define HEADING_PADDING 12
 
 typedef enum {
-  /*< flags >*/
-  CC_DISPLAY_CONFIG_SINGLE = 0x1,
-  CC_DISPLAY_CONFIG_JOIN   = 0x2,
-  CC_DISPLAY_CONFIG_CLONE  = 0x4,
+  CC_DISPLAY_CONFIG_SINGLE,
+  CC_DISPLAY_CONFIG_JOIN,
+  CC_DISPLAY_CONFIG_CLONE,
+
+  CC_DISPLAY_CONFIG_INVALID_NONE,
 } CcDisplayConfigType;
+
+#define CC_DISPLAY_CONFIG_LAST_VALID CC_DISPLAY_CONFIG_CLONE
 
 struct _CcDisplayPanel
 {
@@ -63,7 +66,7 @@ struct _CcDisplayPanel
   CcDisplayConfig *current_config;
   CcDisplayMonitor *current_output;
 
-  gboolean              rebuilding;
+  gint                  rebuilding_counter;
 
   CcDisplayArrangement *arrangement;
   CcDisplaySettings    *settings;
@@ -126,14 +129,12 @@ set_current_output (CcDisplayPanel   *panel,
 
 
 static CcDisplayConfigType
-config_find_types (CcDisplayPanel *panel)
+config_get_current_type (CcDisplayPanel *panel)
 {
-  CcDisplayConfigType types = 0;
-  guint n_outputs, n_active_outputs;
+  guint n_active_outputs;
   GList *outputs, *l;
 
   outputs = cc_display_config_get_ui_sorted_monitors (panel->current_config);
-  n_outputs = g_list_length (outputs);
   n_active_outputs = 0;
   for (l = outputs; l; l = l->next)
     {
@@ -143,35 +144,14 @@ config_find_types (CcDisplayPanel *panel)
         n_active_outputs += 1;
     }
 
-  if (n_outputs > (panel->lid_is_closed ? 2 : 1))
-    {
-      if (cc_display_config_is_cloning (panel->current_config))
-        types |= CC_DISPLAY_CONFIG_CLONE;
-      else
-        {
-          types |= CC_DISPLAY_CONFIG_JOIN;
+  if (n_active_outputs == 0)
+    return CC_DISPLAY_CONFIG_INVALID_NONE;
 
-          if (n_active_outputs == 1)
-            types |= CC_DISPLAY_CONFIG_SINGLE;
-        }
-    }
-  else
-    {
-      types |= CC_DISPLAY_CONFIG_SINGLE;
-    }
-
-  return types;
-}
-
-static CcDisplayConfigType
-config_select_type (CcDisplayPanel *panel)
-{
-  CcDisplayConfigType types = config_find_types (panel);
-
-  if (types & CC_DISPLAY_CONFIG_CLONE)
-    return CC_DISPLAY_CONFIG_CLONE;
-  if (types & CC_DISPLAY_CONFIG_SINGLE)
+  if (n_active_outputs == 1)
     return CC_DISPLAY_CONFIG_SINGLE;
+
+  if (cc_display_config_is_cloning (panel->current_config))
+    return CC_DISPLAY_CONFIG_CLONE;
 
   return CC_DISPLAY_CONFIG_JOIN;
 }
@@ -190,35 +170,14 @@ cc_panel_get_selected_type (CcDisplayPanel *panel)
 }
 
 static void
-cc_panel_set_selected_type (CcDisplayPanel *panel, CcDisplayConfigType type)
-{
-  switch (type)
-    {
-    case CC_DISPLAY_CONFIG_JOIN:
-      gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (panel->config_type_join), TRUE);
-      break;
-    case CC_DISPLAY_CONFIG_CLONE:
-      gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (panel->config_type_mirror), TRUE);
-      break;
-    case CC_DISPLAY_CONFIG_SINGLE:
-      gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (panel->config_type_single), TRUE);
-      break;
-    default:
-      g_assert_not_reached ();
-    }
-}
-
-static void
 config_ensure_of_type (CcDisplayPanel *panel, CcDisplayConfigType type)
 {
-  CcDisplayConfigType types = config_find_types (panel);
+  CcDisplayConfigType current_type = config_get_current_type (panel);
   GList *outputs, *l;
 
-  if (type == CC_DISPLAY_CONFIG_SINGLE && (types & CC_DISPLAY_CONFIG_SINGLE))
-    return;
-
-  /* Already compatible and not just "single" mode. */
-  if (!(types & CC_DISPLAY_CONFIG_SINGLE) && (types & type))
+  /* Do not do anything if the current detected configuration type is
+   * identitcal to what we expect. */
+  if (type == current_type)
     return;
 
   reset_current_config (panel);
@@ -239,25 +198,29 @@ config_ensure_of_type (CcDisplayPanel *panel, CcDisplayConfigType type)
           if (cc_display_monitor_is_primary (output))
             {
               cc_display_monitor_set_active (output, TRUE);
+              cc_display_monitor_set_mode (output, cc_display_monitor_get_preferred_mode (output));
               set_current_output (panel, output, FALSE);
             }
           else
             {
               cc_display_monitor_set_active (output, FALSE);
+              cc_display_monitor_set_mode (output, cc_display_monitor_get_preferred_mode (output));
             }
         }
       break;
 
     case CC_DISPLAY_CONFIG_JOIN:
       g_debug ("Creating new join config");
-      /* Enable all usable outputs */
+      /* Enable all usable outputs
+       * Note that this might result in invalid configurations as we
+       * we might not be able to drive all attached monitors. */
       cc_display_config_set_cloning (panel->current_config, FALSE);
       for (l = outputs; l; l = l->next)
         {
           CcDisplayMonitor *output = l->data;
 
           cc_display_monitor_set_active (output, cc_display_monitor_is_usable (output));
-          break;
+          cc_display_monitor_set_mode (output, cc_display_monitor_get_preferred_mode (output));
         }
       break;
 
@@ -294,6 +257,27 @@ config_ensure_of_type (CcDisplayPanel *panel, CcDisplayConfigType type)
     }
 
   rebuild_ui (panel);
+}
+
+static void
+cc_panel_set_selected_type (CcDisplayPanel *panel, CcDisplayConfigType type)
+{
+  switch (type)
+    {
+    case CC_DISPLAY_CONFIG_JOIN:
+      gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (panel->config_type_join), TRUE);
+      break;
+    case CC_DISPLAY_CONFIG_CLONE:
+      gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (panel->config_type_mirror), TRUE);
+      break;
+    case CC_DISPLAY_CONFIG_SINGLE:
+      gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (panel->config_type_single), TRUE);
+      break;
+    default:
+      g_assert_not_reached ();
+    }
+
+  config_ensure_of_type (panel, type);
 }
 
 static void
@@ -476,7 +460,7 @@ on_config_type_toggled_cb (CcDisplayPanel *panel,
 {
   CcDisplayConfigType type;
 
-  if (panel->rebuilding)
+  if (panel->rebuilding_counter > 0)
     return;
 
   if (!panel->current_config)
@@ -511,8 +495,32 @@ on_output_enabled_active_changed_cb (CcDisplayPanel *panel)
   if (cc_display_monitor_is_active (panel->current_output) == active)
     return;
 
-  /* Changing the active state requires a UI rebuild. */
   cc_display_monitor_set_active (panel->current_output, active);
+
+  /* Prevent the invalid configuration of disabling the last monitor
+   * by switching on a different one. */
+  if (config_get_current_type (panel) == CC_DISPLAY_CONFIG_INVALID_NONE)
+    {
+      GList *outputs, *l;
+
+      outputs = cc_display_config_get_ui_sorted_monitors (panel->current_config);
+      for (l = outputs; l; l = l->next)
+        {
+          CcDisplayMonitor *output = CC_DISPLAY_MONITOR (l->data);
+
+          if (output == panel->current_output)
+            continue;
+
+          if (!cc_display_monitor_is_usable (output))
+            continue;
+
+          cc_display_monitor_set_active (output, TRUE);
+          cc_display_monitor_set_primary (output, TRUE);
+          break;
+        }
+    }
+
+  /* Changing the active state requires a UI rebuild. */
   rebuild_ui (panel);
 }
 
@@ -538,8 +546,31 @@ on_output_selection_combo_changed_cb (CcDisplayPanel *panel)
 static void
 on_output_selection_two_toggled_cb (CcDisplayPanel *panel, GtkRadioButton *btn)
 {
+  CcDisplayMonitor *output;
+
+  if (panel->rebuilding_counter > 0)
+    return;
+
   if (!gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (btn)))
     return;
+
+  output = g_object_get_data (G_OBJECT (btn), "display");
+
+  /* Stay in single mode when we are in single mode.
+   * This UI must never cause a switch between the configuration type.
+   * this is in contrast to the combobox monitor selection, which may
+   * switch to a disabled output both in SINGLE/MULTI mode without
+   * anything changing.
+   */
+  if (cc_panel_get_selected_type (panel) == CC_DISPLAY_CONFIG_SINGLE)
+    {
+      if (panel->current_output)
+        cc_display_monitor_set_active (panel->current_output, FALSE);
+      if (output)
+        cc_display_monitor_set_active (output, TRUE);
+
+      update_apply_button (panel);
+    }
 
   set_current_output (panel, g_object_get_data (G_OBJECT (btn), "display"), FALSE);
 }
@@ -550,7 +581,7 @@ on_primary_display_selected_index_changed_cb (CcDisplayPanel *panel)
   gint idx = hdy_combo_row_get_selected_index (panel->primary_display_row);
   g_autoptr(CcDisplayMonitor) output = NULL;
 
-  if (idx < 0)
+  if (idx < 0 || panel->rebuilding_counter > 0)
     return;
 
   output = g_list_model_get_item (G_LIST_MODEL (panel->primary_display_list), idx);
@@ -629,15 +660,7 @@ set_current_output (CcDisplayPanel   *panel,
   if (!changed && !force)
     return;
 
-  if (changed && cc_panel_get_selected_type (panel) == CC_DISPLAY_CONFIG_SINGLE)
-    {
-      if (output)
-        cc_display_monitor_set_active (output, TRUE);
-      if (panel->current_output && output != panel->current_output)
-        cc_display_monitor_set_active (panel->current_output, FALSE);
-
-      update_apply_button (panel);
-    }
+  panel->rebuilding_counter++;
 
   panel->current_output = output;
 
@@ -645,11 +668,13 @@ set_current_output (CcDisplayPanel   *panel,
     {
       gtk_label_set_text (panel->current_output_label, cc_display_monitor_get_ui_name (panel->current_output));
       gtk_switch_set_active (panel->output_enabled_switch, cc_display_monitor_is_active (panel->current_output));
+      gtk_widget_set_sensitive (GTK_WIDGET (panel->output_enabled_switch), cc_display_monitor_is_usable (panel->current_output));
     }
   else
     {
       gtk_label_set_text (panel->current_output_label, "");
       gtk_switch_set_active (panel->output_enabled_switch, FALSE);
+      gtk_widget_set_sensitive (GTK_WIDGET (panel->output_enabled_switch), FALSE);
     }
 
   if (g_object_get_data (G_OBJECT (panel->output_selection_two_first), "display") == output)
@@ -680,6 +705,8 @@ set_current_output (CcDisplayPanel   *panel,
       cc_display_settings_set_selected_output (panel->settings, panel->current_output);
       cc_display_arrangement_set_selected_output (panel->arrangement, panel->current_output);
     }
+
+  panel->rebuilding_counter--;
 }
 
 static void
@@ -687,8 +714,9 @@ rebuild_ui (CcDisplayPanel *panel)
 {
   guint n_outputs, n_active_outputs, n_usable_outputs;
   GList *outputs, *l;
+  CcDisplayConfigType type;
 
-  panel->rebuilding = TRUE;
+  panel->rebuilding_counter++;
 
   g_list_store_remove_all (panel->primary_display_list);
   gtk_list_store_clear (panel->output_selection_list);
@@ -700,6 +728,13 @@ rebuild_ui (CcDisplayPanel *panel)
     {
       GtkTreeIter iter;
       CcDisplayMonitor *output = l->data;
+
+      gtk_list_store_append (panel->output_selection_list, &iter);
+      gtk_list_store_set (panel->output_selection_list,
+                          &iter,
+                          0, cc_display_monitor_get_ui_number_name (output),
+                          1, output,
+                          -1);
 
       if (!cc_display_monitor_is_usable (output))
         continue;
@@ -723,13 +758,6 @@ rebuild_ui (CcDisplayPanel *panel)
                              output);
         }
 
-      gtk_list_store_append (panel->output_selection_list, &iter);
-      gtk_list_store_set (panel->output_selection_list,
-                          &iter,
-                          0, cc_display_monitor_get_ui_number_name (output),
-                          1, output,
-                          -1);
-
       if (cc_display_monitor_is_active (output))
         {
           n_active_outputs += 1;
@@ -751,45 +779,56 @@ rebuild_ui (CcDisplayPanel *panel)
   set_current_output (panel, panel->current_output, TRUE);
 
   n_outputs = g_list_length (outputs);
+  type = config_get_current_type (panel);
 
-  /* We only show the top chooser with two outputs (and never if the lid is closed).
-   * And only in that mode do we allow mirroring. */
-  if (n_outputs == 2 && !panel->lid_is_closed)
+  if (n_outputs == 2 && n_usable_outputs == 2)
     {
+      /* We only show the top chooser with two monitors that are
+       * both usable (i.e. two monitors incl. internal and lid not closed).
+       * In this case, the arrangement widget is shown if we are in JOIN mode.
+       */
+      if (type > CC_DISPLAY_CONFIG_LAST_VALID)
+        type = CC_DISPLAY_CONFIG_JOIN;
+
       gtk_widget_set_visible (panel->config_type_switcher_frame, TRUE);
+      gtk_widget_set_visible (panel->arrangement_frame, type == CC_DISPLAY_CONFIG_JOIN);
 
-      cc_panel_set_selected_type (panel, config_select_type (panel));
-    }
-  else
-    {
-      gtk_widget_set_visible (panel->config_type_switcher_frame, FALSE);
-      if (n_outputs == (panel->lid_is_closed ? 2 : 1))
-        cc_panel_set_selected_type (panel, CC_DISPLAY_CONFIG_SINGLE);
-      else
-        cc_panel_set_selected_type (panel, CC_DISPLAY_CONFIG_JOIN);
-    }
-
-
-  gtk_widget_set_visible (panel->arrangement_frame, cc_panel_get_selected_type (panel) == CC_DISPLAY_CONFIG_JOIN);
-
-  if (panel->lid_is_closed)
-    {
-      if (n_outputs <= 2 || cc_panel_get_selected_type (panel) == CC_DISPLAY_CONFIG_CLONE)
+      /* We need a switcher except in CLONE mode */
+      if (type == CC_DISPLAY_CONFIG_CLONE)
         gtk_stack_set_visible_child_name (panel->output_selection_stack, "no-selection");
       else
-        gtk_stack_set_visible_child_name (panel->output_selection_stack, "multi-selection");
-    }
-  else
-    {
-      if (n_outputs == 1 || cc_panel_get_selected_type (panel) == CC_DISPLAY_CONFIG_CLONE)
-        gtk_stack_set_visible_child_name (panel->output_selection_stack, "no-selection");
-      else if (n_outputs == 2)
         gtk_stack_set_visible_child_name (panel->output_selection_stack, "two-selection");
-      else
-        gtk_stack_set_visible_child_name (panel->output_selection_stack, "multi-selection");
+    }
+  else if (n_usable_outputs > 1)
+    {
+      /* We have more than one usable monitor. In this case there is no chooser,
+       * and we always show the arrangement widget even if we are in SINGLE mode.
+       */
+      gtk_widget_set_visible (panel->config_type_switcher_frame, FALSE);
+      gtk_widget_set_visible (panel->arrangement_frame, TRUE);
+
+      /* Mirror is also invalid as it cannot be configured using this UI. */
+      if (type == CC_DISPLAY_CONFIG_CLONE || type > CC_DISPLAY_CONFIG_LAST_VALID)
+        type = CC_DISPLAY_CONFIG_JOIN;
+
+      gtk_stack_set_visible_child_name (panel->output_selection_stack, "multi-selection");
+    }
+  else
+    {
+      /* We only have a single usable monitor, show neither configuration type
+       * switcher nor arrangement widget and ensure we really are in SINGLE
+       * mode (and not e.g. mirroring across one display) */
+      type = CC_DISPLAY_CONFIG_SINGLE;
+
+      gtk_widget_set_visible (panel->config_type_switcher_frame, FALSE);
+      gtk_widget_set_visible (panel->arrangement_frame, FALSE);
+
+      gtk_stack_set_visible_child_name (panel->output_selection_stack, "no-selection");
     }
 
-  panel->rebuilding = FALSE;
+  cc_panel_set_selected_type (panel, type);
+
+  panel->rebuilding_counter--;
   update_apply_button (panel);
 }
 

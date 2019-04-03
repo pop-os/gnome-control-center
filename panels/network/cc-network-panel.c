@@ -301,7 +301,16 @@ panel_refresh_device_titles (CcNetworkPanel *panel)
 
         titles = nm_device_disambiguate_names (nm_devices, num_devices);
         for (i = 0; i < num_devices; i++) {
-                net_object_set_title (NET_OBJECT (devices[i]), titles[i]);
+                const gchar *bt_name = NULL;
+
+                if (NM_IS_DEVICE_BT (nm_devices[i]))
+                        bt_name = nm_device_bt_get_name (NM_DEVICE_BT (nm_devices[i]));
+
+                /* For bluetooth devices, use their device name. */
+                if (bt_name)
+                        net_object_set_title (NET_OBJECT (devices[i]), bt_name);
+                else
+                        net_object_set_title (NET_OBJECT (devices[i]), titles[i]);
                 g_free (titles[i]);
         }
         g_free (titles);
@@ -468,21 +477,18 @@ panel_add_device (CcNetworkPanel *panel, NMDevice *device)
         case NM_DEVICE_TYPE_MODEM:
                 device_g_type = NET_TYPE_DEVICE_MOBILE;
                 break;
-        /* Let the wi-fi panel take care of wifi devices */
-        case NM_DEVICE_TYPE_WIFI:
-        /* not going to set up a cluster in GNOME */
-        case NM_DEVICE_TYPE_VETH:
-        /* enterprise features */
-        case NM_DEVICE_TYPE_BOND:
-        case NM_DEVICE_TYPE_TEAM:
-        /* Don't need the libvirtd bridge */
-        case NM_DEVICE_TYPE_BRIDGE:
-        /* Don't add VPN devices */
-        case NM_DEVICE_TYPE_TUN:
-                return;
-        default:
+        case NM_DEVICE_TYPE_BT:
                 device_g_type = NET_TYPE_DEVICE_SIMPLE;
                 break;
+
+        /* For Wi-Fi and VPN we handle connections separately; we correctly manage
+         * them, but not here.
+         */
+        case NM_DEVICE_TYPE_WIFI:
+        case NM_DEVICE_TYPE_TUN:
+        /* And the rest we simply cannot deal with currently. */
+        default:
+                return;
         }
 
         /* create device */
