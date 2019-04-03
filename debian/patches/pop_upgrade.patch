@@ -47,30 +47,32 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
    G_OBJECT_CLASS (cc_info_overview_panel_parent_class)->dispose (object);
  }
  
-@@ -960,6 +974,308 @@ s76_firmware_dialog (GtkButton *button,
+@@ -960,6 +974,399 @@ s76_firmware_dialog (GtkButton *button,
  }
  
  static void
-+pop_upgrade_set_try_again (CcInfoOverviewPanelPrivate *self, const gchar *why)
-+{
-+  gtk_stack_set_visible_child (GTK_STACK (self->pop_upgrade.os.stack), self->pop_upgrade.os.button_box);
-+  gtk_label_set_text (GTK_LABEL (self->pop_upgrade.os.label), why);
-+  gtk_button_set_label (GTK_BUTTON (self->pop_upgrade.os.button), _("Try Again"));
-+}
-+
-+static void
-+pop_upgrade_failed (CcInfoOverviewPanelPrivate *self,
++pop_upgrade_failed (PopUpgradeOption *active,
++                    CcInfoOverviewPanelPrivate *self,
 +                    GDBusConnection *connection,
 +                    const gchar *why)
 +{
 +  g_info ("pop_upgrade: upgrade failed: %s", why);
-+  g_dbus_connection_signal_unsubscribe (connection, self->os_subscribe);
-+  self->os_subscribe = 0;
-+  pop_upgrade_set_try_again (self, why);
++  if (0 != self->os_subscribe) {
++    g_dbus_connection_signal_unsubscribe (connection, self->os_subscribe);
++    self->os_subscribe = 0;
++  }
++
++  PopUpgradeOption *other_options[2] = { NULL, NULL };
++  other_options[0] = (self->pop_upgrade.os.active)
++    ? &self->pop_upgrade.rec
++    : &self->pop_upgrade.os;
++
++  pop_upgrade_option_try_again (active, other_options, why);
 +}
 +
 +static void
-+pop_upgrade_package_fetched (CcInfoOverviewPanelPrivate *self,
++pop_upgrade_package_fetched (PopUpgradeOption *active,
++                             CcInfoOverviewPanelPrivate *self,
 +                             GDBusConnection *connection,
 +                             GVariant *parameters)
 +{
@@ -90,12 +92,13 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
 +    double percent = (double) completed / (double) total;
 +
 +    g_info ("fetched %s (%d/%d: %f)", package, completed, total, percent);
-+    gtk_progress_bar_set_fraction (GTK_PROGRESS_BAR (self->pop_upgrade.os.progress), percent);
++    gtk_progress_bar_set_fraction (GTK_PROGRESS_BAR (active->progress), percent);
 +  }
 +}
 +
 +static void
-+pop_upgrade_package_fetching (CcInfoOverviewPanelPrivate *self,
++pop_upgrade_package_fetching (PopUpgradeOption *active,
++                              CcInfoOverviewPanelPrivate *self,
 +                              GDBusConnection *connection,
 +                              GVariant *parameters)
 +{
@@ -106,12 +109,13 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
 +  g_autofree gchar *package = g_strndup (temp_str, length);
 +  if (NULL != package) {
 +    g_autofree gchar *desc = g_strdup_printf (_("Fetching %s"), package);
-+    gtk_progress_bar_set_text (GTK_PROGRESS_BAR (self->pop_upgrade.os.progress), desc);
++    gtk_progress_bar_set_text (GTK_PROGRESS_BAR (active->progress), desc);
 +  }
 +}
 +
 +static void
-+pop_upgrade_package_upgrade (CcInfoOverviewPanelPrivate *self,
++pop_upgrade_package_upgrade (PopUpgradeOption *active,
++                             CcInfoOverviewPanelPrivate *self,
 +                             GDBusConnection *connection,
 +                             GVariant *parameters)
 +{
@@ -128,7 +132,7 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
 +    guint16 percent = 0;
 +    if (1 == sscanf (fst, "%hi", &percent)) {
 +      double fraction = (double) percent / (double) 100;
-+      gtk_progress_bar_set_fraction (GTK_PROGRESS_BAR (self->pop_upgrade.os.progress), fraction);
++      gtk_progress_bar_set_fraction (GTK_PROGRESS_BAR (active->progress), fraction);
 +    } else {
 +      g_warning (_("Failed to read percent value"));
 +    }
@@ -146,13 +150,13 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
 +  }
 +
 +  if (desc) {
-+    gtk_progress_bar_set_text (GTK_PROGRESS_BAR (self->pop_upgrade.os.progress), desc);
++    gtk_progress_bar_set_text (GTK_PROGRESS_BAR (active->progress), desc);
 +  }
 +}
 +
 +static void
-+pop_upgrade_recovery_download_progress (CcInfoOverviewPanelPrivate *self, GDBusConnection *connection,
-+                                        GVariant *parameters)
++pop_upgrade_recovery_download_progress (PopUpgradeOption *active, CcInfoOverviewPanelPrivate *self,
++                                        GDBusConnection *connection, GVariant *parameters)
 +{
 +  g_info ("pop_upgrade: recovery download progress event");
 +
@@ -167,35 +171,37 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
 +    (int) (fraction * 100)
 +  );
 +
-+  gtk_progress_bar_set_text (GTK_PROGRESS_BAR (self->pop_upgrade.os.progress), desc);
-+  gtk_progress_bar_set_fraction (GTK_PROGRESS_BAR (self->pop_upgrade.os.progress), fraction);
++  gtk_progress_bar_set_text (GTK_PROGRESS_BAR (active->progress), desc);
++  gtk_progress_bar_set_fraction (GTK_PROGRESS_BAR (active->progress), fraction);
 +}
 +
 +static void
-+pop_upgrade_event_event (CcInfoOverviewPanelPrivate *self, GDBusConnection *connection,
-+                         GVariant *parameters, const gchar *(*callback)(guint8))
++pop_upgrade_event_event (PopUpgradeOption *active, CcInfoOverviewPanelPrivate *self,
++                         GDBusConnection *connection, GVariant *parameters,
++                         const gchar *(*callback)(guint8))
 +{
 +  g_info ("pop_upgrade: processing event");
 +  g_autoptr(GVariant) inner = g_variant_get_child_value (parameters, 0);
 +  guint8 event = g_variant_get_byte (inner);
 +  const gchar *msg = (*callback)(event);
 +  if (NULL != msg) {
-+    gtk_progress_bar_set_text (GTK_PROGRESS_BAR (self->pop_upgrade.os.progress), msg);
++    gtk_progress_bar_set_text (GTK_PROGRESS_BAR (active->progress), msg);
 +  }
 +}
 +
 +static gboolean
-+pop_upgrade_event_result (CcInfoOverviewPanelPrivate *self, GDBusConnection *connection,
-+                          GVariant *parameters, const gchar *ok, const gchar *err)
++pop_upgrade_event_result (PopUpgradeOption *active, CcInfoOverviewPanelPrivate *self,
++                          GDBusConnection *connection, GVariant *parameters,
++                          const gchar *ok, const gchar *err)
 +{
 +  g_info ("pop_upgrade: processing result");
 +  g_autoptr(GVariant) inner = g_variant_get_child_value (parameters, 0);
 +  guint8 result = g_variant_get_byte (inner);
 +  if (0 == result) {
-+    gtk_progress_bar_set_text (GTK_PROGRESS_BAR (self->pop_upgrade.os.progress), ok);
++    gtk_progress_bar_set_text (GTK_PROGRESS_BAR (active->progress), ok);
 +    return TRUE;
 +  } else {
-+    pop_upgrade_failed (self, connection, err);
++    pop_upgrade_failed (active, self, connection, err);
 +    return FALSE;
 +  }
 +}
@@ -217,47 +223,67 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
 +
 +  g_info ("variant type returned: %s", g_variant_get_type_string (parameters));
 +
-+  if (0 == g_strcmp0 (POP_UPGRADE_SIGNAL_PACKAGE_FETCHED, signal_name)) {
-+    pop_upgrade_package_fetched (self, connection, parameters);
-+  } else if (0 == g_strcmp0 (POP_UPGRADE_SIGNAL_PACKAGE_FETCHING, signal_name)) {
-+    pop_upgrade_package_fetching (self, connection, parameters);
-+  } else if (0 == g_strcmp0 (POP_UPGRADE_SIGNAL_PACKAGE_UPGRADE, signal_name)) {
-+    pop_upgrade_package_upgrade (self, connection, parameters);
-+  } else if (0 == g_strcmp0 (POP_UPGRADE_SIGNAL_RECOVERY_DOWNLOAD_PROGRESS, signal_name)) {
-+    pop_upgrade_recovery_download_progress (self, connection, parameters);
-+  } else if (0 == g_strcmp0 (POP_UPGRADE_SIGNAL_RECOVERY_EVENT, signal_name)) {
-+    pop_upgrade_event_event (self, connection, parameters,
-+                             pop_upgrade_recovery_event_as_str);
-+  } else if (0 == g_strcmp0 (POP_UPGRADE_SIGNAL_PACKAGE_FETCH_RESULT, signal_name)) {
-+    g_info ("executing fetch result");
-+    pop_upgrade_event_result (self, connection, parameters,
-+                              _("Packages fetched successfully"),
-+                              _("Failed to fetch package"));
-+  } else if (0 == g_strcmp0 (POP_UPGRADE_SIGNAL_RECOVERY_RESULT, signal_name)) {
-+    g_info ("executing recovery result");
-+    pop_upgrade_event_result (self, connection, parameters,
-+                              _("Recovery partition upgraded"),
-+                              _("Failed to upgrade recovery partition"));
-+  } else if (0 == g_strcmp0 (POP_UPGRADE_SIGNAL_RELEASE_EVENT, signal_name)) {
-+    pop_upgrade_event_event (self, connection, parameters,
-+                             pop_upgrade_release_event_as_str);
-+  } else if (0 == g_strcmp0 (POP_UPGRADE_SIGNAL_RELEASE_RESULT, signal_name)) {
-+    g_info ("executing release result");
-+    const gchar *msg = _("Release ready. You may now restart.");
-+    gboolean success = pop_upgrade_event_result (self, connection, parameters,
-+                                                 msg,
-+                                                 _("Failed to set up release upgrade"));
++  if (self->pop_upgrade.os.active) {
++    PopUpgradeOption *active = &self->pop_upgrade.os;
 +
-+    if (success) {
-+      g_info ("success: %s", msg);
-+      gtk_label_set_text (GTK_LABEL (self->pop_upgrade.os.label), msg);
-+      gtk_stack_set_visible_child (GTK_STACK (self->pop_upgrade.os.stack), self->pop_upgrade.os.button_box);
-+      g_dbus_connection_signal_unsubscribe (connection, self->os_subscribe);
++    if (0 == g_strcmp0 (POP_UPGRADE_SIGNAL_PACKAGE_FETCHED, signal_name)) {
++      pop_upgrade_package_fetched (active, self, connection, parameters);
++    } else if (0 == g_strcmp0 (POP_UPGRADE_SIGNAL_PACKAGE_FETCHING, signal_name)) {
++      pop_upgrade_package_fetching (active, self, connection, parameters);
++    } else if (0 == g_strcmp0 (POP_UPGRADE_SIGNAL_PACKAGE_UPGRADE, signal_name)) {
++      pop_upgrade_package_upgrade (active, self, connection, parameters);
++    } else if (0 == g_strcmp0 (POP_UPGRADE_SIGNAL_PACKAGE_FETCH_RESULT, signal_name)) {
++      g_info ("executing fetch result");
++      pop_upgrade_event_result (active, self, connection, parameters,
++                                _("Packages fetched successfully"),
++                                _("Failed to fetch package"));
++    } else if (0 == g_strcmp0 (POP_UPGRADE_SIGNAL_RECOVERY_RESULT, signal_name)) {
++      g_info ("executing recovery result");
++      pop_upgrade_event_result (active, self, connection, parameters,
++                                _("Recovery partition upgraded"),
++                                _("Failed to upgrade recovery partition"));
++    } else if (0 == g_strcmp0 (POP_UPGRADE_SIGNAL_RELEASE_EVENT, signal_name)) {
++      pop_upgrade_event_event (active, self, connection, parameters,
++                              pop_upgrade_release_event_as_str);
++    } else if (0 == g_strcmp0 (POP_UPGRADE_SIGNAL_RELEASE_RESULT, signal_name)) {
++      g_info ("executing release result");
++      const gchar *msg = _("Release ready. You may now restart.");
++      gboolean success = pop_upgrade_event_result (active, self, connection, parameters,
++                                                  msg, _("Failed to set up release upgrade"));
++
++      if (success) {
++        g_info ("success: %s", msg);
++        gtk_label_set_text (GTK_LABEL (active->label), msg);
++        gtk_stack_set_visible_child (GTK_STACK (active->stack), active->button_box);
++        g_dbus_connection_signal_unsubscribe (connection, self->os_subscribe);
++      }
++    }
++  } else {
++    PopUpgradeOption *active = &self->pop_upgrade.rec;
++
++    if (0 == g_strcmp0 (POP_UPGRADE_SIGNAL_RECOVERY_DOWNLOAD_PROGRESS, signal_name)) {
++      pop_upgrade_recovery_download_progress (active, self, connection, parameters);
++    } else if (0 == g_strcmp0 (POP_UPGRADE_SIGNAL_RECOVERY_EVENT, signal_name)) {
++      pop_upgrade_event_event (active, self, connection, parameters,
++                              pop_upgrade_recovery_event_as_str);
++    } else if (0 == g_strcmp0 (POP_UPGRADE_SIGNAL_RECOVERY_RESULT, signal_name)) {
++      g_info ("executing release result");
++      const gchar *msg = _("Release ready. You may now restart.");
++      gboolean success = pop_upgrade_event_result (active, self, connection, parameters,
++                                                   msg, _("Failed to set up recovery upgrade"));
++
++      if (success) {
++        g_info ("success: %s", msg);
++        gtk_label_set_text (GTK_LABEL (active->label), msg);
++        gtk_stack_set_visible_child (GTK_STACK (active->stack), active->button_box);
++        g_dbus_connection_signal_unsubscribe (connection, self->os_subscribe);
++      }
 +    }
 +  }
 +}
 +
 +typedef struct {
++  PopUpgradeOption *active;
 +  CcInfoOverviewPanelPrivate *priv;
 +  guint expected_status;
 +} ConnectionData;
@@ -278,7 +304,7 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
 +      }
 +    }
 +
-+    pop_upgrade_failed (data->priv,
++    pop_upgrade_failed (data->active, data->priv,
 +                        g_dbus_proxy_get_connection (daemon->proxy),
 +                        cause);
 +  }
@@ -289,7 +315,8 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
 +}
 +
 +static void
-+pop_upgrade_daemon_listen_upgrade_signals (CcInfoOverviewPanelPrivate *self)
++pop_upgrade_daemon_listen (PopUpgradeOption *active, CcInfoOverviewPanelPrivate *self,
++                           guint expected_status)
 +{
 +    PopUpgradeDaemon *daemon = self->upgrade_daemon;
 +    GDBusConnection *conn = g_dbus_proxy_get_connection (daemon->proxy);
@@ -307,9 +334,22 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
 +    );
 +
 +    ConnectionData *data = g_slice_new0 (ConnectionData);
++    data->active = active;
 +    data->priv = self;
-+    data->expected_status = POP_UPGRADE_STATUS_RELEASE_UPGRADE;
++    data->expected_status = expected_status;
 +    self->os_subscribe_idle = g_timeout_add (3000, pop_upgrade_check, data);
++}
++
++static void
++pop_upgrade_daemon_listen_upgrade_signals (CcInfoOverviewPanelPrivate *self)
++{
++  pop_upgrade_daemon_listen (&self->pop_upgrade.os, self, POP_UPGRADE_STATUS_RELEASE_UPGRADE);
++}
++
++static void
++pop_upgrade_daemon_listen_recovery_upgrade_signals (CcInfoOverviewPanelPrivate *self)
++{
++  pop_upgrade_daemon_listen (&self->pop_upgrade.rec, self, POP_UPGRADE_STATUS_RECOVERY_UPGRADE);
 +}
 +
 +static void
@@ -318,9 +358,14 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
 +{
 +  g_info ("Pop upgrade process starting");
 +  CcInfoOverviewPanelPrivate *priv = cc_info_overview_panel_get_instance_private (self);
-+  gtk_stack_set_visible_child (GTK_STACK (priv->pop_upgrade.os.stack), priv->pop_upgrade.os.progress);
-+  gtk_progress_bar_set_text (GTK_PROGRESS_BAR (priv->pop_upgrade.os.progress), _("Initializing upgrade process"));
-+  gtk_progress_bar_set_fraction (GTK_PROGRESS_BAR (priv->pop_upgrade.os.progress), 0.0);
++
++  PopUpgradeOption *other_options[2] = { &priv->pop_upgrade.rec, NULL };
++  pop_upgrade_option_initiate_action (
++    &priv->pop_upgrade.os,
++    other_options,
++    _("Initializing release upgrade"),
++    _("Release upgrade in progress -- please wait")
++  );
 +
 +  g_info ("upgrading from %s to %s", priv->release_check->current,
 +           priv->release_check->next);
@@ -348,7 +393,53 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
 +  }
 +
 +  if (NULL != error_message) {
-+    pop_upgrade_set_try_again (priv, error_message);
++    pop_upgrade_option_try_again (&priv->pop_upgrade.os, other_options, error_message);
++  }
++}
++
++static void
++pop_recovery_upgrade (GtkButton *button,
++                      CcInfoOverviewPanel *self)
++{
++  g_info ("Pop upgrade process starting");
++  CcInfoOverviewPanelPrivate *priv = cc_info_overview_panel_get_instance_private (self);
++
++  PopUpgradeOption *other_options[2] = { &priv->pop_upgrade.os, NULL };
++  pop_upgrade_option_initiate_action (
++    &priv->pop_upgrade.rec,
++    other_options,
++    _("Initializing recovery upgrade"),
++    _("Recovery upgrade in progress -- please wait")
++  );
++
++  g_info ("upgrading from %s to %s", priv->release_check->current,
++           priv->release_check->next);
++
++  g_autoptr(GError) error = NULL;
++  g_autofree gchar *error_message = NULL;
++
++  // Ensure that the /recovery partition is mounted, if it can be mounted.
++  // The daemon will safely fix other system isues as well, if it finds any.
++  if (0 == pop_upgrade_daemon_repair (priv->upgrade_daemon, &error)) {
++    guint8 method = (g_file_test ("/recovery", G_FILE_TEST_IS_DIR))
++      ? POP_UPGRADE_RELEASE_METHOD_RECOVERY
++      : POP_UPGRADE_RELEASE_METHOD_OFFLINE;
++
++    pop_upgrade_daemon_listen_recovery_upgrade_signals (priv);
++    int result = pop_upgrade_daemon_recovery_upgrade_by_release (priv->upgrade_daemon, &error,
++                                                                 priv->release_check->next,
++                                                                 pop_upgrade_get_channel (),
++                                                                 0);
++
++    if (0 != result) {
++      error_message = g_strdup_printf (_("Failed to start recovery upgrade: %s"), error->message);
++    }
++  } else {
++    error_message = g_strdup_printf (_("Failed to repair system: %s"), error->message);
++  }
++
++  if (NULL != error_message) {
++    pop_upgrade_option_try_again (&priv->pop_upgrade.rec, other_options, error_message);
 +  }
 +}
 +
@@ -356,7 +447,7 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
  cc_info_overview_panel_class_init (CcInfoOverviewPanelClass *klass)
  {
    GObjectClass *object_class = G_OBJECT_CLASS (klass);
-@@ -994,21 +1310,30 @@ cc_info_overview_panel_class_init (CcInf
+@@ -994,21 +1401,30 @@ cc_info_overview_panel_class_init (CcInf
    gtk_widget_class_bind_template_child_private (widget_class, CcInfoOverviewPanel, firmware_upgrade_label);
    gtk_widget_class_bind_template_child_private (widget_class, CcInfoOverviewPanel, firmware_button);
  
@@ -383,14 +474,28 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
  
  static void
  set_permissions (CcInfoOverviewPanelPrivate *self) {
-   GError *error = NULL;
+-  GError *error = NULL;
++  g_autoptr(GError) error = NULL;
    self->permission = (GPermission *) polkit_permission_new_sync (INFO_PERMISSION, NULL, NULL, &error);
 -  gtk_widget_set_sensitive (self->firmware_button, FALSE);
 +  about_unlock_check (self);
  
    if (self->permission != NULL) {
            g_signal_connect (self->permission, "notify",
-@@ -1028,6 +1353,48 @@ set_permissions (CcInfoOverviewPanelPriv
+@@ -1016,18 +1432,56 @@ set_permissions (CcInfoOverviewPanelPriv
+           on_permission_changed (self->permission, NULL, self);
+   } else {
+           g_warning ("Cannot create '%s' permission: %s", INFO_PERMISSION, error->message);
+-          g_error_free (error);
+   }
+ 
+   self->lock_button = gtk_lock_button_new (self->permission);
+   gtk_widget_set_name (self->lock_button, "info-lock");
+ 
+   self->lock_header = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 6);
+-  gtk_container_add (self->lock_header, self->lock_button);
++  gtk_container_add (GTK_CONTAINER (self->lock_header), self->lock_button);
+   gtk_widget_show_all (self->lock_header);
  }
  
  static void
@@ -399,12 +504,13 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
 +  g_info ("connecting to Pop upgrade daemon");
 +
 +  const gchar *recovery_text = _("No recovery updates available");
-+  gchar *upgrade_text = _("No upgrades available");
-+  gboolean upgrade_text_copied = FALSE;
++  const gchar *upgrade_text = _("No upgrades available");
++
++  g_autofree gchar *upgrade_text_heap = NULL;
 +  g_autoptr(GError) error = NULL;
 +
-+  gtk_widget_set_visible (priv->pop_upgrade.os.button, FALSE);
-+  gtk_widget_set_visible (priv->pop_upgrade.rec.button, FALSE);
++  gtk_widget_hide (priv->pop_upgrade.os.button);
++  gtk_widget_hide (priv->pop_upgrade.rec.button);
 +  if (!pop_upgrade_daemon_connect (priv->upgrade_daemon, &error)) {
 +    if (!pop_upgrade_daemon_release_check (priv->upgrade_daemon, &error, priv->release_check)) {
 +      if (priv->release_check->available) {
@@ -412,34 +518,30 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
 +                priv->release_check->next);
 +
 +        recovery_text = _("Recovery update available");
-+        upgrade_text = g_strdup_printf (
++        upgrade_text_heap = g_strdup_printf (
 +          _("Upgrade from %s to %s"),
 +          priv->release_check->current,
 +          priv->release_check->next
 +        );
 +
-+        upgrade_text_copied = TRUE;
-+
 +        gtk_button_set_label (GTK_BUTTON (priv->pop_upgrade.rec.button), _("Upgrade"));
 +        gtk_button_set_label (GTK_BUTTON (priv->pop_upgrade.os.button), _("Upgrade"));
-+        gtk_widget_set_visible (priv->pop_upgrade.os.button, TRUE);
-+        gtk_widget_set_visible (priv->pop_upgrade.rec.button, TRUE);
++        gtk_widget_show (priv->pop_upgrade.os.button);
++        gtk_widget_show (priv->pop_upgrade.rec.button);
 +      }
 +    }
 +  }
 +
++  upgrade_text = (NULL == upgrade_text_heap) ? upgrade_text : upgrade_text_heap;
 +  gtk_label_set_text (GTK_LABEL (priv->pop_upgrade.rec.label), recovery_text);
 +  gtk_label_set_text (GTK_LABEL (priv->pop_upgrade.os.label), upgrade_text);
-+  if (upgrade_text_copied) {
-+    g_free (upgrade_text);
-+  }
 +}
 +
 +static void
  cc_info_overview_panel_init (CcInfoOverviewPanel *self)
  {
    CcInfoOverviewPanelPrivate *priv = cc_info_overview_panel_get_instance_private (self);
-@@ -1047,8 +1414,11 @@ cc_info_overview_panel_init (CcInfoOverv
+@@ -1047,8 +1501,11 @@ cc_info_overview_panel_init (CcInfoOverv
    info_overview_panel_setup_virt (self);
  
    // Pop-specific details
@@ -451,7 +553,7 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
  
    set_computer_label (GTK_LABEL (priv->computer_label));
    set_model_label (GTK_LABEL (priv->model_label));
-@@ -1062,9 +1432,17 @@ cc_info_overview_panel_init (CcInfoOverv
+@@ -1062,9 +1519,18 @@ cc_info_overview_panel_init (CcInfoOverv
      &priv->firmware_changelog
    );
  
@@ -464,6 +566,7 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
  
    g_signal_connect (priv->firmware_button, "clicked", G_CALLBACK (s76_firmware_dialog), self);
 +  g_signal_connect (priv->pop_upgrade.os.button, "clicked", G_CALLBACK (pop_upgrade), self);
++  g_signal_connect (priv->pop_upgrade.rec.button, "clicked", G_CALLBACK (pop_recovery_upgrade), self);
 +
 +  g_object_unref (button_group);
  }
@@ -532,7 +635,7 @@ Index: gnome-control-center/panels/info/pop-upgrade.c
 ===================================================================
 --- /dev/null
 +++ gnome-control-center/panels/info/pop-upgrade.c
-@@ -0,0 +1,307 @@
+@@ -0,0 +1,366 @@
 +#include "pop-upgrade.h"
 +#include <glib/gi18n.h>
 +
@@ -616,6 +719,10 @@ Index: gnome-control-center/panels/info/pop-upgrade.c
 +  }
 +}
 +
++const gchar *pop_upgrade_get_channel (void) {
++  return "nvidia";
++}
++
 +ReleaseCheck release_check_new (void) {
 +    ReleaseCheck status = { NULL, NULL, FALSE };
 +    return status;
@@ -628,15 +735,12 @@ Index: gnome-control-center/panels/info/pop-upgrade.c
 +
 +void release_check_free (ReleaseCheck *self) {
 +    if (NULL != self) {
-+        if (NULL != self->current) {
-+            g_clear_pointer (&self->current, g_free);
-+        }
-+
-+        if (NULL != self->next) {
-+            g_clear_pointer (&self->next, g_free);
-+        }
++        g_clear_pointer (&self->current, g_free);
++        g_clear_pointer (&self->next, g_free);
 +    }
 +}
++
++G_DEFINE_AUTOPTR_CLEANUP_FUNC (ReleaseCheck, release_check_free);
 +
 +PopUpgradeDaemon pop_upgrade_daemon_new (void) {
 +    PopUpgradeDaemon daemon = { NULL };
@@ -661,7 +765,8 @@ Index: gnome-control-center/panels/info/pop-upgrade.c
 +
 +int pop_upgrade_daemon_recovery_upgrade_by_release (PopUpgradeDaemon *self,
 +                                                    GError **error,
-+                                                    gchar *version, gchar *arch, guint8 flags) {
++                                                    const gchar *version,
++                                                    const gchar *arch, guint8 flags) {
 +    g_info ("upgrading the recovery partition by release");
 +
 +    GVariant *input[3];
@@ -712,7 +817,7 @@ Index: gnome-control-center/panels/info/pop-upgrade.c
 +}
 +
 +int pop_upgrade_daemon_release_upgrade (PopUpgradeDaemon *self, GError **error, guint8 how,
-+                                        gchar *from, gchar *to)
++                                        const gchar *from, const gchar *to)
 +{
 +    g_info ("beginning release upgrade for Pop");
 +
@@ -781,7 +886,7 @@ Index: gnome-control-center/panels/info/pop-upgrade.c
 +    return 0;
 +}
 +
-+static PopUpgradeOption pop_upgrade_option_new () {
++static PopUpgradeOption pop_upgrade_option_new (const gchar *name) {
 +  // On click, this will initiate the pop upgrade process.
 +  GtkWidget *button = gtk_button_new ();
 +  gtk_label_set_use_markup (GTK_LABEL (gtk_bin_get_child (GTK_BIN (button))), TRUE);
@@ -818,13 +923,70 @@ Index: gnome-control-center/panels/info/pop-upgrade.c
 +  gtk_widget_show_all (stack);
 +  gtk_stack_set_visible_child (GTK_STACK (stack), button_box);
 +
-+  PopUpgradeOption option = { button, label, button_box, progress, stack };
++  PopUpgradeOption option = { FALSE, NULL, name, button, label, button_box, progress, stack };
 +  return option;
 +}
 +
++void pop_upgrade_option_restore_label (PopUpgradeOption *self) {
++  if (NULL != self->label_text) {
++    gtk_label_set_text (GTK_LABEL (self->label), self->label_text);
++    g_clear_pointer (&self->label_text, g_free);
++  }
++}
++
++void pop_upgrade_option_initiate_action (
++  PopUpgradeOption *self,
++  PopUpgradeOption *options[],
++  const gchar *action_label,
++  const gchar *wait_label
++) {
++  for (int i = 0; NULL != options[i]; i++) {
++    PopUpgradeOption *option = options[i];
++    option->active = FALSE;
++    gtk_widget_set_sensitive (option->button, FALSE);
++    pop_upgrade_option_set_temporary_label (option, wait_label);
++  }
++
++  gtk_stack_set_visible_child (GTK_STACK (self->stack), self->progress);
++  gtk_progress_bar_set_text (GTK_PROGRESS_BAR (self->progress), action_label);
++  gtk_progress_bar_set_fraction (GTK_PROGRESS_BAR (self->progress), 0.0);
++  self->active = TRUE;
++}
++
++void pop_upgrade_option_set_label (PopUpgradeOption *self, const gchar *label) {
++  gtk_label_set_label (GTK_LABEL (self->label), label);
++}
++
++void pop_upgrade_option_set_temporary_label (PopUpgradeOption *self, const gchar *label) {
++  g_clear_pointer (&self->label_text, g_free);
++  self->label_text = g_strdup (gtk_label_get_text (GTK_LABEL (self->label)));
++  gtk_label_set_text (GTK_LABEL (self->label), label);
++}
++
++void pop_upgrade_option_try_again (
++  PopUpgradeOption *self,
++  PopUpgradeOption *options[],
++  const gchar *why
++) {
++  gtk_stack_set_visible_child (GTK_STACK (self->stack), self->button_box);
++  gtk_label_set_text (GTK_LABEL (self->label), why);
++  gtk_button_set_label (GTK_BUTTON (self->button), _("Try Again"));
++  self->active = FALSE;
++
++  for (int i = 0; NULL != options[i]; i++) {
++    PopUpgradeOption *option = options[i];
++    gtk_widget_set_sensitive (option->button, TRUE);
++    pop_upgrade_option_restore_label (option);
++  }
++}
++
 +PopUpgradeWidgets pop_upgrade_frame (GtkFrame *frame) {
-+  PopUpgradeOption os = pop_upgrade_option_new ();
-+  PopUpgradeOption rec = pop_upgrade_option_new ();
++  if (NULL == frame) {
++    g_critical ("pop_upgrade_frame: received NULL input");
++  }
++
++  PopUpgradeOption os = pop_upgrade_option_new ("os");
++  PopUpgradeOption rec = pop_upgrade_option_new ("recovery");
 +
 +  // Each row is added to a list, primarily used for visual style.
 +  GtkWidget *list = gtk_list_box_new ();
@@ -844,7 +1006,7 @@ Index: gnome-control-center/panels/info/pop-upgrade.h
 ===================================================================
 --- /dev/null
 +++ gnome-control-center/panels/info/pop-upgrade.h
-@@ -0,0 +1,124 @@
+@@ -0,0 +1,148 @@
 +#include <gio/gio.h>
 +#include <glib.h>
 +#include <gtk/gtk.h>
@@ -892,6 +1054,11 @@ Index: gnome-control-center/panels/info/pop-upgrade.h
 +// Returns `NULL` if the event ID is out of range.
 +const gchar *pop_upgrade_release_event_as_str (guint8 event);
 +
++// Fetches the string that determins which release channel to fetch.
++//
++// Possible values are `intel` and `nvidia`.
++const gchar *pop_upgrade_get_channel (void);
++
 +// When used with `pop_upgrade_daemon_release_check ()`, this will contain the
 +// current release version, the next release version, and whether the next
 +// release is available.
@@ -930,8 +1097,8 @@ Index: gnome-control-center/panels/info/pop-upgrade.h
 +
 +// Ask the daemon to perform a recovery upgrade by the Pop release API
 +int pop_upgrade_daemon_recovery_upgrade_by_release (PopUpgradeDaemon *self,
-+                                                    GError **error, char *version,
-+                                                    gchar *arch, guint8 flags);
++                                                    GError **error, const gchar *version,
++                                                    const gchar *channel, guint8 flags);
 +
 +// Ask the daemon if a new release is available.
 +int pop_upgrade_daemon_release_check (PopUpgradeDaemon *self,
@@ -939,13 +1106,7 @@ Index: gnome-control-center/panels/info/pop-upgrade.h
 +
 +/// Ask the daemon to perform a release upgrade.
 +int pop_upgrade_daemon_release_upgrade(PopUpgradeDaemon *self, GError **error,
-+                                       guint8 how, gchar *from, gchar *to);
-+
-+// Ask the daemon to request that a release upgrade is performed.
-+int pop_upgrade_daemon_recovery_upgrade_by_release(PopUpgradeDaemon *self,
-+                                                   GError **error,
-+                                                   gchar *version, gchar *arch,
-+                                                   guint8 flags);
++                                       guint8 how, const gchar *from, const gchar *to);
 +
 +// Ask the daemon to attempt to perform any system repairs necessary.
 +int pop_upgrade_daemon_repair (PopUpgradeDaemon *self, GError **error);
@@ -956,12 +1117,37 @@ Index: gnome-control-center/panels/info/pop-upgrade.h
 +                               PopUpgradeDaemonStatus *status);
 +
 +typedef struct {
-+    GtkWidget *button;
-+    GtkWidget *label;
-+    GtkWidget *button_box;
-+    GtkWidget *progress;
-+    GtkWidget *stack;
++    gboolean     active;
++    gchar       *label_text;
++    const gchar *name;
++    GtkWidget   *button;
++    GtkWidget   *label;
++    GtkWidget   *button_box;
++    GtkWidget   *progress;
++    GtkWidget   *stack;
 +} PopUpgradeOption;
++
++// Updates the option labels to signal that the process has begun.
++// Update all other options to require the user to wait until it is finished.
++void pop_upgrade_option_initiate_action (
++  PopUpgradeOption *self,
++  PopUpgradeOption *options[],
++  const gchar *action_label,
++  const gchar *wait_label
++);
++
++// Restores the previous label.
++void pop_upgrade_option_restore_label (PopUpgradeOption *self);
++
++// Sets a new label without retaining the previous label.
++void pop_upgrade_option_set_label (PopUpgradeOption *self, const gchar *label);
++
++// Retains the previous label while setting a new label.
++void pop_upgrade_option_set_temporary_label (PopUpgradeOption *self, const gchar *label);
++
++// Sets the "Try Again" label and restores the original label.
++void pop_upgrade_option_try_again (PopUpgradeOption *self, PopUpgradeOption **options,
++                                   const gchar *why);
 +
 +typedef struct {
 +    PopUpgradeOption os;
