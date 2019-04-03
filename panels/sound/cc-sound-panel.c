@@ -122,6 +122,9 @@ output_device_changed_cb (CcSoundPanel *self)
 
   gtk_widget_set_visible (GTK_WIDGET (self->fade_row), can_fade);
   gtk_widget_set_visible (GTK_WIDGET (self->subwoofer_row), has_lfe);
+
+  if (device != NULL)
+    gvc_mixer_control_change_output (self->mixer_control, device);
 }
 
 static void
@@ -140,6 +143,9 @@ input_device_changed_cb (CcSoundPanel *self)
 
   cc_volume_slider_set_stream (self->input_volume_slider, stream);
   cc_level_bar_set_stream (self->input_level_bar, stream, CC_LEVEL_BAR_STREAM_TYPE_INPUT);
+
+  if (device != NULL)
+    gvc_mixer_control_change_input (self->mixer_control, device);
 }
 
 static void

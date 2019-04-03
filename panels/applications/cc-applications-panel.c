@@ -156,13 +156,13 @@ open_software_cb (GtkButton           *button,
   g_spawn_async (NULL, (char **)argv, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL, NULL, NULL);
 }
 
-/* --- flatpak permissions and utilities --- */
+/* --- portal permissions and utilities --- */
 
 static gchar **
-get_flatpak_permissions (CcApplicationsPanel *self,
-                         const gchar         *table,
-                         const gchar         *id,
-                         const gchar         *app_id)
+get_portal_permissions (CcApplicationsPanel *self,
+                        const gchar         *table,
+                        const gchar         *id,
+                        const gchar         *app_id)
 {
   g_autoptr(GVariant) ret = NULL;
   g_autoptr(GVariantIter) iter = NULL;
@@ -191,11 +191,11 @@ get_flatpak_permissions (CcApplicationsPanel *self,
 }
 
 static void
-set_flatpak_permissions (CcApplicationsPanel *self,
-                         const gchar *table,
-                         const gchar *id,
-                         const gchar *app_id,
-                         const gchar * const *permissions)
+set_portal_permissions (CcApplicationsPanel *self,
+                        const gchar *table,
+                        const gchar *id,
+                        const gchar *app_id,
+                        const gchar * const *permissions)
 {
   g_autoptr(GError) error = NULL;
 
@@ -207,7 +207,7 @@ set_flatpak_permissions (CcApplicationsPanel *self,
                           NULL,
                           &error);
   if (error)
-    g_warning ("Error setting Flatpak permissions: %s", error->message);
+    g_warning ("Error setting portal permissions: %s", error->message);
 }
 
 static char *
@@ -359,7 +359,7 @@ get_notification_allowed (CcApplicationsPanel *self,
     }
   else
     {
-      g_auto(GStrv) perms = get_flatpak_permissions (self, "notifications", "notification", app_id);
+      g_auto(GStrv) perms = get_portal_permissions (self, "notifications", "notification", app_id);
       *set = perms != NULL;
       /* FIXME: needs unreleased xdg-desktop-portals to write permissions on use */
       *set = TRUE;
@@ -380,7 +380,7 @@ set_notification_allowed (CcApplicationsPanel *self,
       const gchar *perms[2] = { NULL, NULL };
 
       perms[0] = allowed ? "yes" : "no";
-      set_flatpak_permissions (self, "notifications", "notification", self->current_flatpak_id, perms);
+      set_portal_permissions (self, "notifications", "notification", self->current_flatpak_id, perms);
     }
 }
 
@@ -428,7 +428,7 @@ get_device_allowed (CcApplicationsPanel *self,
 {
   g_auto(GStrv) perms = NULL;
 
-  perms = get_flatpak_permissions (self, "devices", device, app_id);
+  perms = get_portal_permissions (self, "devices", device, app_id);
 
   *set = perms != NULL;
   *allowed = perms == NULL || strcmp (perms[0], "no") != 0;
@@ -444,7 +444,7 @@ set_device_allowed (CcApplicationsPanel *self,
   perms[0] = allowed ? "yes" : "no";
   perms[1] = NULL;
 
-  set_flatpak_permissions (self, "devices", device, self->current_flatpak_id, perms);
+  set_portal_permissions (self, "devices", device, self->current_flatpak_id, perms);
 }
 
 static void
@@ -478,7 +478,7 @@ get_location_allowed (CcApplicationsPanel *self,
 {
   g_auto(GStrv) perms = NULL;
 
-  perms = get_flatpak_permissions (self, "location", "location", app_id);
+  perms = get_portal_permissions (self, "location", "location", app_id);
 
   *set = perms != NULL;
   *allowed = perms == NULL || strcmp (perms[0], "NONE") != 0;
@@ -495,13 +495,13 @@ set_location_allowed (CcApplicationsPanel *self,
   perms[1] = "0";
   perms[2] = NULL;
 
-  set_flatpak_permissions (self, "location", "location", self->current_app_id, perms);
+  set_portal_permissions (self, "location", "location", self->current_flatpak_id, perms);
 }
 
 static void
 location_cb (CcApplicationsPanel *self)
 {
-  if (self->current_app_id)
+  if (self->current_flatpak_id)
     set_location_allowed (self, cc_toggle_row_get_allowed (CC_TOGGLE_ROW (self->location)));
 }
 
@@ -650,7 +650,7 @@ update_integration_section (CcApplicationsPanel *self,
                             GAppInfo            *info)
 {
   g_autofree gchar *app_id = get_app_id (info);
-  g_autofree gchar *flatpak_id = get_app_id (info);
+  g_autofree gchar *flatpak_id = get_flatpak_id (info);
   gboolean set, allowed, disabled;
   gboolean has_any = FALSE;
 
@@ -1221,10 +1221,16 @@ set_cache_size (GObject      *source,
 {
   CcApplicationsPanel *self = data;
   g_autofree gchar *formatted_size = NULL;
-  guint64 *size;
+  guint64 size;
+  g_autoptr(GError) error = NULL;
 
-  size = g_object_get_data (G_OBJECT (res), "size");
-  self->cache_size = *size;
+  if (!file_size_finish (G_FILE (source), res, &size, &error))
+    {
+      if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED))
+        g_warning ("Failed to get flatpak cache size: %s", error->message);
+      return;
+    }
+  self->cache_size = size;
 
   formatted_size = g_format_size (self->cache_size);
   g_object_set (self->cache, "info", formatted_size, NULL);
@@ -1240,7 +1246,7 @@ update_cache_row (CcApplicationsPanel *self,
 {
   g_autoptr(GFile) dir = get_flatpak_app_dir (app_id, "cache");
   g_object_set (self->cache, "info", "...", NULL);
-  file_size_async (dir, set_cache_size, self);
+  file_size_async (dir, self->cancellable, set_cache_size, self);
 }
 
 static void
@@ -1250,10 +1256,16 @@ set_data_size (GObject      *source,
 {
   CcApplicationsPanel *self = data;
   g_autofree gchar *formatted_size = NULL;
-  guint64 *size;
+  guint64 size;
+  g_autoptr(GError) error = NULL;
 
-  size = g_object_get_data (G_OBJECT (res), "size");
-  self->data_size = *size;
+  if (!file_size_finish (G_FILE (source), res, &size, &error))
+    {
+      if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED))
+        g_warning ("Failed to get flatpak data size: %s", error->message);
+      return;
+    }
+  self->data_size = size;
 
   formatted_size = g_format_size (self->data_size);
   g_object_set (self->data, "info", formatted_size, NULL);
@@ -1268,7 +1280,7 @@ update_data_row (CcApplicationsPanel *self,
   g_autoptr(GFile) dir = get_flatpak_app_dir (app_id, "data");
 
   g_object_set (self->data, "info", "...", NULL);
-  file_size_async (dir, set_data_size, self);
+  file_size_async (dir, self->cancellable, set_data_size, self);
 }
 
 static void
@@ -1277,6 +1289,14 @@ cache_cleared (GObject      *source,
                gpointer      data)
 {
   CcApplicationsPanel *self = data;
+  g_autoptr(GError) error = NULL;
+
+  if (!file_remove_finish (G_FILE (source), res, &error))
+    {
+      if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED))
+        g_warning ("Failed to remove cache: %s", error->message);
+      return;
+    }
 
   update_cache_row (self, self->current_app_id);
 }
@@ -1290,7 +1310,7 @@ clear_cache_cb (CcApplicationsPanel *self)
     return;
 
   dir = get_flatpak_app_dir (self->current_app_id, "cache");
-  file_remove_async (dir, cache_cleared, self);
+  file_remove_async (dir, self->cancellable, cache_cleared, self);
 }
 static void
 update_app_row (CcApplicationsPanel *self,
@@ -1442,7 +1462,7 @@ on_perm_store_ready (GObject      *source_object,
   if (proxy == NULL)
     {
       if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED))
-          g_warning ("Failed to connect to flatpak permission store: %s",
+          g_warning ("Failed to connect to portal permission store: %s",
                      error->message);
       return;
     }
@@ -1497,6 +1517,7 @@ cc_applications_panel_finalize (GObject *object)
   g_clear_object (&self->cancellable);
 
   g_free (self->current_app_id);
+  g_free (self->current_flatpak_id);
   g_hash_table_unref (self->globs);
   g_hash_table_unref (self->search_providers);
 
