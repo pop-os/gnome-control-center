@@ -55,10 +55,10 @@ Last-Update: 2013-03-21
  panels/user-accounts/cc-user-panel.c |   6 +-
  5 files changed, 243 insertions(+), 61 deletions(-)
 
-Index: gnome-control-center-3.32.0.1/panels/common/cc-common-language.c
+Index: gnome-control-center-3.32.1/panels/common/cc-common-language.c
 ===================================================================
---- gnome-control-center-3.32.0.1.orig/panels/common/cc-common-language.c
-+++ gnome-control-center-3.32.0.1/panels/common/cc-common-language.c
+--- gnome-control-center-3.32.1.orig/panels/common/cc-common-language.c
++++ gnome-control-center-3.32.1/panels/common/cc-common-language.c
 @@ -161,6 +161,66 @@ cc_common_language_get_current_language
          return language;
  }
@@ -275,10 +275,10 @@ Index: gnome-control-center-3.32.0.1/panels/common/cc-common-language.c
  
          g_hash_table_destroy (user_langs);
  }
-Index: gnome-control-center-3.32.0.1/panels/common/cc-common-language.h
+Index: gnome-control-center-3.32.1/panels/common/cc-common-language.h
 ===================================================================
---- gnome-control-center-3.32.0.1.orig/panels/common/cc-common-language.h
-+++ gnome-control-center-3.32.0.1/panels/common/cc-common-language.h
+--- gnome-control-center-3.32.1.orig/panels/common/cc-common-language.h
++++ gnome-control-center-3.32.1/panels/common/cc-common-language.h
 @@ -43,6 +43,8 @@ guint    cc_common_language_add_availabl
                                                       GHashTable       *user_langs);
  gboolean cc_common_language_has_font                (const gchar  *locale);
@@ -295,10 +295,10 @@ Index: gnome-control-center-3.32.0.1/panels/common/cc-common-language.h
 +void    cc_common_language_get_locale (const gchar *language, gchar **locale);
 +
  G_END_DECLS
-Index: gnome-control-center-3.32.0.1/panels/common/cc-language-chooser.c
+Index: gnome-control-center-3.32.1/panels/common/cc-language-chooser.c
 ===================================================================
---- gnome-control-center-3.32.0.1.orig/panels/common/cc-language-chooser.c
-+++ gnome-control-center-3.32.0.1/panels/common/cc-language-chooser.c
+--- gnome-control-center-3.32.1.orig/panels/common/cc-language-chooser.c
++++ gnome-control-center-3.32.1/panels/common/cc-language-chooser.c
 @@ -166,7 +166,7 @@ add_languages (CcLanguageChooser *choose
                  gtk_container_add (GTK_CONTAINER (chooser->language_listbox), widget);
          }
@@ -308,7 +308,7 @@ Index: gnome-control-center-3.32.0.1/panels/common/cc-language-chooser.c
  }
  
  static void
-@@ -389,7 +389,7 @@ cc_language_chooser_init (CcLanguageChoo
+@@ -392,7 +392,7 @@ cc_language_chooser_init (CcLanguageChoo
          gtk_widget_init_template (GTK_WIDGET (chooser));
  
          chooser->more_item = more_widget_new ();
@@ -317,10 +317,10 @@ Index: gnome-control-center-3.32.0.1/panels/common/cc-language-chooser.c
          /* We ref-sink here so we can reuse this widget multiple times */
          chooser->no_results = g_object_ref_sink (no_results_widget_new ());
          gtk_widget_show (chooser->no_results);
-Index: gnome-control-center-3.32.0.1/panels/region/cc-region-panel.c
+Index: gnome-control-center-3.32.1/panels/region/cc-region-panel.c
 ===================================================================
---- gnome-control-center-3.32.0.1.orig/panels/region/cc-region-panel.c
-+++ gnome-control-center-3.32.0.1/panels/region/cc-region-panel.c
+--- gnome-control-center-3.32.1.orig/panels/region/cc-region-panel.c
++++ gnome-control-center-3.32.1/panels/region/cc-region-panel.c
 @@ -378,11 +378,15 @@ language_response (CcRegionPanel     *se
                     gint               response_id,
                     CcLanguageChooser *chooser)
@@ -539,10 +539,10 @@ Index: gnome-control-center-3.32.0.1/panels/region/cc-region-panel.c
          }
          g_dbus_proxy_call (self->localed,
                             "SetLocale",
-Index: gnome-control-center-3.32.0.1/panels/user-accounts/cc-user-panel.c
+Index: gnome-control-center-3.32.1/panels/user-accounts/cc-user-panel.c
 ===================================================================
---- gnome-control-center-3.32.0.1.orig/panels/user-accounts/cc-user-panel.c
-+++ gnome-control-center-3.32.0.1/panels/user-accounts/cc-user-panel.c
+--- gnome-control-center-3.32.1.orig/panels/user-accounts/cc-user-panel.c
++++ gnome-control-center-3.32.1/panels/user-accounts/cc-user-panel.c
 @@ -836,6 +836,7 @@ show_user (ActUser *user, CcUserPanel *s
  
          name = NULL;

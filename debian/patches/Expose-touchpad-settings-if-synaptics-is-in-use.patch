@@ -19,11 +19,11 @@ https://gitlab.gnome.org/GNOME/mutter/merge_requests/37
  panels/mouse/gnome-mouse-properties.c | 16 +++++++++-------
  2 files changed, 16 insertions(+), 7 deletions(-)
 
-diff --git a/panels/mouse/cc-mouse-caps-helper.c b/panels/mouse/cc-mouse-caps-helper.c
-index 69546b2..39534b9 100644
---- a/panels/mouse/cc-mouse-caps-helper.c
-+++ b/panels/mouse/cc-mouse-caps-helper.c
-@@ -38,6 +38,13 @@ touchpad_check_capabilities_x11 (gboolean *have_two_finger_scrolling,
+Index: gnome-control-center-3.32.1/panels/mouse/cc-mouse-caps-helper.c
+===================================================================
+--- gnome-control-center-3.32.1.orig/panels/mouse/cc-mouse-caps-helper.c
++++ gnome-control-center-3.32.1/panels/mouse/cc-mouse-caps-helper.c
+@@ -38,6 +38,13 @@ touchpad_check_capabilities_x11 (gboolea
  	unsigned long nitems, bytes_after;
  	unsigned char *data;
  
@@ -37,10 +37,10 @@ index 69546b2..39534b9 100644
          gdisplay = gdk_display_get_default ();
          display = GDK_DISPLAY_XDISPLAY (gdk_display_get_default ());
  	prop_scroll_methods = XInternAtom (display, "libinput Scroll Methods Available", False);
-diff --git a/panels/mouse/gnome-mouse-properties.c b/panels/mouse/gnome-mouse-properties.c
-index 102778f..6e42518 100644
---- a/panels/mouse/gnome-mouse-properties.c
-+++ b/panels/mouse/gnome-mouse-properties.c
+Index: gnome-control-center-3.32.1/panels/mouse/gnome-mouse-properties.c
+===================================================================
+--- gnome-control-center-3.32.1.orig/panels/mouse/gnome-mouse-properties.c
++++ gnome-control-center-3.32.1/panels/mouse/gnome-mouse-properties.c
 @@ -79,7 +79,6 @@ struct _CcMouseProperties
  	gboolean have_mouse;
  	gboolean have_touchpad;
@@ -49,7 +49,7 @@ index 102778f..6e42518 100644
  
  	gboolean left_handed;
  	GtkGesture *left_gesture;
-@@ -99,7 +98,7 @@ setup_touchpad_options (CcMouseProperties *self)
+@@ -97,7 +96,7 @@ setup_touchpad_options (CcMousePropertie
  	gboolean have_edge_scrolling;
  	gboolean have_tap_to_click;
  
@@ -58,7 +58,7 @@ index 102778f..6e42518 100644
  		gtk_widget_hide (self->touchpad_frame);
  		return;
  	}
-@@ -332,7 +331,10 @@ device_changed (GsdDeviceManager *device_manager,
+@@ -324,7 +323,10 @@ device_changed (GsdDeviceManager *device
  		GsdDevice *device,
  		CcMouseProperties *self)
  {
@@ -70,7 +70,7 @@ index 102778f..6e42518 100644
  
  	setup_touchpad_options (self);
  
-@@ -436,11 +438,11 @@ cc_mouse_properties_init (CcMouseProperties *self)
+@@ -428,11 +430,11 @@ cc_mouse_properties_init (CcMousePropert
  						 G_CALLBACK (device_changed), self);
  
  	self->have_mouse = mouse_is_present ();
@@ -84,5 +84,5 @@ index 102778f..6e42518 100644
 -	if (self->have_synaptics)
 -		g_warning ("Detected synaptics X driver, please migrate to libinput");
  
- 	self->changing_scroll = FALSE;
- 
+ 	setup_dialog (self);
+ }

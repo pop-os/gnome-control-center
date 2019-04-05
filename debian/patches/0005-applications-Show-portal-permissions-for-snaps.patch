@@ -7,10 +7,10 @@ Subject: [PATCH 5/7] applications: Show portal permissions for snaps
  panels/applications/cc-applications-panel.c | 51 +++++++++++++--------
  1 file changed, 33 insertions(+), 18 deletions(-)
 
-diff --git a/panels/applications/cc-applications-panel.c b/panels/applications/cc-applications-panel.c
-index b7eee6b48..1e528fde4 100644
---- a/panels/applications/cc-applications-panel.c
-+++ b/panels/applications/cc-applications-panel.c
+Index: gnome-control-center-3.32.1/panels/applications/cc-applications-panel.c
+===================================================================
+--- gnome-control-center-3.32.1.orig/panels/applications/cc-applications-panel.c
++++ gnome-control-center-3.32.1/panels/applications/cc-applications-panel.c
 @@ -40,6 +40,8 @@
  #define APP_SCHEMA MASTER_SCHEMA ".application"
  #define APP_PREFIX "/org/gnome/desktop/notifications/application/"
@@ -20,7 +20,7 @@ index b7eee6b48..1e528fde4 100644
  struct _CcApplicationsPanel
  {
    CcPanel          parent;
-@@ -210,11 +212,23 @@ set_portal_permissions (CcApplicationsPanel *self,
+@@ -210,11 +212,23 @@ set_portal_permissions (CcApplicationsPa
      g_warning ("Error setting portal permissions: %s", error->message);
  }
  
@@ -93,7 +93,7 @@ index b7eee6b48..1e528fde4 100644
    gtk_widget_set_visible (self->builtin, has_builtin);
    has_any |= has_builtin;
  
-@@ -650,7 +664,7 @@ update_integration_section (CcApplicationsPanel *self,
+@@ -650,7 +664,7 @@ update_integration_section (CcApplicatio
                              GAppInfo            *info)
  {
    g_autofree gchar *app_id = get_app_id (info);
@@ -102,7 +102,7 @@ index b7eee6b48..1e528fde4 100644
    gboolean set, allowed, disabled;
    gboolean has_any = FALSE;
  
-@@ -660,16 +674,16 @@ update_integration_section (CcApplicationsPanel *self,
+@@ -660,16 +674,16 @@ update_integration_section (CcApplicatio
    gtk_widget_set_visible (self->search, set && !disabled);
    gtk_widget_set_visible (self->no_search, set && disabled);
  
@@ -122,7 +122,7 @@ index b7eee6b48..1e528fde4 100644
        cc_toggle_row_set_allowed (CC_TOGGLE_ROW (self->sound), allowed);
        gtk_widget_set_visible (self->sound, set && !disabled);
        gtk_widget_set_visible (self->no_sound, set && disabled);
-@@ -1299,7 +1313,8 @@ update_app_row (CcApplicationsPanel *self,
+@@ -1319,7 +1333,8 @@ update_app_row (CcApplicationsPanel *sel
  {
    g_autofree gchar *formatted_size = NULL;
  
@@ -132,7 +132,7 @@ index b7eee6b48..1e528fde4 100644
    formatted_size = g_format_size (self->app_size);
    g_object_set (self->app, "info", formatted_size, NULL);
    update_total_size (self);
-@@ -1322,12 +1337,12 @@ static void
+@@ -1342,12 +1357,12 @@ static void
  update_usage_section (CcApplicationsPanel *self,
                        GAppInfo            *info)
  {
@@ -148,15 +148,12 @@ index b7eee6b48..1e528fde4 100644
      }
    else
      {
-@@ -1372,7 +1387,7 @@ update_panel (CcApplicationsPanel *self,
+@@ -1392,7 +1407,7 @@ update_panel (CcApplicationsPanel *self,
    update_usage_section (self, info);
  
    self->current_app_id = get_app_id (info);
--  self->current_portal_app_id = get_flatpak_id (info);
-+  self->current_portal_app_id = get_portal_app_id (info);
+-  self->current_flatpak_id = get_flatpak_id (info);
++  self->current_flatpak_id = get_portal_app_id (info);
  }
  
  static void
--- 
-2.20.1
-

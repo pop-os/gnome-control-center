@@ -15,11 +15,11 @@ Forwarded: No, MPs will follow shortly
  panels/display/cc-display-config.h      |  2 ++
  4 files changed, 61 insertions(+), 8 deletions(-)
 
-diff --git a/panels/display/cc-display-arrangement.c b/panels/display/cc-display-arrangement.c
-index adbbcbc..c3b14e4 100644
---- a/panels/display/cc-display-arrangement.c
-+++ b/panels/display/cc-display-arrangement.c
-@@ -95,10 +95,31 @@ apply_rotation_to_geometry (CcDisplayMonitor *output,
+Index: gnome-control-center-3.32.1/panels/display/cc-display-arrangement.c
+===================================================================
+--- gnome-control-center-3.32.1.orig/panels/display/cc-display-arrangement.c
++++ gnome-control-center-3.32.1/panels/display/cc-display-arrangement.c
+@@ -95,10 +95,31 @@ apply_rotation_to_geometry (CcDisplayMon
      }
  }
  
@@ -51,7 +51,7 @@ index adbbcbc..c3b14e4 100644
                       int              *x,
                       int              *y,
                       int              *w,
-@@ -117,6 +138,10 @@ get_scaled_geometry (CcDisplayConfig  *config,
+@@ -117,6 +138,10 @@ get_scaled_geometry (CcDisplayConfig  *c
    if (cc_display_config_is_layout_logical (config))
      {
        double scale = cc_display_monitor_get_scale (output);
@@ -62,7 +62,7 @@ index adbbcbc..c3b14e4 100644
        *w = round (*w / scale);
        *h = round (*h / scale);
      }
-@@ -134,6 +159,7 @@ get_bounding_box (CcDisplayConfig *config,
+@@ -134,6 +159,7 @@ get_bounding_box (CcDisplayConfig *confi
                    gint            *max_h)
  {
    GList *outputs, *l;
@@ -70,7 +70,7 @@ index adbbcbc..c3b14e4 100644
  
    g_assert (x1 && y1 && x2 && y2);
  
-@@ -141,6 +167,7 @@ get_bounding_box (CcDisplayConfig *config,
+@@ -141,6 +167,7 @@ get_bounding_box (CcDisplayConfig *confi
    *x2 = *y2 = G_MININT;
    *max_w = 0;
    *max_h = 0;
@@ -78,7 +78,7 @@ index adbbcbc..c3b14e4 100644
  
    outputs = cc_display_config_get_monitors (config);
    for (l = outputs; l; l = l->next)
-@@ -151,7 +178,7 @@ get_bounding_box (CcDisplayConfig *config,
+@@ -151,7 +178,7 @@ get_bounding_box (CcDisplayConfig *confi
        if (!cc_display_monitor_is_useful (output))
          continue;
  
@@ -87,7 +87,7 @@ index adbbcbc..c3b14e4 100644
  
        *x1 = MIN (*x1, x);
        *y1 = MIN (*y1, y);
-@@ -171,8 +198,10 @@ monitor_get_drawing_rect (CcDisplayArrangement *self,
+@@ -171,8 +198,10 @@ monitor_get_drawing_rect (CcDisplayArran
                            gint                 *y2)
  {
    gdouble x, y;
@@ -99,7 +99,7 @@ index adbbcbc..c3b14e4 100644
  
    /* get_scaled_geometry returns the width and height */
    *x2 = *x1 + *x2;
-@@ -325,10 +354,12 @@ find_best_snapping (CcDisplayConfig   *config,
+@@ -325,10 +354,12 @@ find_best_snapping (CcDisplayConfig   *c
    GList *outputs, *l;
    gint x1, y1, x2, y2;
    gint w, h;
@@ -113,7 +113,7 @@ index adbbcbc..c3b14e4 100644
    x2 = x1 + w;
    y2 = y1 + h;
  
-@@ -344,6 +375,7 @@ find_best_snapping (CcDisplayConfig   *config,
+@@ -344,6 +375,7 @@ find_best_snapping (CcDisplayConfig   *c
        gint left_snap_pos;
        gint right_snap_pos;
        gdouble dist_x, dist_y;
@@ -121,7 +121,7 @@ index adbbcbc..c3b14e4 100644
        gdouble tmp;
  
        if (output == snap_output)
-@@ -352,7 +384,8 @@ find_best_snapping (CcDisplayConfig   *config,
+@@ -352,7 +384,8 @@ find_best_snapping (CcDisplayConfig   *c
        if (!cc_display_monitor_is_useful (output))
          continue;
  
@@ -131,7 +131,7 @@ index adbbcbc..c3b14e4 100644
        _x2 = _x1 + _w;
        _y2 = _y1 + _h;
  
-@@ -965,6 +998,7 @@ cc_display_config_snap_output (CcDisplayConfig  *config,
+@@ -965,6 +998,7 @@ cc_display_config_snap_output (CcDisplay
  {
    SnapData snap_data;
    gint x, y, w, h;
@@ -139,7 +139,7 @@ index adbbcbc..c3b14e4 100644
  
    if (!cc_display_monitor_is_useful (output))
      return;
-@@ -972,7 +1006,8 @@ cc_display_config_snap_output (CcDisplayConfig  *config,
+@@ -972,7 +1006,8 @@ cc_display_config_snap_output (CcDisplay
    if (cc_display_config_count_useful_monitors (config) <= 1)
      return;
  
@@ -149,11 +149,11 @@ index adbbcbc..c3b14e4 100644
  
    snap_data.snapped = SNAP_DIR_NONE;
    snap_data.mon_x = x;
-diff --git a/panels/display/cc-display-config-dbus.c b/panels/display/cc-display-config-dbus.c
-index 8c04119..f8ffbfa 100644
---- a/panels/display/cc-display-config-dbus.c
-+++ b/panels/display/cc-display-config-dbus.c
-@@ -858,7 +858,8 @@ cc_display_monitor_dbus_new (GVariant *variant,
+Index: gnome-control-center-3.32.1/panels/display/cc-display-config-dbus.c
+===================================================================
+--- gnome-control-center-3.32.1.orig/panels/display/cc-display-config-dbus.c
++++ gnome-control-center-3.32.1/panels/display/cc-display-config-dbus.c
+@@ -861,7 +861,8 @@ cc_display_monitor_dbus_new (GVariant *v
  typedef enum _CcDisplayLayoutMode
  {
    CC_DISPLAY_LAYOUT_MODE_LOGICAL = 1,
@@ -163,7 +163,7 @@ index 8c04119..f8ffbfa 100644
  } CcDisplayLayoutMode;
  
  typedef enum _CcDisplayConfigMethod
-@@ -1194,7 +1195,15 @@ cc_display_config_dbus_is_layout_logical (CcDisplayConfig *pself)
+@@ -1197,7 +1198,15 @@ cc_display_config_dbus_is_layout_logical
  {
    CcDisplayConfigDBus *self = CC_DISPLAY_CONFIG_DBUS (pself);
  
@@ -180,7 +180,7 @@ index 8c04119..f8ffbfa 100644
  }
  
  static void
-@@ -1386,7 +1395,7 @@ cc_display_config_dbus_constructed (GObject *object)
+@@ -1393,7 +1402,7 @@ cc_display_config_dbus_constructed (GObj
            guint32 u = 0;
            g_variant_get (v, "u", &u);
            if (u >= CC_DISPLAY_LAYOUT_MODE_LOGICAL &&
@@ -189,7 +189,7 @@ index 8c04119..f8ffbfa 100644
              self->layout_mode = u;
          }
      }
-@@ -1474,6 +1483,7 @@ cc_display_config_dbus_class_init (CcDisplayConfigDBusClass *klass)
+@@ -1481,6 +1490,7 @@ cc_display_config_dbus_class_init (CcDis
    parent_class->set_cloning = cc_display_config_dbus_set_cloning;
    parent_class->get_cloning_modes = cc_display_config_dbus_get_cloning_modes;
    parent_class->is_layout_logical = cc_display_config_dbus_is_layout_logical;
@@ -197,11 +197,11 @@ index 8c04119..f8ffbfa 100644
  
    pspec = g_param_spec_variant ("state",
                                  "GVariant",
-diff --git a/panels/display/cc-display-config.c b/panels/display/cc-display-config.c
-index 3bed67a..00696ad 100644
---- a/panels/display/cc-display-config.c
-+++ b/panels/display/cc-display-config.c
-@@ -568,3 +568,9 @@ cc_display_config_is_layout_logical (CcDisplayConfig *self)
+Index: gnome-control-center-3.32.1/panels/display/cc-display-config.c
+===================================================================
+--- gnome-control-center-3.32.1.orig/panels/display/cc-display-config.c
++++ gnome-control-center-3.32.1/panels/display/cc-display-config.c
+@@ -568,3 +568,9 @@ cc_display_config_is_layout_logical (CcD
  {
    return CC_DISPLAY_CONFIG_GET_CLASS (self)->is_layout_logical (self);
  }
@@ -211,10 +211,10 @@ index 3bed67a..00696ad 100644
 +{
 +  return CC_DISPLAY_CONFIG_GET_CLASS (self)->layout_use_ui_scale (self);
 +}
-diff --git a/panels/display/cc-display-config.h b/panels/display/cc-display-config.h
-index faeae8e..27b939a 100644
---- a/panels/display/cc-display-config.h
-+++ b/panels/display/cc-display-config.h
+Index: gnome-control-center-3.32.1/panels/display/cc-display-config.h
+===================================================================
+--- gnome-control-center-3.32.1.orig/panels/display/cc-display-config.h
++++ gnome-control-center-3.32.1/panels/display/cc-display-config.h
 @@ -154,6 +154,7 @@ struct _CcDisplayConfigClass
                                   gboolean          clone);
    GList*   (*get_cloning_modes) (CcDisplayConfig  *self);
@@ -223,7 +223,7 @@ index faeae8e..27b939a 100644
  };
  
  
-@@ -174,6 +175,7 @@ void              cc_display_config_set_mode_on_all_outputs (CcDisplayConfig *co
+@@ -174,6 +175,7 @@ void              cc_display_config_set_
                                                               CcDisplayMode   *mode);
  
  gboolean          cc_display_config_is_layout_logical       (CcDisplayConfig    *self);
