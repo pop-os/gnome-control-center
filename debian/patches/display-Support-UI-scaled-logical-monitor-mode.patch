@@ -10,16 +10,16 @@ Bug-Ubuntu: https://bugs.launchpad.net/ubuntu/+source/mutter/+bug/1820850
 Forwarded: No, MPs will follow shortly
 ---
  panels/display/cc-display-arrangement.c | 45 +++++++++++++++++++++++++++++----
- panels/display/cc-display-config-dbus.c | 16 +++++++++---
+ panels/display/cc-display-config-dbus.c | 41 +++++++++++++++++++++++++++---
  panels/display/cc-display-config.c      |  6 +++++
  panels/display/cc-display-config.h      |  2 ++
- 4 files changed, 61 insertions(+), 8 deletions(-)
+ 4 files changed, 86 insertions(+), 8 deletions(-)
 
-Index: gnome-control-center-3.32.1/panels/display/cc-display-arrangement.c
-===================================================================
---- gnome-control-center-3.32.1.orig/panels/display/cc-display-arrangement.c
-+++ gnome-control-center-3.32.1/panels/display/cc-display-arrangement.c
-@@ -95,10 +95,31 @@ apply_rotation_to_geometry (CcDisplayMon
+diff --git a/panels/display/cc-display-arrangement.c b/panels/display/cc-display-arrangement.c
+index adbbcbc..7080bf6 100644
+--- a/panels/display/cc-display-arrangement.c
++++ b/panels/display/cc-display-arrangement.c
+@@ -95,10 +95,31 @@ apply_rotation_to_geometry (CcDisplayMonitor *output,
      }
  }
  
@@ -51,18 +51,18 @@ Index: gnome-control-center-3.32.1/panels/display/cc-display-arrangement.c
                       int              *x,
                       int              *y,
                       int              *w,
-@@ -117,6 +138,10 @@ get_scaled_geometry (CcDisplayConfig  *c
+@@ -117,6 +138,10 @@ get_scaled_geometry (CcDisplayConfig  *config,
    if (cc_display_config_is_layout_logical (config))
      {
        double scale = cc_display_monitor_get_scale (output);
 +
 +      if (cc_display_config_layout_use_ui_scale (config))
-+        scale /= ceilf (max_scale);
++        scale /= ceil (max_scale);
 +
        *w = round (*w / scale);
        *h = round (*h / scale);
      }
-@@ -134,6 +159,7 @@ get_bounding_box (CcDisplayConfig *confi
+@@ -134,6 +159,7 @@ get_bounding_box (CcDisplayConfig *config,
                    gint            *max_h)
  {
    GList *outputs, *l;
@@ -70,7 +70,7 @@ Index: gnome-control-center-3.32.1/panels/display/cc-display-arrangement.c
  
    g_assert (x1 && y1 && x2 && y2);
  
-@@ -141,6 +167,7 @@ get_bounding_box (CcDisplayConfig *confi
+@@ -141,6 +167,7 @@ get_bounding_box (CcDisplayConfig *config,
    *x2 = *y2 = G_MININT;
    *max_w = 0;
    *max_h = 0;
@@ -78,7 +78,7 @@ Index: gnome-control-center-3.32.1/panels/display/cc-display-arrangement.c
  
    outputs = cc_display_config_get_monitors (config);
    for (l = outputs; l; l = l->next)
-@@ -151,7 +178,7 @@ get_bounding_box (CcDisplayConfig *confi
+@@ -151,7 +178,7 @@ get_bounding_box (CcDisplayConfig *config,
        if (!cc_display_monitor_is_useful (output))
          continue;
  
@@ -87,7 +87,7 @@ Index: gnome-control-center-3.32.1/panels/display/cc-display-arrangement.c
  
        *x1 = MIN (*x1, x);
        *y1 = MIN (*y1, y);
-@@ -171,8 +198,10 @@ monitor_get_drawing_rect (CcDisplayArran
+@@ -171,8 +198,10 @@ monitor_get_drawing_rect (CcDisplayArrangement *self,
                            gint                 *y2)
  {
    gdouble x, y;
@@ -99,7 +99,7 @@ Index: gnome-control-center-3.32.1/panels/display/cc-display-arrangement.c
  
    /* get_scaled_geometry returns the width and height */
    *x2 = *x1 + *x2;
-@@ -325,10 +354,12 @@ find_best_snapping (CcDisplayConfig   *c
+@@ -325,10 +354,12 @@ find_best_snapping (CcDisplayConfig   *config,
    GList *outputs, *l;
    gint x1, y1, x2, y2;
    gint w, h;
@@ -113,7 +113,7 @@ Index: gnome-control-center-3.32.1/panels/display/cc-display-arrangement.c
    x2 = x1 + w;
    y2 = y1 + h;
  
-@@ -344,6 +375,7 @@ find_best_snapping (CcDisplayConfig   *c
+@@ -344,6 +375,7 @@ find_best_snapping (CcDisplayConfig   *config,
        gint left_snap_pos;
        gint right_snap_pos;
        gdouble dist_x, dist_y;
@@ -121,7 +121,7 @@ Index: gnome-control-center-3.32.1/panels/display/cc-display-arrangement.c
        gdouble tmp;
  
        if (output == snap_output)
-@@ -352,7 +384,8 @@ find_best_snapping (CcDisplayConfig   *c
+@@ -352,7 +384,8 @@ find_best_snapping (CcDisplayConfig   *config,
        if (!cc_display_monitor_is_useful (output))
          continue;
  
@@ -131,7 +131,7 @@ Index: gnome-control-center-3.32.1/panels/display/cc-display-arrangement.c
        _x2 = _x1 + _w;
        _y2 = _y1 + _h;
  
-@@ -965,6 +998,7 @@ cc_display_config_snap_output (CcDisplay
+@@ -965,6 +998,7 @@ cc_display_config_snap_output (CcDisplayConfig  *config,
  {
    SnapData snap_data;
    gint x, y, w, h;
@@ -139,7 +139,7 @@ Index: gnome-control-center-3.32.1/panels/display/cc-display-arrangement.c
  
    if (!cc_display_monitor_is_useful (output))
      return;
-@@ -972,7 +1006,8 @@ cc_display_config_snap_output (CcDisplay
+@@ -972,7 +1006,8 @@ cc_display_config_snap_output (CcDisplayConfig  *config,
    if (cc_display_config_count_useful_monitors (config) <= 1)
      return;
  
@@ -149,11 +149,11 @@ Index: gnome-control-center-3.32.1/panels/display/cc-display-arrangement.c
  
    snap_data.snapped = SNAP_DIR_NONE;
    snap_data.mon_x = x;
-Index: gnome-control-center-3.32.1/panels/display/cc-display-config-dbus.c
-===================================================================
---- gnome-control-center-3.32.1.orig/panels/display/cc-display-config-dbus.c
-+++ gnome-control-center-3.32.1/panels/display/cc-display-config-dbus.c
-@@ -861,7 +861,8 @@ cc_display_monitor_dbus_new (GVariant *v
+diff --git a/panels/display/cc-display-config-dbus.c b/panels/display/cc-display-config-dbus.c
+index 2615461..7b9165d 100644
+--- a/panels/display/cc-display-config-dbus.c
++++ b/panels/display/cc-display-config-dbus.c
+@@ -861,7 +861,8 @@ cc_display_monitor_dbus_new (GVariant *variant,
  typedef enum _CcDisplayLayoutMode
  {
    CC_DISPLAY_LAYOUT_MODE_LOGICAL = 1,
@@ -163,7 +163,7 @@ Index: gnome-control-center-3.32.1/panels/display/cc-display-config-dbus.c
  } CcDisplayLayoutMode;
  
  typedef enum _CcDisplayConfigMethod
-@@ -1197,7 +1198,15 @@ cc_display_config_dbus_is_layout_logical
+@@ -1197,7 +1198,15 @@ cc_display_config_dbus_is_layout_logical (CcDisplayConfig *pself)
  {
    CcDisplayConfigDBus *self = CC_DISPLAY_CONFIG_DBUS (pself);
  
@@ -180,7 +180,7 @@ Index: gnome-control-center-3.32.1/panels/display/cc-display-config-dbus.c
  }
  
  static void
-@@ -1393,7 +1402,7 @@ cc_display_config_dbus_constructed (GObj
+@@ -1393,7 +1402,7 @@ cc_display_config_dbus_constructed (GObject *object)
            guint32 u = 0;
            g_variant_get (v, "u", &u);
            if (u >= CC_DISPLAY_LAYOUT_MODE_LOGICAL &&
@@ -189,7 +189,7 @@ Index: gnome-control-center-3.32.1/panels/display/cc-display-config-dbus.c
              self->layout_mode = u;
          }
      }
-@@ -1481,6 +1490,7 @@ cc_display_config_dbus_class_init (CcDis
+@@ -1481,6 +1490,7 @@ cc_display_config_dbus_class_init (CcDisplayConfigDBusClass *klass)
    parent_class->set_cloning = cc_display_config_dbus_set_cloning;
    parent_class->get_cloning_modes = cc_display_config_dbus_get_cloning_modes;
    parent_class->is_layout_logical = cc_display_config_dbus_is_layout_logical;
@@ -197,11 +197,50 @@ Index: gnome-control-center-3.32.1/panels/display/cc-display-config-dbus.c
  
    pspec = g_param_spec_variant ("state",
                                  "GVariant",
-Index: gnome-control-center-3.32.1/panels/display/cc-display-config.c
-===================================================================
---- gnome-control-center-3.32.1.orig/panels/display/cc-display-config.c
-+++ gnome-control-center-3.32.1/panels/display/cc-display-config.c
-@@ -568,3 +568,9 @@ cc_display_config_is_layout_logical (CcD
+@@ -1541,6 +1551,26 @@ logical_monitor_is_rotated (CcDisplayLogicalMonitor *lm)
+     }
+ }
+ 
++static double
++get_maximum_scale (CcDisplayConfig *config)
++{
++  GList *outputs, *l;
++  double max_scale = 1.0;
++  outputs = cc_display_config_get_monitors (config);
++
++  for (l = outputs; l; l = l->next)
++    {
++      CcDisplayMonitor *output = l->data;
++
++      if (!cc_display_monitor_is_useful (output))
++        continue;
++
++      max_scale = MAX (max_scale, cc_display_monitor_get_scale (output));
++    }
++
++  return max_scale;
++}
++
+ static int
+ logical_monitor_width (CcDisplayLogicalMonitor *lm)
+ {
+@@ -1559,6 +1589,11 @@ logical_monitor_width (CcDisplayLogicalMonitor *lm)
+ 
+   if (monitor->config->layout_mode == CC_DISPLAY_LAYOUT_MODE_LOGICAL)
+     return round (width / lm->scale);
++  if (monitor->config->layout_mode == CC_DISPLAY_LAYOUT_MODE_GLOBAL_UI_LOGICAL)
++    {
++      double max_scale = get_maximum_scale(CC_DISPLAY_CONFIG (monitor->config));
++      return round ((width * ceil (max_scale)) / lm->scale);
++    }
+   else
+     return width;
+ }
+diff --git a/panels/display/cc-display-config.c b/panels/display/cc-display-config.c
+index 3bed67a..00696ad 100644
+--- a/panels/display/cc-display-config.c
++++ b/panels/display/cc-display-config.c
+@@ -568,3 +568,9 @@ cc_display_config_is_layout_logical (CcDisplayConfig *self)
  {
    return CC_DISPLAY_CONFIG_GET_CLASS (self)->is_layout_logical (self);
  }
@@ -211,10 +250,10 @@ Index: gnome-control-center-3.32.1/panels/display/cc-display-config.c
 +{
 +  return CC_DISPLAY_CONFIG_GET_CLASS (self)->layout_use_ui_scale (self);
 +}
-Index: gnome-control-center-3.32.1/panels/display/cc-display-config.h
-===================================================================
---- gnome-control-center-3.32.1.orig/panels/display/cc-display-config.h
-+++ gnome-control-center-3.32.1/panels/display/cc-display-config.h
+diff --git a/panels/display/cc-display-config.h b/panels/display/cc-display-config.h
+index faeae8e..27b939a 100644
+--- a/panels/display/cc-display-config.h
++++ b/panels/display/cc-display-config.h
 @@ -154,6 +154,7 @@ struct _CcDisplayConfigClass
                                   gboolean          clone);
    GList*   (*get_cloning_modes) (CcDisplayConfig  *self);
@@ -223,7 +262,7 @@ Index: gnome-control-center-3.32.1/panels/display/cc-display-config.h
  };
  
  
-@@ -174,6 +175,7 @@ void              cc_display_config_set_
+@@ -174,6 +175,7 @@ void              cc_display_config_set_mode_on_all_outputs (CcDisplayConfig *co
                                                               CcDisplayMode   *mode);
  
  gboolean          cc_display_config_is_layout_logical       (CcDisplayConfig    *self);
