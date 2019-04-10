@@ -121,7 +121,7 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
  
    G_OBJECT_CLASS (cc_info_overview_panel_parent_class)->dispose (object);
  }
-@@ -863,11 +936,377 @@ cc_info_overview_panel_finalize (GObject
+@@ -863,11 +936,371 @@ cc_info_overview_panel_finalize (GObject
  }
  
  static void
@@ -265,13 +265,7 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
 +  if (self->pop_upgrade.os.active) {
 +    PopUpgradeOption *active = &self->pop_upgrade.os;
 +
-+    if (0 == g_strcmp0 (POP_UPGRADE_SIGNAL_PACKAGE_FETCHED, signal_name)) {
-+      pop_upgrade_package_fetched (active, parameters);
-+    } else if (0 == g_strcmp0 (POP_UPGRADE_SIGNAL_PACKAGE_FETCHING, signal_name)) {
-+      pop_upgrade_package_fetching (active, parameters);
-+    } else if (0 == g_strcmp0 (POP_UPGRADE_SIGNAL_PACKAGE_UPGRADE, signal_name)) {
-+      pop_upgrade_package_upgrade (active, parameters);
-+    } else if (0 == g_strcmp0 (POP_UPGRADE_SIGNAL_PACKAGE_FETCH_RESULT, signal_name)) {
++    if (0 == g_strcmp0 (POP_UPGRADE_SIGNAL_PACKAGE_FETCH_RESULT, signal_name)) {
 +      pop_upgrade_event_result (active, self, connection, parameters,
 +                                _("Packages fetched successfully"),
 +                                _("Failed to fetch package"));
@@ -499,7 +493,7 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
    object_class->finalize = cc_info_overview_panel_finalize;
    object_class->dispose = cc_info_overview_panel_dispose;
  
-@@ -888,10 +1327,105 @@ cc_info_overview_panel_class_init (CcInf
+@@ -888,10 +1321,105 @@ cc_info_overview_panel_class_init (CcInf
    gtk_widget_class_bind_template_child_private (widget_class, CcInfoOverviewPanel, grid1);
    gtk_widget_class_bind_template_child_private (widget_class, CcInfoOverviewPanel, label18);
  
@@ -605,7 +599,7 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
  cc_info_overview_panel_init (CcInfoOverviewPanel *self)
  {
    CcInfoOverviewPanelPrivate *priv = cc_info_overview_panel_get_instance_private (self);
-@@ -909,6 +1443,37 @@ cc_info_overview_panel_init (CcInfoOverv
+@@ -909,6 +1437,37 @@ cc_info_overview_panel_init (CcInfoOverv
  
    info_overview_panel_setup_overview (self);
    info_overview_panel_setup_virt (self);
@@ -1076,7 +1070,7 @@ Index: gnome-control-center/panels/info/pop-upgrade.c
 ===================================================================
 --- /dev/null
 +++ gnome-control-center/panels/info/pop-upgrade.c
-@@ -0,0 +1,528 @@
+@@ -0,0 +1,453 @@
 +#include "pop-upgrade.h"
 +#include <glib/gi18n.h>
 +
@@ -1350,81 +1344,6 @@ Index: gnome-control-center/panels/info/pop-upgrade.c
 +    );
 +
 +    return 0;
-+}
-+
-+void pop_upgrade_package_fetched (PopUpgradeOption *active,
-+                                  GVariant *parameters)
-+{
-+  g_info ("pop_upgrade: package fetch event");
-+
-+  g_autoptr(GVariant) inner = g_variant_get_child_value (parameters, 0);
-+  g_autoptr(GVariant) p1 = g_variant_get_child_value (parameters, 1);
-+  g_autoptr(GVariant) p2 = g_variant_get_child_value (parameters, 2);
-+
-+  gsize length = 0;
-+  const gchar *temp_str = g_variant_get_string (inner, &length);
-+  g_autofree gchar *package = g_strndup (temp_str, length);
-+
-+  if (NULL != package) {
-+    guint32 completed = g_variant_get_uint32 (p1);
-+    guint32 total = g_variant_get_uint32 (p2);
-+    double percent = (double) completed / (double) total;
-+
-+    g_info ("fetched %s (%d/%d: %f)", package, completed, total, percent);
-+    gtk_progress_bar_set_fraction (GTK_PROGRESS_BAR (active->progress), percent);
-+  }
-+}
-+
-+void pop_upgrade_package_fetching (PopUpgradeOption *active,
-+                                   GVariant *parameters)
-+{
-+  g_info ("pop_upgrade: package fetching event");
-+  g_autoptr(GVariant) inner = g_variant_get_child_value (parameters, 0);
-+  gsize length = 0;
-+  const gchar *temp_str = g_variant_get_string (inner, &length);
-+  g_autofree gchar *package = g_strndup (temp_str, length);
-+  if (NULL != package) {
-+    g_autofree gchar *desc = g_strdup_printf (_("Fetching %s"), package);
-+    gtk_progress_bar_set_text (GTK_PROGRESS_BAR (active->progress), desc);
-+  }
-+}
-+
-+void pop_upgrade_package_upgrade (PopUpgradeOption *active,
-+                                  GVariant *parameters)
-+{
-+  g_autoptr(GVariant) inner = g_variant_get_child_value (parameters, 0);
-+
-+  gchar *fst, *scd, *thd;
-+  fst = scd = thd = NULL;
-+
-+  g_autofree gchar *desc = NULL;
-+
-+  if (g_variant_lookup (inner, "processing_package", "&s", (gpointer) &fst)) {
-+    desc = g_strdup_printf (_("Processing triggers for %s"), fst);
-+  } else if (g_variant_lookup (inner, "percent", "&s", (gpointer) &fst)) {
-+    guint16 percent = 0;
-+    if (1 == sscanf (fst, "%hi", &percent)) {
-+      double fraction = (double) percent / (double) 100;
-+      gtk_progress_bar_set_fraction (GTK_PROGRESS_BAR (active->progress), fraction);
-+    } else {
-+      g_warning (_("Failed to read percent value"));
-+    }
-+  } else if (g_variant_lookup (inner, "setting_up", "&s", (gpointer) &fst)) {
-+    desc = g_strdup_printf (_("Setting up %s"), fst);
-+  } else if (g_variant_lookup (inner, "over", "&s", (gpointer) &fst)) {
-+    gboolean res = g_variant_lookup (inner, "version", "&s", (gpointer) &scd)
-+      && g_variant_lookup (inner, "unpacking", "&s", (gpointer) &thd);
-+
-+    if (res) {
-+      desc = g_strdup_printf (_("Unpacking %s (%s) over %s"), thd, scd, fst);
-+    } else {
-+      g_warning (_("Failed to read unpacking value"));
-+    }
-+  }
-+
-+  if (desc) {
-+    gtk_progress_bar_set_text (GTK_PROGRESS_BAR (active->progress), desc);
-+  }
 +}
 +
 +void pop_upgrade_recovery_download_progress (PopUpgradeOption *active,
