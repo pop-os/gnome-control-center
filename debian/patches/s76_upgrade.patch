@@ -121,7 +121,7 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
  
    G_OBJECT_CLASS (cc_info_overview_panel_parent_class)->dispose (object);
  }
-@@ -863,11 +936,378 @@ cc_info_overview_panel_finalize (GObject
+@@ -863,11 +936,379 @@ cc_info_overview_panel_finalize (GObject
  }
  
  static void
@@ -238,6 +238,7 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
 +  active->actionable = FALSE;
 +  gtk_label_set_text (GTK_LABEL (active->label), msg);
 +  gtk_stack_set_visible_child (GTK_STACK (active->stack), active->button_box);
++  gtk_widget_hide (active->button);
 +
 +  PopUpgradeOption *other_options[2] = { NULL, NULL };
 +  pop_upgrade_other_options (self, other_options);
@@ -500,7 +501,7 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
    object_class->finalize = cc_info_overview_panel_finalize;
    object_class->dispose = cc_info_overview_panel_dispose;
  
-@@ -888,10 +1328,109 @@ cc_info_overview_panel_class_init (CcInf
+@@ -888,10 +1329,109 @@ cc_info_overview_panel_class_init (CcInf
    gtk_widget_class_bind_template_child_private (widget_class, CcInfoOverviewPanel, grid1);
    gtk_widget_class_bind_template_child_private (widget_class, CcInfoOverviewPanel, label18);
  
@@ -610,7 +611,7 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
  cc_info_overview_panel_init (CcInfoOverviewPanel *self)
  {
    CcInfoOverviewPanelPrivate *priv = cc_info_overview_panel_get_instance_private (self);
-@@ -909,6 +1448,37 @@ cc_info_overview_panel_init (CcInfoOverv
+@@ -909,6 +1449,37 @@ cc_info_overview_panel_init (CcInfoOverv
  
    info_overview_panel_setup_overview (self);
    info_overview_panel_setup_virt (self);
