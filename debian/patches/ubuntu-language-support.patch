@@ -8,10 +8,10 @@ Workaround for https://launchpad.net/bugs/1631750
  panels/region/cc-region-panel.ui | 26 ++++++++++++++++++++++++++
  2 files changed, 56 insertions(+)
 
-Index: gnome-control-center-3.31.92/panels/region/cc-region-panel.c
-===================================================================
---- gnome-control-center-3.31.92.orig/panels/region/cc-region-panel.c
-+++ gnome-control-center-3.31.92/panels/region/cc-region-panel.c
+diff --git a/panels/region/cc-region-panel.c b/panels/region/cc-region-panel.c
+index d8570b7..6a388b1 100644
+--- a/panels/region/cc-region-panel.c
++++ b/panels/region/cc-region-panel.c
 @@ -72,6 +72,7 @@ struct _CcRegionPanel {
          GtkListBox      *language_list;
          GtkListBoxRow   *language_row;
@@ -54,7 +54,7 @@ Index: gnome-control-center-3.31.92/panels/region/cc-region-panel.c
  static void
  on_localed_properties_changed (CcRegionPanel  *self,
                                 GVariant       *changed_properties,
-@@ -1641,6 +1669,7 @@ cc_region_panel_class_init (CcRegionPane
+@@ -1641,6 +1669,7 @@ cc_region_panel_class_init (CcRegionPanelClass * klass)
          gtk_widget_class_bind_template_child (widget_class, CcRegionPanel, language_list);
          gtk_widget_class_bind_template_child (widget_class, CcRegionPanel, language_row);
          gtk_widget_class_bind_template_child (widget_class, CcRegionPanel, language_section_frame);
@@ -62,7 +62,7 @@ Index: gnome-control-center-3.31.92/panels/region/cc-region-panel.c
          gtk_widget_class_bind_template_child (widget_class, CcRegionPanel, next_source);
          gtk_widget_class_bind_template_child (widget_class, CcRegionPanel, next_source_label);
          gtk_widget_class_bind_template_child (widget_class, CcRegionPanel, no_inputs_row);
-@@ -1654,6 +1683,7 @@ cc_region_panel_class_init (CcRegionPane
+@@ -1654,6 +1683,7 @@ cc_region_panel_class_init (CcRegionPanelClass * klass)
  
          gtk_widget_class_bind_template_callback (widget_class, input_row_activated_cb);
          gtk_widget_class_bind_template_callback (widget_class, restart_now);
@@ -70,40 +70,40 @@ Index: gnome-control-center-3.31.92/panels/region/cc-region-panel.c
  }
  
  static void
-Index: gnome-control-center-3.31.92/panels/region/cc-region-panel.ui
-===================================================================
---- gnome-control-center-3.31.92.orig/panels/region/cc-region-panel.ui
-+++ gnome-control-center-3.31.92/panels/region/cc-region-panel.ui
-@@ -306,6 +306,32 @@
+diff --git a/panels/region/cc-region-panel.ui b/panels/region/cc-region-panel.ui
+index 3ce8e1a..6f1df8e 100644
+--- a/panels/region/cc-region-panel.ui
++++ b/panels/region/cc-region-panel.ui
+@@ -304,6 +304,32 @@
+                    </style>
+                   </object>
                  </child>
-               </object>
-             </child>
-+            <child>
-+              <object class="GtkBox">
-+                <property name="visible">True</property>
-+                <property name="can_focus">False</property>
-+                <property name="orientation">vertical</property>
 +                <child>
-+                  <object class="GtkButton" id="language_support_button">
-+                    <property name="label" translatable="yes">Manage Installed Languages</property>
++                  <object class="GtkBox">
 +                    <property name="visible">True</property>
-+                    <property name="can_focus">True</property>
-+                    <property name="receives_default">True</property>
-+                    <signal name="clicked" handler="show_language_support" object="CcRegionPanel" swapped="yes"/>
++                    <property name="can_focus">False</property>
++                    <property name="orientation">vertical</property>
++                    <child>
++                      <object class="GtkButton" id="language_support_button">
++                        <property name="label" translatable="yes">Manage Installed Languages</property>
++                        <property name="visible">True</property>
++                        <property name="can_focus">True</property>
++                        <property name="receives_default">True</property>
++                        <signal name="clicked" handler="show_language_support" object="CcRegionPanel" swapped="yes"/>
++                      </object>
++                      <packing>
++                        <property name="expand">False</property>
++                        <property name="fill">True</property>
++                        <property name="pack_type">end</property>
++                      </packing>
++                    </child>
 +                  </object>
 +                  <packing>
 +                    <property name="expand">False</property>
 +                    <property name="fill">True</property>
-+                    <property name="pack_type">end</property>
++                    <property name="position">3</property>
 +                  </packing>
 +                </child>
-+              </object>
-+              <packing>
-+                <property name="expand">False</property>
-+                <property name="fill">True</property>
-+                <property name="position">3</property>
-+              </packing>
-+            </child>
+               </object>
+             </child>
            </object>
-         </child>
-       </object>
