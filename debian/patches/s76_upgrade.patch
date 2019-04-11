@@ -501,7 +501,7 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
    object_class->finalize = cc_info_overview_panel_finalize;
    object_class->dispose = cc_info_overview_panel_dispose;
  
-@@ -888,10 +1329,109 @@ cc_info_overview_panel_class_init (CcInf
+@@ -888,10 +1329,112 @@ cc_info_overview_panel_class_init (CcInf
    gtk_widget_class_bind_template_child_private (widget_class, CcInfoOverviewPanel, grid1);
    gtk_widget_class_bind_template_child_private (widget_class, CcInfoOverviewPanel, label18);
  
@@ -573,7 +573,10 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
 +  gtk_widget_hide (priv->pop_upgrade.os.button);
 +  pop_upgrade_widgets_rec_visible (&priv->pop_upgrade, FALSE);
 +  pop_upgrade_widgets_refresh_visible (&priv->pop_upgrade, FALSE);
-+  if (0 == pop_upgrade_daemon_connect (&priv->upgrade_daemon, &error)) {
++
++  if (g_file_test ("/pop-upgrade", G_FILE_TEST_EXISTS) || g_file_test("/pop_preparing_release_upgrade", G_FILE_TEST_EXISTS)) {
++    upgrade_text = _("Release upgrade planned");
++  } else if (0 == pop_upgrade_daemon_connect (&priv->upgrade_daemon, &error)) {
 +    if (0 == pop_upgrade_daemon_release_check (&priv->upgrade_daemon, &error, &priv->release_check)) {
 +      if (priv->release_check.build > 0) {
 +        g_info ("upgrade from %s to %s is available", priv->release_check.current,
@@ -611,7 +614,7 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
  cc_info_overview_panel_init (CcInfoOverviewPanel *self)
  {
    CcInfoOverviewPanelPrivate *priv = cc_info_overview_panel_get_instance_private (self);
-@@ -909,6 +1449,37 @@ cc_info_overview_panel_init (CcInfoOverv
+@@ -909,6 +1452,37 @@ cc_info_overview_panel_init (CcInfoOverv
  
    info_overview_panel_setup_overview (self);
    info_overview_panel_setup_virt (self);
