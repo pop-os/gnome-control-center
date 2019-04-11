@@ -121,7 +121,7 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
  
    G_OBJECT_CLASS (cc_info_overview_panel_parent_class)->dispose (object);
  }
-@@ -863,11 +936,371 @@ cc_info_overview_panel_finalize (GObject
+@@ -863,11 +936,378 @@ cc_info_overview_panel_finalize (GObject
  }
  
  static void
@@ -265,7 +265,11 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
 +  if (self->pop_upgrade.os.active) {
 +    PopUpgradeOption *active = &self->pop_upgrade.os;
 +
-+    if (0 == g_strcmp0 (POP_UPGRADE_SIGNAL_PACKAGE_FETCH_RESULT, signal_name)) {
++    if (0 == g_strcmp0 (POP_UPGRADE_SIGNAL_PACKAGE_FETCHED, signal_name)) {
++      pop_upgrade_package_fetched (active, parameters);
++    } else if (0 == g_strcmp0 (POP_UPGRADE_SIGNAL_PACKAGE_UPGRADE, signal_name)) {
++      pop_upgrade_package_upgrade (active, parameters);
++    } else if (0 == g_strcmp0 (POP_UPGRADE_SIGNAL_PACKAGE_FETCH_RESULT, signal_name)) {
 +      pop_upgrade_event_result (active, self, connection, parameters,
 +                                _("Packages fetched successfully"),
 +                                _("Failed to fetch package"));
@@ -314,8 +318,11 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
 +    if (0 == pop_upgrade_daemon_status (daemon, NULL, &status)) {
 +      if (status.status == data->expected_status) {
 +        return TRUE;
-+      } else {
++      } else if (data->expected_status == 0) {
 +        cause = "Daemon status changed before result was received";
++      } else {
++        data->expected_status = 0;
++        return TRUE;
 +      }
 +    }
 +
@@ -325,7 +332,7 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
 +  }
 +
 +  data->priv->os_subscribe_idle = 0;
-+  g_slice_free (ConnectionData, &data);
++  g_slice_free (ConnectionData, data);
 +  return FALSE;
 +}
 +
@@ -493,7 +500,7 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
    object_class->finalize = cc_info_overview_panel_finalize;
    object_class->dispose = cc_info_overview_panel_dispose;
  
-@@ -888,10 +1321,105 @@ cc_info_overview_panel_class_init (CcInf
+@@ -888,10 +1328,109 @@ cc_info_overview_panel_class_init (CcInf
    gtk_widget_class_bind_template_child_private (widget_class, CcInfoOverviewPanel, grid1);
    gtk_widget_class_bind_template_child_private (widget_class, CcInfoOverviewPanel, label18);
  
@@ -563,7 +570,8 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
 +  g_autoptr(GError) error = NULL;
 +
 +  gtk_widget_hide (priv->pop_upgrade.os.button);
-+  gtk_widget_hide (priv->pop_upgrade.rec.stack);
++  pop_upgrade_widgets_rec_visible (&priv->pop_upgrade, FALSE);
++  pop_upgrade_widgets_refresh_visible (&priv->pop_upgrade, FALSE);
 +  if (0 == pop_upgrade_daemon_connect (&priv->upgrade_daemon, &error)) {
 +    if (0 == pop_upgrade_daemon_release_check (&priv->upgrade_daemon, &error, &priv->release_check)) {
 +      if (priv->release_check.build > 0) {
@@ -573,9 +581,12 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
 +        // Allow upgrading the recovery partition if the recovery partition exists.
 +        if (pop_upgrade_recovery_partition_exists ()) {
 +          g_info ("recovery partition exists");
-+          recovery_text = _("Recovery update available");
-+          gtk_button_set_label (GTK_BUTTON (priv->pop_upgrade.rec.button), _("Upgrade"));
-+          gtk_widget_show (priv->pop_upgrade.rec.stack);
++          if (pop_upgrade_recovery_partition_requires_upgrade (&priv->release_check)) {
++            recovery_text = _("Recovery update available");
++            gtk_button_set_label (GTK_BUTTON (priv->pop_upgrade.rec.button), _("Upgrade"));
++            pop_upgrade_widgets_rec_visible (&priv->pop_upgrade, TRUE);
++          }
++          pop_upgrade_widgets_refresh_visible (&priv->pop_upgrade, TRUE);
 +        }
 +
 +        upgrade_text_heap = g_strdup_printf (
@@ -599,7 +610,7 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
  cc_info_overview_panel_init (CcInfoOverviewPanel *self)
  {
    CcInfoOverviewPanelPrivate *priv = cc_info_overview_panel_get_instance_private (self);
-@@ -909,6 +1437,37 @@ cc_info_overview_panel_init (CcInfoOverv
+@@ -909,6 +1448,37 @@ cc_info_overview_panel_init (CcInfoOverv
  
    info_overview_panel_setup_overview (self);
    info_overview_panel_setup_virt (self);
@@ -1070,7 +1081,7 @@ Index: gnome-control-center/panels/info/pop-upgrade.c
 ===================================================================
 --- /dev/null
 +++ gnome-control-center/panels/info/pop-upgrade.c
-@@ -0,0 +1,453 @@
+@@ -0,0 +1,525 @@
 +#include "pop-upgrade.h"
 +#include <glib/gi18n.h>
 +
@@ -1346,6 +1357,67 @@ Index: gnome-control-center/panels/info/pop-upgrade.c
 +    return 0;
 +}
 +
++void pop_upgrade_package_fetched (PopUpgradeOption *active,
++                                  GVariant *parameters)
++{
++  g_info ("pop_upgrade: package fetch event");
++
++  g_autoptr(GVariant) inner = g_variant_get_child_value (parameters, 0);
++  g_autoptr(GVariant) p1 = g_variant_get_child_value (parameters, 1);
++  g_autoptr(GVariant) p2 = g_variant_get_child_value (parameters, 2);
++
++  gsize length = 0;
++  const gchar *temp_str = g_variant_get_string (inner, &length);
++  g_autofree gchar *package = g_strndup (temp_str, length);
++
++  if (NULL != package) {
++    guint32 completed = g_variant_get_uint32 (p1);
++    guint32 total = g_variant_get_uint32 (p2);
++    double percent = (double) completed / (double) total;
++
++    g_info ("fetched %s (%d/%d: %f)", package, completed, total, percent);
++    gtk_progress_bar_set_fraction (GTK_PROGRESS_BAR (active->progress), percent);
++  }
++}
++
++void pop_upgrade_package_upgrade (PopUpgradeOption *active,
++                                  GVariant *parameters)
++{
++  g_autoptr(GVariant) inner = g_variant_get_child_value (parameters, 0);
++
++  gchar *fst, *scd, *thd;
++  fst = scd = thd = NULL;
++
++  g_autofree gchar *desc = NULL;
++
++  if (g_variant_lookup (inner, "processing_package", "&s", (gpointer) &fst)) {
++    desc = g_strdup_printf (_("Processing triggers for %s"), fst);
++  } else if (g_variant_lookup (inner, "percent", "&s", (gpointer) &fst)) {
++    guint16 percent = 0;
++    if (1 == sscanf (fst, "%hi", &percent)) {
++      double fraction = (double) percent / (double) 100;
++      gtk_progress_bar_set_fraction (GTK_PROGRESS_BAR (active->progress), fraction);
++    } else {
++      g_warning (_("Failed to read percent value"));
++    }
++  } else if (g_variant_lookup (inner, "setting_up", "&s", (gpointer) &fst)) {
++    desc = g_strdup_printf (_("Setting up %s"), fst);
++  } else if (g_variant_lookup (inner, "over", "&s", (gpointer) &fst)) {
++    gboolean res = g_variant_lookup (inner, "version", "&s", (gpointer) &scd)
++      && g_variant_lookup (inner, "unpacking", "&s", (gpointer) &thd);
++
++    if (res) {
++      desc = g_strdup_printf (_("Unpacking %s (%s) over %s"), thd, scd, fst);
++    } else {
++      g_warning (_("Failed to read unpacking value"));
++    }
++  }
++
++  if (desc) {
++    g_info ("%s", desc);
++  }
++}
++
 +void pop_upgrade_recovery_download_progress (PopUpgradeOption *active,
 +                                             GVariant *parameters)
 +{
@@ -1356,7 +1428,9 @@ Index: gnome-control-center/panels/info/pop-upgrade.c
 +  guint64 progress = g_variant_get_uint64 (p0);
 +  guint64 total = g_variant_get_uint64 (p1);
 +
-+  double fraction = (double) total / (double) progress;
++  g_info ("progress: %d, total: %d", progress, total);
++
++  double fraction = (double) progress / (double) total;
 +  g_autofree gchar *desc = g_strdup_printf (
 +    _("Recovery files downloading: %d%%"),
 +    (int) (fraction * 100)
@@ -1498,12 +1572,21 @@ Index: gnome-control-center/panels/info/pop-upgrade.c
 +  gtk_list_box_set_selection_mode (GTK_LIST_BOX (list), GTK_SELECTION_NONE);
 +  gtk_container_add (GTK_CONTAINER (list), os.stack);
 +  gtk_container_add (GTK_CONTAINER (list), rec.stack);
++  gtk_container_add (GTK_CONTAINER (list), refresh.stack);
 +  gtk_widget_show_all (list);
 +
 +  // Add the list to the UI in the upgrade frame.
 +  gtk_container_add (GTK_CONTAINER (frame), list);
 +
-+  return (PopUpgradeWidgets) { os, rec, refresh };
++  return (PopUpgradeWidgets) { list, os, rec, refresh };
++}
++
++void pop_upgrade_widgets_rec_visible (PopUpgradeWidgets *self, gboolean visible) {
++  gtk_widget_set_visible (gtk_list_box_get_row_at_index (self->list, 1), visible);
++}
++
++void pop_upgrade_widgets_refresh_visible (PopUpgradeWidgets *self, gboolean visible) {
++  gtk_widget_set_visible (gtk_list_box_get_row_at_index (self->list, 2), visible);
 +}
 +
 +GtkWidget *pop_upgrade_recovery_partition_dialog (void) {
@@ -1528,7 +1611,7 @@ Index: gnome-control-center/panels/info/pop-upgrade.h
 ===================================================================
 --- /dev/null
 +++ gnome-control-center/panels/info/pop-upgrade.h
-@@ -0,0 +1,178 @@
+@@ -0,0 +1,180 @@
 +#include <gio/gio.h>
 +#include <glib.h>
 +#include <gtk/gtk.h>
@@ -1683,9 +1766,6 @@ Index: gnome-control-center/panels/info/pop-upgrade.h
 +void pop_upgrade_package_fetched (PopUpgradeOption *active,
 +                                  GVariant *parameters);
 +
-+void pop_upgrade_package_fetching (PopUpgradeOption *active,
-+                                   GVariant *parameters);
-+
 +void pop_upgrade_package_upgrade (PopUpgradeOption *active,
 +                                  GVariant *parameters);
 +
@@ -1699,6 +1779,7 @@ Index: gnome-control-center/panels/info/pop-upgrade.h
 +void pop_upgrade_option_reset_options (PopUpgradeOption *options[]);
 +
 +typedef struct {
++    GtkListBox      *list;
 +    PopUpgradeOption os;
 +    PopUpgradeOption rec;
 +    PopUpgradeOption refresh;
@@ -1706,12 +1787,16 @@ Index: gnome-control-center/panels/info/pop-upgrade.h
 +
 +PopUpgradeWidgets pop_upgrade_frame (GtkFrame *frame);
 +
++void pop_upgrade_widgets_rec_visible (PopUpgradeWidgets *self, gboolean visible);
++
++void pop_upgrade_widgets_refresh_visible (PopUpgradeWidgets *self, gboolean visible);
++
 +GtkWidget *pop_upgrade_recovery_partition_dialog (void);
 Index: gnome-control-center/panels/info/s76-firmware-daemon.c
 ===================================================================
 --- /dev/null
 +++ gnome-control-center/panels/info/s76-firmware-daemon.c
-@@ -0,0 +1,202 @@
+@@ -0,0 +1,203 @@
 +#include <s76-firmware-daemon.h>
 +#include <json-glib/json-glib.h>
 +#include <json-glib/json-gobject.h>
@@ -1802,7 +1887,8 @@ Index: gnome-control-center/panels/info/s76-firmware-daemon.c
 +int s76_firmware_daemon_needs_update (S76FirmwareDaemon *self,
 +                                      S76FirmwareVersion *sversion,
 +                                      gchar **digest, gchar **changelog) {
-+  g_autofree gchar *model, *version = NULL;
++  g_autofree gchar *model = NULL;
++  g_autofree gchar *version = NULL;
 +  int valid = s76_firmware_daemon_bios (self, &model, &version) == 0 &&
 +              s76_firmware_daemon_download (self, digest, changelog) == 0 &&
 +              s76_firmware_version_from_changelog (sversion, *changelog, version) == 0;
