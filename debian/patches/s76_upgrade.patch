@@ -121,7 +121,7 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
  
    G_OBJECT_CLASS (cc_info_overview_panel_parent_class)->dispose (object);
  }
-@@ -863,11 +936,379 @@ cc_info_overview_panel_finalize (GObject
+@@ -863,11 +936,372 @@ cc_info_overview_panel_finalize (GObject
  }
  
  static void
@@ -148,12 +148,6 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
 +
 +  const gchar *scheduled_label = _("Firmware Upgrade Scheduled");
 +
-+#ifdef TEST_MODE
-+  g_info ("faking firmware scheduling");
-+  gtk_widget_hide (priv->firmware_button);
-+  gtk_widget_set_halign (GTK_WIDGET (priv->firmware_upgrade_label), GTK_ALIGN_CENTER);
-+  gtk_label_set_label (GTK_LABEL (priv->firmware_upgrade_label), scheduled_label);
-+#else
 +  if (!s76_firmware_daemon_schedule (&priv->firmware_daemon, priv->firmware_digest)) {
 +    gtk_widget_hide (priv->firmware_button);
 +    gtk_widget_set_halign (GTK_WIDGET (priv->firmware_upgrade_label), GTK_ALIGN_CENTER);
@@ -166,10 +160,9 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
 +  } else {
 +    g_warning ("failed to schedule firmware upgrade");
 +  }
-+#endif
 +
 +  gtk_dialog_response(data->dialog, GTK_RESPONSE_CLOSE);
-+  g_slice_free (FirmwareScheduleData, &data);
++  g_slice_free (FirmwareScheduleData, data);
 +}
 +
 +static void
@@ -501,7 +494,7 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
    object_class->finalize = cc_info_overview_panel_finalize;
    object_class->dispose = cc_info_overview_panel_dispose;
  
-@@ -888,10 +1329,112 @@ cc_info_overview_panel_class_init (CcInf
+@@ -888,10 +1322,112 @@ cc_info_overview_panel_class_init (CcInf
    gtk_widget_class_bind_template_child_private (widget_class, CcInfoOverviewPanel, grid1);
    gtk_widget_class_bind_template_child_private (widget_class, CcInfoOverviewPanel, label18);
  
@@ -614,7 +607,7 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
  cc_info_overview_panel_init (CcInfoOverviewPanel *self)
  {
    CcInfoOverviewPanelPrivate *priv = cc_info_overview_panel_get_instance_private (self);
-@@ -909,6 +1452,37 @@ cc_info_overview_panel_init (CcInfoOverv
+@@ -909,6 +1445,38 @@ cc_info_overview_panel_init (CcInfoOverv
  
    info_overview_panel_setup_overview (self);
    info_overview_panel_setup_virt (self);
@@ -626,6 +619,7 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
 +  gtk_size_group_add_widget (button_group, priv->firmware_button);
 +  gtk_size_group_add_widget (button_group, priv->pop_upgrade.os.button);
 +  gtk_size_group_add_widget (button_group, priv->pop_upgrade.rec.button);
++  gtk_size_group_add_widget (button_group, priv->pop_upgrade.refresh.button);
 +
 +  set_computer_label (GTK_LABEL (priv->computer_label));
 +  set_model_label (GTK_LABEL (priv->model_label));
@@ -1085,7 +1079,7 @@ Index: gnome-control-center/panels/info/pop-upgrade.c
 ===================================================================
 --- /dev/null
 +++ gnome-control-center/panels/info/pop-upgrade.c
-@@ -0,0 +1,525 @@
+@@ -0,0 +1,548 @@
 +#include "pop-upgrade.h"
 +#include <glib/gi18n.h>
 +
@@ -1457,13 +1451,15 @@ Index: gnome-control-center/panels/info/pop-upgrade.c
 +  }
 +}
 +
-+static PopUpgradeOption pop_upgrade_option_new (const gchar *name) {
++static PopUpgradeOption pop_upgrade_option_new (const gchar *name, const gchar *class) {
 +  // On click, this will initiate the pop upgrade process.
 +  GtkWidget *button = gtk_button_new ();
 +  gtk_widget_set_can_focus (button, TRUE);
 +  gtk_widget_set_valign (button, GTK_ALIGN_CENTER);
-+  gtk_style_context_add_class (gtk_widget_get_style_context (button),
-+                               GTK_STYLE_CLASS_SUGGESTED_ACTION);
++
++  if (NULL != class) {
++    gtk_style_context_add_class (gtk_widget_get_style_context (button), class);
++  }
 +
 +  // The label to describe availability of an upgrade.
 +  GtkWidget *label = gtk_label_new (NULL);
@@ -1471,9 +1467,21 @@ Index: gnome-control-center/panels/info/pop-upgrade.c
 +  gtk_label_set_use_underline (GTK_LABEL (label), TRUE);
 +  gtk_label_set_mnemonic_widget (GTK_LABEL (label), button);
 +
++  // Optional sub-label
++  GtkWidget *sublabel = gtk_label_new (NULL);
++  gtk_label_set_xalign (GTK_LABEL (label), 0);
++  gtk_style_context_add_class (gtk_widget_get_style_context (sublabel), "dim-label");
++  gtk_widget_hide (sublabel);
++
++  // A box for the labels
++  GtkWidget *label_box = gtk_box_new (GTK_ORIENTATION_VERTICAL, 3);
++  gtk_widget_set_valign (label_box, GTK_ALIGN_CENTER);
++  gtk_container_add (GTK_CONTAINER (label_box), label);
++  gtk_container_add (GTK_CONTAINER (label_box), sublabel);
++
 +  // A box for containing the label and button.
 +  GtkWidget *button_box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 12);
-+  gtk_container_add (GTK_CONTAINER (button_box), label);
++  gtk_container_add (GTK_CONTAINER (button_box), label_box);
 +  gtk_box_pack_end (GTK_BOX (button_box), button, FALSE, FALSE, FALSE);
 +
 +  // Displays progress of the release upgrade in progress.
@@ -1494,7 +1502,7 @@ Index: gnome-control-center/panels/info/pop-upgrade.c
 +  gtk_stack_set_visible_child (GTK_STACK (stack), button_box);
 +
 +  return (PopUpgradeOption) {
-+    FALSE, TRUE, NULL, name, button, label,
++    FALSE, TRUE, NULL, name, button, label, sublabel,
 +    button_box, progress, stack
 +  };
 +}
@@ -1545,6 +1553,11 @@ Index: gnome-control-center/panels/info/pop-upgrade.c
 +  gtk_label_set_text (GTK_LABEL (self->label), label);
 +}
 +
++void pop_upgrade_option_set_sublabel (PopUpgradeOption *self, const gchar *label) {
++  gtk_widget_set_visible (self->sublabel, NULL != label);
++  gtk_label_set_label (GTK_LABEL (self->sublabel), label);
++}
++
 +void pop_upgrade_option_try_again (
 +  PopUpgradeOption *self,
 +  PopUpgradeOption *options[],
@@ -1564,9 +1577,9 @@ Index: gnome-control-center/panels/info/pop-upgrade.c
 +    g_critical ("pop_upgrade_frame: received NULL input");
 +  }
 +
-+  PopUpgradeOption os = pop_upgrade_option_new ("os");
-+  PopUpgradeOption rec = pop_upgrade_option_new ("recovery");
-+  PopUpgradeOption refresh = pop_upgrade_option_new ("refresh");
++  PopUpgradeOption os = pop_upgrade_option_new ("os", GTK_STYLE_CLASS_SUGGESTED_ACTION);
++  PopUpgradeOption rec = pop_upgrade_option_new ("recovery", GTK_STYLE_CLASS_SUGGESTED_ACTION);
++  PopUpgradeOption refresh = pop_upgrade_option_new ("refresh", GTK_STYLE_CLASS_SUGGESTED_ACTION);
 +  pop_upgrade_option_set_label (&refresh, _("Refresh OS"));
 +  gtk_button_set_label (GTK_BUTTON (refresh.button), _("Refresh"));
 +
@@ -1578,6 +1591,10 @@ Index: gnome-control-center/panels/info/pop-upgrade.c
 +  gtk_container_add (GTK_CONTAINER (list), rec.stack);
 +  gtk_container_add (GTK_CONTAINER (list), refresh.stack);
 +  gtk_widget_show_all (list);
++
++  pop_upgrade_option_set_sublabel (&refresh, _("Reinstall while keeping user accounts and files"));
++  gtk_widget_hide (os.sublabel);
++  gtk_widget_hide (rec.sublabel);
 +
 +  // Add the list to the UI in the upgrade frame.
 +  gtk_container_add (GTK_CONTAINER (frame), list);
@@ -1615,7 +1632,7 @@ Index: gnome-control-center/panels/info/pop-upgrade.h
 ===================================================================
 --- /dev/null
 +++ gnome-control-center/panels/info/pop-upgrade.h
-@@ -0,0 +1,180 @@
+@@ -0,0 +1,181 @@
 +#include <gio/gio.h>
 +#include <glib.h>
 +#include <gtk/gtk.h>
@@ -1740,6 +1757,7 @@ Index: gnome-control-center/panels/info/pop-upgrade.h
 +    const gchar *name;
 +    GtkWidget   *button;
 +    GtkWidget   *label;
++    GtkWidget   *sublabel;
 +    GtkWidget   *button_box;
 +    GtkWidget   *progress;
 +    GtkWidget   *stack;
@@ -2204,7 +2222,7 @@ Index: gnome-control-center/panels/info/s76-firmware.c
 ===================================================================
 --- /dev/null
 +++ gnome-control-center/panels/info/s76-firmware.c
-@@ -0,0 +1,47 @@
+@@ -0,0 +1,48 @@
 +#include "s76-firmware.h"
 +#include <glib/gi18n.h>
 +
@@ -2241,6 +2259,7 @@ Index: gnome-control-center/panels/info/s76-firmware.c
 +      if (needs_update == S76_FIRMWARE_NEEDS_UPDATE) {
 +        g_info ("firmware update is available: %s", (*firmware_version)->bios);
 +        g_ptr_array_foreach ((*firmware_version)->changes, print, NULL);
++        g_info ("firmware update available: 1.0.0", (*firmware_version)->bios);
 +
 +        label = _("Firmware Updates Available");
 +        gtk_widget_show (GTK_WIDGET (firmware_button));
