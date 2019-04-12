@@ -1,0 +1,64 @@
+From 809fac82df0a36e9db7eb6aefc9153ad9c01b8df Mon Sep 17 00:00:00 2001
+From: Sebastien Bacher <seb128@debian.org>
+Date: Thu, 11 Apr 2019 14:09:38 +0000
+Subject: [PATCH] night-light: set screen temperature strings as translatable
+
+Fixes #437
+---
+ panels/display/cc-night-light-dialog.c | 9 +++------
+ po/POTFILES.in                         | 1 +
+ 2 files changed, 4 insertions(+), 6 deletions(-)
+
+diff --git a/panels/display/cc-night-light-dialog.c b/panels/display/cc-night-light-dialog.c
+index 42c1353d1..906815537 100644
+--- a/panels/display/cc-night-light-dialog.c
++++ b/panels/display/cc-night-light-dialog.c
+@@ -22,6 +22,7 @@
+ 
+ #include <gdesktop-enums.h>
+ #include <gtk/gtk.h>
++#include <glib/gi18n.h>
+ #include <math.h>
+ 
+ #include "cc-night-light-dialog.h"
+@@ -638,15 +639,12 @@ cc_night_light_dialog_init (CcNightLightDialog *self)
+ {
+   g_autoptr(GtkCssProvider) provider = NULL;
+   g_autoptr(GError) error = NULL;
+-  g_autofree gchar *text_low = NULL;
+-  g_autofree gchar *text_high = NULL;
+ 
+   gtk_widget_init_template (GTK_WIDGET (self));
+ 
+-  text_low = g_strdup_printf ("%s", "More Warm");
+   gtk_scale_add_mark (GTK_SCALE (self->scale_color_temperature),
+                       3000, GTK_POS_BOTTOM,
+-                      text_low);
++                      _("More Warm"));
+ 
+   gtk_scale_add_mark (GTK_SCALE (self->scale_color_temperature),
+                       4000, GTK_POS_BOTTOM,
+@@ -656,10 +654,9 @@ cc_night_light_dialog_init (CcNightLightDialog *self)
+                       5000, GTK_POS_BOTTOM,
+                       NULL);
+ 
+-  text_high = g_strdup_printf ("%s", "Less Warm");
+   gtk_scale_add_mark (GTK_SCALE (self->scale_color_temperature),
+                       6000, GTK_POS_BOTTOM,
+-                      text_high);
++                      _("Less Warm"));
+ 
+   self->cancellable = g_cancellable_new ();
+   self->settings_display = g_settings_new (DISPLAY_SCHEMA);
+diff --git a/po/POTFILES.in b/po/POTFILES.in
+index 1d8b48beb..53836cd0e 100644
+--- a/po/POTFILES.in
++++ b/po/POTFILES.in
+@@ -37,6 +37,7 @@ panels/display/cc-display-panel.c
+ panels/display/cc-display-panel.ui
+ panels/display/cc-display-settings.c
+ panels/display/cc-display-settings.ui
++panels/display/cc-night-light-dialog.c
+ panels/display/cc-night-light-dialog.ui
+ panels/display/gnome-display-panel.desktop.in.in
+ panels/info/cc-info-default-apps-panel.ui
