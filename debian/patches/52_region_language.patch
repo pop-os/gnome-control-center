@@ -346,26 +346,7 @@ Index: gnome-control-center-3.32.1/panels/region/cc-region-panel.c
 ===================================================================
 --- gnome-control-center-3.32.1.orig/panels/region/cc-region-panel.c
 +++ gnome-control-center-3.32.1/panels/region/cc-region-panel.c
-@@ -378,11 +378,15 @@ language_response (CcRegionPanel     *se
-                    gint               response_id,
-                    CcLanguageChooser *chooser)
- {
--        const gchar *language;
-+        const gchar *locale, *language, *country;
-+        gchar *name = NULL;
- 
-         if (response_id == GTK_RESPONSE_OK) {
--                language = cc_language_chooser_get_language (chooser);
--                update_language (self, language);
-+                locale = cc_language_chooser_get_language (chooser);
-+                gnome_parse_locale (locale, &language, &country, NULL, NULL);
-+                name = g_strdup_printf ("%s_%s", language, country);
-+                update_language (self, name);
-+                g_free (name);
-         }
- 
-         gtk_widget_destroy (GTK_WIDGET (chooser));
-@@ -402,6 +406,47 @@ set_system_region (CcRegionPanel *self,
+@@ -402,6 +402,47 @@ set_system_region (CcRegionPanel *self,
  }
  
  static void
@@ -413,7 +394,7 @@ Index: gnome-control-center-3.32.1/panels/region/cc-region-panel.c
  update_region (CcRegionPanel *self,
                 const gchar   *region)
  {
-@@ -410,6 +455,7 @@ update_region (CcRegionPanel *self,
+@@ -410,6 +451,7 @@ update_region (CcRegionPanel *self,
          } else {
                  if (g_strcmp0 (region, self->region) == 0)
                          return;
@@ -421,7 +402,7 @@ Index: gnome-control-center-3.32.1/panels/region/cc-region-panel.c
                  g_settings_set_string (self->locale_settings, KEY_REGION, region);
                  if (self->login_auto_apply)
                          set_system_region (self, region);
-@@ -562,7 +608,7 @@ static void
+@@ -562,7 +604,7 @@ static void
  update_region_from_setting (CcRegionPanel *self)
  {
          g_free (self->region);
@@ -430,7 +411,7 @@ Index: gnome-control-center-3.32.1/panels/region/cc-region-panel.c
          update_region_label (self);
  }
  
-@@ -588,15 +634,19 @@ static void
+@@ -588,15 +630,19 @@ static void
  update_language_from_user (CcRegionPanel *self)
  {
          const gchar *language = NULL;
@@ -454,7 +435,7 @@ Index: gnome-control-center-3.32.1/panels/region/cc-region-panel.c
          update_language_label (self);
  }
  
-@@ -1249,6 +1299,16 @@ setup_input_section (CcRegionPanel *self
+@@ -1249,6 +1295,16 @@ setup_input_section (CcRegionPanel *self
          update_modifiers_shortcut (self);
  }
  
@@ -471,7 +452,7 @@ Index: gnome-control-center-3.32.1/panels/region/cc-region-panel.c
  static void
  on_localed_properties_changed (CcRegionPanel  *self,
                                 GVariant       *changed_properties,
-@@ -1261,28 +1321,38 @@ on_localed_properties_changed (CcRegionP
+@@ -1261,28 +1317,38 @@ on_localed_properties_changed (CcRegionP
                  g_autofree const gchar **strv = NULL;
                  gsize len;
                  gint i;
@@ -519,7 +500,7 @@ Index: gnome-control-center-3.32.1/panels/region/cc-region-panel.c
                  g_free (self->system_region);
                  self->system_region = g_strdup (time);
  
-@@ -1335,28 +1405,26 @@ set_localed_locale (CcRegionPanel *self)
+@@ -1335,28 +1401,26 @@ set_localed_locale (CcRegionPanel *self)
  {
          g_autoptr(GVariantBuilder) b = NULL;
          g_autofree gchar *lang_value = NULL;
