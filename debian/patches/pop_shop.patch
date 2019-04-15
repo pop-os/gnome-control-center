@@ -1,0 +1,36 @@
+Index: gnome-control-center/panels/applications/cc-applications-panel.c
+===================================================================
+--- gnome-control-center.orig/panels/applications/cc-applications-panel.c
++++ gnome-control-center/panels/applications/cc-applications-panel.c
+@@ -146,12 +146,13 @@ static void
+ open_software_cb (GtkButton           *button,
+                   CcApplicationsPanel *self)
+ {
+-  const gchar *argv[] = { "gnome-software", "--details", "appid", NULL };
++  const gchar *argv[] = { "io.elementary.appcenter", NULL, NULL };
++  g_autofree gchar *tmp = NULL;
+ 
+-  if (self->current_app_id == NULL)
+-    argv[1] = NULL;
+-  else
+-    argv[2] = self->current_app_id;
++  if (self->current_app_id != NULL) {
++    tmp = g_strdup_printf ("appstream://%s", self->current_app_id);
++    argv[1] = tmp;
++  }
+ 
+   g_spawn_async (NULL, (char **)argv, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL, NULL, NULL);
+ }
+Index: gnome-control-center/panels/applications/cc-applications-panel.ui
+===================================================================
+--- gnome-control-center.orig/panels/applications/cc-applications-panel.ui
++++ gnome-control-center/panels/applications/cc-applications-panel.ui
+@@ -410,7 +410,7 @@
+   </object>
+   <object class="GtkButton" id="header_button">
+     <property name="visible">1</property>
+-    <property name="label" translatable="yes">Open in Software</property>
++    <property name="label" translatable="yes">Open in Pop!_Shop</property>
+   </object>
+   <object class="GtkListBox" id="sidebar_listbox">
+     <property name="visible">1</property>
