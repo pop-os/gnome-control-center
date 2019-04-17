@@ -1,0 +1,399 @@
+Index: gnome-control-center/panels/background/gnome-background-panel.desktop.in.in
+===================================================================
+--- gnome-control-center.orig/panels/background/gnome-background-panel.desktop.in.in
++++ gnome-control-center/panels/background/gnome-background-panel.desktop.in.in
+@@ -1,6 +1,6 @@
+ [Desktop Entry]
+-Name=Background
+-Comment=Change your background image to a wallpaper or photo
++Name=Appearance
++Comment=Change your background image to a wallpaper or photo. Toggle dark mode and slim mode.
+ Exec=gnome-control-center background
+ # Translators: Do NOT translate or transliterate this text (this is an icon file name)!
+ Icon=preferences-desktop-wallpaper
+@@ -11,4 +11,4 @@ StartupNotify=true
+ Categories=GNOME;GTK;Settings;DesktopSettings;X-GNOME-Settings-Panel;X-GNOME-PersonalizationSettings;
+ OnlyShowIn=GNOME;
+ # Translators: Search terms to find the Background panel. Do NOT translate or localize the semicolons! The list MUST also end with a semicolon!
+-Keywords=Wallpaper;Screen;Desktop;
++Keywords=Background;Wallpaper;Screen;Desktop;Dark;Slim;Mode;Theme;
+Index: gnome-control-center/panels/background/background.ui
+===================================================================
+--- gnome-control-center.orig/panels/background/background.ui
++++ gnome-control-center/panels/background/background.ui
+@@ -7,6 +7,7 @@
+     <property name="margin">32</property>
+     <property name="spacing">12</property>
+     <property name="valign">center</property>
++    <property name="orientation">vertical</property>
+     <child>
+       <object class="GtkBox" id="box1">
+         <property name="visible">True</property>
+@@ -240,11 +241,178 @@
+         </child>
+       </object>
+       <packing>
+-        <property name="expand">True</property>
++        <property name="expand">False</property>
+         <property name="fill">True</property>
+         <property name="position">0</property>
+       </packing>
+     </child>
++    <child>
++      <object class="HdyColumn">
++        <property name="visible">True</property>
++        <property name="maximum_width">600</property>
++        <child>
++          <object class="GtkFrame">
++            <property name="visible">True</property>
++            <property name="can_focus">False</property>
++            <property name="shadow_type">in</property>
++            <child>
++              <object class="GtkListBox">
++                <property name="visible">True</property>
++                <property name="can_focus">True</property>
++                <property name="selection_mode">none</property>
++                <child>
++                  <object class="GtkListBoxRow">
++                    <property name="visible">True</property>
++                    <property name="can_focus">True</property>
++                    <property name="activatable">false</property>
++                    <child>
++                      <object class="GtkGrid">
++                        <property name="visible">True</property>
++                        <property name="can_focus">False</property>
++                        <property name="row_spacing">2</property>
++                        <property name="column_spacing">16</property>
++                        <property name="margin_start">20</property>
++                        <property name="margin_end">20</property>
++                        <property name="margin_top">6</property>
++                        <property name="margin_bottom">6</property>
++                        <property name="valign">center</property>
++                        <child>
++                          <object class="GtkLabel">
++                            <property name="visible">True</property>
++                            <property name="can_focus">False</property>
++                            <property name="hexpand">True</property>
++                            <property name="xalign">0</property>
++                            <property name="label" translatable="yes">Dark Mode</property>
++                            <property name="use_underline">True</property>
++                            <property name="mnemonic_widget">dark_mode_switch</property>
++                          </object>
++                          <packing>
++                            <property name="left_attach">0</property>
++                            <property name="top_attach">0</property>
++                            <property name="width">1</property>
++                            <property name="height">1</property>
++                          </packing>
++                        </child>
++                        <child>
++                          <object class="GtkLabel">
++                            <property name="visible">True</property>
++                            <property name="can_focus">False</property>
++                            <property name="xalign">0</property>
++                            <property name="label" translatable="yes">Changes your applications to a dark theme for easier viewing at night.</property>
++                            <style>
++                              <class name="dim-label"/>
++                            </style>
++                            <attributes>
++                              <attribute name="scale" value="0.9"/>
++                            </attributes>
++                          </object>
++                          <packing>
++                            <property name="left_attach">0</property>
++                            <property name="top_attach">1</property>
++                            <property name="width">1</property>
++                            <property name="height">1</property>
++                          </packing>
++                        </child>
++                        <child>
++                          <object class="GtkSwitch" id="dark_mode_switch">
++                            <property name="visible">True</property>
++                            <property name="can_focus">True</property>
++                            <property name="halign">end</property>
++                            <property name="valign">center</property>
++                          </object>
++                          <packing>
++                            <property name="left_attach">1</property>
++                            <property name="top_attach">0</property>
++                            <property name="width">1</property>
++                            <property name="height">2</property>
++                          </packing>
++                        </child>
++                      </object>
++                    </child>
++                  </object>
++                </child>
++                <child>
++                  <object class="GtkListBoxRow">
++                    <property name="visible">True</property>
++                    <property name="can_focus">True</property>
++                    <property name="activatable">false</property>
++                    <child>
++                      <object class="GtkGrid">
++                        <property name="visible">True</property>
++                        <property name="can_focus">False</property>
++                        <property name="row_spacing">2</property>
++                        <property name="column_spacing">16</property>
++                        <property name="margin_start">20</property>
++                        <property name="margin_end">20</property>
++                        <property name="margin_top">6</property>
++                        <property name="margin_bottom">6</property>
++                        <property name="valign">center</property>
++                        <child>
++                          <object class="GtkLabel">
++                            <property name="visible">True</property>
++                            <property name="can_focus">False</property>
++                            <property name="hexpand">True</property>
++                            <property name="xalign">0</property>
++                            <property name="label" translatable="yes">Slim Mode</property>
++                            <property name="use_underline">True</property>
++                            <property name="mnemonic_widget">slim_mode_switch</property>
++                          </object>
++                          <packing>
++                            <property name="left_attach">0</property>
++                            <property name="top_attach">0</property>
++                            <property name="width">1</property>
++                            <property name="height">1</property>
++                          </packing>
++                        </child>
++                        <child>
++                          <object class="GtkLabel">
++                            <property name="visible">True</property>
++                            <property name="can_focus">False</property>
++                            <property name="xalign">0</property>
++                            <property name="label" translatable="yes">Reduces the height of application headers.</property>
++                            <style>
++                              <class name="dim-label"/>
++                            </style>
++                            <attributes>
++                              <attribute name="scale" value="0.9"/>
++                            </attributes>
++                          </object>
++                          <packing>
++                            <property name="left_attach">0</property>
++                            <property name="top_attach">1</property>
++                            <property name="width">1</property>
++                            <property name="height">1</property>
++                          </packing>
++                        </child>
++                        <child>
++                          <object class="GtkSwitch" id="slim_mode_switch">
++                            <property name="visible">True</property>
++                            <property name="can_focus">True</property>
++                            <property name="halign">end</property>
++                            <property name="valign">center</property>
++                          </object>
++                          <packing>
++                            <property name="left_attach">1</property>
++                            <property name="top_attach">0</property>
++                            <property name="width">1</property>
++                            <property name="height">2</property>
++                          </packing>
++                        </child>
++                      </object>
++                    </child>
++                  </object>
++                </child>
++              </object>
++            </child>
++          </object>
++        </child>
++      </object>
++      <packing>
++        <property name="expand">False</property>
++        <property name="fill">False</property>
++        <property name="position">1</property>
++      </packing>
++    </child>
+   </object>
+   <object class="GtkListStore" id="sources-liststore">
+     <columns>
+Index: gnome-control-center/panels/background/cc-background-panel.c
+===================================================================
+--- gnome-control-center.orig/panels/background/cc-background-panel.c
++++ gnome-control-center/panels/background/cc-background-panel.c
+@@ -44,6 +44,9 @@
+ #define WP_PCOLOR_KEY "primary-color"
+ #define WP_SCOLOR_KEY "secondary-color"
+ 
++#define WP_INTERFACE_PATH_ID "org.gnome.desktop.interface"
++#define WP_GTK_THEME_KEY "gtk-theme"
++
+ struct _CcBackgroundPanel
+ {
+   CcPanel parent_instance;
+@@ -53,6 +56,7 @@ struct _CcBackgroundPanel
+ 
+   GSettings *settings;
+   GSettings *lock_settings;
++  GSettings *interface_settings;
+ 
+   GnomeDesktopThumbnailFactory *thumb_factory;
+ 
+@@ -87,6 +91,7 @@ cc_background_panel_dispose (GObject *ob
+ 
+   g_clear_object (&panel->settings);
+   g_clear_object (&panel->lock_settings);
++  g_clear_object (&panel->interface_settings);
+ 
+   if (panel->copy_cancellable)
+     {
+@@ -565,6 +570,106 @@ on_lock_button_clicked (GtkButton
+   launch_chooser (panel, panel->lock_settings);
+ }
+ 
++#define THEME_MODE_DARK 1
++#define THEME_MODE_SLIM 2
++
++static int
++get_theme_mode (CcBackgroundPanel *panel)
++{
++  g_autofree gchar * gtk_theme = NULL;
++  int mode = 0;
++  GtkSwitch * sw = NULL;
++
++  if (panel->interface_settings) {
++    gtk_theme = g_settings_get_string (panel->interface_settings, WP_GTK_THEME_KEY);
++    if (gtk_theme) {
++      if (strcmp(gtk_theme, "Pop-dark") == 0) {
++        mode = THEME_MODE_DARK;
++      } else if (strcmp(gtk_theme, "Pop-slim") == 0) {
++        mode = THEME_MODE_SLIM;
++      } else if (strcmp(gtk_theme, "Pop-slim-dark") == 0) {
++        mode = THEME_MODE_DARK | THEME_MODE_SLIM;
++      }
++    }
++  }
++
++  return mode;
++}
++
++static void
++set_theme_mode (CcBackgroundPanel *panel, int mode)
++{
++  gchar * gtk_theme = NULL;
++
++  switch (mode) {
++    case THEME_MODE_DARK:
++      gtk_theme = "Pop-dark";
++      break;
++    case THEME_MODE_SLIM:
++      gtk_theme = "Pop-slim";
++      break;
++    case THEME_MODE_DARK | THEME_MODE_SLIM:
++      gtk_theme = "Pop-slim-dark";
++      break;
++    default:
++      gtk_theme = "Pop";
++      break;
++  }
++
++  if (gtk_theme && panel->interface_settings) {
++    g_settings_set_string(panel->interface_settings, WP_GTK_THEME_KEY, gtk_theme);
++    g_settings_apply(panel->interface_settings);
++  }
++}
++
++static gboolean
++on_dark_mode_switch (GtkSwitch         *sw,
++                     gboolean          state,
++                     CcBackgroundPanel *panel)
++{
++  int mode = get_theme_mode(panel);
++
++  if (state) {
++    mode |= THEME_MODE_DARK;
++  } else {
++    mode &= ~THEME_MODE_DARK;
++  }
++  set_theme_mode(panel, mode);
++
++  // Switch will be updated later by update_theme
++  return TRUE;
++}
++
++static gboolean
++on_slim_mode_switch (GtkSwitch         *sw,
++                     gboolean          state,
++                     CcBackgroundPanel *panel)
++{
++  int mode = get_theme_mode(panel);
++
++  if (state) {
++    mode |= THEME_MODE_SLIM;
++  } else {
++    mode &= ~THEME_MODE_SLIM;
++  }
++  set_theme_mode(panel, mode);
++
++  // Switch will be updated later by update_theme
++  return TRUE;
++}
++
++static void
++update_theme (CcBackgroundPanel *panel)
++{
++  GtkSwitch * sw = NULL;
++  int mode = get_theme_mode(panel);
++
++  sw = (GtkSwitch *) WID ("dark_mode_switch");
++  gtk_switch_set_state(sw, (mode & THEME_MODE_DARK) == THEME_MODE_DARK);
++  sw = (GtkSwitch *) WID ("slim_mode_switch");
++  gtk_switch_set_state(sw, (mode & THEME_MODE_SLIM) == THEME_MODE_SLIM);
++}
++
+ static void
+ on_settings_changed (GSettings         *settings,
+                      gchar             *key,
+@@ -575,6 +680,14 @@ on_settings_changed (GSettings         *
+ }
+ 
+ static void
++on_theme_settings_changed (GSettings         *settings,
++                           gchar             *key,
++                           CcBackgroundPanel *panel)
++{
++  update_theme (panel);
++}
++
++static void
+ cc_background_panel_init (CcBackgroundPanel *panel)
+ {
+   gchar *objects[] = {"background-panel", NULL };
+@@ -601,6 +714,9 @@ cc_background_panel_init (CcBackgroundPa
+   panel->lock_settings = g_settings_new (WP_LOCK_PATH_ID);
+   g_settings_delay (panel->lock_settings);
+ 
++  panel->interface_settings = g_settings_new (WP_INTERFACE_PATH_ID);
++  g_settings_delay (panel->interface_settings);
++
+   /* add the top level widget */
+   widget = WID ("background-panel");
+ 
+@@ -623,13 +739,25 @@ cc_background_panel_init (CcBackgroundPa
+   reload_current_bg (panel, panel->lock_settings);
+   update_preview (panel, panel->lock_settings, NULL);
+ 
++  /* Load the theme selectors */
++  update_theme(panel);
++
+   /* Background settings */
+   g_signal_connect (panel->settings, "changed", G_CALLBACK (on_settings_changed), panel);
+   g_signal_connect (panel->lock_settings, "changed", G_CALLBACK (on_settings_changed), panel);
+ 
++  /* Theme settings */
++  g_signal_connect (panel->interface_settings, "changed::" WP_GTK_THEME_KEY, G_CALLBACK (on_theme_settings_changed), panel);
++
+   /* Background buttons */
+   widget = WID ("background-set-button");
+   g_signal_connect (widget, "clicked", G_CALLBACK (on_background_button_clicked), panel);
+   widget = WID ("background-lock-set-button");
+   g_signal_connect (widget, "clicked", G_CALLBACK (on_lock_button_clicked), panel);
++
++  /* Theme selectors */
++  widget = WID ("dark_mode_switch");
++  g_signal_connect (widget, "state-set", G_CALLBACK (on_dark_mode_switch), panel);
++  widget = WID ("slim_mode_switch");
++  g_signal_connect (widget, "state-set", G_CALLBACK (on_slim_mode_switch), panel);
+ }
