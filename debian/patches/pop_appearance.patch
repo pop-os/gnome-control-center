@@ -19,12 +19,10 @@ Index: gnome-control-center/panels/background/background.ui
 ===================================================================
 --- gnome-control-center.orig/panels/background/background.ui
 +++ gnome-control-center/panels/background/background.ui
-@@ -6,7 +6,8 @@
-     <property name="can_focus">False</property>
+@@ -7,6 +7,7 @@
      <property name="margin">32</property>
      <property name="spacing">12</property>
--    <property name="valign">center</property>
-+    <property name="valign">start</property>
+     <property name="valign">center</property>
 +    <property name="orientation">vertical</property>
      <child>
        <object class="GtkBox" id="box1">
@@ -239,7 +237,7 @@ Index: gnome-control-center/panels/background/cc-background-panel.c
  
    if (panel->copy_cancellable)
      {
-@@ -565,6 +570,108 @@ on_lock_button_clicked (GtkButton
+@@ -565,6 +570,106 @@ on_lock_button_clicked (GtkButton
    launch_chooser (panel, panel->lock_settings);
  }
  
@@ -289,11 +287,9 @@ Index: gnome-control-center/panels/background/cc-background-panel.c
 +      break;
 +  }
 +
-+  if (gtk_theme) {
-+    if (panel->interface_settings) {
-+      g_settings_set_string(panel->interface_settings, WP_GTK_THEME_KEY, gtk_theme);
-+      g_settings_apply(panel->interface_settings);
-+    }
++  if (gtk_theme && panel->interface_settings) {
++    g_settings_set_string(panel->interface_settings, WP_GTK_THEME_KEY, gtk_theme);
++    g_settings_apply(panel->interface_settings);
 +  }
 +}
 +
@@ -348,7 +344,7 @@ Index: gnome-control-center/panels/background/cc-background-panel.c
  static void
  on_settings_changed (GSettings         *settings,
                       gchar             *key,
-@@ -575,6 +682,14 @@ on_settings_changed (GSettings         *
+@@ -575,6 +680,14 @@ on_settings_changed (GSettings         *
  }
  
  static void
@@ -363,7 +359,7 @@ Index: gnome-control-center/panels/background/cc-background-panel.c
  cc_background_panel_init (CcBackgroundPanel *panel)
  {
    gchar *objects[] = {"background-panel", NULL };
-@@ -601,6 +716,9 @@ cc_background_panel_init (CcBackgroundPa
+@@ -601,6 +714,9 @@ cc_background_panel_init (CcBackgroundPa
    panel->lock_settings = g_settings_new (WP_LOCK_PATH_ID);
    g_settings_delay (panel->lock_settings);
  
@@ -373,7 +369,7 @@ Index: gnome-control-center/panels/background/cc-background-panel.c
    /* add the top level widget */
    widget = WID ("background-panel");
  
-@@ -623,13 +741,25 @@ cc_background_panel_init (CcBackgroundPa
+@@ -623,13 +739,25 @@ cc_background_panel_init (CcBackgroundPa
    reload_current_bg (panel, panel->lock_settings);
    update_preview (panel, panel->lock_settings, NULL);
  
