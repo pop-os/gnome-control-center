@@ -16,7 +16,7 @@ Index: gnome-control-center/panels/background/gnome-background-panel.desktop.in.
  OnlyShowIn=GNOME;
  # Translators: Search terms to find the Background panel. Do NOT translate or localize the semicolons! The list MUST also end with a semicolon!
 -Keywords=Wallpaper;Screen;Desktop;
-+Keywords=Background;Wallpaper;Screen;Desktop;Dark;Slim;Mode;Theme;
++Keywords=Background;Wallpaper;Screen;Desktop;Dark;Slim;Mode;Theme;Night;
 Index: gnome-control-center/panels/background/background.ui
 ===================================================================
 --- gnome-control-center.orig/panels/background/background.ui
@@ -213,33 +213,38 @@ Index: gnome-control-center/panels/background/cc-background-panel.c
 ===================================================================
 --- gnome-control-center.orig/panels/background/cc-background-panel.c
 +++ gnome-control-center/panels/background/cc-background-panel.c
-@@ -44,6 +44,9 @@
+@@ -44,6 +44,12 @@
  #define WP_PCOLOR_KEY "primary-color"
  #define WP_SCOLOR_KEY "secondary-color"
  
-+#define WP_INTERFACE_PATH_ID "org.gnome.desktop.interface"
-+#define WP_GTK_THEME_KEY "gtk-theme"
++#define INTERFACE_PATH_ID "org.gnome.desktop.interface"
++#define GTK_THEME_KEY "gtk-theme"
++
++#define GEDIT_PATH_ID "org.gnome.gedit.preferences.editor"
++#define GEDIT_SCHEME_KEY "scheme"
 +
  struct _CcBackgroundPanel
  {
    CcPanel parent_instance;
-@@ -53,6 +56,7 @@ struct _CcBackgroundPanel
+@@ -53,6 +59,8 @@ struct _CcBackgroundPanel
  
    GSettings *settings;
    GSettings *lock_settings;
 +  GSettings *interface_settings;
++  GSettings *gedit_settings;
  
    GnomeDesktopThumbnailFactory *thumb_factory;
  
-@@ -87,6 +91,7 @@ cc_background_panel_dispose (GObject *ob
+@@ -87,6 +95,8 @@ cc_background_panel_dispose (GObject *ob
  
    g_clear_object (&panel->settings);
    g_clear_object (&panel->lock_settings);
 +  g_clear_object (&panel->interface_settings);
++  g_clear_object (&panel->gedit_settings);
  
    if (panel->copy_cancellable)
      {
-@@ -565,6 +570,106 @@ on_lock_button_clicked (GtkButton
+@@ -565,6 +575,116 @@ on_lock_button_clicked (GtkButton
    launch_chooser (panel, panel->lock_settings);
  }
  
@@ -254,7 +259,7 @@ Index: gnome-control-center/panels/background/cc-background-panel.c
 +  GtkSwitch * sw = NULL;
 +
 +  if (panel->interface_settings) {
-+    gtk_theme = g_settings_get_string (panel->interface_settings, WP_GTK_THEME_KEY);
++    gtk_theme = g_settings_get_string (panel->interface_settings, GTK_THEME_KEY);
 +    if (gtk_theme) {
 +      if (strcmp(gtk_theme, "Pop-dark") == 0) {
 +        mode = THEME_MODE_DARK;
@@ -273,25 +278,35 @@ Index: gnome-control-center/panels/background/cc-background-panel.c
 +set_theme_mode (CcBackgroundPanel *panel, int mode)
 +{
 +  gchar * gtk_theme = NULL;
++  gchar * gedit_scheme = NULL;
 +
 +  switch (mode) {
 +    case THEME_MODE_DARK:
 +      gtk_theme = "Pop-dark";
++      gedit_scheme = "pop-dark";
 +      break;
 +    case THEME_MODE_SLIM:
 +      gtk_theme = "Pop-slim";
++      gedit_scheme = "pop-light";
 +      break;
 +    case THEME_MODE_DARK | THEME_MODE_SLIM:
 +      gtk_theme = "Pop-slim-dark";
++      gedit_scheme = "pop-dark";
 +      break;
 +    default:
 +      gtk_theme = "Pop";
++      gedit_scheme = "pop-light";
 +      break;
 +  }
 +
 +  if (gtk_theme && panel->interface_settings) {
-+    g_settings_set_string(panel->interface_settings, WP_GTK_THEME_KEY, gtk_theme);
++    g_settings_set_string(panel->interface_settings, GTK_THEME_KEY, gtk_theme);
 +    g_settings_apply(panel->interface_settings);
++  }
++
++  if (gedit_scheme && panel->gedit_settings) {
++    g_settings_set_string(panel->gedit_settings, GEDIT_SCHEME_KEY, gedit_scheme);
++    g_settings_apply(panel->gedit_settings);
 +  }
 +}
 +
@@ -346,7 +361,7 @@ Index: gnome-control-center/panels/background/cc-background-panel.c
  static void
  on_settings_changed (GSettings         *settings,
                       gchar             *key,
-@@ -575,6 +680,14 @@ on_settings_changed (GSettings         *
+@@ -575,6 +695,14 @@ on_settings_changed (GSettings         *
  }
  
  static void
@@ -361,17 +376,20 @@ Index: gnome-control-center/panels/background/cc-background-panel.c
  cc_background_panel_init (CcBackgroundPanel *panel)
  {
    gchar *objects[] = {"background-panel", NULL };
-@@ -601,6 +714,9 @@ cc_background_panel_init (CcBackgroundPa
+@@ -601,6 +729,12 @@ cc_background_panel_init (CcBackgroundPa
    panel->lock_settings = g_settings_new (WP_LOCK_PATH_ID);
    g_settings_delay (panel->lock_settings);
  
-+  panel->interface_settings = g_settings_new (WP_INTERFACE_PATH_ID);
++  panel->interface_settings = g_settings_new (INTERFACE_PATH_ID);
 +  g_settings_delay (panel->interface_settings);
++
++  panel->gedit_settings = g_settings_new (GEDIT_PATH_ID);
++  g_settings_delay (panel->gedit_settings);
 +
    /* add the top level widget */
    widget = WID ("background-panel");
  
-@@ -623,13 +739,25 @@ cc_background_panel_init (CcBackgroundPa
+@@ -623,13 +757,25 @@ cc_background_panel_init (CcBackgroundPa
    reload_current_bg (panel, panel->lock_settings);
    update_preview (panel, panel->lock_settings, NULL);
  
@@ -383,7 +401,7 @@ Index: gnome-control-center/panels/background/cc-background-panel.c
    g_signal_connect (panel->lock_settings, "changed", G_CALLBACK (on_settings_changed), panel);
  
 +  /* Theme settings */
-+  g_signal_connect (panel->interface_settings, "changed::" WP_GTK_THEME_KEY, G_CALLBACK (on_theme_settings_changed), panel);
++  g_signal_connect (panel->interface_settings, "changed::" GTK_THEME_KEY, G_CALLBACK (on_theme_settings_changed), panel);
 +
    /* Background buttons */
    widget = WID ("background-set-button");
