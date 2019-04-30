@@ -33,7 +33,7 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
  
  typedef struct {
    /* Will be one or 2 GPU name strings, or "Unknown" */
-@@ -70,6 +74,31 @@ typedef struct
+@@ -70,6 +74,30 @@ typedef struct
    GtkWidget      *virt_type_label;
    GtkWidget      *updates_button;
  
@@ -60,12 +60,11 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
 +  ReleaseCheck        release_check;
 +  guint               os_subscribe;
 +  guint               os_subscribe_idle;
-+  gboolean            recall;
 +
    /* Virtualisation labels */
    GtkWidget      *label8;
    GtkWidget      *grid1;
-@@ -832,11 +861,58 @@ on_updates_button_clicked (GtkWidget
+@@ -832,11 +860,58 @@ on_updates_button_clicked (GtkWidget
  }
  
  static void
@@ -124,7 +123,7 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
  
    G_OBJECT_CLASS (cc_info_overview_panel_parent_class)->dispose (object);
  }
-@@ -863,11 +939,385 @@ cc_info_overview_panel_finalize (GObject
+@@ -863,11 +938,382 @@ cc_info_overview_panel_finalize (GObject
  }
  
  static void
@@ -164,7 +163,7 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
 +    g_warning ("failed to schedule firmware upgrade");
 +  }
 +
-+  gtk_dialog_response(data->dialog, GTK_RESPONSE_CLOSE);
++  gtk_dialog_response (data->dialog, GTK_RESPONSE_CLOSE);
 +  g_slice_free (FirmwareScheduleData, data);
 +}
 +
@@ -277,16 +276,12 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
 +    } else if (0 == g_strcmp0 (POP_UPGRADE_SIGNAL_RELEASE_EVENT, signal_name)) {
 +      pop_upgrade_event_event (active, parameters, pop_upgrade_release_event_as_str);
 +    } else if (0 == g_strcmp0 (POP_UPGRADE_SIGNAL_RELEASE_RESULT, signal_name)) {
-+      if (self->recall) {
-+        self->recall = FALSE;
-+      } else {
-+        const gchar *msg = _("Release ready. You may now restart.");
-+        gboolean success = pop_upgrade_event_result (active, self, connection, parameters,
-+                                                    msg, _("Failed to set up release upgrade"));
++      const gchar *msg = _("Release ready. You may now restart.");
++      gboolean success = pop_upgrade_event_result (active, self, connection, parameters,
++                                                  msg, _("Failed to set up release upgrade"));
 +
-+        if (success) {
-+          pop_upgrade_signal_success (self, connection, active, msg);
-+        }
++      if (success) {
++        pop_upgrade_signal_success (self, connection, active, msg);
 +      }
 +    } else if (0 == g_strcmp0 (POP_UPGRADE_SIGNAL_REPO_COMPAT_ERROR, signal_name)) {
 +      GPtrArray *successes = NULL;
@@ -295,7 +290,7 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
 +      pop_upgrade_repo_compat_error (active, parameters, &successes, &failures);
 +      g_autoptr(RepoDialog) dialog = repo_dialog_new (&self->upgrade_daemon, successes, failures);
 +      if (GTK_RESPONSE_OK == repo_dialog_run (dialog)) {
-+        self->recall = TRUE;
++        gtk_button_clicked (GTK_BUTTON (self->pop_upgrade.os.button));
 +      }
 +    }
 +  } else {
@@ -326,10 +321,10 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
 +    char *cause = "failed to fetch status from upgrade daemon";
 +
 +    if (0 == pop_upgrade_daemon_status (daemon, NULL, &status)) {
-+      if (status.status == data->expected_status) {
-+        return TRUE;
-+      } else if (data->expected_status == 0) {
++      if (data->expected_status == 0) {
 +        cause = "Daemon status changed before result was received";
++      } else if (status.status == data->expected_status) {
++        return TRUE;
 +      } else {
 +        data->expected_status = 0;
 +        return TRUE;
@@ -477,9 +472,10 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
 +    }
 +
 +    pop_upgrade_daemon_listen_upgrade_signals (priv);
-+    int result = pop_upgrade_daemon_release_upgrade (&priv->upgrade_daemon, &error, method,
-+                                        priv->release_check.current,
-+                                        priv->release_check.next);
++    int result = pop_upgrade_daemon_release_upgrade (&priv->upgrade_daemon, &error,
++                                                      method,
++                                                      priv->release_check.current,
++                                                      priv->release_check.next);
 +
 +    if (0 != result) {
 +      error_message = g_strdup_printf (_("Failed to start release upgrade: %s"), error->message);
@@ -510,7 +506,7 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
    object_class->finalize = cc_info_overview_panel_finalize;
    object_class->dispose = cc_info_overview_panel_dispose;
  
-@@ -888,10 +1338,114 @@ cc_info_overview_panel_class_init (CcInf
+@@ -888,10 +1334,114 @@ cc_info_overview_panel_class_init (CcInf
    gtk_widget_class_bind_template_child_private (widget_class, CcInfoOverviewPanel, grid1);
    gtk_widget_class_bind_template_child_private (widget_class, CcInfoOverviewPanel, label18);
  
@@ -586,7 +582,7 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
 +  pop_upgrade_widgets_refresh_visible (&priv->pop_upgrade, FALSE);
 +
 +  if (g_file_test ("/pop-upgrade", G_FILE_TEST_EXISTS) || g_file_test("/pop_preparing_release_upgrade", G_FILE_TEST_EXISTS)) {
-+    upgrade_text = _("Release upgrade planned");
++    upgrade_text = _("Release upgrade unavailable");
 +  } else if (0 == pop_upgrade_daemon_connect (&priv->upgrade_daemon, &error)) {
 +    if (0 == pop_upgrade_daemon_release_check (&priv->upgrade_daemon, &error, &priv->release_check)) {
 +      if (priv->release_check.build > 0) {
@@ -625,7 +621,7 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
  cc_info_overview_panel_init (CcInfoOverviewPanel *self)
  {
    CcInfoOverviewPanelPrivate *priv = cc_info_overview_panel_get_instance_private (self);
-@@ -909,6 +1463,40 @@ cc_info_overview_panel_init (CcInfoOverv
+@@ -909,6 +1459,40 @@ cc_info_overview_panel_init (CcInfoOverv
  
    info_overview_panel_setup_overview (self);
    info_overview_panel_setup_virt (self);
@@ -1980,7 +1976,7 @@ Index: gnome-control-center/panels/info/pop-upgrade-daemon.c
 ===================================================================
 --- /dev/null
 +++ gnome-control-center/panels/info/pop-upgrade-daemon.c
-@@ -0,0 +1,318 @@
+@@ -0,0 +1,329 @@
 +#include "pop-upgrade-daemon.h"
 +#include <glib/gi18n.h>
 +
@@ -2236,10 +2232,16 @@ Index: gnome-control-center/panels/info/pop-upgrade-daemon.c
 +                                    GHashTable *repos) {
 +    g_info ("modifying repos");
 +
-+    g_autoptr(GVariant) array = asb_construct (repos);
++    GVariant *array[1];
++    array[0] = asb_construct (repos);
++    GVariant *parameters =  g_variant_new_tuple (array, 1);
++    g_info ("sending of type %s", g_variant_get_type_string (parameters));
++  
 +    g_autoptr(GVariant) retval = g_dbus_proxy_call_sync (self->proxy, METHOD_REPO_MODIFY,
-+                                                         array, G_DBUS_CALL_FLAGS_NONE, -1,
++                                                        parameters, G_DBUS_CALL_FLAGS_NONE, -1,
 +                                                         NULL, error);
++    
++    g_info ("message sent");
 +
 +    if (*error != NULL) {
 +        g_warning ("failed to call %s on PopUpgrade: %s", METHOD_REPO_MODIFY, (*error)->message);
@@ -2293,8 +2295,13 @@ Index: gnome-control-center/panels/info/pop-upgrade-daemon.c
 +  g_variant_builder_init (&builder, G_VARIANT_TYPE_ARRAY);
 +  g_hash_table_iter_init (&table_iter, repos);
 +
-+  while (g_hash_table_iter_next (&table_iter, &key, &value)) {
-+    g_variant_builder_add (&builder, "{sb}", key, *value);
++  while (g_hash_table_iter_next (&table_iter, (gpointer) &key, (gpointer) &value)) {
++    GVariant *entry = g_variant_new_dict_entry (
++      g_variant_new_take_string (g_strdup (key)),
++      g_variant_new_boolean (*value)
++    );
++
++    g_variant_builder_add_value (&builder, entry);
 +  }
 +
 +  return g_variant_builder_end (&builder);
@@ -2429,23 +2436,28 @@ Index: gnome-control-center/panels/info/pop-upgrade-repo-dialog.c
 ===================================================================
 --- /dev/null
 +++ gnome-control-center/panels/info/pop-upgrade-repo-dialog.c
-@@ -0,0 +1,119 @@
+@@ -0,0 +1,128 @@
 +#include "pop-upgrade-repo-dialog.h"
 +#include "pop-upgrade-daemon.h"
 +#include <glib/gi18n.h>
 +
-+static void repo_dialog_cancel_fn (GtkButton *button, GtkDialog *dialog) {
++static void free_boolean (gboolean *self) {
++    g_slice_free (gboolean, self);
++}
++
++static void repo_dialog_cancel_fn (GtkButton *button, RepoDialog *dialog) {
 +    g_info ("cancelled upgrade");
-+    gtk_dialog_response (dialog, GTK_RESPONSE_CANCEL);
++    g_info ("sending cancel response %d", GTK_RESPONSE_CANCEL);
++    gtk_dialog_response (dialog->dialog, GTK_RESPONSE_CANCEL);
 +}
 +
 +static void repo_dialog_callback (GtkListBoxRow *row, GHashTable *repos) {
 +    g_info ("repo_dialog_callback");
 +    GtkWidget *child = gtk_bin_get_child (GTK_BIN (row));
 +
-+    gboolean *keep = g_malloc (sizeof (gboolean));
++    gboolean *keep = g_slice_new0 (gboolean);
 +    *keep = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (child));
-+    
++
 +    const gchar *borrowed_uri = gtk_button_get_label (GTK_BUTTON (child));
 +    g_info ("repo_dialog_callback: adding repo '%s'", borrowed_uri);
 +
@@ -2454,9 +2466,9 @@ Index: gnome-control-center/panels/info/pop-upgrade-repo-dialog.c
 +}
 +
 +static void repo_dialog_accept_fn (GtkButton *button, RepoDialog *data) {
-+    g_info("generating repo_modify hash table");
++    g_info ("generating repo_modify hash table");
 +    g_autoptr(GHashTable) repos = g_hash_table_new_full (
-+        g_str_hash, g_str_equal, g_free, g_free);
++        g_str_hash, g_str_equal, g_free, (GDestroyNotify) free_boolean);
 +
 +    gtk_container_foreach (
 +        GTK_CONTAINER (data->repos),
@@ -2464,7 +2476,11 @@ Index: gnome-control-center/panels/info/pop-upgrade-repo-dialog.c
 +        repos
 +    );
 +
-+    pop_upgrade_daemon_repo_modify (data->daemon, NULL, repos);
++    g_autoptr(GError) error = NULL;
++    pop_upgrade_daemon_repo_modify (data->daemon, &error, repos);
++    g_info ("sending accept response %d", GTK_RESPONSE_OK);
++
++    gtk_dialog_response (data->dialog, GTK_RESPONSE_OK);
 +}
 +
 +RepoDialog *repo_dialog_new (
@@ -2472,7 +2488,7 @@ Index: gnome-control-center/panels/info/pop-upgrade-repo-dialog.c
 +    GPtrArray *successes,
 +    GArray *failures
 +) {
-+    RepoDialog *dialog = g_malloc0 (sizeof (dialog));
++    RepoDialog *dialog = g_slice_new0 (RepoDialog);
 +
 +    *dialog = (RepoDialog) {
 +        (GtkDialog*) g_object_new (GTK_TYPE_DIALOG, "use-header-bar", TRUE, NULL),
@@ -2480,6 +2496,7 @@ Index: gnome-control-center/panels/info/pop-upgrade-repo-dialog.c
 +        daemon, successes, failures
 +    };
 +
++    gtk_list_box_set_selection_mode (dialog->repos, GTK_SELECTION_NONE);
 +    gtk_widget_set_size_request (GTK_WIDGET (dialog->dialog), -1, 400);
 +
 +    GtkWidget *title = gtk_label_new (_("<b>Unsupported repositories detected</b>"));
@@ -2531,7 +2548,6 @@ Index: gnome-control-center/panels/info/pop-upgrade-repo-dialog.c
 +    gtk_container_add (box, GTK_WIDGET (icon));
 +    gtk_container_add (box, GTK_WIDGET (inner));
 +
-+    g_signal_connect_swapped (dialog->dialog, "response", G_CALLBACK (gtk_widget_destroy), dialog);
 +    gtk_widget_show_all (GTK_WIDGET (dialog->dialog));
 +
 +    return dialog;
@@ -2543,10 +2559,10 @@ Index: gnome-control-center/panels/info/pop-upgrade-repo-dialog.c
 +
 +void repo_dialog_free (RepoDialog *self) {
 +    if (self) {
-+        g_object_unref (self->dialog);
++        gtk_widget_destroy (GTK_WIDGET (self->dialog));
 +        g_ptr_array_unref (self->successes);
 +        g_array_unref (self->failures);
-+        g_free (self);
++        g_slice_free (RepoDialog, self);
 +    }
 +}
 \ No newline at end of file
