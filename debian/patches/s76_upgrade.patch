@@ -136,7 +136,7 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
  
    G_OBJECT_CLASS (cc_info_overview_panel_parent_class)->dispose (object);
  }
-@@ -863,11 +939,382 @@ cc_info_overview_panel_finalize (GObject
+@@ -863,11 +939,380 @@ cc_info_overview_panel_finalize (GObject
  }
  
  static void
@@ -182,17 +182,15 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
 +}
 +
 +static void
-+s76_firmware_dialog (GtkButton *button, CcInfoOverviewPanel *self)
++s76_firmware_dialog (GtkButton *button, CcInfoOverviewPanelPrivate *self)
 +{
-+  CcInfoOverviewPanelPrivate *priv = cc_info_overview_panel_get_instance_private (self);
-+
-+  g_info ("opening firmware dialog for bios %s", priv->firmware_version->latest.bios);
++  g_info ("opening firmware dialog for bios %s", self->firmware_version->latest.bios);
 +  FirmwareUpdateDialog dialog = firmware_dialog_new (
-+    priv->firmware_version->latest.bios,
-+    priv->firmware_version->changes
++    self->firmware_version->latest.bios,
++    self->firmware_version->changes
 +  );
 +
-+  firmware_dialog_connect_reboot (&dialog, G_CALLBACK (s76_firmware_connect_schedule), priv);
++  firmware_dialog_connect_reboot (&dialog, G_CALLBACK (s76_firmware_connect_schedule), self);
 +  firmware_dialog_run (&dialog);
 +}
 +
@@ -519,7 +517,7 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
    object_class->finalize = cc_info_overview_panel_finalize;
    object_class->dispose = cc_info_overview_panel_dispose;
  
-@@ -888,10 +1335,113 @@ cc_info_overview_panel_class_init (CcInf
+@@ -888,10 +1333,113 @@ cc_info_overview_panel_class_init (CcInf
    gtk_widget_class_bind_template_child_private (widget_class, CcInfoOverviewPanel, grid1);
    gtk_widget_class_bind_template_child_private (widget_class, CcInfoOverviewPanel, label18);
  
@@ -633,7 +631,7 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
  cc_info_overview_panel_init (CcInfoOverviewPanel *self)
  {
    CcInfoOverviewPanelPrivate *priv = cc_info_overview_panel_get_instance_private (self);
-@@ -909,6 +1459,46 @@ cc_info_overview_panel_init (CcInfoOverv
+@@ -909,6 +1457,46 @@ cc_info_overview_panel_init (CcInfoOverv
  
    info_overview_panel_setup_overview (self);
    info_overview_panel_setup_virt (self);
@@ -1077,11 +1075,13 @@ Index: gnome-control-center/panels/info/s76-firmware-daemon.c
 ===================================================================
 --- /dev/null
 +++ gnome-control-center/panels/info/s76-firmware-daemon.c
-@@ -0,0 +1,225 @@
+@@ -0,0 +1,232 @@
++#include "config.h"
 +#include <s76-firmware-daemon.h>
 +#include <json-glib/json-glib.h>
 +#include <json-glib/json-gobject.h>
 +
++const char *UNKNOWN = "unknown error";
 +const int S76_FIRMWARE_NEEDS_UPDATE = 1;
 +
 +static const gchar *get_component (JsonReader *reader, char *member_name);
@@ -1102,7 +1102,8 @@ Index: gnome-control-center/panels/info/s76-firmware-daemon.c
 +      "com.system76.FirmwareDaemon", NULL, &error);
 +
 +  if (self->proxy == NULL) {
-+    g_warning ("failed to reach S76Firmware: %s", error->message);
++    const gchar *error_message = error ? error->message : UNKNOWN;
++    g_warning ("failed to reach S76Firmware: %s", error_message);
 +    return -1;
 +  }
 +
@@ -1119,8 +1120,9 @@ Index: gnome-control-center/panels/info/s76-firmware-daemon.c
 +  retval = g_dbus_proxy_call_sync (self->proxy, "Download", NULL,
 +                                   G_DBUS_CALL_FLAGS_NONE, -1, NULL, &error);
 +
-+  if (retval == NULL) {
-+    g_warning ("failed to call Download on S76Firmware: %s\n", error->message);
++  if (!retval) {
++    const gchar *error_message = error ? error->message : UNKNOWN;
++    g_warning ("failed to call Download on S76Firmware: %s", error_message);
 +    return -1;
 +  }
 +
@@ -1139,8 +1141,9 @@ Index: gnome-control-center/panels/info/s76-firmware-daemon.c
 +  retval = g_dbus_proxy_call_sync (self->proxy, "Bios", NULL,
 +                                   G_DBUS_CALL_FLAGS_NONE, -1, NULL, &error);
 +
-+  if (retval == NULL) {
-+    g_warning ("failed to call Bios on S76Firmware: %s\n", error->message);
++  if (!retval) {
++    const gchar *error_message = error ? error->message : UNKNOWN;
++    g_warning ("failed to call Bios on S76Firmware: %s", error_message);
 +    return -1;
 +  }
 +
@@ -1157,8 +1160,9 @@ Index: gnome-control-center/panels/info/s76-firmware-daemon.c
 +                                   g_variant_new ("s", digest),
 +                                   G_DBUS_CALL_FLAGS_NONE, -1, NULL, &error);
 +
-+  if (retval == NULL) {
-+    g_warning ("failed to call Schedule on S76Firmware: %s\n", error->message);
++  if (!retval) {
++    const gchar *error_message = error ? error->message : UNKNOWN;
++    g_warning ("failed to call Schedule on S76Firmware: %s", error_message);
 +    return -1;
 +  }
 +
@@ -1188,10 +1192,10 @@ Index: gnome-control-center/panels/info/s76-firmware-daemon.c
 +S76FirmwareVersions s76_firmware_versions_new (void) {
 +  S76FirmwareVersion current = { NULL, NULL, NULL, NULL };
 +  S76FirmwareVersion latest = { NULL, NULL, NULL, NULL };
-+  S76FirmwareVersions versions = { current, latest, g_ptr_array_new () };
-+  return versions;
++  return (S76FirmwareVersions) { current, latest, g_ptr_array_new () };
 +}
 +
++#ifdef FIRMWARE_TEST
 +S76FirmwareVersions s76_firmware_versions_test (void) {
 +  S76FirmwareVersions self = s76_firmware_versions_new ();
 +  self.current.bios = g_strdup ("0.9.0");
@@ -1207,6 +1211,7 @@ Index: gnome-control-center/panels/info/s76-firmware-daemon.c
 +  g_ptr_array_add (self.changes, g_strdup ("change 3"));
 +  return self;
 +}
++#endif
 +
 +int s76_firmware_versions_from_changelog (S76FirmwareVersions *self,
 +                                         gchar *changelog)
@@ -1369,8 +1374,9 @@ Index: gnome-control-center/panels/info/s76-firmware-dialog.c
 ===================================================================
 --- /dev/null
 +++ gnome-control-center/panels/info/s76-firmware-dialog.c
-@@ -0,0 +1,91 @@
-+#include <s76-firmware-dialog.h>
+@@ -0,0 +1,94 @@
++#include "config.h"
++#include "s76-firmware-dialog.h"
 +#include <glib.h>
 +#include <glib/gi18n.h>
 +
@@ -1382,6 +1388,7 @@ Index: gnome-control-center/panels/info/s76-firmware-dialog.c
 +} FoldData;
 +
 +static void join_str_lambda (gchar *element, FoldData *data) {
++  g_info ("adding %s", element);
 +  g_string_append (data->output, data->pattern);
 +  g_string_append (data->output, element);
 +}
@@ -1389,7 +1396,7 @@ Index: gnome-control-center/panels/info/s76-firmware-dialog.c
 +static gchar *join_str (GPtrArray *array, gchar *pattern) {
 +  GString *strbuf = g_string_new (NULL);
 +  FoldData data = { strbuf, pattern };
-+  g_ptr_array_foreach (array, join_str_lambda, &data);
++  g_ptr_array_foreach (array, (GFunc) join_str_lambda, &data);
 +  gchar *output = g_string_free (data.output, FALSE);
 +  return output;
 +}
@@ -1398,9 +1405,9 @@ Index: gnome-control-center/panels/info/s76-firmware-dialog.c
 +  GtkLabel *title = (GtkLabel*) gtk_label_new ("<b>Firmware Update</b>");
 +  gtk_label_set_use_markup (title, TRUE);
 +
-+  g_autofree gchar *changelog = join_str (changes, "\t* ");
++  g_autofree gchar *changelog = join_str (changes, "\n\t* ");
 +  g_autofree gchar *description = g_strdup_printf (_("Firmware version %s is available. Fixes and features"
-+    " include:\n\n%s\n\nIf you're on a laptop, <b>plug into power</b>"
++    " include:\n%s\n\nIf you're on a laptop, <b>plug into power</b>"
 +    " before you begin."), version, changelog);
 +
 +
@@ -1414,8 +1421,7 @@ Index: gnome-control-center/panels/info/s76-firmware-dialog.c
 +  gtk_widget_set_valign (GTK_WIDGET (icon), GTK_ALIGN_START);
 +
 +  GtkDialog *dialog = (GtkDialog*) g_object_new (GTK_TYPE_DIALOG,
-+                                    "use-header-bar", TRUE,
-+                                    NULL);
++                                    "use-header-bar", TRUE, NULL);
 +
 +  GtkButton *cancel = GTK_BUTTON (gtk_button_new_with_label ("Cancel"));
 +  g_signal_connect(cancel, "clicked", G_CALLBACK (cancel_dialog), dialog);
@@ -1439,7 +1445,7 @@ Index: gnome-control-center/panels/info/s76-firmware-dialog.c
 +  gtk_container_add (box, GTK_WIDGET (icon));
 +  gtk_container_add (box, GTK_WIDGET (text));
 +
-+  g_signal_connect_swapped (dialog, "response", G_CALLBACK(gtk_widget_destroy), dialog);
++  g_signal_connect_swapped (dialog, "response", G_CALLBACK (gtk_widget_destroy), dialog);
 +  gtk_widget_show_all (GTK_WIDGET (dialog));
 +
 +  FirmwareUpdateDialog firmware_dialog = { reboot, dialog };
@@ -1447,11 +1453,13 @@ Index: gnome-control-center/panels/info/s76-firmware-dialog.c
 +}
 +
 +void firmware_dialog_connect_reboot (FirmwareUpdateDialog *dialog, GCallback callback, gpointer data) {
++// #ifndef FIRMWARE_TEST
 +  FirmwareScheduleData *cbdata = g_slice_new0 (FirmwareScheduleData);
 +  cbdata->dialog = dialog->dialog;
 +  cbdata->data = data;
 +
 +  g_signal_connect (dialog->reboot, "clicked", callback, cbdata);
++// #endif
 +}
 +
 +int firmware_dialog_run (FirmwareUpdateDialog *dialog) {
@@ -1510,7 +1518,7 @@ Index: gnome-control-center/panels/info/s76-firmware.c
 ===================================================================
 --- /dev/null
 +++ gnome-control-center/panels/info/s76-firmware.c
-@@ -0,0 +1,163 @@
+@@ -0,0 +1,159 @@
 +#include "config.h"
 +#include "s76-firmware.h"
 +#include <glib/gi18n.h>
@@ -1631,17 +1639,11 @@ Index: gnome-control-center/panels/info/s76-firmware.c
 +    }
 +  }
 +
-+  if ((*firmware_versions)->latest.bios) {
++  if (firmware_versions && (*firmware_versions)->latest.bios) {
 +    #define CHILD_PER_ROW 1
 +    #define VALUES sizeof (S76FirmwareVersion) / sizeof (void *)
 +
-+    const gchar *keys[VALUES] = {
-+      "BIOS",
-+      "EC",
-+      "EC2",
-+      "ME",
-+    };
-+
++    const gchar *keys[VALUES] = { "BIOS", "EC", "EC2", "ME" };
 +    const gchar **values_latest = (const gchar **) &(*firmware_versions)->latest;
 +    const gchar **values_current = (const gchar **) &(*firmware_versions)->current;
 +
@@ -1649,6 +1651,8 @@ Index: gnome-control-center/panels/info/s76-firmware.c
 +
 +    GtkWidget *installed_label = gtk_label_new (_("Installed"));
 +    GtkWidget *latest_label = gtk_label_new (_("Latest"));
++    gtk_label_set_xalign (GTK_LABEL (installed_label), 0);
++    gtk_label_set_xalign (GTK_LABEL (latest_label), 0);
 +    gtk_style_context_add_class (gtk_widget_get_style_context (installed_label), GTK_STYLE_CLASS_DIM_LABEL);
 +    gtk_style_context_add_class (gtk_widget_get_style_context (latest_label), GTK_STYLE_CLASS_DIM_LABEL);
 +
