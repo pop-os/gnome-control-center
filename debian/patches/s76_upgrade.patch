@@ -63,7 +63,7 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
 +  GPermission    *permission;
 +
 +  S76FirmwareDaemon   firmware_daemon;
-+  S76FirmwareVersion *firmware_version;
++  S76FirmwareVersions *firmware_version;
 +  gchar              *firmware_digest;
 +  gchar              *firmware_changelog;
 +
@@ -130,7 +130,7 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
 +  }
 +
    g_clear_pointer (&priv->graphics_data, graphics_data_free);
-+  g_clear_pointer (&priv->firmware_version, s76_firmware_version_free);
++  g_clear_pointer (&priv->firmware_version, s76_firmware_versions_free);
 +  release_check_free (&priv->release_check);
 +  g_clear_object (&priv->permission);
  
@@ -160,7 +160,7 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
 +s76_firmware_connect_schedule (GtkButton *button, FirmwareScheduleData *data)
 +{
 +  CcInfoOverviewPanelPrivate *priv = (CcInfoOverviewPanelPrivate*) data->data;
-+  g_info ("scheduling upgrade of firmware to %s", priv->firmware_version->bios);
++  g_info ("scheduling upgrade of firmware to %s", priv->firmware_version->latest.bios);
 +
 +  const gchar *scheduled_label = _("Firmware Upgrade Scheduled");
 +
@@ -186,9 +186,9 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
 +{
 +  CcInfoOverviewPanelPrivate *priv = cc_info_overview_panel_get_instance_private (self);
 +
-+  g_info ("opening firmware dialog for bios %s", priv->firmware_version->bios);
++  g_info ("opening firmware dialog for bios %s", priv->firmware_version->latest.bios);
 +  FirmwareUpdateDialog dialog = firmware_dialog_new (
-+    priv->firmware_version->bios,
++    priv->firmware_version->latest.bios,
 +    priv->firmware_version->changes
 +  );
 +
@@ -912,7 +912,7 @@ Index: gnome-control-center/panels/info/info-overview.ui
                  <property name="left-attach">2</property>
                </packing>
              </child>
-@@ -304,6 +365,77 @@
+@@ -304,6 +365,75 @@
              <property name="position">2</property>
            </packing>
          </child>
@@ -957,14 +957,12 @@ Index: gnome-control-center/panels/info/info-overview.ui
 +          </packing>
 +        </child>
 +        <child>
-+          <object class="GtkFlowBox" id="firmware_details">
-+            <property name="name">"Testing"</property>
++          <object class="GtkGrid" id="firmware_details">
 +            <property name="visible">True</property>
-+            <property name="row_spacing">6</property>
-+            <property name="column_spacing">6</property>
-+            <property name="max_children_per_line">2</property>
-+            <property name="selection_mode">none</property>
++            <property name="row_spacing">5</property>
++            <property name="column_spacing">12</property>
 +            <property name="margin-top">6</property>
++            <property name="halign">Center</property>
 +          </object>
 +          <packing>
 +            <property name="expand">False</property>
@@ -990,7 +988,7 @@ Index: gnome-control-center/panels/info/info-overview.ui
          <child>
            <object class="GtkButtonBox" id="hbuttonbox1">
              <property name="visible">True</property>
-@@ -339,3 +471,4 @@
+@@ -339,3 +469,4 @@
      </child>
    </template>
  </interface>
@@ -1079,7 +1077,7 @@ Index: gnome-control-center/panels/info/s76-firmware-daemon.c
 ===================================================================
 --- /dev/null
 +++ gnome-control-center/panels/info/s76-firmware-daemon.c
-@@ -0,0 +1,215 @@
+@@ -0,0 +1,225 @@
 +#include <s76-firmware-daemon.h>
 +#include <json-glib/json-glib.h>
 +#include <json-glib/json-gobject.h>
@@ -1168,46 +1166,50 @@ Index: gnome-control-center/panels/info/s76-firmware-daemon.c
 +}
 +
 +int s76_firmware_daemon_needs_update (S76FirmwareDaemon *self,
-+                                      S76FirmwareVersion *sversion,
++                                      S76FirmwareVersions *sversion,
 +                                      gchar **digest, gchar **changelog) {
 +  g_autofree gchar *model = NULL;
-+  g_autofree gchar *version = NULL;
-+  int valid = s76_firmware_daemon_bios (self, &model, &version) == 0 &&
++  int valid = s76_firmware_daemon_bios (self, &model, &(sversion->current.bios)) == 0 &&
 +              s76_firmware_daemon_download (self, digest, changelog) == 0 &&
-+              s76_firmware_version_from_changelog (sversion, *changelog, version) == 0;
++              s76_firmware_versions_from_changelog (sversion, *changelog) == 0;
 +
 +  if (!valid) {
 +    return -1;
 +  }
 +
 +  int result = 0;
-+  if (!g_str_equal (version, sversion->bios)) {
++  if (!g_str_equal (sversion->current.bios, sversion->latest.bios)) {
 +    result = S76_FIRMWARE_NEEDS_UPDATE;
 +  }
 +
 +  return result;
 +}
 +
-+S76FirmwareVersion s76_firmware_version_new (void) {
-+  S76FirmwareVersion version = { NULL, NULL, NULL, NULL, g_ptr_array_new () };
-+  return version;
++S76FirmwareVersions s76_firmware_versions_new (void) {
++  S76FirmwareVersion current = { NULL, NULL, NULL, NULL };
++  S76FirmwareVersion latest = { NULL, NULL, NULL, NULL };
++  S76FirmwareVersions versions = { current, latest, g_ptr_array_new () };
++  return versions;
 +}
 +
-+S76FirmwareVersion s76_firmware_version_test (void) {
-+  S76FirmwareVersion self = s76_firmware_version_new ();
-+  self.bios = g_strdup ("bios test");
-+  self.ec = g_strdup ("ec test");
-+  self.ec2 = g_strdup ("ec2 test");
-+  self.me = g_strdup ("me test");
++S76FirmwareVersions s76_firmware_versions_test (void) {
++  S76FirmwareVersions self = s76_firmware_versions_new ();
++  self.current.bios = g_strdup ("0.9.0");
++  self.current.ec = g_strdup ("0.2");
++  self.current.ec2 = g_strdup ("0.2");
++  self.current.me = g_strdup ("enabled");
++  self.latest.bios = g_strdup ("1.0.0");
++  self.latest.ec = g_strdup ("0.3");
++  self.latest.ec2 = g_strdup ("0.3");
++  self.latest.me = g_strdup ("disabled");
 +  g_ptr_array_add (self.changes, g_strdup ("change 1"));
 +  g_ptr_array_add (self.changes, g_strdup ("change 2"));
 +  g_ptr_array_add (self.changes, g_strdup ("change 3"));
 +  return self;
 +}
 +
-+int s76_firmware_version_from_changelog (S76FirmwareVersion *self,
-+                                         gchar *changelog,
-+                                         gchar *current_bios)
++int s76_firmware_versions_from_changelog (S76FirmwareVersions *self,
++                                         gchar *changelog)
 +{
 +  // Construct the reader from the changelog data.
 +  JsonParser *parser = json_parser_new ();
@@ -1225,14 +1227,19 @@ Index: gnome-control-center/panels/info/s76-firmware-daemon.c
 +
 +      if (json_reader_is_object (reader)) {
 +        const gchar *bios = get_component (reader, "bios");
-+        component_set (&self->bios, bios);
-+        found_current = g_str_equal (current_bios, bios);
++        component_set (&self->latest.bios, bios);
 +
-+        component_set (&self->ec, get_component (reader, "ec"));
-+        component_set (&self->ec2, get_component (reader, "ec2"));
-+        component_set (&self->me, get_component (reader, "me"));
++        found_current = g_str_equal (self->current.bios, bios);
 +
-+        if (!found_current) {
++        component_set (&self->latest.ec, get_component (reader, "ec"));
++        component_set (&self->latest.ec2, get_component (reader, "ec2"));
++        component_set (&self->latest.me, get_component (reader, "me"));
++
++        if (found_current) {
++          self->current.ec = self->latest.ec;
++          self->current.ec2 = self->latest.ec2;
++          self->current.me = self->latest.me;
++        } else {
 +          changelog_set (self->changes, get_component (reader, "description"));
 +        }
 +      }
@@ -1244,27 +1251,28 @@ Index: gnome-control-center/panels/info/s76-firmware-daemon.c
 +  g_object_unref (reader);
 +  g_object_unref (parser);
 +
-+  return s76_firmware_version_verify (self);
++  return s76_firmware_versions_verify (self);
 +}
 +
-+void s76_firmware_version_free (S76FirmwareVersion *self) {
++void s76_firmware_versions_free (S76FirmwareVersions *self) {
 +  if (self != NULL) {
-+    g_clear_pointer (&self->bios, g_free);
-+    g_clear_pointer (&self->ec, g_free);
-+    g_clear_pointer (&self->ec2, g_free);
-+    g_clear_pointer (&self->me, g_free);
++    g_clear_pointer (&self->current.bios, g_free);
++    g_clear_pointer (&self->latest.bios, g_free);
++    g_clear_pointer (&self->latest.ec, g_free);
++    g_clear_pointer (&self->latest.ec2, g_free);
++    g_clear_pointer (&self->latest.me, g_free);
 +    g_ptr_array_free (self->changes, TRUE);
 +  }
 +}
 +
-+int s76_firmware_version_verify (S76FirmwareVersion *self) {
-+  if (!self->bios) {
++int s76_firmware_versions_verify (S76FirmwareVersions *self) {
++  if (!self->latest.bios) {
 +    g_warning ("firmware bios version is null");
 +    return -1;
-+  } else if (!self->ec) {
++  } else if (!self->latest.ec) {
 +    g_warning ("firmware ec version is null");
 +    return -1;
-+  } else if (!self->me) {
++  } else if (!self->latest.me) {
 +    g_warning ("firmware me version is null");
 +    return -1;
 +  }
@@ -1299,7 +1307,7 @@ Index: gnome-control-center/panels/info/s76-firmware-daemon.h
 ===================================================================
 --- /dev/null
 +++ gnome-control-center/panels/info/s76-firmware-daemon.h
-@@ -0,0 +1,52 @@
+@@ -0,0 +1,57 @@
 +#include <gio/gio.h>
 +#include <glib.h>
 +#include <gmodule.h>
@@ -1311,22 +1319,27 @@ Index: gnome-control-center/panels/info/s76-firmware-daemon.h
 +  gchar *ec;
 +  gchar *ec2;
 +  gchar *me;
-+  GPtrArray *changes;
 +} S76FirmwareVersion;
 +
-+S76FirmwareVersion s76_firmware_version_new (void);
++typedef struct {
++  S76FirmwareVersion current;
++  S76FirmwareVersion latest;
++  GPtrArray *changes;
++} S76FirmwareVersions;
 +
-+S76FirmwareVersion s76_firmware_version_test (void);
++S76FirmwareVersions s76_firmware_versions_new (void);
++
++S76FirmwareVersions s76_firmware_versions_test (void);
 +
 +// Verify that all the fields were set.
-+int s76_firmware_version_verify (S76FirmwareVersion *version);
++int s76_firmware_versions_verify (S76FirmwareVersions *self);
 +
 +// Get the latest firmware information from the changelog.
-+int s76_firmware_version_from_changelog(S76FirmwareVersion *self,
-+                                        gchar *changelog, gchar *current_bios);
++int s76_firmware_versions_from_changelog(S76FirmwareVersions *self,
++                                        gchar *changelog);
 +
 +// Free the gchar strings contained by the struct.
-+void s76_firmware_version_free(S76FirmwareVersion *version);
++void s76_firmware_versions_free(S76FirmwareVersions *self);
 +
 +typedef struct {
 +  GDBusProxy *proxy;
@@ -1350,7 +1363,7 @@ Index: gnome-control-center/panels/info/s76-firmware-daemon.h
 +// Returns -1 on error, 0 on no update required, and 1 on an update
 +// required.
 +int s76_firmware_daemon_needs_update(S76FirmwareDaemon *daemon,
-+                                     S76FirmwareVersion *sversion,
++                                     S76FirmwareVersions *sversion,
 +                                     gchar **digest, gchar **changelog);
 Index: gnome-control-center/panels/info/s76-firmware-dialog.c
 ===================================================================
@@ -1497,7 +1510,7 @@ Index: gnome-control-center/panels/info/s76-firmware.c
 ===================================================================
 --- /dev/null
 +++ gnome-control-center/panels/info/s76-firmware.c
-@@ -0,0 +1,143 @@
+@@ -0,0 +1,163 @@
 +#include "config.h"
 +#include "s76-firmware.h"
 +#include <glib/gi18n.h>
@@ -1531,25 +1544,42 @@ Index: gnome-control-center/panels/info/s76-firmware.c
 +  return box;
 +}
 +
++static GtkWidget *firmware_details_label (const char* key_label) {
++  GtkWidget *key = gtk_label_new (key_label);
++  gtk_label_set_use_markup (GTK_LABEL (key), TRUE);
++  gtk_label_set_xalign (GTK_LABEL (key), 1);
++  gtk_style_context_add_class (gtk_widget_get_style_context (key), GTK_STYLE_CLASS_DIM_LABEL);
++
++  return key;
++}
++
++static GtkWidget *firmware_details_value (const char* value_label) {
++  GtkWidget *value = gtk_label_new (value_label);
++  gtk_label_set_xalign (GTK_LABEL (value), 0);
++  gtk_label_set_selectable (GTK_LABEL (value), TRUE);
++
++  return value;
++}
++
 +void s76_firmware_check (
-+  S76FirmwareDaemon  *firmware_daemon,
-+  S76FirmwareVersion **firmware_version,
-+  GtkWidget           *firmware_frame,
-+  GtkWidget           *firmware_details,
-+  GtkWidget          **firmware_label,
-+  GtkWidget          **firmware_button,
-+  gchar              **firmware_digest,
-+  gchar              **firmware_changelog,
-+  GCallback            pop_upgrade,
-+  GCallback            reflash,
-+  gpointer             callback_data
++  S76FirmwareDaemon   *firmware_daemon,
++  S76FirmwareVersions **firmware_versions,
++  GtkWidget            *firmware_frame,
++  GtkWidget            *firmware_details,
++  GtkWidget           **firmware_label,
++  GtkWidget           **firmware_button,
++  gchar               **firmware_digest,
++  gchar               **firmware_changelog,
++  GCallback             pop_upgrade,
++  GCallback             reflash,
++  gpointer              callback_data
 +) {
 +  gtk_widget_hide (firmware_frame);
 +  
 +  if (g_file_test ("/sys/firmware/efi", G_FILE_TEST_IS_DIR)) {
 +    *firmware_daemon = s76_firmware_daemon_new ();
-+    *firmware_version = g_slice_new0 (S76FirmwareVersion);
-+    **firmware_version = s76_firmware_version_new ();
++    *firmware_versions = g_slice_new0 (S76FirmwareVersions);
++    **firmware_versions = s76_firmware_versions_new ();
 +
 +#ifdef FIRMWARE_TEST
 +    int connection_status = 0;
@@ -1560,14 +1590,14 @@ Index: gnome-control-center/panels/info/s76-firmware.c
 +    if (!connection_status) {
 +#ifdef FIRMWARE_TEST
 +      int needs_update = S76_FIRMWARE_NEEDS_UPDATE;
-+      *firmware_version = g_slice_new0 (S76FirmwareVersion);
-+      **firmware_version = s76_firmware_version_test ();
++      *firmware_versions = g_slice_new0 (S76FirmwareVersions);
++      **firmware_versions = s76_firmware_versions_test ();
 +      *firmware_digest = "digest";
 +      *firmware_changelog = "changeog";
 +#else /* FIRMWARE_TEST */
 +      int needs_update = s76_firmware_daemon_needs_update (
 +        firmware_daemon,
-+        *firmware_version,
++        *firmware_versions,
 +        firmware_digest,
 +        firmware_changelog
 +      );
@@ -1581,9 +1611,9 @@ Index: gnome-control-center/panels/info/s76-firmware.c
 +      const char *class = GTK_STYLE_CLASS_SUGGESTED_ACTION;
 +      GCallback func = pop_upgrade;
 +      if (needs_update == S76_FIRMWARE_NEEDS_UPDATE) {
-+        g_info ("firmware update is available: %s", (*firmware_version)->bios);
-+        g_ptr_array_foreach ((*firmware_version)->changes, (GFunc) print, NULL);
-+        g_info ("firmware update available: %s", (*firmware_version)->bios);
++        g_info ("firmware update is available: %s", (*firmware_versions)->latest.bios);
++        g_ptr_array_foreach ((*firmware_versions)->changes, (GFunc) print, NULL);
++        g_info ("firmware update available: %s", (*firmware_versions)->latest.bios);
 +      } else {
 +        label = _("Reflash current firmware");
 +        button_label = _("Reflash");
@@ -1601,41 +1631,44 @@ Index: gnome-control-center/panels/info/s76-firmware.c
 +    }
 +  }
 +
-+  if ((*firmware_version)->bios) {
-+    const gchar *labels[4] = {
-+      "<b>bios</b>:",
-+      "<b>ec</b>:",
-+      "<b>ec2</b>:",
-+      "<b>me</b>:",
++  if ((*firmware_versions)->latest.bios) {
++    #define CHILD_PER_ROW 1
++    #define VALUES sizeof (S76FirmwareVersion) / sizeof (void *)
++
++    const gchar *keys[VALUES] = {
++      "BIOS",
++      "EC",
++      "EC2",
++      "ME",
 +    };
 +
-+    const gchar *values[4] = {
-+      (*firmware_version)->bios,
-+      (*firmware_version)->ec,
-+      (*firmware_version)->ec2,
-+      (*firmware_version)->me
-+    };
++    const gchar **values_latest = (const gchar **) &(*firmware_versions)->latest;
++    const gchar **values_current = (const gchar **) &(*firmware_versions)->current;
 +
 +    GtkSizeGroup *sg = gtk_size_group_new (GTK_SIZE_GROUP_BOTH);
 +
-+    for (int index = 0; index < 4; index++) {
-+      GtkWidget *label = gtk_label_new (labels[index]);
-+      gtk_label_set_use_markup (GTK_LABEL (label), TRUE);
-+      gtk_label_set_xalign (GTK_LABEL (label), 1);
++    GtkWidget *installed_label = gtk_label_new (_("Installed"));
++    GtkWidget *latest_label = gtk_label_new (_("Latest"));
++    gtk_style_context_add_class (gtk_widget_get_style_context (installed_label), GTK_STYLE_CLASS_DIM_LABEL);
++    gtk_style_context_add_class (gtk_widget_get_style_context (latest_label), GTK_STYLE_CLASS_DIM_LABEL);
 +
-+      gtk_size_group_add_widget (sg, label);
++    gtk_grid_attach (GTK_GRID (firmware_details), installed_label, 1, 0, 1, 1);
++    gtk_grid_attach (GTK_GRID (firmware_details), latest_label,    2, 0, 1, 1);
 +
-+      GtkWidget *entry = gtk_entry_new ();
-+      gtk_entry_set_text (GTK_ENTRY (entry), values[index]);
-+      gtk_entry_set_width_chars (GTK_ENTRY (entry), 10);
-+      gtk_editable_set_editable (GTK_EDITABLE (entry), FALSE);
-+      gtk_widget_set_hexpand (entry, TRUE);
++    for (int index = 0; index < VALUES; index++) {
++      for (int nth = 0; CHILD_PER_ROW * 3 != nth; nth = nth + 3) {
++        GtkWidget *key, *cvalue, *lvalue = NULL;
 +
-+      GtkWidget *box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 3);
-+      gtk_container_add (GTK_CONTAINER (box), label);
-+      gtk_container_add (GTK_CONTAINER (box), entry);
++        key = firmware_details_label (keys[index]);
++        cvalue = firmware_details_value (values_current[index]);
++        lvalue = firmware_details_value (values_latest[index]);
 +
-+      gtk_container_add (GTK_CONTAINER (firmware_details), box);
++        gtk_size_group_add_widget (sg, key);
++
++        gtk_grid_attach (GTK_GRID (firmware_details), key,    nth,     index + 1, 1, 1);
++        gtk_grid_attach (GTK_GRID (firmware_details), cvalue, nth + 1, index + 1, 1, 1);
++        gtk_grid_attach (GTK_GRID (firmware_details), lvalue, nth + 2, index + 1, 1, 1);
++      }
 +    }
 +
 +    gtk_widget_show_all (firmware_details);
@@ -1653,17 +1686,17 @@ Index: gnome-control-center/panels/info/s76-firmware.h
 +#include "s76-firmware-dialog.h"
 +
 +void s76_firmware_check (
-+  S76FirmwareDaemon  *firmware_daemon,
-+  S76FirmwareVersion **firmware_version,
-+  GtkWidget           *firmware_frame,
-+  GtkWidget           *firmware_details,
-+  GtkWidget          **firmware_label,
-+  GtkWidget          **firmware_button,
-+  gchar              **firmware_digest,
-+  gchar              **firmware_changelog,
-+  GCallback            upgrade,
-+  GCallback            reflash,
-+  gpointer             callback_data
++  S76FirmwareDaemon   *firmware_daemon,
++  S76FirmwareVersions **firmware_versions,
++  GtkWidget            *firmware_frame,
++  GtkWidget            *firmware_details,
++  GtkWidget           **firmware_label,
++  GtkWidget           **firmware_button,
++  gchar               **firmware_digest,
++  gchar               **firmware_changelog,
++  GCallback             upgrade,
++  GCallback             reflash,
++  gpointer              callback_data
 +);
 Index: gnome-control-center/panels/info/pop-upgrade-option.c
 ===================================================================
