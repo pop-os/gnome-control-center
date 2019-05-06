@@ -77,7 +77,34 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
    /* Virtualisation labels */
    GtkWidget      *label8;
    GtkWidget      *grid1;
-@@ -832,11 +861,58 @@ on_updates_button_clicked (GtkWidget
+@@ -797,6 +826,12 @@ info_overview_panel_setup_overview (CcIn
+ }
+ 
+ static gboolean
++does_elementary_appcenter_exist (void)
++{
++  return g_file_test (BINDIR "/io.elementary.appcenter", G_FILE_TEST_EXISTS);
++}
++
++static gboolean
+ does_gnome_software_exist (void)
+ {
+   return g_file_test (BINDIR "/gnome-software", G_FILE_TEST_EXISTS);
+@@ -817,7 +852,12 @@ on_updates_button_clicked (GtkWidget
+   g_auto(GStrv) argv = NULL;
+ 
+   argv = g_new0 (gchar *, 3);
+-  if (does_gnome_software_exist ())
++  if (does_elementary_appcenter_exist ())
++    {
++      argv[0] = g_build_filename (BINDIR, "io.elementary.appcenter", NULL);
++      argv[1] = g_strdup_printf ("--show-updates");
++    }
++  else if (does_gnome_software_exist ())
+     {
+       argv[0] = g_build_filename (BINDIR, "gnome-software", NULL);
+       argv[1] = g_strdup_printf ("--mode=updates");
+@@ -832,11 +872,58 @@ on_updates_button_clicked (GtkWidget
  }
  
  static void
@@ -136,7 +163,7 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
  
    G_OBJECT_CLASS (cc_info_overview_panel_parent_class)->dispose (object);
  }
-@@ -863,11 +939,380 @@ cc_info_overview_panel_finalize (GObject
+@@ -863,11 +950,393 @@ cc_info_overview_panel_finalize (GObject
  }
  
  static void
@@ -411,7 +438,12 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
 +  g_info ("Pop upgrade process starting");
 +  CcInfoOverviewPanelPrivate *priv = cc_info_overview_panel_get_instance_private (self);
 +
-+  PopUpgradeOption *other_options[2] = { &priv->pop_upgrade.os, NULL };
++  PopUpgradeOption *other_options[3] = {
++    &priv->pop_upgrade.os,
++    &priv->pop_upgrade.refresh,
++    NULL
++  };
++
 +  pop_upgrade_option_initiate_action (
 +    &priv->pop_upgrade.rec,
 +    other_options,
@@ -445,13 +477,12 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
 +  g_info ("Pop upgrade process starting");
 +  CcInfoOverviewPanelPrivate *priv = cc_info_overview_panel_get_instance_private (self);
 +
-+  PopUpgradeOption *other_options[2] = { &priv->pop_upgrade.rec, NULL };
-+  pop_upgrade_option_initiate_action (
-+    &priv->pop_upgrade.os,
-+    other_options,
-+    _("Initializing release upgrade"),
-+    _("Release upgrade in progress -- please wait")
-+  );
++  PopUpgradeOption *active_option = &priv->pop_upgrade.os;
++  PopUpgradeOption *other_options[3] = {
++    &priv->pop_upgrade.rec,
++    &priv->pop_upgrade.refresh,
++    NULL
++    };
 +
 +  g_info ("upgrading from %s to %s", priv->release_check.current,
 +          priv->release_check.next);
@@ -467,15 +498,17 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
 +      if (pop_upgrade_recovery_partition_requires_upgrade (&priv->release_check)) {
 +        GtkWidget *dialog = pop_upgrade_recovery_partition_dialog ();
 +        if (GTK_RESPONSE_OK == gtk_dialog_run (GTK_DIALOG (dialog))) {
-+          pop_upgrade_option_reset_options (other_options);
++          active_option = &priv->pop_upgrade.refresh;
++          other_options[1] = &priv->pop_upgrade.os;
++
 +          gtk_stack_set_visible_child (
 +            GTK_STACK (priv->pop_upgrade.os.stack),
 +            priv->pop_upgrade.os.button_box
 +          );
++
 +          pop_recovery_upgrade (button, self);
 +        }
 +
-+        gtk_widget_destroy (dialog);
 +        return;
 +      }
 +
@@ -497,6 +530,13 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
 +
 +  if (NULL != error_message) {
 +    pop_upgrade_option_try_again (&priv->pop_upgrade.os, other_options, error_message);
++  } else {
++    pop_upgrade_option_initiate_action (
++      active_option,
++      other_options,
++      _("Initializing release upgrade"),
++      _("Release upgrade in progress -- please wait")
++    );
 +  }
 +}
 +
@@ -517,7 +557,7 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
    object_class->finalize = cc_info_overview_panel_finalize;
    object_class->dispose = cc_info_overview_panel_dispose;
  
-@@ -888,10 +1333,113 @@ cc_info_overview_panel_class_init (CcInf
+@@ -888,10 +1357,113 @@ cc_info_overview_panel_class_init (CcInf
    gtk_widget_class_bind_template_child_private (widget_class, CcInfoOverviewPanel, grid1);
    gtk_widget_class_bind_template_child_private (widget_class, CcInfoOverviewPanel, label18);
  
@@ -631,7 +671,15 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
  cc_info_overview_panel_init (CcInfoOverviewPanel *self)
  {
    CcInfoOverviewPanelPrivate *priv = cc_info_overview_panel_get_instance_private (self);
-@@ -909,6 +1457,46 @@ cc_info_overview_panel_init (CcInfoOverv
+@@ -902,13 +1474,54 @@ cc_info_overview_panel_init (CcInfoOverv
+ 
+   priv->graphics_data = get_graphics_data ();
+ 
+-  if (does_gnome_software_exist () || does_gpk_update_viewer_exist ())
++  if (does_elementary_appcenter_exist () || does_gnome_software_exist () || does_gpk_update_viewer_exist ())
+     g_signal_connect (priv->updates_button, "clicked", G_CALLBACK (on_updates_button_clicked), self);
+   else
+     gtk_widget_destroy (priv->updates_button);
  
    info_overview_panel_setup_overview (self);
    info_overview_panel_setup_virt (self);
@@ -657,6 +705,7 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
 +  );
 +
 +  GtkSizeGroup *button_group = gtk_size_group_new (GTK_SIZE_GROUP_HORIZONTAL);
++
 +  gtk_size_group_add_widget (button_group, priv->firmware_button);
 +  gtk_size_group_add_widget (button_group, priv->pop_upgrade.os.button);
 +  gtk_size_group_add_widget (button_group, priv->pop_upgrade.rec.button);
@@ -910,19 +959,44 @@ Index: gnome-control-center/panels/info/info-overview.ui
                  <property name="left-attach">2</property>
                </packing>
              </child>
-@@ -304,6 +365,75 @@
+@@ -304,7 +365,99 @@
              <property name="position">2</property>
            </packing>
          </child>
 +        <!-- Pop!_OS-specific UI widgets -->
 +        <!-- OS Upgrade Option -->
 +        <child>
-+          <object class="GtkLabel" id="os_upgrade">
-+            <property name="halign">start</property>
-+            <property name="use-markup">True</property>
++          <object class="GtkBox" id="os_upgrade_label_box">
 +            <property name="visible">True</property>
-+            <property name="margin-top">12</property>
-+            <property name="label" translatable="yes">&lt;b&gt;OS Upgrade &#038;amp; Refresh&lt;/b&gt;</property>
++            <property name="orientation">horizontal</property>
++            <child>
++              <object class="GtkLabel" id="os_upgrade">
++                <property name="halign">start</property>
++                <property name="use-markup">True</property>
++                <property name="visible">True</property>
++                <property name="margin-top">12</property>
++                <property name="label" translatable="yes">&lt;b&gt;OS Upgrade &#038;amp; Refresh&lt;/b&gt;</property>
++              </object>
++              <packing>
++                <property name="expand">False</property>
++                <property name="fill">False</property>
++                <property name="position">0</property>
++              </packing>
++            </child>
++            <child>
++              <object class="GtkButton" id="updates_button">
++                <property name="label" translatable="yes">Check for updates</property>
++                <property name="halign">end</property>
++                <property name="can_focus">True</property>
++                <property name="use_action_appearance">False</property>
++                <property name="visible">False</property>
++              </object>
++              <packing>
++                <property name="expand">True</property>
++                <property name="fill">True</property>
++                <property name="position">1</property>
++              </packing>
++            </child>
 +          </object>
 +          <packing>
 +            <property name="expand">True</property>
@@ -940,7 +1014,7 @@ Index: gnome-control-center/panels/info/info-overview.ui
 +          </object>
 +        </child>
 +        <!-- Firmware Option -->
-+        <child>
+         <child>
 +          <object class="GtkLabel" id="firmware_frame_label">
 +            <property name="halign">start</property>
 +            <property name="use-markup">True</property>
@@ -956,11 +1030,9 @@ Index: gnome-control-center/panels/info/info-overview.ui
 +        </child>
 +        <child>
 +          <object class="GtkGrid" id="firmware_details">
-+            <property name="visible">True</property>
 +            <property name="row_spacing">5</property>
 +            <property name="column_spacing">12</property>
 +            <property name="margin-top">6</property>
-+            <property name="halign">Center</property>
 +          </object>
 +          <packing>
 +            <property name="expand">False</property>
@@ -983,10 +1055,17 @@ Index: gnome-control-center/panels/info/info-overview.ui
 +          </packing>
 +        </child>
 +        <!-- End of Pop!_OS changes -->
-         <child>
++        <!-- <child>
            <object class="GtkButtonBox" id="hbuttonbox1">
              <property name="visible">True</property>
-@@ -339,3 +469,4 @@
+             <property name="can_focus">False</property>
+@@ -334,8 +487,9 @@
+             <property name="pack_type">end</property>
+             <property name="position">3</property>
+           </packing>
+-        </child>
++        </child> -->
+       </object>
      </child>
    </template>
  </interface>
@@ -1075,7 +1154,7 @@ Index: gnome-control-center/panels/info/s76-firmware-daemon.c
 ===================================================================
 --- /dev/null
 +++ gnome-control-center/panels/info/s76-firmware-daemon.c
-@@ -0,0 +1,232 @@
+@@ -0,0 +1,236 @@
 +#include "config.h"
 +#include <s76-firmware-daemon.h>
 +#include <json-glib/json-glib.h>
@@ -1285,6 +1364,10 @@ Index: gnome-control-center/panels/info/s76-firmware-daemon.c
 +  return 0;
 +}
 +
++const gchar ** s76_firmware_version_as_str_array (S76FirmwareVersion *self) {
++  return (const gchar **) self;
++}
++
 +static const gchar *get_component (JsonReader *reader, char *member_name) {
 +  const gchar *value = NULL;
 +  json_reader_read_member (reader, member_name);
@@ -1312,7 +1395,7 @@ Index: gnome-control-center/panels/info/s76-firmware-daemon.h
 ===================================================================
 --- /dev/null
 +++ gnome-control-center/panels/info/s76-firmware-daemon.h
-@@ -0,0 +1,57 @@
+@@ -0,0 +1,60 @@
 +#include <gio/gio.h>
 +#include <glib.h>
 +#include <gmodule.h>
@@ -1325,6 +1408,9 @@ Index: gnome-control-center/panels/info/s76-firmware-daemon.h
 +  gchar *ec2;
 +  gchar *me;
 +} S76FirmwareVersion;
++
++// Interprets the type as a gchar * array with a size of 4 pointers.
++const gchar ** s76_firmware_version_as_str_array (S76FirmwareVersion *self);
 +
 +typedef struct {
 +  S76FirmwareVersion current;
@@ -1374,7 +1460,7 @@ Index: gnome-control-center/panels/info/s76-firmware-dialog.c
 ===================================================================
 --- /dev/null
 +++ gnome-control-center/panels/info/s76-firmware-dialog.c
-@@ -0,0 +1,94 @@
+@@ -0,0 +1,93 @@
 +#include "config.h"
 +#include "s76-firmware-dialog.h"
 +#include <glib.h>
@@ -1409,7 +1495,6 @@ Index: gnome-control-center/panels/info/s76-firmware-dialog.c
 +  g_autofree gchar *description = g_strdup_printf (_("Firmware version %s is available. Fixes and features"
 +    " include:\n%s\n\nIf you're on a laptop, <b>plug into power</b>"
 +    " before you begin."), version, changelog);
-+
 +
 +  GtkLabel *text = (GtkLabel*) gtk_label_new (description);
 +
@@ -1453,13 +1538,13 @@ Index: gnome-control-center/panels/info/s76-firmware-dialog.c
 +}
 +
 +void firmware_dialog_connect_reboot (FirmwareUpdateDialog *dialog, GCallback callback, gpointer data) {
-+// #ifndef FIRMWARE_TEST
++#ifndef FIRMWARE_TEST
 +  FirmwareScheduleData *cbdata = g_slice_new0 (FirmwareScheduleData);
 +  cbdata->dialog = dialog->dialog;
 +  cbdata->data = data;
 +
 +  g_signal_connect (dialog->reboot, "clicked", callback, cbdata);
-+// #endif
++#endif
 +}
 +
 +int firmware_dialog_run (FirmwareUpdateDialog *dialog) {
@@ -1518,7 +1603,7 @@ Index: gnome-control-center/panels/info/s76-firmware.c
 ===================================================================
 --- /dev/null
 +++ gnome-control-center/panels/info/s76-firmware.c
-@@ -0,0 +1,159 @@
+@@ -0,0 +1,157 @@
 +#include "config.h"
 +#include "s76-firmware.h"
 +#include <glib/gi18n.h>
@@ -1555,7 +1640,7 @@ Index: gnome-control-center/panels/info/s76-firmware.c
 +static GtkWidget *firmware_details_label (const char* key_label) {
 +  GtkWidget *key = gtk_label_new (key_label);
 +  gtk_label_set_use_markup (GTK_LABEL (key), TRUE);
-+  gtk_label_set_xalign (GTK_LABEL (key), 1);
++  gtk_label_set_xalign (GTK_LABEL (key), 0);
 +  gtk_style_context_add_class (gtk_widget_get_style_context (key), GTK_STYLE_CLASS_DIM_LABEL);
 +
 +  return key;
@@ -1583,7 +1668,8 @@ Index: gnome-control-center/panels/info/s76-firmware.c
 +  gpointer              callback_data
 +) {
 +  gtk_widget_hide (firmware_frame);
-+  
++  gtk_widget_hide (firmware_details);
++
 +  if (g_file_test ("/sys/firmware/efi", G_FILE_TEST_IS_DIR)) {
 +    *firmware_daemon = s76_firmware_daemon_new ();
 +    *firmware_versions = g_slice_new0 (S76FirmwareVersions);
@@ -1594,7 +1680,7 @@ Index: gnome-control-center/panels/info/s76-firmware.c
 +#else
 +    int connection_status = s76_firmware_daemon_connect (firmware_daemon);
 +#endif /* FIRMWARE_TEST */
-+   
++
 +    if (!connection_status) {
 +#ifdef FIRMWARE_TEST
 +      int needs_update = S76_FIRMWARE_NEEDS_UPDATE;
@@ -1628,11 +1714,11 @@ Index: gnome-control-center/panels/info/s76-firmware.c
 +        func = reflash;
 +        class = NULL;
 +      }
-+      
++
 +      GtkWidget *option = firmware_option (firmware_label, firmware_button, button_label, class);
 +      gtk_label_set_label (GTK_LABEL (*firmware_label), label);
 +      g_signal_connect (*firmware_button, "clicked", func, callback_data);
-+      
++
 +      gtk_container_add (GTK_CONTAINER (options), option);
 +      gtk_container_add (GTK_CONTAINER (firmware_frame), options);
 +      gtk_widget_show_all (firmware_frame);
@@ -1642,37 +1728,34 @@ Index: gnome-control-center/panels/info/s76-firmware.c
 +  if (firmware_versions && (*firmware_versions)->latest.bios) {
 +    #define CHILD_PER_ROW 1
 +    #define VALUES sizeof (S76FirmwareVersion) / sizeof (void *)
++    #define COLUMNS 2
 +
 +    const gchar *keys[VALUES] = { "BIOS", "EC", "EC2", "ME" };
-+    const gchar **values_latest = (const gchar **) &(*firmware_versions)->latest;
-+    const gchar **values_current = (const gchar **) &(*firmware_versions)->current;
-+
-+    GtkSizeGroup *sg = gtk_size_group_new (GTK_SIZE_GROUP_BOTH);
++    const gchar **values_latest = s76_firmware_version_as_str_array (&(*firmware_versions)->latest);
++    const gchar **values_current = s76_firmware_version_as_str_array (&(*firmware_versions)->current);
 +
 +    GtkWidget *installed_label = gtk_label_new (_("Installed"));
 +    GtkWidget *latest_label = gtk_label_new (_("Latest"));
-+    gtk_label_set_xalign (GTK_LABEL (installed_label), 0);
-+    gtk_label_set_xalign (GTK_LABEL (latest_label), 0);
++
++    gtk_label_set_xalign (GTK_LABEL (installed_label), 1);
++    gtk_label_set_xalign (GTK_LABEL (latest_label), 1);
++
 +    gtk_style_context_add_class (gtk_widget_get_style_context (installed_label), GTK_STYLE_CLASS_DIM_LABEL);
 +    gtk_style_context_add_class (gtk_widget_get_style_context (latest_label), GTK_STYLE_CLASS_DIM_LABEL);
 +
-+    gtk_grid_attach (GTK_GRID (firmware_details), installed_label, 1, 0, 1, 1);
-+    gtk_grid_attach (GTK_GRID (firmware_details), latest_label,    2, 0, 1, 1);
++    gtk_grid_attach (GTK_GRID (firmware_details), installed_label, 0, 1, 1, 1);
++    gtk_grid_attach (GTK_GRID (firmware_details), latest_label,    0, 2, 1, 1);
 +
 +    for (int index = 0; index < VALUES; index++) {
-+      for (int nth = 0; CHILD_PER_ROW * 3 != nth; nth = nth + 3) {
-+        GtkWidget *key, *cvalue, *lvalue = NULL;
++      GtkWidget *key, *cvalue, *lvalue = NULL;
 +
-+        key = firmware_details_label (keys[index]);
-+        cvalue = firmware_details_value (values_current[index]);
-+        lvalue = firmware_details_value (values_latest[index]);
++      key = firmware_details_label (keys[index]);
++      cvalue = firmware_details_value (values_current[index]);
++      lvalue = firmware_details_value (values_latest[index]);
 +
-+        gtk_size_group_add_widget (sg, key);
-+
-+        gtk_grid_attach (GTK_GRID (firmware_details), key,    nth,     index + 1, 1, 1);
-+        gtk_grid_attach (GTK_GRID (firmware_details), cvalue, nth + 1, index + 1, 1, 1);
-+        gtk_grid_attach (GTK_GRID (firmware_details), lvalue, nth + 2, index + 1, 1, 1);
-+      }
++      gtk_grid_attach (GTK_GRID (firmware_details), key, index + 1, 0, 1, 1);
++      gtk_grid_attach (GTK_GRID (firmware_details), cvalue, index + 1, 1, 1, 1);
++      gtk_grid_attach (GTK_GRID (firmware_details), lvalue, index + 1, 2, 1, 1);
 +    }
 +
 +    gtk_widget_show_all (firmware_details);
@@ -1706,7 +1789,7 @@ Index: gnome-control-center/panels/info/pop-upgrade-option.c
 ===================================================================
 --- /dev/null
 +++ gnome-control-center/panels/info/pop-upgrade-option.c
-@@ -0,0 +1,315 @@
+@@ -0,0 +1,350 @@
 +#include "pop-upgrade-option.h"
 +#include "pop-upgrade-daemon.h"
 +#include <glib/gi18n.h>
@@ -1966,7 +2049,6 @@ Index: gnome-control-center/panels/info/pop-upgrade-option.c
 +}
 +
 +PopUpgradeWidgets pop_upgrade_frame (GtkFrame *frame) {
-+  g_info ("creating widgets");
 +  if (NULL == frame) {
 +    g_critical ("pop_upgrade_frame: received NULL input");
 +  }
@@ -2004,21 +2086,57 @@ Index: gnome-control-center/panels/info/pop-upgrade-option.c
 +  gtk_widget_set_visible (GTK_WIDGET (gtk_list_box_get_row_at_index (self->list, 2)), visible);
 +}
 +
++static void cancel_fn (GtkButton *self, GtkDialog *dialog) {
++  gtk_dialog_response (dialog, GTK_RESPONSE_CANCEL);
++}
++
++static void accept_fn (GtkButton *self, GtkDialog *dialog) {
++  gtk_dialog_response (dialog, GTK_RESPONSE_OK);
++}
++
 +GtkWidget *pop_upgrade_recovery_partition_dialog (void) {
-+  GtkWidget *dialog = gtk_dialog_new ();
-+  gtk_window_set_destroy_with_parent (GTK_WINDOW (dialog), TRUE);
-+  gtk_window_set_title (GTK_WINDOW (dialog), _("Upgrade Recovery Partition"));
++  GtkWidget *dialog = g_object_new (GTK_TYPE_DIALOG, "use-header-bar", TRUE, NULL);
 +
-+  gtk_dialog_add_button (GTK_DIALOG (dialog), _("_Cancel"), GTK_RESPONSE_CANCEL);
-+  GtkWidget *ok_button = gtk_dialog_add_button (GTK_DIALOG (dialog), _("_OK"), GTK_RESPONSE_OK);
-+  gtk_widget_grab_default (ok_button);
++  GtkWidget *title = gtk_label_new (_("<b>Recovery Partition Requires Upgrade</b>"));
++  gtk_label_set_use_markup (GTK_LABEL (title), TRUE);
 +
-+  GtkWidget *label = gtk_label_new (_("Updating the recovery partition is required \
-+    to perform a release upgrade with the recovery partition.\n\nUpgrade the recovery partition?"));
++  GtkWidget *cancel = gtk_button_new_with_label (_("Cancel"));
++  g_signal_connect (cancel, "clicked", G_CALLBACK (cancel_fn), dialog);
 +
-+  GtkWidget *content_area = gtk_dialog_get_content_area (GTK_DIALOG (dialog));
-+  gtk_container_add (GTK_CONTAINER (content_area), label);
-+  gtk_widget_show_all (content_area);
++  GtkWidget *accept = gtk_button_new_with_label (_("Accept"));
++  gtk_style_context_add_class (
++      gtk_widget_get_style_context (accept),
++      GTK_STYLE_CLASS_SUGGESTED_ACTION
++  );
++  g_signal_connect (accept, "clicked", G_CALLBACK (accept_fn), dialog);
++
++  GtkHeaderBar *header = GTK_HEADER_BAR (gtk_dialog_get_header_bar (GTK_DIALOG (dialog)));
++  gtk_header_bar_set_custom_title (header, title);
++  gtk_header_bar_set_show_close_button (header, FALSE);
++  gtk_header_bar_pack_start (header, cancel);
++  gtk_header_bar_pack_end (header, accept);
++
++  GtkWidget *icon = gtk_image_new_from_icon_name ("distributor-logo", 6);
++  gtk_widget_set_valign (icon, GTK_ALIGN_START);
++
++  GtkWidget *inner = gtk_label_new (_(
++    "The recovery partition needs to be updated to perform an upgrade with it.\n\nUpgrade the recovery partition?"
++  ));
++
++  gtk_label_set_line_wrap (GTK_LABEL (inner), TRUE);
++  gtk_label_set_max_width_chars (GTK_LABEL (inner), 50);
++  gtk_label_set_xalign (GTK_LABEL (inner), 0);
++
++  GtkContainer *box = GTK_CONTAINER (gtk_dialog_get_content_area (GTK_DIALOG (dialog)));
++  gtk_container_set_border_width (box, 6);
++  gtk_orientable_set_orientation (GTK_ORIENTABLE (box), GTK_ORIENTATION_HORIZONTAL);
++  gtk_box_set_spacing (GTK_BOX (box), 6);
++  gtk_container_add (box, icon);
++  gtk_container_add (box, inner);
++
++  gtk_widget_show_all (dialog);
++
++  g_signal_connect_swapped (dialog, "response", G_CALLBACK (gtk_widget_destroy), dialog);
 +
 +  return dialog;
 +}
@@ -2107,7 +2225,7 @@ Index: gnome-control-center/panels/info/pop-upgrade-daemon.c
 ===================================================================
 --- /dev/null
 +++ gnome-control-center/panels/info/pop-upgrade-daemon.c
-@@ -0,0 +1,329 @@
+@@ -0,0 +1,326 @@
 +#include "pop-upgrade-daemon.h"
 +#include <glib/gi18n.h>
 +
@@ -2231,10 +2349,11 @@ Index: gnome-control-center/panels/info/pop-upgrade-daemon.c
 +  g_autofree gchar *release = NULL;
 +  gint16 iso = 0;
 +
-+  return g_file_get_contents ("/recovery/version", &contents, NULL, &error)
-+    && NULL != contents
-+    && 1 == sscanf (contents, "%s %hd", &release, &iso)
-+    && release_check_is (expected, release, iso);
++  return !g_file_test ("/recovery/version", G_FILE_TEST_EXISTS)
++    || (g_file_get_contents ("/recovery/version", &contents, NULL, &error)
++      && NULL != contents
++      && 1 == sscanf (contents, "%s %hd", release, &iso)
++      && release_check_is (expected, release, iso));
 +}
 +
 +PopUpgradeDaemonStatus pop_upgrade_daemon_status_new (void) {
@@ -2366,14 +2485,10 @@ Index: gnome-control-center/panels/info/pop-upgrade-daemon.c
 +    GVariant *array[1];
 +    array[0] = asb_construct (repos);
 +    GVariant *parameters =  g_variant_new_tuple (array, 1);
-+    g_info ("sending of type %s", g_variant_get_type_string (parameters));
-+  
++
 +    g_autoptr(GVariant) retval = g_dbus_proxy_call_sync (self->proxy, METHOD_REPO_MODIFY,
 +                                                        parameters, G_DBUS_CALL_FLAGS_NONE, -1,
 +                                                         NULL, error);
-+    
-+    g_info ("message sent");
-+
 +    if (*error != NULL) {
 +        g_warning ("failed to call %s on PopUpgrade: %s", METHOD_REPO_MODIFY, (*error)->message);
 +        return -1;
@@ -2662,14 +2777,14 @@ Index: gnome-control-center/panels/info/pop-upgrade-repo-dialog.c
 +    gtk_container_add (GTK_CONTAINER (scroller), GTK_WIDGET (dialog->repos));
 +
 +    GtkWidget *label = gtk_label_new (_("Select which repositories to keep."));
-+    
++
 +    GtkContainer *inner = GTK_CONTAINER (gtk_box_new (GTK_ORIENTATION_VERTICAL, 6));
 +    gtk_widget_set_hexpand (GTK_WIDGET (inner), TRUE);
 +    gtk_widget_set_vexpand (GTK_WIDGET (inner), TRUE);
 +    gtk_container_add (inner, GTK_WIDGET (label));
 +    gtk_container_add (inner, scroller);
 +
-+    GtkWidget *icon = gtk_image_new_from_icon_name ("application-x-cd-image", 6);
++    GtkWidget *icon = gtk_image_new_from_icon_name ("application-x-deb", 6);
 +    gtk_widget_set_valign (GTK_WIDGET (icon), GTK_ALIGN_START);
 +
 +    GtkContainer *box = GTK_CONTAINER (gtk_dialog_get_content_area (dialog->dialog));
