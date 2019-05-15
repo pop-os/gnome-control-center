@@ -1641,7 +1641,7 @@ Index: gnome-control-center/panels/info/s76-firmware.c
 ===================================================================
 --- /dev/null
 +++ gnome-control-center/panels/info/s76-firmware.c
-@@ -0,0 +1,157 @@
+@@ -0,0 +1,161 @@
 +#include "config.h"
 +#include "s76-firmware.h"
 +#include <glib/gi18n.h>
@@ -1734,24 +1734,28 @@ Index: gnome-control-center/panels/info/s76-firmware.c
 +        firmware_changelog
 +      );
 +#endif /* FIRMWARE_TEST */
-+      GtkWidget *options = gtk_list_box_new ();
-+      gtk_widget_set_can_focus (options, TRUE);
-+      gtk_list_box_set_selection_mode (GTK_LIST_BOX (options), GTK_SELECTION_NONE);
-+
 +      const char *label = _("Firmware Updates Available");
 +      const char *button_label = _("Upgrade");
 +      const char *class = GTK_STYLE_CLASS_SUGGESTED_ACTION;
 +      GCallback func = pop_upgrade;
-+      if (needs_update == S76_FIRMWARE_NEEDS_UPDATE) {
++
++      if (needs_update == -1) {
++        return;
++      } else if (needs_update == S76_FIRMWARE_NEEDS_UPDATE) {
 +        g_info ("firmware update is available: %s", (*firmware_versions)->latest.bios);
 +        g_ptr_array_foreach ((*firmware_versions)->changes, (GFunc) print, NULL);
 +        g_info ("firmware update available: %s", (*firmware_versions)->latest.bios);
 +      } else {
++        g_info ("firmware status = %d", needs_update);
 +        label = _("Reflash current firmware");
 +        button_label = _("Reflash");
 +        func = reflash;
 +        class = NULL;
 +      }
++
++      GtkWidget *options = gtk_list_box_new ();
++      gtk_widget_set_can_focus (options, TRUE);
++      gtk_list_box_set_selection_mode (GTK_LIST_BOX (options), GTK_SELECTION_NONE);
 +
 +      GtkWidget *option = firmware_option (firmware_label, firmware_button, button_label, class);
 +      gtk_label_set_label (GTK_LABEL (*firmware_label), label);
@@ -2468,7 +2472,7 @@ Index: gnome-control-center/panels/info/pop-upgrade-daemon.c
 +  }
 +
 +  g_variant_get (retval, expected, &version->version, &version->build);
-+  
++
 +  return 0;
 +}
 +
