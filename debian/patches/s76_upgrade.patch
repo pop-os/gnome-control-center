@@ -28,7 +28,15 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
 ===================================================================
 --- gnome-control-center.orig/panels/info/cc-info-overview-panel.c
 +++ gnome-control-center/panels/info/cc-info-overview-panel.c
-@@ -46,10 +46,14 @@
+@@ -20,6 +20,7 @@
+  */
+ 
+ #include <config.h>
++#include <stdint.h>
+ 
+ #include "shell/cc-hostname-entry.h"
+ 
+@@ -46,10 +47,14 @@
  #include <gdk/gdkx.h>
  #endif
  
@@ -45,7 +53,7 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
  
  typedef struct {
    /* Will be one or 2 GPU name strings, or "Unknown" */
-@@ -70,6 +74,31 @@ typedef struct
+@@ -70,6 +75,32 @@ typedef struct
    GtkWidget      *virt_type_label;
    GtkWidget      *updates_button;
  
@@ -62,22 +70,23 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
 +  GtkWidget      *os_upgrade_frame;
 +  GPermission    *permission;
 +
-+  S76FirmwareDaemon   firmware_daemon;
++  S76FirmwareDaemon    firmware_daemon;
 +  S76FirmwareVersions *firmware_version;
-+  gchar              *firmware_digest;
-+  gchar              *firmware_changelog;
++  gchar               *firmware_digest;
++  gchar               *firmware_changelog;
 +
-+  gpointer            pop_conn_data;
-+  PopUpgradeWidgets   pop_upgrade;
-+  PopUpgradeDaemon    upgrade_daemon;
-+  ReleaseCheck        release_check;
-+  guint               os_subscribe;
-+  guint               os_subscribe_idle;
++  gpointer          pop_conn_data;
++  PopUpgradeWidgets pop_upgrade;
++  PopUpgradeDaemon  upgrade_daemon;
++  ReleaseCheck      release_check;
++  guint             os_subscribe;
++  guint             os_subscribe_idle;
++  gboolean          refresh_os_enabled;
 +
    /* Virtualisation labels */
    GtkWidget      *label8;
    GtkWidget      *grid1;
-@@ -797,6 +826,12 @@ info_overview_panel_setup_overview (CcIn
+@@ -797,6 +828,12 @@ info_overview_panel_setup_overview (CcIn
  }
  
  static gboolean
@@ -90,7 +99,7 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
  does_gnome_software_exist (void)
  {
    return g_file_test (BINDIR "/gnome-software", G_FILE_TEST_EXISTS);
-@@ -817,7 +852,12 @@ on_updates_button_clicked (GtkWidget
+@@ -817,7 +854,12 @@ on_updates_button_clicked (GtkWidget
    g_auto(GStrv) argv = NULL;
  
    argv = g_new0 (gchar *, 3);
@@ -104,7 +113,7 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
      {
        argv[0] = g_build_filename (BINDIR, "gnome-software", NULL);
        argv[1] = g_strdup_printf ("--mode=updates");
-@@ -832,11 +872,58 @@ on_updates_button_clicked (GtkWidget
+@@ -832,11 +874,58 @@ on_updates_button_clicked (GtkWidget
  }
  
  static void
@@ -163,7 +172,7 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
  
    G_OBJECT_CLASS (cc_info_overview_panel_parent_class)->dispose (object);
  }
-@@ -863,11 +950,405 @@ cc_info_overview_panel_finalize (GObject
+@@ -863,11 +952,411 @@ cc_info_overview_panel_finalize (GObject
  }
  
  static void
@@ -544,19 +553,25 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
 +  }
 +}
 +
++static int fetch_refresh_label (CcInfoOverviewPanelPrivate *self) {
++  return self->refresh_os_enabled ? REFRESH_DISABLED : REFRESH_ENABLED;
++}
++
 +static void
 +pop_refresh (GtkButton *button,
 +             CcInfoOverviewPanel *self)
 +{
 +  CcInfoOverviewPanelPrivate *priv = cc_info_overview_panel_get_instance_private (self);
 +
-+  pop_upgrade_daemon_refresh_os (&priv->upgrade_daemon, NULL);
 +  PopUpgradeOption *refresh = &priv->pop_upgrade.refresh;
-+  refresh->actionable = FALSE;
-+  pop_upgrade_option_set_label (
-+    refresh,
-+    _("Restart to refresh OS installation")
-+  );
++  uint8_t operation = priv->refresh_os_enabled ? REFRESH_OP_DISABLE : REFRESH_OP_ENABLE;
++  if (0 == pop_upgrade_daemon_refresh_os (&priv->upgrade_daemon, NULL, &priv->refresh_os_enabled, operation)) {
++    refresh->actionable = FALSE;
++
++    pop_upgrade_option_set_refresh_labels (refresh, fetch_refresh_label (priv));
++  } else {
++    gtk_label_set_label (GTK_LABEL (refresh->label), _("Error occurred"));
++  }
 +}
 +
 +static void
@@ -569,7 +584,7 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
    object_class->finalize = cc_info_overview_panel_finalize;
    object_class->dispose = cc_info_overview_panel_dispose;
  
-@@ -888,10 +1369,117 @@ cc_info_overview_panel_class_init (CcInf
+@@ -888,10 +1377,124 @@ cc_info_overview_panel_class_init (CcInf
    gtk_widget_class_bind_template_child_private (widget_class, CcInfoOverviewPanel, grid1);
    gtk_widget_class_bind_template_child_private (widget_class, CcInfoOverviewPanel, label18);
  
@@ -663,7 +678,14 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
 +            gtk_button_set_label (GTK_BUTTON (priv->pop_upgrade.rec.button), _("Upgrade"));
 +            pop_upgrade_widgets_rec_visible (&priv->pop_upgrade, TRUE);
 +          }
++
 +          pop_upgrade_widgets_refresh_visible (&priv->pop_upgrade, TRUE);
++
++          pop_upgrade_daemon_refresh_os (&priv->upgrade_daemon, NULL,
++                                         &priv->refresh_os_enabled,
++                                         REFRESH_OP_STATUS);
++          pop_upgrade_option_set_refresh_labels (&priv->pop_upgrade.refresh,
++                                                 fetch_refresh_label (priv));
 +        }
 +
 +        upgrade_text_heap = g_strdup_printf (
@@ -687,7 +709,7 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
  cc_info_overview_panel_init (CcInfoOverviewPanel *self)
  {
    CcInfoOverviewPanelPrivate *priv = cc_info_overview_panel_get_instance_private (self);
-@@ -902,13 +1490,54 @@ cc_info_overview_panel_init (CcInfoOverv
+@@ -902,13 +1505,54 @@ cc_info_overview_panel_init (CcInfoOverv
  
    priv->graphics_data = get_graphics_data ();
  
@@ -1170,11 +1192,13 @@ Index: gnome-control-center/panels/info/s76-firmware-daemon.c
 ===================================================================
 --- /dev/null
 +++ gnome-control-center/panels/info/s76-firmware-daemon.c
-@@ -0,0 +1,236 @@
+@@ -0,0 +1,221 @@
 +#include "config.h"
 +#include <s76-firmware-daemon.h>
 +#include <json-glib/json-glib.h>
 +#include <json-glib/json-gobject.h>
++
++
 +
 +const char *UNKNOWN = "unknown error";
 +const int S76_FIRMWARE_NEEDS_UPDATE = 1;
@@ -1182,6 +1206,18 @@ Index: gnome-control-center/panels/info/s76-firmware-daemon.c
 +static const gchar *get_component (JsonReader *reader, char *member_name);
 +static void component_set (gchar **target, const gchar *input);
 +static void changelog_set (GPtrArray *array, const gchar *input);
++
++/// Function macro for committing a call to our daemon, and handling the error.
++#define DBUS_CALL(method,parameters,flags,timeout,cancel) { \
++  GError *error = NULL; \
++  retval = g_dbus_proxy_call_sync (self->proxy, method, parameters, \
++                                   flags, timeout, cancel, &error); \
++  if (!retval) { \
++    const gchar *error_message = error ? error->message : UNKNOWN; \
++    g_warning ("failed to call %s on S76Firmware: %s", method, error_message); \
++    return -1; \
++  } \
++}
 +
 +S76FirmwareDaemon s76_firmware_daemon_new (void) {
 +  S76FirmwareDaemon daemon = { NULL };
@@ -1209,18 +1245,8 @@ Index: gnome-control-center/panels/info/s76-firmware-daemon.c
 +                                  gchar             **digest,
 +                                  gchar             **changelog)
 +{
-+  GError *error = NULL;
 +  GVariant *retval = NULL;
-+
-+  retval = g_dbus_proxy_call_sync (self->proxy, "Download", NULL,
-+                                   G_DBUS_CALL_FLAGS_NONE, -1, NULL, &error);
-+
-+  if (!retval) {
-+    const gchar *error_message = error ? error->message : UNKNOWN;
-+    g_warning ("failed to call Download on S76Firmware: %s", error_message);
-+    return -1;
-+  }
-+
++  DBUS_CALL ("Download", NULL, G_DBUS_CALL_FLAGS_NONE, -1, NULL);
 +  g_variant_get (retval, "(ss)", digest, changelog);
 +
 +  return 0;
@@ -1230,36 +1256,17 @@ Index: gnome-control-center/panels/info/s76-firmware-daemon.c
 +                              gchar            **model,
 +                              gchar            **version)
 +{
-+  GError *error = NULL;
 +  GVariant *retval = NULL;
-+
-+  retval = g_dbus_proxy_call_sync (self->proxy, "Bios", NULL,
-+                                   G_DBUS_CALL_FLAGS_NONE, -1, NULL, &error);
-+
-+  if (!retval) {
-+    const gchar *error_message = error ? error->message : UNKNOWN;
-+    g_warning ("failed to call Bios on S76Firmware: %s", error_message);
-+    return -1;
-+  }
-+
++  DBUS_CALL ("Bios", NULL, G_DBUS_CALL_FLAGS_NONE, -1, NULL);
 +  g_variant_get (retval, "(ss)", model, version);
 +
 +  return 0;
 +}
 +
 +int s76_firmware_daemon_schedule (S76FirmwareDaemon *self, gchar *digest) {
-+  GError *error = NULL;
 +  GVariant *retval = NULL;
-+
-+  retval = g_dbus_proxy_call_sync (self->proxy, "Schedule",
-+                                   g_variant_new ("s", digest),
-+                                   G_DBUS_CALL_FLAGS_NONE, -1, NULL, &error);
-+
-+  if (!retval) {
-+    const gchar *error_message = error ? error->message : UNKNOWN;
-+    g_warning ("failed to call Schedule on S76Firmware: %s", error_message);
-+    return -1;
-+  }
++  DBUS_CALL ("Schedule", g_variant_new ("s", digest),
++             G_DBUS_CALL_FLAGS_NONE, -1, NULL);
 +
 +  return 0;
 +}
@@ -1831,10 +1838,28 @@ Index: gnome-control-center/panels/info/pop-upgrade-option.c
 ===================================================================
 --- /dev/null
 +++ gnome-control-center/panels/info/pop-upgrade-option.c
-@@ -0,0 +1,348 @@
+@@ -0,0 +1,372 @@
 +#include "pop-upgrade-option.h"
 +#include "pop-upgrade-daemon.h"
 +#include <glib/gi18n.h>
++#include <stdint.h>
++
++const uint8_t REFRESH_OP_STATUS = 0;
++const uint8_t REFRESH_OP_ENABLE = 1;
++const uint8_t REFRESH_OP_DISABLE = 2;
++
++const int REFRESH_ENABLED = 0;
++const int REFRESH_DISABLED = 1;
++
++static const char *REFRESH_LABELS[2] = {
++    "Refresh OS",
++    "Restart to refresh OS installation"
++  };
++
++static const char *REFRESH_BUTTON_LABELS[2] = {
++  "Refresh",
++  "Cancel Refresh"
++};
 +
 +void pop_upgrade_repo_compat_error (PopUpgradeOption *active,
 +                                    GVariant *parameters,
@@ -2076,6 +2101,12 @@ Index: gnome-control-center/panels/info/pop-upgrade-option.c
 +  gtk_label_set_label (GTK_LABEL (self->sublabel), label);
 +}
 +
++void pop_upgrade_option_set_refresh_labels (PopUpgradeOption *self, int option) {
++  gtk_label_set_label (GTK_LABEL (self->label), _(REFRESH_LABELS[option]));
++  gtk_button_set_label (GTK_BUTTON (self->button), _(REFRESH_BUTTON_LABELS[option]));
++}
++
++
 +void pop_upgrade_option_try_again (
 +  PopUpgradeOption *self,
 +  PopUpgradeOption *options[],
@@ -2185,11 +2216,19 @@ Index: gnome-control-center/panels/info/pop-upgrade-option.h
 ===================================================================
 --- /dev/null
 +++ gnome-control-center/panels/info/pop-upgrade-option.h
-@@ -0,0 +1,74 @@
+@@ -0,0 +1,84 @@
 +#include <gio/gio.h>
 +#include <glib.h>
 +#include <gtk/gtk.h>
 +#include <gmodule.h>
++#include <stdint.h>
++
++extern const uint8_t REFRESH_OP_STATUS;
++extern const uint8_t REFRESH_OP_ENABLE;
++extern const uint8_t REFRESH_OP_DISABLE;
++
++extern const int REFRESH_ENABLED;
++extern const int REFRESH_DISABLED;
 +
 +typedef struct {
 +    gboolean    active;
@@ -2221,6 +2260,8 @@ Index: gnome-control-center/panels/info/pop-upgrade-option.h
 +
 +// Retains the previous label while setting a new label.
 +void pop_upgrade_option_set_temporary_label (PopUpgradeOption *self, const gchar *label);
++
++void pop_upgrade_option_set_refresh_labels (PopUpgradeOption *self, int option);
 +
 +// Sets the "Try Again" label and restores the original label.
 +void pop_upgrade_option_try_again (PopUpgradeOption *self, PopUpgradeOption **options,
@@ -2265,7 +2306,7 @@ Index: gnome-control-center/panels/info/pop-upgrade-daemon.c
 ===================================================================
 --- /dev/null
 +++ gnome-control-center/panels/info/pop-upgrade-daemon.c
-@@ -0,0 +1,328 @@
+@@ -0,0 +1,321 @@
 +#include "pop-upgrade-daemon.h"
 +#include <glib/gi18n.h>
 +
@@ -2306,6 +2347,24 @@ Index: gnome-control-center/panels/info/pop-upgrade-daemon.c
 +const gchar *POP_UPGRADE_INTERFACE_NAME = "com.system76.PopUpgrade";
 +
 +static GVariant *asb_construct (GHashTable *repos);
++
++#define PROXY_CHECK(self,info) {\
++  g_info (info);\
++  if (NULL == self || NULL == self->proxy) { \
++    g_warning ("NULL daemon or proxy on action: %s", info); \
++    return -1; \
++  } \
++}
++
++#define CHECK_ERROR(method,expected) {\
++  if (error && *error) { \
++    return -1; \
++  } else if (!retval) { \
++    g_warning ("failed to call %s on PopUpgrade: expected %s, but received nothing", \
++                method, expected); \
++    return -2; \
++  } \
++}
 +
 +// Destructor for the `RepoCompatError` type.
 +void repo_compat_error_free (RepoCompatError *self) {
@@ -2443,7 +2502,7 @@ Index: gnome-control-center/panels/info/pop-upgrade-daemon.c
 +                                                    const gchar *version,
 +                                                    const gchar *arch, guint8 flags)
 +{
-+  g_info ("upgrading the recovery partition by release");
++  PROXY_CHECK (self, "upgrading the recovery partition by release");
 +
 +  GVariant *input[3];
 +  input[0] = g_variant_new_string (version);
@@ -2458,34 +2517,28 @@ Index: gnome-control-center/panels/info/pop-upgrade-daemon.c
 +int pop_upgrade_daemon_recovery_version (PopUpgradeDaemon *self, GError **error,
 +                                         RecoveryVersion *version)
 +{
-+  g_info ("checking the version of the recovery partition");
-+
-+  const char *expected = "(sq)";
-+
++  PROXY_CHECK (self, "checking the version of the recovery partition");
 +  g_autoptr(GVariant) retval = daemon_call (self, METHOD_RECOVERY_VERSION, NULL, error);
-+
-+  if (error && *error) {
-+    return -1;
-+  } else if (!retval) {
-+    g_warning ("failed to call %s on PopUpgrade: expected %s, but received nothing",
-+                METHOD_RECOVERY_VERSION, expected);
-+    return -2;
-+  }
-+
-+  g_variant_get (retval, expected, &version->version, &version->build);
++  CHECK_ERROR (METHOD_RECOVERY_VERSION, "(sq)");
++  g_variant_get (retval, "(sq)", &version->version, &version->build);
 +
 +  return 0;
 +}
 +
-+int pop_upgrade_daemon_refresh_os (PopUpgradeDaemon *self, GError **error) {
-+  g_info ("requestion to perform refresh install on the next boot");
++int pop_upgrade_daemon_refresh_os (PopUpgradeDaemon *self, GError **error, gboolean *status, uint8_t operation) {
++  PROXY_CHECK (self, "calling the refresh OS method");
++  GVariant *input[1] = { g_variant_new_byte (operation) };
++  GVariant *parameters = g_variant_new_tuple (input, 1);
 +
-+  g_autoptr(GVariant) retval = daemon_call (self, METHOD_REFRESH_OS, NULL, error);
-+  return (error && *error) ? -1 : 0;
++  g_autoptr(GVariant) retval = daemon_call (self, METHOD_REFRESH_OS, parameters, error);
++  CHECK_ERROR (METHOD_REFRESH_OS, "(b)");
++
++  if (status) g_variant_get (retval, "(b)", status);
++  return 0;
 +}
 +
 +int pop_upgrade_daemon_release_check (PopUpgradeDaemon *self, GError **error, ReleaseCheck *status) {
-+  g_info ("checking for a new Pop release");
++  PROXY_CHECK (self, "checking for a new Pop release");
 +
 +  const char *expected = "(ssn)";
 +
@@ -2495,14 +2548,7 @@ Index: gnome-control-center/panels/info/pop-upgrade-daemon.c
 +  }
 +
 +  g_autoptr(GVariant) retval = daemon_call (self, METHOD_RELEASE_CHECK, NULL, error);
-+
-+  if (error && *error) {
-+    return -1;
-+  } else if (!retval) {
-+    g_warning ("failed to call %s on PopUpgrade: expected %s, but received nothing",
-+                METHOD_STATUS, expected);
-+    return -2;
-+  }
++  CHECK_ERROR (METHOD_STATUS, expected);
 +
 +  g_variant_get (retval, expected, &status->current, &status->next, &status->build);
 +  return 0;
@@ -2511,7 +2557,7 @@ Index: gnome-control-center/panels/info/pop-upgrade-daemon.c
 +int pop_upgrade_daemon_release_upgrade (PopUpgradeDaemon *self, GError **error, guint8 how,
 +                                        const gchar *from, const gchar *to)
 +{
-+  g_info ("beginning release upgrade for Pop");
++  PROXY_CHECK (self, "beginning release upgrade for Pop");
 +
 +  GVariant *input[3];
 +  input[0] = g_variant_new_byte (how);
@@ -2525,15 +2571,16 @@ Index: gnome-control-center/panels/info/pop-upgrade-daemon.c
 +}
 +
 +int pop_upgrade_daemon_repair (PopUpgradeDaemon *self, GError **error) {
-+  g_info ("pop is checking for required system repairs");
++  PROXY_CHECK (self, "pop is checking for required system repairs");
 +
 +  g_autoptr(GVariant) retval = daemon_call (self, METHOD_RELEASE_REPAIR, NULL, error);
 +  return (error && *error) ? -1 : 0;
 +}
 +
 +int pop_upgrade_daemon_repo_modify (PopUpgradeDaemon *self, GError **error,
-+                                    GHashTable *repos) {
-+  g_info ("modifying repos");
++                                    GHashTable *repos)
++{
++  PROXY_CHECK (self, "modifying repos");
 +
 +  GVariant *array[1];
 +  array[0] = asb_construct (repos);
@@ -2544,23 +2591,10 @@ Index: gnome-control-center/panels/info/pop-upgrade-daemon.c
 +}
 +
 +int pop_upgrade_daemon_status (PopUpgradeDaemon *self, GError **error, PopUpgradeDaemonStatus *status) {
-+    g_info ("checking the status of the Pop upgrade daemon");
-+
-+  const char *expected = "(yy)";
-+
-+  if (NULL == self || NULL == self->proxy) {
-+    g_warning ("pop_upgrade_daemon_status called with null daemon/proxy");
-+    return -1;
-+  }
++  PROXY_CHECK (self, "checking the status of the Pop upgrade daemon");
 +
 +  g_autoptr(GVariant) retval = daemon_call (self, METHOD_STATUS, NULL, error);
-+
-+  if (error && *error) {
-+      return -1;
-+  } else if (!retval) {
-+    g_warning ("failed to call %s on PopUpgrade: expected %s, but received nothing", METHOD_STATUS, expected);
-+    return -2;
-+  }
++  CHECK_ERROR (METHOD_STATUS, "(yy)");
 +
 +  status->status = g_variant_get_byte (
 +    g_variant_get_child_value (retval, 0)
@@ -2594,16 +2628,16 @@ Index: gnome-control-center/panels/info/pop-upgrade-daemon.c
 +
 +  return g_variant_builder_end (&builder);
 +}
-\ No newline at end of file
 Index: gnome-control-center/panels/info/pop-upgrade-daemon.h
 ===================================================================
 --- /dev/null
 +++ gnome-control-center/panels/info/pop-upgrade-daemon.h
-@@ -0,0 +1,140 @@
+@@ -0,0 +1,141 @@
 +#include <gio/gio.h>
 +#include <glib.h>
 +#include <gtk/gtk.h>
 +#include <gmodule.h>
++#include <stdint.h>
 +
 +extern const gchar *POP_UPGRADE_SIGNAL_PACKAGE_FETCH_RESULT;
 +extern const gchar *POP_UPGRADE_SIGNAL_PACKAGE_FETCHING;
@@ -2712,7 +2746,7 @@ Index: gnome-control-center/panels/info/pop-upgrade-daemon.h
 +                                         RecoveryVersion *version);
 +
 +// Ask the daemon to perform a refresh OS installation.
-+int pop_upgrade_daemon_refresh_os (PopUpgradeDaemon *self, GError **error);
++int pop_upgrade_daemon_refresh_os (PopUpgradeDaemon *self, GError **error, gboolean *status, uint8_t operation);
 +
 +// Ask the daemon if a new release is available.
 +int pop_upgrade_daemon_release_check (PopUpgradeDaemon *self,
