@@ -285,26 +285,7 @@ Index: b/panels/region/cc-region-panel.c
 ===================================================================
 --- a/panels/region/cc-region-panel.c
 +++ b/panels/region/cc-region-panel.c
-@@ -377,11 +377,15 @@
-                    gint           response_id,
-                    CcRegionPanel *self)
- {
--        const gchar *language;
-+        const gchar *locale, *language, *country;
-+        gchar *name = NULL;
- 
-         if (response_id == GTK_RESPONSE_OK) {
--                language = cc_language_chooser_get_language (GTK_WIDGET (chooser));
--                update_language (self, language);
-+                locale = cc_language_chooser_get_language (GTK_WIDGET (chooser));
-+                gnome_parse_locale (locale, &language, &country, NULL, NULL);
-+                name = g_strdup_printf ("%s_%s", language, country);
-+                update_language (self, name);
-+                g_free (name);
-         }
- 
-         gtk_widget_destroy (GTK_WIDGET (chooser));
-@@ -403,6 +407,47 @@
+@@ -403,6 +403,47 @@
  }
  
  static void
@@ -352,7 +333,7 @@ Index: b/panels/region/cc-region-panel.c
  update_region (CcRegionPanel *self,
                 const gchar   *region)
  {
-@@ -413,6 +458,7 @@
+@@ -413,6 +454,7 @@
          } else {
                  if (g_strcmp0 (region, priv->region) == 0)
                          return;
@@ -360,7 +341,7 @@ Index: b/panels/region/cc-region-panel.c
                  g_settings_set_string (priv->locale_settings, KEY_REGION, region);
                  if (priv->login_auto_apply)
                          set_system_region (self, region);
-@@ -593,7 +639,7 @@
+@@ -593,7 +635,7 @@
          CcRegionPanelPrivate *priv = self->priv;
  
          g_free (priv->region);
@@ -369,7 +350,7 @@ Index: b/panels/region/cc-region-panel.c
          update_region_label (self);
  }
  
-@@ -622,15 +668,19 @@
+@@ -622,15 +664,19 @@
  {
  	CcRegionPanelPrivate *priv = self->priv;
          const gchar *language = NULL;
@@ -393,7 +374,7 @@ Index: b/panels/region/cc-region-panel.c
          update_language_label (self);
  }
  
-@@ -1485,6 +1535,16 @@
+@@ -1485,6 +1531,16 @@
          update_buttons (self);
  }
  
@@ -410,7 +391,7 @@ Index: b/panels/region/cc-region-panel.c
  static void
  on_localed_properties_changed (GDBusProxy     *proxy,
                                 GVariant       *changed_properties,
-@@ -1499,32 +1559,46 @@
+@@ -1499,32 +1555,46 @@
                  const gchar **strv;
                  gsize len;
                  gint i;
@@ -466,7 +447,7 @@ Index: b/panels/region/cc-region-panel.c
  
                  update_language_label (self);
          }
-@@ -1594,27 +1668,24 @@
+@@ -1594,27 +1664,24 @@
  	CcRegionPanelPrivate *priv = self->priv;
          GVariantBuilder *b;
          gchar *s;
