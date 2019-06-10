@@ -366,11 +366,17 @@ Index: gnome-control-center/panels/display/cc-display-panel.c
  static void
  cc_display_panel_init (CcDisplayPanel *self)
  {
-@@ -1215,6 +1336,21 @@ cc_display_panel_init (CcDisplayPanel *s
+@@ -1215,6 +1336,27 @@ cc_display_panel_init (CcDisplayPanel *s
                             G_CALLBACK (settings_color_changed_cb), self->night_light_status_label, 0);
    night_light_sync_label (GTK_WIDGET (self->night_light_status_label), self->settings_color);
  
-+  self->settings_hidpi = g_settings_new ("com.system76.hidpi");
++  // GIO aborts when `g_settings_new (SCHEMA)` is called with a scheme that does not exist.
++  //
++  // Therefore, we will check that the scheme exists before we ask for it.
++  if (g_file_test ("/usr/share/glib-2.0/schemas/com.system76.hidpi.gschema.xml", G_FILE_TEST_EXISTS)) {
++    self->settings_hidpi = g_settings_new ("com.system76.hidpi");
++  }
++
 +  if (self->settings_hidpi) {
 +    g_settings_delay (self->settings_hidpi);
 +
