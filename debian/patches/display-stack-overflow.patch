@@ -1,0 +1,14 @@
+Index: gnome-control-center/panels/display/cc-display-panel.c
+===================================================================
+--- gnome-control-center.orig/panels/display/cc-display-panel.c
++++ gnome-control-center/panels/display/cc-display-panel.c
+@@ -727,6 +727,9 @@ rebuild_ui (CcDisplayPanel *panel)
+   GList *outputs, *l;
+   CcDisplayConfigType type;
+ 
++  if (panel->rebuilding_counter > 0)
++    return;
++
+   panel->rebuilding_counter++;
+ 
+   g_list_store_remove_all (panel->primary_display_list);
