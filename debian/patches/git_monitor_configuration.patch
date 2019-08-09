@@ -1,0 +1,45 @@
+From 4db431d7f128100c45d3df6162a70069bfdb3b74 Mon Sep 17 00:00:00 2001
+From: Benjamin Berg <bberg@redhat.com>
+Date: Mon, 14 Jan 2019 15:26:55 +0100
+Subject: [PATCH] display: Correctly round scaled monitor size
+
+We were converting the floating point numbers to integers using a cast,
+which causes them to be always rounded down. The result is that a
+monitor may be too small by a pixel, creating broken configurations.
+
+(updated for the GNOME 3.28 code version)
+--- gnome-control-center-3.28.2.orig/panels/display/cc-display-panel.c
++++ gnome-control-center-3.28.2/panels/display/cc-display-panel.c
+@@ -2155,8 +2155,8 @@ get_total_size (CcDisplayPanel *self, in
+       if (cc_display_config_is_layout_logical (self->priv->current_config))
+         {
+           double scale = cc_display_monitor_get_scale (output);
+-          w /= scale;
+-          h /= scale;
++          w = round (w / scale);
++          h = round (h / scale);
+         }
+ 
+       *total_w += w;
+@@ -2222,8 +2222,8 @@ list_edges_for_output (CcDisplayMonitor
+   if (should_scale)
+     {
+       double scale = cc_display_monitor_get_scale (output);
+-      w /= scale;
+-      h /= scale;
++      w = round (w / scale);
++      h = round (h / scale);
+     }
+ 
+   /* Top, Bottom, Left, Right */
+@@ -2433,8 +2433,8 @@ get_output_rect (CcDisplayMonitor *outpu
+   if (should_scale)
+     {
+       double scale = cc_display_monitor_get_scale (output);
+-      rect->height /= scale;
+-      rect->width /= scale;
++      rect->height = round (rect->height / scale);
++      rect->width = round (rect->width / scale);
+     }
+ }
+ 
