@@ -472,6 +472,7 @@ panel_add_device (CcNetworkPanel *panel, NMDevice *device)
         /* map the NMDeviceType to the GType, or ignore */
         switch (type) {
         case NM_DEVICE_TYPE_ETHERNET:
+        case NM_DEVICE_TYPE_INFINIBAND:
                 device_g_type = NET_TYPE_DEVICE_ETHERNET;
                 break;
         case NM_DEVICE_TYPE_MODEM:
@@ -654,7 +655,6 @@ manager_running (NMClient *client, GParamSpec *pspec, gpointer user_data)
         /* clear all devices we added */
         if (!nm_client_get_nm_running (client)) {
                 g_debug ("NM disappeared");
-                panel_add_proxy_device (panel);
                 goto out;
         }
 

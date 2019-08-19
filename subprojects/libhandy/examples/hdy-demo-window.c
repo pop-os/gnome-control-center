@@ -3,6 +3,7 @@
 #include <glib/gi18n.h>
 #define HANDY_USE_UNSTABLE_API
 #include <handy.h>
+#include "hdy-view-switcher-demo-window.h"
 
 struct _HdyDemoWindow
 {
@@ -188,7 +189,6 @@ notify_arrows_direction_cb (GObject       *sender,
   g_assert (HDY_IS_DEMO_WINDOW (self));
 
   hdy_arrows_set_direction (HDY_ARROWS (self->arrows), hdy_combo_row_get_selected_index (row));
-  hdy_arrows_animate (HDY_ARROWS (self->arrows));
 }
 
 
@@ -203,7 +203,6 @@ adj_arrows_count_value_changed_cb (GtkAdjustment *adj,
 
   count = gtk_adjustment_get_value (adj);
   hdy_arrows_set_count (HDY_ARROWS (self->arrows), count);
-  hdy_arrows_animate (HDY_ARROWS (self->arrows));
 }
 
 
@@ -218,7 +217,6 @@ adj_arrows_duration_value_changed_cb (GtkAdjustment *adj,
 
   duration = gtk_adjustment_get_value (adj);
   hdy_arrows_set_duration (HDY_ARROWS (self->arrows), duration);
-  hdy_arrows_animate (HDY_ARROWS (self->arrows));
 }
 
 static void
@@ -273,6 +271,17 @@ dialog_action_clicked_cb (GtkButton     *btn,
 
   gtk_widget_show (lbl);
   gtk_widget_show (dlg);
+}
+
+
+static void
+view_switcher_demo_clicked_cb (GtkButton     *btn,
+                               HdyDemoWindow *self)
+{
+  HdyViewSwitcherDemoWindow *window = hdy_view_switcher_demo_window_new ();
+
+  gtk_window_set_transient_for (GTK_WINDOW (window), GTK_WINDOW (self));
+  gtk_widget_show (GTK_WIDGET (window));
 }
 
 HdyDemoWindow *
@@ -350,6 +359,7 @@ hdy_demo_window_class_init (HdyDemoWindowClass *klass)
   gtk_widget_class_bind_template_callback_full (widget_class, "adj_arrows_duration_value_changed_cb", G_CALLBACK(adj_arrows_duration_value_changed_cb));
   gtk_widget_class_bind_template_callback_full (widget_class, "dialog_clicked_cb", G_CALLBACK(dialog_clicked_cb));
   gtk_widget_class_bind_template_callback_full (widget_class, "dialog_action_clicked_cb", G_CALLBACK(dialog_action_clicked_cb));
+  gtk_widget_class_bind_template_callback_full (widget_class, "view_switcher_demo_clicked_cb", G_CALLBACK(view_switcher_demo_clicked_cb));
 }
 
 static void
