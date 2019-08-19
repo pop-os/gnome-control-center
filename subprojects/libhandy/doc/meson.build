@@ -5,13 +5,25 @@ subdir('xml')
 private_headers = [
     'config.h',
     'gtkprogresstrackerprivate.h',
+    'gtk-window-private.h',
     'hdy-main-private.h',
+    'hdy-preferences-group-private.h',
+    'hdy-preferences-page-private.h',
     'hdy-style-private.h',
+    'hdy-view-switcher-button-private.h',
 ]
 
 images = [
   'images/arrows.png',
   'images/dialer.png',
+  'images/dialog-desktop.png',
+  'images/dialog-mobile.png',
+  'images/header-bar.png',
+  'images/list.png',
+  'images/preferences-window.png',
+  'images/search.png',
+  'images/view-switcher.png',
+  'images/view-switcher-bar.png',
 ]
 
 content_files = [

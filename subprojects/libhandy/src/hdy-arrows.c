@@ -23,6 +23,14 @@
  * is invoked.
  */
 
+/**
+ * HdyArrowsDirection:
+ * @HDY_ARROWS_DIRECTION_UP: Arrows point upwards
+ * @HDY_ARROWS_DIRECTION_DOWN: Arrows point to the left
+ * @HDY_ARROWS_DIRECTION_LEFT: Arrows point to the right
+ * @HDY_ARROWS_DIRECTION_RIGHT: Arrows point downwards
+ */
+
 typedef struct
 {
   guint count;
@@ -346,7 +354,7 @@ hdy_arrows_get_property (GObject    *object,
 
 
 /* This private method is prefixed by the call name because it will be a virtual
- * method in GTK+ 4.
+ * method in GTK 4.
  */
 static void
 hdy_arrows_measure (GtkWidget      *widget,
@@ -491,7 +499,7 @@ hdy_arrows_init (HdyArrows *self)
  * hdy_arrows_get_count:
  * @self: a #HdyArrows
  *
- * Get the number of errors in displayed in the widget.
+ * Get the number of arrows displayed in the widget.
  *
  * Returns: the current number of arrows
  */
@@ -524,8 +532,12 @@ hdy_arrows_set_count (HdyArrows   *self, guint count)
 
   priv = hdy_arrows_get_instance_private (self);
 
+  if (priv->count == count)
+    return;
+
   priv->count = count;
   g_object_notify_by_pspec (G_OBJECT (self), props[PROP_COUNT]);
+  hdy_arrows_animate (self);
 }
 
 /**
@@ -578,8 +590,13 @@ hdy_arrows_set_direction (HdyArrows *self,
   default:
     direction = HDY_ARROWS_DIRECTION_UP;
   }
+
+  if (priv->direction == direction)
+    return;
+
   priv->direction = direction;
   g_object_notify_by_pspec (G_OBJECT (self), props[PROP_DIRECTION]);
+  hdy_arrows_animate (self);
 }
 
 /**
@@ -588,7 +605,7 @@ hdy_arrows_set_direction (HdyArrows *self,
  *
  * Get the duration of the arrows animation.
  *
- * Returns: the arrows
+ * Returns: the duration of the animation in ms
  */
 HdyArrowsDirection
 hdy_arrows_get_duration (HdyArrows *self)
@@ -619,8 +636,13 @@ hdy_arrows_set_duration (HdyArrows *self,
   g_return_if_fail (HDY_IS_ARROWS (self));
 
   priv = hdy_arrows_get_instance_private (self);
+
+  if (priv->animation.duration == duration)
+    return;
+
   priv->animation.duration = duration;
   g_object_notify_by_pspec (G_OBJECT (self), props[PROP_DURATION]);
+  hdy_arrows_animate (self);
 }
 
 /**
@@ -634,6 +656,6 @@ hdy_arrows_animate (HdyArrows *self)
 {
   g_return_if_fail (HDY_IS_ARROWS (self));
 
-  gtk_widget_hide (GTK_WIDGET (self));
-  gtk_widget_show (GTK_WIDGET (self));
+  if (gtk_widget_get_mapped (GTK_WIDGET (self)))
+    map_cb (GTK_WIDGET (self), NULL);
 }

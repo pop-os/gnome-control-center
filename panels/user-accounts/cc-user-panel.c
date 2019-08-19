@@ -27,6 +27,7 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <locale.h>
+#include <errno.h>
 
 #include <glib.h>
 #include <glib/gi18n.h>
@@ -367,7 +368,7 @@ add_user (CcUserPanel *self)
 
         user = cc_add_user_dialog_get_user (dialog);
         if (user != NULL) {
-                generate_user_avatar (user);
+                set_default_avatar (user);
                 reload_users (self, user);
         }
 
@@ -954,18 +955,22 @@ restart_now (CcUserPanel *self)
 static void
 show_restart_notification (CcUserPanel *self, const gchar *locale)
 {
-        gchar *current_locale;
+        locale_t current_locale;
+        locale_t new_locale;
 
         if (locale) {
-                current_locale = g_strdup (setlocale (LC_MESSAGES, NULL));
-                setlocale (LC_MESSAGES, locale);
+                new_locale = newlocale (LC_MESSAGES_MASK, locale, (locale_t) 0);
+                if (new_locale == (locale_t) 0)
+                        g_warning ("Failed to create locale %s: %s", locale, g_strerror (errno));
+                else
+                        current_locale = uselocale (new_locale);
         }
 
         gtk_revealer_set_reveal_child (self->notification_revealer, TRUE);
 
-        if (locale) {
-                setlocale (LC_MESSAGES, current_locale);
-                g_free (current_locale);
+        if (locale && new_locale != (locale_t) 0) {
+                uselocale (current_locale);
+                freelocale (new_locale);
         }
 }
 
@@ -1384,7 +1389,7 @@ cc_user_panel_constructed (GObject *object)
         G_OBJECT_CLASS (cc_user_panel_parent_class)->constructed (object);
 
         shell = cc_panel_get_shell (CC_PANEL (self));
-        cc_shell_embed_widget_in_header (shell, GTK_WIDGET (self->headerbar_button_stack));
+        cc_shell_embed_widget_in_header (shell, GTK_WIDGET (self->headerbar_button_stack), GTK_POS_RIGHT);
 
         gtk_lock_button_set_permission (self->lock_button, self->permission);
 }

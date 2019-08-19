@@ -1,8 +1,8 @@
 project(
   'gnome-control-center', 'c',
-        version : '3.32.1',
+        version : '3.33.90',
         license : 'GPL2+',
-  meson_version : '>= 0.48.0'
+  meson_version : '>= 0.50.0'
 )
 
 control_center_prefix = get_option('prefix')
@@ -121,7 +121,7 @@ gdk_pixbuf_dep = dependency('gdk-pixbuf-2.0', version: '>= 2.23.0')
 gio_dep = dependency('gio-2.0')
 glib_dep = dependency('glib-2.0', version: '>= 2.53.0')
 gnome_desktop_dep = dependency('gnome-desktop-3.0', version: '>= 3.27.90')
-gnome_settings_dep = dependency('gnome-settings-daemon', version: '>= 3.25.90')
+gnome_settings_dep = dependency('gnome-settings-daemon', version: '>= 3.27.90')
 goa_dep = dependency('goa-1.0', version: goa_req_version)
 gsettings_desktop_dep = dependency('gsettings-desktop-schemas', version: '>= 3.31.0')
 libxml_dep = dependency('libxml-2.0')
@@ -129,6 +129,7 @@ polkit_gobject_dep = dependency('polkit-gobject-1', version: '>= 0.103')
 pulse_dep = dependency('libpulse', version: pulse_req_version)
 pulse_mainloop_dep = dependency('libpulse-mainloop-glib', version: pulse_req_version)
 upower_glib_dep = dependency('upower-glib', version: '>= 0.99.8')
+gudev_dep = dependency('gudev-1.0')
 x11_dep = dependency('x11')
 xi_dep = dependency('xi', version: '>= 1.2')
 
@@ -183,17 +184,6 @@ endif
 config_h.set('HAVE_IBUS', enable_ibus,
              description: 'Defined if IBus support is enabled')
 
-# wayland
-enable_wayland = get_option('wayland')
-if enable_wayland
-  wayland_deps = [
-    dependency('gdk-wayland-3.0'),
-    dependency('gudev-1.0')
-  ]
-endif
-config_h.set('HAVE_WAYLAND', enable_wayland,
-             description: 'Define to 1 if Wayland is enabled')
-
 # thunderbolt
 config_h.set10('HAVE_FN_EXPLICIT_BZERO',
                cc.has_function('explicit_bzero', prefix: '''#include <string.h>'''),
@@ -202,7 +192,7 @@ config_h.set10('HAVE_FN_EXPLICIT_BZERO',
 if host_is_linux
   # network manager
   network_manager_deps = [
-    dependency('libnm', version: '>= 1.10.0'),
+    dependency('libnm', version: '>= 1.12.0'),
     dependency('libnma', version: '>= 1.8.0'),
     dependency('mm-glib', version: '>= 0.7')
   ]
@@ -293,6 +283,5 @@ output += '     Cheese (Users panel webcam support) ........ ' + enable_cheese.t
 output += '     IBus (Region panel IBus support) ........... ' + enable_ibus.to_string() + '\n'
 output += '     NetworkManager (Network panel) ............. ' + host_is_linux.to_string() + '\n'
 output += '     Wacom (Wacom tablet panel) ................. ' + host_is_linux_not_s390.to_string() + '\n'
-output += '     Wayland .................................... ' + enable_wayland.to_string() + '\n'
 
 message(output)

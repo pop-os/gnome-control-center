@@ -339,6 +339,9 @@ gvc_mixer_ui_device_get_matching_profile (GvcMixerUIDevice *device, const gchar 
         GList *l;
         gchar *result = NULL;
 
+        g_return_val_if_fail (GVC_IS_MIXER_UI_DEVICE (device), NULL);
+        g_return_val_if_fail (profile != NULL, NULL);
+
         for (l = device->priv->profiles; l != NULL; l = l->next) {
                 gchar *canonical_name;
                 GvcMixerCardProfile* p = l->data;
@@ -424,6 +427,8 @@ gvc_mixer_ui_device_set_profiles (GvcMixerUIDevice *device,
         GHashTable *added_profiles;
         const gchar *skip_prefix = device->priv->type == UIDeviceInput ? "output:" : "input:";
 
+        g_return_if_fail (GVC_IS_MIXER_UI_DEVICE (device));
+
         g_debug ("Set profiles for '%s'", gvc_mixer_ui_device_get_description(device));
 
         if (in_profiles == NULL)
@@ -447,7 +452,7 @@ gvc_mixer_ui_device_set_profiles (GvcMixerUIDevice *device,
 
 /**
  * gvc_mixer_ui_device_get_best_profile:
- * @selected: The selected profile or its canonical name or %NULL for any profile
+ * @selected: (allow-none): The selected profile or its canonical name or %NULL for any profile
  * @current: The currently selected profile
  *
  * Returns: (transfer none): a profile name, valid as long as the UI device profiles are.
@@ -461,6 +466,9 @@ gvc_mixer_ui_device_get_best_profile (GvcMixerUIDevice *device,
         const gchar *result;
         const gchar *skip_prefix;
         gchar *canonical_name_selected;
+
+        g_return_val_if_fail (GVC_IS_MIXER_UI_DEVICE (device), NULL);
+        g_return_val_if_fail (current != NULL, NULL);
 
         if (device->priv->type == UIDeviceInput)
                 skip_prefix = "output:";
@@ -657,6 +665,8 @@ gvc_mixer_ui_device_get_gicon (GvcMixerUIDevice *device)
 {
         const char *icon_name;
 
+        g_return_val_if_fail (GVC_IS_MIXER_UI_DEVICE (device), NULL);
+
         icon_name = gvc_mixer_ui_device_get_icon_name (device);
 
         if (icon_name != NULL)
@@ -700,6 +710,7 @@ gvc_mixer_ui_device_set_user_preferred_profile (GvcMixerUIDevice *device,
                                                 const gchar      *profile)
 {
         g_return_if_fail (GVC_IS_MIXER_UI_DEVICE (device));
+        g_return_if_fail (profile != NULL);
 
         g_free (device->priv->user_preferred_profile);
         device->priv->user_preferred_profile = g_strdup (profile);

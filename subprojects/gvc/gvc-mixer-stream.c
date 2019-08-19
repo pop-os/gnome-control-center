@@ -839,6 +839,8 @@ gvc_mixer_stream_change_is_muted (GvcMixerStream *stream,
 gboolean
 gvc_mixer_stream_is_running (GvcMixerStream *stream)
 {
+        g_return_val_if_fail (GVC_IS_MIXER_STREAM (stream), FALSE);
+
         if (stream->priv->change_volume_op == NULL)
                 return FALSE;
 
