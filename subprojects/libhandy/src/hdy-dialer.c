@@ -366,7 +366,7 @@ hdy_dialer_constructed (GObject *object)
                            self,
                            G_CONNECT_SWAPPED);
 
-  /* In GTK+4 we can just use the icon-name property */
+  /* In GTK 4 we can just use the icon-name property */
   image = gtk_image_new_from_icon_name ("edit-clear-symbolic",
                                         GTK_ICON_SIZE_BUTTON);
   gtk_button_set_image (priv->btn_del, image);
@@ -548,6 +548,7 @@ hdy_dialer_init (HdyDialer *self)
 
   priv->number = g_string_new (NULL);
   priv->cycle_btn = NULL;
+  priv->show_action_buttons = TRUE;
 }
 
 /**
@@ -650,6 +651,10 @@ hdy_dialer_set_show_action_buttons (HdyDialer *self,
   g_return_if_fail (HDY_IS_DIALER (self));
 
   priv = hdy_dialer_get_instance_private (self);
+
+  if (priv->show_action_buttons == show)
+    return;
+
   priv->show_action_buttons = show;
 
   gtk_widget_set_visible (GTK_WIDGET (priv->btn_submit), show);

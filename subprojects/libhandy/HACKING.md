@@ -27,9 +27,9 @@ We mostly use kernel style but
 * Use spaces, never tabs
 * Use 2 spaces for inentation
 
-GTK+ style function argument indentation
+GTK style function argument indentation
 ----------------------------------------
-Use GTK+ style function argument indentation. It's harder for renames but it's
+Use GTK style function argument indentation. It's harder for renames but it's
 what GNOME upstream projects do.
 
 *Good*:
@@ -126,6 +126,21 @@ else {
 }
 ```
 
+Function calls have a space between function name and invocation:
+
+*Good*:
+
+```c
+visible_child_name = gtk_stack_get_visible_child_name (GTK_STACK (self->stack));
+```
+
+*Bad*:
+
+```c
+visible_child_name = gtk_stack_get_visible_child_name(GTK_STACK(self->stack));
+```
+
+
 Header Inclusion Guards
 -----------------------
 Guard header inclusion with `#pragma once` rather than the traditional
@@ -180,7 +195,7 @@ adding further properties.
 
 Comment style
 -------------
-In comments use full sentences and proper capitalization, punctation.
+In comments use full sentences with proper capitalization and punctuation.
 
 *Good*:
 
@@ -285,7 +300,7 @@ Use minus signs instead of underscores in property names:
 <property name="margin-start">12</property>
 ```
 
-*Bad":
+*Bad*:
 
 ```xml
 <property name="margin_start">12</property>

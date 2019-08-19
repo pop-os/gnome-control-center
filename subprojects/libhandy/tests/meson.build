@@ -26,10 +26,18 @@ test_names = [
   'test-dialer-cycle-button',
   'test-dialog',
   'test-expander-row',
+  'test-header-bar',
   'test-header-group',
+  'test-preferences-group',
+  'test-preferences-page',
+  'test-preferences-row',
+  'test-preferences-window',
   'test-search-bar',
+  'test-squeezer',
   'test-string-utf8',
   'test-value-object',
+  'test-view-switcher',
+  'test-view-switcher-bar',
 ]
 
 foreach test_name : test_names

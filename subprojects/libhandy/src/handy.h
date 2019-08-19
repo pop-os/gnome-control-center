@@ -36,14 +36,22 @@ G_BEGIN_DECLS
 #include "hdy-enum-value-object.h"
 #include "hdy-expander-row.h"
 #include "hdy-fold.h"
+#include "hdy-header-bar.h"
 #include "hdy-header-group.h"
 #include "hdy-leaflet.h"
 #include "hdy-list-box.h"
 #include "hdy-main.h"
+#include "hdy-preferences-group.h"
+#include "hdy-preferences-page.h"
+#include "hdy-preferences-row.h"
+#include "hdy-preferences-window.h"
 #include "hdy-search-bar.h"
+#include "hdy-squeezer.h"
 #include "hdy-string-utf8.h"
 #include "hdy-title-bar.h"
 #include "hdy-value-object.h"
+#include "hdy-view-switcher.h"
+#include "hdy-view-switcher-bar.h"
 
 #undef _HANDY_INSIDE
 

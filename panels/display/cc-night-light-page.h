@@ -1,6 +1,7 @@
-/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 8 -*-
+/*
+ * Copyright (C) 2017 Richard Hughes <richard@hughsie.com>
  *
- * Copyright (C) 2015 Red Hat
+ * Licensed under the GNU General Public License Version 2
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -9,23 +10,23 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.	 See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
- *
- * Author: Carlos Garnacho <carlosg@gnome.org>
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
 #pragma once
 
-#include "gsd-device-manager.h"
+#include <gtk/gtk.h>
 
 G_BEGIN_DECLS
 
-#define GSD_TYPE_UDEV_DEVICE_MANAGER (gsd_udev_device_manager_get_type ())
-G_DECLARE_FINAL_TYPE (GsdUdevDeviceManager, gsd_udev_device_manager, GSD, UDEV_DEVICE_MANAGER, GsdDeviceManager)
+#define CC_TYPE_NIGHT_LIGHT_PAGE (cc_night_light_page_get_type ())
+G_DECLARE_FINAL_TYPE (CcNightLightPage, cc_night_light_page, CC, NIGHT_LIGHT_PAGE, GtkBin)
+
+CcNightLightPage* cc_night_light_page_new (void);
 
 G_END_DECLS

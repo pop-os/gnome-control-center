@@ -36,7 +36,7 @@
 #include "cc-display-config-manager-dbus.h"
 #include "cc-display-config.h"
 #include "cc-display-arrangement.h"
-#include "cc-night-light-dialog.h"
+#include "cc-night-light-page.h"
 #include "cc-display-resources.h"
 #include "cc-display-settings.h"
 
@@ -73,8 +73,8 @@ struct _CcDisplayPanel
 
   guint           focus_id;
 
-  CcNightLightDialog *night_light_dialog;
-  GSettings *settings_color;
+  CcNightLightPage *night_light_page;
+  GtkDialog *night_light_dialog;
 
   UpClient *up_client;
   gboolean lid_is_closed;
@@ -103,13 +103,13 @@ struct _CcDisplayPanel
   GtkWidget      *config_type_switcher_frame;
   GtkLabel       *current_output_label;
   GtkWidget      *display_settings_frame;
-  GtkLabel       *night_light_status_label;
   GtkSwitch      *output_enabled_switch;
   GtkComboBox    *output_selection_combo;
   GtkStack       *output_selection_stack;
   GtkButtonBox   *output_selection_two_first;
   GtkButtonBox   *output_selection_two_second;
   HdyComboRow    *primary_display_row;
+  GtkWidget      *stack_switcher;
 };
 
 CC_PANEL_REGISTER (CcDisplayPanel, cc_display_panel)
@@ -331,7 +331,7 @@ monitor_labeler_show (CcDisplayPanel *self)
     return monitor_labeler_hide (self);
 
   g_dbus_proxy_call (self->shell_proxy,
-                     "ShowMonitorLabels2",
+                     "ShowMonitorLabels",
                      g_variant_builder_end (&builder),
                      G_DBUS_CALL_FLAGS_NONE,
                      -1, NULL, NULL, NULL);
@@ -427,7 +427,6 @@ cc_display_panel_dispose (GObject *object)
   g_clear_object (&self->manager);
   g_clear_object (&self->current_config);
   g_clear_object (&self->up_client);
-  g_clear_object (&self->settings_color);
 
   g_cancellable_cancel (self->shell_cancellable);
   g_clear_object (&self->shell_cancellable);
@@ -478,6 +477,19 @@ on_night_light_list_box_row_activated_cb (CcDisplayPanel *panel)
 {
   GtkWindow *toplevel;
   toplevel = GTK_WINDOW (cc_shell_get_toplevel (cc_panel_get_shell (CC_PANEL (panel))));
+
+  if (!panel->night_light_dialog)
+    {
+      GtkWidget *content_area;
+
+      panel->night_light_dialog = (GtkDialog *)gtk_dialog_new ();
+
+      content_area = gtk_dialog_get_content_area (panel->night_light_dialog);
+      gtk_container_add (GTK_CONTAINER (content_area),
+                         GTK_WIDGET (panel->night_light_page));
+      gtk_widget_show (GTK_WIDGET (panel->night_light_page));
+    }
+
   gtk_window_set_transient_for (GTK_WINDOW (panel->night_light_dialog), toplevel);
   gtk_window_present (GTK_WINDOW (panel->night_light_dialog));
 }
@@ -608,6 +620,14 @@ cc_display_panel_get_help_uri (CcPanel *panel)
   return "help:gnome-help/prefs-display";
 }
 
+static GtkWidget *
+cc_display_panel_get_title_widget (CcPanel *panel)
+{
+  CcDisplayPanel *self = CC_DISPLAY_PANEL (panel);
+
+  return self->stack_switcher;
+}
+
 static void
 cc_display_panel_class_init (CcDisplayPanelClass *klass)
 {
@@ -615,7 +635,10 @@ cc_display_panel_class_init (CcDisplayPanelClass *klass)
   CcPanelClass *panel_class = CC_PANEL_CLASS (klass);
   GtkWidgetClass *widget_class = GTK_WIDGET_CLASS (klass);
 
+  g_type_ensure (CC_TYPE_NIGHT_LIGHT_PAGE);
+
   panel_class->get_help_uri = cc_display_panel_get_help_uri;
+  panel_class->get_title_widget = cc_display_panel_get_title_widget;
 
   object_class->constructed = cc_display_panel_constructed;
   object_class->dispose = cc_display_panel_dispose;
@@ -630,13 +653,14 @@ cc_display_panel_class_init (CcDisplayPanelClass *klass)
   gtk_widget_class_bind_template_child (widget_class, CcDisplayPanel, config_type_single);
   gtk_widget_class_bind_template_child (widget_class, CcDisplayPanel, current_output_label);
   gtk_widget_class_bind_template_child (widget_class, CcDisplayPanel, display_settings_frame);
-  gtk_widget_class_bind_template_child (widget_class, CcDisplayPanel, night_light_status_label);
+  gtk_widget_class_bind_template_child (widget_class, CcDisplayPanel, night_light_page);
   gtk_widget_class_bind_template_child (widget_class, CcDisplayPanel, output_enabled_switch);
   gtk_widget_class_bind_template_child (widget_class, CcDisplayPanel, output_selection_combo);
   gtk_widget_class_bind_template_child (widget_class, CcDisplayPanel, output_selection_stack);
   gtk_widget_class_bind_template_child (widget_class, CcDisplayPanel, output_selection_two_first);
   gtk_widget_class_bind_template_child (widget_class, CcDisplayPanel, output_selection_two_second);
   gtk_widget_class_bind_template_child (widget_class, CcDisplayPanel, primary_display_row);
+  gtk_widget_class_bind_template_child (widget_class, CcDisplayPanel, stack_switcher);
 
   gtk_widget_class_bind_template_callback (widget_class, on_config_type_toggled_cb);
   gtk_widget_class_bind_template_callback (widget_class, on_night_light_list_box_row_activated_cb);
@@ -720,6 +744,12 @@ rebuild_ui (CcDisplayPanel *panel)
 
   g_list_store_remove_all (panel->primary_display_list);
   gtk_list_store_clear (panel->output_selection_list);
+
+  if (!panel->current_config)
+    {
+      panel->rebuilding_counter--;
+      return;
+    }
 
   n_active_outputs = 0;
   n_usable_outputs = 0;
@@ -846,6 +876,7 @@ reset_current_config (CcDisplayPanel *panel)
   panel->current_output = NULL;
 
   current = cc_display_config_manager_get_current (panel->manager);
+  cc_display_config_set_minimum_size (current, MINIMUM_WIDTH, MINIMUM_HEIGHT);
   panel->current_config = current;
 
   g_list_store_remove_all (panel->primary_display_list);
@@ -961,6 +992,12 @@ update_apply_button (CcDisplayPanel *panel)
 {
   gboolean config_equal;
   g_autoptr(CcDisplayConfig) applied_config = NULL;
+
+  if (!panel->current_config)
+    {
+      reset_titlebar (panel);
+      return;
+    }
 
   applied_config = cc_display_config_manager_get_current (panel->manager);
 
@@ -1119,22 +1156,6 @@ sensor_proxy_vanished_cb (GDBusConnection *connection,
 }
 
 static void
-night_light_sync_label (GtkWidget *label, GSettings *settings)
-{
-  gboolean ret = g_settings_get_boolean (settings, "night-light-enabled");
-  gtk_label_set_label (GTK_LABEL (label),
-                       /* TRANSLATORS: the state of the night light setting */
-                       ret ? _("On") : _("Off"));
-}
-
-static void
-settings_color_changed_cb (GSettings *settings, gchar *key, GtkWidget *label)
-{
-  if (g_strcmp0 (key, "night-light-enabled") == 0)
-    night_light_sync_label (label, settings);
-}
-
-static void
 session_bus_ready (GObject        *source,
                    GAsyncResult   *res,
                    CcDisplayPanel *self)
@@ -1207,13 +1228,6 @@ cc_display_panel_init (CcDisplayPanel *self)
                                  "text",
                                  0);
   gtk_cell_renderer_set_visible (renderer, TRUE);
-
-  self->night_light_dialog = cc_night_light_dialog_new ();
-  self->settings_color = g_settings_new ("org.gnome.settings-daemon.plugins.color");
-
-  g_signal_connect_object (self->settings_color, "changed",
-                           G_CALLBACK (settings_color_changed_cb), self->night_light_status_label, 0);
-  night_light_sync_label (GTK_WIDGET (self->night_light_status_label), self->settings_color);
 
   self->up_client = up_client_new ();
   if (up_client_get_lid_is_present (self->up_client))

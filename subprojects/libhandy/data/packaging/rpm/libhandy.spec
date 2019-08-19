@@ -1,9 +1,9 @@
 %global _vpath_srcdir %{name}
 
 Name:    libhandy
-Version: 0.0.9
+Version: 0.0.10
 Release: 1%{?dist}
-Summary: A library full of GTK+ widgets for mobile phones
+Summary: A library full of GTK widgets for mobile phones
 
 License: LGPLv2+
 Url:     https://source.puri.sm/Librem5/libhandy

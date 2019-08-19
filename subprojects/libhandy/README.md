@@ -3,7 +3,7 @@
 [![Code coverage](https://source.puri.sm/Librem5/libhandy/badges/master/coverage.svg)](https://source.puri.sm/Librem5/libhandy/commits/master)
 
 The aim of The handy library is to help with developing UI for mobile devices
-using GTK+/GNOME.
+using GTK/GNOME.
 
 ## License
 
@@ -21,7 +21,7 @@ sudo apt-get build-dep .
 
 ## Building
 
-We use the meson (and thereby Ninja) build system for libhandy. The quickest
+We use the Meson (and thereby Ninja) build system for libhandy. The quickest
 way to get going is to do the following:
 
 ```sh
@@ -65,7 +65,7 @@ _build/run glade
 
 The documentation can be found online
 [here](http://honk.sigxcpu.org/projects/libhandy/doc/). Further examples on how
-to the widgets in you favorite programming language can be found here:
+to use the widgets in your favorite programming language can be found here:
 
 ### C
 - [calls](https://source.puri.sm/Librem5/calls) (HdyDialer)
@@ -79,9 +79,9 @@ to the widgets in you favorite programming language can be found here:
 - [PasswordSafe](https://gitlab.gnome.org/World/PasswordSafe) (HdyColumn)
 
 ### Rust
-- [Fractal](https://gitlab.gnome.org/World/fractal) (HdyColumn)
+- [Fractal](https://gitlab.gnome.org/World/fractal) (HdyColumn, HdyLeaflet)
 - [Podcasts](https://gitlab.gnome.org/World/podcasts) (HdyColumn)
 
 ### Vala
-- [GNOME Contacts](https://gitlab.gnome.org/GNOME/gnome-contacts) (HdyHeaderGroup, HdyTitleBar)
+- [GNOME Contacts](https://gitlab.gnome.org/GNOME/gnome-contacts) (HdyLeaflet, HdyHeaderGroup, HdyTitleBar)
 - [GNOME Games](https://gitlab.gnome.org/GNOME/gnome-games) (HdyColumn, HdyTitleBar)
