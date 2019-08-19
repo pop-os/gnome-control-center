@@ -37,10 +37,10 @@ Subject: Adapts the region capplet and the language chooser in the user
 
  * All the formats related locale categories set, not just a subset.
 ---
- panels/common/cc-common-language.c   | 152 ++++++++++++++++++++++----
+ panels/common/cc-common-language.c   | 152 +++++++++++++++++++++++++++++------
  panels/common/cc-common-language.h   |   4 +
  panels/common/cc-language-chooser.c  |   4 +-
- panels/region/cc-region-panel.c      | 129 ++++++++++++++++------
+ panels/region/cc-region-panel.c      | 129 +++++++++++++++++++++--------
  panels/user-accounts/cc-user-panel.c |   6 +-
  5 files changed, 237 insertions(+), 58 deletions(-)
 
@@ -285,7 +285,7 @@ index 1f578b7..2e5a446 100644
 +
  G_END_DECLS
 diff --git a/panels/common/cc-language-chooser.c b/panels/common/cc-language-chooser.c
-index 1c15b43..2cecf40 100644
+index 386978d..1270cbe 100644
 --- a/panels/common/cc-language-chooser.c
 +++ b/panels/common/cc-language-chooser.c
 @@ -184,7 +184,7 @@ add_languages (CcLanguageChooser *chooser,
@@ -307,10 +307,10 @@ index 1c15b43..2cecf40 100644
          chooser->no_results = g_object_ref_sink (no_results_widget_new ());
          gtk_widget_show (chooser->no_results);
 diff --git a/panels/region/cc-region-panel.c b/panels/region/cc-region-panel.c
-index 3585952..5523cc5 100644
+index 39b1f9d..1c15655 100644
 --- a/panels/region/cc-region-panel.c
 +++ b/panels/region/cc-region-panel.c
-@@ -361,6 +361,7 @@ static void
+@@ -369,6 +369,7 @@ static void
  update_language (CcRegionPanel *self,
                   const gchar   *language)
  {
@@ -318,7 +318,7 @@ index 3585952..5523cc5 100644
          if (self->login) {
                  set_system_language (self, language);
          } else {
-@@ -401,6 +402,47 @@ set_system_region (CcRegionPanel *self,
+@@ -409,6 +410,47 @@ set_system_region (CcRegionPanel *self,
          set_localed_locale (self);
  }
  
@@ -366,7 +366,7 @@ index 3585952..5523cc5 100644
  static void
  update_region (CcRegionPanel *self,
                 const gchar   *region)
-@@ -410,6 +452,7 @@ update_region (CcRegionPanel *self,
+@@ -418,6 +460,7 @@ update_region (CcRegionPanel *self,
          } else {
                  if (g_strcmp0 (region, self->region) == 0)
                          return;
@@ -374,7 +374,7 @@ index 3585952..5523cc5 100644
                  g_settings_set_string (self->locale_settings, KEY_REGION, region);
                  if (self->login_auto_apply)
                          set_system_region (self, region);
-@@ -562,7 +605,7 @@ static void
+@@ -570,7 +613,7 @@ static void
  update_region_from_setting (CcRegionPanel *self)
  {
          g_free (self->region);
@@ -383,7 +383,7 @@ index 3585952..5523cc5 100644
          update_region_label (self);
  }
  
-@@ -588,15 +631,19 @@ static void
+@@ -596,15 +639,19 @@ static void
  update_language_from_user (CcRegionPanel *self)
  {
          const gchar *language = NULL;
@@ -407,7 +407,7 @@ index 3585952..5523cc5 100644
          update_language_label (self);
  }
  
-@@ -1249,6 +1296,16 @@ setup_input_section (CcRegionPanel *self)
+@@ -1255,6 +1302,16 @@ setup_input_section (CcRegionPanel *self)
          update_modifiers_shortcut (self);
  }
  
@@ -424,7 +424,7 @@ index 3585952..5523cc5 100644
  static void
  on_localed_properties_changed (CcRegionPanel  *self,
                                 GVariant       *changed_properties,
-@@ -1261,28 +1318,38 @@ on_localed_properties_changed (CcRegionPanel  *self,
+@@ -1267,28 +1324,38 @@ on_localed_properties_changed (CcRegionPanel  *self,
                  g_autofree const gchar **strv = NULL;
                  gsize len;
                  gint i;
@@ -472,7 +472,7 @@ index 3585952..5523cc5 100644
                  g_free (self->system_region);
                  self->system_region = g_strdup (time);
  
-@@ -1335,28 +1402,26 @@ set_localed_locale (CcRegionPanel *self)
+@@ -1341,28 +1408,26 @@ set_localed_locale (CcRegionPanel *self)
  {
          g_autoptr(GVariantBuilder) b = NULL;
          g_autofree gchar *lang_value = NULL;
@@ -518,10 +518,10 @@ index 3585952..5523cc5 100644
          g_dbus_proxy_call (self->localed,
                             "SetLocale",
 diff --git a/panels/user-accounts/cc-user-panel.c b/panels/user-accounts/cc-user-panel.c
-index 07a12dd..c284abb 100644
+index 086a0f2..4da1ae7 100644
 --- a/panels/user-accounts/cc-user-panel.c
 +++ b/panels/user-accounts/cc-user-panel.c
-@@ -836,6 +836,7 @@ show_user (ActUser *user, CcUserPanel *self)
+@@ -837,6 +837,7 @@ show_user (ActUser *user, CcUserPanel *self)
  
          name = NULL;
          lang = g_strdup (act_user_get_language (user));
@@ -529,7 +529,7 @@ index 07a12dd..c284abb 100644
  
          if (lang && *lang != '\0') {
                  name = gnome_get_language_from_locale (lang, NULL);
-@@ -976,6 +977,7 @@ language_response (GtkDialog   *dialog,
+@@ -981,6 +982,7 @@ language_response (GtkDialog   *dialog,
  {
          ActUser *user;
          const gchar *lang, *account_language;
@@ -537,7 +537,7 @@ index 07a12dd..c284abb 100644
  
          if (response_id != GTK_RESPONSE_OK) {
                  gtk_widget_hide (GTK_WIDGET (dialog));
-@@ -986,9 +988,10 @@ language_response (GtkDialog   *dialog,
+@@ -991,9 +993,10 @@ language_response (GtkDialog   *dialog,
          account_language = act_user_get_language (user);
  
          lang = cc_language_chooser_get_language (CC_LANGUAGE_CHOOSER (dialog));
@@ -549,7 +549,7 @@ index 07a12dd..c284abb 100644
                          act_user_set_language (user, lang);
                  }
  
-@@ -1007,6 +1010,7 @@ change_language (CcUserPanel *self)
+@@ -1012,6 +1015,7 @@ change_language (CcUserPanel *self)
  
          user = get_selected_user (self);
          current_language = act_user_get_language (user);

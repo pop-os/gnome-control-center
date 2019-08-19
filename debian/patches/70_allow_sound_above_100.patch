@@ -18,14 +18,14 @@ Origin: ubuntu
 Bug-Ubuntu: https://launchpad.net/bugs/1706524
 Bug: https://bugzilla.gnome.org/show_bug.cgi?id=710424
 ---
- panels/sound/cc-sound-panel.c  | 19 +++++++++
+ panels/sound/cc-sound-panel.c  | 21 +++++++++-
  panels/sound/cc-sound-panel.ui | 92 ++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 111 insertions(+)
+ 2 files changed, 112 insertions(+), 1 deletion(-)
 
-Index: gnome-control-center-3.32.0.1/panels/sound/cc-sound-panel.c
-===================================================================
---- gnome-control-center-3.32.0.1.orig/panels/sound/cc-sound-panel.c
-+++ gnome-control-center-3.32.0.1/panels/sound/cc-sound-panel.c
+diff --git a/panels/sound/cc-sound-panel.c b/panels/sound/cc-sound-panel.c
+index 672b2b1..668e0bb 100644
+--- a/panels/sound/cc-sound-panel.c
++++ b/panels/sound/cc-sound-panel.c
 @@ -66,6 +66,9 @@ struct _CcSoundPanel
    CcProfileComboBox *output_profile_combo_box;
    GtkListBoxRow     *output_profile_row;
@@ -36,7 +36,7 @@ Index: gnome-control-center-3.32.0.1/panels/sound/cc-sound-panel.c
    CcStreamListBox   *stream_list_box;
    GtkListBoxRow     *subwoofer_row;
    CcSubwooferSlider *subwoofer_slider;
-@@ -89,6 +92,8 @@ allow_amplified_changed_cb (CcSoundPanel
+@@ -89,6 +92,8 @@ allow_amplified_changed_cb (CcSoundPanel *self)
  {
    cc_volume_slider_set_is_amplified (self->output_volume_slider,
                                       g_settings_get_boolean (self->sound_settings, "allow-volume-above-100-percent"));
@@ -45,15 +45,17 @@ Index: gnome-control-center-3.32.0.1/panels/sound/cc-sound-panel.c
  }
  
  static void
-@@ -108,6 +113,7 @@ output_device_changed_cb (CcSoundPanel *
+@@ -108,7 +113,8 @@ output_device_changed_cb (CcSoundPanel *self)
      stream = gvc_mixer_control_get_stream_from_device (self->mixer_control, device);
  
-   cc_volume_slider_set_stream (self->output_volume_slider, stream);
-+  cc_volume_slider_set_stream (self->output_volume_slider_ubuntu, stream);
-   cc_level_bar_set_stream (self->output_level_bar, stream, CC_LEVEL_BAR_STREAM_TYPE_OUTPUT);
+   cc_volume_slider_set_stream (self->output_volume_slider, stream, CC_STREAM_TYPE_OUTPUT);
+-  cc_level_bar_set_stream (self->output_level_bar, stream, CC_STREAM_TYPE_OUTPUT);
++  cc_volume_slider_set_stream (self->output_volume_slider_ubuntu, stream, CC_STREAM_TYPE_OUTPUT);
++  cc_level_bar_set_stream (self->output_level_bar, stream, CC_STREAM_TYPE_OUTPUT);
  
    if (stream != NULL)
-@@ -206,6 +212,9 @@ cc_sound_panel_class_init (CcSoundPanelC
+     {
+@@ -212,6 +218,9 @@ cc_sound_panel_class_init (CcSoundPanelClass *klass)
    gtk_widget_class_bind_template_child (widget_class, CcSoundPanel, output_profile_combo_box);
    gtk_widget_class_bind_template_child (widget_class, CcSoundPanel, output_profile_row);
    gtk_widget_class_bind_template_child (widget_class, CcSoundPanel, output_volume_slider);
@@ -63,7 +65,7 @@ Index: gnome-control-center-3.32.0.1/panels/sound/cc-sound-panel.c
    gtk_widget_class_bind_template_child (widget_class, CcSoundPanel, stream_list_box);
    gtk_widget_class_bind_template_child (widget_class, CcSoundPanel, subwoofer_row);
    gtk_widget_class_bind_template_child (widget_class, CcSoundPanel, subwoofer_slider);
-@@ -250,6 +259,16 @@ cc_sound_panel_init (CcSoundPanel *self)
+@@ -256,6 +265,16 @@ cc_sound_panel_init (CcSoundPanel *self)
                             G_CONNECT_SWAPPED);
    allow_amplified_changed_cb (self);
  
@@ -80,14 +82,15 @@ Index: gnome-control-center-3.32.0.1/panels/sound/cc-sound-panel.c
    self->mixer_control = gvc_mixer_control_new ("GNOME Settings");
    gvc_mixer_control_open (self->mixer_control);
  
-Index: gnome-control-center-3.32.0.1/panels/sound/cc-sound-panel.ui
-===================================================================
---- gnome-control-center-3.32.0.1.orig/panels/sound/cc-sound-panel.ui
-+++ gnome-control-center-3.32.0.1/panels/sound/cc-sound-panel.ui
-@@ -38,6 +38,98 @@
+diff --git a/panels/sound/cc-sound-panel.ui b/panels/sound/cc-sound-panel.ui
+index 31175cf..960f0c6 100644
+--- a/panels/sound/cc-sound-panel.ui
++++ b/panels/sound/cc-sound-panel.ui
+@@ -37,6 +37,98 @@
+                     <property name="visible">True</property>
                    </object>
                  </child>
-                 <child>
++                <child>
 +                  <object class="GtkFrame" id="ubuntu_output_frame">
 +                    <property name="visible">False</property>
 +                <child>
@@ -179,7 +182,6 @@ Index: gnome-control-center-3.32.0.1/panels/sound/cc-sound-panel.ui
 +                </child>
 +                </object>
 +                </child>
-+                <child>
+                 <child>
                    <object class="GtkLabel">
                      <property name="visible">True</property>
-                     <property name="xalign">0</property>

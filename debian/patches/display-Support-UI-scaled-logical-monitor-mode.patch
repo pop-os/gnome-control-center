@@ -150,7 +150,7 @@ index adbbcbc..7080bf6 100644
    snap_data.snapped = SNAP_DIR_NONE;
    snap_data.mon_x = x;
 diff --git a/panels/display/cc-display-config-dbus.c b/panels/display/cc-display-config-dbus.c
-index 2615461..7b9165d 100644
+index 3a40ac7..058a089 100644
 --- a/panels/display/cc-display-config-dbus.c
 +++ b/panels/display/cc-display-config-dbus.c
 @@ -861,7 +861,8 @@ cc_display_monitor_dbus_new (GVariant *variant,
@@ -163,7 +163,7 @@ index 2615461..7b9165d 100644
  } CcDisplayLayoutMode;
  
  typedef enum _CcDisplayConfigMethod
-@@ -1197,7 +1198,15 @@ cc_display_config_dbus_is_layout_logical (CcDisplayConfig *pself)
+@@ -1203,7 +1204,15 @@ cc_display_config_dbus_is_layout_logical (CcDisplayConfig *pself)
  {
    CcDisplayConfigDBus *self = CC_DISPLAY_CONFIG_DBUS (pself);
  
@@ -179,8 +179,8 @@ index 2615461..7b9165d 100644
 +  return self->layout_mode == CC_DISPLAY_LAYOUT_MODE_GLOBAL_UI_LOGICAL;
  }
  
- static void
-@@ -1393,7 +1402,7 @@ cc_display_config_dbus_constructed (GObject *object)
+ static gboolean
+@@ -1459,7 +1468,7 @@ cc_display_config_dbus_constructed (GObject *object)
            guint32 u = 0;
            g_variant_get (v, "u", &u);
            if (u >= CC_DISPLAY_LAYOUT_MODE_LOGICAL &&
@@ -189,15 +189,15 @@ index 2615461..7b9165d 100644
              self->layout_mode = u;
          }
      }
-@@ -1481,6 +1490,7 @@ cc_display_config_dbus_class_init (CcDisplayConfigDBusClass *klass)
-   parent_class->set_cloning = cc_display_config_dbus_set_cloning;
-   parent_class->get_cloning_modes = cc_display_config_dbus_get_cloning_modes;
+@@ -1549,6 +1558,7 @@ cc_display_config_dbus_class_init (CcDisplayConfigDBusClass *klass)
    parent_class->is_layout_logical = cc_display_config_dbus_is_layout_logical;
+   parent_class->is_scaled_mode_valid = cc_display_config_dbus_is_scaled_mode_valid;
+   parent_class->set_minimum_size = cc_display_config_dbus_set_minimum_size;
 +  parent_class->layout_use_ui_scale = cc_display_config_dbus_layout_use_ui_scale;
  
    pspec = g_param_spec_variant ("state",
                                  "GVariant",
-@@ -1541,6 +1551,26 @@ logical_monitor_is_rotated (CcDisplayLogicalMonitor *lm)
+@@ -1609,6 +1619,26 @@ logical_monitor_is_rotated (CcDisplayLogicalMonitor *lm)
      }
  }
  
@@ -224,7 +224,7 @@ index 2615461..7b9165d 100644
  static int
  logical_monitor_width (CcDisplayLogicalMonitor *lm)
  {
-@@ -1559,6 +1589,11 @@ logical_monitor_width (CcDisplayLogicalMonitor *lm)
+@@ -1627,6 +1657,11 @@ logical_monitor_width (CcDisplayLogicalMonitor *lm)
  
    if (monitor->config->layout_mode == CC_DISPLAY_LAYOUT_MODE_LOGICAL)
      return round (width / lm->scale);
@@ -237,12 +237,12 @@ index 2615461..7b9165d 100644
      return width;
  }
 diff --git a/panels/display/cc-display-config.c b/panels/display/cc-display-config.c
-index 3bed67a..00696ad 100644
+index a36f829..971ff94 100644
 --- a/panels/display/cc-display-config.c
 +++ b/panels/display/cc-display-config.c
-@@ -568,3 +568,9 @@ cc_display_config_is_layout_logical (CcDisplayConfig *self)
+@@ -609,3 +609,9 @@ cc_display_config_is_scaled_mode_valid (CcDisplayConfig *self,
  {
-   return CC_DISPLAY_CONFIG_GET_CLASS (self)->is_layout_logical (self);
+   return CC_DISPLAY_CONFIG_GET_CLASS (self)->is_scaled_mode_valid (self, mode, scale);
  }
 +
 +gboolean
@@ -251,21 +251,21 @@ index 3bed67a..00696ad 100644
 +  return CC_DISPLAY_CONFIG_GET_CLASS (self)->layout_use_ui_scale (self);
 +}
 diff --git a/panels/display/cc-display-config.h b/panels/display/cc-display-config.h
-index faeae8e..27b939a 100644
+index ef4332f..2f246ff 100644
 --- a/panels/display/cc-display-config.h
 +++ b/panels/display/cc-display-config.h
-@@ -154,6 +154,7 @@ struct _CcDisplayConfigClass
-                                  gboolean          clone);
-   GList*   (*get_cloning_modes) (CcDisplayConfig  *self);
-   gboolean (*is_layout_logical) (CcDisplayConfig  *self);
+@@ -160,6 +160,7 @@ struct _CcDisplayConfigClass
+   gboolean (*is_scaled_mode_valid) (CcDisplayConfig  *self,
+                                     CcDisplayMode    *mode,
+                                     double            scale);
 +  gboolean (*layout_use_ui_scale) (CcDisplayConfig  *self);
  };
  
  
-@@ -174,6 +175,7 @@ void              cc_display_config_set_mode_on_all_outputs (CcDisplayConfig *co
-                                                              CcDisplayMode   *mode);
- 
- gboolean          cc_display_config_is_layout_logical       (CcDisplayConfig    *self);
+@@ -186,6 +187,7 @@ void              cc_display_config_set_minimum_size        (CcDisplayConfig
+ gboolean          cc_display_config_is_scaled_mode_valid    (CcDisplayConfig    *self,
+                                                              CcDisplayMode      *mode,
+                                                              double              scale);
 +gboolean          cc_display_config_layout_use_ui_scale     (CcDisplayConfig    *self);
  
  const char*       cc_display_monitor_get_display_name       (CcDisplayMonitor   *monitor);

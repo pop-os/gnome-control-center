@@ -7,10 +7,10 @@ Subject: Add "Lock Screen on Suspend" option
  panels/privacy/cc-privacy-panel.ui | 35 +++++++++++++++++++++++++++++++++--
  2 files changed, 39 insertions(+), 2 deletions(-)
 
-Index: gnome-control-center-3.32.0.1/panels/privacy/cc-privacy-panel.c
-===================================================================
---- gnome-control-center-3.32.0.1.orig/panels/privacy/cc-privacy-panel.c
-+++ gnome-control-center-3.32.0.1/panels/privacy/cc-privacy-panel.c
+diff --git a/panels/privacy/cc-privacy-panel.c b/panels/privacy/cc-privacy-panel.c
+index f30669a..9f9f2ee 100644
+--- a/panels/privacy/cc-privacy-panel.c
++++ b/panels/privacy/cc-privacy-panel.c
 @@ -74,6 +74,7 @@ struct _CcPrivacyPanel
    GtkLabel    *retain_history_label;
    GtkDialog   *screen_lock_dialog;
@@ -30,7 +30,7 @@ Index: gnome-control-center-3.32.0.1/panels/privacy/cc-privacy-panel.c
  }
  
  static void
-@@ -1449,6 +1454,7 @@ cc_privacy_panel_class_init (CcPrivacyPa
+@@ -1449,6 +1454,7 @@ cc_privacy_panel_class_init (CcPrivacyPanelClass *klass)
    gtk_widget_class_bind_template_child (widget_class, CcPrivacyPanel, retain_history_label);
    gtk_widget_class_bind_template_child (widget_class, CcPrivacyPanel, screen_lock_dialog);
    gtk_widget_class_bind_template_child (widget_class, CcPrivacyPanel, screen_lock_dialog_grid);
@@ -38,14 +38,15 @@ Index: gnome-control-center-3.32.0.1/panels/privacy/cc-privacy-panel.c
    gtk_widget_class_bind_template_child (widget_class, CcPrivacyPanel, show_notifications_switch);
    gtk_widget_class_bind_template_child (widget_class, CcPrivacyPanel, software_dialog);
    gtk_widget_class_bind_template_child (widget_class, CcPrivacyPanel, software_usage_switch);
-Index: gnome-control-center-3.32.0.1/panels/privacy/cc-privacy-panel.ui
-===================================================================
---- gnome-control-center-3.32.0.1.orig/panels/privacy/cc-privacy-panel.ui
-+++ gnome-control-center-3.32.0.1/panels/privacy/cc-privacy-panel.ui
-@@ -386,6 +386,37 @@
+diff --git a/panels/privacy/cc-privacy-panel.ui b/panels/privacy/cc-privacy-panel.ui
+index 696d7bf..b1a47a5 100644
+--- a/panels/privacy/cc-privacy-panel.ui
++++ b/panels/privacy/cc-privacy-panel.ui
+@@ -385,6 +385,37 @@
+                 <property name="height">1</property>
                </packing>
              </child>
-             <child>
++            <child>
 +              <object class="GtkLabel" id="screen_lock_suspend_label">
 +                <property name="visible">True</property>
 +                <property name="can_focus">False</property>
@@ -76,10 +77,9 @@ Index: gnome-control-center-3.32.0.1/panels/privacy/cc-privacy-panel.ui
 +                <property name="height">1</property>
 +              </packing>
 +            </child>
-+            <child>
+             <child>
                <object class="GtkLabel">
                  <property name="visible">True</property>
-                 <property name="can_focus">False</property>
 @@ -397,7 +428,7 @@
                </object>
                <packing>

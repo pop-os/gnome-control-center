@@ -1,22 +1,21 @@
-From a93db830ac72c0a9278cc53842292253b982a869 Mon Sep 17 00:00:00 2001
 From: Robert Ancell <robert.ancell@canonical.com>
 Date: Tue, 12 Mar 2019 16:59:56 +1300
 Subject: [PATCH 6/7] applications: Show snap app sizes
 
 ---
- meson.build                                 | 11 +++++++++
+ meson.build                                 | 11 +++++++++++
  meson_options.txt                           |  1 +
- panels/applications/cc-applications-panel.c | 10 +++++----
- panels/applications/meson.build             |  8 ++++++-
- panels/applications/utils.c                 | 25 +++++++++++++++++++++
+ panels/applications/cc-applications-panel.c | 10 ++++++----
+ panels/applications/meson.build             |  8 +++++++-
+ panels/applications/utils.c                 | 25 +++++++++++++++++++++++++
  panels/applications/utils.h                 |  2 ++
  6 files changed, 52 insertions(+), 5 deletions(-)
 
-Index: gnome-control-center-3.32.1/meson.build
-===================================================================
---- gnome-control-center-3.32.1.orig/meson.build
-+++ gnome-control-center-3.32.1/meson.build
-@@ -207,6 +207,16 @@ endif
+diff --git a/meson.build b/meson.build
+index 671b64e..5a94f21 100644
+--- a/meson.build
++++ b/meson.build
+@@ -197,6 +197,16 @@ endif
  config_h.set('HAVE_WHOOPSIE', enable_whoopsie,
               description: 'Define to 1 if Whoopsie is enabled')
  
@@ -33,18 +32,18 @@ Index: gnome-control-center-3.32.1/meson.build
  if host_is_linux
    # network manager
    network_manager_deps = [
-@@ -303,5 +313,6 @@ output += '     NetworkManager (Network
+@@ -292,5 +302,6 @@ output += '     IBus (Region panel IBus support) ........... ' + enable_ibus.to_
+ output += '     NetworkManager (Network panel) ............. ' + host_is_linux.to_string() + '\n'
  output += '     Wacom (Wacom tablet panel) ................. ' + host_is_linux_not_s390.to_string() + '\n'
- output += '     Wayland .................................... ' + enable_wayland.to_string() + '\n'
  output += '     Whoopsie  .................................. ' + enable_whoopsie.to_string() + '\n'
 +output += '     Snap support ............................... ' + enable_snap.to_string() + '\n'
  
  message(output)
-Index: gnome-control-center-3.32.1/meson_options.txt
-===================================================================
---- gnome-control-center-3.32.1.orig/meson_options.txt
-+++ gnome-control-center-3.32.1/meson_options.txt
-@@ -2,6 +2,7 @@ option('cheese', type: 'boolean', value:
+diff --git a/meson_options.txt b/meson_options.txt
+index ce462a7..52b2655 100644
+--- a/meson_options.txt
++++ b/meson_options.txt
+@@ -2,6 +2,7 @@ option('cheese', type: 'boolean', value: true, description: 'build with cheese w
  option('documentation', type: 'boolean', value: false, description: 'build documentation')
  option('gnome_session_libexecdir', type: 'string', value: '', description: 'Directory for gnome-session\'s libexecdir')
  option('ibus', type: 'boolean', value: true, description: 'build with IBus support')
@@ -52,11 +51,11 @@ Index: gnome-control-center-3.32.1/meson_options.txt
  option('tracing', type: 'boolean', value: false, description: 'add extra debugging information')
  option('wayland', type: 'boolean', value: true, description: 'build with Wayland support')
  option('whoopsie', type: 'boolean', value: false, description: 'build with Whoopsie support')
-Index: gnome-control-center-3.32.1/panels/applications/cc-applications-panel.c
-===================================================================
---- gnome-control-center-3.32.1.orig/panels/applications/cc-applications-panel.c
-+++ gnome-control-center-3.32.1/panels/applications/cc-applications-panel.c
-@@ -1333,7 +1333,9 @@ update_app_row (CcApplicationsPanel *sel
+diff --git a/panels/applications/cc-applications-panel.c b/panels/applications/cc-applications-panel.c
+index 0d38047..b824ae6 100644
+--- a/panels/applications/cc-applications-panel.c
++++ b/panels/applications/cc-applications-panel.c
+@@ -1336,7 +1336,9 @@ update_app_row (CcApplicationsPanel *self,
  {
    g_autofree gchar *formatted_size = NULL;
  
@@ -67,7 +66,7 @@ Index: gnome-control-center-3.32.1/panels/applications/cc-applications-panel.c
      self->app_size = get_flatpak_app_size (app_id);
    formatted_size = g_format_size (self->app_size);
    g_object_set (self->app, "info", formatted_size, NULL);
-@@ -1341,8 +1343,8 @@ update_app_row (CcApplicationsPanel *sel
+@@ -1344,8 +1346,8 @@ update_app_row (CcApplicationsPanel *self,
  }
  
  static void
@@ -78,7 +77,7 @@ Index: gnome-control-center-3.32.1/panels/applications/cc-applications-panel.c
  {
    gtk_widget_set_sensitive (self->clear_cache_button, FALSE);
  
-@@ -1362,7 +1364,7 @@ update_usage_section (CcApplicationsPane
+@@ -1365,7 +1367,7 @@ update_usage_section (CcApplicationsPanel *self,
    if (portal_app_id != NULL)
      {
        gtk_widget_show (self->usage_section);
@@ -87,10 +86,10 @@ Index: gnome-control-center-3.32.1/panels/applications/cc-applications-panel.c
      }
    else
      {
-Index: gnome-control-center-3.32.1/panels/applications/meson.build
-===================================================================
---- gnome-control-center-3.32.1.orig/panels/applications/meson.build
-+++ gnome-control-center-3.32.1/panels/applications/meson.build
+diff --git a/panels/applications/meson.build b/panels/applications/meson.build
+index 49796a3..b405fc2 100644
+--- a/panels/applications/meson.build
++++ b/panels/applications/meson.build
 @@ -38,12 +38,18 @@ sources += gnome.compile_resources(
          export : true
  )
@@ -111,10 +110,10 @@ Index: gnome-control-center-3.32.1/panels/applications/meson.build
 +         dependencies : deps,
                 c_args : cflags
  )
-Index: gnome-control-center-3.32.1/panels/applications/utils.c
-===================================================================
---- gnome-control-center-3.32.1.orig/panels/applications/utils.c
-+++ gnome-control-center-3.32.1/panels/applications/utils.c
+diff --git a/panels/applications/utils.c b/panels/applications/utils.c
+index 622a943..a47e458 100644
+--- a/panels/applications/utils.c
++++ b/panels/applications/utils.c
 @@ -24,6 +24,9 @@
  
  #include <config.h>
@@ -125,7 +124,7 @@ Index: gnome-control-center-3.32.1/panels/applications/utils.c
  #include <sys/types.h>
  #include <sys/stat.h>
  
-@@ -231,6 +234,28 @@ get_flatpak_app_size (const gchar *app_i
+@@ -231,6 +234,28 @@ get_flatpak_app_size (const gchar *app_id)
    return (guint64)(val * factor);
  }
  
@@ -154,11 +153,11 @@ Index: gnome-control-center-3.32.1/panels/applications/utils.c
  char *
  get_app_id (GAppInfo *info)
  {
-Index: gnome-control-center-3.32.1/panels/applications/utils.h
-===================================================================
---- gnome-control-center-3.32.1.orig/panels/applications/utils.h
-+++ gnome-control-center-3.32.1/panels/applications/utils.h
-@@ -50,6 +50,8 @@ GKeyFile* get_flatpak_metadata (const gc
+diff --git a/panels/applications/utils.h b/panels/applications/utils.h
+index a2e3922..5f899d7 100644
+--- a/panels/applications/utils.h
++++ b/panels/applications/utils.h
+@@ -50,6 +50,8 @@ GKeyFile* get_flatpak_metadata (const gchar         *app_id);
  
  guint64   get_flatpak_app_size (const gchar         *app_id);
  

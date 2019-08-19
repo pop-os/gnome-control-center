@@ -1,4 +1,3 @@
-From ef874dff634697374c27c3f022a0fcb8e3068d3b Mon Sep 17 00:00:00 2001
 From: Andrea Azzarone <andrea.azzarone@canonical.com>
 Date: Tue, 5 Mar 2019 18:21:39 +0000
 Subject: [PATCH] online-accounts: Don't segfault if get_all_providers_cb is
@@ -26,10 +25,10 @@ https://gitlab.gnome.org/GNOME/gnome-control-center/issues/401
  panels/online-accounts/cc-online-accounts-panel.c | 3 ++-
  1 file changed, 2 insertions(+), 1 deletion(-)
 
-Index: gnome-control-center-3.32.1/panels/online-accounts/cc-online-accounts-panel.c
-===================================================================
---- gnome-control-center-3.32.1.orig/panels/online-accounts/cc-online-accounts-panel.c
-+++ gnome-control-center-3.32.1/panels/online-accounts/cc-online-accounts-panel.c
+diff --git a/panels/online-accounts/cc-online-accounts-panel.c b/panels/online-accounts/cc-online-accounts-panel.c
+index 186c704..731bd7f 100644
+--- a/panels/online-accounts/cc-online-accounts-panel.c
++++ b/panels/online-accounts/cc-online-accounts-panel.c
 @@ -498,7 +498,6 @@ cc_goa_panel_init (CcGoaPanel *panel)
                      panel);
  
@@ -38,7 +37,7 @@ Index: gnome-control-center-3.32.1/panels/online-accounts/cc-online-accounts-pan
  
    gtk_widget_show (GTK_WIDGET (panel));
  }
-@@ -520,6 +519,8 @@ cc_goa_panel_constructed (GObject *objec
+@@ -520,6 +519,8 @@ cc_goa_panel_constructed (GObject *object)
  
    gtk_window_set_transient_for (GTK_WINDOW (self->edit_account_dialog), parent);
  

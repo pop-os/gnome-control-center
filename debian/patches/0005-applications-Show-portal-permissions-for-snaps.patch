@@ -1,17 +1,16 @@
-From 477d5e0937d5b8c14b356feb82b0e27ead85b03e Mon Sep 17 00:00:00 2001
 From: Robert Ancell <robert.ancell@canonical.com>
 Date: Tue, 12 Mar 2019 16:51:42 +1300
 Subject: [PATCH 5/7] applications: Show portal permissions for snaps
 
 ---
- panels/applications/cc-applications-panel.c | 51 +++++++++++++--------
+ panels/applications/cc-applications-panel.c | 51 +++++++++++++++++++----------
  1 file changed, 33 insertions(+), 18 deletions(-)
 
-Index: gnome-control-center-3.32.1/panels/applications/cc-applications-panel.c
-===================================================================
---- gnome-control-center-3.32.1.orig/panels/applications/cc-applications-panel.c
-+++ gnome-control-center-3.32.1/panels/applications/cc-applications-panel.c
-@@ -40,6 +40,8 @@
+diff --git a/panels/applications/cc-applications-panel.c b/panels/applications/cc-applications-panel.c
+index eac2623..0d38047 100644
+--- a/panels/applications/cc-applications-panel.c
++++ b/panels/applications/cc-applications-panel.c
+@@ -41,6 +41,8 @@
  #define APP_SCHEMA MASTER_SCHEMA ".application"
  #define APP_PREFIX "/org/gnome/desktop/notifications/application/"
  
@@ -20,7 +19,7 @@ Index: gnome-control-center-3.32.1/panels/applications/cc-applications-panel.c
  struct _CcApplicationsPanel
  {
    CcPanel          parent;
-@@ -210,11 +212,23 @@ set_portal_permissions (CcApplicationsPa
+@@ -213,11 +215,23 @@ set_portal_permissions (CcApplicationsPanel *self,
      g_warning ("Error setting portal permissions: %s", error->message);
  }
  
@@ -47,7 +46,7 @@ Index: gnome-control-center-3.32.1/panels/applications/cc-applications-panel.c
  
    return NULL;
  }
-@@ -604,39 +618,39 @@ static void
+@@ -607,39 +621,39 @@ static void
  update_permission_section (CcApplicationsPanel *self,
                             GAppInfo            *info)
  {
@@ -93,7 +92,7 @@ Index: gnome-control-center-3.32.1/panels/applications/cc-applications-panel.c
    gtk_widget_set_visible (self->builtin, has_builtin);
    has_any |= has_builtin;
  
-@@ -650,7 +664,7 @@ update_integration_section (CcApplicatio
+@@ -653,7 +667,7 @@ update_integration_section (CcApplicationsPanel *self,
                              GAppInfo            *info)
  {
    g_autofree gchar *app_id = get_app_id (info);
@@ -102,7 +101,7 @@ Index: gnome-control-center-3.32.1/panels/applications/cc-applications-panel.c
    gboolean set, allowed, disabled;
    gboolean has_any = FALSE;
  
-@@ -660,16 +674,16 @@ update_integration_section (CcApplicatio
+@@ -663,16 +677,16 @@ update_integration_section (CcApplicationsPanel *self,
    gtk_widget_set_visible (self->search, set && !disabled);
    gtk_widget_set_visible (self->no_search, set && disabled);
  
@@ -122,7 +121,7 @@ Index: gnome-control-center-3.32.1/panels/applications/cc-applications-panel.c
        cc_toggle_row_set_allowed (CC_TOGGLE_ROW (self->sound), allowed);
        gtk_widget_set_visible (self->sound, set && !disabled);
        gtk_widget_set_visible (self->no_sound, set && disabled);
-@@ -1319,7 +1333,8 @@ update_app_row (CcApplicationsPanel *sel
+@@ -1322,7 +1336,8 @@ update_app_row (CcApplicationsPanel *self,
  {
    g_autofree gchar *formatted_size = NULL;
  
@@ -132,7 +131,7 @@ Index: gnome-control-center-3.32.1/panels/applications/cc-applications-panel.c
    formatted_size = g_format_size (self->app_size);
    g_object_set (self->app, "info", formatted_size, NULL);
    update_total_size (self);
-@@ -1342,12 +1357,12 @@ static void
+@@ -1345,12 +1360,12 @@ static void
  update_usage_section (CcApplicationsPanel *self,
                        GAppInfo            *info)
  {
@@ -148,7 +147,7 @@ Index: gnome-control-center-3.32.1/panels/applications/cc-applications-panel.c
      }
    else
      {
-@@ -1392,7 +1407,7 @@ update_panel (CcApplicationsPanel *self,
+@@ -1395,7 +1410,7 @@ update_panel (CcApplicationsPanel *self,
    update_usage_section (self, info);
  
    self->current_app_id = get_app_id (info);

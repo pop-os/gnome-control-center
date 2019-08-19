@@ -1,23 +1,22 @@
-From 1e617a5405ae86bd12eba36813027bf86b610c7f Mon Sep 17 00:00:00 2001
 From: Robert Ancell <robert.ancell@canonical.com>
 Date: Wed, 20 Feb 2019 11:33:19 +0100
 Subject: [PATCH 7/7] applications: Show snap interface controls
 
 ---
- .../applications/applications.gresource.xml   |   1 +
- panels/applications/cc-applications-panel.c   | 101 +++-
- panels/applications/cc-snap-row.c             | 430 ++++++++++++++++++
- panels/applications/cc-snap-row.h             |  35 ++
- panels/applications/cc-snap-row.ui            |  53 +++
- panels/applications/meson.build               |   1 +
- po/POTFILES.in                                |   1 +
+ panels/applications/applications.gresource.xml |   1 +
+ panels/applications/cc-applications-panel.c    | 101 +++++-
+ panels/applications/cc-snap-row.c              | 430 +++++++++++++++++++++++++
+ panels/applications/cc-snap-row.h              |  35 ++
+ panels/applications/cc-snap-row.ui             |  53 +++
+ panels/applications/meson.build                |   1 +
+ po/POTFILES.in                                 |   1 +
  7 files changed, 621 insertions(+), 1 deletion(-)
  create mode 100644 panels/applications/cc-snap-row.c
  create mode 100644 panels/applications/cc-snap-row.h
  create mode 100644 panels/applications/cc-snap-row.ui
 
 diff --git a/panels/applications/applications.gresource.xml b/panels/applications/applications.gresource.xml
-index d23f1b2e0..b77aaba45 100644
+index d23f1b2..b77aaba 100644
 --- a/panels/applications/applications.gresource.xml
 +++ b/panels/applications/applications.gresource.xml
 @@ -5,6 +5,7 @@
@@ -29,7 +28,7 @@ index d23f1b2e0..b77aaba45 100644
      <file>cc-applications-panel.css</file>
    </gresource>
 diff --git a/panels/applications/cc-applications-panel.c b/panels/applications/cc-applications-panel.c
-index b5786e0c8..ac7da0619 100644
+index b824ae6..232cbee 100644
 --- a/panels/applications/cc-applications-panel.c
 +++ b/panels/applications/cc-applications-panel.c
 @@ -22,6 +22,9 @@
@@ -42,17 +41,17 @@ index b5786e0c8..ac7da0619 100644
  
  #include <gio/gdesktopappinfo.h>
  
-@@ -31,6 +34,9 @@
- #include "cc-info-row.h"
+@@ -32,6 +35,9 @@
  #include "cc-action-row.h"
  #include "cc-applications-resources.h"
+ #include "cc-util.h"
 +#ifdef HAVE_SNAP
 +#include "cc-snap-row.h"
 +#endif
  #include "globs.h"
  #include "list-box-helper.h"
  #include "search.h"
-@@ -227,7 +233,6 @@ get_portal_app_id (GAppInfo *info)
+@@ -230,7 +236,6 @@ get_portal_app_id (GAppInfo *info)
        snap_name = g_desktop_app_info_get_string (G_DESKTOP_APP_INFO (info), "X-SnapInstanceName");
        if (snap_name != NULL)
          return snap_name;
@@ -60,7 +59,7 @@ index b5786e0c8..ac7da0619 100644
      }
  
    return NULL;
-@@ -521,6 +526,95 @@ location_cb (CcApplicationsPanel *self)
+@@ -524,6 +529,95 @@ location_cb (CcApplicationsPanel *self)
  
  /* --- permissions section --- */
  
@@ -156,7 +155,7 @@ index b5786e0c8..ac7da0619 100644
  static gint
  add_static_permission_row (CcApplicationsPanel *self,
                             const gchar         *title,
-@@ -649,6 +743,11 @@ update_permission_section (CcApplicationsPanel *self,
+@@ -652,6 +746,11 @@ update_permission_section (CcApplicationsPanel *self,
    gtk_widget_set_visible (self->no_location, set && disabled);
    has_any |= set;
  
@@ -170,7 +169,7 @@ index b5786e0c8..ac7da0619 100644
    gtk_widget_set_visible (self->builtin, has_builtin);
 diff --git a/panels/applications/cc-snap-row.c b/panels/applications/cc-snap-row.c
 new file mode 100644
-index 000000000..937257582
+index 0000000..9372575
 --- /dev/null
 +++ b/panels/applications/cc-snap-row.c
 @@ -0,0 +1,430 @@
@@ -606,7 +605,7 @@ index 000000000..937257582
 +}
 diff --git a/panels/applications/cc-snap-row.h b/panels/applications/cc-snap-row.h
 new file mode 100644
-index 000000000..26563bd8d
+index 0000000..26563bd
 --- /dev/null
 +++ b/panels/applications/cc-snap-row.h
 @@ -0,0 +1,35 @@
@@ -647,7 +646,7 @@ index 000000000..26563bd8d
 +G_END_DECLS
 diff --git a/panels/applications/cc-snap-row.ui b/panels/applications/cc-snap-row.ui
 new file mode 100644
-index 000000000..fb485c99e
+index 0000000..fb485c9
 --- /dev/null
 +++ b/panels/applications/cc-snap-row.ui
 @@ -0,0 +1,53 @@
@@ -705,7 +704,7 @@ index 000000000..fb485c99e
 +  </template>
 +</interface>
 diff --git a/panels/applications/meson.build b/panels/applications/meson.build
-index b405fc212..fe844b8c1 100644
+index b405fc2..fe844b8 100644
 --- a/panels/applications/meson.build
 +++ b/panels/applications/meson.build
 @@ -42,6 +42,7 @@ deps = common_deps
@@ -717,7 +716,7 @@ index b405fc212..fe844b8c1 100644
  
  cflags += '-DGNOMELOCALEDIR="@0@"'.format(control_center_localedir)
 diff --git a/po/POTFILES.in b/po/POTFILES.in
-index 1d8b48beb..679f4b54c 100644
+index 0dbad88..4f14e3b 100644
 --- a/po/POTFILES.in
 +++ b/po/POTFILES.in
 @@ -2,6 +2,7 @@
@@ -726,8 +725,5 @@ index 1d8b48beb..679f4b54c 100644
  panels/applications/cc-applications-panel.ui
 +panels/applications/cc-snap-row.c
  panels/applications/gnome-applications-panel.desktop.in.in
- panels/background/background.ui
  panels/background/bg-colors-source.c
--- 
-2.20.1
-
+ panels/background/cc-background-chooser.c
