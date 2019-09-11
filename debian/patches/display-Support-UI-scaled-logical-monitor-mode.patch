@@ -150,7 +150,7 @@ index adbbcbc..7080bf6 100644
    snap_data.snapped = SNAP_DIR_NONE;
    snap_data.mon_x = x;
 diff --git a/panels/display/cc-display-config-dbus.c b/panels/display/cc-display-config-dbus.c
-index 3a40ac7..058a089 100644
+index 81b2c46..f116041 100644
 --- a/panels/display/cc-display-config-dbus.c
 +++ b/panels/display/cc-display-config-dbus.c
 @@ -861,7 +861,8 @@ cc_display_monitor_dbus_new (GVariant *variant,
@@ -180,7 +180,7 @@ index 3a40ac7..058a089 100644
  }
  
  static gboolean
-@@ -1459,7 +1468,7 @@ cc_display_config_dbus_constructed (GObject *object)
+@@ -1464,7 +1473,7 @@ cc_display_config_dbus_constructed (GObject *object)
            guint32 u = 0;
            g_variant_get (v, "u", &u);
            if (u >= CC_DISPLAY_LAYOUT_MODE_LOGICAL &&
@@ -189,7 +189,7 @@ index 3a40ac7..058a089 100644
              self->layout_mode = u;
          }
      }
-@@ -1549,6 +1558,7 @@ cc_display_config_dbus_class_init (CcDisplayConfigDBusClass *klass)
+@@ -1554,6 +1563,7 @@ cc_display_config_dbus_class_init (CcDisplayConfigDBusClass *klass)
    parent_class->is_layout_logical = cc_display_config_dbus_is_layout_logical;
    parent_class->is_scaled_mode_valid = cc_display_config_dbus_is_scaled_mode_valid;
    parent_class->set_minimum_size = cc_display_config_dbus_set_minimum_size;
@@ -197,7 +197,7 @@ index 3a40ac7..058a089 100644
  
    pspec = g_param_spec_variant ("state",
                                  "GVariant",
-@@ -1609,6 +1619,26 @@ logical_monitor_is_rotated (CcDisplayLogicalMonitor *lm)
+@@ -1614,6 +1624,26 @@ logical_monitor_is_rotated (CcDisplayLogicalMonitor *lm)
      }
  }
  
@@ -224,7 +224,7 @@ index 3a40ac7..058a089 100644
  static int
  logical_monitor_width (CcDisplayLogicalMonitor *lm)
  {
-@@ -1627,6 +1657,11 @@ logical_monitor_width (CcDisplayLogicalMonitor *lm)
+@@ -1632,6 +1662,11 @@ logical_monitor_width (CcDisplayLogicalMonitor *lm)
  
    if (monitor->config->layout_mode == CC_DISPLAY_LAYOUT_MODE_LOGICAL)
      return round (width / lm->scale);
