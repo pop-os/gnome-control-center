@@ -25,6 +25,7 @@ Build-Depends: debhelper (>= 11.1.3),
                libgnomekbd-dev (>= 2.91.91),
                libgnome-bluetooth-dev (>= 3.18.0) [linux-any],
                libibus-1.0-dev (>= 1.5.2),
+               libfirmware-manager-dev,
                libgoa-1.0-dev (>= 3.25.3),
                libgrilo-0.3-dev (>= 0.3.0),
                libgsound-dev,
@@ -44,12 +45,12 @@ Build-Depends: debhelper (>= 11.1.3),
                libudisks2-dev,
                libupower-glib-dev (>= 0.99.8),
                libwacom-dev (>= 0.7) [linux-any],
-               libwhoopsie-preferences-dev,
                libxi-dev (>= 2:1.2),
                libx11-dev,
                libxft-dev (>= 2.1.2),
                libxklavier-dev (>= 5.1),
                libxml2-dev,
+               libxml2-utils,
                locales,
                meson (>= 0.50.0),
                policykit-1,
@@ -66,7 +67,7 @@ Vcs-Browser: https://git.launchpad.net/~ubuntu-desktop/ubuntu/+source/gnome-cont
 Vcs-Git: https://git.launchpad.net/~ubuntu-desktop/ubuntu/+source/gnome-control-center
 
 Package: gnome-control-center
-Architecture: any
+Architecture: amd64
 Depends: ${misc:Depends},
          ${shlibs:Depends},
          accountsservice,
@@ -80,8 +81,8 @@ Depends: ${misc:Depends},
          gnome-settings-daemon (>= 3.29),
          gsettings-desktop-schemas (>= 3.31.0),
          language-selector-gnome (>= 0.179~),
+         libfirmware-manager,
          system-config-printer (>= 1.4),
-         whoopsie-preferences,
 Recommends: cups-pk-helper,
             gnome-online-accounts (>= 3.25.3),
             gnome-user-docs,
@@ -104,6 +105,7 @@ Suggests: gnome-software | gnome-packagekit,
           libcanberra-gtk-module,
           libcanberra-gtk3-module,
           x11-xserver-utils
+Provides: firmware-manager-virtual
 Description: utilities to configure the GNOME desktop
  This package contains configuration applets for the GNOME desktop,
  allowing to set accessibility configuration, desktop fonts, keyboard

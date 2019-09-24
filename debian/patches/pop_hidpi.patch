@@ -1,0 +1,396 @@
+Index: gnome-control-center/panels/display/cc-display-panel.ui
+===================================================================
+--- gnome-control-center.orig/panels/display/cc-display-panel.ui
++++ gnome-control-center/panels/display/cc-display-panel.ui
+@@ -432,6 +432,194 @@
+                       </packing>
+                     </child>
+                     <child>
++                      <object class="GtkFrame" id="hidpi_frame">
++                        <property name="visible">False</property>
++                        <property name="can_focus">False</property>
++                        <property name="shadow_type">in</property>
++                        <child>
++                          <object class="GtkBox">
++                            <property name="visible">True</property>
++                            <property name="can_focus">False</property>
++                            <property name="orientation">vertical</property>
++                            <property name="spacing">6</property>
++                            <child>
++                              <object class="GtkLabel">
++                                <property name="visible">True</property>
++                                <property name="can_focus">False</property>
++                                <property name="halign">start</property>
++                                <property name="label" translatable="yes">HiDPI Daemon</property>
++                                <attributes>
++                                  <attribute name="weight" value="bold"/>
++                                </attributes>
++                              </object>
++                            </child>
++                            <child>
++                              <object class="GtkLabel">
++                                <property name="visible">True</property>
++                                <property name="can_focus">False</property>
++                                <property name="xalign">0</property>
++                                <property name="label" translatable="yes">Adjust displays to match scale and provide compatibility with legacy applications.</property>
++                                <property name="wrap">True</property>
++                                <style>
++                                  <class name="dim-label"/>
++                                </style>
++                              </object>
++                            </child>
++                            <child>
++                              <object class="GtkListBox">
++                                <property name="visible">True</property>
++                                <property name="can_focus">True</property>
++                                <property name="selection_mode">none</property>
++                                <child>
++                                  <object class="GtkListBoxRow">
++                                    <property name="visible">True</property>
++                                    <property name="can_focus">True</property>
++                                    <property name="activatable">false</property>
++                                    <child>
++                                      <object class="GtkGrid">
++                                        <property name="visible">True</property>
++                                        <property name="can_focus">False</property>
++                                        <property name="row_spacing">2</property>
++                                        <property name="column_spacing">16</property>
++                                        <property name="margin_start">20</property>
++                                        <property name="margin_end">20</property>
++                                        <property name="margin_top">6</property>
++                                        <property name="margin_bottom">6</property>
++                                        <property name="valign">center</property>
++                                        <child>
++                                          <object class="GtkLabel">
++                                            <property name="visible">True</property>
++                                            <property name="can_focus">False</property>
++                                            <property name="hexpand">True</property>
++                                            <property name="xalign">0</property>
++                                            <property name="label" translatable="yes">Enabled</property>
++                                          </object>
++                                          <packing>
++                                            <property name="left_attach">0</property>
++                                            <property name="top_attach">0</property>
++                                            <property name="width">1</property>
++                                            <property name="height">1</property>
++                                          </packing>
++                                        </child>
++                                        <child>
++                                          <object class="GtkLabel">
++                                            <property name="visible">True</property>
++                                            <property name="can_focus">False</property>
++                                            <property name="xalign">0</property>
++                                            <property name="label" translatable="yes">Enable or disable the HiDPI daemon.</property>
++                                            <style>
++                                              <class name="dim-label"/>
++                                            </style>
++                                            <attributes>
++                                              <attribute name="scale" value="0.9"/>
++                                            </attributes>
++                                          </object>
++                                          <packing>
++                                            <property name="left_attach">0</property>
++                                            <property name="top_attach">1</property>
++                                            <property name="width">1</property>
++                                            <property name="height">1</property>
++                                          </packing>
++                                        </child>
++                                        <child>
++                                          <object class="GtkSwitch" id="hidpi_enable_switch">
++                                            <property name="visible">True</property>
++                                            <property name="can_focus">True</property>
++                                            <property name="halign">end</property>
++                                            <property name="valign">center</property>
++                                          </object>
++                                          <packing>
++                                            <property name="left_attach">1</property>
++                                            <property name="top_attach">0</property>
++                                            <property name="width">1</property>
++                                            <property name="height">2</property>
++                                          </packing>
++                                        </child>
++                                      </object>
++                                    </child>
++                                  </object>
++                                </child>
++                                <child>
++                                  <object class="GtkListBoxRow">
++                                    <property name="visible">True</property>
++                                    <property name="can_focus">True</property>
++                                    <property name="activatable">false</property>
++                                    <child>
++                                      <object class="GtkGrid">
++                                        <property name="visible">True</property>
++                                        <property name="can_focus">False</property>
++                                        <property name="row_spacing">2</property>
++                                        <property name="column_spacing">16</property>
++                                        <property name="margin_start">20</property>
++                                        <property name="margin_end">20</property>
++                                        <property name="margin_top">6</property>
++                                        <property name="margin_bottom">6</property>
++                                        <property name="valign">center</property>
++                                        <child>
++                                          <object class="GtkLabel">
++                                            <property name="visible">True</property>
++                                            <property name="can_focus">False</property>
++                                            <property name="hexpand">True</property>
++                                            <property name="xalign">0</property>
++                                            <property name="label" translatable="yes">Mode</property>
++                                          </object>
++                                          <packing>
++                                            <property name="left_attach">0</property>
++                                            <property name="top_attach">0</property>
++                                            <property name="width">1</property>
++                                            <property name="height">1</property>
++                                          </packing>
++                                        </child>
++                                        <child>
++                                          <object class="GtkLabel">
++                                            <property name="visible">True</property>
++                                            <property name="can_focus">False</property>
++                                            <property name="xalign">0</property>
++                                            <property name="label" translatable="yes">Enable to render LoDPI displays at HiDPI resolution.</property>
++                                            <style>
++                                              <class name="dim-label"/>
++                                            </style>
++                                            <attributes>
++                                              <attribute name="scale" value="0.9"/>
++                                            </attributes>
++                                          </object>
++                                          <packing>
++                                            <property name="left_attach">0</property>
++                                            <property name="top_attach">1</property>
++                                            <property name="width">1</property>
++                                            <property name="height">1</property>
++                                          </packing>
++                                        </child>
++                                        <child>
++                                          <object class="GtkSwitch" id="hidpi_mode_switch">
++                                            <property name="visible">True</property>
++                                            <property name="can_focus">True</property>
++                                            <property name="halign">end</property>
++                                            <property name="valign">center</property>
++                                          </object>
++                                          <packing>
++                                            <property name="left_attach">1</property>
++                                            <property name="top_attach">0</property>
++                                            <property name="width">1</property>
++                                            <property name="height">2</property>
++                                          </packing>
++                                        </child>
++                                      </object>
++                                    </child>
++                                  </object>
++                                </child>
++                              </object>
++                            </child>
++                          </object>
++                        </child>
++                      </object>
++                      <packing>
++                        <property name="expand">False</property>
++                        <property name="fill">True</property>
++                        <property name="position">3</property>
++                      </packing>
++                    </child>
++                    <child>
+                       <object class="GtkFrame">
+                         <property name="visible">True</property>
+                         <property name="can_focus">False</property>
+@@ -473,7 +661,7 @@
+                       <packing>
+                         <property name="expand">False</property>
+                         <property name="fill">True</property>
+-                        <property name="position">3</property>
++                        <property name="position">4</property>
+                       </packing>
+                     </child>
+                   </object>
+Index: gnome-control-center/panels/display/cc-display-panel.c
+===================================================================
+--- gnome-control-center.orig/panels/display/cc-display-panel.c
++++ gnome-control-center/panels/display/cc-display-panel.c
+@@ -75,6 +75,7 @@ struct _CcDisplayPanel
+ 
+   CcNightLightDialog *night_light_dialog;
+   GSettings *settings_color;
++  GSettings *settings_hidpi;
+ 
+   UpClient *up_client;
+   gboolean lid_is_closed;
+@@ -110,6 +111,9 @@ struct _CcDisplayPanel
+   GtkButtonBox   *output_selection_two_first;
+   GtkButtonBox   *output_selection_two_second;
+   HdyComboRow    *primary_display_row;
++  GtkWidget      *hidpi_frame;
++  GtkSwitch      *hidpi_enable_switch;
++  GtkSwitch      *hidpi_mode_switch;
+ };
+ 
+ CC_PANEL_REGISTER (CcDisplayPanel, cc_display_panel)
+@@ -428,6 +432,10 @@ cc_display_panel_dispose (GObject *objec
+   g_clear_object (&self->current_config);
+   g_clear_object (&self->up_client);
+   g_clear_object (&self->settings_color);
++  if (self->settings_hidpi) {
++    g_clear_object (&self->settings_hidpi);
++    self->settings_hidpi = NULL;
++  }
+ 
+   g_cancellable_cancel (self->shell_cancellable);
+   g_clear_object (&self->shell_cancellable);
+@@ -637,6 +645,9 @@ cc_display_panel_class_init (CcDisplayPa
+   gtk_widget_class_bind_template_child (widget_class, CcDisplayPanel, output_selection_two_first);
+   gtk_widget_class_bind_template_child (widget_class, CcDisplayPanel, output_selection_two_second);
+   gtk_widget_class_bind_template_child (widget_class, CcDisplayPanel, primary_display_row);
++  gtk_widget_class_bind_template_child (widget_class, CcDisplayPanel, hidpi_frame);
++  gtk_widget_class_bind_template_child (widget_class, CcDisplayPanel, hidpi_enable_switch);
++  gtk_widget_class_bind_template_child (widget_class, CcDisplayPanel, hidpi_mode_switch);
+ 
+   gtk_widget_class_bind_template_callback (widget_class, on_config_type_toggled_cb);
+   gtk_widget_class_bind_template_callback (widget_class, on_night_light_list_box_row_activated_cb);
+@@ -1159,6 +1170,116 @@ session_bus_ready (GObject        *sourc
+                            G_CONNECT_SWAPPED);
+ }
+ 
++#define HIDPI_MODE_ENABLE 1
++#define HIDPI_MODE_HIDPI 2
++
++static int
++get_hidpi_mode (CcDisplayPanel *panel)
++{
++  g_autofree gchar * mode_string = NULL;
++  int mode = 0;
++
++  if (panel->settings_hidpi) {
++    if (g_settings_get_boolean (panel->settings_hidpi, "enable")) {
++      mode |= HIDPI_MODE_ENABLE;
++    }
++
++    mode_string = g_settings_get_string (panel->settings_hidpi, "mode");
++    if (mode_string) {
++      if (strcmp(mode_string, "hidpi") == 0) {
++        mode |= HIDPI_MODE_HIDPI;
++      }
++    }
++  }
++
++  return mode;
++}
++
++static void
++set_hidpi_mode (CcDisplayPanel *panel, int mode)
++{
++  gboolean enable = FALSE;
++  gchar * mode_string = NULL;
++
++  switch (mode) {
++    case HIDPI_MODE_ENABLE:
++      enable = TRUE;
++      mode_string = "lodpi";
++      break;
++    case HIDPI_MODE_HIDPI:
++      enable = FALSE;
++      mode_string = "hidpi";
++      break;
++    case HIDPI_MODE_ENABLE | HIDPI_MODE_HIDPI:
++      enable = TRUE;
++      mode_string = "hidpi";
++      break;
++    default:
++      enable = FALSE;
++      mode_string = "lodpi";
++      break;
++  }
++
++  if (mode_string && panel->settings_hidpi) {
++    g_settings_set_boolean(panel->settings_hidpi, "enable", enable);
++    g_settings_set_string(panel->settings_hidpi, "mode", mode_string);
++    g_settings_apply(panel->settings_hidpi);
++  }
++}
++
++static gboolean
++on_hidpi_enable_switch (GtkSwitch      *sw,
++                        gboolean       state,
++                        CcDisplayPanel *panel)
++{
++  int mode = get_hidpi_mode(panel);
++
++  if (state) {
++    mode |= HIDPI_MODE_ENABLE;
++  } else {
++    mode &= ~HIDPI_MODE_ENABLE;
++  }
++  set_hidpi_mode(panel, mode);
++
++  // Switch will be updated later by update_theme
++  return TRUE;
++}
++
++static gboolean
++on_hidpi_mode_switch (GtkSwitch      *sw,
++                      gboolean       state,
++                      CcDisplayPanel *panel)
++{
++  int mode = get_hidpi_mode(panel);
++
++  if (state) {
++    mode |= HIDPI_MODE_HIDPI;
++  } else {
++    mode &= ~HIDPI_MODE_HIDPI;
++  }
++  set_hidpi_mode(panel, mode);
++
++  // Switch will be updated later by update_theme
++  return TRUE;
++}
++
++static void
++update_hidpi (CcDisplayPanel *panel)
++{
++  int mode = get_hidpi_mode(panel);
++
++  gtk_switch_set_state(panel->hidpi_enable_switch, (mode & HIDPI_MODE_ENABLE) == HIDPI_MODE_ENABLE);
++  gtk_switch_set_state(panel->hidpi_mode_switch, (mode & HIDPI_MODE_HIDPI) == HIDPI_MODE_HIDPI);
++}
++
++static void
++on_settings_hidpi_changed (GSettings      *settings,
++                           gchar          *key,
++                           CcDisplayPanel *panel)
++{
++  update_hidpi (panel);
++}
++
+ static void
+ cc_display_panel_init (CcDisplayPanel *self)
+ {
+@@ -1215,6 +1336,27 @@ cc_display_panel_init (CcDisplayPanel *s
+                            G_CALLBACK (settings_color_changed_cb), self->night_light_status_label, 0);
+   night_light_sync_label (GTK_WIDGET (self->night_light_status_label), self->settings_color);
+ 
++  // GIO aborts when `g_settings_new (SCHEMA)` is called with a scheme that does not exist.
++  //
++  // Therefore, we will check that the scheme exists before we ask for it.
++  if (g_file_test ("/usr/share/glib-2.0/schemas/com.system76.hidpi.gschema.xml", G_FILE_TEST_EXISTS)) {
++    self->settings_hidpi = g_settings_new ("com.system76.hidpi");
++  }
++
++  if (self->settings_hidpi) {
++    g_settings_delay (self->settings_hidpi);
++
++    g_signal_connect_object (self->settings_hidpi, "changed",
++                             G_CALLBACK (on_settings_hidpi_changed), self, 0);
++
++    g_signal_connect (self->hidpi_enable_switch, "state-set", G_CALLBACK (on_hidpi_enable_switch), self);
++    g_signal_connect (self->hidpi_mode_switch, "state-set", G_CALLBACK (on_hidpi_mode_switch), self);
++
++    update_hidpi (self);
++
++    gtk_widget_set_visible(self->hidpi_frame, TRUE);
++  }
++
+   self->up_client = up_client_new ();
+   if (up_client_get_lid_is_present (self->up_client))
+     {
