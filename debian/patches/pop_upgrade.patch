@@ -1,0 +1,152 @@
+Index: gnome-control-center/panels/info/meson.build
+===================================================================
+--- gnome-control-center.orig/panels/info/meson.build
++++ gnome-control-center/panels/info/meson.build
+@@ -58,7 +58,8 @@ sources += gnome.compile_resources(
+ deps = common_deps + [
+   polkit_gobject_dep,
+   dependency('udisks2', version: '>= 2.1.8'),
+-  dependency('libgtop-2.0')
++  dependency('libgtop-2.0'),
++  dependency('pop_upgrade_gtk')
+ ]
+ 
+ info_panel_lib = static_library(
+Index: gnome-control-center/panels/info/cc-info-overview-panel.c
+===================================================================
+--- gnome-control-center.orig/panels/info/cc-info-overview-panel.c
++++ gnome-control-center/panels/info/cc-info-overview-panel.c
+@@ -48,7 +48,7 @@
+ #endif
+ 
+ #include "cc-info-overview-panel.h"
+-
++#include "pop_upgrade_gtk.h"
+ 
+ typedef struct {
+   /* Will be one or 2 GPU name strings, or "Unknown" */
+@@ -83,6 +83,14 @@ typedef struct
+   UDisksClient   *client;
+ 
+   GraphicsData   *graphics_data;
++
++  /* Pop Upgrade */
++  GtkWidget        *column_box;
++  GtkWidget        *overlay;
++  GtkWidget        *info_bar;
++  GtkWidget        *info_msg;
++
++  PopUpgradeWidget *pop_upgrade;
+ } CcInfoOverviewPanelPrivate;
+ 
+ struct _CcInfoOverviewPanel
+@@ -772,6 +780,7 @@ cc_info_overview_panel_dispose (GObject
+   CcInfoOverviewPanelPrivate *priv = cc_info_overview_panel_get_instance_private (CC_INFO_OVERVIEW_PANEL (object));
+ 
+   g_clear_pointer (&priv->graphics_data, graphics_data_free);
++  g_clear_pointer (&priv->pop_upgrade, pop_upgrade_widget_free);
+ 
+   G_OBJECT_CLASS (cc_info_overview_panel_parent_class)->dispose (object);
+ }
+@@ -821,10 +830,22 @@ cc_info_overview_panel_class_init (CcInf
+   gtk_widget_class_bind_template_child_private (widget_class, CcInfoOverviewPanel, label8);
+   gtk_widget_class_bind_template_child_private (widget_class, CcInfoOverviewPanel, grid1);
+   gtk_widget_class_bind_template_child_private (widget_class, CcInfoOverviewPanel, label18);
++  gtk_widget_class_bind_template_child_private (widget_class, CcInfoOverviewPanel, column_box);
++  gtk_widget_class_bind_template_child_private (widget_class, CcInfoOverviewPanel, overlay);
+ 
+   g_type_ensure (CC_TYPE_HOSTNAME_ENTRY);
+ }
+ 
++static void info_bar_non_visible (GtkWidget *info_bar, gpointer user_data) {
++  gtk_widget_set_visible (info_bar, FALSE);
++}
++
++static void pop_upgrade_callback (const uint8_t *message, size_t len, CcInfoOverviewPanelPrivate *priv) {
++  g_autoptr (GString) gmessage = g_string_new_len (message, len);
++  gtk_label_set_label (GTK_LABEL (priv->info_msg), gmessage->str);
++  gtk_widget_set_visible (priv->info_bar, TRUE);
++}
++
+ static void
+ cc_info_overview_panel_init (CcInfoOverviewPanel *self)
+ {
+@@ -848,6 +869,37 @@ cc_info_overview_panel_init (CcInfoOverv
+       g_warning ("Unable to get UDisks client: %s. Disk information will not be available.",
+                  error->message);
+ 
++  // Start of Pop!_OS Upgrade Integration
++
++  priv->info_msg = gtk_label_new (NULL);
++  gtk_label_set_line_wrap (GTK_LABEL (priv->info_msg), TRUE);
++
++  priv->info_bar = gtk_info_bar_new ();
++  gtk_widget_set_can_focus (priv->info_bar, TRUE);
++  gtk_widget_set_halign (priv->info_bar, GTK_ALIGN_FILL);
++  gtk_widget_set_valign (priv->info_bar, GTK_ALIGN_START);
++  gtk_info_bar_set_message_type (GTK_INFO_BAR (priv->info_bar), GTK_MESSAGE_ERROR);
++  gtk_info_bar_set_show_close_button (GTK_INFO_BAR (priv->info_bar), TRUE);
++  g_signal_connect (priv->info_bar, "close", G_CALLBACK (info_bar_non_visible), NULL);
++  g_signal_connect (priv->info_bar, "response", G_CALLBACK (info_bar_non_visible), NULL);
++
++  GtkWidget *info_bar_content = gtk_info_bar_get_content_area (GTK_INFO_BAR (priv->info_bar));
++  gtk_container_add (GTK_CONTAINER (info_bar_content), priv->info_msg);
++
++  gtk_overlay_add_overlay (GTK_OVERLAY (priv->overlay), priv->info_bar);
++  gtk_widget_show_all (priv->overlay);
++  gtk_widget_hide (priv->info_bar);
++
++  priv->pop_upgrade = pop_upgrade_widget_new ();
++  pop_upgrade_widget_scan (priv->pop_upgrade);
++
++  GtkWidget *upgrade_widget = pop_upgrade_widget_container (priv->pop_upgrade);
++  gtk_widget_set_margin_top (upgrade_widget, 12);
++  gtk_container_add (GTK_CONTAINER (priv->column_box), upgrade_widget);
++  pop_upgrade_widget_callback_error (priv->pop_upgrade, (PopUpgradeWidgetErrorCallback) pop_upgrade_callback, priv);
++
++  // End of Pop!_OS Upgrade Integration
++
+   info_overview_panel_setup_overview (self);
+   info_overview_panel_setup_virt (self);
+ }
+Index: gnome-control-center/panels/info/cc-info-overview-panel.ui
+===================================================================
+--- gnome-control-center.orig/panels/info/cc-info-overview-panel.ui
++++ gnome-control-center/panels/info/cc-info-overview-panel.ui
+@@ -10,6 +10,20 @@
+         <property name="can-focus">False</property>
+         <property name="hscrollbar-policy">never</property>
+         <child>
++          <!-- Pop!_OS wrap view in scrolled window -->
++          <object class="GtkOverlay" id="overlay">
++          <child>
++          <object class="GtkScrolledWindow">
++          <property name="visible">True</property>
++          <property name="valign">fill</property>
++          <property name="halign">fill</property>
++          <property name="hscrollbar-policy">never</property>
++          <property name="vscrollbar-policy">automatic</property>
++          <property name="propagate-natural-height">True</property>
++          <property name="shadow-type">in</property>
++          <property name="margin">0</property>
++          <child>
++          <!-- -->
+           <object class="HdyColumn">
+             <property name="visible">True</property>
+             <property name="maximum_width">600</property>
+@@ -19,7 +33,7 @@
+             <property name="margin_start">12</property>
+             <property name="margin_end">12</property>
+             <child>
+-              <object class="GtkBox">
++              <object class="GtkBox" id="column_box">
+                 <property name="visible">True</property>
+                 <property name="can_focus">False</property>
+                 <property name="valign">center</property>
+@@ -359,5 +373,6 @@
+         </child>
+       </object>
+     </child>
++    </object></child></object></child>
+   </template>
+ </interface>
