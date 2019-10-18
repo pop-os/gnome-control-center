@@ -16,7 +16,7 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
 ===================================================================
 --- gnome-control-center.orig/panels/info/cc-info-overview-panel.c
 +++ gnome-control-center/panels/info/cc-info-overview-panel.c
-@@ -48,7 +48,11 @@
+@@ -48,7 +48,13 @@
  #endif
  
  #include "cc-info-overview-panel.h"
@@ -24,11 +24,13 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
  
 +// Allow the upgrade widget to outlive the lifetime of its panel.
 +static PopUpgradeWidget *POP_UPGRADE = NULL;
-+static gboolean POP_UPGRADE_IS_ATTACHED = FALSE;
++
++// Atomic integeger for fetching the current status.
++extern gint POP_UPGRADE_STATUS = 0;
  
  typedef struct {
    /* Will be one or 2 GPU name strings, or "Unknown" */
-@@ -83,6 +87,12 @@ typedef struct
+@@ -83,6 +89,12 @@ typedef struct
    UDisksClient   *client;
  
    GraphicsData   *graphics_data;
@@ -41,17 +43,18 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
  } CcInfoOverviewPanelPrivate;
  
  struct _CcInfoOverviewPanel
-@@ -773,6 +783,9 @@ cc_info_overview_panel_dispose (GObject
+@@ -773,6 +785,10 @@ cc_info_overview_panel_dispose (GObject
  
    g_clear_pointer (&priv->graphics_data, graphics_data_free);
  
-+  POP_UPGRADE_IS_ATTACHED = FALSE;
-+  gtk_container_remove (GTK_CONTAINER (priv->column_box), pop_upgrade_widget_container (POP_UPGRADE));
++  // Detach the pop-upgrade widget on disposing this panel.
++  GtkWidget *pop = pop_upgrade_widget_container (POP_UPGRADE);
++  gtk_container_remove (GTK_CONTAINER (priv->column_box), pop);
 +
    G_OBJECT_CLASS (cc_info_overview_panel_parent_class)->dispose (object);
  }
  
-@@ -821,10 +834,24 @@ cc_info_overview_panel_class_init (CcInf
+@@ -821,10 +837,38 @@ cc_info_overview_panel_class_init (CcInf
    gtk_widget_class_bind_template_child_private (widget_class, CcInfoOverviewPanel, label8);
    gtk_widget_class_bind_template_child_private (widget_class, CcInfoOverviewPanel, grid1);
    gtk_widget_class_bind_template_child_private (widget_class, CcInfoOverviewPanel, label18);
@@ -65,18 +68,32 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
 +  gtk_widget_set_visible (info_bar, FALSE);
 +}
 +
-+static void pop_upgrade_callback (const uint8_t *message, size_t len, CcInfoOverviewPanelPrivate *priv) {
-+  if (POP_UPGRADE_IS_ATTACHED) {
++static void pop_upgrade_callback_error (const uint8_t *message, size_t len, CcInfoOverviewPanelPrivate *priv) {
++  // If the the pop upgrade widget has a parent widget, it's attached to `priv`.
++  if (NULL != gtk_widget_get_parent (pop_upgrade_widget_container (POP_UPGRADE))) {
 +    g_autoptr (GString) gmessage = g_string_new_len (message, len);
 +    gtk_label_set_label (GTK_LABEL (priv->info_msg), gmessage->str);
 +    gtk_widget_set_visible (priv->info_bar, TRUE);
 +  }
 +}
 +
++static void pop_upgrade_callback_event (uint8_t event, gpointer user_data) {
++  g_atomic_int_set (&POP_UPGRADE_STATUS, (gint) event);
++  fprintf (stderr, "Setting status to %d\n", (gint) event);
++}
++
++static void pop_upgrade_callback_ready (gpointer user_data) {
++  g_autoptr(GError) error = NULL;
++  gchar *argv[] = { "/usr/bin/gnome-control-center", "info-overview", NULL };
++  if (!g_spawn_async (NULL, argv, NULL, 0, NULL, NULL, NULL, &error)) {
++    g_warning ("Failed to open info overview: %s", error->message);
++  }
++}
++
  static void
  cc_info_overview_panel_init (CcInfoOverviewPanel *self)
  {
-@@ -848,6 +875,42 @@ cc_info_overview_panel_init (CcInfoOverv
+@@ -848,6 +892,54 @@ cc_info_overview_panel_init (CcInfoOverv
        g_warning ("Unable to get UDisks client: %s. Disk information will not be available.",
                   error->message);
  
@@ -103,16 +120,28 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.c
 +
 +  if (NULL == POP_UPGRADE) {
 +    POP_UPGRADE = pop_upgrade_widget_new ();
-+    pop_upgrade_widget_scan (POP_UPGRADE);
++
++    pop_upgrade_widget_callback_event (
++      POP_UPGRADE,
++      (PopUpgradeWidgetEventCallback) pop_upgrade_callback_event,
++      NULL
++    );
++
++    pop_upgrade_widget_callback_ready (
++      POP_UPGRADE,
++      (PopUpgradeWidgetReadyCallback) pop_upgrade_callback_ready,
++      NULL
++    );
 +  }
 +
-+  POP_UPGRADE_IS_ATTACHED = TRUE;
-+  
++  if (g_atomic_int_get (&POP_UPGRADE_STATUS) == 0) {
++    pop_upgrade_widget_scan (POP_UPGRADE);
++  }
 +
 +  GtkWidget *upgrade_widget = pop_upgrade_widget_container (POP_UPGRADE);
 +  gtk_widget_set_margin_top (upgrade_widget, 12);
 +  gtk_container_add (GTK_CONTAINER (priv->column_box), upgrade_widget);
-+  pop_upgrade_widget_callback_error (POP_UPGRADE, (PopUpgradeWidgetErrorCallback) pop_upgrade_callback, priv);
++  pop_upgrade_widget_callback_error (POP_UPGRADE, (PopUpgradeWidgetErrorCallback) pop_upgrade_callback_error, priv);
 +
 +  // End of Pop!_OS Upgrade Integration
 +
@@ -160,6 +189,86 @@ Index: gnome-control-center/panels/info/cc-info-overview-panel.ui
 +    </object></child></object></child>
    </template>
  </interface>
+Index: gnome-control-center/shell/cc-application.c
+===================================================================
+--- gnome-control-center.orig/shell/cc-application.c
++++ gnome-control-center/shell/cc-application.c
+@@ -197,6 +197,10 @@ cc_application_quit (GSimpleAction *simp
+                      GVariant      *parameter,
+                      gpointer       user_data)
+ {
++  if (g_atomic_int_get (&POP_UPGRADE_STATUS) != 0) {
++    return;
++  }
++
+   CcApplication *self = CC_APPLICATION (user_data);
+ 
+   gtk_widget_destroy (GTK_WIDGET (self->window));
+Index: gnome-control-center/panels/info/cc-info-overview-panel.h
+===================================================================
+--- gnome-control-center.orig/panels/info/cc-info-overview-panel.h
++++ gnome-control-center/panels/info/cc-info-overview-panel.h
+@@ -22,6 +22,8 @@
+ 
+ #include <shell/cc-panel.h>
+ 
++extern gint POP_UPGRADE_STATUS;
++
+ G_BEGIN_DECLS
+ 
+ #define CC_TYPE_INFO_OVERVIEW_PANEL (cc_info_overview_panel_get_type ())
+Index: gnome-control-center/shell/cc-window.c
+===================================================================
+--- gnome-control-center.orig/shell/cc-window.c
++++ gnome-control-center/shell/cc-window.c
+@@ -598,6 +598,10 @@ window_key_press_event_cb (GtkWidget   *
+           case GDK_KEY_q:
+           case GDK_KEY_W:
+           case GDK_KEY_w:
++            if (g_atomic_int_get (&POP_UPGRADE_STATUS) != 0) {
++              return GDK_EVENT_STOP;
++            }
++
+             gtk_widget_destroy (GTK_WIDGET (self));
+             retval = GDK_EVENT_STOP;
+             break;
+@@ -667,6 +671,14 @@ cc_shell_iface_init (CcShellInterface *i
+   iface->get_toplevel = cc_window_get_toplevel;
+ }
+ 
++static void upgrade_check (GtkWidget *button, gpointer data) {
++  if (g_atomic_int_get (&POP_UPGRADE_STATUS) != 0) {
++    return;
++  }
++
++  gtk_main_quit ();
++}
++
+ /* GtkWidget overrides */
+ static void
+ cc_window_map (GtkWidget *widget)
+@@ -675,6 +687,8 @@ cc_window_map (GtkWidget *widget)
+ 
+   GTK_WIDGET_CLASS (cc_window_parent_class)->map (widget);
+ 
++  g_signal_connect (GTK_WINDOW (widget), "delete-event", upgrade_check, NULL);
++
+   /* Show a warning for Flatpak builds */
+   if (in_flatpak_sandbox () && g_settings_get_boolean (self->settings, "show-development-warning"))
+     gtk_window_present (GTK_WINDOW (self->development_warning_dialog));
+Index: gnome-control-center/shell/cc-window.h
+===================================================================
+--- gnome-control-center.orig/shell/cc-window.h
++++ gnome-control-center/shell/cc-window.h
+@@ -25,6 +25,8 @@
+ #include "cc-shell.h"
+ #include "cc-shell-model.h"
+ 
++extern gint POP_UPGRADE_STATUS;
++
+ G_BEGIN_DECLS
+ 
+ #define CC_TYPE_WINDOW (cc_window_get_type ())
 Index: gnome-control-center/panels/info/gnome-info-overview-panel.desktop.in.in
 ===================================================================
 --- gnome-control-center.orig/panels/info/gnome-info-overview-panel.desktop.in.in
