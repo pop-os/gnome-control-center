@@ -1,230 +1,3 @@
-Index: gnome-control-center/panels/info/cc-info-overview-panel.c
-===================================================================
---- gnome-control-center.orig/panels/info/cc-info-overview-panel.c
-+++ gnome-control-center/panels/info/cc-info-overview-panel.c
-@@ -49,6 +49,14 @@
- 
- #include "cc-info-overview-panel.h"
- 
-+#include "pop_upgrade_gtk.h"
-+ 
-+// Allow the upgrade widget to outlive the lifetime of its panel.
-+static PopUpgradeWidget *POP_UPGRADE = NULL;
-+
-+// Atomic integer for tracking the current status.
-+extern gint POP_UPGRADE_STATUS = 0;
-+
- 
- typedef struct {
-   /* Will be one or 2 GPU name strings, or "Unknown" */
-@@ -83,6 +91,12 @@ typedef struct
-   UDisksClient   *client;
- 
-   GraphicsData   *graphics_data;
-+
-+  /* Pop Upgrade */
-+  GtkWidget        *column_box;
-+  GtkWidget        *overlay;
-+  GtkWidget        *info_bar;
-+  GtkWidget        *info_msg;
- } CcInfoOverviewPanelPrivate;
- 
- struct _CcInfoOverviewPanel
-@@ -773,6 +787,10 @@ cc_info_overview_panel_dispose (GObject
- 
-   g_clear_pointer (&priv->graphics_data, graphics_data_free);
- 
-+  // Detach the pop-upgrade widget on disposing this panel.
-+  GtkWidget *pop = pop_upgrade_widget_container (POP_UPGRADE);
-+  gtk_container_remove (GTK_CONTAINER (priv->column_box), pop);
-+
-   G_OBJECT_CLASS (cc_info_overview_panel_parent_class)->dispose (object);
- }
- 
-@@ -821,10 +839,93 @@ cc_info_overview_panel_class_init (CcInf
-   gtk_widget_class_bind_template_child_private (widget_class, CcInfoOverviewPanel, label8);
-   gtk_widget_class_bind_template_child_private (widget_class, CcInfoOverviewPanel, grid1);
-   gtk_widget_class_bind_template_child_private (widget_class, CcInfoOverviewPanel, label18);
-+  gtk_widget_class_bind_template_child_private (widget_class, CcInfoOverviewPanel, column_box);
-+  gtk_widget_class_bind_template_child_private (widget_class, CcInfoOverviewPanel, overlay);
- 
-   g_type_ensure (CC_TYPE_HOSTNAME_ENTRY);
- }
- 
-+static void info_bar_non_visible (GtkWidget *info_bar, gpointer user_data) {
-+  gtk_widget_set_visible (info_bar, FALSE);
-+}
-+
-+/* When errors are encountered, they will be displayed in the info overlay. */
-+static void pop_upgrade_callback_error (const uint8_t *message, size_t len, CcInfoOverviewPanelPrivate *priv) {
-+  // If the the pop upgrade widget has a parent widget, it's attached to `priv`.
-+  if (NULL != gtk_widget_get_parent (pop_upgrade_widget_container (POP_UPGRADE))) {
-+    g_autoptr (GString) gmessage = g_string_new_len (message, len);
-+    gtk_label_set_label (GTK_LABEL (priv->info_msg), gmessage->str);
-+    gtk_widget_set_visible (priv->info_bar, TRUE);
-+  }
-+}
-+
-+/* As the upgrade status changes, this will update the atomic global status variable.
-+ *
-+ * This is useful primarily to prevent the application from exiting. */
-+static void pop_upgrade_callback_event (uint8_t event, gpointer user_data) {
-+  g_atomic_int_set (&POP_UPGRADE_STATUS, (gint) event);
-+  fprintf (stderr, "Setting status to %d\n", (gint) event);
-+}
-+
-+/* Triggers when the upgrade ready notification is clicked. */
-+static void pop_upgrade_callback_ready (gpointer user_data) {
-+  g_autoptr(GError) error = NULL;
-+  gchar *argv[] = { "/usr/bin/gnome-control-center", "info-overview", NULL };
-+  if (!g_spawn_async (NULL, argv, NULL, 0, NULL, NULL, NULL, &error)) {
-+    g_warning ("Failed to open info overview: %s", error->message);
-+  }
-+}
-+
-+/* Add an info bar into the panel overlay, for use by the upgrade widget. */
-+static void pop_os_info_overlay (CcInfoOverviewPanelPrivate *self) {
-+  self->info_msg = gtk_label_new (NULL);
-+  gtk_label_set_line_wrap (GTK_LABEL (self->info_msg), TRUE);
-+
-+  self->info_bar = gtk_info_bar_new ();
-+  gtk_widget_set_can_focus (self->info_bar, TRUE);
-+  gtk_widget_set_halign (self->info_bar, GTK_ALIGN_FILL);
-+  gtk_widget_set_valign (self->info_bar, GTK_ALIGN_START);
-+  gtk_info_bar_set_message_type (GTK_INFO_BAR (self->info_bar), GTK_MESSAGE_ERROR);
-+  gtk_info_bar_set_show_close_button (GTK_INFO_BAR (self->info_bar), TRUE);
-+  g_signal_connect (self->info_bar, "close", G_CALLBACK (info_bar_non_visible), NULL);
-+  g_signal_connect (self->info_bar, "response", G_CALLBACK (info_bar_non_visible), NULL);
-+
-+  GtkWidget *info_bar_content = gtk_info_bar_get_content_area (GTK_INFO_BAR (self->info_bar));
-+  gtk_container_add (GTK_CONTAINER (info_bar_content), self->info_msg);
-+
-+  gtk_overlay_add_overlay (GTK_OVERLAY (self->overlay), self->info_bar);
-+  gtk_widget_show_all (self->overlay);
-+  gtk_widget_hide (self->info_bar);
-+}
-+
-+/* Lazily initialize the upgrade widget, and attach it to the panel. */
-+static void pop_os_upgrade_widget (CcInfoOverviewPanelPrivate *self) {
-+  if (NULL == POP_UPGRADE) {
-+    POP_UPGRADE = pop_upgrade_widget_new ();
-+
-+    pop_upgrade_widget_callback_event (
-+      POP_UPGRADE,
-+      (PopUpgradeWidgetEventCallback) pop_upgrade_callback_event,
-+      NULL
-+    );
-+
-+    pop_upgrade_widget_callback_ready (
-+      POP_UPGRADE,
-+      (PopUpgradeWidgetReadyCallback) pop_upgrade_callback_ready,
-+      NULL
-+    );
-+  }
-+
-+  if (g_atomic_int_get (&POP_UPGRADE_STATUS) == 0) {
-+    pop_upgrade_widget_scan (POP_UPGRADE);
-+  }
-+
-+  GtkWidget *upgrade_widget = pop_upgrade_widget_container (POP_UPGRADE);
-+  gtk_widget_set_margin_top (upgrade_widget, 12);
-+  gtk_container_add (GTK_CONTAINER (self->column_box), upgrade_widget);
-+  pop_upgrade_widget_callback_error (POP_UPGRADE, (PopUpgradeWidgetErrorCallback) pop_upgrade_callback_error, self);
-+}
-+
- static void
- cc_info_overview_panel_init (CcInfoOverviewPanel *self)
- {
-@@ -848,6 +949,9 @@ cc_info_overview_panel_init (CcInfoOverv
-       g_warning ("Unable to get UDisks client: %s. Disk information will not be available.",
-                  error->message);
- 
-+  pop_os_info_overlay (priv);
-+  pop_os_upgrade_widget (priv);
-+
-   info_overview_panel_setup_overview (self);
-   info_overview_panel_setup_virt (self);
- }
-Index: gnome-control-center/panels/info/cc-info-overview-panel.h
-===================================================================
---- gnome-control-center.orig/panels/info/cc-info-overview-panel.h
-+++ gnome-control-center/panels/info/cc-info-overview-panel.h
-@@ -22,6 +22,8 @@
- 
- #include <shell/cc-panel.h>
- 
-+extern gint POP_UPGRADE_STATUS;
-+
- G_BEGIN_DECLS
- 
- #define CC_TYPE_INFO_OVERVIEW_PANEL (cc_info_overview_panel_get_type ())
-Index: gnome-control-center/panels/info/cc-info-overview-panel.ui
-===================================================================
---- gnome-control-center.orig/panels/info/cc-info-overview-panel.ui
-+++ gnome-control-center/panels/info/cc-info-overview-panel.ui
-@@ -10,6 +10,20 @@
-         <property name="can-focus">False</property>
-         <property name="hscrollbar-policy">never</property>
-         <child>
-+          <!-- Pop!_OS wrap view in scrolled window -->
-+          <object class="GtkOverlay" id="overlay">
-+          <child>
-+          <object class="GtkScrolledWindow">
-+          <property name="visible">True</property>
-+          <property name="valign">fill</property>
-+          <property name="halign">fill</property>
-+          <property name="hscrollbar-policy">never</property>
-+          <property name="vscrollbar-policy">automatic</property>
-+          <property name="propagate-natural-height">True</property>
-+          <property name="shadow-type">in</property>
-+          <property name="margin">0</property>
-+          <child>
-+          <!-- -->
-           <object class="HdyColumn">
-             <property name="visible">True</property>
-             <property name="maximum_width">600</property>
-@@ -19,7 +33,7 @@
-             <property name="margin_start">12</property>
-             <property name="margin_end">12</property>
-             <child>
--              <object class="GtkBox">
-+              <object class="GtkBox" id="column_box">
-                 <property name="visible">True</property>
-                 <property name="can_focus">False</property>
-                 <property name="valign">center</property>
-@@ -359,5 +373,6 @@
-         </child>
-       </object>
-     </child>
-+    </object></child></object></child>
-   </template>
- </interface>
-Index: gnome-control-center/panels/info/gnome-info-overview-panel.desktop.in.in
-===================================================================
---- gnome-control-center.orig/panels/info/gnome-info-overview-panel.desktop.in.in
-+++ gnome-control-center/panels/info/gnome-info-overview-panel.desktop.in.in
-@@ -1,6 +1,6 @@
- [Desktop Entry]
- Name=About
--Comment=View information about your system
-+Comment=View system and OS upgrade information
- Exec=gnome-control-center info-overview
- # Translators: Do NOT translate or transliterate this text (this is an icon file name)!
- Icon=help-about
-Index: gnome-control-center/panels/info/meson.build
-===================================================================
---- gnome-control-center.orig/panels/info/meson.build
-+++ gnome-control-center/panels/info/meson.build
-@@ -58,7 +58,8 @@ sources += gnome.compile_resources(
- deps = common_deps + [
-   polkit_gobject_dep,
-   dependency('udisks2', version: '>= 2.1.8'),
--  dependency('libgtop-2.0')
-+  dependency('libgtop-2.0'),
-+  dependency('pop_upgrade_gtk')
- ]
- 
- info_panel_lib = static_library(
 Index: gnome-control-center/shell/cc-application.c
 ===================================================================
 --- gnome-control-center.orig/shell/cc-application.c
@@ -292,3 +65,287 @@ Index: gnome-control-center/shell/cc-window.h
  G_BEGIN_DECLS
  
  #define CC_TYPE_WINDOW (cc_window_get_type ())
+Index: gnome-control-center/panels/upgrade/cc-upgrade-panel.c
+===================================================================
+--- /dev/null
++++ gnome-control-center/panels/upgrade/cc-upgrade-panel.c
+@@ -0,0 +1,135 @@
++
++#include <config.h>
++#include <gtk/gtk.h>
++#include <stdint.h>
++#include <pop_upgrade_gtk.h>
++#include "cc-upgrade-panel.h"
++
++// Allow the upgrade widget to outlive the lifetime of its panel.
++static PopUpgradeWidget *POP_UPGRADE = NULL;
++
++// Atomic integer for tracking the current status.
++extern gint POP_UPGRADE_STATUS = 0;
++
++struct _CcUpgradePanel {
++    CcPanel    parent_instance;
++    GtkWidget *overlay;
++    GtkWidget *info_bar;
++    GtkWidget *info_msg;
++};
++
++CC_PANEL_REGISTER (CcUpgradePanel, cc_upgrade_panel)
++
++static void info_bar_non_visible (GtkWidget *info_bar, gpointer user_data) {
++    gtk_widget_set_visible (info_bar, FALSE);
++}
++
++/* When errors are encountered, they will be displayed in the info overlay. */
++static void pop_upgrade_callback_error (const uint8_t *message, size_t len, CcUpgradePanel *priv) {
++    // If the the pop upgrade widget has a parent widget, it's attached to `priv`.
++    if (NULL != gtk_widget_get_parent (pop_upgrade_widget_container (POP_UPGRADE))) {
++        g_autoptr (GString) gmessage = g_string_new_len (message, len);
++        gtk_label_set_label (GTK_LABEL (priv->info_msg), gmessage->str);
++        gtk_widget_set_visible (priv->info_bar, TRUE);
++    }
++}
++
++/* As the upgrade status changes, this will update the atomic global status variable.
++ *
++ * This is useful primarily to prevent the application from exiting. */
++static void pop_upgrade_callback_event (uint8_t event, gpointer user_data) {
++    g_atomic_int_set (&POP_UPGRADE_STATUS, (gint) event);
++    fprintf (stderr, "Setting status to %d\n", (gint) event);
++}
++
++/* Triggers when the upgrade ready notification is clicked. */
++static void pop_upgrade_callback_ready (gpointer user_data) {
++    g_autoptr(GError) error = NULL;
++    gchar *argv[] = { "/usr/bin/gnome-control-center", "info-overview", NULL };
++    if (!g_spawn_async (NULL, argv, NULL, 0, NULL, NULL, NULL, &error)) {
++        g_warning ("Failed to open info overview: %s", error->message);
++    }
++}
++
++/* Add an info bar into the panel overlay, for use by the upgrade widget. */
++static void pop_os_info_overlay (CcUpgradePanel *self) {
++    self->info_msg = gtk_label_new (NULL);
++    gtk_label_set_line_wrap (GTK_LABEL (self->info_msg), TRUE);
++
++    self->info_bar = gtk_info_bar_new ();
++    gtk_widget_set_can_focus (self->info_bar, TRUE);
++    gtk_widget_set_halign (self->info_bar, GTK_ALIGN_FILL);
++    gtk_widget_set_valign (self->info_bar, GTK_ALIGN_START);
++    gtk_info_bar_set_message_type (GTK_INFO_BAR (self->info_bar), GTK_MESSAGE_ERROR);
++    gtk_info_bar_set_show_close_button (GTK_INFO_BAR (self->info_bar), TRUE);
++    g_signal_connect (self->info_bar, "close", G_CALLBACK (info_bar_non_visible), NULL);
++    g_signal_connect (self->info_bar, "response", G_CALLBACK (info_bar_non_visible), NULL);
++
++    GtkWidget *info_bar_content = gtk_info_bar_get_content_area (GTK_INFO_BAR (self->info_bar));
++    gtk_container_add (GTK_CONTAINER (info_bar_content), self->info_msg);
++
++    gtk_overlay_add_overlay (GTK_OVERLAY (self->overlay), self->info_bar);
++    gtk_widget_show_all (self->overlay);
++    gtk_widget_hide (self->info_bar);
++}
++
++/* Lazily initialize the upgrade widget, and attach it to the panel. */
++static void pop_os_upgrade_widget (CcUpgradePanel *self) {
++    if (NULL == POP_UPGRADE) {
++        POP_UPGRADE = pop_upgrade_widget_new ();
++
++        pop_upgrade_widget_callback_event (
++            POP_UPGRADE,
++            (PopUpgradeWidgetEventCallback) pop_upgrade_callback_event,
++            NULL
++        );
++
++        pop_upgrade_widget_callback_ready (
++            POP_UPGRADE,
++            (PopUpgradeWidgetReadyCallback) pop_upgrade_callback_ready,
++            NULL
++        );
++
++        GtkWidget *widget = pop_upgrade_widget_container (POP_UPGRADE);
++        gtk_widget_set_halign (widget, GTK_ALIGN_CENTER);
++        gtk_widget_set_size_request (widget, 600, -1);
++    }
++
++    if (g_atomic_int_get (&POP_UPGRADE_STATUS) == 0) {
++        pop_upgrade_widget_scan (POP_UPGRADE);
++    }
++
++    GtkWidget *upgrade_widget = pop_upgrade_widget_container (POP_UPGRADE);
++    gtk_container_set_border_width (GTK_CONTAINER (upgrade_widget), 12);
++    gtk_container_add (GTK_CONTAINER (self->overlay), upgrade_widget);
++    pop_upgrade_widget_callback_error (POP_UPGRADE, (PopUpgradeWidgetErrorCallback) pop_upgrade_callback_error, self);
++}
++
++static void cc_upgrade_panel_dispose (GObject *object) {
++    CcUpgradePanel *prefs = CC_UPGRADE_PANEL (object);
++
++    // Detach the pop-upgrade widget on disposing this panel.
++    GtkWidget *pop = pop_upgrade_widget_container (POP_UPGRADE);
++    gtk_container_remove (GTK_CONTAINER (prefs->overlay), pop);
++
++    G_OBJECT_CLASS (cc_upgrade_panel_parent_class)->dispose (object);
++}
++
++static void cc_upgrade_panel_finalize (GObject *object) {
++    G_OBJECT_CLASS (cc_upgrade_panel_parent_class)->finalize (object);
++}
++
++static void cc_upgrade_panel_class_init (CcUpgradePanelClass *klass) {
++    GObjectClass *object_class = G_OBJECT_CLASS (klass);
++
++    object_class->dispose = cc_upgrade_panel_dispose;
++    object_class->finalize = cc_upgrade_panel_finalize;
++}
++
++static void cc_upgrade_panel_init (CcUpgradePanel *prefs) {
++    prefs->overlay = gtk_overlay_new ();
++    pop_os_info_overlay (prefs);
++    pop_os_upgrade_widget (prefs);
++
++    gtk_container_add (GTK_CONTAINER (prefs), prefs->overlay);
++}
+Index: gnome-control-center/panels/upgrade/cc-upgrade-panel.h
+===================================================================
+--- /dev/null
++++ gnome-control-center/panels/upgrade/cc-upgrade-panel.h
+@@ -0,0 +1,32 @@
++/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*-
++ *
++ * Copyright (C) 2019 System76
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, see <http://www.gnu.org/licenses/>.
++ *
++ */
++
++#pragma once
++
++#include <shell/cc-panel.h>
++
++extern gint POP_UPGRADE_STATUS;
++
++G_BEGIN_DECLS
++
++#define CC_TYPE_UPGRADE_PANEL (cc_upgrade_panel_get_type())
++G_DECLARE_FINAL_TYPE(CcUpgradePanel, cc_upgrade_panel, CC, UPGRADE_PANEL,
++                     CcPanel)
++
++G_END_DECLS
+Index: gnome-control-center/panels/upgrade/gnome-upgrade-panel.desktop.in.in
+===================================================================
+--- /dev/null
++++ gnome-control-center/panels/upgrade/gnome-upgrade-panel.desktop.in.in
+@@ -0,0 +1,14 @@
++[Desktop Entry]
++Name=OS Upgrade
++Comment=View system upgrade information
++Exec=gnome-control-center upgrade
++Icon=software-update-available-symbolic
++Terminal=false
++Type=Application
++NoDisplay=true
++StartupNotify=true
++Categories=GNOME;GTK;Settings;X-GNOME-Settings-Panel;HardwareSettings;X-GNOME-DetailsSettings;
++OnlyShowIn=GNOME;Unity;
++Keywords=OS;Upgrade;
++# Notifications are emitted by gnome-settings-daemon
++X-GNOME-UsesNotifications=true
+Index: gnome-control-center/panels/upgrade/meson.build
+===================================================================
+--- /dev/null
++++ gnome-control-center/panels/upgrade/meson.build
+@@ -0,0 +1,39 @@
++panels_list += cappletname
++desktop = 'gnome-@0@-panel.desktop'.format(cappletname)
++
++desktop_in = configure_file(
++          input : desktop + '.in.in',
++         output : desktop + '.in',
++  configuration : desktop_conf
++)
++
++i18n.merge_file(
++       desktop,
++          type : 'desktop',
++         input : desktop_in,
++        output : desktop,
++        po_dir : po_dir,
++       install : true,
++   install_dir : control_center_desktopdir
++)
++
++sources = files('cc-upgrade-panel.c')
++
++deps = common_deps + [
++  gnome_desktop_dep,
++  m_dep,
++  dependency('pop_upgrade_gtk')
++]
++
++cflags += [
++  '-DGNOMELOCALEDIR="@0@"'.format(control_center_localedir),
++  '-DBINDIR="@0@"'.format(control_center_bindir)
++]
++
++panels_libs += static_library(
++  cappletname,
++  sources: sources,
++  include_directories: [ top_inc, common_inc ],
++  dependencies: deps,
++  c_args: cflags
++)
+Index: gnome-control-center/panels/meson.build
+===================================================================
+--- gnome-control-center.orig/panels/meson.build
++++ gnome-control-center/panels/meson.build
+@@ -21,6 +21,7 @@ panels = [
+   'sound',
+   'ubuntu',
+   'universal-access',
++  'upgrade',
+   'user-accounts'
+ ]
+ 
+Index: gnome-control-center/shell/cc-panel-loader.c
+===================================================================
+--- gnome-control-center.orig/shell/cc-panel-loader.c
++++ gnome-control-center/shell/cc-panel-loader.c
+@@ -63,6 +63,7 @@ extern GType cc_bolt_panel_get_type (voi
+ #endif /* BUILD_THUNDERBOLT */
+ extern GType cc_ua_panel_get_type (void);
+ extern GType cc_ubuntu_panel_get_type(void);
++extern GType cc_upgrade_panel_get_type(void);
+ extern GType cc_user_panel_get_type (void);
+ #ifdef BUILD_WACOM
+ extern GType cc_wacom_panel_get_type (void);
+@@ -118,6 +119,7 @@ static CcPanelLoaderVtable default_panel
+   PANEL_TYPE("thunderbolt",      cc_bolt_panel_get_type,                 NULL),
+ #endif
+   PANEL_TYPE("universal-access", cc_ua_panel_get_type,                   NULL),
++  PANEL_TYPE("upgrade",          cc_upgrade_panel_get_type,              NULL),
+   PANEL_TYPE("user-accounts",    cc_user_panel_get_type,                 NULL),
+ #ifdef BUILD_WACOM
+   PANEL_TYPE("wacom",            cc_wacom_panel_get_type,                cc_wacom_panel_static_init_func),
+Index: gnome-control-center/shell/cc-panel-list.c
+===================================================================
+--- gnome-control-center.orig/shell/cc-panel-list.c
++++ gnome-control-center/shell/cc-panel-list.c
+@@ -404,6 +404,7 @@ static const gchar * const panel_order[]
+ 
+   /* Details page */
+   "info-overview",
++  "upgrade",
+   "datetime",
+   "user-accounts",
+   "default-apps",
