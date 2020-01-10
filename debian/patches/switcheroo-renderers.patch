@@ -1,0 +1,494 @@
+--- a/meson.build
++++ b/meson.build
+@@ -132,6 +132,7 @@
+ gudev_dep = dependency('gudev-1.0')
+ x11_dep = dependency('x11')
+ xi_dep = dependency('xi', version: '>= 1.2')
++epoxy_dep = dependency('epoxy')
+ 
+ m_dep = cc.find_library('m')
+ 
+@@ -228,12 +229,6 @@
+ config_h.set('BUILD_THUNDERBOLT', host_is_linux_not_s390,
+              description: 'Define to 1 to build the Thunderbolt panel')
+ 
+-# Check for info panel
+-gnome_session_libexecdir = get_option('gnome_session_libexecdir')
+-if gnome_session_libexecdir == ''
+-  gnome_session_libexecdir = control_center_libexecdir
+-endif
+-
+ gnome = import('gnome')
+ i18n = import('i18n')
+ pkg = import('pkgconfig')
+@@ -275,7 +270,6 @@
+ output += ' Options \n'
+ output += '     Documentation .............................. ' + get_option('documentation').to_string() + '\n'
+ output += '     Tracing .................................... ' + enable_tracing.to_string() + '\n'
+-output += '     gnome-session libexecdir ................... ' + gnome_session_libexecdir + '\n'
+ output += '     Optimized .................................. ' + control_center_optimized.to_string() + '\n'
+ output += ' Panels \n'
+ output += '     GNOME Bluetooth (Bluetooth panel) .......... ' + host_is_linux_not_s390.to_string() + '\n'
+--- a/meson_options.txt
++++ b/meson_options.txt
+@@ -1,6 +1,5 @@
+ option('cheese', type: 'boolean', value: true, description: 'build with cheese webcam support')
+ option('documentation', type: 'boolean', value: false, description: 'build documentation')
+-option('gnome_session_libexecdir', type: 'string', value: '', description: 'Directory for gnome-session\'s libexecdir')
+ option('ibus', type: 'boolean', value: true, description: 'build with IBus support')
+ option('tracing', type: 'boolean', value: false, description: 'add extra debugging information')
+ option('wayland', type: 'boolean', value: true, description: 'build with Wayland support')
+\ No newline at end of file
+--- a/panels/info/cc-info-overview-panel.c
++++ b/panels/info/cc-info-overview-panel.c
+@@ -50,11 +50,6 @@
+ #include "cc-info-overview-panel.h"
+ 
+ 
+-typedef struct {
+-  /* Will be one or 2 GPU name strings, or "Unknown" */
+-  char *hardware_string;
+-} GraphicsData;
+-
+ typedef struct
+ {
+   GtkWidget      *system_image;
+@@ -81,8 +76,6 @@
+   GCancellable   *cancellable;
+ 
+   UDisksClient   *client;
+-
+-  GraphicsData   *graphics_data;
+ } CcInfoOverviewPanelPrivate;
+ 
+ struct _CcInfoOverviewPanel
+@@ -215,13 +208,6 @@
+   return FALSE;
+ };
+ 
+-static void
+-graphics_data_free (GraphicsData *gdata)
+-{
+-  g_free (gdata->hardware_string);
+-  g_slice_free (GraphicsData, gdata);
+-}
+-
+ static char *
+ get_renderer_from_session (void)
+ {
+@@ -257,26 +243,38 @@
+   return renderer;
+ }
+ 
++/* @env is an array of strings with each pair of strings being the
++ * key followed by the value */
+ static char *
+-get_renderer_from_helper (gboolean discrete_gpu)
++get_renderer_from_helper (const char **env)
+ {
+   int status;
+-  char *argv[] = { GNOME_SESSION_DIR "/gnome-session-check-accelerated", NULL };
++  char *argv[] = { LIBEXECDIR "/gnome-control-center-print-renderer", NULL };
+   g_auto(GStrv) envp = NULL;
+   g_autofree char *renderer = NULL;
+   g_autoptr(GError) error = NULL;
+ 
+-  if (discrete_gpu)
++  g_debug ("About to launch '%s'", argv[0]);
++
++  if (env != NULL)
+     {
++      guint i;
++      g_debug ("With environment:");
+       envp = g_get_environ ();
+-      envp = g_environ_setenv (envp, "DRI_PRIME", "1", TRUE);
++      for (i = 0; env[i] != NULL; i = i + 2)
++        {
++          g_debug ("  %s = %s", env[i], env[i+1]);
++          envp = g_environ_setenv (envp, env[i], env[i+1], TRUE);
++        }
++    }
++  else
++    {
++      g_debug ("No additional environment variables");
+     }
+ 
+   if (!g_spawn_sync (NULL, (char **) argv, envp, 0, NULL, NULL, &renderer, NULL, &status, &error))
+     {
+-      g_debug ("Failed to get %s GPU: %s",
+-               discrete_gpu ? "discrete" : "integrated",
+-               error->message);
++      g_debug ("Failed to get GPU: %s", error->message);
+       return NULL;
+     }
+ 
+@@ -289,13 +287,40 @@
+   return info_cleanup (renderer);
+ }
+ 
+-static gboolean
+-has_dual_gpu (void)
++typedef struct {
++  char *name;
++  gboolean is_default;
++} GpuData;
++
++static int
++gpu_data_sort (gconstpointer a, gconstpointer b)
++{
++  GpuData *gpu_a = (GpuData *) a;
++  GpuData *gpu_b = (GpuData *) b;
++
++  if (gpu_a->is_default)
++    return 1;
++  if (gpu_b->is_default)
++    return -1;
++  return 0;
++}
++
++static void
++gpu_data_free (GpuData *data)
++{
++  g_free (data->name);
++  g_free (data);
++}
++
++static char *
++get_renderer_from_switcheroo (void)
+ {
+   g_autoptr(GDBusProxy) switcheroo_proxy = NULL;
+-  g_autoptr(GVariant) dualgpu_variant = NULL;
+-  gboolean ret;
++  g_autoptr(GVariant) variant = NULL;
+   g_autoptr(GError) error = NULL;
++  GString *renderers_string;
++  guint i, num_children;
++  GSList *renderers, *l;
+ 
+   switcheroo_proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
+                                                     G_DBUS_PROXY_FLAGS_NONE,
+@@ -308,67 +333,97 @@
+     {
+       g_debug ("Unable to connect to create a proxy for net.hadess.SwitcherooControl: %s",
+                error->message);
+-      return FALSE;
++      return NULL;
+     }
+ 
+-  dualgpu_variant = g_dbus_proxy_get_cached_property (switcheroo_proxy, "HasDualGpu");
++  variant = g_dbus_proxy_get_cached_property (switcheroo_proxy, "GPUs");
+ 
+-  if (!dualgpu_variant)
++  if (!variant)
+     {
+-      g_debug ("Unable to retrieve net.hadess.SwitcherooControl.HasDualGpu property, the daemon is likely not running");
+-      return FALSE;
++      g_debug ("Unable to retrieve net.hadess.SwitcherooControl.GPUs property, the daemon is likely not running");
++      return NULL;
+     }
+ 
+-  ret = g_variant_get_boolean (dualgpu_variant);
++  renderers_string = g_string_new (NULL);
++  num_children = g_variant_n_children (variant);
++  renderers = NULL;
++  for (i = 0; i < num_children; i++)
++    {
++      g_autoptr(GVariant) gpu;
++      g_autoptr(GVariant) name = NULL;
++      g_autoptr(GVariant) env = NULL;
++      g_autoptr(GVariant) default_variant = NULL;
++      const char *name_s;
++      g_autofree const char **env_s = NULL;
++      g_autofree char *renderer = NULL;
++      GpuData *gpu_data;
+ 
+-  if (ret)
+-    g_debug ("Dual-GPU machine detected");
++      gpu = g_variant_get_child_value (variant, i);
++      if (!gpu ||
++          !g_variant_is_of_type (gpu, G_VARIANT_TYPE ("a{s*}")))
++        continue;
++
++      name = g_variant_lookup_value (gpu, "Name", NULL);
++      env = g_variant_lookup_value (gpu, "Environment", NULL);
++      if (!name || !env)
++        continue;
++      name_s = g_variant_get_string (name, NULL);
++      g_debug ("Getting renderer from helper for GPU '%s'", name_s);
++      env_s = g_variant_get_strv (env, NULL);
++      renderer = get_renderer_from_helper (env_s);
++      default_variant = g_variant_lookup_value (gpu, "Default", NULL);
++
++      /* We could give up if we don't have a renderer, but that
++       * might just mean gnome-session isn't installed. We fall back
++       * to the device name in udev instead, which is better than nothing */
++
++      gpu_data = g_new0 (GpuData, 1);
++      gpu_data->name = g_strdup (renderer ? renderer : name_s);
++      gpu_data->is_default = default_variant ? g_variant_get_boolean (default_variant) : FALSE;
++      renderers = g_slist_prepend (renderers, gpu_data);
++    }
++
++  renderers = g_slist_sort (renderers, gpu_data_sort);
++  for (l = renderers; l != NULL; l = l->next)
++    {
++      GpuData *data = l->data;
++      if (renderers_string->len > 0)
++        g_string_append (renderers_string, " / ");
++      g_string_append (renderers_string, data->name);
++    }
++  g_slist_free_full (renderers, (GDestroyNotify) gpu_data_free);
++
++  if (renderers_string->len == 0)
++    {
++      g_string_free (renderers_string, TRUE);
++      return NULL;
++    }
+ 
+-  return ret;
++  return g_string_free (renderers_string, FALSE);
+ }
+ 
+-static GraphicsData *
+-get_graphics_data (void)
++static gchar *
++get_graphics_hardware_string (void)
+ {
+-  GraphicsData *result;
+-  GdkDisplay *display;
+-
+-  result = g_slice_new0 (GraphicsData);
+-
+-  display = gdk_display_get_default ();
+-
+-#if defined(GDK_WINDOWING_X11) || defined(GDK_WINDOWING_WAYLAND)
+-  gboolean x11_or_wayland = FALSE;
+-#ifdef GDK_WINDOWING_X11
+-  x11_or_wayland = GDK_IS_X11_DISPLAY (display);
+-#endif
+-#ifdef GDK_WINDOWING_WAYLAND
+-  x11_or_wayland = x11_or_wayland || GDK_IS_WAYLAND_DISPLAY (display);
+-#endif
+-
+-  if (x11_or_wayland)
+-    {
+-      g_autofree char *discrete_renderer = NULL;
+-      g_autofree char *renderer = NULL;
++  g_autofree char *discrete_renderer = NULL;
++  g_autofree char *renderer = NULL;
+ 
+-      renderer = get_renderer_from_session ();
+-      if (!renderer)
+-        renderer = get_renderer_from_helper (FALSE);
+-      if (has_dual_gpu ())
+-        discrete_renderer = get_renderer_from_helper (TRUE);
+-      if (!discrete_renderer)
+-        result->hardware_string = g_strdup (renderer);
+-      else
+-        result->hardware_string = g_strdup_printf ("%s / %s",
+-                                                   renderer,
+-                                                   discrete_renderer);
++  renderer = get_renderer_from_session ();
++  if (!renderer)
++    renderer = get_renderer_from_helper (FALSE);
++  if (has_dual_gpu ())
++    discrete_renderer = get_renderer_from_helper (TRUE);
++
++  if (renderer != NULL)
++    {
++      if (discrete_renderer != NULL)
++        return g_strdup_printf ("%s / %s",
++                                renderer,
++                                discrete_renderer);
++      return g_strdup (renderer);
+     }
+-#endif
+-
+-  if (!result->hardware_string)
+-    result->hardware_string = g_strdup (_("Unknown"));
+ 
+-  return result;
++  return g_strdup(_("Unknown"));
+ }
+ 
+ static GHashTable*
+@@ -699,6 +754,7 @@
+   g_autofree char *cpu_text = NULL;
+   g_autofree char *os_type_text = NULL;
+   g_autofree char *os_name_text = NULL;
++  g_autofree gchar *graphics_hardware_string = NULL;
+   CcInfoOverviewPanelPrivate *priv = cc_info_overview_panel_get_instance_private (self);
+ 
+   res = load_gnome_version (&priv->gnome_version,
+@@ -728,7 +784,8 @@
+ 
+   get_primary_disc_info (self);
+ 
+-  gtk_label_set_markup (GTK_LABEL (priv->graphics_label), priv->graphics_data->hardware_string);
++  graphics_hardware_string = get_graphics_hardware_string ();
++  gtk_label_set_markup (GTK_LABEL (priv->graphics_label), graphics_hardware_string);
+ }
+ 
+ static gboolean
+@@ -767,16 +824,6 @@
+ }
+ 
+ static void
+-cc_info_overview_panel_dispose (GObject *object)
+-{
+-  CcInfoOverviewPanelPrivate *priv = cc_info_overview_panel_get_instance_private (CC_INFO_OVERVIEW_PANEL (object));
+-
+-  g_clear_pointer (&priv->graphics_data, graphics_data_free);
+-
+-  G_OBJECT_CLASS (cc_info_overview_panel_parent_class)->dispose (object);
+-}
+-
+-static void
+ cc_info_overview_panel_finalize (GObject *object)
+ {
+   CcInfoOverviewPanelPrivate *priv = cc_info_overview_panel_get_instance_private (CC_INFO_OVERVIEW_PANEL (object));
+@@ -803,7 +850,6 @@
+   GtkWidgetClass *widget_class = GTK_WIDGET_CLASS (klass);
+ 
+   object_class->finalize = cc_info_overview_panel_finalize;
+-  object_class->dispose = cc_info_overview_panel_dispose;
+ 
+   gtk_widget_class_set_template_from_resource (widget_class, "/org/gnome/control-center/info/cc-info-overview-panel.ui");
+ 
+@@ -835,8 +881,6 @@
+ 
+   g_resources_register (cc_info_get_resource ());
+ 
+-  priv->graphics_data = get_graphics_data ();
+-
+   if (does_gnome_software_exist () || does_gpk_update_viewer_exist ())
+     g_signal_connect (priv->updates_button, "clicked", G_CALLBACK (on_updates_button_clicked), self);
+   else
+--- /dev/null
++++ b/panels/info/gnome-control-center-print-renderer.c
+@@ -0,0 +1,61 @@
++/* -*- mode:c; c-basic-offset: 8; indent-tabs-mode: nil; -*- */
++/* Tool to set the property _GNOME_SESSION_ACCELERATED on the root window */
++/*
++ * Copyright (C) 2019 Red Hat, Inc.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
++ *
++ * Author:
++ *   Bastien Nocera <hadess@hadess.net>
++ *   Matthias Clasen <mclasen@redhat.com>
++ */
++
++#include <gtk/gtk.h>
++#include <epoxy/gl.h>
++
++static char *
++get_gtk_gles_renderer (void)
++{
++        GtkWidget *win;
++        GdkGLContext *context;
++        char *renderer = NULL;
++
++        win = gtk_window_new (GTK_WINDOW_TOPLEVEL);
++        gtk_widget_realize (win);
++        context = gdk_window_create_gl_context (gtk_widget_get_window (win), NULL);
++        if (!context)
++                return NULL;
++        gdk_gl_context_make_current (context);
++        renderer = g_strdup ((char *) glGetString (GL_RENDERER));
++        gdk_gl_context_clear_current ();
++        g_object_unref (context);
++
++        return renderer;
++}
++
++int
++main (int argc, char **argv)
++{
++        char *renderer_string = NULL;
++
++        gtk_init (NULL, NULL);
++
++        renderer_string = get_gtk_gles_renderer ();
++        if (renderer_string) {
++                g_print ("%s", renderer_string);
++                return 0;
++        }
++        return 1;
++}
+--- a/panels/info/info-cleanup.c
++++ b/panels/info/info-cleanup.c
+@@ -37,13 +37,13 @@
+   int   i;
+   static const ReplaceStrings rs[] = {
+     { "Mesa DRI ", ""},
+-    { "Intel[(]R[)]", "Intel<sup>\302\256</sup>"},
+-    { "Core[(]TM[)]", "Core<sup>\342\204\242</sup>"},
+-    { "Atom[(]TM[)]", "Atom<sup>\342\204\242</sup>"},
++    { "Intel[(]R[)]", "Intel\302\256"},
++    { "Core[(]TM[)]", "Core\342\204\242"},
++    { "Atom[(]TM[)]", "Atom\342\204\242"},
+     { "Gallium .* on (AMD .*)", "\\1"},
+     { "(AMD .*) [(].*", "\\1"},
+     { "(AMD [A-Z])(.*)", "\\1\\L\\2\\E"},
+-    { "AMD", "AMD<sup>\302\256</sup>"},
++    { "AMD", "AMD\302\256"},
+     { "Graphics Controller", "Graphics"},
+   };
+ 
+--- a/panels/info/meson.build
++++ b/panels/info/meson.build
+@@ -29,7 +29,7 @@
+ cflags += [
+   '-DBINDIR="@0@"'.format(control_center_bindir),
+   '-DDATADIR="@0@"'.format(control_center_datadir),
+-  '-DGNOME_SESSION_DIR="@0@"'.format(gnome_session_libexecdir),
++  '-DLIBEXECDIR="@0@"'.format(control_center_libexecdir),
+   '-DGNOMELOCALEDIR="@0@"'.format(control_center_localedir)
+ ]
+ 
+@@ -69,3 +69,13 @@
+   c_args: cflags
+ )
+ panels_libs += info_panel_lib
++
++executable(
++  'gnome-control-center-print-renderer',
++  'gnome-control-center-print-renderer.c',
++  include_directories: [ top_inc ],
++  dependencies: [ deps, epoxy_dep ],
++  c_args: cflags,
++  install: true,
++  install_dir: control_center_libexecdir,
++)
+--- a/tests/info/info-cleanup-test.txt
++++ b/tests/info/info-cleanup-test.txt
+@@ -1,8 +1,8 @@
+-Intel(R) Core(TM) i5-4590T CPU @ 2.00GHz	Intel<sup>®</sup> Core<sup>™</sup> i5-4590T CPU @ 2.00GHz
+-Intel(R) Ivybridge Mobile 	Intel<sup>®</sup> Ivybridge Mobile
+-Intel(R)  Ivybridge Mobile 	Intel<sup>®</sup> Ivybridge Mobile
+-Gallium 0.4 on AMD KAVERI	AMD<sup>®</sup> Kaveri
+-AMD KAVERI (DRM 2.48.0 / 4.9.0-0.rc4.git2.2.fc26.x86_64, LLVM3)	AMD<sup>®</sup> Kaveri
+-AMD KAVERI (DRM 2.48.0 / 4.9.0-0.rc4.git2.2.fc26.x86_64, LLVM3	AMD<sup>®</sup> Kaveri
+-Gallium 0.4 on AMD KAVERI (DRM 2.48.0 / 4.9.0-0.rc4.git2.2.fc26.x86_64, LLVM3)	AMD<sup>®</sup> Kaveri
+-Gallium 0.4 on AMD KAVERI (DRM 2.48.0 / 4.9.0-0.rc4.git2.2.fc26.x86_64, LLVM3	AMD<sup>®</sup> Kaveri
++Intel(R) Core(TM) i5-4590T CPU @ 2.00GHz	Intel® Core™ i5-4590T CPU @ 2.00GHz
++Intel(R) Ivybridge Mobile 	Intel® Ivybridge Mobile
++Intel(R)  Ivybridge Mobile 	Intel® Ivybridge Mobile
++Gallium 0.4 on AMD KAVERI	AMD® Kaveri
++AMD KAVERI (DRM 2.48.0 / 4.9.0-0.rc4.git2.2.fc26.x86_64, LLVM3)	AMD® Kaveri
++AMD KAVERI (DRM 2.48.0 / 4.9.0-0.rc4.git2.2.fc26.x86_64, LLVM3	AMD® Kaveri
++Gallium 0.4 on AMD KAVERI (DRM 2.48.0 / 4.9.0-0.rc4.git2.2.fc26.x86_64, LLVM3)	AMD® Kaveri
++Gallium 0.4 on AMD KAVERI (DRM 2.48.0 / 4.9.0-0.rc4.git2.2.fc26.x86_64, LLVM3	AMD® Kaveri
