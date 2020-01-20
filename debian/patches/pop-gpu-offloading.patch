@@ -1,0 +1,218 @@
+--- a/panels/applications/cc-applications-panel.c
++++ b/panels/applications/cc-applications-panel.c
+@@ -66,6 +66,7 @@
+   GSettings       *location_settings;
+   GSettings       *privacy_settings;
+   GSettings       *search_settings;
++  GSettings       *gpu_offloading_settings;
+ 
+   GtkListBox      *stack;
+ 
+@@ -89,6 +90,7 @@
+   GtkWidget       *no_sound;
+   GtkWidget       *search;
+   GtkWidget       *no_search;
++  GtkWidget       *gpu_offloading;
+ 
+   GtkWidget       *handler_section;
+   GtkWidget       *handler_reset;
+@@ -421,6 +423,140 @@
+   return g_settings_new_with_path (APP_SCHEMA, path);
+ }
+ 
++/* --- GPU offloading --- */
++
++static GSettings *
++get_gpu_offloading_settings (const gchar *app_id)
++{
++  const gchar * const schema = "org.gnome.system.graphics.application";
++  g_autofree gchar *munged_app_id = munge_app_id (app_id);
++  g_autofree gchar *path = g_strconcat ("/org/gnome/system/graphics/application/", munged_app_id, "/", NULL);
++
++  return g_settings_new_with_path (schema, path);
++}
++
++static gboolean
++has_dual_gpu (void)
++{
++  g_autoptr(GDBusProxy) proxy = NULL;
++  g_autoptr(GVariant) dualgpu_variant = NULL;
++  gboolean ret;
++  g_autoptr(GError) error = NULL;
++
++  proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
++                                         G_DBUS_PROXY_FLAGS_NONE,
++                                         NULL,
++                                         "net.hadess.SwitcherooControl",
++                                         "/net/hadess/SwitcherooControl",
++                                         "net.hadess.SwitcherooControl",
++                                         NULL,
++                                         &error);
++  if (!proxy)
++    {
++      g_debug ("Unable to connect to net.hadess.SwitcherooControl: %s", error->message);
++      return FALSE;
++    }
++
++  dualgpu_variant = g_dbus_proxy_get_cached_property (proxy, "HasDualGpu");
++
++  if (!dualgpu_variant)
++    {
++      g_debug ("Unable to retrieve net.hadess.SwitcherooControl.HasDualGpu property, the daemon is likely not running");
++      return FALSE;
++    }
++
++  ret = g_variant_get_boolean (dualgpu_variant);
++
++  if (ret)
++    g_debug ("Dual-GPU machine detected");
++
++  return ret;
++}
++
++static const char *
++get_graphics_mode (void)
++{
++  g_autoptr(GDBusProxy) proxy = NULL;
++  g_autoptr(GError) error = NULL;
++  g_autoptr(GVariant) mode = NULL;
++  const char *ret;
++
++  proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
++                                         G_DBUS_PROXY_FLAGS_NONE,
++                                         NULL,
++                                         "com.system76.PowerDaemon",
++                                         "/com/system76/PowerDaemon",
++                                         "com.system76.PowerDaemon",
++                                         NULL,
++                                         &error);
++  if (!proxy)
++    {
++      g_debug ("Unable to connect to com.system76.PowerDaemon: %s", error->message);
++      return NULL;
++    }
++
++  mode = g_dbus_proxy_call_sync (proxy,
++                                 "GetGraphics",
++                                 NULL,
++                                 0,
++                                 -1,
++                                 NULL,
++                                 &error);
++  if (!mode)
++    {
++      g_error ("Unable to determine graphics mode: %s", error->message);
++      return NULL;
++    }
++
++  g_variant_get (mode, "(s)", &ret, NULL);
++  g_debug ("Graphics mode: %s", ret);
++  return ret;
++}
++
++static void
++get_offloading_enabled (CcApplicationsPanel *self,
++                        GAppInfo            *info,
++                        gboolean            *set,
++                        gboolean            *enabled)
++{
++  const char *mode;
++  gboolean can_offload;
++  gboolean enable = FALSE;
++
++  mode = get_graphics_mode();
++  can_offload = g_strcmp0 (mode, "hybrid") == 0;
++
++  if (can_offload && G_IS_DESKTOP_APP_INFO (info))
++    {
++      GDesktopAppInfo *desktop_info = G_DESKTOP_APP_INFO (info);
++
++      // Only show the setting for apps that have opted in to support it.
++      can_offload = desktop_info && g_desktop_app_info_has_key (desktop_info, "X-KDE-RunOnDiscreteGpu");
++
++      enable = can_offload && g_desktop_app_info_get_boolean (desktop_info, "X-KDE-RunOnDiscreteGpu");
++      if (!enable)
++        enable = self->gpu_offloading_settings && g_settings_get_boolean (self->gpu_offloading_settings, "offload");
++    }
++
++  *set = can_offload;
++  *enabled = enable;
++}
++
++static void
++set_offloading_enabled (CcApplicationsPanel *self,
++                        gboolean             enabled)
++{
++  if (self->gpu_offloading_settings)
++    g_settings_set_boolean (self->gpu_offloading_settings, "offload", enabled);
++}
++
++static void
++gpu_offloading_cb (CcApplicationsPanel *self)
++{
++  if (self->current_app_id)
++    set_offloading_enabled (self, cc_toggle_row_get_allowed (CC_TOGGLE_ROW (self->gpu_offloading)));
++}
++
+ /* --- device (microphone, camera, speaker) permissions (flatpak) --- */
+ 
+ static void
+@@ -690,6 +826,19 @@
+       gtk_widget_hide (self->no_sound);
+     }
+ 
++  if (has_dual_gpu ())
++    {
++      g_set_object (&self->gpu_offloading_settings, get_gpu_offloading_settings (app_id));
++      get_offloading_enabled (self, info, &set, &allowed);
++      cc_toggle_row_set_allowed (CC_TOGGLE_ROW (self->gpu_offloading), allowed);
++      gtk_widget_set_visible(self->gpu_offloading, set);
++      has_any |= set;
++    }
++  else
++    {
++      gtk_widget_set_visible (self->gpu_offloading, FALSE);
++    }
++
+   gtk_widget_set_visible (self->integration_section, has_any);
+ }
+ 
+@@ -1574,6 +1723,7 @@
+   g_clear_object (&self->privacy_settings);
+   g_clear_object (&self->search_settings);
+   g_clear_object (&self->cancellable);
++  g_clear_object (&self->gpu_offloading_settings);
+ 
+   g_free (self->current_app_id);
+   g_free (self->current_flatpak_id);
+@@ -1674,6 +1824,7 @@
+   gtk_widget_class_bind_template_child (widget_class, CcApplicationsPanel, camera);
+   gtk_widget_class_bind_template_child (widget_class, CcApplicationsPanel, clear_cache_button);
+   gtk_widget_class_bind_template_child (widget_class, CcApplicationsPanel, data);
++  gtk_widget_class_bind_template_child (widget_class, CcApplicationsPanel, gpu_offloading);
+   gtk_widget_class_bind_template_child (widget_class, CcApplicationsPanel, header_button);
+   gtk_widget_class_bind_template_child (widget_class, CcApplicationsPanel, handler_section);
+   gtk_widget_class_bind_template_child (widget_class, CcApplicationsPanel, handler_reset);
+@@ -1720,6 +1871,7 @@
+   gtk_widget_class_bind_template_callback (widget_class, on_sidebar_search_entry_activated_cb);
+   gtk_widget_class_bind_template_callback (widget_class, on_sidebar_search_entry_search_changed_cb);
+   gtk_widget_class_bind_template_callback (widget_class, on_sidebar_search_entry_search_stopped_cb);
++  gtk_widget_class_bind_template_callback (widget_class, gpu_offloading_cb);
+ }
+ 
+ static void
+--- a/panels/applications/cc-applications-panel.ui
++++ b/panels/applications/cc-applications-panel.ui
+@@ -255,6 +255,12 @@
+                                 <property name="info" translatable="yes">Disabled</property>
+                               </object>
+                             </child>
++                            <child>
++                              <object class="CcToggleRow" id="gpu_offloading">
++                                <property name="title" translatable="yes">Launch using Dedicated Graphics Card</property>
++                                <signal name="notify::allowed" handler="gpu_offloading_cb" swapped="yes" />
++                              </object>
++                            </child>
+                             <style>
+                               <class name="view"/>
+                               <class name="frame"/>
