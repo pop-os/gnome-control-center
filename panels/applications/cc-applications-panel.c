@@ -18,6 +18,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
+#undef G_LOG_DOMAIN
 #define G_LOG_DOMAIN "cc-applications-panel"
 
 #include <config.h>
@@ -184,7 +185,7 @@ get_portal_permissions (CcApplicationsPanel *self,
   while (g_variant_iter_loop (iter, "{s@as}", &key, &val))
     {
       if (strcmp (key, app_id) == 0)
-        return g_variant_dup_strv (val, NULL); 
+        return g_variant_dup_strv (val, NULL);
     }
 
   val = NULL; /* freed by g_variant_iter_loop */
@@ -334,7 +335,7 @@ get_search_enabled (CcApplicationsPanel *self,
   else if (search_disabled_for_app (self, app_id))
     *enabled = FALSE;
   else
-    *enabled = !GPOINTER_TO_INT (value); 
+    *enabled = !GPOINTER_TO_INT (value);
 }
 
 static void
@@ -547,49 +548,47 @@ add_static_permissions (CcApplicationsPanel *self,
                         const gchar         *app_id)
 {
   g_autoptr(GKeyFile) keyfile = NULL;
-  gchar **strv;
-  gchar *str;
+  g_auto(GStrv) sockets = NULL;
+  g_auto(GStrv) devices = NULL;
+  g_auto(GStrv) shared = NULL;
+  g_auto(GStrv) filesystems = NULL;
+  g_autofree gchar *str = NULL;
   gint added = 0;
   g_autofree gchar *text = NULL;
-  
+
   keyfile = get_flatpak_metadata (app_id);
   if (keyfile == NULL)
     return FALSE;
 
-  strv = g_key_file_get_string_list (keyfile, "Context", "sockets", NULL, NULL);
-  if (strv && g_strv_contains ((const gchar * const*)strv, "system-bus"))
+  sockets = g_key_file_get_string_list (keyfile, "Context", "sockets", NULL, NULL);
+  if (sockets && g_strv_contains ((const gchar * const*)sockets, "system-bus"))
     added += add_static_permission_row (self, _("System Bus"), _("Full access"));
-  if (strv && g_strv_contains ((const gchar * const*)strv, "session-bus"))
+  if (sockets && g_strv_contains ((const gchar * const*)sockets, "session-bus"))
     added += add_static_permission_row (self, _("Session Bus"), _("Full access"));
-  g_strfreev (strv);
 
-  strv = g_key_file_get_string_list (keyfile, "Context", "devices", NULL, NULL);
-  if (strv && g_strv_contains ((const gchar * const*)strv, "all"))
+  devices = g_key_file_get_string_list (keyfile, "Context", "devices", NULL, NULL);
+  if (devices && g_strv_contains ((const gchar * const*)devices, "all"))
     added += add_static_permission_row (self, _("Devices"), _("Full access to /dev"));
-  g_strfreev (strv);
 
-  strv = g_key_file_get_string_list (keyfile, "Context", "shared", NULL, NULL);
-  if (strv && g_strv_contains ((const gchar * const*)strv, "network"))
+  shared = g_key_file_get_string_list (keyfile, "Context", "shared", NULL, NULL);
+  if (shared && g_strv_contains ((const gchar * const*)shared, "network"))
     added += add_static_permission_row (self, _("Network"), _("Has network access"));
-  g_strfreev (strv);
 
-  strv = g_key_file_get_string_list (keyfile, "Context", "filesystems", NULL, NULL);
-  if (strv && (g_strv_contains ((const gchar * const *)strv, "home") ||
-               g_strv_contains ((const gchar * const *)strv, "home:rw")))
+  filesystems = g_key_file_get_string_list (keyfile, "Context", "filesystems", NULL, NULL);
+  if (filesystems && (g_strv_contains ((const gchar * const *)filesystems, "home") ||
+               g_strv_contains ((const gchar * const *)filesystems, "home:rw")))
     added += add_static_permission_row (self, _("Home"), _("Full access"));
-  else if (strv && g_strv_contains ((const gchar * const *)strv, "home:ro"))
+  else if (filesystems && g_strv_contains ((const gchar * const *)filesystems, "home:ro"))
     added += add_static_permission_row (self, _("Home"), _("Read-only"));
-  if (strv && (g_strv_contains ((const gchar * const *)strv, "host") ||
-               g_strv_contains ((const gchar * const *)strv, "host:rw")))
+  if (filesystems && (g_strv_contains ((const gchar * const *)filesystems, "host") ||
+               g_strv_contains ((const gchar * const *)filesystems, "host:rw")))
     added += add_static_permission_row (self, _("File System"), _("Full access"));
-  else if (strv && g_strv_contains ((const gchar * const *)strv, "host:ro"))
+  else if (filesystems && g_strv_contains ((const gchar * const *)filesystems, "host:ro"))
     added += add_static_permission_row (self, _("File System"), _("Read-only"));
-  g_strfreev (strv);
 
   str = g_key_file_get_string (keyfile, "Session Bus Policy", "ca.desrt.dconf", NULL);
   if (str && g_str_equal (str, "talk"))
     added += add_static_permission_row (self, _("Settings"), _("Can change settings"));
-  g_free (str);
 
   gtk_widget_set_visible (self->builtin, added > 0);
 
@@ -703,7 +702,7 @@ unset_cb (CcActionRow         *row,
   GAppInfo *info;
 
   selected = gtk_list_box_get_selected_row (GTK_LIST_BOX (self->sidebar_listbox));
-  info = cc_applications_row_get_info (CC_APPLICATIONS_ROW (selected));  
+  info = cc_applications_row_get_info (CC_APPLICATIONS_ROW (selected));
 
   type = (const gchar *)g_object_get_data (G_OBJECT (row), "type");
 
@@ -785,7 +784,7 @@ add_file_type (CcApplicationsPanel *self,
                const gchar         *type)
 {
   CcActionRow *row;
-  const gchar *desc;
+  g_autofree gchar *desc = NULL;
   gint pos;
   const gchar *glob;
 
@@ -1120,7 +1119,7 @@ handler_reset_cb (GtkButton           *button,
   gint i;
 
   selected = gtk_list_box_get_selected_row (GTK_LIST_BOX (self->sidebar_listbox));
-  info = cc_applications_row_get_info (CC_APPLICATIONS_ROW (selected));  
+  info = cc_applications_row_get_info (CC_APPLICATIONS_ROW (selected));
 
   types = g_app_info_get_supported_types (info);
   if (types == NULL || types[0] == NULL)
@@ -1168,23 +1167,19 @@ update_handler_sections (CcApplicationsPanel *self,
   gtk_widget_set_sensitive (self->handler_reset, FALSE);
   for (i = 0; types[i]; i++)
     {
-      gchar *ctype = g_content_type_from_mime_type (types[i]);
+      g_autofree gchar *ctype = g_content_type_from_mime_type (types[i]);
 
       if (g_hash_table_contains (hash, ctype))
-        {
-          g_free (ctype);
-          continue;
-        }
+        continue;
 
       if (!app_info_recommended_for (info, ctype))
         {
           gtk_widget_set_sensitive (self->handler_reset, TRUE);
-          g_free (ctype);
           continue;
         }
 
-      g_hash_table_add (hash, ctype);
       add_handler_row (self, ctype);
+      g_hash_table_add (hash, g_steal_pointer (&ctype));
     }
 }
 
