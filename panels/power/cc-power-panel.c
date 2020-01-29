@@ -33,6 +33,7 @@
 #include "list-box-helper.h"
 #include "cc-power-panel.h"
 #include "cc-power-resources.h"
+#include "cc-util.h"
 
 /* Uncomment this to test the behaviour of the panel in
  * battery-less situations:
@@ -44,6 +45,12 @@
  * multiple appearing devices
  *
  * #define TEST_FAKE_DEVICES
+ */
+
+/* Uncomment this to test the behaviour of a desktop machine
+ * with a UPS
+ *
+ * #define TEST_UPS
  */
 
 struct _CcPowerPanel
@@ -871,6 +878,30 @@ up_client_changed (UpClient     *client,
   }
 #endif
 
+#ifdef TEST_UPS
+  {
+    static gboolean fake_devices_added = FALSE;
+
+    if (!fake_devices_added)
+      {
+        fake_devices_added = TRUE;
+        g_print ("adding fake UPS\n");
+        device = up_device_new ();
+        g_object_set (device,
+                      "kind", UP_DEVICE_KIND_UPS,
+                      "native-path", "dummy:usb-hiddev0",
+                      "model", "APC UPS",
+                      "percentage", 70.0,
+                      "state", UP_DEVICE_STATE_DISCHARGING,
+                      "is-present", TRUE,
+                      "power-supply", TRUE,
+                      "battery-level", UP_DEVICE_LEVEL_NONE,
+                      NULL);
+        g_ptr_array_add (self->devices, device);
+      }
+  }
+#endif
+
   on_ups = FALSE;
   n_batteries = 0;
   composite = up_client_get_display_device (self->up_client);
@@ -1254,46 +1285,6 @@ combo_time_changed_cb (GtkWidget *widget, CcPowerPanel *self)
   g_settings_set_int (self->gsd_settings, key, value);
 }
 
-/* Copied from src/properties/bacon-video-widget-properties.c
- * in totem */
-static char *
-time_to_string_text (gint64 msecs)
-{
-	int sec, min, hour, _time;
-	g_autofree gchar *hours;
-	g_autofree gchar *mins;
-	g_autofree gchar *secs;
-
-	_time = (int) (msecs / 1000);
-	sec = _time % 60;
-	_time = _time - sec;
-	min = (_time % (60*60)) / 60;
-	_time = _time - (min * 60);
-	hour = _time / (60*60);
-
-	hours = g_strdup_printf (g_dngettext (GETTEXT_PACKAGE, "%d hour", "%d hours", hour), hour);
-
-	mins = g_strdup_printf (g_dngettext (GETTEXT_PACKAGE, "%d minute",
-					  "%d minutes", min), min);
-
-	secs = g_strdup_printf (g_dngettext (GETTEXT_PACKAGE, "%d second",
-					  "%d seconds", sec), sec);
-
-	if (hour > 0) {
-		/* 5 hours 2 minutes 12 seconds */
-		return g_strdup_printf (C_("time", "%s %s %s"), hours, mins, secs);
-	} else if (min > 0) {
-		/* 2 minutes 12 seconds */
-		return g_strdup_printf (C_("time", "%s %s"), mins, secs);
-	} else if (sec > 0) {
-		/* 10 seconds */
-		return g_strdup (secs);
-	} else {
-		/* 0 seconds */
-		return g_strdup (_("0 seconds"));
-	}
-}
-
 static void
 set_value_for_combo (GtkComboBox *combo_box, gint value)
 {
@@ -1335,7 +1326,7 @@ set_value_for_combo (GtkComboBox *combo_box, gint value)
   /* The value is not listed, so add it at the best point (or the end). */
   gtk_list_store_insert_before (GTK_LIST_STORE (model), &new, insert);
 
-  text = time_to_string_text (value * 1000);
+  text = cc_util_time_to_string_text (value * 1000);
   gtk_list_store_set (GTK_LIST_STORE (model), &new,
                       ACTION_MODEL_TEXT, text,
                       ACTION_MODEL_VALUE, value,
@@ -1350,7 +1341,7 @@ set_ac_battery_ui_mode (CcPowerPanel *self)
   GPtrArray *devices;
   guint i;
 
-  devices = up_client_get_devices (self->up_client);
+  devices = up_client_get_devices2 (self->up_client);
   g_debug ("got %d devices from upower\n", devices ? devices->len : 0);
 
   for (i = 0; devices != NULL && i < devices->len; i++)
@@ -1767,6 +1758,7 @@ add_brightness_row (CcPowerPanel  *self,
   gtk_scale_set_draw_value (GTK_SCALE (scale), FALSE);
   gtk_box_pack_start (GTK_BOX (box2), scale, TRUE, TRUE, 0);
   gtk_size_group_add_widget (self->level_sizegroup, scale);
+  gtk_range_set_round_digits (GTK_RANGE (scale), 0);
   g_signal_connect (scale, "value-changed",
                     G_CALLBACK (brightness_slider_value_changed_cb), self);
 

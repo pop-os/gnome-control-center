@@ -29,6 +29,24 @@
 #include "eap-method.h"
 #include "utils.h"
 
+struct _WirelessSecurityPrivate {
+	guint32 refcount;
+	gsize obj_size;
+	WSChangedFunc changed_notify;
+	gpointer changed_notify_data;
+	gboolean adhoc_compatible;
+	gboolean hotspot_compatible;
+
+	char *username, *password;
+	gboolean always_ask, show_password;
+
+	WSAddToSizeGroupFunc add_to_size_group;
+	WSFillConnectionFunc fill_connection;
+	WSGetWidgetFunc get_widget;
+	WSValidateFunc validate;
+	WSDestroyFunc destroy;
+};
+
 GType
 wireless_security_get_type (void)
 {
@@ -46,210 +64,263 @@ wireless_security_get_type (void)
 }
 
 GtkWidget *
-wireless_security_get_widget (WirelessSecurity *sec)
+wireless_security_get_widget (WirelessSecurity *self)
 {
-	g_return_val_if_fail (sec != NULL, NULL);
+	WirelessSecurityPrivate *priv = self->priv;
+	g_return_val_if_fail (self != NULL, NULL);
 
-	return sec->ui_widget;
+	g_assert (priv->get_widget);
+	return (*(priv->get_widget)) (self);
 }
 
 void
-wireless_security_set_changed_notify (WirelessSecurity *sec,
+wireless_security_set_changed_notify (WirelessSecurity *self,
                                       WSChangedFunc func,
                                       gpointer user_data)
 {
-	g_return_if_fail (sec != NULL);
+	WirelessSecurityPrivate *priv = self->priv;
+	g_return_if_fail (self != NULL);
 
-	sec->changed_notify = func;
-	sec->changed_notify_data = user_data;
+	priv->changed_notify = func;
+	priv->changed_notify_data = user_data;
 }
 
 void
-wireless_security_changed_cb (GtkWidget *ignored, gpointer user_data)
+wireless_security_notify_changed (WirelessSecurity *self)
 {
-	WirelessSecurity *sec = WIRELESS_SECURITY (user_data);
+	WirelessSecurityPrivate *priv = self->priv;
 
-	if (sec->changed_notify)
-		(*(sec->changed_notify)) (sec, sec->changed_notify_data);
+	if (priv->changed_notify)
+		(*(priv->changed_notify)) (self, priv->changed_notify_data);
 }
 
 gboolean
-wireless_security_validate (WirelessSecurity *sec, GError **error)
+wireless_security_validate (WirelessSecurity *self, GError **error)
 {
+	WirelessSecurityPrivate *priv = self->priv;
 	gboolean result;
 
-	g_return_val_if_fail (sec != NULL, FALSE);
+	g_return_val_if_fail (self != NULL, FALSE);
 	g_return_val_if_fail (!error || !*error, FALSE);
 
-	g_assert (sec->validate);
-	result = (*(sec->validate)) (sec, error);
+	g_assert (priv->validate);
+	result = (*(priv->validate)) (self, error);
 	if (!result && error && !*error)
 		g_set_error_literal (error, NMA_ERROR, NMA_ERROR_GENERIC, _("Unknown error validating 802.1X security"));
 	return result;
 }
 
 void
-wireless_security_add_to_size_group (WirelessSecurity *sec, GtkSizeGroup *group)
+wireless_security_add_to_size_group (WirelessSecurity *self, GtkSizeGroup *group)
 {
-	g_return_if_fail (sec != NULL);
+	WirelessSecurityPrivate *priv = self->priv;
+
+	g_return_if_fail (self != NULL);
 	g_return_if_fail (group != NULL);
 
-	g_assert (sec->add_to_size_group);
-	return (*(sec->add_to_size_group)) (sec, group);
+	g_assert (priv->add_to_size_group);
+	return (*(priv->add_to_size_group)) (self, group);
 }
 
 void
-wireless_security_fill_connection (WirelessSecurity *sec,
+wireless_security_fill_connection (WirelessSecurity *self,
                                    NMConnection *connection)
 {
-	g_return_if_fail (sec != NULL);
+	WirelessSecurityPrivate *priv = self->priv;
+
+	g_return_if_fail (self != NULL);
 	g_return_if_fail (connection != NULL);
 
-	g_assert (sec->fill_connection);
-	return (*(sec->fill_connection)) (sec, connection);
-}
-
-void
-wireless_security_update_secrets (WirelessSecurity *sec, NMConnection *connection)
-{
-	g_return_if_fail (sec != NULL);
-	g_return_if_fail (connection != NULL);
-
-	if (sec->update_secrets)
-		sec->update_secrets (sec, connection);
+	g_assert (priv->fill_connection);
+	return (*(priv->fill_connection)) (self, connection);
 }
 
 WirelessSecurity *
-wireless_security_ref (WirelessSecurity *sec)
+wireless_security_ref (WirelessSecurity *self)
 {
-	g_return_val_if_fail (sec != NULL, NULL);
-	g_return_val_if_fail (sec->refcount > 0, NULL);
+	WirelessSecurityPrivate *priv = self->priv;
 
-	sec->refcount++;
-	return sec;
+	g_return_val_if_fail (self != NULL, NULL);
+	g_return_val_if_fail (priv->refcount > 0, NULL);
+
+	priv->refcount++;
+	return self;
 }
 
 void
-wireless_security_unref (WirelessSecurity *sec)
+wireless_security_unref (WirelessSecurity *self)
 {
-	g_return_if_fail (sec != NULL);
-	g_return_if_fail (sec->refcount > 0);
+	WirelessSecurityPrivate *priv = self->priv;
 
-	sec->refcount--;
-	if (sec->refcount == 0) {
-		if (sec->destroy)
-			sec->destroy (sec);
+	g_return_if_fail (self != NULL);
+	g_return_if_fail (priv->refcount > 0);
 
-		g_free (sec->username);
-		if (sec->password) {
-			memset (sec->password, 0, strlen (sec->password));
-			g_free (sec->password);
-		}
+	priv->refcount--;
+	if (priv->refcount == 0) {
+		if (priv->destroy)
+			priv->destroy (self);
 
-		if (sec->builder)
-			g_object_unref (sec->builder);
-		if (sec->ui_widget)
-			g_object_unref (sec->ui_widget);
-		g_slice_free1 (sec->obj_size, sec);
+		if (priv->password)
+			memset (priv->password, 0, strlen (priv->password));
+
+		g_clear_pointer (&priv->username, g_free);
+		g_clear_pointer (&priv->password, g_free);
+
+		g_clear_object (&self->builder);
+		g_slice_free1 (priv->obj_size, self);
+		g_free (priv);
 	}
 }
 
 WirelessSecurity *
 wireless_security_init (gsize obj_size,
+                        WSGetWidgetFunc get_widget,
                         WSValidateFunc validate,
                         WSAddToSizeGroupFunc add_to_size_group,
                         WSFillConnectionFunc fill_connection,
-                        WSUpdateSecretsFunc update_secrets,
                         WSDestroyFunc destroy,
-                        const char *ui_resource,
-                        const char *ui_widget_name,
-                        const char *default_field)
+                        const char *ui_resource)
 {
-	WirelessSecurity *sec;
-	GError *error = NULL;
+	g_autoptr(WirelessSecurity) self = NULL;
+	WirelessSecurityPrivate *priv;
+	g_autoptr(GError) error = NULL;
 
 	g_return_val_if_fail (obj_size > 0, NULL);
 	g_return_val_if_fail (ui_resource != NULL, NULL);
-	g_return_val_if_fail (ui_widget_name != NULL, NULL);
 
 	g_type_ensure (WIRELESS_TYPE_SECURITY);
 
-	sec = g_slice_alloc0 (obj_size);
-	g_assert (sec);
+	self = g_slice_alloc0 (obj_size);
+	g_assert (self);
+	self->priv = priv = g_new0 (WirelessSecurityPrivate, 1);
 
-	sec->refcount = 1;
-	sec->obj_size = obj_size;
+	priv->refcount = 1;
+	priv->obj_size = obj_size;
 
-	sec->validate = validate;
-	sec->add_to_size_group = add_to_size_group;
-	sec->fill_connection = fill_connection;
-	sec->update_secrets = update_secrets;
-	sec->default_field = default_field;
+	priv->get_widget = get_widget;
+	priv->validate = validate;
+	priv->add_to_size_group = add_to_size_group;
+	priv->fill_connection = fill_connection;
 
-	sec->builder = gtk_builder_new ();
-	if (!gtk_builder_add_from_resource (sec->builder, ui_resource, &error)) {
+	self->builder = gtk_builder_new ();
+	if (!gtk_builder_add_from_resource (self->builder, ui_resource, &error)) {
 		g_warning ("Couldn't load UI builder resource %s: %s",
 		           ui_resource, error->message);
-		g_error_free (error);
-		wireless_security_unref (sec);
 		return NULL;
 	}
 
-	sec->ui_widget = GTK_WIDGET (gtk_builder_get_object (sec->builder, ui_widget_name));
-	if (!sec->ui_widget) {
-		g_warning ("Couldn't load UI widget '%s' from UI file %s",
-		           ui_widget_name, ui_resource);
-		wireless_security_unref (sec);
-		return NULL;
-	}
-	g_object_ref_sink (sec->ui_widget);
+	priv->destroy = destroy;
+	priv->adhoc_compatible = TRUE;
+	priv->hotspot_compatible = TRUE;
 
-	sec->destroy = destroy;
-	sec->adhoc_compatible = TRUE;
-	sec->hotspot_compatible = TRUE;
-
-	return sec;
-}
-
-gboolean
-wireless_security_adhoc_compatible (WirelessSecurity *sec)
-{
-	g_return_val_if_fail (sec != NULL, FALSE);
-
-	return sec->adhoc_compatible;
-}
-
-gboolean
-wireless_security_hotspot_compatible (WirelessSecurity *sec)
-{
-	g_return_val_if_fail (sec != NULL, FALSE);
-
-	return sec->hotspot_compatible;
+	return g_steal_pointer (&self);
 }
 
 void
-wireless_security_set_userpass (WirelessSecurity *sec,
+wireless_security_set_adhoc_compatible (WirelessSecurity *self, gboolean adhoc_compatible)
+{
+	WirelessSecurityPrivate *priv = self->priv;
+
+	g_return_if_fail (self != NULL);
+
+	priv->adhoc_compatible = adhoc_compatible;
+}
+
+gboolean
+wireless_security_adhoc_compatible (WirelessSecurity *self)
+{
+	WirelessSecurityPrivate *priv = self->priv;
+
+	g_return_val_if_fail (self != NULL, FALSE);
+
+	return priv->adhoc_compatible;
+}
+
+void
+wireless_security_set_hotspot_compatible (WirelessSecurity *self, gboolean hotspot_compatible)
+{
+	WirelessSecurityPrivate *priv = self->priv;
+
+	g_return_if_fail (self != NULL);
+
+	priv->hotspot_compatible = hotspot_compatible;
+}
+
+gboolean
+wireless_security_hotspot_compatible (WirelessSecurity *self)
+{
+	WirelessSecurityPrivate *priv = self->priv;
+
+	g_return_val_if_fail (self != NULL, FALSE);
+
+	return priv->hotspot_compatible;
+}
+
+const gchar *
+wireless_security_get_username (WirelessSecurity *self)
+{
+	WirelessSecurityPrivate *priv = self->priv;
+
+	g_return_val_if_fail (self != NULL, NULL);
+
+	return priv->username;
+}
+
+const gchar *
+wireless_security_get_password (WirelessSecurity *self)
+{
+	WirelessSecurityPrivate *priv = self->priv;
+
+	g_return_val_if_fail (self != NULL, NULL);
+
+	return priv->password;
+}
+
+gboolean
+wireless_security_get_always_ask (WirelessSecurity *self)
+{
+	WirelessSecurityPrivate *priv = self->priv;
+
+	g_return_val_if_fail (self != NULL, FALSE);
+
+	return priv->always_ask;
+}
+
+gboolean
+wireless_security_get_show_password (WirelessSecurity *self)
+{
+	WirelessSecurityPrivate *priv = self->priv;
+
+	g_return_val_if_fail (self != NULL, FALSE);
+
+	return priv->show_password;
+}
+
+void
+wireless_security_set_userpass (WirelessSecurity *self,
                                 const char *user,
                                 const char *password,
                                 gboolean always_ask,
                                 gboolean show_password)
 {
-	g_free (sec->username);
-	sec->username = g_strdup (user);
+	WirelessSecurityPrivate *priv = self->priv;
 
-	if (sec->password) {
-		memset (sec->password, 0, strlen (sec->password));
-		g_free (sec->password);
-	}
-	sec->password = g_strdup (password);
+	g_clear_pointer (&priv->username, g_free);
+	priv->username = g_strdup (user);
+
+	if (priv->password)
+		memset (priv->password, 0, strlen (priv->password));
+
+	g_clear_pointer (&priv->password, g_free);
+	priv->password = g_strdup (password);
 
 	if (always_ask != (gboolean) -1)
-		sec->always_ask = always_ask;
-	sec->show_password = show_password;
+		priv->always_ask = always_ask;
+	priv->show_password = show_password;
 }
 
 void
-wireless_security_set_userpass_802_1x (WirelessSecurity *sec,
+wireless_security_set_userpass_802_1x (WirelessSecurity *self,
                                        NMConnection *connection)
 {
 	const char *user = NULL, *password = NULL;
@@ -271,7 +342,7 @@ wireless_security_set_userpass_802_1x (WirelessSecurity *sec,
 		always_ask = !!(flags & NM_SETTING_SECRET_FLAG_NOT_SAVED);
 
 set:
-	wireless_security_set_userpass (sec, user, password, always_ask, show_password);
+	wireless_security_set_userpass (self, user, password, always_ask, show_password);
 }
 
 void
@@ -290,68 +361,51 @@ wireless_security_clear_ciphers (NMConnection *connection)
 }
 
 void
-ws_802_1x_add_to_size_group (WirelessSecurity *sec,
-                             GtkSizeGroup *size_group,
-                             const char *label_name,
-                             const char *combo_name)
+ws_802_1x_add_to_size_group (GtkSizeGroup *size_group,
+                             GtkLabel *label,
+                             GtkComboBox *combo)
 {
-	GtkWidget *widget;
 	GtkTreeModel *model;
 	GtkTreeIter iter;
-	EAPMethod *eap;
+	g_autoptr(EAPMethod) eap = NULL;
 
-	widget = GTK_WIDGET (gtk_builder_get_object (sec->builder, label_name));
-	g_assert (widget);
-	gtk_size_group_add_widget (size_group, widget);
+	gtk_size_group_add_widget (size_group, GTK_WIDGET (label));
 
-	widget = GTK_WIDGET (gtk_builder_get_object (sec->builder, combo_name));
-	g_assert (widget);
-
-	model = gtk_combo_box_get_model (GTK_COMBO_BOX (widget));
-	gtk_combo_box_get_active_iter (GTK_COMBO_BOX (widget), &iter);
+	model = gtk_combo_box_get_model (combo);
+	gtk_combo_box_get_active_iter (combo, &iter);
 	gtk_tree_model_get (model, &iter, AUTH_METHOD_COLUMN, &eap, -1);
 	g_assert (eap);
 	eap_method_add_to_size_group (eap, size_group);
-	eap_method_unref (eap);
 }
 
 gboolean
-ws_802_1x_validate (WirelessSecurity *sec, const char *combo_name, GError **error)
+ws_802_1x_validate (GtkComboBox *combo, GError **error)
 {
-	GtkWidget *widget;
 	GtkTreeModel *model;
 	GtkTreeIter iter;
-	EAPMethod *eap = NULL;
+	g_autoptr(EAPMethod) eap = NULL;
 	gboolean valid = FALSE;
 
-	widget = GTK_WIDGET (gtk_builder_get_object (sec->builder, combo_name));
-	g_assert (widget);
-
-	model = gtk_combo_box_get_model (GTK_COMBO_BOX (widget));
-	gtk_combo_box_get_active_iter (GTK_COMBO_BOX (widget), &iter);
+	model = gtk_combo_box_get_model (combo);
+	gtk_combo_box_get_active_iter (combo, &iter);
 	gtk_tree_model_get (model, &iter, AUTH_METHOD_COLUMN, &eap, -1);
 	g_assert (eap);
 	valid = eap_method_validate (eap, error);
-	eap_method_unref (eap);
 	return valid;
 }
 
 void
 ws_802_1x_auth_combo_changed (GtkWidget *combo,
-                              WirelessSecurity *sec,
-                              const char *vbox_name,
+                              WirelessSecurity *self,
+                              GtkBox *vbox,
                               GtkSizeGroup *size_group)
 {
-	GtkWidget *vbox;
-	EAPMethod *eap = NULL;
+	g_autoptr(EAPMethod) eap = NULL;
 	GList *elt, *children;
 	GtkTreeModel *model;
 	GtkTreeIter iter;
 	GtkWidget *eap_widget;
 	GtkWidget *eap_default_widget = NULL;
-
-	vbox = GTK_WIDGET (gtk_builder_get_object (sec->builder, vbox_name));
-	g_assert (vbox);
 
 	/* Remove any previous wireless security widgets */
 	children = gtk_container_get_children (GTK_CONTAINER (vbox));
@@ -378,30 +432,25 @@ ws_802_1x_auth_combo_changed (GtkWidget *combo,
 			gtk_widget_grab_focus (eap_default_widget);
 	}
 
-	eap_method_unref (eap);
-
-	wireless_security_changed_cb (combo, WIRELESS_SECURITY (sec));
+	wireless_security_notify_changed (WIRELESS_SECURITY (self));
 }
 
-GtkWidget *
-ws_802_1x_auth_combo_init (WirelessSecurity *sec,
-                           const char *combo_name,
-                           const char *combo_label,
+void
+ws_802_1x_auth_combo_init (WirelessSecurity *self,
+                           GtkComboBox *combo,
+                           GtkLabel *label,
                            GCallback auth_combo_changed_cb,
                            NMConnection *connection,
                            gboolean is_editor,
                            gboolean secrets_only)
 {
-	GtkWidget *combo, *widget;
-	GtkListStore *auth_model;
+	g_autoptr(GtkListStore) auth_model = NULL;
 	GtkTreeIter iter;
-	EAPMethodSimple *em_md5;
-	EAPMethodTLS *em_tls;
-	EAPMethodLEAP *em_leap;
-	EAPMethodSimple *em_pwd;
-	EAPMethodFAST *em_fast;
-	EAPMethodTTLS *em_ttls;
-	EAPMethodPEAP *em_peap;
+	g_autoptr(EAPMethodTLS) em_tls = NULL;
+	g_autoptr(EAPMethodSimple) em_pwd = NULL;
+	g_autoptr(EAPMethodFAST) em_fast = NULL;
+	g_autoptr(EAPMethodTTLS) em_ttls = NULL;
+	g_autoptr(EAPMethodPEAP) em_peap = NULL;
 	const char *default_method = NULL, *ctype = NULL;
 	int active = -1, item = 0;
 	gboolean wired = FALSE;
@@ -425,7 +474,7 @@ ws_802_1x_auth_combo_init (WirelessSecurity *sec,
 	}
 
 	/* initialize WirelessSecurity userpass from connection (clear if no connection) */
-	wireless_security_set_userpass_802_1x (sec, connection);
+	wireless_security_set_userpass_802_1x (self, connection);
 
 	auth_model = gtk_list_store_new (2, G_TYPE_STRING, eap_method_get_type ());
 
@@ -435,121 +484,108 @@ ws_802_1x_auth_combo_init (WirelessSecurity *sec,
 		simple_flags |= EAP_METHOD_SIMPLE_FLAG_SECRETS_ONLY;
 
 	if (wired) {
-		em_md5 = eap_method_simple_new (sec, connection, EAP_METHOD_SIMPLE_TYPE_MD5, simple_flags);
+		g_autoptr(EAPMethodSimple) em_md5 = NULL;
+
+		em_md5 = eap_method_simple_new (self, connection, EAP_METHOD_SIMPLE_TYPE_MD5, simple_flags);
 		gtk_list_store_append (auth_model, &iter);
 		gtk_list_store_set (auth_model, &iter,
 			                AUTH_NAME_COLUMN, _("MD5"),
 			                AUTH_METHOD_COLUMN, em_md5,
 			                -1);
-		eap_method_unref (EAP_METHOD (em_md5));
 		if (default_method && (active < 0) && !strcmp (default_method, "md5"))
 			active = item;
 		item++;
 	}
 
-	em_tls = eap_method_tls_new (sec, connection, FALSE, secrets_only);
+	em_tls = eap_method_tls_new (self, connection, FALSE, secrets_only);
 	gtk_list_store_append (auth_model, &iter);
 	gtk_list_store_set (auth_model, &iter,
 	                    AUTH_NAME_COLUMN, _("TLS"),
 	                    AUTH_METHOD_COLUMN, em_tls,
 	                    -1);
-	eap_method_unref (EAP_METHOD (em_tls));
 	if (default_method && (active < 0) && !strcmp (default_method, "tls"))
 		active = item;
 	item++;
 
 	if (!wired) {
-		em_leap = eap_method_leap_new (sec, connection, secrets_only);
+		g_autoptr(EAPMethodLEAP) em_leap = NULL;
+
+		em_leap = eap_method_leap_new (self, connection, secrets_only);
 		gtk_list_store_append (auth_model, &iter);
 		gtk_list_store_set (auth_model, &iter,
 		                    AUTH_NAME_COLUMN, _("LEAP"),
 		                    AUTH_METHOD_COLUMN, em_leap,
 		                    -1);
-		eap_method_unref (EAP_METHOD (em_leap));
 		if (default_method && (active < 0) && !strcmp (default_method, "leap"))
 			active = item;
 		item++;
 	}
 
-	em_pwd = eap_method_simple_new (sec, connection, EAP_METHOD_SIMPLE_TYPE_PWD, simple_flags);
+	em_pwd = eap_method_simple_new (self, connection, EAP_METHOD_SIMPLE_TYPE_PWD, simple_flags);
 	gtk_list_store_append (auth_model, &iter);
 	gtk_list_store_set (auth_model, &iter,
 	                    AUTH_NAME_COLUMN, _("PWD"),
 	                    AUTH_METHOD_COLUMN, em_pwd,
 	                    -1);
-	eap_method_unref (EAP_METHOD (em_pwd));
 	if (default_method && (active < 0) && !strcmp (default_method, "pwd"))
 		active = item;
 	item++;
 
-	em_fast = eap_method_fast_new (sec, connection, is_editor, secrets_only);
+	em_fast = eap_method_fast_new (self, connection, is_editor, secrets_only);
 	gtk_list_store_append (auth_model, &iter);
 	gtk_list_store_set (auth_model, &iter,
 	                    AUTH_NAME_COLUMN, _("FAST"),
 	                    AUTH_METHOD_COLUMN, em_fast,
 	                    -1);
-	eap_method_unref (EAP_METHOD (em_fast));
 	if (default_method && (active < 0) && !strcmp (default_method, "fast"))
 		active = item;
 	item++;
 
-	em_ttls = eap_method_ttls_new (sec, connection, is_editor, secrets_only);
+	em_ttls = eap_method_ttls_new (self, connection, is_editor, secrets_only);
 	gtk_list_store_append (auth_model, &iter);
 	gtk_list_store_set (auth_model, &iter,
 	                    AUTH_NAME_COLUMN, _("Tunneled TLS"),
 	                    AUTH_METHOD_COLUMN, em_ttls,
 	                    -1);
-	eap_method_unref (EAP_METHOD (em_ttls));
 	if (default_method && (active < 0) && !strcmp (default_method, "ttls"))
 		active = item;
 	item++;
 
-	em_peap = eap_method_peap_new (sec, connection, is_editor, secrets_only);
+	em_peap = eap_method_peap_new (self, connection, is_editor, secrets_only);
 	gtk_list_store_append (auth_model, &iter);
 	gtk_list_store_set (auth_model, &iter,
 	                    AUTH_NAME_COLUMN, _("Protected EAP (PEAP)"),
 	                    AUTH_METHOD_COLUMN, em_peap,
 	                    -1);
-	eap_method_unref (EAP_METHOD (em_peap));
 	if (default_method && (active < 0) && !strcmp (default_method, "peap"))
 		active = item;
 	item++;
 
-	combo = GTK_WIDGET (gtk_builder_get_object (sec->builder, combo_name));
-	g_assert (combo);
+	gtk_combo_box_set_model (combo, GTK_TREE_MODEL (auth_model));
+	gtk_combo_box_set_active (combo, active < 0 ? 0 : (guint32) active);
 
-	gtk_combo_box_set_model (GTK_COMBO_BOX (combo), GTK_TREE_MODEL (auth_model));
-	g_object_unref (G_OBJECT (auth_model));
-	gtk_combo_box_set_active (GTK_COMBO_BOX (combo), active < 0 ? 0 : (guint32) active);
-
-	g_signal_connect (G_OBJECT (combo), "changed", auth_combo_changed_cb, sec);
+	g_signal_connect (G_OBJECT (combo), "changed", auth_combo_changed_cb, self);
 
 	if (secrets_only) {
-		gtk_widget_hide (combo);
-		widget = GTK_WIDGET (gtk_builder_get_object (sec->builder, combo_label));
-		gtk_widget_hide (widget);
+		gtk_widget_hide (GTK_WIDGET (combo));
+		gtk_widget_hide (GTK_WIDGET (label));
 	}
-
-	return combo;
 }
 
 void
-ws_802_1x_fill_connection (WirelessSecurity *sec,
-                           const char *combo_name,
+ws_802_1x_fill_connection (GtkComboBox *combo,
                            NMConnection *connection)
 {
-	GtkWidget *widget;
 	NMSettingWirelessSecurity *s_wireless_sec;
 	NMSetting8021x *s_8021x;
 	NMSettingSecretFlags secret_flags = NM_SETTING_SECRET_FLAG_NONE;
-	EAPMethod *eap = NULL;
+	g_autoptr(EAPMethod) eap = NULL;
 	GtkTreeModel *model;
 	GtkTreeIter iter;
 
 	/* Get the EAPMethod object */
-	widget = GTK_WIDGET (gtk_builder_get_object (sec->builder, combo_name));
-	model = gtk_combo_box_get_model (GTK_COMBO_BOX (widget));
-	gtk_combo_box_get_active_iter (GTK_COMBO_BOX (widget), &iter);
+	model = gtk_combo_box_get_model (combo);
+	gtk_combo_box_get_active_iter (combo, &iter);
 	gtk_tree_model_get (model, &iter, AUTH_METHOD_COLUMN, &eap, -1);
 	g_assert (eap);
 
@@ -569,35 +605,28 @@ ws_802_1x_fill_connection (WirelessSecurity *sec,
 	nm_connection_add_setting (connection, (NMSetting *) s_8021x);
 
 	eap_method_fill_connection (eap, connection, secret_flags);
-	eap_method_unref (eap);
 }
 
 void
-ws_802_1x_update_secrets (WirelessSecurity *sec,
-                          const char *combo_name,
+ws_802_1x_update_secrets (GtkComboBox *combo,
                           NMConnection *connection)
 {
-	GtkWidget *widget;
-	EAPMethod *eap = NULL;
 	GtkTreeModel *model;
 	GtkTreeIter iter;
 
-	g_return_if_fail (sec != NULL);
-	g_return_if_fail (combo_name != NULL);
+	g_return_if_fail (combo != NULL);
 	g_return_if_fail (connection != NULL);
 
-	widget = GTK_WIDGET (gtk_builder_get_object (sec->builder, combo_name));
-	g_return_if_fail (widget != NULL);
-	model = gtk_combo_box_get_model (GTK_COMBO_BOX (widget));
+	model = gtk_combo_box_get_model (combo);
 
 	/* Let each EAP method try to update its secrets */
 	if (gtk_tree_model_get_iter_first (model, &iter)) {
 		do {
+			g_autoptr(EAPMethod) eap = NULL;
+
 			gtk_tree_model_get (model, &iter, AUTH_METHOD_COLUMN, &eap, -1);
-			if (eap) {
+			if (eap)
 				eap_method_update_secrets (eap, connection);
-				eap_method_unref (eap);
-			}
 		} while (gtk_tree_model_iter_next (model, &iter));
 	}
 }
