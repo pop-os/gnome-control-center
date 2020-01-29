@@ -1,6 +1,7 @@
+From 7a18c3f9a9285753bf0c578ac463510500ef1d9a Mon Sep 17 00:00:00 2001
 From: Jeremy Bicha <jbicha@debian.org>
 Date: Sat, 9 Feb 2019 16:32:03 -0500
-Subject: Allow volume to be set above 100%.
+Subject: [PATCH 07/20] sound: Allow volume to be set above 100%.
 
 Some systems have low maximum volume set (like x220), allow, from an option
 in gnome-control-center to set it above that 100% limit from g-s-d
@@ -18,15 +19,15 @@ Origin: ubuntu
 Bug-Ubuntu: https://launchpad.net/bugs/1706524
 Bug: https://bugzilla.gnome.org/show_bug.cgi?id=710424
 ---
- panels/sound/cc-sound-panel.c  | 20 +++++++++
- panels/sound/cc-sound-panel.ui | 92 ++++++++++++++++++++++++++++++++++++++++++
+ panels/sound/cc-sound-panel.c  | 20 ++++++++
+ panels/sound/cc-sound-panel.ui | 92 ++++++++++++++++++++++++++++++++++
  2 files changed, 112 insertions(+)
 
 diff --git a/panels/sound/cc-sound-panel.c b/panels/sound/cc-sound-panel.c
-index b73e173..6804d0b 100644
+index 7a7e20b7d..30f12e180 100644
 --- a/panels/sound/cc-sound-panel.c
 +++ b/panels/sound/cc-sound-panel.c
-@@ -66,6 +66,9 @@ struct _CcSoundPanel
+@@ -65,6 +65,9 @@ struct _CcSoundPanel
    CcProfileComboBox *output_profile_combo_box;
    GtkListBoxRow     *output_profile_row;
    CcVolumeSlider    *output_volume_slider;
@@ -36,7 +37,7 @@ index b73e173..6804d0b 100644
    CcStreamListBox   *stream_list_box;
    GtkListBoxRow     *subwoofer_row;
    CcSubwooferSlider *subwoofer_slider;
-@@ -89,6 +92,8 @@ allow_amplified_changed_cb (CcSoundPanel *self)
+@@ -88,6 +91,8 @@ allow_amplified_changed_cb (CcSoundPanel *self)
  {
    cc_volume_slider_set_is_amplified (self->output_volume_slider,
                                       g_settings_get_boolean (self->sound_settings, "allow-volume-above-100-percent"));
@@ -45,7 +46,7 @@ index b73e173..6804d0b 100644
  }
  
  static void
-@@ -108,6 +113,7 @@ output_device_changed_cb (CcSoundPanel *self)
+@@ -107,6 +112,7 @@ output_device_changed_cb (CcSoundPanel *self)
      stream = gvc_mixer_control_get_stream_from_device (self->mixer_control, device);
  
    cc_volume_slider_set_stream (self->output_volume_slider, stream, CC_STREAM_TYPE_OUTPUT);
@@ -53,7 +54,7 @@ index b73e173..6804d0b 100644
    cc_level_bar_set_stream (self->output_level_bar, stream, CC_STREAM_TYPE_OUTPUT);
  
    if (stream != NULL)
-@@ -212,6 +218,9 @@ cc_sound_panel_class_init (CcSoundPanelClass *klass)
+@@ -210,6 +216,9 @@ cc_sound_panel_class_init (CcSoundPanelClass *klass)
    gtk_widget_class_bind_template_child (widget_class, CcSoundPanel, output_profile_combo_box);
    gtk_widget_class_bind_template_child (widget_class, CcSoundPanel, output_profile_row);
    gtk_widget_class_bind_template_child (widget_class, CcSoundPanel, output_volume_slider);
@@ -63,7 +64,7 @@ index b73e173..6804d0b 100644
    gtk_widget_class_bind_template_child (widget_class, CcSoundPanel, stream_list_box);
    gtk_widget_class_bind_template_child (widget_class, CcSoundPanel, subwoofer_row);
    gtk_widget_class_bind_template_child (widget_class, CcSoundPanel, subwoofer_slider);
-@@ -256,12 +265,23 @@ cc_sound_panel_init (CcSoundPanel *self)
+@@ -254,12 +263,23 @@ cc_sound_panel_init (CcSoundPanel *self)
                             G_CONNECT_SWAPPED);
    allow_amplified_changed_cb (self);
  
@@ -88,7 +89,7 @@ index b73e173..6804d0b 100644
    cc_device_combo_box_set_mixer_control (self->input_device_combo_box, self->mixer_control, FALSE);
    cc_device_combo_box_set_mixer_control (self->output_device_combo_box, self->mixer_control, TRUE);
 diff --git a/panels/sound/cc-sound-panel.ui b/panels/sound/cc-sound-panel.ui
-index 31175cf..960f0c6 100644
+index 588c578d8..18a29951d 100644
 --- a/panels/sound/cc-sound-panel.ui
 +++ b/panels/sound/cc-sound-panel.ui
 @@ -37,6 +37,98 @@
@@ -190,3 +191,6 @@ index 31175cf..960f0c6 100644
                  <child>
                    <object class="GtkLabel">
                      <property name="visible">True</property>
+-- 
+2.24.0
+

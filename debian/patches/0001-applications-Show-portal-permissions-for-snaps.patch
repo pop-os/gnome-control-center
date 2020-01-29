@@ -1,16 +1,17 @@
+From 4ffc990d939089b52fa7706ff81a1cf22de624ce Mon Sep 17 00:00:00 2001
 From: Robert Ancell <robert.ancell@canonical.com>
 Date: Tue, 12 Mar 2019 16:51:42 +1300
-Subject: [PATCH 5/7] applications: Show portal permissions for snaps
+Subject: [PATCH] applications: Show portal permissions for snaps
 
 ---
- panels/applications/cc-applications-panel.c | 51 +++++++++++++++++++----------
- 1 file changed, 33 insertions(+), 18 deletions(-)
+ panels/applications/cc-applications-panel.c | 53 +++++++++++++--------
+ 1 file changed, 34 insertions(+), 19 deletions(-)
 
 diff --git a/panels/applications/cc-applications-panel.c b/panels/applications/cc-applications-panel.c
-index eac2623..0d38047 100644
+index 075c8475e..a05102fca 100644
 --- a/panels/applications/cc-applications-panel.c
 +++ b/panels/applications/cc-applications-panel.c
-@@ -41,6 +41,8 @@
+@@ -42,6 +42,8 @@
  #define APP_SCHEMA MASTER_SCHEMA ".application"
  #define APP_PREFIX "/org/gnome/desktop/notifications/application/"
  
@@ -31,7 +32,8 @@ index eac2623..0d38047 100644
    if (G_IS_DESKTOP_APP_INFO (info))
 -    return g_desktop_app_info_get_string (G_DESKTOP_APP_INFO (info), "X-Flatpak");
 +    {
-+      gchar *flatpak_id, *snap_name;
++      gchar *flatpak_id;
++      g_autofree gchar *snap_name = NULL;
 +      g_autofree gchar *executable = NULL;
 +
 +      flatpak_id = g_desktop_app_info_get_string (G_DESKTOP_APP_INFO (info), "X-Flatpak");
@@ -40,13 +42,12 @@ index eac2623..0d38047 100644
 +
 +      snap_name = g_desktop_app_info_get_string (G_DESKTOP_APP_INFO (info), "X-SnapInstanceName");
 +      if (snap_name != NULL)
-+        return snap_name;
-+
++        return g_strdup_printf ("%s%s", PORTAL_SNAP_PREFIX, snap_name);
 +    }
  
    return NULL;
  }
-@@ -607,39 +621,39 @@ static void
+@@ -636,39 +650,39 @@ static void
  update_permission_section (CcApplicationsPanel *self,
                             GAppInfo            *info)
  {
@@ -92,7 +93,7 @@ index eac2623..0d38047 100644
    gtk_widget_set_visible (self->builtin, has_builtin);
    has_any |= has_builtin;
  
-@@ -653,7 +667,7 @@ update_integration_section (CcApplicationsPanel *self,
+@@ -682,7 +696,7 @@ update_integration_section (CcApplicationsPanel *self,
                              GAppInfo            *info)
  {
    g_autofree gchar *app_id = get_app_id (info);
@@ -101,7 +102,7 @@ index eac2623..0d38047 100644
    gboolean set, allowed, disabled;
    gboolean has_any = FALSE;
  
-@@ -663,16 +677,16 @@ update_integration_section (CcApplicationsPanel *self,
+@@ -692,21 +706,21 @@ update_integration_section (CcApplicationsPanel *self,
    gtk_widget_set_visible (self->search, set && !disabled);
    gtk_widget_set_visible (self->no_search, set && disabled);
  
@@ -115,13 +116,19 @@ index eac2623..0d38047 100644
        gtk_widget_set_visible (self->notification, set);
        has_any |= set;
  
+-      get_background_allowed (self, flatpak_id, &set, &allowed);
++      get_background_allowed (self, portal_app_id, &set, &allowed);
+       cc_toggle_row_set_allowed (CC_TOGGLE_ROW (self->background), allowed);
+       gtk_widget_set_visible (self->background, set);
+       has_any |= set;
+ 
        disabled = g_settings_get_boolean (self->privacy_settings, "disable-sound-output");
 -      get_device_allowed (self, "speakers", flatpak_id, &set, &allowed);
 +      get_device_allowed (self, "speakers", portal_app_id, &set, &allowed);
        cc_toggle_row_set_allowed (CC_TOGGLE_ROW (self->sound), allowed);
        gtk_widget_set_visible (self->sound, set && !disabled);
        gtk_widget_set_visible (self->no_sound, set && disabled);
-@@ -1322,7 +1336,8 @@ update_app_row (CcApplicationsPanel *self,
+@@ -1353,7 +1367,8 @@ update_app_row (CcApplicationsPanel *self,
  {
    g_autofree gchar *formatted_size = NULL;
  
@@ -131,7 +138,7 @@ index eac2623..0d38047 100644
    formatted_size = g_format_size (self->app_size);
    g_object_set (self->app, "info", formatted_size, NULL);
    update_total_size (self);
-@@ -1345,12 +1360,12 @@ static void
+@@ -1376,12 +1391,12 @@ static void
  update_usage_section (CcApplicationsPanel *self,
                        GAppInfo            *info)
  {
@@ -147,12 +154,15 @@ index eac2623..0d38047 100644
      }
    else
      {
-@@ -1395,7 +1410,7 @@ update_panel (CcApplicationsPanel *self,
+@@ -1426,7 +1441,7 @@ update_panel (CcApplicationsPanel *self,
    update_usage_section (self, info);
  
    self->current_app_id = get_app_id (info);
--  self->current_flatpak_id = get_flatpak_id (info);
-+  self->current_flatpak_id = get_portal_app_id (info);
+-  self->current_portal_app_id = get_flatpak_id (info);
++  self->current_portal_app_id = get_portal_app_id (info);
  }
  
  static void
+-- 
+2.24.0
+

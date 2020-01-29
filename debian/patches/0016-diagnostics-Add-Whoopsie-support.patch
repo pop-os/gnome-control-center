@@ -1,0 +1,318 @@
+From f45fc2474fbc60b667107a6694292bafb65d8a13 Mon Sep 17 00:00:00 2001
+From: James Henstridge <james@jamesh.id.au>
+Date: Thu, 14 Sep 2017 10:58:16 +0800
+Subject: [PATCH 16/20] diagnostics: Add Whoopsie support
+
+---
+ meson.build                                |   9 ++
+ meson_options.txt                          |   1 +
+ panels/diagnostics/cc-diagnostics-panel.c  | 115 +++++++++++++++++++++
+ panels/diagnostics/cc-diagnostics-panel.ui |  43 +++++++-
+ panels/diagnostics/meson.build             |   7 +-
+ 5 files changed, 173 insertions(+), 2 deletions(-)
+
+diff --git a/meson.build b/meson.build
+index 5ad524786..13b09d02f 100644
+--- a/meson.build
++++ b/meson.build
+@@ -205,6 +205,14 @@ endif
+ config_h.set('HAVE_SNAP', enable_snap,
+              description: 'Define to 1 if Snap support is enabled')
+ 
++# Whoopsie (Ubuntu error reporting service)
++enable_whoopsie = get_option('whoopsie')
++if enable_whoopsie
++  whoopsie_dep = dependency('libwhoopsie-preferences')
++endif
++config_h.set('HAVE_WHOOPSIE', enable_whoopsie,
++             description: 'Define to 1 if Whoopsie is enabled')
++
+ if host_is_linux
+   # network manager
+   network_manager_deps = [
+@@ -297,5 +305,6 @@ output += '     IBus (Region panel IBus support) ........... ' + enable_ibus.to_
+ output += '     NetworkManager (Network panel) ............. ' + host_is_linux.to_string() + '\n'
+ output += '     Wacom (Wacom tablet panel) ................. ' + host_is_linux_not_s390.to_string() + '\n'
+ output += '     Snap support ............................... ' + enable_snap.to_string() + '\n'
++output += '     Whoopsie  .................................. ' + enable_whoopsie.to_string() + '\n'
+ 
+ message(output)
+diff --git a/meson_options.txt b/meson_options.txt
+index e76308e8a..554c213a1 100644
+--- a/meson_options.txt
++++ b/meson_options.txt
+@@ -7,3 +7,4 @@ option('tests', type: 'boolean', value: true, description: 'build tests')
+ option('tracing', type: 'boolean', value: false, description: 'add extra debugging information')
+ option('wayland', type: 'boolean', value: true, description: 'build with Wayland support')
+ option('profile', type: 'combo', choices: ['default','development'], value: 'default')
++option('whoopsie', type: 'boolean', value: false, description: 'build with Whoopsie support')
+diff --git a/panels/diagnostics/cc-diagnostics-panel.c b/panels/diagnostics/cc-diagnostics-panel.c
+index b53b42942..b093c76b1 100644
+--- a/panels/diagnostics/cc-diagnostics-panel.c
++++ b/panels/diagnostics/cc-diagnostics-panel.c
+@@ -18,6 +18,8 @@
+  * Author: Matthias Clasen <mclasen@redhat.com>
+  */
+ 
++#include <config.h>
++
+ #include "list-box-helper.h"
+ #include "cc-diagnostics-panel.h"
+ #include "cc-diagnostics-resources.h"
+@@ -28,6 +30,10 @@
+ #include <gio/gdesktopappinfo.h>
+ #include <glib/gi18n.h>
+ 
++#ifdef HAVE_WHOOPSIE
++#  include <whoopsie-preferences/libwhoopsie-preferences.h>
++#endif
++
+ struct _CcDiagnosticsPanel
+ {
+   CcPanel     parent_instance;
+@@ -35,9 +41,14 @@ struct _CcDiagnosticsPanel
+   GtkLabel   *diagnostics_explanation_label;
+   GtkLabel   *diagnostics_learn_more_label;
+   GtkListBox *diagnostics_list_box;
++  GtkListBoxRow *abrt_row;
+   GtkSwitch   *abrt_switch;
++  GtkComboBoxText *whoopsie_combo;
+ 
+   GSettings  *privacy_settings;
++#ifdef HAVE_WHOOPSIE
++  WhoopsiePreferences *whoopsie;
++#endif
+ };
+ 
+ CC_PANEL_REGISTER (CcDiagnosticsPanel, cc_diagnostics_panel)
+@@ -72,9 +83,86 @@ abrt_vanished_cb (GDBusConnection *connection,
+                   gpointer         user_data)
+ {
+   g_debug ("ABRT vanished");
++#ifndef HAVE_WHOOPSIE
+   set_panel_visibility (CC_PANEL_VISIBLE_IN_SEARCH);
++#endif
++}
++
++#ifdef HAVE_WHOOPSIE
++static void
++whoopsie_set_report_crashes_done (GObject *source_object,
++                                  GAsyncResult *res,
++                                  gpointer user_data)
++{
++  g_autoptr(GError) error = NULL;
++
++  if (!whoopsie_preferences_call_set_report_crashes_finish (WHOOPSIE_PREFERENCES (source_object), res, &error))
++    g_warning ("Failed to toggle crash reporting: %s", error->message);
++}
++
++static void
++whoopsie_set_report_crashes_mode_done (GObject *source_object,
++                                       GAsyncResult *res,
++                                       gpointer user_data)
++{
++  g_autoptr(GError) error = NULL;
++
++  if (!whoopsie_preferences_call_set_automatically_report_crashes_finish (WHOOPSIE_PREFERENCES (source_object), res, &error))
++    g_warning ("Failed to toggle crash reporting mode: %s", error->message);
++}
++
++static void
++on_whoopsie_combo_changed_cb (CcDiagnosticsPanel *self)
++{
++  const gchar *id;
++  gboolean report_crashes = FALSE;
++  gboolean automatically_report = FALSE;
++
++  id = gtk_combo_box_get_active_id (GTK_COMBO_BOX (self->whoopsie_combo));
++  if (g_str_equal (id, "auto"))
++    {
++      report_crashes = TRUE;
++      automatically_report = TRUE;
++    }
++  else if (g_str_equal (id, "manual"))
++    {
++      report_crashes = TRUE;
++      automatically_report = FALSE;
++    }
++
++  whoopsie_preferences_call_set_report_crashes (self->whoopsie,
++                                                report_crashes,
++                                                NULL,
++                                                whoopsie_set_report_crashes_done,
++                                                NULL);
++
++  if (report_crashes)
++    whoopsie_preferences_call_set_automatically_report_crashes (self->whoopsie,
++                                                                automatically_report,
++                                                                NULL,
++                                                                whoopsie_set_report_crashes_mode_done,
++                                                                NULL);
+ }
+ 
++static void
++whoopsie_properties_changed (CcDiagnosticsPanel *self)
++{
++  const gchar *id = "never";
++
++  if (whoopsie_preferences_get_report_crashes (self->whoopsie))
++    {
++      if (whoopsie_preferences_get_automatically_report_crashes (self->whoopsie))
++        id = "auto";
++      else
++        id = "manual";
++    }
++
++  g_signal_handlers_block_by_func (self->whoopsie_combo, on_whoopsie_combo_changed_cb, self);
++  gtk_combo_box_set_active_id (GTK_COMBO_BOX (self->whoopsie_combo), id);
++  g_signal_handlers_unblock_by_func (self->whoopsie_combo, on_whoopsie_combo_changed_cb, self);
++}
++#endif
++
+ void
+ cc_diagnostics_panel_static_init_func (void)
+ {
+@@ -86,7 +174,9 @@ cc_diagnostics_panel_static_init_func (void)
+                     NULL,
+                     NULL);
+ 
++#ifndef HAVE_WHOOPSIE
+   set_panel_visibility (CC_PANEL_VISIBLE_IN_SEARCH);
++#endif
+ }
+ 
+ static void
+@@ -112,7 +202,11 @@ cc_diagnostics_panel_class_init (CcDiagnosticsPanelClass *klass)
+   gtk_widget_class_bind_template_child (widget_class, CcDiagnosticsPanel, diagnostics_explanation_label);
+   gtk_widget_class_bind_template_child (widget_class, CcDiagnosticsPanel, diagnostics_learn_more_label);
+   gtk_widget_class_bind_template_child (widget_class, CcDiagnosticsPanel, diagnostics_list_box);
++  gtk_widget_class_bind_template_child (widget_class, CcDiagnosticsPanel, abrt_row);
+   gtk_widget_class_bind_template_child (widget_class, CcDiagnosticsPanel, abrt_switch);
++  gtk_widget_class_bind_template_child (widget_class, CcDiagnosticsPanel, whoopsie_combo);
++
++  gtk_widget_class_bind_template_callback (widget_class, on_whoopsie_combo_changed_cb);
+ }
+ 
+ static void
+@@ -121,6 +215,7 @@ cc_diagnostics_panel_init (CcDiagnosticsPanel *self)
+   g_autofree gchar *os_name = NULL;
+   g_autofree gchar *url = NULL;
+   g_autofree gchar *msg = NULL;
++  g_autoptr(GError) error = NULL;
+ 
+   g_resources_register (cc_diagnostics_get_resource ());
+ 
+@@ -136,6 +231,26 @@ cc_diagnostics_panel_init (CcDiagnosticsPanel *self)
+                    self->abrt_switch, "active",
+                    G_SETTINGS_BIND_DEFAULT);
+ 
++#ifdef HAVE_WHOOPSIE
++  /* check for whoopsie */
++  self->whoopsie = whoopsie_preferences_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
++                                                                G_DBUS_PROXY_FLAGS_NONE,
++                                                                "com.ubuntu.WhoopsiePreferences",
++                                                                "/com/ubuntu/WhoopsiePreferences",
++                                                                NULL, &error);
++
++  if (self->whoopsie)
++    {
++      g_debug ("Whoopsie available");
++
++      g_signal_connect_object (self->whoopsie, "g-properties-changed",
++                               G_CALLBACK (whoopsie_properties_changed), self, G_CONNECT_SWAPPED);
++      whoopsie_properties_changed (self);
++
++      gtk_widget_hide (GTK_WIDGET (self->abrt_row));
++    }
++#endif
++
+   os_name = cc_os_release_get_value ("NAME");
+   /* translators: '%s' is the distributor's name, such as 'Fedora' */
+   msg = g_strdup_printf (_("Sending reports of technical problems helps us improve %s. Reports "
+diff --git a/panels/diagnostics/cc-diagnostics-panel.ui b/panels/diagnostics/cc-diagnostics-panel.ui
+index a76afa71b..a81949591 100644
+--- a/panels/diagnostics/cc-diagnostics-panel.ui
++++ b/panels/diagnostics/cc-diagnostics-panel.ui
+@@ -63,7 +63,7 @@
+                     <property name="can-focus">1</property>
+                     <property name="selection-mode">none</property>
+                     <child>
+-                      <object class="GtkListBoxRow">
++                      <object class="GtkListBoxRow" id="abrt_row">
+                         <property name="visible">1</property>
+                         <child>
+                           <object class="GtkBox">
+@@ -96,6 +96,47 @@
+                         </child>
+                       </object>
+                     </child>
++                    <child>
++                      <object class="GtkListBoxRow">
++                        <property name="visible">1</property>
++                        <child>
++                          <object class="GtkBox">
++                            <property name="visible">1</property>
++                            <property name="margin_start">12</property>
++                            <property name="margin_end">12</property>
++                            <property name="margin_top">12</property>
++                            <property name="margin_bottom">12</property>
++                            <child>
++                              <object class="GtkLabel">
++                                <property name="visible">1</property>
++                                <property name="label" translatable="yes">Send error reports to Canonical</property>
++                                <property name="use_underline">1</property>
++                                <property name="mnemonic_widget">whoopsie_combo</property>
++                                <property name="xalign">0</property>
++                                <property name="valign">center</property>
++                              </object>
++                              <packing>
++                                <property name="expand">1</property>
++                              </packing>
++                            </child>
++                            <child>
++                              <object class="GtkComboBoxText" id="whoopsie_combo">
++                                <property name="visible">1</property>
++                                <property name="halign">end</property>
++                                <property name="valign">center</property>
++                                <property name="entry_text_column">0</property>
++                                <signal name="changed" handler="on_whoopsie_combo_changed_cb" object="CcDiagnosticsPanel" swapped="yes" />
++                                <items>
++                                  <item translatable="yes" id="never">Never</item>
++                                  <item translatable="yes" id="auto">Automatic</item>
++                                  <item translatable="yes" id="manual">Manual</item>
++                                </items>
++                              </object>
++                            </child>
++                          </object>
++                        </child>
++                      </object>
++                    </child>
+                     <style>
+                       <class name="view"/>
+                       <class name="frame"/>
+diff --git a/panels/diagnostics/meson.build b/panels/diagnostics/meson.build
+index fac9b4cd8..61388e2a3 100644
+--- a/panels/diagnostics/meson.build
++++ b/panels/diagnostics/meson.build
+@@ -29,12 +29,17 @@ sources += gnome.compile_resources(
+   export: true
+ )
+ 
++deps = common_deps
++if enable_whoopsie
++  deps += whoopsie_dep
++endif
++
+ cflags += '-DGNOMELOCALEDIR="@0@"'.format(control_center_localedir)
+ 
+ panels_libs += static_library(
+   cappletname,
+   sources: sources,
+   include_directories: [top_inc, common_inc],
+-  dependencies: common_deps,
++  dependencies: deps,
+   c_args: cflags
+ )
+-- 
+2.24.0
+

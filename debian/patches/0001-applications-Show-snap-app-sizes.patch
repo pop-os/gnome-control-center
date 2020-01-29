@@ -1,29 +1,30 @@
+From aa471faa4ae0aed1bdfe979e760f6426d3df445f Mon Sep 17 00:00:00 2001
 From: Robert Ancell <robert.ancell@canonical.com>
 Date: Tue, 12 Mar 2019 16:59:56 +1300
-Subject: [PATCH 6/7] applications: Show snap app sizes
+Subject: [PATCH] applications: Show snap app sizes
 
 ---
- meson.build                                 | 11 +++++++++++
+ meson.build                                 | 11 +++++++++
  meson_options.txt                           |  1 +
- panels/applications/cc-applications-panel.c | 10 ++++++----
- panels/applications/meson.build             |  8 +++++++-
- panels/applications/utils.c                 | 25 +++++++++++++++++++++++++
+ panels/applications/cc-applications-panel.c | 10 +++++----
+ panels/applications/meson.build             |  8 ++++++-
+ panels/applications/utils.c                 | 25 +++++++++++++++++++++
  panels/applications/utils.h                 |  2 ++
  6 files changed, 52 insertions(+), 5 deletions(-)
 
 diff --git a/meson.build b/meson.build
-index 530ae1b..f533c6a 100644
+index 87662a472..e52b5ea1f 100644
 --- a/meson.build
 +++ b/meson.build
-@@ -197,6 +197,16 @@ endif
- config_h.set('HAVE_WHOOPSIE', enable_whoopsie,
-              description: 'Define to 1 if Whoopsie is enabled')
+@@ -195,6 +195,16 @@ config_h.set10('HAVE_FN_EXPLICIT_BZERO',
+                cc.has_function('explicit_bzero', prefix: '''#include <string.h>'''),
+                description: 'Define if explicit_bzero is available')
  
 +# Snap support
 +enable_snap = get_option('snap')
 +if enable_snap
 +  snapd_glib_deps = [
-+    dependency('snapd-glib', version: '>= 1.42')
++    dependency('snapd-glib', version: '>= 1.49')
 +  ]
 +endif
 +config_h.set('HAVE_SNAP', enable_snap,
@@ -32,30 +33,30 @@ index 530ae1b..f533c6a 100644
  if host_is_linux
    # network manager
    network_manager_deps = [
-@@ -292,5 +302,6 @@ output += '     IBus (Region panel IBus support) ........... ' + enable_ibus.to_
+@@ -286,5 +296,6 @@ output += '     Cheese (Users panel webcam support) ........ ' + enable_cheese.t
+ output += '     IBus (Region panel IBus support) ........... ' + enable_ibus.to_string() + '\n'
  output += '     NetworkManager (Network panel) ............. ' + host_is_linux.to_string() + '\n'
  output += '     Wacom (Wacom tablet panel) ................. ' + host_is_linux_not_s390.to_string() + '\n'
- output += '     Whoopsie  .................................. ' + enable_whoopsie.to_string() + '\n'
 +output += '     Snap support ............................... ' + enable_snap.to_string() + '\n'
  
  message(output)
 diff --git a/meson_options.txt b/meson_options.txt
-index ce462a7..52b2655 100644
+index b7a7c055c..e76308e8a 100644
 --- a/meson_options.txt
 +++ b/meson_options.txt
 @@ -2,6 +2,7 @@ option('cheese', type: 'boolean', value: true, description: 'build with cheese w
  option('documentation', type: 'boolean', value: false, description: 'build documentation')
- option('gnome_session_libexecdir', type: 'string', value: '', description: 'Directory for gnome-session\'s libexecdir')
  option('ibus', type: 'boolean', value: true, description: 'build with IBus support')
+ option('privileged_group', type: 'string', value: 'wheel', description: 'name of group that has elevated permissions')
 +option('snap', type: 'boolean', value: false, description: 'build with Snap support')
+ option('tests', type: 'boolean', value: true, description: 'build tests')
  option('tracing', type: 'boolean', value: false, description: 'add extra debugging information')
  option('wayland', type: 'boolean', value: true, description: 'build with Wayland support')
- option('whoopsie', type: 'boolean', value: false, description: 'build with Whoopsie support')
 diff --git a/panels/applications/cc-applications-panel.c b/panels/applications/cc-applications-panel.c
-index 0d38047..b824ae6 100644
+index a05102fca..8759afd42 100644
 --- a/panels/applications/cc-applications-panel.c
 +++ b/panels/applications/cc-applications-panel.c
-@@ -1336,7 +1336,9 @@ update_app_row (CcApplicationsPanel *self,
+@@ -1367,7 +1367,9 @@ update_app_row (CcApplicationsPanel *self,
  {
    g_autofree gchar *formatted_size = NULL;
  
@@ -66,7 +67,7 @@ index 0d38047..b824ae6 100644
      self->app_size = get_flatpak_app_size (app_id);
    formatted_size = g_format_size (self->app_size);
    g_object_set (self->app, "info", formatted_size, NULL);
-@@ -1344,8 +1346,8 @@ update_app_row (CcApplicationsPanel *self,
+@@ -1375,8 +1377,8 @@ update_app_row (CcApplicationsPanel *self,
  }
  
  static void
@@ -77,7 +78,7 @@ index 0d38047..b824ae6 100644
  {
    gtk_widget_set_sensitive (self->clear_cache_button, FALSE);
  
-@@ -1365,7 +1367,7 @@ update_usage_section (CcApplicationsPanel *self,
+@@ -1396,7 +1398,7 @@ update_usage_section (CcApplicationsPanel *self,
    if (portal_app_id != NULL)
      {
        gtk_widget_show (self->usage_section);
@@ -87,10 +88,10 @@ index 0d38047..b824ae6 100644
    else
      {
 diff --git a/panels/applications/meson.build b/panels/applications/meson.build
-index 49796a3..b405fc2 100644
+index f0b1041c3..ce3b41a77 100644
 --- a/panels/applications/meson.build
 +++ b/panels/applications/meson.build
-@@ -38,12 +38,18 @@ sources += gnome.compile_resources(
+@@ -38,10 +38,16 @@ sources += gnome.compile_resources(
          export : true
  )
  
@@ -100,8 +101,6 @@ index 49796a3..b405fc2 100644
 +  deps += snapd_glib_deps
 +endif
 +
- cflags += '-DGNOMELOCALEDIR="@0@"'.format(control_center_localedir)
- 
  panels_libs += static_library(
             cappletname,
                sources : sources,
@@ -111,7 +110,7 @@ index 49796a3..b405fc2 100644
                 c_args : cflags
  )
 diff --git a/panels/applications/utils.c b/panels/applications/utils.c
-index 622a943..a47e458 100644
+index bf9860bea..96704a4c0 100644
 --- a/panels/applications/utils.c
 +++ b/panels/applications/utils.c
 @@ -24,6 +24,9 @@
@@ -140,7 +139,7 @@ index 622a943..a47e458 100644
 +  snap = snapd_client_get_snap_sync (client, snap_name, NULL, &error);
 +  if (snap == NULL)
 +    {
-+      g_warning ("Failed to get snap size: %s\n", error->message);
++      g_warning ("Failed to get snap size: %s", error->message);
 +      return 0;
 +    }
 +
@@ -154,7 +153,7 @@ index 622a943..a47e458 100644
  get_app_id (GAppInfo *info)
  {
 diff --git a/panels/applications/utils.h b/panels/applications/utils.h
-index a2e3922..5f899d7 100644
+index a2e39229a..5f899d781 100644
 --- a/panels/applications/utils.h
 +++ b/panels/applications/utils.h
 @@ -50,6 +50,8 @@ GKeyFile* get_flatpak_metadata (const gchar         *app_id);
@@ -166,3 +165,6 @@ index a2e3922..5f899d7 100644
  gchar*    get_app_id           (GAppInfo            *info);
  
  G_END_DECLS
+-- 
+2.24.0
+

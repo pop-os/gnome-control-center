@@ -1,0 +1,809 @@
+From ad8fe3e14fe6f65281fa9d74618ce631e8868c39 Mon Sep 17 00:00:00 2001
+From: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Date: Wed, 15 Jan 2020 16:56:17 +1300
+Subject: [PATCH 08/20] Allow tweaking some settings for Ubuntu Dock
+
+Expose some of the settings that most users will find useful for our
+Ubuntu Dock installation. Those are located in its own panel for now:
+* change intellihide true/hide mode
+* change dock icon size
+* modify placement of the launcher (all monitor, primary or any monitors)
+Origin: ubuntu
+Forwarded: not-needed
+---
+ panels/meson.build                            |   1 +
+ panels/ubuntu/cc-ubuntu-panel.c               | 298 ++++++++++++++++++
+ panels/ubuntu/cc-ubuntu-panel.h               |  33 ++
+ panels/ubuntu/cc-ubuntu-panel.ui              | 297 +++++++++++++++++
+ .../ubuntu/gnome-ubuntu-panel.desktop.in.in   |  16 +
+ panels/ubuntu/meson.build                     |  40 +++
+ panels/ubuntu/ubuntu.gresource.xml            |   6 +
+ po/POTFILES.in                                |   3 +
+ shell/cc-panel-list.c                         |   1 +
+ shell/cc-panel-loader.c                       |   2 +
+ 10 files changed, 697 insertions(+)
+ create mode 100644 panels/ubuntu/cc-ubuntu-panel.c
+ create mode 100644 panels/ubuntu/cc-ubuntu-panel.h
+ create mode 100644 panels/ubuntu/cc-ubuntu-panel.ui
+ create mode 100644 panels/ubuntu/gnome-ubuntu-panel.desktop.in.in
+ create mode 100644 panels/ubuntu/meson.build
+ create mode 100644 panels/ubuntu/ubuntu.gresource.xml
+
+Index: gnome-control-center/panels/meson.build
+===================================================================
+--- gnome-control-center.orig/panels/meson.build
++++ gnome-control-center/panels/meson.build
+@@ -24,6 +24,7 @@ panels = [
+   'search',
+   'sharing',
+   'sound',
++  'ubuntu',
+   'universal-access',
+   'usage',
+   'user-accounts'
+Index: gnome-control-center/panels/ubuntu/cc-ubuntu-panel.c
+===================================================================
+--- /dev/null
++++ gnome-control-center/panels/ubuntu/cc-ubuntu-panel.c
+@@ -0,0 +1,298 @@
++/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
++/*
++ * Copyright (C) 2017-2020 Canonical Ltd
++ *
++ * This library is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU Lesser General Public
++ * License as published by the Free Software Foundation; either
++ * version 2 of the License, or (at your option) any later version.
++ *
++ * This library is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++ * Lesser General Public License for more details.
++ *
++ * You should have received a copy of the GNU Lesser General
++ * Public License along with this library; if not, see <http://www.gnu.org/licenses/>.
++ *
++ */
++
++#include "config.h"
++
++#include <string.h>
++#include <glib/gi18n-lib.h>
++#include <glib.h>
++#include <gio/gio.h>
++#include <gio/gdesktopappinfo.h>
++
++#include "list-box-helper.h"
++#include "cc-ubuntu-panel.h"
++#include "cc-ubuntu-resources.h"
++
++#include "panels/display/cc-display-config-manager-dbus.h"
++#include "panels/display/cc-display-config.h"
++
++#define MIN_ICONSIZE 16.0
++#define MAX_ICONSIZE 64.0
++#define DEFAULT_ICONSIZE 48.0
++#define ICONSIZE_KEY "dash-max-icon-size"
++
++#define UBUNTU_DOCK_SCHEMA "org.gnome.shell.extensions.dash-to-dock"
++#define UBUNTU_DOCK_ALL_MONITORS_KEY "multi-monitor"
++#define UBUNTU_DOCK_ON_MONITOR_KEY "preferred-monitor"
++
++struct _CcUbuntuPanel {
++  CcPanel                 parent_instance;
++
++  GtkSwitch              *dock_autohide_switch;
++  GtkListBox             *dock_listbox;
++  GtkListBoxRow          *dock_monitor_row;
++  GtkComboBox            *dock_placement_combo;
++  GtkListStore           *dock_placement_liststore;
++  GtkComboBoxText        *dock_position_combo;
++  GtkAdjustment          *icon_size_adjustment;
++  GtkScale               *icon_size_scale;
++
++  GSettings              *dock_settings;
++  gint                    dock_placement_primary_index;
++  CcDisplayConfigManager *display_config_manager;
++};
++
++CC_PANEL_REGISTER (CcUbuntuPanel, cc_ubuntu_panel);
++
++static void
++cc_ubuntu_panel_dispose (GObject *object)
++{
++  CcUbuntuPanel *self = CC_UBUNTU_PANEL (object);
++
++  g_clear_object (&self->dock_settings);
++  g_clear_object (&self->display_config_manager);
++
++  G_OBJECT_CLASS (cc_ubuntu_panel_parent_class)->dispose (object);
++}
++
++static void
++on_screen_changed (CcUbuntuPanel *self)
++{
++  g_autoptr(CcDisplayConfig) current = NULL;
++  GtkTreeIter ubuntu_dock_placement_iter;
++  gboolean ubuntu_dock_on_all_monitors;
++  gint ubuntu_dock_current_index;
++  GList *outputs, *l;
++  g_autoptr(GList) sorted = NULL;
++  gint n_monitors;
++
++  if (self->display_config_manager == NULL)
++    return;
++
++  current = cc_display_config_manager_get_current (self->display_config_manager);
++  if (current == NULL)
++    return;
++
++  ubuntu_dock_on_all_monitors = g_settings_get_boolean (self->dock_settings, UBUNTU_DOCK_ALL_MONITORS_KEY);
++  ubuntu_dock_current_index = g_settings_get_int (self->dock_settings, UBUNTU_DOCK_ON_MONITOR_KEY);
++
++  gtk_list_store_clear (self->dock_placement_liststore);
++
++  outputs = cc_display_config_get_monitors (current);
++  for (l = outputs; l != NULL; l = l->next)
++    {
++      CcDisplayMonitor *output = l->data;
++      if (cc_display_monitor_is_builtin (output))
++        sorted = g_list_prepend (sorted, output);
++      else
++        sorted = g_list_append (sorted, output);
++    }
++
++  for (n_monitors = 0, l = sorted; l != NULL; l = l->next, n_monitors++)
++    {
++      CcDisplayMonitor *output = l->data;
++
++      const gchar *monitor_name = cc_display_monitor_get_display_name (output);
++      gtk_list_store_append (self->dock_placement_liststore, &ubuntu_dock_placement_iter);
++      gtk_list_store_set (self->dock_placement_liststore, &ubuntu_dock_placement_iter, 0, monitor_name, -1);
++
++      if (cc_display_monitor_is_primary (output))
++        self->dock_placement_primary_index = n_monitors;
++    }
++
++  gtk_widget_set_visible (GTK_WIDGET (self->dock_monitor_row), n_monitors > 1);
++
++  gtk_list_store_prepend (self->dock_placement_liststore, &ubuntu_dock_placement_iter);
++  gtk_list_store_set (self->dock_placement_liststore, &ubuntu_dock_placement_iter, 0, _("All displays"), -1);
++
++  gint selection = 0;
++  if (ubuntu_dock_on_all_monitors != TRUE)
++    {
++      if ((ubuntu_dock_current_index != -1) && (ubuntu_dock_current_index < g_list_length (outputs)))
++        selection = ubuntu_dock_current_index + 1;
++      else
++        selection = self->dock_placement_primary_index + 1;
++    }
++  gtk_combo_box_set_active (self->dock_placement_combo, selection);
++}
++
++static void
++session_bus_ready (GObject        *source,
++                   GAsyncResult   *res,
++                   gpointer        user_data)
++{
++  CcUbuntuPanel *self = user_data;
++  GDBusConnection *bus;
++  g_autoptr(GError) error = NULL;
++
++  bus = g_bus_get_finish (res, &error);
++  if (!bus)
++    {
++      if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED))
++        g_warning ("Failed to get session bus: %s", error->message);
++      return;
++    }
++
++  self->display_config_manager = cc_display_config_manager_dbus_new ();
++  g_signal_connect_object (self->display_config_manager, "changed",
++                           G_CALLBACK (on_screen_changed),
++                           self,
++                           G_CONNECT_SWAPPED);
++}
++
++static void
++icon_size_widget_refresh (CcUbuntuPanel *self)
++{
++  gint value = g_settings_get_int (self->dock_settings, ICONSIZE_KEY);
++  gtk_adjustment_set_value (self->icon_size_adjustment, (gdouble) value / 2);
++}
++
++static gchar *
++on_icon_size_format_value (CcUbuntuPanel *self, gdouble value)
++{
++  return g_strdup_printf ("%d", (int)value * 2);
++}
++
++static void
++on_icon_size_adjustment_value_changed (CcUbuntuPanel *self)
++{
++  gint value = (gint)gtk_adjustment_get_value (self->icon_size_adjustment) * 2;
++  if (g_settings_get_int (self->dock_settings, ICONSIZE_KEY) != value)
++    g_settings_set_int (self->dock_settings, ICONSIZE_KEY, value);
++}
++
++static void
++on_dock_placement_combo_changed (CcUbuntuPanel *self)
++{
++  gint active;
++  gboolean ubuntu_dock_on_all_monitors;
++  gint ubuntu_dock_current_index;
++
++  active = gtk_combo_box_get_active (self->dock_placement_combo);
++  if (active < 0)
++    return;
++
++  ubuntu_dock_on_all_monitors = g_settings_get_boolean (self->dock_settings, UBUNTU_DOCK_ALL_MONITORS_KEY);
++  ubuntu_dock_current_index = g_settings_get_int (self->dock_settings, UBUNTU_DOCK_ON_MONITOR_KEY);
++  if (active == 0)
++    {
++      if (!ubuntu_dock_on_all_monitors)
++        {
++          g_settings_set_boolean (self->dock_settings, UBUNTU_DOCK_ALL_MONITORS_KEY, TRUE);
++          g_settings_apply (self->dock_settings);
++        }
++    }
++  else
++    {
++      g_autoptr(GSettings) delayed_settings = g_settings_new (UBUNTU_DOCK_SCHEMA);
++      active--;
++      g_settings_delay (delayed_settings);
++      if (!ubuntu_dock_on_all_monitors)
++        g_settings_set_boolean (delayed_settings, UBUNTU_DOCK_ALL_MONITORS_KEY, FALSE);
++      if (ubuntu_dock_current_index != active)
++        {
++          if (!(ubuntu_dock_current_index == -1 && (active == self->dock_placement_primary_index)))
++            g_settings_set_int (delayed_settings, UBUNTU_DOCK_ON_MONITOR_KEY, active);
++        }
++      g_settings_apply (delayed_settings);
++    }
++}
++
++static void
++ext_ubuntu_dock_placement_changed_callback (CcUbuntuPanel *self)
++{
++  int selection = 0;
++
++  if (g_settings_get_boolean (self->dock_settings, UBUNTU_DOCK_ALL_MONITORS_KEY) == FALSE)
++    {
++      selection = g_settings_get_int (self->dock_settings, UBUNTU_DOCK_ON_MONITOR_KEY);
++      if (selection == -1)
++        selection = self->dock_placement_primary_index;
++      selection++; // offset in combox
++    }
++
++  gtk_combo_box_set_active (GTK_COMBO_BOX (self->dock_placement_combo), selection);
++}
++
++static void
++cc_ubuntu_panel_class_init (CcUbuntuPanelClass *klass)
++{
++  GObjectClass *object_class = G_OBJECT_CLASS (klass);
++  GtkWidgetClass *widget_class = GTK_WIDGET_CLASS (klass);
++
++  object_class->dispose = cc_ubuntu_panel_dispose;
++
++  gtk_widget_class_set_template_from_resource (widget_class, "/org/gnome/control-center/ubuntu/cc-ubuntu-panel.ui");
++
++  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, dock_autohide_switch);
++  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, dock_listbox);
++  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, dock_monitor_row);
++  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, dock_placement_combo);
++  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, dock_placement_liststore);
++  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, dock_position_combo);
++  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, icon_size_adjustment);
++  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, icon_size_scale);
++
++  gtk_widget_class_bind_template_callback (widget_class, on_dock_placement_combo_changed);
++  gtk_widget_class_bind_template_callback (widget_class, on_icon_size_adjustment_value_changed);
++  gtk_widget_class_bind_template_callback (widget_class, on_icon_size_format_value);
++}
++
++static void
++cc_ubuntu_panel_init (CcUbuntuPanel *self)
++{
++  g_autoptr(GSettingsSchema) schema = NULL;
++
++  g_resources_register (cc_ubuntu_get_resource ());
++
++  gtk_widget_init_template (GTK_WIDGET (self));
++
++  gtk_list_box_set_header_func (self->dock_listbox, cc_list_box_update_header_func, NULL, NULL);
++
++  /* Only load if we have ubuntu dock or dash to dock installed */
++  schema = g_settings_schema_source_lookup (g_settings_schema_source_get_default (), UBUNTU_DOCK_SCHEMA, TRUE);
++  if (!schema)
++    {
++      g_warning ("No Ubuntu Dock is installed here. Panel disabled. Please fix your installation.");
++      return;
++    }
++  self->dock_settings = g_settings_new_full (schema, NULL, NULL);
++  g_signal_connect_object (self->dock_settings, "changed::" ICONSIZE_KEY,
++                           G_CALLBACK (icon_size_widget_refresh), self, G_CONNECT_SWAPPED);
++  g_signal_connect_object (self->dock_settings, "changed::" UBUNTU_DOCK_ALL_MONITORS_KEY,
++                           G_CALLBACK (ext_ubuntu_dock_placement_changed_callback), self, G_CONNECT_SWAPPED);
++  g_signal_connect_object (self->dock_settings, "changed::" UBUNTU_DOCK_ON_MONITOR_KEY,
++                           G_CALLBACK (ext_ubuntu_dock_placement_changed_callback), self, G_CONNECT_SWAPPED);
++  g_settings_bind (self->dock_settings, "dock-position",
++                   self->dock_position_combo, "active-id",
++                   G_SETTINGS_BIND_DEFAULT);
++  g_settings_bind (self->dock_settings, "dock-fixed",
++                   self->dock_autohide_switch, "active",
++                   G_SETTINGS_BIND_INVERT_BOOLEAN);
++
++  /* Icon size change - we halve the sizes so we can only get even values */
++  gtk_adjustment_set_value (self->icon_size_adjustment, DEFAULT_ICONSIZE / 2);
++  gtk_adjustment_set_lower (self->icon_size_adjustment, MIN_ICONSIZE / 2);
++  gtk_adjustment_set_upper (self->icon_size_adjustment, MAX_ICONSIZE / 2);
++  gtk_scale_add_mark (self->icon_size_scale, DEFAULT_ICONSIZE / 2, GTK_POS_BOTTOM, NULL);
++
++  icon_size_widget_refresh (self);
++
++  g_bus_get (G_BUS_TYPE_SESSION, NULL, session_bus_ready, self);
++}
+Index: gnome-control-center/panels/ubuntu/cc-ubuntu-panel.h
+===================================================================
+--- /dev/null
++++ gnome-control-center/panels/ubuntu/cc-ubuntu-panel.h
+@@ -0,0 +1,33 @@
++/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
++/*
++ * Copyright (C) 2017 Canonical Ltd
++ *
++ * This library is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU Lesser General Public
++ * License as published by the Free Software Foundation; either
++ * version 2 of the License, or (at your option) any later version.
++ *
++ * This library is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++ * Lesser General Public License for more details.
++ *
++ * You should have received a copy of the GNU Lesser General
++ * Public License along with this library; if not, see <http://www.gnu.org/licenses/>.
++ *
++ */
++
++#ifndef _CC_UBUNTU_PANEL_H_
++#define _CC_UBUNTU_PANEL_H_
++
++#include <gio/gio.h>
++#include <shell/cc-panel.h>
++
++G_BEGIN_DECLS
++
++#define CC_TYPE_UBUNTU_PANEL (cc_ubuntu_panel_get_type ())
++G_DECLARE_FINAL_TYPE (CcUbuntuPanel, cc_ubuntu_panel, CC, UBUNTU_PANEL, CcPanel)
++
++G_END_DECLS
++
++#endif /* _CC_EDIT_DIALOG_H_ */
+Index: gnome-control-center/panels/ubuntu/cc-ubuntu-panel.ui
+===================================================================
+--- /dev/null
++++ gnome-control-center/panels/ubuntu/cc-ubuntu-panel.ui
+@@ -0,0 +1,297 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<!-- Generated with glade 3.20.0 -->
++<interface>
++  <requires lib="gtk+" version="3.20"/>
++  <template class="CcUbuntuPanel" parent="CcPanel">
++    <property name="visible">True</property>
++    <child>
++      <object class="GtkScrolledWindow">
++        <property name="visible">True</property>
++        <property name="can_focus">True</property>
++        <property name="hscrollbar_policy">never</property>
++        <property name="shadow_type">in</property>
++        <child>
++          <object class="GtkViewport">
++            <property name="visible">True</property>
++            <property name="can_focus">False</property>
++            <child>
++              <object class="GtkBox">
++                <property name="visible">True</property>
++                <property name="can_focus">False</property>
++
++                <!-- Stub boxes to make the content cover 1/3 of the screen -->
++                <child>
++                  <object class="GtkBox">
++                    <property name="visible">True</property>
++                    <property name="can_focus">False</property>
++                    <property name="hexpand">True</property>
++                  </object>
++                </child>
++
++                <child>
++                  <object class="GtkBox">
++                    <property name="visible">True</property>
++                    <property name="can_focus">False</property>
++                    <property name="hexpand">True</property>
++                  </object>
++                  <packing>
++                    <property name="pack_type">end</property>
++                  </packing>
++                </child>
++
++                <!-- Content -->
++                <child>
++                  <object class="GtkBox">
++                    <property name="visible">True</property>
++                    <property name="can_focus">False</property>
++                    <property name="margin">32</property>
++                    <property name="orientation">vertical</property>
++                    <property name="hexpand">True</property>
++                    <!--<child>
++                      <object class="GtkLabel">
++                        <property name="visible">True</property>
++                        <property name="can_focus">False</property>
++                        <property name="xalign">0</property>
++                        <property name="margin_bottom">12</property>
++                        <property name="label" translatable="yes" comments="Dock settings.">Ubuntu Dock</property>
++                        <attributes>
++                          <attribute name="weight" value="bold"/>
++                        </attributes>
++                      </object>
++                      <packing>
++                        <property name="expand">False</property>
++                        <property name="fill">True</property>
++                        <property name="position">0</property>
++                      </packing>
++                    </child>-->
++                    <child>
++                      <object class="GtkFrame">
++                        <property name="visible">True</property>
++                        <property name="can_focus">False</property>
++                        <property name="margin_bottom">32</property>
++                        <property name="hexpand">True</property>
++                        <property name="label_xalign">0</property>
++                        <property name="shadow_type">in</property>
++                        <child>
++                          <object class="GtkListBox" id="dock_listbox">
++                            <property name="visible">True</property>
++                            <property name="can_focus">False</property>
++                            <property name="hexpand">True</property>
++                            <property name="selection_mode">none</property>
++                            <property name="activate_on_single_click">False</property>
++                            <child>
++                              <object class="GtkListBoxRow">
++                                <property name="visible">True</property>
++                                <child>
++                                  <object class="GtkGrid">
++                                    <property name="visible">True</property>
++                                    <property name="margin_start">20</property>
++                                    <property name="margin_end">20</property>
++                                    <property name="margin_top">10</property>
++                                    <property name="margin_bottom">10</property>
++                                    <property name="row_spacing">2</property>
++                                    <property name="column_spacing">16</property>
++                                    <property name="valign">center</property>
++                                    <child>
++                                      <object class="GtkLabel">
++                                        <property name="visible">True</property>
++                                        <property name="label" translatable="yes">Auto-hide the Dock</property>
++                                        <property name="hexpand">True</property>
++                                        <property name="halign">start</property>
++                                        <property name="mnemonic_widget">dock_autohide_switch</property>
++                                      </object>
++                                      <packing>
++                                        <property name="left_attach">0</property>
++                                        <property name="top_attach">0</property>
++                                        <property name="width">1</property>
++                                        <property name="height">1</property>
++                                      </packing>
++                                    </child>
++                                    <child>
++                                      <object class="GtkLabel">
++                                        <property name="visible">True</property>
++                                        <property name="label" translatable="yes">The dock hides when any windows overlap with it.</property>
++                                        <property name="halign">start</property>
++                                        <attributes>
++                                          <attribute name="scale" value="0.9"/>
++                                        </attributes>
++                                        <style>
++                                          <class name="dim-label"/>
++                                        </style>
++                                      </object>
++                                      <packing>
++                                        <property name="left_attach">0</property>
++                                        <property name="top_attach">1</property>
++                                        <property name="width">1</property>
++                                        <property name="height">1</property>
++                                      </packing>
++                                    </child>
++                                    <child>
++                                      <object class="GtkSwitch" id="dock_autohide_switch">
++                                        <property name="visible">True</property>
++                                        <property name="halign">end</property>
++                                        <property name="valign">center</property>
++                                      </object>
++                                      <packing>
++                                        <property name="left_attach">1</property>
++                                        <property name="top_attach">0</property>
++                                        <property name="width">1</property>
++                                        <property name="height">2</property>
++                                      </packing>
++                                    </child>
++                                  </object>
++                                </child>
++                              </object>
++                            </child>
++                            <child>
++                              <object class="GtkListBoxRow">
++                                <property name="visible">True</property>
++                                <child>
++                                  <object class="GtkBox">
++                                    <property name="visible">True</property>
++                                    <property name="orientation">horizontal</property>
++                                    <property name="spacing">50</property>
++                                    <child>
++                                      <object class="GtkLabel">
++                                        <property name="visible">True</property>
++                                        <property name="label" translatable="yes">Icon size</property>
++                                        <property name="hexpand">True</property>
++                                        <property name="halign">start</property>
++                                        <property name="margin_start">20</property>
++                                        <property name="margin_end">20</property>
++                                        <property name="margin_top">16</property>
++                                        <property name="margin_bottom">16</property>
++                                        <property name="mnemonic_widget">icon_size_scale</property>
++                                      </object>
++                                    </child>
++                                    <child>
++                                      <object class="GtkScale" id="icon_size_scale">
++                                        <property name="visible">True</property>
++                                        <property name="adjustment">icon_size_adjustment</property>
++                                        <property name="orientation">horizontal</property>
++                                        <property name="value_pos">left</property>
++                                        <property name="width_request">264</property>
++                                        <property name="valign">center</property>
++                                        <property name="margin_start">20</property>
++                                        <property name="margin_end">20</property>
++                                        <signal name="format-value" handler="on_icon_size_format_value" object="CcUbuntuPanel" swapped="yes"/>
++                                      </object>
++                                    </child>
++                                  </object>
++                                </child>
++                              </object>
++                            </child>
++                            <child>
++                              <object class="GtkListBoxRow" id="dock_monitor_row">
++                                <property name="visible">True</property>
++                                <child>
++                                  <object class="GtkBox">
++                                    <property name="visible">True</property>
++                                    <property name="orientation">horizontal</property>
++                                    <property name="spacing">50</property>
++                                    <child>
++                                      <object class="GtkLabel">
++                                        <property name="visible">True</property>
++                                        <property name="label" translatable="yes">Show on</property>
++                                        <property name="hexpand">True</property>
++                                        <property name="halign">start</property>
++                                        <property name="margin_start">20</property>
++                                        <property name="margin_end">20</property>
++                                        <property name="margin_top">16</property>
++                                        <property name="margin_bottom">16</property>
++                                        <property name="mnemonic_widget">dock_placement_combo</property>
++                                      </object>
++                                    </child>
++                                    <child>
++                                      <object class="GtkComboBox" id="dock_placement_combo">
++                                        <property name="visible">True</property>
++                                        <property name="model">dock_placement_liststore</property>
++                                        <property name="margin_start">20</property>
++                                        <property name="margin_end">20</property>
++                                        <property name="valign">center</property>
++                                        <signal name="changed" handler="on_dock_placement_combo_changed" object="CcUbuntuPanel" swapped="yes"/>
++                                        <child>
++                                          <object class="GtkCellRendererText"/>
++                                          <attributes>
++                                            <attribute name="text">0</attribute>
++                                          </attributes>
++                                        </child>
++                                      </object>
++                                    </child>
++                                  </object>
++                                </child>
++                              </object>
++                            </child>
++                            <child>
++                              <object class="GtkListBoxRow">
++                                <property name="visible">True</property>
++                                <child>
++                                  <object class="GtkBox">
++                                    <property name="visible">True</property>
++                                    <property name="orientation">horizontal</property>
++                                    <property name="spacing">50</property>
++                                    <child>
++                                      <object class="GtkLabel">
++                                        <property name="visible">True</property>
++                                        <property name="label" translatable="yes">Position on screen</property>
++                                        <property name="hexpand">True</property>
++                                        <property name="halign">start</property>
++                                        <property name="margin_start">20</property>
++                                        <property name="margin_end">20</property>
++                                        <property name="margin_top">16</property>
++                                        <property name="margin_bottom">16</property>
++                                        <property name="mnemonic_widget">dock_position_combo</property>
++                                      </object>
++                                    </child>
++                                    <child>
++                                      <object class="GtkComboBoxText" id="dock_position_combo">
++                                        <property name="visible">True</property>
++                                        <property name="margin_start">20</property>
++                                        <property name="margin_end">20</property>
++                                        <property name="valign">center</property>
++                                        <items>
++                                          <item id="LEFT" translatable="yes" context="Position on screen for the Ubuntu dock">Left</item>
++                                          <item id="BOTTOM" translatable="yes" context="Position on screen for the Ubuntu dock">Bottom</item>
++                                          <item id="RIGHT" translatable="yes" context="Position on screen for the Ubuntu dock">Right</item>
++                                        </items>
++                                      </object>
++                                    </child>
++                                  </object>
++                                </child>
++                              </object>
++                            </child>
++                          </object>
++                        </child>
++                      </object>
++                      <packing>
++                        <property name="expand">False</property>
++                        <property name="fill">True</property>
++                        <property name="position">1</property>
++                      </packing>
++                    </child>
++                  </object>
++                  <packing>
++                    <property name="expand">False</property>
++                    <property name="fill">True</property>
++                    <property name="position">2</property>
++                  </packing>
++                </child>
++              </object>
++            </child>
++          </object>
++        </child>
++      </object>
++    </child>
++  </template>
++  <object class="GtkAdjustment" id="icon_size_adjustment">
++    <property name="step_increment">1</property>
++    <property name="page_increment">4</property>
++    <signal name="value-changed" handler="on_icon_size_adjustment_value_changed" object="CcUbuntuPanel" swapped="yes"/>
++  </object>
++  <object class="GtkListStore" id="dock_placement_liststore">
++    <columns>
++      <!-- column-name label -->
++      <column type="gchararray"/>
++    </columns>
++  </object>
++</interface>
+Index: gnome-control-center/panels/ubuntu/gnome-ubuntu-panel.desktop.in.in
+===================================================================
+--- /dev/null
++++ gnome-control-center/panels/ubuntu/gnome-ubuntu-panel.desktop.in.in
+@@ -0,0 +1,16 @@
++[Desktop Entry]
++Name=Dock
++Comment=Ubuntu Dock Settings
++Exec=gnome-control-center ubuntu
++Icon=preferences-ubuntu-panel
++Terminal=false
++Type=Application
++NoDisplay=true
++StartupNotify=true
++Categories=GNOME;GTK;Settings;DesktopSettings;X-GNOME-Settings-Panel;X-GNOME-PersonalSettings;X-GNOME-PersonalizationSettings;
++OnlyShowIn=ubuntu;
++X-GNOME-Bugzilla-Bugzilla=GNOME
++X-GNOME-Bugzilla-Product=gnome-control-center
++X-GNOME-Bugzilla-Version=@VERSION@
++# Translators: those are keywords for the ubuntu control-center panel
++Keywords=Dock;Launcher;
+Index: gnome-control-center/panels/ubuntu/meson.build
+===================================================================
+--- /dev/null
++++ gnome-control-center/panels/ubuntu/meson.build
+@@ -0,0 +1,40 @@
++panels_list += cappletname
++desktop = 'gnome-@0@-panel.desktop'.format(cappletname)
++
++desktop_in = configure_file(
++  input: desktop + '.in.in',
++  output: desktop + '.in',
++  configuration: desktop_conf
++)
++
++i18n.merge_file(
++  desktop,
++  type: 'desktop',
++  input: desktop_in,
++  output: desktop,
++  po_dir: po_dir,
++  install: true,
++  install_dir: control_center_desktopdir
++)
++
++sources = files('cc-ubuntu-panel.c')
++
++resource_data = files('cc-ubuntu-panel.ui')
++
++sources += gnome.compile_resources(
++  'cc-' + cappletname + '-resources',
++  cappletname + '.gresource.xml',
++  c_name: 'cc_' + cappletname,
++  dependencies: resource_data,
++  export: true
++)
++
++cflags += '-DGNOMELOCALEDIR="@0@"'.format(control_center_localedir)
++
++panels_libs += static_library(
++  cappletname,
++  sources: sources,
++  include_directories: [top_inc, common_inc],
++  dependencies: common_deps,
++  c_args: cflags
++)
+Index: gnome-control-center/panels/ubuntu/ubuntu.gresource.xml
+===================================================================
+--- /dev/null
++++ gnome-control-center/panels/ubuntu/ubuntu.gresource.xml
+@@ -0,0 +1,6 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<gresources>
++  <gresource prefix="/org/gnome/control-center/ubuntu">
++    <file preprocess="xml-stripblanks">cc-ubuntu-panel.ui</file>
++  </gresource>
++</gresources>
+Index: gnome-control-center/po/POTFILES.in
+===================================================================
+--- gnome-control-center.orig/po/POTFILES.in
++++ gnome-control-center/po/POTFILES.in
+@@ -209,6 +209,9 @@ panels/thunderbolt/cc-bolt-device-entry.
+ panels/thunderbolt/cc-bolt-panel.c
+ panels/thunderbolt/cc-bolt-panel.ui
+ panels/thunderbolt/gnome-thunderbolt-panel.desktop.in.in
++panels/ubuntu/cc-ubuntu-panel.c
++panels/ubuntu/cc-ubuntu-panel.ui
++panels/ubuntu/gnome-ubuntu-panel.desktop.in.in
+ panels/universal-access/cc-ua-panel.c
+ panels/universal-access/cc-ua-panel.ui
+ panels/universal-access/gnome-universal-access-panel.desktop.in.in
+Index: gnome-control-center/shell/cc-panel-list.c
+===================================================================
+--- gnome-control-center.orig/shell/cc-panel-list.c
++++ gnome-control-center/shell/cc-panel-list.c
+@@ -408,6 +408,7 @@ static const gchar * const panel_order[]
+   "mobile-broadband",
+   "bluetooth",
+   "background",
++  "ubuntu",
+   "notifications",
+   "search",
+   "region",
+Index: gnome-control-center/shell/cc-panel-loader.c
+===================================================================
+--- gnome-control-center.orig/shell/cc-panel-loader.c
++++ gnome-control-center/shell/cc-panel-loader.c
+@@ -60,6 +60,7 @@ extern GType cc_sound_panel_get_type (vo
+ extern GType cc_bolt_panel_get_type (void);
+ #endif /* BUILD_THUNDERBOLT */
+ extern GType cc_ua_panel_get_type (void);
++extern GType cc_ubuntu_panel_get_type(void);
+ extern GType cc_user_panel_get_type (void);
+ #ifdef BUILD_WACOM
+ extern GType cc_wacom_panel_get_type (void);
+@@ -120,6 +121,7 @@ static CcPanelLoaderVtable default_panel
+   PANEL_TYPE("search",           cc_search_panel_get_type,               NULL),
+   PANEL_TYPE("sharing",          cc_sharing_panel_get_type,              NULL),
+   PANEL_TYPE("sound",            cc_sound_panel_get_type,                NULL),
++  PANEL_TYPE("ubuntu",           cc_ubuntu_panel_get_type,               NULL),
+ #ifdef BUILD_THUNDERBOLT
+   PANEL_TYPE("thunderbolt",      cc_bolt_panel_get_type,                 NULL),
+ #endif

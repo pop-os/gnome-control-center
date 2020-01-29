@@ -1,6 +1,7 @@
+From c78de230d7efc2f88aa1340e862d5fae92ac4b12 Mon Sep 17 00:00:00 2001
 From: Robert Ancell <robert.ancell@canonical.com>
 Date: Tue, 12 Mar 2019 15:31:38 +1300
-Subject: [PATCH 8/8] applications: Add hack detect snaps before
+Subject: [PATCH 18/20] applications: Add hack detect snaps before
  X-SnapInstanceName works
 
 ---
@@ -8,13 +9,13 @@ Subject: [PATCH 8/8] applications: Add hack detect snaps before
  1 file changed, 10 insertions(+)
 
 diff --git a/panels/applications/cc-applications-panel.c b/panels/applications/cc-applications-panel.c
-index 232cbee..041a9c3 100644
+index f4d0605ad..f0ab8cf21 100644
 --- a/panels/applications/cc-applications-panel.c
 +++ b/panels/applications/cc-applications-panel.c
-@@ -236,6 +236,16 @@ get_portal_app_id (GAppInfo *info)
+@@ -237,6 +237,16 @@ get_portal_app_id (GAppInfo *info)
        snap_name = g_desktop_app_info_get_string (G_DESKTOP_APP_INFO (info), "X-SnapInstanceName");
        if (snap_name != NULL)
-         return snap_name;
+         return g_strdup_printf ("%s%s", PORTAL_SNAP_PREFIX, snap_name);
 +
 +      // FIXME: Hack until X-SnapInstanceName is ready
 +      // https://github.com/snapcore/snapd/pull/6520
@@ -28,3 +29,6 @@ index 232cbee..041a9c3 100644
      }
  
    return NULL;
+-- 
+2.24.0
+

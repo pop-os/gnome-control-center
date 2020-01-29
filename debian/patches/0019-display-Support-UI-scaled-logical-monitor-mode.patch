@@ -1,6 +1,7 @@
-From: =?utf-8?b?Ik1hcmNvIFRyZXZpc2FuIChUcmV2acOxbyki?= <mail@3v1n0.net>
+From 0213bea70243f2d3eafb998e07575fb1f2f6aa66 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Marco=20Trevisan=20=28Trevi=C3=B1o=29?= <mail@3v1n0.net>
 Date: Wed, 27 Mar 2019 05:42:41 +0100
-Subject: display: Support UI scaled logical monitor mode
+Subject: [PATCH 19/20] display: Support UI scaled logical monitor mode
 
 When this mode is selected we need to assume that all the monitors are scaled
 by their scaling and the global UI scale.
@@ -9,14 +10,14 @@ Origin: https://gitlab.gnome.org/3v1n0/gnome-control-center/commits/layout-globa
 Bug-Ubuntu: https://bugs.launchpad.net/ubuntu/+source/mutter/+bug/1820850
 Forwarded: No, MPs will follow shortly
 ---
- panels/display/cc-display-arrangement.c | 45 +++++++++++++++++++++++++++++----
- panels/display/cc-display-config-dbus.c | 41 +++++++++++++++++++++++++++---
- panels/display/cc-display-config.c      |  6 +++++
+ panels/display/cc-display-arrangement.c | 45 ++++++++++++++++++++++---
+ panels/display/cc-display-config-dbus.c | 41 ++++++++++++++++++++--
+ panels/display/cc-display-config.c      |  6 ++++
  panels/display/cc-display-config.h      |  2 ++
  4 files changed, 86 insertions(+), 8 deletions(-)
 
 diff --git a/panels/display/cc-display-arrangement.c b/panels/display/cc-display-arrangement.c
-index adbbcbc..7080bf6 100644
+index adbbcbc28..7080bf634 100644
 --- a/panels/display/cc-display-arrangement.c
 +++ b/panels/display/cc-display-arrangement.c
 @@ -95,10 +95,31 @@ apply_rotation_to_geometry (CcDisplayMonitor *output,
@@ -150,7 +151,7 @@ index adbbcbc..7080bf6 100644
    snap_data.snapped = SNAP_DIR_NONE;
    snap_data.mon_x = x;
 diff --git a/panels/display/cc-display-config-dbus.c b/panels/display/cc-display-config-dbus.c
-index 81b2c46..f116041 100644
+index 81b2c46f7..f116041bd 100644
 --- a/panels/display/cc-display-config-dbus.c
 +++ b/panels/display/cc-display-config-dbus.c
 @@ -861,7 +861,8 @@ cc_display_monitor_dbus_new (GVariant *variant,
@@ -237,10 +238,10 @@ index 81b2c46..f116041 100644
      return width;
  }
 diff --git a/panels/display/cc-display-config.c b/panels/display/cc-display-config.c
-index a36f829..971ff94 100644
+index 30c97c450..0a49191bf 100644
 --- a/panels/display/cc-display-config.c
 +++ b/panels/display/cc-display-config.c
-@@ -609,3 +609,9 @@ cc_display_config_is_scaled_mode_valid (CcDisplayConfig *self,
+@@ -624,3 +624,9 @@ cc_display_config_is_scaled_mode_valid (CcDisplayConfig *self,
  {
    return CC_DISPLAY_CONFIG_GET_CLASS (self)->is_scaled_mode_valid (self, mode, scale);
  }
@@ -251,7 +252,7 @@ index a36f829..971ff94 100644
 +  return CC_DISPLAY_CONFIG_GET_CLASS (self)->layout_use_ui_scale (self);
 +}
 diff --git a/panels/display/cc-display-config.h b/panels/display/cc-display-config.h
-index ef4332f..2f246ff 100644
+index ef4332ff7..2f246ffdb 100644
 --- a/panels/display/cc-display-config.h
 +++ b/panels/display/cc-display-config.h
 @@ -160,6 +160,7 @@ struct _CcDisplayConfigClass
@@ -270,3 +271,6 @@ index ef4332f..2f246ff 100644
  
  const char*       cc_display_monitor_get_display_name       (CcDisplayMonitor   *monitor);
  gboolean          cc_display_monitor_is_active              (CcDisplayMonitor   *monitor);
+-- 
+2.24.0
+

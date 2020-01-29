@@ -1,6 +1,7 @@
+From aa4ce19cd578f3b3381f5c51c4a9e38948ccf69d Mon Sep 17 00:00:00 2001
 From: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
 Date: Mon, 19 Aug 2019 16:17:20 +0100
-Subject: Display locale @modifiers properly
+Subject: [PATCH 04/20] Display locale @modifiers properly
 
 Make items in the UI represented by locale modifiers distinguishable from
 items without modifiers.
@@ -15,12 +16,12 @@ Forwarded: https://gitlab.gnome.org/GNOME/gnome-desktop/issues/50
  1 file changed, 21 insertions(+), 3 deletions(-)
 
 diff --git a/panels/common/cc-language-chooser.c b/panels/common/cc-language-chooser.c
-index 1c15b43..386978d 100644
+index c1c11b601..0dde398eb 100644
 --- a/panels/common/cc-language-chooser.c
 +++ b/panels/common/cc-language-chooser.c
 @@ -52,6 +52,23 @@ struct _CcLanguageChooser {
  
- G_DEFINE_TYPE (CcLanguageChooser, cc_language_chooser, GTK_TYPE_DIALOG)
+ G_DEFINE_TYPE (CcLanguageChooser, cc_language_chooser, HDY_TYPE_DIALOG)
  
 +static gchar *
 +get_language_label (const gchar *language_code,
@@ -28,15 +29,15 @@ index 1c15b43..386978d 100644
 +                    const gchar *locale_id)
 +{
 +        g_autofree gchar *language = NULL;
++        g_autofree gchar *t_mod = NULL;
 +
 +        language = gnome_get_language_from_code (language_code, locale_id);
 +
 +        if (modifier == NULL)
 +                return g_steal_pointer (&language);
-+        else {
-+                g_autofree gchar *t_mod = gnome_get_translated_modifier (modifier, locale_id);
-+                return g_strdup_printf ("%s — %s", language, t_mod);
-+        }
++
++        t_mod = gnome_get_translated_modifier (modifier, locale_id);
++        return g_strdup_printf ("%s — %s", language, t_mod);
 +}
 +
  static GtkWidget *
@@ -63,3 +64,6 @@ index 1c15b43..386978d 100644
          country_local = gnome_get_country_from_code (country_code, NULL);
  
          row = gtk_list_box_row_new ();
+-- 
+2.24.0
+

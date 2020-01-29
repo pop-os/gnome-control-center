@@ -1,22 +1,23 @@
+From 096eefe7b966dd869f0ee81e89d6d8f5d960ea90 Mon Sep 17 00:00:00 2001
 From: Robert Ancell <robert.ancell@canonical.com>
 Date: Wed, 20 Feb 2019 11:33:19 +0100
-Subject: [PATCH 7/7] applications: Show snap interface controls
+Subject: [PATCH] applications: Show snap interface controls
 
 ---
- panels/applications/applications.gresource.xml |   1 +
- panels/applications/cc-applications-panel.c    | 101 +++++-
- panels/applications/cc-snap-row.c              | 430 +++++++++++++++++++++++++
- panels/applications/cc-snap-row.h              |  35 ++
- panels/applications/cc-snap-row.ui             |  53 +++
- panels/applications/meson.build                |   1 +
- po/POTFILES.in                                 |   1 +
- 7 files changed, 621 insertions(+), 1 deletion(-)
+ .../applications/applications.gresource.xml   |   1 +
+ panels/applications/cc-applications-panel.c   | 106 ++++-
+ panels/applications/cc-snap-row.c             | 432 ++++++++++++++++++
+ panels/applications/cc-snap-row.h             |  35 ++
+ panels/applications/cc-snap-row.ui            |  53 +++
+ panels/applications/meson.build               |   1 +
+ po/POTFILES.in                                |   1 +
+ 7 files changed, 628 insertions(+), 1 deletion(-)
  create mode 100644 panels/applications/cc-snap-row.c
  create mode 100644 panels/applications/cc-snap-row.h
  create mode 100644 panels/applications/cc-snap-row.ui
 
 diff --git a/panels/applications/applications.gresource.xml b/panels/applications/applications.gresource.xml
-index d23f1b2..b77aaba 100644
+index d23f1b2e0..b77aaba45 100644
 --- a/panels/applications/applications.gresource.xml
 +++ b/panels/applications/applications.gresource.xml
 @@ -5,6 +5,7 @@
@@ -28,10 +29,10 @@ index d23f1b2..b77aaba 100644
      <file>cc-applications-panel.css</file>
    </gresource>
 diff --git a/panels/applications/cc-applications-panel.c b/panels/applications/cc-applications-panel.c
-index b824ae6..232cbee 100644
+index 8759afd42..f4d0605ad 100644
 --- a/panels/applications/cc-applications-panel.c
 +++ b/panels/applications/cc-applications-panel.c
-@@ -22,6 +22,9 @@
+@@ -23,6 +23,9 @@
  
  #include <config.h>
  #include <glib/gi18n.h>
@@ -41,7 +42,7 @@ index b824ae6..232cbee 100644
  
  #include <gio/gdesktopappinfo.h>
  
-@@ -32,6 +35,9 @@
+@@ -33,6 +36,9 @@
  #include "cc-action-row.h"
  #include "cc-applications-resources.h"
  #include "cc-util.h"
@@ -51,15 +52,7 @@ index b824ae6..232cbee 100644
  #include "globs.h"
  #include "list-box-helper.h"
  #include "search.h"
-@@ -230,7 +236,6 @@ get_portal_app_id (GAppInfo *info)
-       snap_name = g_desktop_app_info_get_string (G_DESKTOP_APP_INFO (info), "X-SnapInstanceName");
-       if (snap_name != NULL)
-         return snap_name;
--
-     }
- 
-   return NULL;
-@@ -524,6 +529,95 @@ location_cb (CcApplicationsPanel *self)
+@@ -555,6 +561,98 @@ location_cb (CcApplicationsPanel *self)
  
  /* --- permissions section --- */
  
@@ -106,7 +99,12 @@ index b824ae6..232cbee 100644
 +  g_assert (index >= 0);
 +
 +  client = snapd_client_new ();
-+  if (!snapd_client_get_interfaces_sync (client, &plugs, &slots, NULL, &error))
++  if (!snapd_client_get_connections2_sync (client,
++                                           SNAPD_GET_CONNECTIONS_FLAGS_NONE,
++                                           snap_name, NULL,
++                                           NULL, NULL,
++                                           &plugs, &slots,
++                                           NULL, &error))
 +    {
 +      g_warning ("Failed to get snap interfaces: %s", error->message);
 +      return FALSE;
@@ -121,11 +119,9 @@ index b824ae6..232cbee 100644
 +                                                  "desktop", "desktop-legacy",
 +                                                  "mir",
 +                                                  "unity7", "unity8",
++                                                  "wayland",
 +                                                  "x11",
 +                                                  NULL };
-+
-+      if (g_strcmp0 (snapd_plug_get_snap (plug), snap_name) != 0)
-+        continue;
 +
 +      /* Ignore interfaces that are too low level to make sense to show or disable */
 +      if (g_strv_contains (hidden_interfaces, snapd_plug_get_interface (plug)))
@@ -155,7 +151,17 @@ index b824ae6..232cbee 100644
  static gint
  add_static_permission_row (CcApplicationsPanel *self,
                             const gchar         *title,
-@@ -652,6 +746,11 @@ update_permission_section (CcApplicationsPanel *self,
+@@ -600,7 +698,8 @@ add_static_permissions (CcApplicationsPanel *self,
+   gint added = 0;
+   g_autofree gchar *text = NULL;
+ 
+-  keyfile = get_flatpak_metadata (app_id);
++  if (!g_str_has_prefix (app_id, PORTAL_SNAP_PREFIX))
++    keyfile = get_flatpak_metadata (app_id);
+   if (keyfile == NULL)
+     return FALSE;
+ 
+@@ -681,6 +780,11 @@ update_permission_section (CcApplicationsPanel *self,
    gtk_widget_set_visible (self->no_location, set && disabled);
    has_any |= set;
  
@@ -169,10 +175,10 @@ index b824ae6..232cbee 100644
    gtk_widget_set_visible (self->builtin, has_builtin);
 diff --git a/panels/applications/cc-snap-row.c b/panels/applications/cc-snap-row.c
 new file mode 100644
-index 0000000..9372575
+index 000000000..d20faf6e4
 --- /dev/null
 +++ b/panels/applications/cc-snap-row.c
-@@ -0,0 +1,430 @@
+@@ -0,0 +1,432 @@
 +/* cc-snap-row.c
 + *
 + * Copyright 2019 Canonical Ltd.
@@ -357,16 +363,16 @@ index 0000000..9372575
 +  gtk_switch_set_active (self->slot_toggle, self->connected_slot != NULL);
 +
 +  if (gtk_tree_model_get_iter_first (GTK_TREE_MODEL (self->slots_combo_model), &iter))
-+   {
-+     do
-+      {
-+        SnapdSlot *slot;
++    {
++      do
++        {
++          SnapdSlot *slot;
 +
-+        gtk_tree_model_get (GTK_TREE_MODEL (self->slots_combo_model), &iter, 0, &slot, -1);
-+        if (slot == self->connected_slot)
-+          gtk_combo_box_set_active_iter (self->slots_combo, &iter);
-+      } while (gtk_tree_model_iter_next (GTK_TREE_MODEL (self->slots_combo_model), &iter));
-+   }
++          gtk_tree_model_get (GTK_TREE_MODEL (self->slots_combo_model), &iter, 0, &slot, -1);
++          if (slot == self->connected_slot)
++            gtk_combo_box_set_active_iter (self->slots_combo, &iter);
++        } while (gtk_tree_model_iter_next (GTK_TREE_MODEL (self->slots_combo_model), &iter));
++    }
 +}
 +
 +static void
@@ -498,7 +504,9 @@ index 0000000..9372575
 +        connect_plug (self, g_ptr_array_index (self->slots, 0));
 +    }
 +  else
-+    disconnect_plug (self);
++    {
++      disconnect_plug (self);
++    }
 +}
 +
 +static void
@@ -558,7 +566,7 @@ index 0000000..9372575
 +cc_snap_row_new (GCancellable *cancellable, SnapdPlug *plug, GPtrArray *slots)
 +{
 +  CcSnapRow *self;
-+  GPtrArray *connections;
++  GPtrArray *connected_slots;
 +  GtkTreeIter iter;
 +
 +  g_return_val_if_fail (SNAPD_IS_PLUG (plug), NULL);
@@ -569,19 +577,19 @@ index 0000000..9372575
 +  self->plug = g_object_ref (plug);
 +  self->slots = g_ptr_array_ref (slots);
 +
-+  connections = snapd_plug_get_connections (plug);
-+  if (connections->len > 0)
++  connected_slots = snapd_plug_get_connected_slots (plug);
++  if (connected_slots->len > 0)
 +    {
-+      SnapdConnection *connection = g_ptr_array_index (connections, 0);
++      SnapdSlotRef *connected_slot_ref = g_ptr_array_index (connected_slots, 0);
 +
 +      for (int i = 0; i < slots->len; i++)
 +        {
 +          SnapdSlot *slot = g_ptr_array_index (slots, i);
 +
-+          if (g_strcmp0 (snapd_slot_get_snap (slot), snapd_connection_get_snap (connection)) == 0 &&
-+              g_strcmp0 (snapd_slot_get_name (slot), snapd_connection_get_name (connection)) == 0)
++          if (g_strcmp0 (snapd_slot_get_snap (slot), snapd_slot_ref_get_snap (connected_slot_ref)) == 0 &&
++              g_strcmp0 (snapd_slot_get_name (slot), snapd_slot_ref_get_slot (connected_slot_ref)) == 0)
 +            self->connected_slot = slot;
-+      }
++        }
 +    }
 +
 +  gtk_label_set_label (self->title_label, get_label (snapd_plug_get_interface (plug)));
@@ -605,7 +613,7 @@ index 0000000..9372575
 +}
 diff --git a/panels/applications/cc-snap-row.h b/panels/applications/cc-snap-row.h
 new file mode 100644
-index 0000000..26563bd
+index 000000000..26563bd8d
 --- /dev/null
 +++ b/panels/applications/cc-snap-row.h
 @@ -0,0 +1,35 @@
@@ -646,7 +654,7 @@ index 0000000..26563bd
 +G_END_DECLS
 diff --git a/panels/applications/cc-snap-row.ui b/panels/applications/cc-snap-row.ui
 new file mode 100644
-index 0000000..fb485c9
+index 000000000..fb485c99e
 --- /dev/null
 +++ b/panels/applications/cc-snap-row.ui
 @@ -0,0 +1,53 @@
@@ -704,7 +712,7 @@ index 0000000..fb485c9
 +  </template>
 +</interface>
 diff --git a/panels/applications/meson.build b/panels/applications/meson.build
-index b405fc2..fe844b8 100644
+index ce3b41a77..4e324c33e 100644
 --- a/panels/applications/meson.build
 +++ b/panels/applications/meson.build
 @@ -42,6 +42,7 @@ deps = common_deps
@@ -714,9 +722,9 @@ index b405fc2..fe844b8 100644
 +  sources += files('cc-snap-row.c')
  endif
  
- cflags += '-DGNOMELOCALEDIR="@0@"'.format(control_center_localedir)
+ panels_libs += static_library(
 diff --git a/po/POTFILES.in b/po/POTFILES.in
-index 0dbad88..4f14e3b 100644
+index bd46ca1ba..7584e1769 100644
 --- a/po/POTFILES.in
 +++ b/po/POTFILES.in
 @@ -2,6 +2,7 @@
@@ -727,3 +735,6 @@ index 0dbad88..4f14e3b 100644
  panels/applications/gnome-applications-panel.desktop.in.in
  panels/background/bg-colors-source.c
  panels/background/cc-background-chooser.c
+-- 
+2.24.0
+
