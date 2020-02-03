@@ -568,18 +568,15 @@ get_jobs_cb (GObject      *source_object,
              GAsyncResult *result,
              gpointer      user_data)
 {
-  PpPrinterEntry   *self = user_data;
-  PpPrinter        *printer = PP_PRINTER (source_object);
-  g_autoptr(GError) error = NULL;
-  GList            *jobs;
-  g_autofree gchar *button_label = NULL;
-  gint              num_jobs;
+  PpPrinterEntry      *self = user_data;
+  PpPrinter           *printer = PP_PRINTER (source_object);
+  g_autoptr(GError)    error = NULL;
+  g_autoptr(GPtrArray) jobs = NULL;
+  g_autofree gchar    *button_label = NULL;
 
   jobs = pp_printer_get_jobs_finish (printer, result, &error);
-  num_jobs = g_list_length (jobs);
 
   g_object_unref (source_object);
-  g_list_free_full (jobs, (GDestroyNotify) g_object_unref);
 
   if (error != NULL)
     {
@@ -591,7 +588,7 @@ get_jobs_cb (GObject      *source_object,
       return;
     }
 
-  if (num_jobs == 0)
+  if (jobs->len == 0)
     {
       /* Translators: This is the label of the button that opens the Jobs Dialog. */
       button_label = g_strdup (_("No Active Jobs"));
@@ -599,11 +596,11 @@ get_jobs_cb (GObject      *source_object,
   else
     {
       /* Translators: This is the label of the button that opens the Jobs Dialog. */
-      button_label = g_strdup_printf (ngettext ("%u Job", "%u Jobs", num_jobs), num_jobs);
+      button_label = g_strdup_printf (ngettext ("%u Job", "%u Jobs", jobs->len), jobs->len);
     }
 
   gtk_button_set_label (GTK_BUTTON (self->show_jobs_dialog_button), button_label);
-  gtk_widget_set_sensitive (self->show_jobs_dialog_button, num_jobs > 0);
+  gtk_widget_set_sensitive (self->show_jobs_dialog_button, jobs->len > 0);
 
   if (self->pp_jobs_dialog != NULL)
     {
@@ -641,17 +638,9 @@ jobs_dialog_response_cb (GtkDialog  *dialog,
 
   if (self->pp_jobs_dialog != NULL)
     {
-      pp_jobs_dialog_free (self->pp_jobs_dialog);
+      gtk_widget_destroy (GTK_WIDGET (self->pp_jobs_dialog));
       self->pp_jobs_dialog = NULL;
     }
-}
-
-static void
-printer_jobs_dialog_free_cb (GtkDialog *dialog,
-                             gint       response_id,
-                             gpointer   user_data)
-{
-  pp_jobs_dialog_free ((PpJobsDialog *) user_data);
 }
 
 void
@@ -659,11 +648,10 @@ pp_printer_entry_show_jobs_dialog (PpPrinterEntry *self)
 {
   if (self->pp_jobs_dialog == NULL)
     {
-      self->pp_jobs_dialog = pp_jobs_dialog_new (
-        GTK_WINDOW (gtk_widget_get_toplevel (GTK_WIDGET (self))),
-        jobs_dialog_response_cb,
-        self,
-        self->printer_name);
+      self->pp_jobs_dialog = pp_jobs_dialog_new (self->printer_name);
+      g_signal_connect_object (self->pp_jobs_dialog, "response", G_CALLBACK (jobs_dialog_response_cb), self, 0);
+      gtk_window_set_transient_for (GTK_WINDOW (self->pp_jobs_dialog), GTK_WINDOW (gtk_widget_get_toplevel (GTK_WIDGET (self))));
+      gtk_window_present (GTK_WINDOW (self->pp_jobs_dialog));
     }
 }
 
@@ -978,9 +966,6 @@ pp_printer_entry_dispose (GObject *object)
 
   g_cancellable_cancel (self->get_jobs_cancellable);
   g_cancellable_cancel (self->check_clean_heads_cancellable);
-
-  if (self->pp_jobs_dialog != NULL)
-    pp_jobs_dialog_set_callback (self->pp_jobs_dialog, printer_jobs_dialog_free_cb, self->pp_jobs_dialog);
 
   g_clear_pointer (&self->printer_name, g_free);
   g_clear_pointer (&self->printer_location, g_free);

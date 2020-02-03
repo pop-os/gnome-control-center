@@ -42,8 +42,6 @@ struct _CcPanelList
 {
   GtkStack            parent;
 
-  GtkWidget          *details_listbox;
-  GtkWidget          *devices_listbox;
   GtkWidget          *privacy_listbox;
   GtkWidget          *main_listbox;
   GtkWidget          *search_listbox;
@@ -53,8 +51,6 @@ struct _CcPanelList
    */
   gboolean            autoselect_panel : 1;
 
-  GtkListBoxRow      *details_row;
-  GtkListBoxRow      *devices_row;
   GtkListBoxRow      *privacy_row;
 
   gchar              *current_panel_id;
@@ -98,12 +94,6 @@ get_widget_from_view (CcPanelList     *self,
     case CC_PANEL_LIST_MAIN:
       return self->main_listbox;
 
-    case CC_PANEL_LIST_DETAILS:
-      return self->details_listbox;
-
-    case CC_PANEL_LIST_DEVICES:
-      return self->devices_listbox;
-
     case CC_PANEL_LIST_PRIVACY:
       return self->privacy_listbox;
 
@@ -125,14 +115,6 @@ get_listbox_from_category (CcPanelList     *self,
 
   switch (category)
     {
-    case CC_CATEGORY_DEVICES:
-      return self->devices_listbox;
-      break;
-
-    case CC_CATEGORY_DETAILS:
-      return self->details_listbox;
-      break;
-
     case CC_CATEGORY_PRIVACY:
       return self->privacy_listbox;
       break;
@@ -158,7 +140,7 @@ activate_row_below (CcPanelList *self,
   next_row = gtk_list_box_get_row_at_index (listbox, row_index + 1);
 
   /* Try the previous one if the current is invalid */
-  if (!next_row || next_row == self->devices_row || next_row == self->details_row)
+  if (!next_row)
     next_row = gtk_list_box_get_row_at_index (listbox, row_index - 1);
 
   if (next_row)
@@ -171,12 +153,6 @@ get_view_from_listbox (CcPanelList *self,
 {
   if (listbox == self->main_listbox)
     return CC_PANEL_LIST_MAIN;
-
-  if (listbox == self->details_listbox)
-    return CC_PANEL_LIST_DETAILS;
-
-  if (listbox == self->devices_listbox)
-    return CC_PANEL_LIST_DEVICES;
 
   if (listbox == self->privacy_listbox)
     return CC_PANEL_LIST_PRIVACY;
@@ -262,11 +238,7 @@ get_panel_id_from_row (CcPanelList   *self,
 
   RowData *row_data;
 
-  if (row == self->details_row)
-    return "details";
-  else if (row == self->devices_row)
-    return "devices";
-  else if (row == self->privacy_row)
+  if (row == self->privacy_row)
     return "privacy";
 
   row_data = g_object_get_data (G_OBJECT (row), "data");
@@ -295,7 +267,8 @@ row_data_new (CcPanelCategory     category,
               const gchar        *description,
               const GStrv         keywords,
               const gchar        *icon,
-              CcPanelVisibility   visibility)
+              CcPanelVisibility   visibility,
+              gboolean            has_sidebar)
 {
   GtkWidget *label, *grid, *image;
   RowData *data;
@@ -342,6 +315,14 @@ row_data_new (CcPanelCategory     category,
                         NULL);
   gtk_label_set_max_width_chars (GTK_LABEL (label), 25);
   gtk_label_set_line_wrap (GTK_LABEL (label), TRUE);
+
+  if (has_sidebar)
+    {
+      image = gtk_image_new_from_icon_name ("go-next-symbolic", GTK_ICON_SIZE_BUTTON);
+      gtk_style_context_add_class (gtk_widget_get_style_context (image), "sidebar-icon");
+      gtk_grid_attach (GTK_GRID (grid), image, 2, 0, 1, 1);
+      gtk_widget_show (image);
+    }
 
   gtk_style_context_add_class (gtk_widget_get_style_context (label), "dim-label");
   gtk_grid_attach (GTK_GRID (grid), label, 1, 1, 1, 1);
@@ -405,47 +386,45 @@ filter_func (GtkListBoxRow *row,
 static const gchar * const panel_order[] = {
   /* Main page */
   "wifi",
+  "network",
   "mobile-broadband",
   "bluetooth",
   "background",
   "notifications",
   "search",
-  "region",
-  "universal-access",
   "applications",
   "privacy",
   "online-accounts",
   "sharing",
-  "sound",
-  "power",
-  "network",
-  "devices",
-  "details",
 
   /* Privacy page */
   "location",
   "camera",
   "microphone",
+  "thunderbolt",
   "usage",
   "lock",
   "diagnostics",
 
   /* Devices page */
+  "sound",
+  "power",
   "display",
-  "keyboard",
   "mouse",
+  "keyboard",
   "printers",
   "removable-media",
-  "thunderbolt",
   "wacom",
   "color",
 
   /* Details page */
-  "info-overview",
-  "datetime",
+  "region",
+  "universal-access",
   "user-accounts",
   "default-apps",
-  "reset-settings"
+  "reset-settings",
+  "datetime",
+  "info-overview",
 };
 
 static guint
@@ -529,12 +508,22 @@ header_func (GtkListBoxRow *row,
              gpointer       user_data)
 {
   CcPanelList *self = CC_PANEL_LIST (user_data);
+  RowData *row_data, *before_data;
 
   if (!before)
     return;
 
-  /* The Details row always have the separator */
-  if (row == self->details_row || row == self->devices_row)
+  if (row == self->privacy_row || before == self->privacy_row)
+    return;
+
+  /*
+   * We can only retrieve the data after assuring that none
+   * of the rows are the Privacy row.
+   */
+  row_data = g_object_get_data (G_OBJECT (row), "data");
+  before_data = g_object_get_data (G_OBJECT (before), "data");
+
+  if (row_data->category != before_data->category)
     {
       GtkWidget *separator;
 
@@ -546,37 +535,7 @@ header_func (GtkListBoxRow *row,
     }
   else
     {
-      RowData *row_data, *before_data;
-
-      if (row == self->privacy_row ||
-          before == self->details_row ||
-          before == self->devices_row ||
-          before == self->privacy_row)
-        {
-          return;
-        }
-
-      /*
-       * We can only retrieve the data after assuring that none
-       * of the rows are Devices and Details.
-       */
-      row_data = g_object_get_data (G_OBJECT (row), "data");
-      before_data = g_object_get_data (G_OBJECT (before), "data");
-
-      if (row_data->category != before_data->category)
-        {
-          GtkWidget *separator;
-
-          separator = gtk_separator_new (GTK_ORIENTATION_HORIZONTAL);
-          gtk_widget_set_hexpand (separator, TRUE);
-          gtk_widget_show (separator);
-
-          gtk_list_box_row_set_header (row, separator);
-        }
-      else
-        {
-          gtk_list_box_row_set_header (row, NULL);
-        }
+      gtk_list_box_row_set_header (row, NULL);
     }
 }
 
@@ -596,20 +555,6 @@ row_activated_cb (GtkWidget     *listbox,
       goto out;
     }
 
-  /* Details */
-  if (row == self->details_row)
-    {
-      switch_to_view (self, CC_PANEL_LIST_DETAILS);
-      goto out;
-    }
-
-  /* Devices */
-  if (row == self->devices_row)
-    {
-      switch_to_view (self, CC_PANEL_LIST_DEVICES);
-      goto out;
-    }
-
   /*
    * When a panel is selected, the previous one should be
    * unselected, except when it's search.
@@ -618,12 +563,6 @@ row_activated_cb (GtkWidget     *listbox,
     {
       if (listbox != self->main_listbox)
         gtk_list_box_unselect_all (GTK_LIST_BOX (self->main_listbox));
-
-      if (listbox != self->details_listbox)
-        gtk_list_box_unselect_all (GTK_LIST_BOX (self->details_listbox));
-
-      if (listbox != self->devices_listbox)
-        gtk_list_box_unselect_all (GTK_LIST_BOX (self->devices_listbox));
 
       if (listbox != self->privacy_listbox)
         gtk_list_box_unselect_all (GTK_LIST_BOX (self->privacy_listbox));
@@ -672,11 +611,7 @@ search_row_activated_cb (GtkWidget     *listbox,
 
   data = g_object_get_data (G_OBJECT (row), "data");
 
-  if (data->category == CC_CATEGORY_DETAILS)
-    real_listbox = self->details_listbox;
-  else if (data->category == CC_CATEGORY_DEVICES)
-    real_listbox = self->devices_listbox;
-  else if (data->category == CC_CATEGORY_PRIVACY)
+  if (data->category == CC_CATEGORY_PRIVACY)
     real_listbox = self->privacy_listbox;
   else
     real_listbox = self->main_listbox;
@@ -846,10 +781,6 @@ cc_panel_list_class_init (CcPanelListClass *klass)
 
   gtk_widget_class_set_template_from_resource (widget_class, "/org/gnome/ControlCenter/gtk/cc-panel-list.ui");
 
-  gtk_widget_class_bind_template_child (widget_class, CcPanelList, details_listbox);
-  gtk_widget_class_bind_template_child (widget_class, CcPanelList, details_row);
-  gtk_widget_class_bind_template_child (widget_class, CcPanelList, devices_listbox);
-  gtk_widget_class_bind_template_child (widget_class, CcPanelList, devices_row);
   gtk_widget_class_bind_template_child (widget_class, CcPanelList, privacy_listbox);
   gtk_widget_class_bind_template_child (widget_class, CcPanelList, privacy_row);
   gtk_widget_class_bind_template_child (widget_class, CcPanelList, main_listbox);
@@ -874,16 +805,6 @@ cc_panel_list_init (CcPanelList *self)
                               NULL);
 
   gtk_list_box_set_sort_func (GTK_LIST_BOX (self->privacy_listbox),
-                              sort_function,
-                              self,
-                              NULL);
-
-  gtk_list_box_set_sort_func (GTK_LIST_BOX (self->details_listbox),
-                              sort_function,
-                              self,
-                              NULL);
-
-  gtk_list_box_set_sort_func (GTK_LIST_BOX (self->devices_listbox),
                               sort_function,
                               self,
                               NULL);
@@ -1017,7 +938,8 @@ cc_panel_list_add_panel (CcPanelList        *self,
                          const gchar        *description,
                          const GStrv         keywords,
                          const gchar        *icon,
-                         CcPanelVisibility   visibility)
+                         CcPanelVisibility   visibility,
+                         gboolean            has_sidebar)
 {
   GtkWidget *listbox;
   RowData *data, *search_data;
@@ -1025,14 +947,14 @@ cc_panel_list_add_panel (CcPanelList        *self,
   g_return_if_fail (CC_IS_PANEL_LIST (self));
 
   /* Add the panel to the proper listbox */
-  data = row_data_new (category, id, title, description, keywords, icon, visibility);
+  data = row_data_new (category, id, title, description, keywords, icon, visibility, has_sidebar);
   gtk_widget_set_visible (data->row, visibility == CC_PANEL_VISIBLE);
 
   listbox = get_listbox_from_category (self, category);
   gtk_container_add (GTK_CONTAINER (listbox), data->row);
 
   /* And add to the search listbox too */
-  search_data = row_data_new (category, id, title, description, keywords, icon, visibility);
+  search_data = row_data_new (category, id, title, description, keywords, icon, visibility, has_sidebar);
   gtk_widget_set_visible (search_data->row, visibility != CC_PANEL_HIDDEN);
 
   gtk_container_add (GTK_CONTAINER (self->search_listbox), search_data->row);
@@ -1041,11 +963,7 @@ cc_panel_list_add_panel (CcPanelList        *self,
   g_hash_table_insert (self->id_to_search_data, search_data->id, search_data);
 
   /* Only show the Devices/Details rows when there's at least one panel */
-  if (category == CC_CATEGORY_DEVICES)
-    gtk_widget_show (GTK_WIDGET (self->devices_row));
-  else if (category == CC_CATEGORY_DETAILS)
-    gtk_widget_show (GTK_WIDGET (self->details_row));
-  else if (category == CC_CATEGORY_PRIVACY)
+  if (category == CC_CATEGORY_PRIVACY)
     gtk_widget_show (GTK_WIDGET (self->privacy_row));
 }
 
@@ -1179,8 +1097,6 @@ cc_panel_list_set_selection_mode (CcPanelList      *self,
   g_return_if_fail (CC_IS_PANEL_LIST (self));
 
   gtk_list_box_set_selection_mode (GTK_LIST_BOX (self->main_listbox), selection_mode);
-  gtk_list_box_set_selection_mode (GTK_LIST_BOX (self->devices_listbox), selection_mode);
-  gtk_list_box_set_selection_mode (GTK_LIST_BOX (self->details_listbox), selection_mode);
 
   /* When selection mode changed, selection will be lost.  So reselect */
   if (selection_mode == GTK_SELECTION_SINGLE && self->current_panel_id)

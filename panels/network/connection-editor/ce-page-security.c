@@ -90,6 +90,11 @@ get_default_type_for_security (NMSettingWirelessSecurity *sec)
                         return NMU_SEC_LEAP;
                 return NMU_SEC_DYNAMIC_WEP;
         }
+#if NM_CHECK_VERSION(1,20,6)
+        if (!strcmp (key_mgmt, "sae")) {
+                return NMU_SEC_SAE;
+        }
+#endif
 
         if (   !strcmp (key_mgmt, "wpa-none")
             || !strcmp (key_mgmt, "wpa-psk")) {
@@ -121,7 +126,8 @@ security_combo_get_active (CEPageSecurity *self)
         WirelessSecurity *sec = NULL;
 
         model = gtk_combo_box_get_model (self->security_combo);
-        gtk_combo_box_get_active_iter (self->security_combo, &iter);
+        if (!gtk_combo_box_get_active_iter (self->security_combo, &iter))
+                return NULL;
         gtk_tree_model_get (model, &iter, S_SEC_COLUMN, &sec, -1);
 
         return sec;
@@ -155,28 +161,25 @@ security_combo_changed (CEPageSecurity *self)
 
         sec = security_combo_get_active (self);
         if (sec) {
-                GtkWidget *sec_widget;
                 GtkWidget *parent;
 
-                sec_widget = wireless_security_get_widget (sec);
-                g_assert (sec_widget);
-                parent = gtk_widget_get_parent (sec_widget);
+                parent = gtk_widget_get_parent (GTK_WIDGET (sec));
                 if (parent)
-                        gtk_container_remove (GTK_CONTAINER (parent), sec_widget);
+                        gtk_container_remove (GTK_CONTAINER (parent), GTK_WIDGET (sec));
 
                 gtk_size_group_add_widget (self->group, GTK_WIDGET (self->security_label));
                 wireless_security_add_to_size_group (sec, self->group);
 
-                gtk_container_add (GTK_CONTAINER (self->box), sec_widget);
+                gtk_container_add (GTK_CONTAINER (self->box), g_object_ref (GTK_WIDGET (sec)));
         }
 
         ce_page_changed (CE_PAGE (self));
 }
 
 static void
-stuff_changed_cb (WirelessSecurity *sec, gpointer user_data)
+security_item_changed_cb (CEPageSecurity *self)
 {
-        ce_page_changed (CE_PAGE (user_data));
+        ce_page_changed (CE_PAGE (self));
 }
 
 static void
@@ -187,14 +190,14 @@ add_security_item (CEPageSecurity   *self,
                    const char       *text,
                    gboolean          adhoc_valid)
 {
-        wireless_security_set_changed_notify (sec, stuff_changed_cb, self);
+        g_signal_connect_object (sec, "changed", G_CALLBACK (security_item_changed_cb), self, G_CONNECT_SWAPPED);
         gtk_list_store_append (model, iter);
         gtk_list_store_set (model, iter,
                             S_NAME_COLUMN, text,
                             S_SEC_COLUMN, sec,
                             S_ADHOC_VALID_COLUMN, adhoc_valid,
                             -1);
-        wireless_security_unref (sec);
+        g_object_unref (sec);
 }
 
 static void
@@ -250,7 +253,7 @@ finish_setup (CEPageSecurity *self)
         if (sws)
                 default_type = get_default_type_for_security (sws);
 
-        sec_model = gtk_list_store_new (3, G_TYPE_STRING, WIRELESS_TYPE_SECURITY, G_TYPE_BOOLEAN);
+        sec_model = gtk_list_store_new (3, G_TYPE_STRING, wireless_security_get_type (), G_TYPE_BOOLEAN);
 
         if (nm_utils_security_valid (NMU_SEC_NONE, dev_caps, FALSE, is_adhoc, 0, 0, 0)) {
                 gtk_list_store_insert_with_values (sec_model, &iter, -1,
@@ -274,7 +277,7 @@ finish_setup (CEPageSecurity *self)
                                 wep_type = NM_WEP_KEY_TYPE_KEY;
                 }
 
-                ws_wep = ws_wep_key_new (self->connection, NM_WEP_KEY_TYPE_KEY, FALSE, FALSE);
+                ws_wep = ws_wep_key_new (self->connection, NM_WEP_KEY_TYPE_KEY);
                 if (ws_wep) {
                         add_security_item (self, WIRELESS_SECURITY (ws_wep), sec_model,
                                            &iter, _("WEP 40/128-bit Key (Hex or ASCII)"),
@@ -284,7 +287,7 @@ finish_setup (CEPageSecurity *self)
                         item++;
                 }
 
-                ws_wep = ws_wep_key_new (self->connection, NM_WEP_KEY_TYPE_PASSPHRASE, FALSE, FALSE);
+                ws_wep = ws_wep_key_new (self->connection, NM_WEP_KEY_TYPE_PASSPHRASE);
                 if (ws_wep) {
                         add_security_item (self, WIRELESS_SECURITY (ws_wep), sec_model,
                                            &iter, _("WEP 128-bit Passphrase"), TRUE);
@@ -297,7 +300,7 @@ finish_setup (CEPageSecurity *self)
         if (nm_utils_security_valid (NMU_SEC_LEAP, dev_caps, FALSE, is_adhoc, 0, 0, 0)) {
                 WirelessSecurityLEAP *ws_leap;
 
-                ws_leap = ws_leap_new (self->connection, FALSE);
+                ws_leap = ws_leap_new (self->connection);
                 if (ws_leap) {
                         add_security_item (self, WIRELESS_SECURITY (ws_leap), sec_model,
                                            &iter, _("LEAP"), FALSE);
@@ -310,7 +313,7 @@ finish_setup (CEPageSecurity *self)
         if (nm_utils_security_valid (NMU_SEC_DYNAMIC_WEP, dev_caps, FALSE, is_adhoc, 0, 0, 0)) {
                 WirelessSecurityDynamicWEP *ws_dynamic_wep;
 
-                ws_dynamic_wep = ws_dynamic_wep_new (self->connection, TRUE, FALSE);
+                ws_dynamic_wep = ws_dynamic_wep_new (self->connection);
                 if (ws_dynamic_wep) {
                         add_security_item (self, WIRELESS_SECURITY (ws_dynamic_wep), sec_model,
                                            &iter, _("Dynamic WEP (802.1x)"), FALSE);
@@ -324,7 +327,7 @@ finish_setup (CEPageSecurity *self)
             nm_utils_security_valid (NMU_SEC_WPA2_PSK, dev_caps, FALSE, is_adhoc, 0, 0, 0)) {
                 WirelessSecurityWPAPSK *ws_wpa_psk;
 
-                ws_wpa_psk = ws_wpa_psk_new (self->connection, FALSE);
+                ws_wpa_psk = ws_wpa_psk_new (self->connection);
                 if (ws_wpa_psk) {
                         add_security_item (self, WIRELESS_SECURITY (ws_wpa_psk), sec_model,
                                            &iter, _("WPA & WPA2 Personal"), FALSE);
@@ -338,7 +341,7 @@ finish_setup (CEPageSecurity *self)
             nm_utils_security_valid (NMU_SEC_WPA2_ENTERPRISE, dev_caps, FALSE, is_adhoc, 0, 0, 0)) {
                 WirelessSecurityWPAEAP *ws_wpa_eap;
 
-                ws_wpa_eap = ws_wpa_eap_new (self->connection, TRUE, FALSE);
+                ws_wpa_eap = ws_wpa_eap_new (self->connection);
                 if (ws_wpa_eap) {
                         add_security_item (self, WIRELESS_SECURITY (ws_wpa_eap), sec_model,
                                            &iter, _("WPA & WPA2 Enterprise"), FALSE);
@@ -347,6 +350,21 @@ finish_setup (CEPageSecurity *self)
                         item++;
                 }
         }
+
+#if NM_CHECK_VERSION(1,20,6)
+        if (nm_utils_security_valid (NMU_SEC_SAE, dev_caps, FALSE, is_adhoc, 0, 0, 0)) {
+                WirelessSecurityWPAPSK *ws_wpa_psk;
+
+                ws_wpa_psk = ws_wpa_psk_new (self->connection);
+                if (ws_wpa_psk) {
+                        add_security_item (self, WIRELESS_SECURITY (ws_wpa_psk), sec_model,
+                                           &iter, _("WPA3 Personal"), FALSE);
+                        if ((active < 0) && ((default_type == NMU_SEC_SAE)))
+                                active = item;
+                        item++;
+                }
+        }
+#endif
 
         gtk_combo_box_set_model (self->security_combo, GTK_TREE_MODEL (sec_model));
         gtk_cell_layout_clear (GTK_CELL_LAYOUT (self->security_combo));
@@ -483,6 +501,9 @@ ce_page_security_new (NMConnection *connection)
         if (default_type == NMU_SEC_STATIC_WEP ||
             default_type == NMU_SEC_LEAP ||
             default_type == NMU_SEC_WPA_PSK ||
+#if NM_CHECK_VERSION(1,20,6)
+	    default_type == NMU_SEC_SAE ||
+#endif
             default_type == NMU_SEC_WPA2_PSK) {
                 self->security_setting = NM_SETTING_WIRELESS_SECURITY_SETTING_NAME;
         }

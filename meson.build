@@ -1,8 +1,8 @@
 project(
   'gnome-control-center', 'c',
-        version : '3.35.2',
+        version : '3.35.90',
         license : 'GPL2+',
-  meson_version : '>= 0.50.0'
+  meson_version : '>= 0.51.0'
 )
 
 control_center_prefix = get_option('prefix')
@@ -120,17 +120,17 @@ accounts_dep = dependency('accountsservice', version: '>= 0.6.39')
 colord_dep = dependency('colord', version: '>= 0.1.34')
 gdk_pixbuf_dep = dependency('gdk-pixbuf-2.0', version: '>= 2.23.0')
 gio_dep = dependency('gio-2.0')
-glib_dep = dependency('glib-2.0', version: '>= 2.53.0')
+glib_dep = dependency('glib-2.0', version: '>= 2.56.0')
 gnome_desktop_dep = dependency('gnome-desktop-3.0', version: '>= 3.27.90')
 gnome_settings_dep = dependency('gnome-settings-daemon', version: '>= 3.27.90')
 goa_dep = dependency('goa-1.0', version: goa_req_version)
 gsettings_desktop_dep = dependency('gsettings-desktop-schemas', version: '>= 3.31.0')
 libxml_dep = dependency('libxml-2.0')
-polkit_gobject_dep = dependency('polkit-gobject-1', version: '>= 0.103')
+polkit_gobject_dep = dependency('polkit-gobject-1', version: '>= 0.114')
 pulse_dep = dependency('libpulse', version: pulse_req_version)
 pulse_mainloop_dep = dependency('libpulse-mainloop-glib', version: pulse_req_version)
 upower_glib_dep = dependency('upower-glib', version: '>= 0.99.8')
-gudev_dep = dependency('gudev-1.0')
+gudev_dep = dependency('gudev-1.0', version: '>= 232')
 x11_dep = dependency('x11')
 xi_dep = dependency('xi', version: '>= 1.2')
 epoxy_dep = dependency('epoxy')
@@ -194,6 +194,16 @@ config_h.set('HAVE_IBUS', enable_ibus,
 config_h.set10('HAVE_FN_EXPLICIT_BZERO',
                cc.has_function('explicit_bzero', prefix: '''#include <string.h>'''),
                description: 'Define if explicit_bzero is available')
+
+# Snap support
+enable_snap = get_option('snap')
+if enable_snap
+  snapd_glib_deps = [
+    dependency('snapd-glib', version: '>= 1.49')
+  ]
+endif
+config_h.set('HAVE_SNAP', enable_snap,
+             description: 'Define to 1 if Snap support is enabled')
 
 if host_is_linux
   # network manager
@@ -286,5 +296,6 @@ output += '     Cheese (Users panel webcam support) ........ ' + enable_cheese.t
 output += '     IBus (Region panel IBus support) ........... ' + enable_ibus.to_string() + '\n'
 output += '     NetworkManager (Network panel) ............. ' + host_is_linux.to_string() + '\n'
 output += '     Wacom (Wacom tablet panel) ................. ' + host_is_linux_not_s390.to_string() + '\n'
+output += '     Snap support ............................... ' + enable_snap.to_string() + '\n'
 
 message(output)
