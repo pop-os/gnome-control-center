@@ -277,14 +277,6 @@ update_list_title (CcWindow *self)
       title = g_strdup (_("Privacy"));
       break;
 
-    case CC_PANEL_LIST_DETAILS:
-      title = g_strdup (_("Details"));
-      break;
-
-    case CC_PANEL_LIST_DEVICES:
-      title = g_strdup (_("Devices"));
-      break;
-
     case CC_PANEL_LIST_MAIN:
       title = g_strdup (_("Settings"));
       break;
@@ -351,6 +343,7 @@ setup_model (CcWindow *self)
       g_autofree gchar *id = NULL;
       g_auto(GStrv) keywords = NULL;
       CcPanelVisibility visibility;
+      gboolean has_sidebar;
       const gchar *icon_name = NULL;
 
       gtk_tree_model_get (model, &iter,
@@ -361,6 +354,7 @@ setup_model (CcWindow *self)
                           COL_NAME, &name,
                           COL_KEYWORDS, &keywords,
                           COL_VISIBILITY, &visibility,
+                          COL_HAS_SIDEBAR, &has_sidebar,
                           -1);
 
       if (G_IS_THEMED_ICON (icon))
@@ -373,7 +367,8 @@ setup_model (CcWindow *self)
                                description,
                                keywords,
                                icon_name,
-                               visibility);
+                               visibility,
+                               has_sidebar);
 
       valid = gtk_tree_model_iter_next (model, &iter);
     }

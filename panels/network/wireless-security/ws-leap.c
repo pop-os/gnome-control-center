@@ -20,29 +20,28 @@
  * Copyright 2007 - 2014 Red Hat, Inc.
  */
 
-#include "nm-default.h"
+#include <glib/gi18n.h>
 
-#include <string.h>
-
-#include "ws-leap.h"
-#include "wireless-security.h"
 #include "helpers.h"
 #include "nma-ui-utils.h"
-#include "utils.h"
+#include "ui-helpers.h"
+#include "wireless-security.h"
+#include "ws-leap.h"
 
 struct _WirelessSecurityLEAP {
-	WirelessSecurity parent;
+	GtkGrid parent;
 
-	GtkGrid        *grid;
 	GtkEntry       *password_entry;
 	GtkLabel       *password_label;
 	GtkCheckButton *show_password_check;
 	GtkEntry       *username_entry;
 	GtkLabel       *username_label;
-
-	gboolean editing_connection;
-	const char *password_flags_name;
 };
+
+static void wireless_security_iface_init (WirelessSecurityInterface *);
+
+G_DEFINE_TYPE_WITH_CODE (WirelessSecurityLEAP, ws_leap, GTK_TYPE_GRID,
+                         G_IMPLEMENT_INTERFACE (wireless_security_get_type (), wireless_security_iface_init));
 
 static void
 show_toggled_cb (WirelessSecurityLEAP *self)
@@ -53,17 +52,10 @@ show_toggled_cb (WirelessSecurityLEAP *self)
 	gtk_entry_set_visibility (self->password_entry, visible);
 }
 
-static GtkWidget *
-get_widget (WirelessSecurity *parent)
-{
-	WirelessSecurityLEAP *self = (WirelessSecurityLEAP *) parent;
-	return GTK_WIDGET (self->grid);
-}
-
 static gboolean
-validate (WirelessSecurity *parent, GError **error)
+validate (WirelessSecurity *security, GError **error)
 {
-	WirelessSecurityLEAP *self = (WirelessSecurityLEAP *) parent;
+	WirelessSecurityLEAP *self = WS_LEAP (security);
 	const char *text;
 	gboolean ret = TRUE;
 
@@ -89,17 +81,17 @@ validate (WirelessSecurity *parent, GError **error)
 }
 
 static void
-add_to_size_group (WirelessSecurity *parent, GtkSizeGroup *group)
+add_to_size_group (WirelessSecurity *security, GtkSizeGroup *group)
 {
-	WirelessSecurityLEAP *self = (WirelessSecurityLEAP *) parent;
+	WirelessSecurityLEAP *self = WS_LEAP (security);
 	gtk_size_group_add_widget (group, GTK_WIDGET (self->username_label));
 	gtk_size_group_add_widget (group, GTK_WIDGET (self->password_label));
 }
 
 static void
-fill_connection (WirelessSecurity *parent, NMConnection *connection)
+fill_connection (WirelessSecurity *security, NMConnection *connection)
 {
-	WirelessSecurityLEAP *self = (WirelessSecurityLEAP *) parent;
+	WirelessSecurityLEAP *self = WS_LEAP (security);
 	NMSettingWirelessSecurity *s_wireless_sec;
 	NMSettingSecretFlags secret_flags;
 	const char *leap_password = NULL, *leap_username = NULL;
@@ -120,23 +112,18 @@ fill_connection (WirelessSecurity *parent, NMConnection *connection)
 
 	/* Save LEAP_PASSWORD_FLAGS to the connection */
 	secret_flags = nma_utils_menu_to_secret_flags (GTK_WIDGET (self->password_entry));
-	nm_setting_set_secret_flags (NM_SETTING (s_wireless_sec), self->password_flags_name,
+	nm_setting_set_secret_flags (NM_SETTING (s_wireless_sec), NM_SETTING_WIRELESS_SECURITY_LEAP_PASSWORD,
 	                             secret_flags, NULL);
 
 	/* Update secret flags and popup when editing the connection */
-	if (self->editing_connection)
-		nma_utils_update_password_storage (GTK_WIDGET (self->password_entry), secret_flags,
-		                                   NM_SETTING (s_wireless_sec), self->password_flags_name);
+	nma_utils_update_password_storage (GTK_WIDGET (self->password_entry), secret_flags,
+	                                   NM_SETTING (s_wireless_sec), NM_SETTING_WIRELESS_SECURITY_LEAP_PASSWORD);
 }
 
-static void
-update_secrets (WirelessSecurity *parent, NMConnection *connection)
+static gboolean
+adhoc_compatible (WirelessSecurity *security)
 {
-	WirelessSecurityLEAP *self = (WirelessSecurityLEAP *) parent;
-	helper_fill_secret_entry (connection,
-	                          self->password_entry,
-	                          NM_TYPE_SETTING_WIRELESS_SECURITY,
-	                          (HelperSecretFunc) nm_setting_wireless_security_get_leap_password);
+	return FALSE;
 }
 
 static void
@@ -145,22 +132,42 @@ changed_cb (WirelessSecurityLEAP *self)
 	wireless_security_notify_changed ((WirelessSecurity *) self);
 }
 
-WirelessSecurityLEAP *
-ws_leap_new (NMConnection *connection, gboolean secrets_only)
+void
+ws_leap_init (WirelessSecurityLEAP *self)
 {
-	WirelessSecurity *parent;
+	gtk_widget_init_template (GTK_WIDGET (self));
+}
+
+void
+ws_leap_class_init (WirelessSecurityLEAPClass *klass)
+{
+	GtkWidgetClass *widget_class = GTK_WIDGET_CLASS (klass);
+
+	gtk_widget_class_set_template_from_resource (widget_class, "/org/gnome/ControlCenter/network/ws-leap.ui");
+
+	gtk_widget_class_bind_template_child (widget_class, WirelessSecurityLEAP, password_entry);
+	gtk_widget_class_bind_template_child (widget_class, WirelessSecurityLEAP, password_label);
+	gtk_widget_class_bind_template_child (widget_class, WirelessSecurityLEAP, show_password_check);
+	gtk_widget_class_bind_template_child (widget_class, WirelessSecurityLEAP, username_entry);
+	gtk_widget_class_bind_template_child (widget_class, WirelessSecurityLEAP, username_label);
+}
+
+static void
+wireless_security_iface_init (WirelessSecurityInterface *iface)
+{
+	iface->validate = validate;
+	iface->add_to_size_group = add_to_size_group;
+	iface->fill_connection = fill_connection;
+	iface->adhoc_compatible = adhoc_compatible;
+}
+
+WirelessSecurityLEAP *
+ws_leap_new (NMConnection *connection)
+{
 	WirelessSecurityLEAP *self;
 	NMSettingWirelessSecurity *wsec = NULL;
 
-	parent = wireless_security_init (sizeof (WirelessSecurityLEAP),
-	                                 get_widget,
-	                                 validate,
-	                                 add_to_size_group,
-	                                 fill_connection,
-	                                 NULL,
-	                                 "/org/gnome/ControlCenter/network/ws-leap.ui");
-	if (!parent)
-		return NULL;
+	self = g_object_new (ws_leap_get_type (), NULL);
 
 	if (connection) {
 		wsec = nm_connection_get_setting_wireless_security (connection);
@@ -174,34 +181,21 @@ ws_leap_new (NMConnection *connection, gboolean secrets_only)
 		}
 	}
 
-	wireless_security_set_adhoc_compatible (parent, FALSE);
-	wireless_security_set_hotspot_compatible (parent, FALSE);
-	self = (WirelessSecurityLEAP *) parent;
-	self->editing_connection = secrets_only ? FALSE : TRUE;
-	self->password_flags_name = NM_SETTING_WIRELESS_SECURITY_LEAP_PASSWORD;
-
-	self->grid = GTK_GRID (gtk_builder_get_object (parent->builder, "grid"));
-	self->password_entry = GTK_ENTRY (gtk_builder_get_object (parent->builder, "password_entry"));
-	self->password_label = GTK_LABEL (gtk_builder_get_object (parent->builder, "password_label"));
-	self->show_password_check = GTK_CHECK_BUTTON (gtk_builder_get_object (parent->builder, "show_password_check"));
-	self->username_entry = GTK_ENTRY (gtk_builder_get_object (parent->builder, "username_entry"));
-	self->username_label = GTK_LABEL (gtk_builder_get_object (parent->builder, "username_label"));
-
 	g_signal_connect_swapped (self->password_entry, "changed", G_CALLBACK (changed_cb), self);
 
 	/* Create password-storage popup menu for password entry under entry's secondary icon */
-	nma_utils_setup_password_storage (GTK_WIDGET (self->password_entry), 0, (NMSetting *) wsec, self->password_flags_name,
-	                                  FALSE, secrets_only);
+	nma_utils_setup_password_storage (GTK_WIDGET (self->password_entry), 0, (NMSetting *) wsec, NM_SETTING_WIRELESS_SECURITY_LEAP_PASSWORD,
+	                                  FALSE, FALSE);
 
 	if (wsec)
-		update_secrets (WIRELESS_SECURITY (self), connection);
+		helper_fill_secret_entry (connection,
+		                          self->password_entry,
+		                          NM_TYPE_SETTING_WIRELESS_SECURITY,
+		                          (HelperSecretFunc) nm_setting_wireless_security_get_leap_password);
 
 	g_signal_connect_swapped (self->username_entry, "changed", G_CALLBACK (changed_cb), self);
 	if (wsec)
 		gtk_entry_set_text (self->username_entry, nm_setting_wireless_security_get_leap_username (wsec));
-
-	if (secrets_only)
-		gtk_widget_hide (GTK_WIDGET (self->username_entry));
 
 	g_signal_connect_swapped (self->show_password_check, "toggled", G_CALLBACK (show_toggled_cb), self);
 
