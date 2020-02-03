@@ -1,7 +1,7 @@
-From ad8fe3e14fe6f65281fa9d74618ce631e8868c39 Mon Sep 17 00:00:00 2001
+From b1d5a6f1db13a5dcc70b67eac895ade22a66ca7c Mon Sep 17 00:00:00 2001
 From: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
 Date: Wed, 15 Jan 2020 16:56:17 +1300
-Subject: [PATCH 08/20] Allow tweaking some settings for Ubuntu Dock
+Subject: [PATCH 08/22] Allow tweaking some settings for Ubuntu Dock
 
 Expose some of the settings that most users will find useful for our
 Ubuntu Dock installation. Those are located in its own panel for now:
@@ -29,10 +29,10 @@ Forwarded: not-needed
  create mode 100644 panels/ubuntu/meson.build
  create mode 100644 panels/ubuntu/ubuntu.gresource.xml
 
-Index: gnome-control-center/panels/meson.build
-===================================================================
---- gnome-control-center.orig/panels/meson.build
-+++ gnome-control-center/panels/meson.build
+diff --git a/panels/meson.build b/panels/meson.build
+index 2f4fdc5e3..81ae0b1a7 100644
+--- a/panels/meson.build
++++ b/panels/meson.build
 @@ -24,6 +24,7 @@ panels = [
    'search',
    'sharing',
@@ -41,10 +41,11 @@ Index: gnome-control-center/panels/meson.build
    'universal-access',
    'usage',
    'user-accounts'
-Index: gnome-control-center/panels/ubuntu/cc-ubuntu-panel.c
-===================================================================
+diff --git a/panels/ubuntu/cc-ubuntu-panel.c b/panels/ubuntu/cc-ubuntu-panel.c
+new file mode 100644
+index 000000000..47c525d1f
 --- /dev/null
-+++ gnome-control-center/panels/ubuntu/cc-ubuntu-panel.c
++++ b/panels/ubuntu/cc-ubuntu-panel.c
 @@ -0,0 +1,298 @@
 +/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 +/*
@@ -344,10 +345,11 @@ Index: gnome-control-center/panels/ubuntu/cc-ubuntu-panel.c
 +
 +  g_bus_get (G_BUS_TYPE_SESSION, NULL, session_bus_ready, self);
 +}
-Index: gnome-control-center/panels/ubuntu/cc-ubuntu-panel.h
-===================================================================
+diff --git a/panels/ubuntu/cc-ubuntu-panel.h b/panels/ubuntu/cc-ubuntu-panel.h
+new file mode 100644
+index 000000000..96de519bc
 --- /dev/null
-+++ gnome-control-center/panels/ubuntu/cc-ubuntu-panel.h
++++ b/panels/ubuntu/cc-ubuntu-panel.h
 @@ -0,0 +1,33 @@
 +/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 +/*
@@ -382,10 +384,11 @@ Index: gnome-control-center/panels/ubuntu/cc-ubuntu-panel.h
 +G_END_DECLS
 +
 +#endif /* _CC_EDIT_DIALOG_H_ */
-Index: gnome-control-center/panels/ubuntu/cc-ubuntu-panel.ui
-===================================================================
+diff --git a/panels/ubuntu/cc-ubuntu-panel.ui b/panels/ubuntu/cc-ubuntu-panel.ui
+new file mode 100644
+index 000000000..f1923446c
 --- /dev/null
-+++ gnome-control-center/panels/ubuntu/cc-ubuntu-panel.ui
++++ b/panels/ubuntu/cc-ubuntu-panel.ui
 @@ -0,0 +1,297 @@
 +<?xml version="1.0" encoding="UTF-8"?>
 +<!-- Generated with glade 3.20.0 -->
@@ -684,10 +687,11 @@ Index: gnome-control-center/panels/ubuntu/cc-ubuntu-panel.ui
 +    </columns>
 +  </object>
 +</interface>
-Index: gnome-control-center/panels/ubuntu/gnome-ubuntu-panel.desktop.in.in
-===================================================================
+diff --git a/panels/ubuntu/gnome-ubuntu-panel.desktop.in.in b/panels/ubuntu/gnome-ubuntu-panel.desktop.in.in
+new file mode 100644
+index 000000000..76bc6083c
 --- /dev/null
-+++ gnome-control-center/panels/ubuntu/gnome-ubuntu-panel.desktop.in.in
++++ b/panels/ubuntu/gnome-ubuntu-panel.desktop.in.in
 @@ -0,0 +1,16 @@
 +[Desktop Entry]
 +Name=Dock
@@ -705,10 +709,11 @@ Index: gnome-control-center/panels/ubuntu/gnome-ubuntu-panel.desktop.in.in
 +X-GNOME-Bugzilla-Version=@VERSION@
 +# Translators: those are keywords for the ubuntu control-center panel
 +Keywords=Dock;Launcher;
-Index: gnome-control-center/panels/ubuntu/meson.build
-===================================================================
+diff --git a/panels/ubuntu/meson.build b/panels/ubuntu/meson.build
+new file mode 100644
+index 000000000..d94da007b
 --- /dev/null
-+++ gnome-control-center/panels/ubuntu/meson.build
++++ b/panels/ubuntu/meson.build
 @@ -0,0 +1,40 @@
 +panels_list += cappletname
 +desktop = 'gnome-@0@-panel.desktop'.format(cappletname)
@@ -750,10 +755,11 @@ Index: gnome-control-center/panels/ubuntu/meson.build
 +  dependencies: common_deps,
 +  c_args: cflags
 +)
-Index: gnome-control-center/panels/ubuntu/ubuntu.gresource.xml
-===================================================================
+diff --git a/panels/ubuntu/ubuntu.gresource.xml b/panels/ubuntu/ubuntu.gresource.xml
+new file mode 100644
+index 000000000..3760b1d25
 --- /dev/null
-+++ gnome-control-center/panels/ubuntu/ubuntu.gresource.xml
++++ b/panels/ubuntu/ubuntu.gresource.xml
 @@ -0,0 +1,6 @@
 +<?xml version="1.0" encoding="UTF-8"?>
 +<gresources>
@@ -761,11 +767,11 @@ Index: gnome-control-center/panels/ubuntu/ubuntu.gresource.xml
 +    <file preprocess="xml-stripblanks">cc-ubuntu-panel.ui</file>
 +  </gresource>
 +</gresources>
-Index: gnome-control-center/po/POTFILES.in
-===================================================================
---- gnome-control-center.orig/po/POTFILES.in
-+++ gnome-control-center/po/POTFILES.in
-@@ -209,6 +209,9 @@ panels/thunderbolt/cc-bolt-device-entry.
+diff --git a/po/POTFILES.in b/po/POTFILES.in
+index 4c7c4781a..d4d122fde 100644
+--- a/po/POTFILES.in
++++ b/po/POTFILES.in
+@@ -210,6 +210,9 @@ panels/thunderbolt/cc-bolt-device-entry.c
  panels/thunderbolt/cc-bolt-panel.c
  panels/thunderbolt/cc-bolt-panel.ui
  panels/thunderbolt/gnome-thunderbolt-panel.desktop.in.in
@@ -775,23 +781,23 @@ Index: gnome-control-center/po/POTFILES.in
  panels/universal-access/cc-ua-panel.c
  panels/universal-access/cc-ua-panel.ui
  panels/universal-access/gnome-universal-access-panel.desktop.in.in
-Index: gnome-control-center/shell/cc-panel-list.c
-===================================================================
---- gnome-control-center.orig/shell/cc-panel-list.c
-+++ gnome-control-center/shell/cc-panel-list.c
-@@ -408,6 +408,7 @@ static const gchar * const panel_order[]
+diff --git a/shell/cc-panel-list.c b/shell/cc-panel-list.c
+index 25785901f..4056d9ebb 100644
+--- a/shell/cc-panel-list.c
++++ b/shell/cc-panel-list.c
+@@ -390,6 +390,7 @@ static const gchar * const panel_order[] = {
    "mobile-broadband",
    "bluetooth",
    "background",
 +  "ubuntu",
    "notifications",
    "search",
-   "region",
-Index: gnome-control-center/shell/cc-panel-loader.c
-===================================================================
---- gnome-control-center.orig/shell/cc-panel-loader.c
-+++ gnome-control-center/shell/cc-panel-loader.c
-@@ -60,6 +60,7 @@ extern GType cc_sound_panel_get_type (vo
+   "applications",
+diff --git a/shell/cc-panel-loader.c b/shell/cc-panel-loader.c
+index 2b3bce576..c2777ffae 100644
+--- a/shell/cc-panel-loader.c
++++ b/shell/cc-panel-loader.c
+@@ -60,6 +60,7 @@ extern GType cc_sound_panel_get_type (void);
  extern GType cc_bolt_panel_get_type (void);
  #endif /* BUILD_THUNDERBOLT */
  extern GType cc_ua_panel_get_type (void);
@@ -799,7 +805,7 @@ Index: gnome-control-center/shell/cc-panel-loader.c
  extern GType cc_user_panel_get_type (void);
  #ifdef BUILD_WACOM
  extern GType cc_wacom_panel_get_type (void);
-@@ -120,6 +121,7 @@ static CcPanelLoaderVtable default_panel
+@@ -120,6 +121,7 @@ static CcPanelLoaderVtable default_panels[] =
    PANEL_TYPE("search",           cc_search_panel_get_type,               NULL),
    PANEL_TYPE("sharing",          cc_sharing_panel_get_type,              NULL),
    PANEL_TYPE("sound",            cc_sound_panel_get_type,                NULL),
@@ -807,3 +813,6 @@ Index: gnome-control-center/shell/cc-panel-loader.c
  #ifdef BUILD_THUNDERBOLT
    PANEL_TYPE("thunderbolt",      cc_bolt_panel_get_type,                 NULL),
  #endif
+-- 
+2.24.0
+

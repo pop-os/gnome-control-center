@@ -1,7 +1,7 @@
-From 26741aa0098687842e0c79f003ea5b0ca35e64a2 Mon Sep 17 00:00:00 2001
+From 9130b84713ceeb81179a7b8d44487688a1af2d96 Mon Sep 17 00:00:00 2001
 From: James Henstridge <james@jamesh.id.au>
 Date: Wed, 9 Aug 2017 22:30:21 +0800
-Subject: [PATCH 15/20] connectivity: add network connectivity checking toggle
+Subject: [PATCH 15/22] connectivity: add network connectivity checking toggle
 
 NetworkManager supports toggling the periodic network check,
 a check that by itself can be a security threat since it leaks
@@ -29,10 +29,11 @@ https://bugzilla.gnome.org/show_bug.cgi?id=737362
  create mode 100644 panels/connectivity/gnome-connectivity-panel.desktop.in.in
  create mode 100644 panels/connectivity/meson.build
 
-Index: gnome-control-center/panels/connectivity/cc-connectivity-panel.c
-===================================================================
+diff --git a/panels/connectivity/cc-connectivity-panel.c b/panels/connectivity/cc-connectivity-panel.c
+new file mode 100644
+index 000000000..6db7e7433
 --- /dev/null
-+++ gnome-control-center/panels/connectivity/cc-connectivity-panel.c
++++ b/panels/connectivity/cc-connectivity-panel.c
 @@ -0,0 +1,131 @@
 +/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*-
 + *
@@ -165,10 +166,11 @@ Index: gnome-control-center/panels/connectivity/cc-connectivity-panel.c
 +    nm_client_new_async (self->cancellable, nm_client_ready_cb, self);
 +#endif
 +}
-Index: gnome-control-center/panels/connectivity/cc-connectivity-panel.h
-===================================================================
+diff --git a/panels/connectivity/cc-connectivity-panel.h b/panels/connectivity/cc-connectivity-panel.h
+new file mode 100644
+index 000000000..1a21b5bc9
 --- /dev/null
-+++ gnome-control-center/panels/connectivity/cc-connectivity-panel.h
++++ b/panels/connectivity/cc-connectivity-panel.h
 @@ -0,0 +1,28 @@
 +/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*-
 + *
@@ -198,10 +200,11 @@ Index: gnome-control-center/panels/connectivity/cc-connectivity-panel.h
 +G_DECLARE_FINAL_TYPE (CcConnectivityPanel, cc_connectivity_panel, CC, CONNECTIVITY_PANEL, CcPanel)
 +
 +G_END_DECLS
-Index: gnome-control-center/panels/connectivity/cc-connectivity-panel.ui
-===================================================================
+diff --git a/panels/connectivity/cc-connectivity-panel.ui b/panels/connectivity/cc-connectivity-panel.ui
+new file mode 100644
+index 000000000..dc7745e89
 --- /dev/null
-+++ gnome-control-center/panels/connectivity/cc-connectivity-panel.ui
++++ b/panels/connectivity/cc-connectivity-panel.ui
 @@ -0,0 +1,67 @@
 +<?xml version="1.0" encoding="UTF-8"?>
 +<interface>
@@ -270,10 +273,11 @@ Index: gnome-control-center/panels/connectivity/cc-connectivity-panel.ui
 +    </child>
 +  </template>
 +</interface>
-Index: gnome-control-center/panels/connectivity/connectivity.gresource.xml
-===================================================================
+diff --git a/panels/connectivity/connectivity.gresource.xml b/panels/connectivity/connectivity.gresource.xml
+new file mode 100644
+index 000000000..e102045e5
 --- /dev/null
-+++ gnome-control-center/panels/connectivity/connectivity.gresource.xml
++++ b/panels/connectivity/connectivity.gresource.xml
 @@ -0,0 +1,6 @@
 +<?xml version="1.0" encoding="UTF-8"?>
 +<gresources>
@@ -281,10 +285,11 @@ Index: gnome-control-center/panels/connectivity/connectivity.gresource.xml
 +    <file preprocess="xml-stripblanks">cc-connectivity-panel.ui</file>
 +  </gresource>
 +</gresources>
-Index: gnome-control-center/panels/connectivity/gnome-connectivity-panel.desktop.in.in
-===================================================================
+diff --git a/panels/connectivity/gnome-connectivity-panel.desktop.in.in b/panels/connectivity/gnome-connectivity-panel.desktop.in.in
+new file mode 100644
+index 000000000..17d130fef
 --- /dev/null
-+++ gnome-control-center/panels/connectivity/gnome-connectivity-panel.desktop.in.in
++++ b/panels/connectivity/gnome-connectivity-panel.desktop.in.in
 @@ -0,0 +1,19 @@
 +[Desktop Entry]
 +Name=Connectivity
@@ -305,10 +310,11 @@ Index: gnome-control-center/panels/connectivity/gnome-connectivity-panel.desktop
 +X-GNOME-Bugzilla-Version=@VERSION@
 +# Translators: Search terms to find the Privacy panel. Do NOT translate or localize the semicolons! The list MUST also end with a semicolon!
 +Keywords=network;
-Index: gnome-control-center/panels/connectivity/meson.build
-===================================================================
+diff --git a/panels/connectivity/meson.build b/panels/connectivity/meson.build
+new file mode 100644
+index 000000000..e9c30d8b9
 --- /dev/null
-+++ gnome-control-center/panels/connectivity/meson.build
++++ b/panels/connectivity/meson.build
 @@ -0,0 +1,45 @@
 +panels_list += cappletname
 +desktop = 'gnome-@0@-panel.desktop'.format(cappletname)
@@ -355,10 +361,10 @@ Index: gnome-control-center/panels/connectivity/meson.build
 +  dependencies: deps,
 +  c_args: cflags
 +)
-Index: gnome-control-center/panels/meson.build
-===================================================================
---- gnome-control-center.orig/panels/meson.build
-+++ gnome-control-center/panels/meson.build
+diff --git a/panels/meson.build b/panels/meson.build
+index 81ae0b1a7..7330e6460 100644
+--- a/panels/meson.build
++++ b/panels/meson.build
 @@ -5,6 +5,7 @@ panels = [
    'background',
    'camera',
@@ -367,12 +373,12 @@ Index: gnome-control-center/panels/meson.build
    'datetime',
    'default-apps',
    'diagnostics',
-Index: gnome-control-center/po/POTFILES.in
-===================================================================
---- gnome-control-center.orig/po/POTFILES.in
-+++ gnome-control-center/po/POTFILES.in
-@@ -29,6 +29,8 @@ panels/common/cc-language-chooser.c
- panels/common/cc-language-chooser.ui
+diff --git a/po/POTFILES.in b/po/POTFILES.in
+index d4d122fde..b1ed5dc0c 100644
+--- a/po/POTFILES.in
++++ b/po/POTFILES.in
+@@ -30,6 +30,8 @@ panels/common/cc-language-chooser.ui
+ panels/common/cc-permission-infobar.ui
  panels/common/cc-util.c
  panels/common/hostname-helper.c
 +panels/connectivity/cc-connectivity-panel.ui
@@ -380,11 +386,11 @@ Index: gnome-control-center/po/POTFILES.in
  panels/datetime/big.ui
  panels/datetime/cc-datetime-panel.c
  panels/datetime/cc-datetime-panel.ui
-Index: gnome-control-center/shell/cc-panel-loader.c
-===================================================================
---- gnome-control-center.orig/shell/cc-panel-loader.c
-+++ gnome-control-center/shell/cc-panel-loader.c
-@@ -37,6 +37,7 @@ extern GType cc_background_panel_get_typ
+diff --git a/shell/cc-panel-loader.c b/shell/cc-panel-loader.c
+index c2777ffae..3bae58f17 100644
+--- a/shell/cc-panel-loader.c
++++ b/shell/cc-panel-loader.c
+@@ -37,6 +37,7 @@ extern GType cc_background_panel_get_type (void);
  extern GType cc_bluetooth_panel_get_type (void);
  #endif /* BUILD_BLUETOOTH */
  extern GType cc_color_panel_get_type (void);
@@ -392,7 +398,7 @@ Index: gnome-control-center/shell/cc-panel-loader.c
  extern GType cc_date_time_panel_get_type (void);
  extern GType cc_default_apps_panel_get_type (void);
  extern GType cc_display_panel_get_type (void);
-@@ -98,6 +99,7 @@ static CcPanelLoaderVtable default_panel
+@@ -98,6 +99,7 @@ static CcPanelLoaderVtable default_panels[] =
  #endif
    PANEL_TYPE("camera",           cc_camera_panel_get_type,               NULL),
    PANEL_TYPE("color",            cc_color_panel_get_type,                NULL),
@@ -400,3 +406,6 @@ Index: gnome-control-center/shell/cc-panel-loader.c
    PANEL_TYPE("datetime",         cc_date_time_panel_get_type,            NULL),
    PANEL_TYPE("default-apps",     cc_default_apps_panel_get_type,         NULL),
    PANEL_TYPE("diagnostics",      cc_diagnostics_panel_get_type,          cc_diagnostics_panel_static_init_func),
+-- 
+2.24.0
+

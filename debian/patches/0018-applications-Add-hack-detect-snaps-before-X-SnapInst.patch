@@ -1,18 +1,29 @@
-From c78de230d7efc2f88aa1340e862d5fae92ac4b12 Mon Sep 17 00:00:00 2001
+From e7fad38cb94fbd5affeb235517738cf9243dbfee Mon Sep 17 00:00:00 2001
 From: Robert Ancell <robert.ancell@canonical.com>
 Date: Tue, 12 Mar 2019 15:31:38 +1300
-Subject: [PATCH 18/20] applications: Add hack detect snaps before
+Subject: [PATCH 18/22] applications: Add hack detect snaps before
  X-SnapInstanceName works
 
 ---
- panels/applications/cc-applications-panel.c | 10 ++++++++++
- 1 file changed, 10 insertions(+)
+ panels/applications/cc-applications-panel.c | 13 ++++++++++++-
+ 1 file changed, 12 insertions(+), 1 deletion(-)
 
 diff --git a/panels/applications/cc-applications-panel.c b/panels/applications/cc-applications-panel.c
-index f4d0605ad..f0ab8cf21 100644
+index 450c2c9d9..1bbf12a95 100644
 --- a/panels/applications/cc-applications-panel.c
 +++ b/panels/applications/cc-applications-panel.c
-@@ -237,6 +237,16 @@ get_portal_app_id (GAppInfo *info)
+@@ -225,8 +225,9 @@ get_portal_app_id (GAppInfo *info)
+ {
+   if (G_IS_DESKTOP_APP_INFO (info))
+     {
+-      g_autofree gchar *snap_name = NULL;
+       gchar *flatpak_id;
++      g_autofree gchar *snap_name = NULL;
++      g_autofree gchar *executable = NULL;
+ 
+       flatpak_id = g_desktop_app_info_get_string (G_DESKTOP_APP_INFO (info), "X-Flatpak");
+       if (flatpak_id != NULL)
+@@ -235,6 +236,16 @@ get_portal_app_id (GAppInfo *info)
        snap_name = g_desktop_app_info_get_string (G_DESKTOP_APP_INFO (info), "X-SnapInstanceName");
        if (snap_name != NULL)
          return g_strdup_printf ("%s%s", PORTAL_SNAP_PREFIX, snap_name);
