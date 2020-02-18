@@ -1,4 +1,4 @@
-From 06e4000ff16f724c18be0156a0220d639b46ad7b Mon Sep 17 00:00:00 2001
+From 663c8d36f0855bee435b52f675df6bab3a5443ca Mon Sep 17 00:00:00 2001
 From: James Henstridge <james@jamesh.id.au>
 Date: Thu, 14 Sep 2017 10:58:16 +0800
 Subject: [PATCH 16/22] diagnostics: Add Whoopsie support
@@ -47,7 +47,7 @@ index e76308e8a..554c213a1 100644
  option('profile', type: 'combo', choices: ['default','development'], value: 'default')
 +option('whoopsie', type: 'boolean', value: false, description: 'build with Whoopsie support')
 diff --git a/panels/diagnostics/cc-diagnostics-panel.c b/panels/diagnostics/cc-diagnostics-panel.c
-index b53b42942..b093c76b1 100644
+index 7f1b5e2f0..b9e801dfd 100644
 --- a/panels/diagnostics/cc-diagnostics-panel.c
 +++ b/panels/diagnostics/cc-diagnostics-panel.c
 @@ -18,6 +18,8 @@
@@ -59,7 +59,7 @@ index b53b42942..b093c76b1 100644
  #include "list-box-helper.h"
  #include "cc-diagnostics-panel.h"
  #include "cc-diagnostics-resources.h"
-@@ -28,6 +30,10 @@
+@@ -28,15 +30,24 @@
  #include <gio/gdesktopappinfo.h>
  #include <glib/gi18n.h>
  
@@ -70,9 +70,8 @@ index b53b42942..b093c76b1 100644
  struct _CcDiagnosticsPanel
  {
    CcPanel     parent_instance;
-@@ -35,9 +41,14 @@ struct _CcDiagnosticsPanel
+ 
    GtkLabel   *diagnostics_explanation_label;
-   GtkLabel   *diagnostics_learn_more_label;
    GtkListBox *diagnostics_list_box;
 +  GtkListBoxRow *abrt_row;
    GtkSwitch   *abrt_switch;
@@ -85,7 +84,7 @@ index b53b42942..b093c76b1 100644
  };
  
  CC_PANEL_REGISTER (CcDiagnosticsPanel, cc_diagnostics_panel)
-@@ -72,9 +83,86 @@ abrt_vanished_cb (GDBusConnection *connection,
+@@ -71,9 +82,86 @@ abrt_vanished_cb (GDBusConnection *connection,
                    gpointer         user_data)
  {
    g_debug ("ABRT vanished");
@@ -172,7 +171,7 @@ index b53b42942..b093c76b1 100644
  void
  cc_diagnostics_panel_static_init_func (void)
  {
-@@ -86,7 +174,9 @@ cc_diagnostics_panel_static_init_func (void)
+@@ -85,7 +173,9 @@ cc_diagnostics_panel_static_init_func (void)
                      NULL,
                      NULL);
  
@@ -182,9 +181,9 @@ index b53b42942..b093c76b1 100644
  }
  
  static void
-@@ -112,7 +202,11 @@ cc_diagnostics_panel_class_init (CcDiagnosticsPanelClass *klass)
+@@ -110,7 +200,11 @@ cc_diagnostics_panel_class_init (CcDiagnosticsPanelClass *klass)
+ 
    gtk_widget_class_bind_template_child (widget_class, CcDiagnosticsPanel, diagnostics_explanation_label);
-   gtk_widget_class_bind_template_child (widget_class, CcDiagnosticsPanel, diagnostics_learn_more_label);
    gtk_widget_class_bind_template_child (widget_class, CcDiagnosticsPanel, diagnostics_list_box);
 +  gtk_widget_class_bind_template_child (widget_class, CcDiagnosticsPanel, abrt_row);
    gtk_widget_class_bind_template_child (widget_class, CcDiagnosticsPanel, abrt_switch);
@@ -194,15 +193,15 @@ index b53b42942..b093c76b1 100644
  }
  
  static void
-@@ -121,6 +215,7 @@ cc_diagnostics_panel_init (CcDiagnosticsPanel *self)
-   g_autofree gchar *os_name = NULL;
+@@ -120,6 +214,7 @@ cc_diagnostics_panel_init (CcDiagnosticsPanel *self)
    g_autofree gchar *url = NULL;
    g_autofree gchar *msg = NULL;
+   g_autofree gchar *link = NULL;
 +  g_autoptr(GError) error = NULL;
  
    g_resources_register (cc_diagnostics_get_resource ());
  
-@@ -136,6 +231,26 @@ cc_diagnostics_panel_init (CcDiagnosticsPanel *self)
+@@ -135,6 +230,26 @@ cc_diagnostics_panel_init (CcDiagnosticsPanel *self)
                     self->abrt_switch, "active",
                     G_SETTINGS_BIND_DEFAULT);
  
@@ -227,13 +226,13 @@ index b53b42942..b093c76b1 100644
 +#endif
 +
    os_name = cc_os_release_get_value ("NAME");
-   /* translators: '%s' is the distributor's name, such as 'Fedora' */
-   msg = g_strdup_printf (_("Sending reports of technical problems helps us improve %s. Reports "
+   url = cc_os_release_get_value ("PRIVACY_POLICY_URL");
+   if (!url)
 diff --git a/panels/diagnostics/cc-diagnostics-panel.ui b/panels/diagnostics/cc-diagnostics-panel.ui
-index a76afa71b..a81949591 100644
+index 1930e9133..0b6128159 100644
 --- a/panels/diagnostics/cc-diagnostics-panel.ui
 +++ b/panels/diagnostics/cc-diagnostics-panel.ui
-@@ -63,7 +63,7 @@
+@@ -52,7 +52,7 @@
                      <property name="can-focus">1</property>
                      <property name="selection-mode">none</property>
                      <child>
@@ -242,7 +241,7 @@ index a76afa71b..a81949591 100644
                          <property name="visible">1</property>
                          <child>
                            <object class="GtkBox">
-@@ -96,6 +96,47 @@
+@@ -85,6 +85,47 @@
                          </child>
                        </object>
                      </child>
@@ -314,5 +313,5 @@ index fac9b4cd8..61388e2a3 100644
    c_args: cflags
  )
 -- 
-2.24.0
+2.25.0
 
