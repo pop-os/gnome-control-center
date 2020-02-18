@@ -59,7 +59,6 @@ struct _CcPowerPanel
 
   GSettings     *gsd_settings;
   GSettings     *session_settings;
-  GCancellable  *cancellable;
   GtkWidget     *main_scroll;
   GtkWidget     *main_box;
   GtkWidget     *vbox_power;
@@ -145,8 +144,6 @@ cc_power_panel_dispose (GObject *object)
   g_clear_pointer (&self->chassis_type, g_free);
   g_clear_object (&self->gsd_settings);
   g_clear_object (&self->session_settings);
-  g_cancellable_cancel (self->cancellable);
-  g_clear_object (&self->cancellable);
   g_clear_pointer (&self->automatic_suspend_dialog, gtk_widget_destroy);
   g_clear_object (&self->screen_proxy);
   g_clear_object (&self->kbd_proxy);
@@ -1077,7 +1074,7 @@ brightness_slider_value_changed_cb (GtkRange *range, gpointer user_data)
                      g_variant_ref_sink (variant),
                      G_DBUS_CALL_FLAGS_NONE,
                      -1,
-                     self->cancellable,
+                     cc_panel_get_cancellable (CC_PANEL (self)),
                      set_brightness_cb,
                      user_data);
 }
@@ -1392,7 +1389,7 @@ bt_set_powered (CcPowerPanel *self,
 					   g_variant_new_boolean (!powered)),
 		     G_DBUS_CALL_FLAGS_NONE,
 		     -1,
-		     self->cancellable,
+		     cc_panel_get_cancellable (CC_PANEL (self)),
 		     NULL, NULL);
 }
 
@@ -1550,11 +1547,16 @@ nm_client_state_changed (NMClient     *client,
   g_signal_handlers_unblock_by_func (self->wifi_switch, wifi_switch_changed, self);
 
   visible = has_mobile_devices (self->nm_client);
+
+  /* Set the switch active, if either of wimax or wwan is enabled. */
   active = nm_client_networking_get_enabled (client) &&
-           nm_client_wimax_get_enabled (client) &&
-           nm_client_wireless_hardware_get_enabled (client);
+           ((nm_client_wimax_get_enabled (client) &&
+             nm_client_wimax_hardware_get_enabled (client)) ||
+            (nm_client_wwan_get_enabled (client) &&
+             nm_client_wwan_hardware_get_enabled (client)));
   sensitive = nm_client_networking_get_enabled (client) &&
-              nm_client_wireless_hardware_get_enabled (client);
+              (nm_client_wwan_hardware_get_enabled (client) ||
+               nm_client_wimax_hardware_get_enabled (client));
 
   g_debug ("mobile state changed to %s", active ? "enabled" : "disabled");
 
@@ -1981,7 +1983,7 @@ add_power_saving_section (CcPowerPanel *self)
   if (cc_object_storage_has_object (CC_OBJECT_NMCLIENT))
     setup_nm_client (self, cc_object_storage_get_object (CC_OBJECT_NMCLIENT));
   else
-    nm_client_new_async (self->cancellable, nm_client_ready_cb, self);
+    nm_client_new_async (cc_panel_get_cancellable (CC_PANEL (self)), nm_client_ready_cb, self);
 
   g_signal_connect (G_OBJECT (self->wifi_switch), "notify::active",
                     G_CALLBACK (wifi_switch_changed), self);
@@ -2194,7 +2196,7 @@ can_suspend_or_hibernate (CcPowerPanel *self,
   const char *s;
 
   connection = g_bus_get_sync (G_BUS_TYPE_SYSTEM,
-                               self->cancellable,
+                               cc_panel_get_cancellable (CC_PANEL (self)),
                                &error);
   if (!connection)
     {
@@ -2212,7 +2214,7 @@ can_suspend_or_hibernate (CcPowerPanel *self,
                                          NULL,
                                          G_DBUS_CALL_FLAGS_NONE,
                                          -1,
-                                         self->cancellable,
+                                         cc_panel_get_cancellable (CC_PANEL (self)),
                                          &error);
 
   if (!variant)
@@ -2511,14 +2513,12 @@ cc_power_panel_init (CcPowerPanel *self)
 
   gtk_widget_init_template (GTK_WIDGET (self));
 
-  self->cancellable = g_cancellable_new ();
-
   cc_object_storage_create_dbus_proxy (G_BUS_TYPE_SESSION,
                                        G_DBUS_PROXY_FLAGS_NONE,
                                        "org.gnome.SettingsDaemon.Power",
                                        "/org/gnome/SettingsDaemon/Power",
                                        "org.gnome.SettingsDaemon.Power.Screen",
-                                       self->cancellable,
+                                       cc_panel_get_cancellable (CC_PANEL (self)),
                                        got_screen_proxy_cb,
                                        self);
   cc_object_storage_create_dbus_proxy (G_BUS_TYPE_SESSION,
@@ -2526,11 +2526,11 @@ cc_power_panel_init (CcPowerPanel *self)
                                        "org.gnome.SettingsDaemon.Power",
                                        "/org/gnome/SettingsDaemon/Power",
                                        "org.gnome.SettingsDaemon.Power.Keyboard",
-                                       self->cancellable,
+                                       cc_panel_get_cancellable (CC_PANEL (self)),
                                        got_kbd_proxy_cb,
                                        self);
 
-  self->chassis_type = get_chassis_type (self->cancellable);
+  self->chassis_type = get_chassis_type (cc_panel_get_cancellable (CC_PANEL (self)));
 
   self->up_client = up_client_new ();
 
