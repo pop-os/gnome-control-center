@@ -1,4 +1,4 @@
-From c0a926bb42a9a9612e03a93547e921c7f5475abf Mon Sep 17 00:00:00 2001
+From 76a3347312ddd3372dce92de2c00b38fa2950ebd Mon Sep 17 00:00:00 2001
 From: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
 Date: Wed, 15 Jan 2020 16:56:17 +1300
 Subject: [PATCH 08/22] Allow tweaking some settings for Ubuntu Dock
@@ -12,21 +12,27 @@ Origin: ubuntu
 Forwarded: not-needed
 ---
  panels/meson.build                            |   1 +
- panels/ubuntu/cc-ubuntu-panel.c               | 298 ++++++++++++++++++
+ panels/ubuntu/cc-ubuntu-panel.c               | 373 +++++++++++++++++
  panels/ubuntu/cc-ubuntu-panel.h               |  33 ++
- panels/ubuntu/cc-ubuntu-panel.ui              | 297 +++++++++++++++++
+ panels/ubuntu/cc-ubuntu-panel.ui              | 392 ++++++++++++++++++
  .../ubuntu/gnome-ubuntu-panel.desktop.in.in   |  16 +
- panels/ubuntu/meson.build                     |  40 +++
- panels/ubuntu/ubuntu.gresource.xml            |   6 +
+ panels/ubuntu/meson.build                     |  43 ++
+ panels/ubuntu/theme-dark.svg                  | 174 ++++++++
+ panels/ubuntu/theme-light.svg                 | 171 ++++++++
+ panels/ubuntu/theme-standard.svg              | 171 ++++++++
+ panels/ubuntu/ubuntu.gresource.xml            |   9 +
  po/POTFILES.in                                |   3 +
  shell/cc-panel-list.c                         |   1 +
  shell/cc-panel-loader.c                       |   2 +
- 10 files changed, 697 insertions(+)
+ 13 files changed, 1389 insertions(+)
  create mode 100644 panels/ubuntu/cc-ubuntu-panel.c
  create mode 100644 panels/ubuntu/cc-ubuntu-panel.h
  create mode 100644 panels/ubuntu/cc-ubuntu-panel.ui
  create mode 100644 panels/ubuntu/gnome-ubuntu-panel.desktop.in.in
  create mode 100644 panels/ubuntu/meson.build
+ create mode 100644 panels/ubuntu/theme-dark.svg
+ create mode 100644 panels/ubuntu/theme-light.svg
+ create mode 100644 panels/ubuntu/theme-standard.svg
  create mode 100644 panels/ubuntu/ubuntu.gresource.xml
 
 diff --git a/panels/meson.build b/panels/meson.build
@@ -43,10 +49,10 @@ index 2f4fdc5e3..81ae0b1a7 100644
    'user-accounts'
 diff --git a/panels/ubuntu/cc-ubuntu-panel.c b/panels/ubuntu/cc-ubuntu-panel.c
 new file mode 100644
-index 000000000..47c525d1f
+index 000000000..77627e982
 --- /dev/null
 +++ b/panels/ubuntu/cc-ubuntu-panel.c
-@@ -0,0 +1,298 @@
+@@ -0,0 +1,373 @@
 +/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 +/*
 + * Copyright (C) 2017-2020 Canonical Ltd
@@ -90,6 +96,11 @@ index 000000000..47c525d1f
 +#define UBUNTU_DOCK_ALL_MONITORS_KEY "multi-monitor"
 +#define UBUNTU_DOCK_ON_MONITOR_KEY "preferred-monitor"
 +
++#define INTERFACE_SCHEMA "org.gnome.desktop.interface"
++#define GTK_THEME_KEY "gtk-theme"
++#define CURSOR_THEME_KEY "cursor-theme"
++#define ICON_THEME_KEY "icon-theme"
++
 +struct _CcUbuntuPanel {
 +  CcPanel                 parent_instance;
 +
@@ -101,8 +112,13 @@ index 000000000..47c525d1f
 +  GtkComboBoxText        *dock_position_combo;
 +  GtkAdjustment          *icon_size_adjustment;
 +  GtkScale               *icon_size_scale;
++  GtkFlowBox             *theme_box;
++  GtkFlowBoxChild        *theme_dark;
++  GtkFlowBoxChild        *theme_light;
++  GtkFlowBoxChild        *theme_standard;
 +
 +  GSettings              *dock_settings;
++  GSettings              *interface_settings;
 +  gint                    dock_placement_primary_index;
 +  CcDisplayConfigManager *display_config_manager;
 +};
@@ -115,6 +131,7 @@ index 000000000..47c525d1f
 +  CcUbuntuPanel *self = CC_UBUNTU_PANEL (object);
 +
 +  g_clear_object (&self->dock_settings);
++  g_clear_object (&self->interface_settings);
 +  g_clear_object (&self->display_config_manager);
 +
 +  G_OBJECT_CLASS (cc_ubuntu_panel_parent_class)->dispose (object);
@@ -203,6 +220,56 @@ index 000000000..47c525d1f
 +                           G_CALLBACK (on_screen_changed),
 +                           self,
 +                           G_CONNECT_SWAPPED);
++}
++
++static void
++on_theme_box_selected_children_changed (CcUbuntuPanel *self)
++{
++  const gchar *gtk_theme = NULL;
++  g_autoptr(GList) selected = NULL;
++
++  selected = gtk_flow_box_get_selected_children (self->theme_box);
++  if (selected != NULL)
++    {
++      GtkFlowBoxChild *selected_item = GTK_FLOW_BOX_CHILD (g_list_nth_data (selected, 0));
++      if (selected_item == self->theme_standard)
++        gtk_theme = "Yaru";
++      else if (selected_item == self->theme_light)
++        gtk_theme = "Yaru-light";
++      else if (selected_item == self->theme_dark)
++        gtk_theme = "Yaru-dark";
++    }
++
++  if (gtk_theme != NULL)
++    g_settings_set_string (self->interface_settings, GTK_THEME_KEY, gtk_theme);
++}
++
++static void
++on_interface_settings_changed (CcUbuntuPanel *self)
++{
++  g_autofree gchar *gtk_theme = NULL;
++  g_autofree gchar *cursor_theme = NULL;
++  g_autofree gchar *icon_theme = NULL;
++  GtkFlowBoxChild *theme_item;
++
++  gtk_theme = g_settings_get_string (self->interface_settings, GTK_THEME_KEY);
++  cursor_theme = g_settings_get_string (self->interface_settings, CURSOR_THEME_KEY);
++  icon_theme = g_settings_get_string (self->interface_settings, ICON_THEME_KEY);
++
++  if (g_str_equal (cursor_theme, "Yaru") && g_str_equal (icon_theme, "Yaru"))
++    {
++      if (g_strcmp0 (gtk_theme, "Yaru") == 0)
++        theme_item = self->theme_standard;
++      else if (g_strcmp0 (gtk_theme, "Yaru-light") == 0)
++        theme_item = self->theme_light;
++      else if (g_strcmp0 (gtk_theme, "Yaru-dark") == 0)
++        theme_item = self->theme_dark;
++    }
++
++  if (theme_item != NULL)
++    gtk_flow_box_select_child (self->theme_box, theme_item);
++  else
++    gtk_flow_box_unselect_all (self->theme_box);
 +}
 +
 +static void
@@ -297,10 +364,15 @@ index 000000000..47c525d1f
 +  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, dock_position_combo);
 +  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, icon_size_adjustment);
 +  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, icon_size_scale);
++  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, theme_box);
++  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, theme_dark);
++  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, theme_light);
++  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, theme_standard);
 +
 +  gtk_widget_class_bind_template_callback (widget_class, on_dock_placement_combo_changed);
 +  gtk_widget_class_bind_template_callback (widget_class, on_icon_size_adjustment_value_changed);
 +  gtk_widget_class_bind_template_callback (widget_class, on_icon_size_format_value);
++  gtk_widget_class_bind_template_callback (widget_class, on_theme_box_selected_children_changed);
 +}
 +
 +static void
@@ -313,6 +385,14 @@ index 000000000..47c525d1f
 +  gtk_widget_init_template (GTK_WIDGET (self));
 +
 +  gtk_list_box_set_header_func (self->dock_listbox, cc_list_box_update_header_func, NULL, NULL);
++
++  self->interface_settings = g_settings_new (INTERFACE_SCHEMA);
++  g_signal_connect_object (self->interface_settings, "changed::" GTK_THEME_KEY,
++                           G_CALLBACK (on_interface_settings_changed), self, G_CONNECT_SWAPPED);
++  g_signal_connect_object (self->interface_settings, "changed::" CURSOR_THEME_KEY,
++                           G_CALLBACK (on_interface_settings_changed), self, G_CONNECT_SWAPPED);
++  g_signal_connect_object (self->interface_settings, "changed::" ICON_THEME_KEY,
++                           G_CALLBACK (on_interface_settings_changed), self, G_CONNECT_SWAPPED);
 +
 +  /* Only load if we have ubuntu dock or dash to dock installed */
 +  schema = g_settings_schema_source_lookup (g_settings_schema_source_get_default (), UBUNTU_DOCK_SCHEMA, TRUE);
@@ -342,6 +422,7 @@ index 000000000..47c525d1f
 +  gtk_scale_add_mark (self->icon_size_scale, DEFAULT_ICONSIZE / 2, GTK_POS_BOTTOM, NULL);
 +
 +  icon_size_widget_refresh (self);
++  on_interface_settings_changed (self);
 +
 +  g_bus_get (G_BUS_TYPE_SESSION, NULL, session_bus_ready, self);
 +}
@@ -386,10 +467,10 @@ index 000000000..96de519bc
 +#endif /* _CC_EDIT_DIALOG_H_ */
 diff --git a/panels/ubuntu/cc-ubuntu-panel.ui b/panels/ubuntu/cc-ubuntu-panel.ui
 new file mode 100644
-index 000000000..f1923446c
+index 000000000..fcea7d6dc
 --- /dev/null
 +++ b/panels/ubuntu/cc-ubuntu-panel.ui
-@@ -0,0 +1,297 @@
+@@ -0,0 +1,392 @@
 +<?xml version="1.0" encoding="UTF-8"?>
 +<!-- Generated with glade 3.20.0 -->
 +<interface>
@@ -439,23 +520,123 @@ index 000000000..f1923446c
 +                    <property name="margin">32</property>
 +                    <property name="orientation">vertical</property>
 +                    <property name="hexpand">True</property>
-+                    <!--<child>
++                    <child>
 +                      <object class="GtkLabel">
 +                        <property name="visible">True</property>
 +                        <property name="can_focus">False</property>
 +                        <property name="xalign">0</property>
 +                        <property name="margin_bottom">12</property>
-+                        <property name="label" translatable="yes" comments="Dock settings.">Ubuntu Dock</property>
++                        <property name="label" translatable="yes" comments="Theme settings.">Window colors</property>
 +                        <attributes>
 +                          <attribute name="weight" value="bold"/>
 +                        </attributes>
 +                      </object>
-+                      <packing>
-+                        <property name="expand">False</property>
-+                        <property name="fill">True</property>
-+                        <property name="position">0</property>
-+                      </packing>
-+                    </child>-->
++                    </child>
++                    <child>
++                      <object class="GtkFrame">
++                        <property name="visible">True</property>
++                        <property name="can_focus">False</property>
++                        <property name="margin_bottom">32</property>
++                        <property name="hexpand">True</property>
++                        <property name="label_xalign">0</property>
++                        <property name="shadow_type">in</property>
++                        <child>
++                          <object class="GtkFlowBox" id="theme_box">
++                            <property name="visible">True</property>
++                            <property name="homogeneous">True</property>
++                            <property name="max-children-per-line">3</property>
++                            <signal name="selected-children-changed" handler="on_theme_box_selected_children_changed" object="CcUbuntuPanel" swapped="yes"/>
++                            <child>
++                              <object class="GtkFlowBoxChild" id="theme_light">
++                                <property name="visible">True</property>
++                                <child>
++                                  <object class="GtkBox">
++                                    <property name="visible">True</property>
++                                    <property name="orientation">vertical</property>
++                                    <property name="spacing">6</property>
++                                    <property name="margin">10</property>
++                                    <child>
++                                      <object class="GtkImage">
++                                        <property name="visible">True</property>
++                                        <property name="resource">/org/gnome/control-center/ubuntu/theme-light.svg</property>
++                                      </object>
++                                    </child>
++                                    <child>
++                                      <object class="GtkLabel">
++                                        <property name="visible">True</property>
++                                        <property name="label" translatable="yes" context="Yaru theme in use">Light</property>
++                                      </object>
++                                    </child>
++                                  </object>
++                                </child>
++                              </object>
++                            </child>
++                            <child>
++                              <object class="GtkFlowBoxChild" id="theme_standard">
++                                <property name="visible">True</property>
++                                <child>
++                                  <object class="GtkBox">
++                                    <property name="visible">True</property>
++                                    <property name="orientation">vertical</property>
++                                    <property name="spacing">6</property>
++                                    <property name="margin">10</property>
++                                    <child>
++                                      <object class="GtkImage">
++                                        <property name="visible">True</property>
++                                        <property name="resource">/org/gnome/control-center/ubuntu/theme-standard.svg</property>
++                                      </object>
++                                    </child>
++                                    <child>
++                                      <object class="GtkLabel">
++                                        <property name="visible">True</property>
++                                        <property name="label" translatable="yes" context="Yaru theme in use">Standard</property>
++                                      </object>
++                                    </child>
++                                  </object>
++                                </child>
++                              </object>
++                            </child>
++                            <child>
++                              <object class="GtkFlowBoxChild" id="theme_dark">
++                                <property name="visible">True</property>
++                                <child>
++                                  <object class="GtkBox">
++                                    <property name="visible">True</property>
++                                    <property name="orientation">vertical</property>
++                                    <property name="spacing">6</property>
++                                    <property name="margin">10</property>
++                                    <child>
++                                      <object class="GtkImage">
++                                        <property name="visible">True</property>
++                                        <property name="resource">/org/gnome/control-center/ubuntu/theme-dark.svg</property>
++                                      </object>
++                                    </child>
++                                    <child>
++                                      <object class="GtkLabel">
++                                        <property name="visible">True</property>
++                                        <property name="label" translatable="yes" context="Yaru theme in use">Dark</property>
++                                      </object>
++                                    </child>
++                                  </object>
++                                </child>
++                              </object>
++                            </child>
++                          </object>
++                        </child>
++                      </object>
++                    </child>
++                    <child>
++                      <object class="GtkLabel">
++                        <property name="visible">True</property>
++                        <property name="can_focus">False</property>
++                        <property name="xalign">0</property>
++                        <property name="margin_bottom">12</property>
++                        <property name="label" translatable="yes" comments="Dock settings.">Dock</property>
++                        <attributes>
++                          <attribute name="weight" value="bold"/>
++                        </attributes>
++                      </object>
++                    </child>
 +                    <child>
 +                      <object class="GtkFrame">
 +                        <property name="visible">True</property>
@@ -655,11 +836,6 @@ index 000000000..f1923446c
 +                          </object>
 +                        </child>
 +                      </object>
-+                      <packing>
-+                        <property name="expand">False</property>
-+                        <property name="fill">True</property>
-+                        <property name="position">1</property>
-+                      </packing>
 +                    </child>
 +                  </object>
 +                  <packing>
@@ -689,13 +865,13 @@ index 000000000..f1923446c
 +</interface>
 diff --git a/panels/ubuntu/gnome-ubuntu-panel.desktop.in.in b/panels/ubuntu/gnome-ubuntu-panel.desktop.in.in
 new file mode 100644
-index 000000000..76bc6083c
+index 000000000..78571f158
 --- /dev/null
 +++ b/panels/ubuntu/gnome-ubuntu-panel.desktop.in.in
 @@ -0,0 +1,16 @@
 +[Desktop Entry]
-+Name=Dock
-+Comment=Ubuntu Dock Settings
++Name=Appearance
++Comment=Appearance Settings
 +Exec=gnome-control-center ubuntu
 +Icon=preferences-ubuntu-panel
 +Terminal=false
@@ -708,13 +884,13 @@ index 000000000..76bc6083c
 +X-GNOME-Bugzilla-Product=gnome-control-center
 +X-GNOME-Bugzilla-Version=@VERSION@
 +# Translators: those are keywords for the ubuntu control-center panel
-+Keywords=Dock;Launcher;
++Keywords=Dock;Launcher;Theme;
 diff --git a/panels/ubuntu/meson.build b/panels/ubuntu/meson.build
 new file mode 100644
-index 000000000..d94da007b
+index 000000000..b57e85b15
 --- /dev/null
 +++ b/panels/ubuntu/meson.build
-@@ -0,0 +1,40 @@
+@@ -0,0 +1,43 @@
 +panels_list += cappletname
 +desktop = 'gnome-@0@-panel.desktop'.format(cappletname)
 +
@@ -736,7 +912,10 @@ index 000000000..d94da007b
 +
 +sources = files('cc-ubuntu-panel.c')
 +
-+resource_data = files('cc-ubuntu-panel.ui')
++resource_data = files('cc-ubuntu-panel.ui',
++                      'theme-dark.svg',
++                      'theme-light.svg',
++                      'theme-standard.svg')
 +
 +sources += gnome.compile_resources(
 +  'cc-' + cappletname + '-resources',
@@ -755,16 +934,553 @@ index 000000000..d94da007b
 +  dependencies: common_deps,
 +  c_args: cflags
 +)
+diff --git a/panels/ubuntu/theme-dark.svg b/panels/ubuntu/theme-dark.svg
+new file mode 100644
+index 000000000..545154e4e
+--- /dev/null
++++ b/panels/ubuntu/theme-dark.svg
+@@ -0,0 +1,174 @@
++<?xml version="1.0" encoding="UTF-8" standalone="no"?>
++<!-- Created with Inkscape (http://www.inkscape.org/) -->
++
++<svg
++   xmlns:dc="http://purl.org/dc/elements/1.1/"
++   xmlns:cc="http://creativecommons.org/ns#"
++   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
++   xmlns:svg="http://www.w3.org/2000/svg"
++   xmlns="http://www.w3.org/2000/svg"
++   version="1.1"
++   width="100%"
++   height="100%"
++   viewBox="0 0 130 90"
++   id="svg3136">
++  <title
++     id="title3147">Artboard 1</title>
++  <metadata
++     id="metadata3187">
++    <rdf:RDF>
++      <cc:Work
++         rdf:about="">
++        <dc:format>image/svg+xml</dc:format>
++        <dc:type
++           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
++        <dc:title>Artboard 1</dc:title>
++      </cc:Work>
++    </rdf:RDF>
++  </metadata>
++  <defs
++     id="defs3138">
++    <style
++       id="style3140" />
++    <linearGradient
++       x1="65"
++       y1="90"
++       x2="65"
++       id="linear-gradient"
++       gradientUnits="userSpaceOnUse">
++      <stop
++         id="stop3143"
++         style="stop-color:#7a0839;stop-opacity:1"
++         offset="0" />
++      <stop
++         id="stop3145"
++         style="stop-color:#510045;stop-opacity:1"
++         offset="1" />
++    </linearGradient>
++  </defs>
++  <g
++     id="Shell">
++    <g
++       id="Wallpaper">
++      <rect
++         width="130"
++         height="90"
++         x="0"
++         y="0"
++         id="rect3151"
++         style="fill:url(#linear-gradient)" />
++    </g>
++    <g
++       id="Shell-2">
++      <rect
++         width="130"
++         height="13"
++         x="0"
++         y="0"
++         id="rect3154"
++         style="opacity:0.5" />
++      <rect
++         width="25"
++         height="77"
++         x="0"
++         y="13"
++         id="rect3156"
++         style="opacity:0.4" />
++      <g
++         id="g3158"
++         style="opacity:0.3">
++        <rect
++           width="14.44"
++           height="14.44"
++           rx="3"
++           x="5.2800002"
++           y="17.99"
++           id="rect3160"
++           style="fill:#ffffff" />
++        <rect
++           width="14.44"
++           height="14.44"
++           rx="3"
++           x="5.2800002"
++           y="37.75"
++           id="rect3162"
++           style="fill:#ffffff" />
++        <rect
++           width="14.44"
++           height="14.44"
++           rx="3"
++           x="5.2800002"
++           y="57.509998"
++           id="rect3164"
++           style="fill:#ffffff" />
++      </g>
++    </g>
++  </g>
++  <g
++     id="Dark_Theme">
++    <rect
++       width="93.059998"
++       height="21.91"
++       x="37"
++       y="23.940001"
++       id="rect3167"
++       style="fill:#2b2929" />
++    <rect
++       width="63"
++       height="44.150002"
++       x="37"
++       y="45.849998"
++       id="rect3169"
++       style="fill:#353535" />
++    <rect
++       width="63"
++       height="11.94"
++       x="37"
++       y="62"
++       id="rect3171"
++       style="fill:#e95420" />
++    <rect
++       width="1.17"
++       height="44.150002"
++       x="100"
++       y="45.849998"
++       transform="matrix(-1,0,0,-1,201.16,135.85)"
++       id="rect3173"
++       style="fill:#2b2929" />
++    <rect
++       width="28.76"
++       height="44.150002"
++       x="101.17"
++       y="45.849998"
++       id="rect3175"
++       style="fill:#3d3d3d" />
++    <rect
++       width="46.880001"
++       height="11.99"
++       x="71.150002"
++       y="28.92"
++       id="rect3177"
++       style="fill:#3d3d3d" />
++    <rect
++       width="35.189999"
++       height="1.0599999"
++       x="76.980003"
++       y="39.849998"
++       id="rect3179"
++       style="fill:#e95420" />
++    <rect
++       width="12"
++       height="11.99"
++       x="41.150002"
++       y="28.92"
++       id="rect3288"
++       style="fill:#3d3d3d;fill-opacity:1" />
++    <rect
++       width="12"
++       height="11.99"
++       x="56.149998"
++       y="28.92"
++       id="rect3290"
++       style="fill:#3d3d3d;fill-opacity:1" />
++  </g>
++</svg>
+diff --git a/panels/ubuntu/theme-light.svg b/panels/ubuntu/theme-light.svg
+new file mode 100644
+index 000000000..1bd8929b3
+--- /dev/null
++++ b/panels/ubuntu/theme-light.svg
+@@ -0,0 +1,171 @@
++<?xml version="1.0" encoding="UTF-8" standalone="no"?>
++<!-- Created with Inkscape (http://www.inkscape.org/) -->
++
++<svg
++   xmlns:dc="http://purl.org/dc/elements/1.1/"
++   xmlns:cc="http://creativecommons.org/ns#"
++   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
++   xmlns:svg="http://www.w3.org/2000/svg"
++   xmlns="http://www.w3.org/2000/svg"
++   version="1.1"
++   width="100%"
++   height="100%"
++   viewBox="0 0 130 90"
++   id="svg3030">
++  <title
++     id="title3041">Artboard 1</title>
++  <metadata
++     id="metadata3081">
++    <rdf:RDF>
++      <cc:Work
++         rdf:about="">
++        <dc:format>image/svg+xml</dc:format>
++        <dc:type
++           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
++        <dc:title>Artboard 1</dc:title>
++      </cc:Work>
++    </rdf:RDF>
++  </metadata>
++  <defs
++     id="defs3032">
++    <style
++       id="style3034" />
++    <linearGradient
++       x1="65"
++       y1="90"
++       x2="65"
++       id="linear-gradient"
++       gradientUnits="userSpaceOnUse">
++      <stop
++         id="stop3037"
++         style="stop-color:#7a0839;stop-opacity:1"
++         offset="0" />
++      <stop
++         id="stop3039"
++         style="stop-color:#510045;stop-opacity:1"
++         offset="1" />
++    </linearGradient>
++  </defs>
++  <g
++     id="Shell">
++    <g
++       id="Wallpaper">
++      <rect
++         width="130"
++         height="90"
++         x="0"
++         y="0"
++         id="rect3045"
++         style="fill:url(#linear-gradient)" />
++    </g>
++    <g
++       id="Shell-2">
++      <rect
++         width="130"
++         height="13"
++         x="0"
++         y="0"
++         id="rect3048"
++         style="opacity:0.5" />
++      <rect
++         width="25"
++         height="77"
++         x="0"
++         y="13"
++         id="rect3050"
++         style="opacity:0.4" />
++      <g
++         id="g3052"
++         style="opacity:0.3">
++        <rect
++           width="14.44"
++           height="14.44"
++           rx="3"
++           x="5.2800002"
++           y="17.99"
++           id="rect3054"
++           style="fill:#ffffff" />
++        <rect
++           width="14.44"
++           height="14.44"
++           rx="3"
++           x="5.2800002"
++           y="37.75"
++           id="rect3056"
++           style="fill:#ffffff" />
++        <rect
++           width="14.44"
++           height="14.44"
++           rx="3"
++           x="5.2800002"
++           y="57.509998"
++           id="rect3058"
++           style="fill:#ffffff" />
++      </g>
++    </g>
++  </g>
++  <rect
++     width="93.059998"
++     height="21.91"
++     x="37"
++     y="23.940001"
++     id="rect3061"
++     style="fill:#e5e9ec" />
++  <rect
++     width="63"
++     height="44.150002"
++     x="37"
++     y="45.849998"
++     id="rect3063"
++     style="fill:#f8f9fa" />
++  <rect
++     width="63"
++     height="11.94"
++     x="37"
++     y="62"
++     id="rect3065"
++     style="fill:#e95420" />
++  <rect
++     width="1.17"
++     height="44.150002"
++     x="-101.16"
++     y="-90"
++     transform="scale(-1,-1)"
++     id="rect3067"
++     style="fill:#e3e3e3" />
++  <rect
++     width="28.76"
++     height="44.150002"
++     x="101.17"
++     y="45.849998"
++     id="rect3069"
++     style="fill:#ffffff" />
++  <rect
++     width="46.880001"
++     height="11.99"
++     x="71.150002"
++     y="28.92"
++     id="rect3071"
++     style="fill:#c8c9ca" />
++  <rect
++     width="35.189999"
++     height="1.0599999"
++     x="76.980003"
++     y="39.849998"
++     id="rect3073"
++     style="fill:#e95420" />
++  <rect
++     width="12"
++     height="11.99"
++     x="41.150002"
++     y="28.92"
++     id="rect3288"
++     style="fill:#c8c9ca;fill-opacity:1" />
++  <rect
++     width="12"
++     height="11.99"
++     x="56.150002"
++     y="28.92"
++     id="rect3290"
++     style="fill:#c8c9ca;fill-opacity:1" />
++</svg>
+diff --git a/panels/ubuntu/theme-standard.svg b/panels/ubuntu/theme-standard.svg
+new file mode 100644
+index 000000000..862fd44ea
+--- /dev/null
++++ b/panels/ubuntu/theme-standard.svg
+@@ -0,0 +1,171 @@
++<?xml version="1.0" encoding="UTF-8" standalone="no"?>
++<!-- Created with Inkscape (http://www.inkscape.org/) -->
++
++<svg
++   xmlns:dc="http://purl.org/dc/elements/1.1/"
++   xmlns:cc="http://creativecommons.org/ns#"
++   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
++   xmlns:svg="http://www.w3.org/2000/svg"
++   xmlns="http://www.w3.org/2000/svg"
++   version="1.1"
++   width="100%"
++   height="100%"
++   viewBox="0 0 130 90"
++   id="svg2">
++  <title
++     id="title13">Artboard 1</title>
++  <metadata
++     id="metadata53">
++    <rdf:RDF>
++      <cc:Work
++         rdf:about="">
++        <dc:format>image/svg+xml</dc:format>
++        <dc:type
++           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
++        <dc:title>Artboard 1</dc:title>
++      </cc:Work>
++    </rdf:RDF>
++  </metadata>
++  <defs
++     id="defs4">
++    <style
++       id="style6" />
++    <linearGradient
++       x1="65"
++       y1="90"
++       x2="65"
++       id="linear-gradient"
++       gradientUnits="userSpaceOnUse">
++      <stop
++         id="stop9"
++         style="stop-color:#7a0839;stop-opacity:1"
++         offset="0" />
++      <stop
++         id="stop11"
++         style="stop-color:#510045;stop-opacity:1"
++         offset="1" />
++    </linearGradient>
++  </defs>
++  <g
++     id="Shell">
++    <g
++       id="Wallpaper">
++      <rect
++         width="130"
++         height="90"
++         x="0"
++         y="0"
++         id="rect17"
++         style="fill:url(#linear-gradient)" />
++    </g>
++    <g
++       id="Shell-2">
++      <rect
++         width="130"
++         height="13"
++         x="0"
++         y="0"
++         id="rect20"
++         style="opacity:0.5" />
++      <rect
++         width="25"
++         height="77"
++         x="0"
++         y="13"
++         id="rect22"
++         style="opacity:0.4" />
++      <g
++         id="g24"
++         style="opacity:0.3">
++        <rect
++           width="14.44"
++           height="14.44"
++           rx="3"
++           x="5.2800002"
++           y="17.99"
++           id="rect26"
++           style="fill:#ffffff" />
++        <rect
++           width="14.44"
++           height="14.44"
++           rx="3"
++           x="5.2800002"
++           y="37.75"
++           id="rect28"
++           style="fill:#ffffff" />
++        <rect
++           width="14.44"
++           height="14.44"
++           rx="3"
++           x="5.2800002"
++           y="57.509998"
++           id="rect30"
++           style="fill:#ffffff" />
++      </g>
++    </g>
++  </g>
++  <rect
++     width="93.059998"
++     height="21.91"
++     x="37"
++     y="23.940001"
++     id="rect33"
++     style="fill:#2b2929" />
++  <rect
++     width="63"
++     height="44.150002"
++     x="37"
++     y="45.849998"
++     id="rect35"
++     style="fill:#f8f9fa" />
++  <rect
++     width="63"
++     height="11.94"
++     x="37"
++     y="62"
++     id="rect37"
++     style="fill:#e95420" />
++  <rect
++     width="1.17"
++     height="44.150002"
++     x="-101.16"
++     y="-90"
++     transform="scale(-1,-1)"
++     id="rect39"
++     style="fill:#e3e3e3" />
++  <rect
++     width="28.76"
++     height="44.150002"
++     x="101.17"
++     y="45.849998"
++     id="rect41"
++     style="fill:#ffffff" />
++  <rect
++     width="46.880001"
++     height="11.99"
++     x="71.150002"
++     y="28.92"
++     id="rect43"
++     style="fill:#3d3d3d" />
++  <rect
++     width="35.189999"
++     height="1.0599999"
++     x="76.980003"
++     y="39.849998"
++     id="rect45"
++     style="fill:#e95420" />
++  <rect
++     width="12"
++     height="11.99"
++     x="41.150002"
++     y="28.92"
++     id="rect3288"
++     style="fill:#3d3d3d;fill-opacity:1" />
++  <rect
++     width="12"
++     height="11.99"
++     x="56.149998"
++     y="28.92"
++     id="rect3290"
++     style="fill:#3d3d3d;fill-opacity:1" />
++</svg>
 diff --git a/panels/ubuntu/ubuntu.gresource.xml b/panels/ubuntu/ubuntu.gresource.xml
 new file mode 100644
-index 000000000..3760b1d25
+index 000000000..7117d126c
 --- /dev/null
 +++ b/panels/ubuntu/ubuntu.gresource.xml
-@@ -0,0 +1,6 @@
+@@ -0,0 +1,9 @@
 +<?xml version="1.0" encoding="UTF-8"?>
 +<gresources>
 +  <gresource prefix="/org/gnome/control-center/ubuntu">
 +    <file preprocess="xml-stripblanks">cc-ubuntu-panel.ui</file>
++    <file>theme-dark.svg</file>
++    <file>theme-light.svg</file>
++    <file>theme-standard.svg</file>
 +  </gresource>
 +</gresources>
 diff --git a/po/POTFILES.in b/po/POTFILES.in
@@ -794,7 +1510,7 @@ index 25785901f..4056d9ebb 100644
    "search",
    "applications",
 diff --git a/shell/cc-panel-loader.c b/shell/cc-panel-loader.c
-index 2b3bce576..c2777ffae 100644
+index f20384394..c20c376db 100644
 --- a/shell/cc-panel-loader.c
 +++ b/shell/cc-panel-loader.c
 @@ -60,6 +60,7 @@ extern GType cc_sound_panel_get_type (void);
@@ -814,5 +1530,5 @@ index 2b3bce576..c2777ffae 100644
    PANEL_TYPE("thunderbolt",      cc_bolt_panel_get_type,                 NULL),
  #endif
 -- 
-2.25.0
+2.25.1
 
