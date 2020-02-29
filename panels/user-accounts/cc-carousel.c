@@ -87,7 +87,7 @@ cc_carousel_item_get_x (CcCarouselItem *item,
 {
         GtkWidget *widget, *parent;
         gint width;
-        gint dest_x;
+        gint dest_x = 0;
 
         parent = GTK_WIDGET (carousel->stack);
         widget = GTK_WIDGET (item);
@@ -111,6 +111,8 @@ cc_carousel_move_arrow (CcCarousel *self)
         GtkStyleContext *context;
         gchar *css;
         gint end_x;
+        GtkSettings *settings;
+        gboolean animations;
 
         if (!self->selected_item)
                 return;
@@ -122,13 +124,26 @@ cc_carousel_move_arrow (CcCarousel *self)
                 gtk_style_context_remove_provider (context, self->provider);
         g_clear_object (&self->provider);
 
-        css = g_strdup_printf ("@keyframes arrow_keyframes-%d {\n"
-                               "  from { margin-left: %dpx; }\n"
-                               "  to { margin-left: %dpx; }\n"
-                               "}\n"
-                               "* {\n"
-                               "  animation-name: arrow_keyframes-%d;\n"
-                               "}\n", end_x, self->arrow_start_x, end_x, end_x);
+        settings = gtk_widget_get_settings (GTK_WIDGET (self));
+        g_object_get (settings, "gtk-enable-animations", &animations, NULL);
+
+        /* Animate the arrow movement if animations are enabled. Otherwise,
+         * jump the arrow to the right location instantly. */
+        if (animations)
+        {
+                css = g_strdup_printf ("@keyframes arrow_keyframes-%d {\n"
+                                       "  from { margin-left: %dpx; }\n"
+                                       "  to { margin-left: %dpx; }\n"
+                                       "}\n"
+                                       "* {\n"
+                                       "  animation-name: arrow_keyframes-%d;\n"
+                                       "}\n",
+                                       end_x, self->arrow_start_x, end_x, end_x);
+        }
+        else
+        {
+                css = g_strdup_printf ("* { margin-left: %dpx }", end_x);
+        }
 
         self->provider = GTK_STYLE_PROVIDER (gtk_css_provider_new ());
         gtk_css_provider_load_from_data (GTK_CSS_PROVIDER (self->provider), css, -1, NULL);
@@ -336,8 +351,23 @@ cc_carousel_new (void)
 }
 
 static void
+cc_carousel_dispose (GObject *object)
+{
+        CcCarousel *self = CC_CAROUSEL (object);
+
+        g_clear_object (&self->provider);
+        if (self->children != NULL) {
+                g_list_free (self->children);
+                self->children = NULL;
+        }
+
+        G_OBJECT_CLASS (cc_carousel_parent_class)->dispose (object);
+}
+
+static void
 cc_carousel_class_init (CcCarouselClass *klass)
 {
+        GObjectClass *object_class = G_OBJECT_CLASS (klass);
         GtkWidgetClass *wclass = GTK_WIDGET_CLASS (klass);
         GtkContainerClass *container_class = GTK_CONTAINER_CLASS (klass);
 
@@ -351,6 +381,8 @@ cc_carousel_class_init (CcCarouselClass *klass)
 
         gtk_widget_class_bind_template_callback (wclass, cc_carousel_goto_previous_page);
         gtk_widget_class_bind_template_callback (wclass, cc_carousel_goto_next_page);
+
+        object_class->dispose = cc_carousel_dispose;
 
         container_class->add = cc_carousel_add;
 
