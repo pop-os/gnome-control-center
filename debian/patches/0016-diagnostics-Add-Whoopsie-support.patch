@@ -1,4 +1,4 @@
-From 6f2caf16fcc3f56a8f4ef3da6ec8dc953069c38d Mon Sep 17 00:00:00 2001
+From 51b09bcdd6835fe23e65c75436161fc48a086734 Mon Sep 17 00:00:00 2001
 From: James Henstridge <james@jamesh.id.au>
 Date: Thu, 14 Sep 2017 10:58:16 +0800
 Subject: [PATCH 16/22] diagnostics: Add Whoopsie support
@@ -6,13 +6,13 @@ Subject: [PATCH 16/22] diagnostics: Add Whoopsie support
 ---
  meson.build                                |   9 ++
  meson_options.txt                          |   1 +
- panels/diagnostics/cc-diagnostics-panel.c  | 115 +++++++++++++++++++++
+ panels/diagnostics/cc-diagnostics-panel.c  | 117 +++++++++++++++++++++
  panels/diagnostics/cc-diagnostics-panel.ui |  43 +++++++-
  panels/diagnostics/meson.build             |   7 +-
- 5 files changed, 173 insertions(+), 2 deletions(-)
+ 5 files changed, 175 insertions(+), 2 deletions(-)
 
 diff --git a/meson.build b/meson.build
-index 28240d614..3f3117c7a 100644
+index ab414fa53..d85d3094d 100644
 --- a/meson.build
 +++ b/meson.build
 @@ -205,6 +205,14 @@ endif
@@ -47,7 +47,7 @@ index e76308e8a..554c213a1 100644
  option('profile', type: 'combo', choices: ['default','development'], value: 'default')
 +option('whoopsie', type: 'boolean', value: false, description: 'build with Whoopsie support')
 diff --git a/panels/diagnostics/cc-diagnostics-panel.c b/panels/diagnostics/cc-diagnostics-panel.c
-index 7f1b5e2f0..b9e801dfd 100644
+index 7f1b5e2f0..b4171d0e2 100644
 --- a/panels/diagnostics/cc-diagnostics-panel.c
 +++ b/panels/diagnostics/cc-diagnostics-panel.c
 @@ -18,6 +18,8 @@
@@ -181,7 +181,7 @@ index 7f1b5e2f0..b9e801dfd 100644
  }
  
  static void
-@@ -110,7 +200,11 @@ cc_diagnostics_panel_class_init (CcDiagnosticsPanelClass *klass)
+@@ -110,7 +200,13 @@ cc_diagnostics_panel_class_init (CcDiagnosticsPanelClass *klass)
  
    gtk_widget_class_bind_template_child (widget_class, CcDiagnosticsPanel, diagnostics_explanation_label);
    gtk_widget_class_bind_template_child (widget_class, CcDiagnosticsPanel, diagnostics_list_box);
@@ -189,11 +189,13 @@ index 7f1b5e2f0..b9e801dfd 100644
    gtk_widget_class_bind_template_child (widget_class, CcDiagnosticsPanel, abrt_switch);
 +  gtk_widget_class_bind_template_child (widget_class, CcDiagnosticsPanel, whoopsie_combo);
 +
++#ifdef HAVE_WHOOPSIE
 +  gtk_widget_class_bind_template_callback (widget_class, on_whoopsie_combo_changed_cb);
++#endif
  }
  
  static void
-@@ -120,6 +214,7 @@ cc_diagnostics_panel_init (CcDiagnosticsPanel *self)
+@@ -120,6 +216,7 @@ cc_diagnostics_panel_init (CcDiagnosticsPanel *self)
    g_autofree gchar *url = NULL;
    g_autofree gchar *msg = NULL;
    g_autofree gchar *link = NULL;
@@ -201,7 +203,7 @@ index 7f1b5e2f0..b9e801dfd 100644
  
    g_resources_register (cc_diagnostics_get_resource ());
  
-@@ -135,6 +230,26 @@ cc_diagnostics_panel_init (CcDiagnosticsPanel *self)
+@@ -135,6 +232,26 @@ cc_diagnostics_panel_init (CcDiagnosticsPanel *self)
                     self->abrt_switch, "active",
                     G_SETTINGS_BIND_DEFAULT);
  
