@@ -22,7 +22,6 @@
 #include <gio/gio.h>
 #include <string.h>
 #include <libxml/parser.h>
-#include <libgnome-desktop/gnome-bg.h>
 #include <gdesktop-enums.h>
 
 #include "gdesktop-enums-types.h"
@@ -272,7 +271,7 @@ cc_background_xml_load_xml_internal (CcBackgroundXml *xml,
 	} else if (!strcmp ((gchar *)wpa->name, "text")) {
 	  /* Do nothing here, libxml2 is being weird */
 	} else {
-	  g_warning ("Unknown Tag in %s: %s", filename, wpa->name);
+	  g_debug ("Unknown Tag in %s: %s", filename, wpa->name);
 	}
       }
 
