@@ -1,17 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
   <!-- interface-requires gtk+ 3.0 -->
-  <object class="GtkBox" id="vbox6">
-    <property name="visible">True</property>
+  <template class="NetDeviceEthernet" parent="GtkBox">
     <property name="can_focus">False</property>
     <property name="spacing">6</property>
     <property name="orientation">vertical</property>
     <child>
-      <object class="GtkBox" id="actions">
+      <object class="GtkBox">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <child>
-          <object class="GtkLabel" id="label_device">
+          <object class="GtkLabel" id="device_label">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
             <property name="hexpand">True</property>
@@ -24,11 +23,12 @@
           </object>
         </child>
         <child>
-          <object class="GtkButton" id="add_profile_button">
+          <object class="GtkButton">
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="receives_default">True</property>
             <property name="relief">none</property>
+            <signal name="clicked" handler="add_profile_button_clicked_cb" object="NetDeviceEthernet" swapped="yes"/>
             <child>
               <object class="GtkImage">
                 <property name="visible">True</property>
@@ -48,80 +48,69 @@
         <property name="orientation">vertical</property>
         <property name="spacing">6</property>
         <child>
-          <object class="GtkScrolledWindow" id="list">
+          <object class="GtkScrolledWindow" id="scrolled_window">
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="hexpand">True</property>
             <property name="hscrollbar_policy">never</property>
             <property name="vscrollbar_policy">never</property>
             <property name="shadow_type">in</property>
+            <child>
+              <object class="GtkListBox" id="connection_list">
+                <property name="visible">True</property>
+                <property name="selection-mode">none</property>
+                <signal name="row-activated" handler="connection_list_row_activated_cb" object="NetDeviceEthernet" swapped="yes"/>
+              </object>
+            </child>
           </object>
         </child>
 
         <!-- Single profile row -->
         <child>
-          <object class="GtkFrame" id="details">
+          <object class="GtkFrame" id="details_frame">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
             <property name="expand">True</property>
             <child>
-              <object class="GtkListBox" id="single_profile_listbox">
+              <object class="GtkListBox">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="selection_mode">none</property>
                 <child>
-                  <object class="GtkListBoxRow" id="details_row">
+                  <object class="HdyActionRow" id="details_row">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <property name="selectable">False</property>
-                    <child>
-                      <object class="GtkBox">
+                    <property name="title">Cable unplugged</property>
+                    <child type="action">
+                      <object class="GtkButton" id="details_button">
                         <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="orientation">horizontal</property>
-                        <property name="spacing">12</property>
-                        <property name="margin_top">9</property>
-                        <property name="margin_bottom">9</property>
-                        <property name="margin_start">20</property>
-                        <property name="margin_end">20</property>
+                        <property name="can_focus">True</property>
+                        <property name="receives_default">True</property>
+                        <property name="halign">end</property>
+                        <property name="valign">center</property>
+                        <signal name="clicked" handler="details_button_clicked_cb" object="NetDeviceEthernet" swapped="yes"/>
                         <child>
-                          <object class="GtkLabel" id="label_status">
+                          <object class="GtkImage">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
-                            <property name="hexpand">True</property>
-                            <property name="xalign">0</property>
-                            <property name="label">Cable unplugged</property>
+                            <property name="icon-name">emblem-system-symbolic</property>
                           </object>
                         </child>
-                        <child>
-                          <object class="GtkSwitch" id="device_off_switch">
-                            <property name="visible">True</property>
-                            <property name="can_focus">True</property>
-                            <property name="halign">end</property>
-                            <property name="valign">center</property>
+                        <child internal-child="accessible">
+                          <object class="AtkObject">
+                            <property name="accessible-name" translatable="yes">Options…</property>
                           </object>
-                        </child>
-                        <child>
-                          <object class="GtkButton" id="details_button">
-                            <property name="visible">True</property>
-                            <property name="can_focus">True</property>
-                            <property name="receives_default">True</property>
-                            <property name="halign">end</property>
-                            <child>
-                              <object class="GtkImage">
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="icon-name">emblem-system-symbolic</property>
-                              </object>
-                            </child>
-
-                            <child internal-child="accessible">
-                              <object class="AtkObject" id="details_button-accessible">
-                                <property name="accessible-name" translatable="yes">Options…</property>
-                              </object>
-                           </child>
-                         </object>
-                        </child>
+                       </child>
+                     </object>
+                    </child>
+                    <child type="action">
+                      <object class="GtkSwitch" id="device_off_switch">
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="halign">end</property>
+                        <property name="valign">center</property>
+                        <signal name="notify::active" handler="device_off_switch_changed_cb" object="NetDeviceEthernet" swapped="yes"/>
                       </object>
                     </child>
                   </object>
@@ -132,6 +121,5 @@
         </child>
       </object>
     </child>
-  </object>
-  <object class="GtkSizeGroup" id="sizegroup1"/>
+  </template>
 </interface>
