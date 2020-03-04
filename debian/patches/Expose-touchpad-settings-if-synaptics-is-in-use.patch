@@ -1,6 +1,7 @@
+From 81899262bee17c66dc993065fd77307f00e0b265 Mon Sep 17 00:00:00 2001
 From: Daniel van Vugt <daniel.van.vugt@canonical.com>
 Date: Fri, 16 Mar 2018 13:53:10 -0400
-Subject: Expose touchpad settings if synaptics is in use
+Subject: [PATCH 01/22] Expose touchpad settings if synaptics is in use
 
 Upstream is aggressively pushing for libinput over synaptics. However that
 creates a factually incorrect situation where gnome-control-center thinks
@@ -15,12 +16,12 @@ This patch requires a companion patch in mutter which GNOME has rejected.
 
 https://gitlab.gnome.org/GNOME/mutter/merge_requests/37
 ---
- panels/mouse/cc-mouse-caps-helper.c   |  7 +++++++
- panels/mouse/gnome-mouse-properties.c | 16 +++++++++-------
+ panels/mouse/cc-mouse-caps-helper.c |  7 +++++++
+ panels/mouse/cc-mouse-panel.c       | 16 +++++++++-------
  2 files changed, 16 insertions(+), 7 deletions(-)
 
 diff --git a/panels/mouse/cc-mouse-caps-helper.c b/panels/mouse/cc-mouse-caps-helper.c
-index 69546b2..39534b9 100644
+index 69546b2b6..39534b912 100644
 --- a/panels/mouse/cc-mouse-caps-helper.c
 +++ b/panels/mouse/cc-mouse-caps-helper.c
 @@ -38,6 +38,13 @@ touchpad_check_capabilities_x11 (gboolean *have_two_finger_scrolling,
@@ -37,52 +38,55 @@ index 69546b2..39534b9 100644
          gdisplay = gdk_display_get_default ();
          display = GDK_DISPLAY_XDISPLAY (gdk_display_get_default ());
  	prop_scroll_methods = XInternAtom (display, "libinput Scroll Methods Available", False);
-diff --git a/panels/mouse/gnome-mouse-properties.c b/panels/mouse/gnome-mouse-properties.c
-index 5f4b16b..6d30039 100644
---- a/panels/mouse/gnome-mouse-properties.c
-+++ b/panels/mouse/gnome-mouse-properties.c
-@@ -79,7 +79,6 @@ struct _CcMouseProperties
- 	gboolean have_mouse;
- 	gboolean have_touchpad;
- 	gboolean have_touchscreen;
--	gboolean have_synaptics;
+diff --git a/panels/mouse/cc-mouse-panel.c b/panels/mouse/cc-mouse-panel.c
+index df2cd4b7a..a90062f72 100644
+--- a/panels/mouse/cc-mouse-panel.c
++++ b/panels/mouse/cc-mouse-panel.c
+@@ -72,7 +72,6 @@ struct _CcMousePanel
+   gboolean           have_mouse;
+   gboolean           have_touchpad;
+   gboolean           have_touchscreen;
+-  gboolean           have_synaptics;
  
- 	gboolean left_handed;
- 	GtkGesture *left_gesture;
-@@ -97,7 +96,7 @@ setup_touchpad_options (CcMouseProperties *self)
- 	gboolean have_edge_scrolling;
- 	gboolean have_tap_to_click;
+   gboolean           left_handed;
+   GtkGesture        *left_gesture;
+@@ -90,7 +89,7 @@ setup_touchpad_options (CcMousePanel *self)
+   gboolean have_edge_scrolling;
+   gboolean have_tap_to_click;
  
--	if (self->have_synaptics || !self->have_touchpad) {
-+	if (!self->have_touchpad) {
- 		gtk_widget_hide (self->touchpad_frame);
- 		return;
- 	}
-@@ -324,7 +323,10 @@ device_changed (GsdDeviceManager *device_manager,
- 		GsdDevice *device,
- 		CcMouseProperties *self)
+-  if (self->have_synaptics || !self->have_touchpad) {
++  if (!self->have_touchpad) {
+     gtk_widget_hide (GTK_WIDGET (self->touchpad_frame));
+     return;
+   }
+@@ -314,7 +313,10 @@ device_changed (GsdDeviceManager *device_manager,
+                 GsdDevice        *device,
+                 CcMousePanel     *self)
  {
--	self->have_touchpad = touchpad_is_present ();
-+	self->have_touchpad = touchpad_is_present () || cc_synaptics_check ();
-+	/*                                              ^^^^^^^^^^^^^^^^^^^^^
-+	 *            Workaround https://gitlab.gnome.org/GNOME/gtk/issues/97
-+	 */
+-  self->have_touchpad = touchpad_is_present ();
++  self->have_touchpad = touchpad_is_present () || cc_synaptics_check ();
++  /*                                              ^^^^^^^^^^^^^^^^^^^^^
++   *            Workaround https://gitlab.gnome.org/GNOME/gtk/issues/97
++   */
  
- 	setup_touchpad_options (self);
+   setup_touchpad_options (self);
  
-@@ -428,11 +430,11 @@ cc_mouse_properties_init (CcMouseProperties *self)
- 						 G_CALLBACK (device_changed), self);
+@@ -409,11 +411,11 @@ cc_mouse_panel_init (CcMousePanel *self)
+              G_CALLBACK (device_changed), self);
  
- 	self->have_mouse = mouse_is_present ();
--	self->have_touchpad = touchpad_is_present ();
-+	self->have_touchpad = touchpad_is_present () || cc_synaptics_check ();
-+	/*                                              ^^^^^^^^^^^^^^^^^^^^^
-+	 *            Workaround https://gitlab.gnome.org/GNOME/gtk/issues/97
-+	 */
- 	self->have_touchscreen = touchscreen_is_present ();
--	self->have_synaptics = cc_synaptics_check ();
--	if (self->have_synaptics)
--		g_warning ("Detected synaptics X driver, please migrate to libinput");
+   self->have_mouse = mouse_is_present ();
+-  self->have_touchpad = touchpad_is_present ();
++  self->have_touchpad = touchpad_is_present () || cc_synaptics_check ();
++  /*                                              ^^^^^^^^^^^^^^^^^^^^^
++   *            Workaround https://gitlab.gnome.org/GNOME/gtk/issues/97
++   */
+   self->have_touchscreen = touchscreen_is_present ();
+-  self->have_synaptics = cc_synaptics_check ();
+-  if (self->have_synaptics)
+-    g_warning ("Detected synaptics X driver, please migrate to libinput");
  
- 	setup_dialog (self);
+   setup_dialog (self);
  }
+-- 
+2.25.1
+
