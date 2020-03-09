@@ -1,4 +1,4 @@
-From 6fcb6fd062d213e6cfc5963c107caac267bdbf59 Mon Sep 17 00:00:00 2001
+From c67c881e4b30f3f921c092e1bfa801c92b37bdc7 Mon Sep 17 00:00:00 2001
 From: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
 Date: Wed, 15 Jan 2020 16:56:17 +1300
 Subject: [PATCH 08/22] Allow tweaking some settings for Ubuntu Dock
@@ -12,9 +12,9 @@ Origin: ubuntu
 Forwarded: not-needed
 ---
  panels/meson.build                            |   1 +
- panels/ubuntu/cc-ubuntu-panel.c               | 373 +++++++++++++++++
- panels/ubuntu/cc-ubuntu-panel.h               |  33 ++
- panels/ubuntu/cc-ubuntu-panel.ui              | 392 ++++++++++++++++++
+ panels/ubuntu/cc-ubuntu-panel.c               | 393 ++++++++++++++++++
+ panels/ubuntu/cc-ubuntu-panel.h               |  35 ++
+ panels/ubuntu/cc-ubuntu-panel.ui              | 392 +++++++++++++++++
  .../ubuntu/gnome-ubuntu-panel.desktop.in.in   |  16 +
  panels/ubuntu/meson.build                     |  43 ++
  panels/ubuntu/theme-dark.svg                  | 174 ++++++++
@@ -23,8 +23,8 @@ Forwarded: not-needed
  panels/ubuntu/ubuntu.gresource.xml            |   9 +
  po/POTFILES.in                                |   3 +
  shell/cc-panel-list.c                         |   1 +
- shell/cc-panel-loader.c                       |   2 +
- 13 files changed, 1389 insertions(+)
+ shell/cc-panel-loader.c                       |   3 +
+ 13 files changed, 1412 insertions(+)
  create mode 100644 panels/ubuntu/cc-ubuntu-panel.c
  create mode 100644 panels/ubuntu/cc-ubuntu-panel.h
  create mode 100644 panels/ubuntu/cc-ubuntu-panel.ui
@@ -49,10 +49,10 @@ index 2f4fdc5e3..81ae0b1a7 100644
    'user-accounts'
 diff --git a/panels/ubuntu/cc-ubuntu-panel.c b/panels/ubuntu/cc-ubuntu-panel.c
 new file mode 100644
-index 000000000..3e743e448
+index 000000000..9deba4f3b
 --- /dev/null
 +++ b/panels/ubuntu/cc-ubuntu-panel.c
-@@ -0,0 +1,373 @@
+@@ -0,0 +1,393 @@
 +/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 +/*
 + * Copyright (C) 2017-2020 Canonical Ltd
@@ -83,6 +83,7 @@ index 000000000..3e743e448
 +#include "list-box-helper.h"
 +#include "cc-ubuntu-panel.h"
 +#include "cc-ubuntu-resources.h"
++#include "shell/cc-application.h"
 +
 +#include "panels/display/cc-display-config-manager-dbus.h"
 +#include "panels/display/cc-display-config.h"
@@ -426,12 +427,31 @@ index 000000000..3e743e448
 +
 +  g_bus_get (G_BUS_TYPE_SESSION, NULL, session_bus_ready, self);
 +}
++
++void
++cc_ubuntu_panel_static_init_func (void)
++{
++  CcApplication *application;
++  const gchar *desktop_list;
++  g_auto(GStrv) desktops = NULL;
++
++  desktop_list = g_getenv ("XDG_CURRENT_DESKTOP");
++  if (desktop_list != NULL)
++    desktops = g_strsplit (desktop_list, ":", -1);
++
++  if (desktops == NULL || !g_strv_contains ((const gchar * const *) desktops, "ubuntu")) {
++    application = CC_APPLICATION (g_application_get_default ());
++    cc_shell_model_set_panel_visibility (cc_application_get_model (application),
++                                         "ubuntu",
++                                         CC_PANEL_HIDDEN);
++  }
++}
 diff --git a/panels/ubuntu/cc-ubuntu-panel.h b/panels/ubuntu/cc-ubuntu-panel.h
 new file mode 100644
-index 000000000..96de519bc
+index 000000000..b13f6114c
 --- /dev/null
 +++ b/panels/ubuntu/cc-ubuntu-panel.h
-@@ -0,0 +1,33 @@
+@@ -0,0 +1,35 @@
 +/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 +/*
 + * Copyright (C) 2017 Canonical Ltd
@@ -461,6 +481,8 @@ index 000000000..96de519bc
 +
 +#define CC_TYPE_UBUNTU_PANEL (cc_ubuntu_panel_get_type ())
 +G_DECLARE_FINAL_TYPE (CcUbuntuPanel, cc_ubuntu_panel, CC, UBUNTU_PANEL, CcPanel)
++
++void cc_ubuntu_panel_static_init_func (void);
 +
 +G_END_DECLS
 +
@@ -1510,7 +1532,7 @@ index 25785901f..4056d9ebb 100644
    "search",
    "applications",
 diff --git a/shell/cc-panel-loader.c b/shell/cc-panel-loader.c
-index f20384394..c20c376db 100644
+index f20384394..bcf87674e 100644
 --- a/shell/cc-panel-loader.c
 +++ b/shell/cc-panel-loader.c
 @@ -60,6 +60,7 @@ extern GType cc_sound_panel_get_type (void);
@@ -1521,11 +1543,19 @@ index f20384394..c20c376db 100644
  extern GType cc_user_panel_get_type (void);
  #ifdef BUILD_WACOM
  extern GType cc_wacom_panel_get_type (void);
-@@ -120,6 +121,7 @@ static CcPanelLoaderVtable default_panels[] =
+@@ -79,6 +80,7 @@ extern void cc_wifi_panel_static_init_func (void);
+ #ifdef BUILD_WACOM
+ extern void cc_wacom_panel_static_init_func (void);
+ #endif /* BUILD_WACOM */
++extern void cc_ubuntu_panel_static_init_func (void);
+ 
+ #define PANEL_TYPE(name, get_type, init_func) { name, get_type, init_func }
+ 
+@@ -120,6 +122,7 @@ static CcPanelLoaderVtable default_panels[] =
    PANEL_TYPE("search",           cc_search_panel_get_type,               NULL),
    PANEL_TYPE("sharing",          cc_sharing_panel_get_type,              NULL),
    PANEL_TYPE("sound",            cc_sound_panel_get_type,                NULL),
-+  PANEL_TYPE("ubuntu",           cc_ubuntu_panel_get_type,               NULL),
++  PANEL_TYPE("ubuntu",           cc_ubuntu_panel_get_type,               cc_ubuntu_panel_static_init_func),
  #ifdef BUILD_THUNDERBOLT
    PANEL_TYPE("thunderbolt",      cc_bolt_panel_get_type,                 NULL),
  #endif
