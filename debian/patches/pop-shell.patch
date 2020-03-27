@@ -2,47 +2,16 @@ Index: gnome-control-center/panels/keyboard/meson.build
 ===================================================================
 --- gnome-control-center.orig/panels/keyboard/meson.build
 +++ gnome-control-center/panels/keyboard/meson.build
-@@ -40,6 +40,7 @@ xml_files = [
+@@ -40,6 +40,9 @@ xml_files = [
    '01-launchers.xml',
    '01-screenshot.xml',
    '01-system.xml',
-+  '10-pop-shell.xml',
++  '10-pop-shell-move.xml',
++  '10-pop-shell-navigate.xml',
++  '10-pop-shell-tile.xml',
    '50-accessibility.xml'
  ]
  
-Index: gnome-control-center/panels/keyboard/10-pop-shell.xml.in
-===================================================================
---- /dev/null
-+++ gnome-control-center/panels/keyboard/10-pop-shell.xml.in
-@@ -0,0 +1,28 @@
-+<?xml version="1.0" encoding="UTF-8" ?>
-+<KeyListEntries group="system" schema="org.gnome.shell.extensions.pop-shell" name="Pop Shell">
-+    <KeyListEntry name="focus-down" description="Focus down window"/>
-+    <KeyListEntry name="focus-left" description="Focus left window"/>
-+    <KeyListEntry name="focus-monitor-left" description="Focus right monitor"/>
-+    <KeyListEntry name="focus-monitor-right" description="Focus right monitor"/>
-+    <KeyListEntry name="focus-right" description="Focus right window"/>
-+    <KeyListEntry name="focus-up" description="Focus up window"/>
-+    <KeyListEntry name="management-orientation" description="Toggle tiling orientation"/>
-+    <KeyListEntry name="search" description="Search key combo"/>
-+    <KeyListEntry name="tile-accept" description="Accept tiling changes"/>
-+    <KeyListEntry name="tile-enter" description="Enter tiling mode"/>
-+    <KeyListEntry name="tile-move-down" description="Move window down"/>
-+    <KeyListEntry name="tile-move-left" description="Move window left"/>
-+    <KeyListEntry name="tile-move-right" description="Move window right"/>
-+    <KeyListEntry name="tile-move-up" description="Move window up"/>
-+    <KeyListEntry name="tile-orientation" description="Toggle tiling orientation"/>
-+    <KeyListEntry name="tile-reject" description="Reject tiling changes"/>
-+    <KeyListEntry name="tile-resize-down" description="Resize window down"/>
-+    <KeyListEntry name="tile-resize-left" description="Resize window left"/>
-+    <KeyListEntry name="tile-resize-right" description="Resize window right"/>
-+    <KeyListEntry name="tile-resize-up" description="Resize window up"/>
-+    <KeyListEntry name="tile-swap-down" description="Swap window down"/>
-+    <KeyListEntry name="tile-swap-left" description="Swap window left"/>
-+    <KeyListEntry name="tile-swap-right" description="Swap window right"/>
-+    <KeyListEntry name="tile-swap-up" description="Swap window up"/>
-+    <KeyListEntry name="toggle-floating" description="Toggles a window between floating and tiling"/>
-+</KeyListEntries>
 Index: gnome-control-center/panels/keyboard/cc-keyboard-item.c
 ===================================================================
 --- gnome-control-center.orig/panels/keyboard/cc-keyboard-item.c
@@ -80,3 +49,52 @@ Index: gnome-control-center/panels/keyboard/cc-keyboard-item.c
    return item->settings;
  }
 -
+Index: gnome-control-center/panels/keyboard/10-pop-shell-move.xml.in
+===================================================================
+--- /dev/null
++++ gnome-control-center/panels/keyboard/10-pop-shell-move.xml.in
+@@ -0,0 +1,19 @@
++<?xml version="1.0" encoding="UTF-8" ?>
++<KeyListEntries group="system" schema="org.gnome.shell.extensions.pop-shell" name="Move, resize, and swap windows">
++    <KeyListEntry name="tile-accept" description="Apply changes"/>
++    <KeyListEntry name="tile-enter" description="Enter adjustment mode"/>
++    <KeyListEntry name="tile-move-down" description="Move window down"/>
++    <KeyListEntry name="tile-move-left" description="Move window left"/>
++    <KeyListEntry name="tile-move-right" description="Move window right"/>
++    <KeyListEntry name="tile-move-up" description="Move window up"/>
++    <KeyListEntry name="tile-reject" description="Cancel changes"/>
++    <KeyListEntry name="tile-resize-left" description="Resize window smaller"/>
++    <KeyListEntry name="tile-resize-right" description="Resize window larger"/>
++    <KeyListEntry name="tile-resize-up" description="Resize window shorter"/>
++    <KeyListEntry name="tile-resize-down" description="Resize window taller"/>
++    <KeyListEntry name="tile-swap-down" description="Swap window down"/>
++    <KeyListEntry name="tile-swap-left" description="Swap window left"/>
++    <KeyListEntry name="tile-swap-right" description="Swap window right"/>
++    <KeyListEntry name="tile-swap-up" description="Swap window up"/>
++    <KeyListEntry name="tile-orientation" description="Change window orientation"/>
++</KeyListEntries>
+Index: gnome-control-center/panels/keyboard/10-pop-shell-navigate.xml.in
+===================================================================
+--- /dev/null
++++ gnome-control-center/panels/keyboard/10-pop-shell-navigate.xml.in
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="UTF-8" ?>
++<KeyListEntries group="system" schema="org.gnome.shell.extensions.pop-shell" name="Navigate applications and windows">
++    <KeyListEntry name="search" description="Launch and switch applications"/>
++    <KeyListEntry name="focus-down" description="Switch focus to window down"/>
++    <KeyListEntry name="focus-left" description="Switch focus to window left"/>
++    <KeyListEntry name="focus-right" description="Switch focus to window right"/>
++    <KeyListEntry name="focus-up" description="Switch focus to window up"/>
++    <KeyListEntry name="focus-monitor-left" description="Switch focus to left monitor"/>
++    <KeyListEntry name="focus-monitor-right" description="Switch focus to right monitor"/>
++</KeyListEntries>
+Index: gnome-control-center/panels/keyboard/10-pop-shell-tile.xml.in
+===================================================================
+--- /dev/null
++++ gnome-control-center/panels/keyboard/10-pop-shell-tile.xml.in
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="UTF-8" ?>
++<KeyListEntries group="system" schema="org.gnome.shell.extensions.pop-shell" name="Tiling">
++    <KeyListEntry name="management-orientation" description="Change current window orientation"/>
++    <KeyListEntry name="toggle-floating" description="Toggles a window between floating and tiling"/>
++</KeyListEntries>
