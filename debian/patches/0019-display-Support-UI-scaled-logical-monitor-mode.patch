@@ -1,7 +1,7 @@
-From 9d113b31014d7f13dd411de9522e90df5643136e Mon Sep 17 00:00:00 2001
+From 3d1063fff8424eab689264809b599a7526ab8c30 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Marco=20Trevisan=20=28Trevi=C3=B1o=29?= <mail@3v1n0.net>
 Date: Wed, 27 Mar 2019 05:42:41 +0100
-Subject: [PATCH 19/22] display: Support UI scaled logical monitor mode
+Subject: [PATCH 19/26] display: Support UI scaled logical monitor mode
 
 When this mode is selected we need to assume that all the monitors are scaled
 by their scaling and the global UI scale.
@@ -151,7 +151,7 @@ index adbbcbc28..7080bf634 100644
    snap_data.snapped = SNAP_DIR_NONE;
    snap_data.mon_x = x;
 diff --git a/panels/display/cc-display-config-dbus.c b/panels/display/cc-display-config-dbus.c
-index 81b2c46f7..f116041bd 100644
+index aa7c673be..fc050a32c 100644
 --- a/panels/display/cc-display-config-dbus.c
 +++ b/panels/display/cc-display-config-dbus.c
 @@ -861,7 +861,8 @@ cc_display_monitor_dbus_new (GVariant *variant,
@@ -181,7 +181,7 @@ index 81b2c46f7..f116041bd 100644
  }
  
  static gboolean
-@@ -1464,7 +1473,7 @@ cc_display_config_dbus_constructed (GObject *object)
+@@ -1465,7 +1474,7 @@ cc_display_config_dbus_constructed (GObject *object)
            guint32 u = 0;
            g_variant_get (v, "u", &u);
            if (u >= CC_DISPLAY_LAYOUT_MODE_LOGICAL &&
@@ -190,7 +190,7 @@ index 81b2c46f7..f116041bd 100644
              self->layout_mode = u;
          }
      }
-@@ -1554,6 +1563,7 @@ cc_display_config_dbus_class_init (CcDisplayConfigDBusClass *klass)
+@@ -1555,6 +1564,7 @@ cc_display_config_dbus_class_init (CcDisplayConfigDBusClass *klass)
    parent_class->is_layout_logical = cc_display_config_dbus_is_layout_logical;
    parent_class->is_scaled_mode_valid = cc_display_config_dbus_is_scaled_mode_valid;
    parent_class->set_minimum_size = cc_display_config_dbus_set_minimum_size;
@@ -198,7 +198,7 @@ index 81b2c46f7..f116041bd 100644
  
    pspec = g_param_spec_variant ("state",
                                  "GVariant",
-@@ -1614,6 +1624,26 @@ logical_monitor_is_rotated (CcDisplayLogicalMonitor *lm)
+@@ -1615,6 +1625,26 @@ logical_monitor_is_rotated (CcDisplayLogicalMonitor *lm)
      }
  }
  
@@ -225,7 +225,7 @@ index 81b2c46f7..f116041bd 100644
  static int
  logical_monitor_width (CcDisplayLogicalMonitor *lm)
  {
-@@ -1632,6 +1662,11 @@ logical_monitor_width (CcDisplayLogicalMonitor *lm)
+@@ -1633,6 +1663,11 @@ logical_monitor_width (CcDisplayLogicalMonitor *lm)
  
    if (monitor->config->layout_mode == CC_DISPLAY_LAYOUT_MODE_LOGICAL)
      return round (width / lm->scale);

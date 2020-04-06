@@ -1,7 +1,7 @@
-From 43dd4962dd7c89b08ed4d2ed085dc38e40da8b88 Mon Sep 17 00:00:00 2001
+From b3574702e8126c292a678e0786fd92ae927fc041 Mon Sep 17 00:00:00 2001
 From: James Henstridge <james@jamesh.id.au>
 Date: Thu, 14 Sep 2017 10:58:16 +0800
-Subject: [PATCH 16/22] diagnostics: Add Whoopsie support
+Subject: [PATCH 16/26] diagnostics: Add Whoopsie support
 
 ---
  meson.build                                |   9 ++
@@ -12,10 +12,10 @@ Subject: [PATCH 16/22] diagnostics: Add Whoopsie support
  5 files changed, 175 insertions(+), 2 deletions(-)
 
 diff --git a/meson.build b/meson.build
-index ab414fa53..d85d3094d 100644
+index eb3d8459f..86b1c71c6 100644
 --- a/meson.build
 +++ b/meson.build
-@@ -205,6 +205,14 @@ endif
+@@ -207,6 +207,14 @@ endif
  config_h.set('HAVE_SNAP', enable_snap,
               description: 'Define to 1 if Snap support is enabled')
  
@@ -30,7 +30,7 @@ index ab414fa53..d85d3094d 100644
  if host_is_linux
    # network manager
    network_manager_deps = [
-@@ -297,5 +305,6 @@ output += '     IBus (Region panel IBus support) ........... ' + enable_ibus.to_
+@@ -299,5 +307,6 @@ output += '     IBus (Region panel IBus support) ........... ' + enable_ibus.to_
  output += '     NetworkManager (Network panel) ............. ' + host_is_linux.to_string() + '\n'
  output += '     Wacom (Wacom tablet panel) ................. ' + host_is_linux_not_s390.to_string() + '\n'
  output += '     Snap support ............................... ' + enable_snap.to_string() + '\n'
