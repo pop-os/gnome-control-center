@@ -1,0 +1,71 @@
+From: =?utf-8?b?Ik1hcmNvIFRyZXZpc2FuIChUcmV2acOxbyki?= <mail@3v1n0.net>
+Date: Fri, 3 Apr 2020 18:00:30 +0200
+Subject: fingerprint-dialog: Don't use sync calls for deleting fingerprints
+
+Don't make the UI to block while deleting the saved prints (that might take
+some time, especially for devices with internal storage) but just use a task
+with a thread that:
+ - Mark the fingerprint row as unsenstive
+ - Calls the method to delete prints
+ - In the same thread, calls the method to fetch the updated informations
+ - Returns in set_fingerprint_row_cb where we update the UI again
+
+Again this would be nicer to be done just using async calls but this is
+something to do in some bigger refactor.
+
+Origin: https://gitlab.gnome.org/GNOME/gnome-control-center/-/merge_requests/727
+Bug-Ubuntu: https://bugs.launchpad.net/ubuntu/+source/gnome-control-center/+bug/1865845
+---
+ panels/user-accounts/um-fingerprint-dialog.c | 18 +++++++++++++++---
+ 1 file changed, 15 insertions(+), 3 deletions(-)
+
+diff --git a/panels/user-accounts/um-fingerprint-dialog.c b/panels/user-accounts/um-fingerprint-dialog.c
+index d27aa3b..5ae8f27 100644
+--- a/panels/user-accounts/um-fingerprint-dialog.c
++++ b/panels/user-accounts/um-fingerprint-dialog.c
+@@ -222,6 +222,7 @@ set_fingerprint_row_cb (GObject      *source_object,
+                 gtk_label_set_text (state_label, _("Disabled"));
+         }
+ 
++        gtk_widget_set_sensitive (fingerprint_row, TRUE);
+         gtk_widget_set_visible (fingerprint_row, visible);
+ }
+ 
+@@ -294,7 +295,10 @@ set_fingerprint_row (GtkWidget    *row,
+ }
+ 
+ static void
+-delete_fingerprints (GCancellable *cancellable)
++delete_fingerprint_task_func (GTask        *task,
++                              gpointer      source_object,
++                              gpointer      task_data,
++                              GCancellable *cancellable)
+ {
+         GDBusProxy *device;
+         GVariant *result;
+@@ -312,6 +316,8 @@ delete_fingerprints (GCancellable *cancellable)
+                 g_variant_unref (result);
+ 
+         g_object_unref (device);
++
++        set_fingerprint_task_func (task, source_object, task_data, cancellable);
+ }
+ 
+ static void
+@@ -342,8 +348,14 @@ delete_fingerprints_question (GtkWindow    *parent,
+         gtk_dialog_set_default_response (GTK_DIALOG (question), GTK_RESPONSE_OK);
+ 
+         if (gtk_dialog_run (GTK_DIALOG (question)) == GTK_RESPONSE_OK) {
+-                delete_fingerprints (cancellable);
+-                set_fingerprint_row (fingerprint_row, state_label, cancellable);
++                g_autoptr(GTask) task = NULL;
++
++                gtk_widget_set_sensitive (fingerprint_row, FALSE);
++
++                task = g_task_new (fingerprint_row, cancellable,
++                                   set_fingerprint_row_cb,
++                                   g_object_ref (state_label));
++                g_task_run_in_thread (task, delete_fingerprint_task_func);
+         }
+ 
+         gtk_widget_destroy (question);
