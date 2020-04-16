@@ -1,0 +1,40 @@
+From e1477b1e053afc907a1174b24ce7e5d94a8ba23c Mon Sep 17 00:00:00 2001
+From: Robert Ancell <robert.ancell@canonical.com>
+Date: Thu, 16 Apr 2020 15:36:48 +1200
+Subject: [PATCH 28/28] applications: Fix only connected snap interfaces
+ showing
+
+Not enough information was being queried from snapd.
+---
+ panels/applications/cc-applications-panel.c | 8 ++++++--
+ 1 file changed, 6 insertions(+), 2 deletions(-)
+
+diff --git a/panels/applications/cc-applications-panel.c b/panels/applications/cc-applications-panel.c
+index 8f7da4bd6..96e8a2d9e 100644
+--- a/panels/applications/cc-applications-panel.c
++++ b/panels/applications/cc-applications-panel.c
+@@ -664,8 +664,8 @@ add_snap_permissions (CcApplicationsPanel *self,
+ 
+   client = snapd_client_new ();
+   if (!snapd_client_get_connections2_sync (client,
+-                                           SNAPD_GET_CONNECTIONS_FLAGS_NONE,
+-                                           snap_name, NULL,
++                                           SNAPD_GET_CONNECTIONS_FLAGS_SELECT_ALL,
++                                           NULL, NULL,
+                                            NULL, NULL,
+                                            &plugs, &slots,
+                                            NULL, &error))
+@@ -687,6 +687,10 @@ add_snap_permissions (CcApplicationsPanel *self,
+                                                   "x11",
+                                                   NULL };
+ 
++      /* Skip if not relating to this snap */
++      if (g_strcmp0 (snapd_plug_get_snap (plug), snap_name) != 0)
++        continue;
++
+       /* Ignore interfaces that are too low level to make sense to show or disable */
+       if (g_strv_contains (hidden_interfaces, snapd_plug_get_interface (plug)))
+         continue;
+-- 
+2.25.1
+
