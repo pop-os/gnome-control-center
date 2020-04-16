@@ -14,10 +14,10 @@ shared between multiple applications that use Snaps.
  po/POTFILES.in                              |   1 -
  5 files changed, 35 insertions(+), 130 deletions(-)
 
-diff --git a/meson.build b/meson.build
-index 1e1d5a07a..aec07491f 100644
---- a/meson.build
-+++ b/meson.build
+Index: gnome-control-center-3.36.1/meson.build
+===================================================================
+--- gnome-control-center-3.36.1.orig/meson.build
++++ gnome-control-center-3.36.1/meson.build
 @@ -201,7 +201,7 @@ config_h.set10('HAVE_FN_EXPLICIT_BZERO',
  enable_snap = get_option('snap')
  if enable_snap
@@ -27,11 +27,11 @@ index 1e1d5a07a..aec07491f 100644
    ]
  endif
  config_h.set('HAVE_SNAP', enable_snap,
-diff --git a/panels/applications/cc-applications-panel.c b/panels/applications/cc-applications-panel.c
-index 96e8a2d9e..c7525fbc0 100644
---- a/panels/applications/cc-applications-panel.c
-+++ b/panels/applications/cc-applications-panel.c
-@@ -649,10 +649,13 @@ add_snap_permissions (CcApplicationsPanel *self,
+Index: gnome-control-center-3.36.1/panels/applications/cc-applications-panel.c
+===================================================================
+--- gnome-control-center-3.36.1.orig/panels/applications/cc-applications-panel.c
++++ gnome-control-center-3.36.1/panels/applications/cc-applications-panel.c
+@@ -648,10 +648,13 @@ add_snap_permissions (CcApplicationsPane
    g_autoptr(GList) rows = NULL;
    gint index;
    g_autoptr(SnapdClient) client = NULL;
@@ -45,7 +45,7 @@ index 96e8a2d9e..c7525fbc0 100644
  
    if (!g_str_has_prefix (app_id, PORTAL_SNAP_PREFIX))
      return FALSE;
-@@ -663,6 +666,14 @@ add_snap_permissions (CcApplicationsPanel *self,
+@@ -662,6 +665,14 @@ add_snap_permissions (CcApplicationsPane
    g_assert (index >= 0);
  
    client = snapd_client_new ();
@@ -60,7 +60,7 @@ index 96e8a2d9e..c7525fbc0 100644
    if (!snapd_client_get_connections2_sync (client,
                                             SNAPD_GET_CONNECTIONS_FLAGS_SELECT_ALL,
                                             NULL, NULL,
-@@ -670,7 +681,7 @@ add_snap_permissions (CcApplicationsPanel *self,
+@@ -669,7 +680,7 @@ add_snap_permissions (CcApplicationsPane
                                             &plugs, &slots,
                                             NULL, &error))
      {
@@ -69,7 +69,7 @@ index 96e8a2d9e..c7525fbc0 100644
        return FALSE;
      }
  
-@@ -705,7 +716,17 @@ add_snap_permissions (CcApplicationsPanel *self,
+@@ -704,7 +715,17 @@ add_snap_permissions (CcApplicationsPane
            g_ptr_array_add (available_slots, g_object_ref (slot));
          }
  
@@ -88,10 +88,10 @@ index 96e8a2d9e..c7525fbc0 100644
        gtk_widget_show (GTK_WIDGET (row));
        gtk_list_box_insert (GTK_LIST_BOX (self->permission_list), GTK_WIDGET (row), index);
        index++;
-diff --git a/panels/applications/cc-snap-row.c b/panels/applications/cc-snap-row.c
-index d20faf6e4..40a7fc407 100644
---- a/panels/applications/cc-snap-row.c
-+++ b/panels/applications/cc-snap-row.c
+Index: gnome-control-center-3.36.1/panels/applications/cc-snap-row.c
+===================================================================
+--- gnome-control-center-3.36.1.orig/panels/applications/cc-snap-row.c
++++ gnome-control-center-3.36.1/panels/applications/cc-snap-row.c
 @@ -48,127 +48,6 @@ typedef struct
    SnapdSlot *slot;
  } ConnectData;
@@ -233,7 +233,7 @@ index d20faf6e4..40a7fc407 100644
    GtkTreeIter iter;
  
    g_return_val_if_fail (SNAPD_IS_PLUG (plug), NULL);
-@@ -411,7 +291,11 @@ cc_snap_row_new (GCancellable *cancellable, SnapdPlug *plug, GPtrArray *slots)
+@@ -411,7 +291,11 @@ cc_snap_row_new (GCancellable *cancellab
          }
      }
  
@@ -246,10 +246,10 @@ index d20faf6e4..40a7fc407 100644
  
    /* Add option into combo box */
    gtk_list_store_append (self->slots_combo_model, &iter);
-diff --git a/panels/applications/cc-snap-row.h b/panels/applications/cc-snap-row.h
-index 26563bd8d..d37bb804f 100644
---- a/panels/applications/cc-snap-row.h
-+++ b/panels/applications/cc-snap-row.h
+Index: gnome-control-center-3.36.1/panels/applications/cc-snap-row.h
+===================================================================
+--- gnome-control-center-3.36.1.orig/panels/applications/cc-snap-row.h
++++ gnome-control-center-3.36.1/panels/applications/cc-snap-row.h
 @@ -28,8 +28,9 @@ G_BEGIN_DECLS
  #define CC_TYPE_SNAP_ROW (cc_snap_row_get_type())
  G_DECLARE_FINAL_TYPE (CcSnapRow, cc_snap_row, CC, SNAP_ROW, GtkListBoxRow)
@@ -263,10 +263,10 @@ index 26563bd8d..d37bb804f 100644
 +                                 GPtrArray      *slots);
  
  G_END_DECLS
-diff --git a/po/POTFILES.in b/po/POTFILES.in
-index 375c06b5a..f3c979c41 100644
---- a/po/POTFILES.in
-+++ b/po/POTFILES.in
+Index: gnome-control-center-3.36.1/po/POTFILES.in
+===================================================================
+--- gnome-control-center-3.36.1.orig/po/POTFILES.in
++++ gnome-control-center-3.36.1/po/POTFILES.in
 @@ -2,7 +2,6 @@
  # Please keep this file sorted alphabetically.
  panels/applications/cc-applications-panel.c
@@ -275,6 +275,3 @@ index 375c06b5a..f3c979c41 100644
  panels/applications/gnome-applications-panel.desktop.in.in
  panels/background/bg-colors-source.c
  panels/background/cc-background-chooser.c
--- 
-2.25.1
-
