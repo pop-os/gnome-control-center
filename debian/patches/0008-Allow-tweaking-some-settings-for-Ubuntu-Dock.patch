@@ -1,6 +1,5 @@
-From 35ccfdf86357be8972a6ae476969c8a876fcbef8 Mon Sep 17 00:00:00 2001
 From: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
-Date: Wed, 15 Jan 2020 16:56:17 +1300
+Date: Wed, 15 Jan 2020 04:56:17 +0100
 Subject: [PATCH 08/26] Allow tweaking some settings for Ubuntu Dock
 
 Expose some of the settings that most users will find useful for our
@@ -11,19 +10,19 @@ Ubuntu Dock installation. Those are located in its own panel for now:
 Origin: ubuntu
 Forwarded: not-needed
 ---
- panels/meson.build                            |   1 +
- panels/ubuntu/cc-ubuntu-panel.c               | 393 ++++++++++++++++++
- panels/ubuntu/cc-ubuntu-panel.h               |  35 ++
- panels/ubuntu/cc-ubuntu-panel.ui              | 392 +++++++++++++++++
- .../ubuntu/gnome-ubuntu-panel.desktop.in.in   |  16 +
- panels/ubuntu/meson.build                     |  43 ++
- panels/ubuntu/theme-dark.svg                  | 174 ++++++++
- panels/ubuntu/theme-light.svg                 | 171 ++++++++
- panels/ubuntu/theme-standard.svg              | 171 ++++++++
- panels/ubuntu/ubuntu.gresource.xml            |   9 +
- po/POTFILES.in                                |   3 +
- shell/cc-panel-list.c                         |   1 +
- shell/cc-panel-loader.c                       |   3 +
+ panels/meson.build                             |   1 +
+ panels/ubuntu/cc-ubuntu-panel.c                | 393 +++++++++++++++++++++++++
+ panels/ubuntu/cc-ubuntu-panel.h                |  35 +++
+ panels/ubuntu/cc-ubuntu-panel.ui               | 392 ++++++++++++++++++++++++
+ panels/ubuntu/gnome-ubuntu-panel.desktop.in.in |  16 +
+ panels/ubuntu/meson.build                      |  43 +++
+ panels/ubuntu/theme-dark.svg                   | 174 +++++++++++
+ panels/ubuntu/theme-light.svg                  | 171 +++++++++++
+ panels/ubuntu/theme-standard.svg               | 171 +++++++++++
+ panels/ubuntu/ubuntu.gresource.xml             |   9 +
+ po/POTFILES.in                                 |   3 +
+ shell/cc-panel-list.c                          |   1 +
+ shell/cc-panel-loader.c                        |   3 +
  13 files changed, 1412 insertions(+)
  create mode 100644 panels/ubuntu/cc-ubuntu-panel.c
  create mode 100644 panels/ubuntu/cc-ubuntu-panel.h
@@ -36,7 +35,7 @@ Forwarded: not-needed
  create mode 100644 panels/ubuntu/ubuntu.gresource.xml
 
 diff --git a/panels/meson.build b/panels/meson.build
-index 2f4fdc5e3..81ae0b1a7 100644
+index 2f4fdc5..81ae0b1 100644
 --- a/panels/meson.build
 +++ b/panels/meson.build
 @@ -24,6 +24,7 @@ panels = [
@@ -49,7 +48,7 @@ index 2f4fdc5e3..81ae0b1a7 100644
    'user-accounts'
 diff --git a/panels/ubuntu/cc-ubuntu-panel.c b/panels/ubuntu/cc-ubuntu-panel.c
 new file mode 100644
-index 000000000..9deba4f3b
+index 0000000..7ab6d76
 --- /dev/null
 +++ b/panels/ubuntu/cc-ubuntu-panel.c
 @@ -0,0 +1,393 @@
@@ -320,7 +319,7 @@ index 000000000..9deba4f3b
 +      g_autoptr(GSettings) delayed_settings = g_settings_new (UBUNTU_DOCK_SCHEMA);
 +      active--;
 +      g_settings_delay (delayed_settings);
-+      if (!ubuntu_dock_on_all_monitors)
++      if (ubuntu_dock_on_all_monitors)
 +        g_settings_set_boolean (delayed_settings, UBUNTU_DOCK_ALL_MONITORS_KEY, FALSE);
 +      if (ubuntu_dock_current_index != active)
 +        {
@@ -448,7 +447,7 @@ index 000000000..9deba4f3b
 +}
 diff --git a/panels/ubuntu/cc-ubuntu-panel.h b/panels/ubuntu/cc-ubuntu-panel.h
 new file mode 100644
-index 000000000..b13f6114c
+index 0000000..b13f611
 --- /dev/null
 +++ b/panels/ubuntu/cc-ubuntu-panel.h
 @@ -0,0 +1,35 @@
@@ -489,7 +488,7 @@ index 000000000..b13f6114c
 +#endif /* _CC_EDIT_DIALOG_H_ */
 diff --git a/panels/ubuntu/cc-ubuntu-panel.ui b/panels/ubuntu/cc-ubuntu-panel.ui
 new file mode 100644
-index 000000000..fcea7d6dc
+index 0000000..fcea7d6
 --- /dev/null
 +++ b/panels/ubuntu/cc-ubuntu-panel.ui
 @@ -0,0 +1,392 @@
@@ -887,7 +886,7 @@ index 000000000..fcea7d6dc
 +</interface>
 diff --git a/panels/ubuntu/gnome-ubuntu-panel.desktop.in.in b/panels/ubuntu/gnome-ubuntu-panel.desktop.in.in
 new file mode 100644
-index 000000000..78571f158
+index 0000000..78571f1
 --- /dev/null
 +++ b/panels/ubuntu/gnome-ubuntu-panel.desktop.in.in
 @@ -0,0 +1,16 @@
@@ -909,7 +908,7 @@ index 000000000..78571f158
 +Keywords=Dock;Launcher;Theme;
 diff --git a/panels/ubuntu/meson.build b/panels/ubuntu/meson.build
 new file mode 100644
-index 000000000..b57e85b15
+index 0000000..b57e85b
 --- /dev/null
 +++ b/panels/ubuntu/meson.build
 @@ -0,0 +1,43 @@
@@ -958,7 +957,7 @@ index 000000000..b57e85b15
 +)
 diff --git a/panels/ubuntu/theme-dark.svg b/panels/ubuntu/theme-dark.svg
 new file mode 100644
-index 000000000..545154e4e
+index 0000000..545154e
 --- /dev/null
 +++ b/panels/ubuntu/theme-dark.svg
 @@ -0,0 +1,174 @@
@@ -1138,7 +1137,7 @@ index 000000000..545154e4e
 +</svg>
 diff --git a/panels/ubuntu/theme-light.svg b/panels/ubuntu/theme-light.svg
 new file mode 100644
-index 000000000..1bd8929b3
+index 0000000..1bd8929
 --- /dev/null
 +++ b/panels/ubuntu/theme-light.svg
 @@ -0,0 +1,171 @@
@@ -1315,7 +1314,7 @@ index 000000000..1bd8929b3
 +</svg>
 diff --git a/panels/ubuntu/theme-standard.svg b/panels/ubuntu/theme-standard.svg
 new file mode 100644
-index 000000000..862fd44ea
+index 0000000..862fd44
 --- /dev/null
 +++ b/panels/ubuntu/theme-standard.svg
 @@ -0,0 +1,171 @@
@@ -1492,7 +1491,7 @@ index 000000000..862fd44ea
 +</svg>
 diff --git a/panels/ubuntu/ubuntu.gresource.xml b/panels/ubuntu/ubuntu.gresource.xml
 new file mode 100644
-index 000000000..7117d126c
+index 0000000..7117d12
 --- /dev/null
 +++ b/panels/ubuntu/ubuntu.gresource.xml
 @@ -0,0 +1,9 @@
@@ -1506,7 +1505,7 @@ index 000000000..7117d126c
 +  </gresource>
 +</gresources>
 diff --git a/po/POTFILES.in b/po/POTFILES.in
-index e58a1bef5..1dec117a9 100644
+index e58a1be..1dec117 100644
 --- a/po/POTFILES.in
 +++ b/po/POTFILES.in
 @@ -209,6 +209,9 @@ panels/thunderbolt/cc-bolt-device-entry.c
@@ -1520,7 +1519,7 @@ index e58a1bef5..1dec117a9 100644
  panels/universal-access/cc-ua-panel.ui
  panels/universal-access/gnome-universal-access-panel.desktop.in.in
 diff --git a/shell/cc-panel-list.c b/shell/cc-panel-list.c
-index 25785901f..4056d9ebb 100644
+index 2578590..4056d9e 100644
 --- a/shell/cc-panel-list.c
 +++ b/shell/cc-panel-list.c
 @@ -390,6 +390,7 @@ static const gchar * const panel_order[] = {
@@ -1532,7 +1531,7 @@ index 25785901f..4056d9ebb 100644
    "search",
    "applications",
 diff --git a/shell/cc-panel-loader.c b/shell/cc-panel-loader.c
-index f20384394..bcf87674e 100644
+index f203843..bcf8767 100644
 --- a/shell/cc-panel-loader.c
 +++ b/shell/cc-panel-loader.c
 @@ -60,6 +60,7 @@ extern GType cc_sound_panel_get_type (void);
@@ -1559,6 +1558,3 @@ index f20384394..bcf87674e 100644
  #ifdef BUILD_THUNDERBOLT
    PANEL_TYPE("thunderbolt",      cc_bolt_panel_get_type,                 NULL),
  #endif
--- 
-2.25.1
-
