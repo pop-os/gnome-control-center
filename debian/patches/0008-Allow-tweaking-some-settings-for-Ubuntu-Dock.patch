@@ -11,9 +11,9 @@ Origin: ubuntu
 Forwarded: not-needed
 ---
  panels/meson.build                             |   1 +
- panels/ubuntu/cc-ubuntu-panel.c                | 406 +++++++++++++++++++++++++
+ panels/ubuntu/cc-ubuntu-panel.c                | 410 +++++++++++++++++++++++++
  panels/ubuntu/cc-ubuntu-panel.h                |  35 +++
- panels/ubuntu/cc-ubuntu-panel.ui               | 392 ++++++++++++++++++++++++
+ panels/ubuntu/cc-ubuntu-panel.ui               | 392 +++++++++++++++++++++++
  panels/ubuntu/gnome-ubuntu-panel.desktop.in.in |  16 +
  panels/ubuntu/meson.build                      |  43 +++
  panels/ubuntu/theme-dark.svg                   | 174 +++++++++++
@@ -23,7 +23,7 @@ Forwarded: not-needed
  po/POTFILES.in                                 |   3 +
  shell/cc-panel-list.c                          |   1 +
  shell/cc-panel-loader.c                        |   3 +
- 13 files changed, 1425 insertions(+)
+ 13 files changed, 1429 insertions(+)
  create mode 100644 panels/ubuntu/cc-ubuntu-panel.c
  create mode 100644 panels/ubuntu/cc-ubuntu-panel.h
  create mode 100644 panels/ubuntu/cc-ubuntu-panel.ui
@@ -48,10 +48,10 @@ index 2f4fdc5..81ae0b1 100644
    'user-accounts'
 diff --git a/panels/ubuntu/cc-ubuntu-panel.c b/panels/ubuntu/cc-ubuntu-panel.c
 new file mode 100644
-index 0000000..dec9970
+index 0000000..34e922c
 --- /dev/null
 +++ b/panels/ubuntu/cc-ubuntu-panel.c
-@@ -0,0 +1,406 @@
+@@ -0,0 +1,410 @@
 +/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 +/*
 + * Copyright (C) 2017-2020 Canonical Ltd
@@ -145,8 +145,8 @@ index 0000000..dec9970
 +  gboolean ubuntu_dock_on_all_monitors;
 +  gint ubuntu_dock_current_index;
 +  GList *outputs, *l;
-+  g_autoptr(GList) sorted = NULL;
 +  gint n_monitors;
++  gint index;
 +
 +  if (self->display_config_manager == NULL)
 +    return;
@@ -160,20 +160,22 @@ index 0000000..dec9970
 +
 +  gtk_list_store_clear (self->dock_placement_liststore);
 +
-+  outputs = cc_display_config_get_monitors (current);
-+  for (l = outputs; l != NULL; l = l->next)
++  outputs = cc_display_config_get_ui_sorted_monitors (current);
++  for (l = outputs, n_monitors = 0; l != NULL; l = l->next)
 +    {
 +      CcDisplayMonitor *output = l->data;
-+      if (cc_display_monitor_is_builtin (output))
-+        sorted = g_list_prepend (sorted, output);
-+      else
-+        sorted = g_list_append (sorted, output);
++
++      if (cc_display_monitor_is_active (output))
++        n_monitors++;
 +    }
 +
-+  for (n_monitors = 0, l = sorted; l != NULL; l = l->next, n_monitors++)
++  for (l = outputs, index = 0; l != NULL && n_monitors > 0; l = l->next)
 +    {
 +      g_autofree char *monitor_label = NULL;
 +      CcDisplayMonitor *output = l->data;
++
++      if (!cc_display_monitor_is_active (output))
++        continue;
 +
 +      const gchar *monitor_name = cc_display_monitor_get_display_name (output);
 +      if (cc_display_monitor_is_primary (output))
@@ -192,7 +194,9 @@ index 0000000..dec9970
 +      gtk_list_store_set (self->dock_placement_liststore, &ubuntu_dock_placement_iter, 0, monitor_label, -1);
 +
 +      if (cc_display_monitor_is_primary (output))
-+        self->dock_placement_primary_index = n_monitors;
++        self->dock_placement_primary_index = index;
++
++      index++;
 +    }
 +
 +  gtk_widget_set_visible (GTK_WIDGET (self->dock_monitor_row), n_monitors > 1);
