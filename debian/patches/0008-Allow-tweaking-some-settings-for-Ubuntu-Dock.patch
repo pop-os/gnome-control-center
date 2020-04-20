@@ -11,19 +11,19 @@ Origin: ubuntu
 Forwarded: not-needed
 ---
  panels/meson.build                             |   1 +
- panels/ubuntu/cc-ubuntu-panel.c                | 410 +++++++++++++++++++++++++
- panels/ubuntu/cc-ubuntu-panel.h                |  35 +++
- panels/ubuntu/cc-ubuntu-panel.ui               | 392 +++++++++++++++++++++++
+ panels/ubuntu/cc-ubuntu-panel.c                | 571 +++++++++++++++++++++++++
+ panels/ubuntu/cc-ubuntu-panel.h                |  35 ++
+ panels/ubuntu/cc-ubuntu-panel.ui               | 392 +++++++++++++++++
  panels/ubuntu/gnome-ubuntu-panel.desktop.in.in |  16 +
- panels/ubuntu/meson.build                      |  43 +++
- panels/ubuntu/theme-dark.svg                   | 174 +++++++++++
- panels/ubuntu/theme-light.svg                  | 171 +++++++++++
- panels/ubuntu/theme-standard.svg               | 171 +++++++++++
+ panels/ubuntu/meson.build                      |  43 ++
+ panels/ubuntu/theme-dark.svg                   | 174 ++++++++
+ panels/ubuntu/theme-light.svg                  | 171 ++++++++
+ panels/ubuntu/theme-standard.svg               | 171 ++++++++
  panels/ubuntu/ubuntu.gresource.xml             |   9 +
  po/POTFILES.in                                 |   3 +
  shell/cc-panel-list.c                          |   1 +
  shell/cc-panel-loader.c                        |   3 +
- 13 files changed, 1429 insertions(+)
+ 13 files changed, 1590 insertions(+)
  create mode 100644 panels/ubuntu/cc-ubuntu-panel.c
  create mode 100644 panels/ubuntu/cc-ubuntu-panel.h
  create mode 100644 panels/ubuntu/cc-ubuntu-panel.ui
@@ -48,10 +48,10 @@ index 2f4fdc5..81ae0b1 100644
    'user-accounts'
 diff --git a/panels/ubuntu/cc-ubuntu-panel.c b/panels/ubuntu/cc-ubuntu-panel.c
 new file mode 100644
-index 0000000..34e922c
+index 0000000..9fa67dd
 --- /dev/null
 +++ b/panels/ubuntu/cc-ubuntu-panel.c
-@@ -0,0 +1,410 @@
+@@ -0,0 +1,571 @@
 +/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 +/*
 + * Copyright (C) 2017-2020 Canonical Ltd
@@ -83,6 +83,7 @@ index 0000000..34e922c
 +#include "cc-ubuntu-panel.h"
 +#include "cc-ubuntu-resources.h"
 +#include "shell/cc-application.h"
++#include "shell/cc-object-storage.h"
 +
 +#include "panels/display/cc-display-config-manager-dbus.h"
 +#include "panels/display/cc-display-config.h"
@@ -121,20 +122,136 @@ index 0000000..34e922c
 +  GSettings              *interface_settings;
 +  gint                    dock_placement_primary_index;
 +  CcDisplayConfigManager *display_config_manager;
++  GDBusProxy             *shell_proxy;
 +};
 +
 +CC_PANEL_REGISTER (CcUbuntuPanel, cc_ubuntu_panel);
++
++static void monitor_labeler_hide (CcUbuntuPanel *self);
 +
 +static void
 +cc_ubuntu_panel_dispose (GObject *object)
 +{
 +  CcUbuntuPanel *self = CC_UBUNTU_PANEL (object);
 +
++  monitor_labeler_hide (self);
++
 +  g_clear_object (&self->dock_settings);
 +  g_clear_object (&self->interface_settings);
 +  g_clear_object (&self->display_config_manager);
++  g_clear_object (&self->shell_proxy);
 +
 +  G_OBJECT_CLASS (cc_ubuntu_panel_parent_class)->dispose (object);
++}
++
++static void
++monitor_labeler_hide (CcUbuntuPanel *self)
++{
++  if (!self->shell_proxy)
++    return;
++
++  g_dbus_proxy_call (self->shell_proxy,
++                     "HideMonitorLabels",
++                     NULL, G_DBUS_CALL_FLAGS_NONE,
++                     -1, NULL, NULL, NULL);
++}
++
++static void
++monitor_labeler_show (CcUbuntuPanel *self)
++{
++  g_autoptr(CcDisplayConfig) current_config = NULL;
++  GList *outputs, *l;
++  GVariantBuilder builder;
++  gint number = 0;
++  guint n_monitors = 0;
++
++  if (!self->shell_proxy || !self->display_config_manager)
++    return;
++
++  current_config = cc_display_config_manager_get_current (self->display_config_manager);
++
++  if (!current_config)
++    return;
++
++  outputs = cc_display_config_get_ui_sorted_monitors (current_config);
++  if (!outputs)
++    return;
++
++  if (cc_display_config_is_cloning (current_config))
++    return monitor_labeler_hide (self);
++
++  g_variant_builder_init (&builder, G_VARIANT_TYPE_TUPLE);
++  g_variant_builder_open (&builder, G_VARIANT_TYPE_ARRAY);
++
++  for (l = outputs; l != NULL; l = l->next)
++    {
++      CcDisplayMonitor *output = l->data;
++
++      if (!cc_display_monitor_is_active (output))
++        continue;
++
++      number = cc_display_monitor_get_ui_number (output);
++      if (number == 0)
++        continue;
++
++      g_variant_builder_add (&builder, "{sv}",
++                             cc_display_monitor_get_connector_name (output),
++                             g_variant_new_int32 (number));
++      n_monitors++;
++    }
++
++  g_variant_builder_close (&builder);
++
++  if (number < 2 || n_monitors < 2)
++    return monitor_labeler_hide (self);
++
++  g_dbus_proxy_call (self->shell_proxy,
++                     "ShowMonitorLabels",
++                     g_variant_builder_end (&builder),
++                     G_DBUS_CALL_FLAGS_NONE,
++                     -1, NULL, NULL, NULL);
++}
++
++static void
++ensure_monitor_labels (CcUbuntuPanel *self)
++{
++  g_autoptr(GList) windows = NULL;
++  GList *w;
++
++  windows = gtk_window_list_toplevels ();
++
++  for (w = windows; w; w = w->next)
++    {
++      if (gtk_window_has_toplevel_focus (GTK_WINDOW (w->data)))
++        {
++          monitor_labeler_show (self);
++          break;
++        }
++    }
++
++  if (!w)
++    monitor_labeler_hide (self);
++}
++
++static void
++shell_proxy_ready (GObject        *source,
++                   GAsyncResult   *res,
++                   CcUbuntuPanel *self)
++{
++  GDBusProxy *proxy;
++  g_autoptr(GError) error = NULL;
++
++  proxy = cc_object_storage_create_dbus_proxy_finish (res, &error);
++  if (!proxy)
++    {
++      if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED))
++        g_warning ("Failed to contact gnome-shell: %s", error->message);
++      return;
++    }
++
++  self->shell_proxy = proxy;
++
++  ensure_monitor_labels (self);
 +}
 +
 +static void
@@ -147,6 +264,7 @@ index 0000000..34e922c
 +  GList *outputs, *l;
 +  gint n_monitors;
 +  gint index;
++  gboolean is_rtl;
 +
 +  if (self->display_config_manager == NULL)
 +    return;
@@ -161,6 +279,8 @@ index 0000000..34e922c
 +  gtk_list_store_clear (self->dock_placement_liststore);
 +
 +  outputs = cc_display_config_get_ui_sorted_monitors (current);
++  is_rtl = gtk_widget_get_state_flags (GTK_WIDGET (self->dock_placement_combo)) & GTK_STATE_FLAG_DIR_RTL;
++
 +  for (l = outputs, n_monitors = 0; l != NULL; l = l->next)
 +    {
 +      CcDisplayMonitor *output = l->data;
@@ -180,7 +300,7 @@ index 0000000..34e922c
 +      const gchar *monitor_name = cc_display_monitor_get_display_name (output);
 +      if (cc_display_monitor_is_primary (output))
 +        {
-+          if (!(gtk_widget_get_state_flags (GTK_WIDGET (self->dock_placement_combo)) & GTK_STATE_FLAG_DIR_RTL))
++          if (!is_rtl)
 +            monitor_label = g_strdup_printf ("%s (%s)", monitor_name, _("Primary Display"));
 +          else
 +            monitor_label = g_strdup_printf ("(%s) %s", _("Primary Display"), monitor_name);
@@ -188,6 +308,17 @@ index 0000000..34e922c
 +      else
 +        {
 +          monitor_label = g_strdup (monitor_name);
++        }
++
++      if (n_monitors > 1)
++        {
++          int monitor_number = cc_display_monitor_get_ui_number (output);
++          g_autofree char *old_label = g_steal_pointer (&monitor_label);
++
++          if (!is_rtl)
++            monitor_label = g_strdup_printf ("%d. %s", monitor_number,  old_label);
++          else
++            monitor_label = g_strdup_printf ("%s .%d", old_label, monitor_number);
 +        }
 +
 +      gtk_list_store_append (self->dock_placement_liststore, &ubuntu_dock_placement_iter);
@@ -213,6 +344,8 @@ index 0000000..34e922c
 +        selection = self->dock_placement_primary_index + 1;
 +    }
 +  gtk_combo_box_set_active (self->dock_placement_combo, selection);
++
++  ensure_monitor_labels (self);
 +}
 +
 +static void
@@ -393,6 +526,21 @@ index 0000000..34e922c
 +}
 +
 +static void
++mapped_cb (CcUbuntuPanel *self)
++{
++  CcShell *shell;
++  GtkWidget *toplevel;
++
++  shell = cc_panel_get_shell (CC_PANEL (self));
++  toplevel = cc_shell_get_toplevel (shell);
++
++  g_signal_handlers_disconnect_by_func (toplevel, mapped_cb, self);
++  g_signal_connect_object (toplevel, "notify::has-toplevel-focus",
++                           G_CALLBACK (ensure_monitor_labels), self,
++                           G_CONNECT_SWAPPED);
++}
++
++static void
 +cc_ubuntu_panel_init (CcUbuntuPanel *self)
 +{
 +  g_autoptr(GSettingsSchema) schema = NULL;
@@ -440,6 +588,19 @@ index 0000000..34e922c
 +
 +  icon_size_widget_refresh (self);
 +  on_interface_settings_changed (self);
++
++  cc_object_storage_create_dbus_proxy (G_BUS_TYPE_SESSION,
++                                       G_DBUS_PROXY_FLAGS_DO_NOT_LOAD_PROPERTIES |
++                                       G_DBUS_PROXY_FLAGS_DO_NOT_CONNECT_SIGNALS |
++                                       G_DBUS_PROXY_FLAGS_DO_NOT_AUTO_START,
++                                       "org.gnome.Shell",
++                                       "/org/gnome/Shell",
++                                       "org.gnome.Shell",
++                                       cc_panel_get_cancellable (CC_PANEL (self)),
++                                       (GAsyncReadyCallback) shell_proxy_ready,
++                                       self);
++
++  g_signal_connect (self, "map", G_CALLBACK (mapped_cb), NULL);
 +
 +  g_bus_get (G_BUS_TYPE_SESSION, NULL, session_bus_ready, self);
 +}
