@@ -11,19 +11,19 @@ Origin: ubuntu
 Forwarded: not-needed
 ---
  panels/meson.build                             |   1 +
- panels/ubuntu/cc-ubuntu-panel.c                | 571 +++++++++++++++++++++++++
+ panels/ubuntu/cc-ubuntu-panel.c                | 616 +++++++++++++++++++++++++
  panels/ubuntu/cc-ubuntu-panel.h                |  35 ++
- panels/ubuntu/cc-ubuntu-panel.ui               | 392 +++++++++++++++++
+ panels/ubuntu/cc-ubuntu-panel.ui               | 392 ++++++++++++++++
  panels/ubuntu/gnome-ubuntu-panel.desktop.in.in |  16 +
  panels/ubuntu/meson.build                      |  43 ++
- panels/ubuntu/theme-dark.svg                   | 174 ++++++++
- panels/ubuntu/theme-light.svg                  | 171 ++++++++
- panels/ubuntu/theme-standard.svg               | 171 ++++++++
+ panels/ubuntu/theme-dark.svg                   | 174 +++++++
+ panels/ubuntu/theme-light.svg                  | 171 +++++++
+ panels/ubuntu/theme-standard.svg               | 171 +++++++
  panels/ubuntu/ubuntu.gresource.xml             |   9 +
  po/POTFILES.in                                 |   3 +
  shell/cc-panel-list.c                          |   1 +
  shell/cc-panel-loader.c                        |   3 +
- 13 files changed, 1590 insertions(+)
+ 13 files changed, 1635 insertions(+)
  create mode 100644 panels/ubuntu/cc-ubuntu-panel.c
  create mode 100644 panels/ubuntu/cc-ubuntu-panel.h
  create mode 100644 panels/ubuntu/cc-ubuntu-panel.ui
@@ -48,10 +48,10 @@ index 2f4fdc5..81ae0b1 100644
    'user-accounts'
 diff --git a/panels/ubuntu/cc-ubuntu-panel.c b/panels/ubuntu/cc-ubuntu-panel.c
 new file mode 100644
-index 0000000..9fa67dd
+index 0000000..8843acc
 --- /dev/null
 +++ b/panels/ubuntu/cc-ubuntu-panel.c
-@@ -0,0 +1,571 @@
+@@ -0,0 +1,616 @@
 +/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 +/*
 + * Copyright (C) 2017-2020 Canonical Ltd
@@ -540,6 +540,48 @@ index 0000000..9fa67dd
 +                           G_CONNECT_SWAPPED);
 +}
 +
++static const char *
++get_dock_position_for_direction (CcUbuntuPanel *self,
++                                 const char    *position)
++{
++  if (gtk_widget_get_state_flags (GTK_WIDGET (self)) & GTK_STATE_FLAG_DIR_RTL)
++    {
++      if (g_str_equal (position, "LEFT"))
++        position = "RIGHT";
++      else if (g_str_equal (position, "RIGHT"))
++        position = "LEFT";
++    }
++
++  return position;
++}
++
++static gboolean
++dock_position_get_mapping (GValue   *value,
++                           GVariant *variant,
++                           gpointer  user_data)
++{
++  CcUbuntuPanel *self = user_data;
++  const char *position;
++
++  position = g_variant_get_string (variant, NULL);
++  g_value_set_string (value, get_dock_position_for_direction (self, position));
++
++  return TRUE;
++}
++
++static GVariant *
++dock_position_set_mapping (const GValue       *value,
++                           const GVariantType *type,
++                           gpointer            user_data)
++{
++  CcUbuntuPanel *self = user_data;
++  const char *position;
++
++  position = g_value_get_string (value);
++
++  return g_variant_new_string (get_dock_position_for_direction (self, position));
++}
++
 +static void
 +cc_ubuntu_panel_init (CcUbuntuPanel *self)
 +{
@@ -573,9 +615,12 @@ index 0000000..9fa67dd
 +                           G_CALLBACK (ext_ubuntu_dock_placement_changed_callback), self, G_CONNECT_SWAPPED);
 +  g_signal_connect_object (self->dock_settings, "changed::" UBUNTU_DOCK_ON_MONITOR_KEY,
 +                           G_CALLBACK (ext_ubuntu_dock_placement_changed_callback), self, G_CONNECT_SWAPPED);
-+  g_settings_bind (self->dock_settings, "dock-position",
-+                   self->dock_position_combo, "active-id",
-+                   G_SETTINGS_BIND_DEFAULT);
++  g_settings_bind_with_mapping (self->dock_settings, "dock-position",
++                                self->dock_position_combo, "active-id",
++                                G_SETTINGS_BIND_DEFAULT,
++                                dock_position_get_mapping,
++                                dock_position_set_mapping,
++                                self, NULL);
 +  g_settings_bind (self->dock_settings, "dock-fixed",
 +                   self->dock_autohide_switch, "active",
 +                   G_SETTINGS_BIND_INVERT_BOOLEAN);
