@@ -1,0 +1,71 @@
+Index: gnome-control-center/panels/meson.build
+===================================================================
+--- gnome-control-center.orig/panels/meson.build	2020-05-08 10:18:35.760079082 -0600
++++ gnome-control-center/panels/meson.build	2020-05-08 10:19:53.779450644 -0600
+@@ -8,7 +8,6 @@
+   'connectivity',
+   'datetime',
+   'default-apps',
+-  'diagnostics',
+   'display',
+   'firmware',
+   'info-overview',
+Index: gnome-control-center/shell/cc-panel-list.c
+===================================================================
+--- gnome-control-center.orig/shell/cc-panel-list.c	2020-05-08 10:18:35.760079082 -0600
++++ gnome-control-center/shell/cc-panel-list.c	2020-05-08 10:20:23.655545424 -0600
+@@ -404,7 +404,6 @@
+   "thunderbolt",
+   "usage",
+   "lock",
+-  "diagnostics",
+ 
+   /* Devices page */
+   "sound",
+Index: gnome-control-center/shell/cc-panel-loader.c
+===================================================================
+--- gnome-control-center.orig/shell/cc-panel-loader.c	2020-05-08 10:18:35.760079082 -0600
++++ gnome-control-center/shell/cc-panel-loader.c	2020-05-08 10:20:41.617677499 -0600
+@@ -72,10 +72,8 @@
+ extern GType cc_microphone_panel_get_type (void);
+ extern GType cc_usage_panel_get_type (void);
+ extern GType cc_lock_panel_get_type (void);
+-extern GType cc_diagnostics_panel_get_type (void);
+ 
+ /* Static init functions */
+-extern void cc_diagnostics_panel_static_init_func (void);
+ #ifdef BUILD_NETWORK
+ extern void cc_wifi_panel_static_init_func (void);
+ #endif /* BUILD_NETWORK */
+@@ -103,7 +101,6 @@
+   PANEL_TYPE("connectivity",     cc_connectivity_panel_get_type,         NULL),
+   PANEL_TYPE("datetime",         cc_date_time_panel_get_type,            NULL),
+   PANEL_TYPE("default-apps",     cc_default_apps_panel_get_type,         NULL),
+-  PANEL_TYPE("diagnostics",      cc_diagnostics_panel_get_type,          cc_diagnostics_panel_static_init_func),
+   PANEL_TYPE("display",          cc_display_panel_get_type,              NULL),
+   PANEL_TYPE("firmware",         cc_firmware_panel_get_type,             NULL),
+   PANEL_TYPE("info-overview",    cc_info_overview_panel_get_type,        NULL),
+Index: gnome-control-center/panels/diagnostics/gnome-diagnostics-panel.desktop.in.in
+===================================================================
+--- gnome-control-center.orig/panels/diagnostics/gnome-diagnostics-panel.desktop.in.in	2020-05-08 10:18:20.808629854 -0600
++++ /dev/null	1970-01-01 00:00:00.000000000 +0000
+@@ -1,19 +0,0 @@
+-[Desktop Entry]
+-Name=Diagnostics
+-Comment=Report your problems
+-Exec=gnome-control-center diagnostics
+-# FIXME
+-# Translators: Do NOT translate or transliterate this text (this is an icon file name)!
+-Icon=system-help
+-Terminal=false
+-Type=Application
+-NoDisplay=true
+-StartupNotify=true
+-Categories=GNOME;GTK;Settings;DesktopSettings;X-GNOME-Settings-Panel;X-GNOME-PrivacySettings;
+-OnlyShowIn=GNOME;Unity;
+-X-GNOME-Bugzilla-Bugzilla=GNOME
+-X-GNOME-Bugzilla-Product=gnome-control-center
+-X-GNOME-Bugzilla-Component=privacy
+-X-GNOME-Bugzilla-Version=@VERSION@
+-# Translators: Search terms to find the Privacy panel. Do NOT translate or localize the semicolons! The list MUST also end with a semicolon!
+-Keywords=screen;lock;diagnostics;crash;private;recent;temporary;tmp;index;name;network;identity;
