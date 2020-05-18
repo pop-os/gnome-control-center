@@ -1,6 +1,6 @@
 project(
   'gnome-control-center', 'c',
-        version : '3.36.1',
+        version : '3.36.2',
         license : 'GPL2+',
   meson_version : '>= 0.51.0'
 )
@@ -93,6 +93,8 @@ libgvc = subproject(
   default_options: [
     'static=true',
     'alsa=false',
+    'package_name=' + control_center_gettext,
+    'package_version=' + meson.project_version(),
   ]
 )
 libgvc_dep = libgvc.get_variable('libgvc_dep')
