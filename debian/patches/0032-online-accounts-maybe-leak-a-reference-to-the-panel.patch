@@ -1,0 +1,25 @@
+From b22fe951d0dbef893d0da4ab670fa36d48c6bd70 Mon Sep 17 00:00:00 2001
+From: Olivier Tilloy <olivier.tilloy@canonical.com>
+Date: Mon, 27 Apr 2020 22:32:03 +0200
+Subject: [PATCH] online-accounts: maybe leak a reference to the panel, to
+ prevent a crash.
+
+Fixes: https://gitlab.gnome.org/GNOME/gnome-control-center/-/issues/401
+Bug-Ubuntu: https://bugs.launchpad.net/gnome-control-center/+bug/1862553
+---
+ panels/online-accounts/cc-online-accounts-panel.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+Index: gnome-control-center-3.36.2/panels/online-accounts/cc-online-accounts-panel.c
+===================================================================
+--- gnome-control-center-3.36.2.orig/panels/online-accounts/cc-online-accounts-panel.c
++++ gnome-control-center-3.36.2/panels/online-accounts/cc-online-accounts-panel.c
+@@ -874,7 +874,7 @@ get_all_providers_cb (GObject      *sour
+                       GAsyncResult *res,
+                       gpointer      user_data)
+ {
+-  g_autoptr(CcGoaPanel) self = user_data;
++  CcGoaPanel *self = CC_GOA_PANEL (user_data);
+   GList *providers;
+   GList *l;
+ 

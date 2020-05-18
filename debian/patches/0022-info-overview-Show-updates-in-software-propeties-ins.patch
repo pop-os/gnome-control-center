@@ -8,24 +8,24 @@ Subject: [PATCH 22/26] info-overview: Show updates in software propeties
  panels/info-overview/cc-info-overview-panel.c | 14 ++++++++++++--
  1 file changed, 12 insertions(+), 2 deletions(-)
 
-diff --git a/panels/info-overview/cc-info-overview-panel.c b/panels/info-overview/cc-info-overview-panel.c
-index af04dc660..4b54542c9 100644
---- a/panels/info-overview/cc-info-overview-panel.c
-+++ b/panels/info-overview/cc-info-overview-panel.c
-@@ -710,6 +710,12 @@ info_overview_panel_setup_overview (CcInfoOverviewPanel *self)
-   cc_list_row_set_secondary_markup (self->graphics_row, graphics_hardware_string);
+Index: gnome-control-center-3.36.1/panels/info-overview/cc-info-overview-panel.c
+===================================================================
+--- gnome-control-center-3.36.1.orig/panels/info-overview/cc-info-overview-panel.c
++++ gnome-control-center-3.36.1/panels/info-overview/cc-info-overview-panel.c
+@@ -720,6 +720,12 @@ info_overview_panel_setup_overview (CcIn
  }
  
-+static gboolean
+ static gboolean
 +does_software_properties_exist (void)
 +{
 +  return g_file_test (BINDIR "/software-properties-gtk", G_FILE_TEST_EXISTS);
 +}
 +
- static gboolean
++static gboolean
  does_gnome_software_exist (void)
  {
-@@ -730,7 +736,11 @@ open_software_update (CcInfoOverviewPanel *self)
+   return g_file_test (BINDIR "/gnome-software", G_FILE_TEST_EXISTS);
+@@ -739,7 +745,11 @@ open_software_update (CcInfoOverviewPane
    g_auto(GStrv) argv = NULL;
  
    argv = g_new0 (gchar *, 3);
@@ -38,7 +38,7 @@ index af04dc660..4b54542c9 100644
      {
        argv[0] = g_build_filename (BINDIR, "gnome-software", NULL);
        argv[1] = g_strdup_printf ("--mode=updates");
-@@ -840,7 +850,7 @@ cc_info_overview_panel_init (CcInfoOverviewPanel *self)
+@@ -849,7 +859,7 @@ cc_info_overview_panel_init (CcInfoOverv
  
    g_resources_register (cc_info_overview_get_resource ());
  
@@ -47,6 +47,3 @@ index af04dc660..4b54542c9 100644
      gtk_widget_hide (GTK_WIDGET (self->software_updates_row));
  
    info_overview_panel_setup_overview (self);
--- 
-2.25.1
-

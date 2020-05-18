@@ -1,6 +1,5 @@
-From 35ccfdf86357be8972a6ae476969c8a876fcbef8 Mon Sep 17 00:00:00 2001
 From: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
-Date: Wed, 15 Jan 2020 16:56:17 +1300
+Date: Wed, 15 Jan 2020 04:56:17 +0100
 Subject: [PATCH 08/26] Allow tweaking some settings for Ubuntu Dock
 
 Expose some of the settings that most users will find useful for our
@@ -11,20 +10,20 @@ Ubuntu Dock installation. Those are located in its own panel for now:
 Origin: ubuntu
 Forwarded: not-needed
 ---
- panels/meson.build                            |   1 +
- panels/ubuntu/cc-ubuntu-panel.c               | 393 ++++++++++++++++++
- panels/ubuntu/cc-ubuntu-panel.h               |  35 ++
- panels/ubuntu/cc-ubuntu-panel.ui              | 392 +++++++++++++++++
- .../ubuntu/gnome-ubuntu-panel.desktop.in.in   |  16 +
- panels/ubuntu/meson.build                     |  43 ++
- panels/ubuntu/theme-dark.svg                  | 174 ++++++++
- panels/ubuntu/theme-light.svg                 | 171 ++++++++
- panels/ubuntu/theme-standard.svg              | 171 ++++++++
- panels/ubuntu/ubuntu.gresource.xml            |   9 +
- po/POTFILES.in                                |   3 +
- shell/cc-panel-list.c                         |   1 +
- shell/cc-panel-loader.c                       |   3 +
- 13 files changed, 1412 insertions(+)
+ panels/meson.build                             |   1 +
+ panels/ubuntu/cc-ubuntu-panel.c                | 571 +++++++++++++++++++++++++
+ panels/ubuntu/cc-ubuntu-panel.h                |  35 ++
+ panels/ubuntu/cc-ubuntu-panel.ui               | 392 +++++++++++++++++
+ panels/ubuntu/gnome-ubuntu-panel.desktop.in.in |  16 +
+ panels/ubuntu/meson.build                      |  43 ++
+ panels/ubuntu/theme-dark.svg                   | 174 ++++++++
+ panels/ubuntu/theme-light.svg                  | 171 ++++++++
+ panels/ubuntu/theme-standard.svg               | 171 ++++++++
+ panels/ubuntu/ubuntu.gresource.xml             |   9 +
+ po/POTFILES.in                                 |   3 +
+ shell/cc-panel-list.c                          |   1 +
+ shell/cc-panel-loader.c                        |   3 +
+ 13 files changed, 1590 insertions(+)
  create mode 100644 panels/ubuntu/cc-ubuntu-panel.c
  create mode 100644 panels/ubuntu/cc-ubuntu-panel.h
  create mode 100644 panels/ubuntu/cc-ubuntu-panel.ui
@@ -36,7 +35,7 @@ Forwarded: not-needed
  create mode 100644 panels/ubuntu/ubuntu.gresource.xml
 
 diff --git a/panels/meson.build b/panels/meson.build
-index 2f4fdc5e3..81ae0b1a7 100644
+index 2f4fdc5..81ae0b1 100644
 --- a/panels/meson.build
 +++ b/panels/meson.build
 @@ -24,6 +24,7 @@ panels = [
@@ -49,10 +48,10 @@ index 2f4fdc5e3..81ae0b1a7 100644
    'user-accounts'
 diff --git a/panels/ubuntu/cc-ubuntu-panel.c b/panels/ubuntu/cc-ubuntu-panel.c
 new file mode 100644
-index 000000000..9deba4f3b
+index 0000000..9fa67dd
 --- /dev/null
 +++ b/panels/ubuntu/cc-ubuntu-panel.c
-@@ -0,0 +1,393 @@
+@@ -0,0 +1,571 @@
 +/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 +/*
 + * Copyright (C) 2017-2020 Canonical Ltd
@@ -84,6 +83,7 @@ index 000000000..9deba4f3b
 +#include "cc-ubuntu-panel.h"
 +#include "cc-ubuntu-resources.h"
 +#include "shell/cc-application.h"
++#include "shell/cc-object-storage.h"
 +
 +#include "panels/display/cc-display-config-manager-dbus.h"
 +#include "panels/display/cc-display-config.h"
@@ -122,20 +122,136 @@ index 000000000..9deba4f3b
 +  GSettings              *interface_settings;
 +  gint                    dock_placement_primary_index;
 +  CcDisplayConfigManager *display_config_manager;
++  GDBusProxy             *shell_proxy;
 +};
 +
 +CC_PANEL_REGISTER (CcUbuntuPanel, cc_ubuntu_panel);
++
++static void monitor_labeler_hide (CcUbuntuPanel *self);
 +
 +static void
 +cc_ubuntu_panel_dispose (GObject *object)
 +{
 +  CcUbuntuPanel *self = CC_UBUNTU_PANEL (object);
 +
++  monitor_labeler_hide (self);
++
 +  g_clear_object (&self->dock_settings);
 +  g_clear_object (&self->interface_settings);
 +  g_clear_object (&self->display_config_manager);
++  g_clear_object (&self->shell_proxy);
 +
 +  G_OBJECT_CLASS (cc_ubuntu_panel_parent_class)->dispose (object);
++}
++
++static void
++monitor_labeler_hide (CcUbuntuPanel *self)
++{
++  if (!self->shell_proxy)
++    return;
++
++  g_dbus_proxy_call (self->shell_proxy,
++                     "HideMonitorLabels",
++                     NULL, G_DBUS_CALL_FLAGS_NONE,
++                     -1, NULL, NULL, NULL);
++}
++
++static void
++monitor_labeler_show (CcUbuntuPanel *self)
++{
++  g_autoptr(CcDisplayConfig) current_config = NULL;
++  GList *outputs, *l;
++  GVariantBuilder builder;
++  gint number = 0;
++  guint n_monitors = 0;
++
++  if (!self->shell_proxy || !self->display_config_manager)
++    return;
++
++  current_config = cc_display_config_manager_get_current (self->display_config_manager);
++
++  if (!current_config)
++    return;
++
++  outputs = cc_display_config_get_ui_sorted_monitors (current_config);
++  if (!outputs)
++    return;
++
++  if (cc_display_config_is_cloning (current_config))
++    return monitor_labeler_hide (self);
++
++  g_variant_builder_init (&builder, G_VARIANT_TYPE_TUPLE);
++  g_variant_builder_open (&builder, G_VARIANT_TYPE_ARRAY);
++
++  for (l = outputs; l != NULL; l = l->next)
++    {
++      CcDisplayMonitor *output = l->data;
++
++      if (!cc_display_monitor_is_active (output))
++        continue;
++
++      number = cc_display_monitor_get_ui_number (output);
++      if (number == 0)
++        continue;
++
++      g_variant_builder_add (&builder, "{sv}",
++                             cc_display_monitor_get_connector_name (output),
++                             g_variant_new_int32 (number));
++      n_monitors++;
++    }
++
++  g_variant_builder_close (&builder);
++
++  if (number < 2 || n_monitors < 2)
++    return monitor_labeler_hide (self);
++
++  g_dbus_proxy_call (self->shell_proxy,
++                     "ShowMonitorLabels",
++                     g_variant_builder_end (&builder),
++                     G_DBUS_CALL_FLAGS_NONE,
++                     -1, NULL, NULL, NULL);
++}
++
++static void
++ensure_monitor_labels (CcUbuntuPanel *self)
++{
++  g_autoptr(GList) windows = NULL;
++  GList *w;
++
++  windows = gtk_window_list_toplevels ();
++
++  for (w = windows; w; w = w->next)
++    {
++      if (gtk_window_has_toplevel_focus (GTK_WINDOW (w->data)))
++        {
++          monitor_labeler_show (self);
++          break;
++        }
++    }
++
++  if (!w)
++    monitor_labeler_hide (self);
++}
++
++static void
++shell_proxy_ready (GObject        *source,
++                   GAsyncResult   *res,
++                   CcUbuntuPanel *self)
++{
++  GDBusProxy *proxy;
++  g_autoptr(GError) error = NULL;
++
++  proxy = cc_object_storage_create_dbus_proxy_finish (res, &error);
++  if (!proxy)
++    {
++      if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED))
++        g_warning ("Failed to contact gnome-shell: %s", error->message);
++      return;
++    }
++
++  self->shell_proxy = proxy;
++
++  ensure_monitor_labels (self);
 +}
 +
 +static void
@@ -146,8 +262,9 @@ index 000000000..9deba4f3b
 +  gboolean ubuntu_dock_on_all_monitors;
 +  gint ubuntu_dock_current_index;
 +  GList *outputs, *l;
-+  g_autoptr(GList) sorted = NULL;
 +  gint n_monitors;
++  gint index;
++  gboolean is_rtl;
 +
 +  if (self->display_config_manager == NULL)
 +    return;
@@ -161,26 +278,56 @@ index 000000000..9deba4f3b
 +
 +  gtk_list_store_clear (self->dock_placement_liststore);
 +
-+  outputs = cc_display_config_get_monitors (current);
-+  for (l = outputs; l != NULL; l = l->next)
++  outputs = cc_display_config_get_ui_sorted_monitors (current);
++  is_rtl = gtk_widget_get_state_flags (GTK_WIDGET (self->dock_placement_combo)) & GTK_STATE_FLAG_DIR_RTL;
++
++  for (l = outputs, n_monitors = 0; l != NULL; l = l->next)
 +    {
 +      CcDisplayMonitor *output = l->data;
-+      if (cc_display_monitor_is_builtin (output))
-+        sorted = g_list_prepend (sorted, output);
-+      else
-+        sorted = g_list_append (sorted, output);
++
++      if (cc_display_monitor_is_active (output))
++        n_monitors++;
 +    }
 +
-+  for (n_monitors = 0, l = sorted; l != NULL; l = l->next, n_monitors++)
++  for (l = outputs, index = 0; l != NULL && n_monitors > 0; l = l->next)
 +    {
++      g_autofree char *monitor_label = NULL;
 +      CcDisplayMonitor *output = l->data;
 +
++      if (!cc_display_monitor_is_active (output))
++        continue;
++
 +      const gchar *monitor_name = cc_display_monitor_get_display_name (output);
++      if (cc_display_monitor_is_primary (output))
++        {
++          if (!is_rtl)
++            monitor_label = g_strdup_printf ("%s (%s)", monitor_name, _("Primary Display"));
++          else
++            monitor_label = g_strdup_printf ("(%s) %s", _("Primary Display"), monitor_name);
++        }
++      else
++        {
++          monitor_label = g_strdup (monitor_name);
++        }
++
++      if (n_monitors > 1)
++        {
++          int monitor_number = cc_display_monitor_get_ui_number (output);
++          g_autofree char *old_label = g_steal_pointer (&monitor_label);
++
++          if (!is_rtl)
++            monitor_label = g_strdup_printf ("%d. %s", monitor_number,  old_label);
++          else
++            monitor_label = g_strdup_printf ("%s .%d", old_label, monitor_number);
++        }
++
 +      gtk_list_store_append (self->dock_placement_liststore, &ubuntu_dock_placement_iter);
-+      gtk_list_store_set (self->dock_placement_liststore, &ubuntu_dock_placement_iter, 0, monitor_name, -1);
++      gtk_list_store_set (self->dock_placement_liststore, &ubuntu_dock_placement_iter, 0, monitor_label, -1);
 +
 +      if (cc_display_monitor_is_primary (output))
-+        self->dock_placement_primary_index = n_monitors;
++        self->dock_placement_primary_index = index;
++
++      index++;
 +    }
 +
 +  gtk_widget_set_visible (GTK_WIDGET (self->dock_monitor_row), n_monitors > 1);
@@ -197,6 +344,8 @@ index 000000000..9deba4f3b
 +        selection = self->dock_placement_primary_index + 1;
 +    }
 +  gtk_combo_box_set_active (self->dock_placement_combo, selection);
++
++  ensure_monitor_labels (self);
 +}
 +
 +static void
@@ -320,7 +469,7 @@ index 000000000..9deba4f3b
 +      g_autoptr(GSettings) delayed_settings = g_settings_new (UBUNTU_DOCK_SCHEMA);
 +      active--;
 +      g_settings_delay (delayed_settings);
-+      if (!ubuntu_dock_on_all_monitors)
++      if (ubuntu_dock_on_all_monitors)
 +        g_settings_set_boolean (delayed_settings, UBUNTU_DOCK_ALL_MONITORS_KEY, FALSE);
 +      if (ubuntu_dock_current_index != active)
 +        {
@@ -377,6 +526,21 @@ index 000000000..9deba4f3b
 +}
 +
 +static void
++mapped_cb (CcUbuntuPanel *self)
++{
++  CcShell *shell;
++  GtkWidget *toplevel;
++
++  shell = cc_panel_get_shell (CC_PANEL (self));
++  toplevel = cc_shell_get_toplevel (shell);
++
++  g_signal_handlers_disconnect_by_func (toplevel, mapped_cb, self);
++  g_signal_connect_object (toplevel, "notify::has-toplevel-focus",
++                           G_CALLBACK (ensure_monitor_labels), self,
++                           G_CONNECT_SWAPPED);
++}
++
++static void
 +cc_ubuntu_panel_init (CcUbuntuPanel *self)
 +{
 +  g_autoptr(GSettingsSchema) schema = NULL;
@@ -425,6 +589,19 @@ index 000000000..9deba4f3b
 +  icon_size_widget_refresh (self);
 +  on_interface_settings_changed (self);
 +
++  cc_object_storage_create_dbus_proxy (G_BUS_TYPE_SESSION,
++                                       G_DBUS_PROXY_FLAGS_DO_NOT_LOAD_PROPERTIES |
++                                       G_DBUS_PROXY_FLAGS_DO_NOT_CONNECT_SIGNALS |
++                                       G_DBUS_PROXY_FLAGS_DO_NOT_AUTO_START,
++                                       "org.gnome.Shell",
++                                       "/org/gnome/Shell",
++                                       "org.gnome.Shell",
++                                       cc_panel_get_cancellable (CC_PANEL (self)),
++                                       (GAsyncReadyCallback) shell_proxy_ready,
++                                       self);
++
++  g_signal_connect (self, "map", G_CALLBACK (mapped_cb), NULL);
++
 +  g_bus_get (G_BUS_TYPE_SESSION, NULL, session_bus_ready, self);
 +}
 +
@@ -448,7 +625,7 @@ index 000000000..9deba4f3b
 +}
 diff --git a/panels/ubuntu/cc-ubuntu-panel.h b/panels/ubuntu/cc-ubuntu-panel.h
 new file mode 100644
-index 000000000..b13f6114c
+index 0000000..b13f611
 --- /dev/null
 +++ b/panels/ubuntu/cc-ubuntu-panel.h
 @@ -0,0 +1,35 @@
@@ -489,7 +666,7 @@ index 000000000..b13f6114c
 +#endif /* _CC_EDIT_DIALOG_H_ */
 diff --git a/panels/ubuntu/cc-ubuntu-panel.ui b/panels/ubuntu/cc-ubuntu-panel.ui
 new file mode 100644
-index 000000000..fcea7d6dc
+index 0000000..fcea7d6
 --- /dev/null
 +++ b/panels/ubuntu/cc-ubuntu-panel.ui
 @@ -0,0 +1,392 @@
@@ -887,7 +1064,7 @@ index 000000000..fcea7d6dc
 +</interface>
 diff --git a/panels/ubuntu/gnome-ubuntu-panel.desktop.in.in b/panels/ubuntu/gnome-ubuntu-panel.desktop.in.in
 new file mode 100644
-index 000000000..78571f158
+index 0000000..78571f1
 --- /dev/null
 +++ b/panels/ubuntu/gnome-ubuntu-panel.desktop.in.in
 @@ -0,0 +1,16 @@
@@ -909,7 +1086,7 @@ index 000000000..78571f158
 +Keywords=Dock;Launcher;Theme;
 diff --git a/panels/ubuntu/meson.build b/panels/ubuntu/meson.build
 new file mode 100644
-index 000000000..b57e85b15
+index 0000000..b57e85b
 --- /dev/null
 +++ b/panels/ubuntu/meson.build
 @@ -0,0 +1,43 @@
@@ -958,7 +1135,7 @@ index 000000000..b57e85b15
 +)
 diff --git a/panels/ubuntu/theme-dark.svg b/panels/ubuntu/theme-dark.svg
 new file mode 100644
-index 000000000..545154e4e
+index 0000000..545154e
 --- /dev/null
 +++ b/panels/ubuntu/theme-dark.svg
 @@ -0,0 +1,174 @@
@@ -1138,7 +1315,7 @@ index 000000000..545154e4e
 +</svg>
 diff --git a/panels/ubuntu/theme-light.svg b/panels/ubuntu/theme-light.svg
 new file mode 100644
-index 000000000..1bd8929b3
+index 0000000..1bd8929
 --- /dev/null
 +++ b/panels/ubuntu/theme-light.svg
 @@ -0,0 +1,171 @@
@@ -1315,7 +1492,7 @@ index 000000000..1bd8929b3
 +</svg>
 diff --git a/panels/ubuntu/theme-standard.svg b/panels/ubuntu/theme-standard.svg
 new file mode 100644
-index 000000000..862fd44ea
+index 0000000..862fd44
 --- /dev/null
 +++ b/panels/ubuntu/theme-standard.svg
 @@ -0,0 +1,171 @@
@@ -1492,7 +1669,7 @@ index 000000000..862fd44ea
 +</svg>
 diff --git a/panels/ubuntu/ubuntu.gresource.xml b/panels/ubuntu/ubuntu.gresource.xml
 new file mode 100644
-index 000000000..7117d126c
+index 0000000..7117d12
 --- /dev/null
 +++ b/panels/ubuntu/ubuntu.gresource.xml
 @@ -0,0 +1,9 @@
@@ -1506,7 +1683,7 @@ index 000000000..7117d126c
 +  </gresource>
 +</gresources>
 diff --git a/po/POTFILES.in b/po/POTFILES.in
-index e58a1bef5..1dec117a9 100644
+index e58a1be..1dec117 100644
 --- a/po/POTFILES.in
 +++ b/po/POTFILES.in
 @@ -209,6 +209,9 @@ panels/thunderbolt/cc-bolt-device-entry.c
@@ -1520,7 +1697,7 @@ index e58a1bef5..1dec117a9 100644
  panels/universal-access/cc-ua-panel.ui
  panels/universal-access/gnome-universal-access-panel.desktop.in.in
 diff --git a/shell/cc-panel-list.c b/shell/cc-panel-list.c
-index 25785901f..4056d9ebb 100644
+index 2578590..4056d9e 100644
 --- a/shell/cc-panel-list.c
 +++ b/shell/cc-panel-list.c
 @@ -390,6 +390,7 @@ static const gchar * const panel_order[] = {
@@ -1532,7 +1709,7 @@ index 25785901f..4056d9ebb 100644
    "search",
    "applications",
 diff --git a/shell/cc-panel-loader.c b/shell/cc-panel-loader.c
-index f20384394..bcf87674e 100644
+index f203843..bcf8767 100644
 --- a/shell/cc-panel-loader.c
 +++ b/shell/cc-panel-loader.c
 @@ -60,6 +60,7 @@ extern GType cc_sound_panel_get_type (void);
@@ -1559,6 +1736,3 @@ index f20384394..bcf87674e 100644
  #ifdef BUILD_THUNDERBOLT
    PANEL_TYPE("thunderbolt",      cc_bolt_panel_get_type,                 NULL),
  #endif
--- 
-2.25.1
-

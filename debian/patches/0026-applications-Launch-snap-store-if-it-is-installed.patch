@@ -7,10 +7,10 @@ Subject: [PATCH 26/26] applications: Launch snap-store if it is installed
  panels/applications/cc-applications-panel.c | 14 ++++++++++++--
  1 file changed, 12 insertions(+), 2 deletions(-)
 
-diff --git a/panels/applications/cc-applications-panel.c b/panels/applications/cc-applications-panel.c
-index ea8ce3394..c39b5f7e2 100644
---- a/panels/applications/cc-applications-panel.c
-+++ b/panels/applications/cc-applications-panel.c
+Index: gnome-control-center-3.36.2/panels/applications/cc-applications-panel.c
+===================================================================
+--- gnome-control-center-3.36.2.orig/panels/applications/cc-applications-panel.c
++++ gnome-control-center-3.36.2/panels/applications/cc-applications-panel.c
 @@ -148,6 +148,13 @@ gnome_software_is_installed (void)
    return path != NULL;
  }
@@ -25,7 +25,7 @@ index ea8ce3394..c39b5f7e2 100644
  /* Callbacks */
  
  static gboolean
-@@ -168,6 +175,9 @@ open_software_cb (GtkButton           *button,
+@@ -168,6 +175,9 @@ open_software_cb (GtkButton           *b
  {
    const gchar *argv[] = { "gnome-software", "--details", "appid", NULL };
  
@@ -35,7 +35,7 @@ index ea8ce3394..c39b5f7e2 100644
    if (self->current_app_id == NULL)
      argv[1] = NULL;
    else
-@@ -1590,7 +1600,7 @@ update_panel (CcApplicationsPanel *self,
+@@ -1594,7 +1604,7 @@ update_panel (CcApplicationsPanel *self,
  
    gtk_label_set_label (GTK_LABEL (self->title_label), g_app_info_get_display_name (info));
    gtk_stack_set_visible_child_name (GTK_STACK (self->stack), "settings");
@@ -44,7 +44,7 @@ index ea8ce3394..c39b5f7e2 100644
  
    g_clear_pointer (&self->current_app_id, g_free);
    g_clear_pointer (&self->current_portal_app_id, g_free);
-@@ -1939,7 +1949,7 @@ cc_applications_panel_init (CcApplicationsPanel *self)
+@@ -1943,7 +1953,7 @@ cc_applications_panel_init (CcApplicatio
  
    gtk_widget_init_template (GTK_WIDGET (self));
  
@@ -53,6 +53,3 @@ index ea8ce3394..c39b5f7e2 100644
  
    provider = GTK_STYLE_PROVIDER (gtk_css_provider_new ());
    gtk_css_provider_load_from_resource (GTK_CSS_PROVIDER (provider),
--- 
-2.25.1
-

@@ -1,0 +1,40 @@
+From: =?utf-8?b?Ik1hcmNvIFRyZXZpc2FuIChUcmV2acOxbyki?= <mail@3v1n0.net>
+Date: Thu, 26 Mar 2020 06:41:33 +0100
+Subject: user-panel: Add reference to selected user and clear on dispose
+
+The object was wrongly unreffed (as ActUserManager has the ownership) on
+user switch, so add a reference instead when assigning it to our private
+ref and unref it on dispose.
+
+Origin: https://gitlab.gnome.org/GNOME/gnome-control-center/-/merge_requests/727
+Bug-Ubuntu: https://bugs.launchpad.net/ubuntu/+source/gnome-control-center/+bug/1865845
+---
+ panels/user-accounts/cc-user-panel.c | 7 ++++---
+ 1 file changed, 4 insertions(+), 3 deletions(-)
+
+diff --git a/panels/user-accounts/cc-user-panel.c b/panels/user-accounts/cc-user-panel.c
+index 92d7988..7cd3413 100644
+--- a/panels/user-accounts/cc-user-panel.c
++++ b/panels/user-accounts/cc-user-panel.c
+@@ -174,10 +174,9 @@ set_selected_user (CcUserPanel *self, CcCarouselItem *item)
+ {
+         uid_t uid;
+ 
+-        g_clear_object (&self->selected_user);
+-
+         uid = GPOINTER_TO_INT (g_object_get_data (G_OBJECT (item), "uid"));
+-        self->selected_user = act_user_manager_get_user_by_id (self->um, uid);
++        g_set_object (&self->selected_user,
++                      act_user_manager_get_user_by_id (self->um, uid));
+ 
+         if (self->selected_user != NULL) {
+                 show_user (self->selected_user, self);
+@@ -1481,6 +1480,8 @@ cc_user_panel_dispose (GObject *object)
+ {
+         CcUserPanel *self = CC_USER_PANEL (object);
+ 
++        g_clear_object (&self->selected_user);
++
+         g_clear_object (&self->login_screen_settings);
+ 
+         g_clear_pointer ((GtkWidget **)&self->language_chooser, gtk_widget_destroy);
