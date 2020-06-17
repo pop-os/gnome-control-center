@@ -1,29 +1,38 @@
-From 62a37267d3f96ea46979ef72e0cbb7aa6cd2c8fc Mon Sep 17 00:00:00 2001
 From: Robert Ancell <robert.ancell@canonical.com>
-Date: Sun, 15 Mar 2020 08:07:51 +0000
+Date: Sun, 15 Mar 2020 09:07:51 +0100
 Subject: [PATCH 24/26] display: Allow fractional scaling to be enabled
 
 ---
- panels/display/cc-display-settings.c  | 64 +++++++++++++++++++++++++++
- panels/display/cc-display-settings.ui | 16 +++++++
- 2 files changed, 80 insertions(+)
+ panels/display/cc-display-settings.c  | 93 +++++++++++++++++++++++++++++++++++
+ panels/display/cc-display-settings.ui | 16 ++++++
+ 2 files changed, 109 insertions(+)
 
 diff --git a/panels/display/cc-display-settings.c b/panels/display/cc-display-settings.c
-index d793fccaa..c4b754334 100644
+index d793fcc..881e5c2 100644
 --- a/panels/display/cc-display-settings.c
 +++ b/panels/display/cc-display-settings.c
-@@ -29,6 +29,10 @@
+@@ -27,8 +27,20 @@
+ #include "cc-display-settings.h"
+ #include "cc-display-config.h"
  
++#ifdef GDK_WINDOWING_WAYLAND
++#include <gdk/gdkwayland.h>
++#endif
++#ifdef GDK_WINDOWING_X11
++#include <gdk/gdkx.h>
++#endif
++
  #define MAX_SCALE_BUTTONS 5
  
 +#define MUTTER_SCHEMA                     "org.gnome.mutter"
 +#define MUTTER_EXPERIMENTAL_FEATURES_KEY  "experimental-features"
-+#define MUTTER_FEATURE_FRACTIONAL_SCALING "x11-randr-fractional-scaling"
++#define MUTTER_FEATURE_FRACTIONAL_SCALING_X11 "x11-randr-fractional-scaling"
++#define MUTTER_FEATURE_FRACTIONAL_SCALING_WAYLAND "scale-monitor-framebuffer"
 +
  struct _CcDisplaySettings
  {
    GtkDrawingArea    object;
-@@ -39,6 +43,7 @@ struct _CcDisplaySettings
+@@ -39,6 +51,7 @@ struct _CcDisplaySettings
    gboolean          has_accelerometer;
    CcDisplayConfig  *config;
    CcDisplayMonitor *selected_output;
@@ -31,7 +40,7 @@ index d793fccaa..c4b754334 100644
  
    GListStore       *orientation_list;
    GListStore       *refresh_rate_list;
-@@ -49,6 +54,8 @@ struct _CcDisplaySettings
+@@ -49,6 +62,8 @@ struct _CcDisplaySettings
    GtkWidget        *resolution_row;
    GtkWidget        *scale_bbox;
    GtkWidget        *scale_row;
@@ -40,17 +49,38 @@ index d793fccaa..c4b754334 100644
    GtkWidget        *underscanning_row;
    GtkWidget        *underscanning_switch;
  };
-@@ -72,6 +79,48 @@ static void on_scale_btn_active_changed_cb (GtkWidget         *widget,
+@@ -71,6 +86,69 @@ static void on_scale_btn_active_changed_cb (GtkWidget         *widget,
+                                             GParamSpec        *pspec,
                                              CcDisplaySettings *self);
  
- 
++static const char *
++get_fractional_scaling_key (void)
++{
++  GdkDisplay *display;
++
++  display = gdk_display_get_default ();
++
++#if defined(GDK_WINDOWING_X11)
++  if (GDK_IS_X11_DISPLAY (display))
++    return MUTTER_FEATURE_FRACTIONAL_SCALING_X11;
++#endif /* GDK_WINDOWING_X11 */
++#if defined(GDK_WINDOWING_WAYLAND)
++  if (GDK_IS_WAYLAND_DISPLAY (display))
++    return MUTTER_FEATURE_FRACTIONAL_SCALING_WAYLAND;
++#endif /* GDK_WINDOWING_WAYLAND */
++  g_return_val_if_reached (NULL);
++}
++
 +static gboolean
 +get_fractional_scaling_active (GValue *value, GVariant *variant, gpointer user_data)
 +{
 +  g_autofree const gchar **features = NULL;
++  const char *key = get_fractional_scaling_key ();
++
++  g_return_val_if_fail (key, FALSE);
 +
 +  features = g_variant_get_strv (variant, NULL);
-+  g_value_set_boolean (value, g_strv_contains (features, MUTTER_FEATURE_FRACTIONAL_SCALING));
++  g_value_set_boolean (value, g_strv_contains (features, key));
 +  return TRUE;
 +}
 +
@@ -62,6 +92,7 @@ index d793fccaa..c4b754334 100644
 +  g_auto(GStrv) existing_features = NULL;
 +  gboolean have_fractional_scaling = FALSE;
 +  g_autoptr(GVariantBuilder) builder = NULL;
++  const char *key = get_fractional_scaling_key ();
 +
 +  enable = g_value_get_boolean (value);
 +
@@ -70,7 +101,7 @@ index d793fccaa..c4b754334 100644
 +  builder = g_variant_builder_new (G_VARIANT_TYPE ("as"));
 +  for (int i = 0; existing_features[i] != NULL; i++)
 +    {
-+      if (strcmp (existing_features[i], MUTTER_FEATURE_FRACTIONAL_SCALING) == 0)
++      if (g_strcmp0 (existing_features[i], key) == 0)
 +        {
 +          if (enable)
 +            have_fractional_scaling = TRUE;
@@ -80,16 +111,15 @@ index d793fccaa..c4b754334 100644
 +
 +      g_variant_builder_add (builder, "s", existing_features[i]);
 +    }
-+  if (enable && !have_fractional_scaling)
-+    g_variant_builder_add (builder, "s", MUTTER_FEATURE_FRACTIONAL_SCALING);
++  if (enable && !have_fractional_scaling && key)
++    g_variant_builder_add (builder, "s", key);
 +
 +  return g_variant_builder_end (builder);
 +}
-+
+ 
  static gboolean
  should_show_rotation (CcDisplaySettings *self)
- {
-@@ -242,6 +291,7 @@ cc_display_settings_rebuild_ui (CcDisplaySettings *self)
+@@ -242,6 +320,7 @@ cc_display_settings_rebuild_ui (CcDisplaySettings *self)
        gtk_widget_set_visible (self->refresh_rate_row, FALSE);
        gtk_widget_set_visible (self->resolution_row, FALSE);
        gtk_widget_set_visible (self->scale_row, FALSE);
@@ -97,7 +127,7 @@ index d793fccaa..c4b754334 100644
        gtk_widget_set_visible (self->underscanning_row, FALSE);
  
        return G_SOURCE_REMOVE;
-@@ -429,6 +479,8 @@ cc_display_settings_rebuild_ui (CcDisplaySettings *self)
+@@ -429,6 +508,8 @@ cc_display_settings_rebuild_ui (CcDisplaySettings *self)
  
    gtk_widget_set_visible (self->scale_row, buttons > 1);
  
@@ -106,7 +136,7 @@ index d793fccaa..c4b754334 100644
    gtk_widget_set_visible (self->underscanning_row,
                            cc_display_monitor_supports_underscanning (self->selected_output) &&
                            !cc_display_config_is_cloning (self->config));
-@@ -614,6 +666,7 @@ cc_display_settings_finalize (GObject *object)
+@@ -614,6 +695,7 @@ cc_display_settings_finalize (GObject *object)
    CcDisplaySettings *self = CC_DISPLAY_SETTINGS (object);
  
    g_clear_object (&self->config);
@@ -114,7 +144,7 @@ index d793fccaa..c4b754334 100644
  
    g_clear_object (&self->orientation_list);
    g_clear_object (&self->refresh_rate_list);
-@@ -671,6 +724,8 @@ cc_display_settings_class_init (CcDisplaySettingsClass *klass)
+@@ -671,6 +753,8 @@ cc_display_settings_class_init (CcDisplaySettingsClass *klass)
    gtk_widget_class_bind_template_child (widget_class, CcDisplaySettings, resolution_row);
    gtk_widget_class_bind_template_child (widget_class, CcDisplaySettings, scale_bbox);
    gtk_widget_class_bind_template_child (widget_class, CcDisplaySettings, scale_row);
@@ -123,7 +153,7 @@ index d793fccaa..c4b754334 100644
    gtk_widget_class_bind_template_child (widget_class, CcDisplaySettings, underscanning_row);
    gtk_widget_class_bind_template_child (widget_class, CcDisplaySettings, underscanning_switch);
  
-@@ -685,6 +740,15 @@ cc_display_settings_init (CcDisplaySettings *self)
+@@ -685,6 +769,15 @@ cc_display_settings_init (CcDisplaySettings *self)
  {
    gtk_widget_init_template (GTK_WIDGET (self));
  
@@ -140,7 +170,7 @@ index d793fccaa..c4b754334 100644
                                  cc_list_box_update_header_func,
                                  NULL, NULL);
 diff --git a/panels/display/cc-display-settings.ui b/panels/display/cc-display-settings.ui
-index 50ef951b4..cf8ca0af9 100644
+index 50ef951..cf8ca0a 100644
 --- a/panels/display/cc-display-settings.ui
 +++ b/panels/display/cc-display-settings.ui
 @@ -68,5 +68,21 @@
@@ -165,6 +195,3 @@ index 50ef951b4..cf8ca0af9 100644
 +    </child>
    </template>
  </interface>
--- 
-2.25.1
-
