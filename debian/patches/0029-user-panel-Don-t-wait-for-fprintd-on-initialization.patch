@@ -21,10 +21,10 @@ Bug-Ubuntu: https://bugs.launchpad.net/ubuntu/+source/gnome-control-center/+bug/
  panels/user-accounts/um-fingerprint-dialog.h |  12 +-
  3 files changed, 173 insertions(+), 53 deletions(-)
 
-diff --git a/panels/user-accounts/cc-user-panel.c b/panels/user-accounts/cc-user-panel.c
-index 7cd3413..18b70e9 100644
---- a/panels/user-accounts/cc-user-panel.c
-+++ b/panels/user-accounts/cc-user-panel.c
+Index: gnome-control-center-3.36.3/panels/user-accounts/cc-user-panel.c
+===================================================================
+--- gnome-control-center-3.36.3.orig/panels/user-accounts/cc-user-panel.c
++++ gnome-control-center-3.36.3/panels/user-accounts/cc-user-panel.c
 @@ -103,6 +103,9 @@ struct _CcUserPanel {
  
          CcAvatarChooser *avatar_chooser;
@@ -35,7 +35,7 @@ index 7cd3413..18b70e9 100644
          gint other_accounts;
  };
  
-@@ -851,9 +854,26 @@ show_user (ActUser *user, CcUserPanel *self)
+@@ -851,9 +854,26 @@ show_user (ActUser *user, CcUserPanel *s
          show = (act_user_get_uid (user) == getuid() &&
                  act_user_is_local_account (user) &&
                  (self->login_screen_settings &&
@@ -83,7 +83,7 @@ index 7cd3413..18b70e9 100644
  }
  
  static void
-@@ -1461,6 +1490,7 @@ cc_user_panel_init (CcUserPanel *self)
+@@ -1460,6 +1489,7 @@ cc_user_panel_init (CcUserPanel *self)
          gtk_widget_init_template (GTK_WIDGET (self));
  
          self->um = act_user_manager_get_default ();
@@ -91,7 +91,7 @@ index 7cd3413..18b70e9 100644
  
          provider = gtk_css_provider_new ();
          gtk_css_provider_load_from_resource (provider, "/org/gnome/control-center/user-accounts/user-accounts-dialog.css");
-@@ -1484,6 +1514,9 @@ cc_user_panel_dispose (GObject *object)
+@@ -1483,6 +1513,9 @@ cc_user_panel_dispose (GObject *object)
  
          g_clear_object (&self->login_screen_settings);
  
@@ -101,10 +101,10 @@ index 7cd3413..18b70e9 100644
          g_clear_pointer ((GtkWidget **)&self->language_chooser, gtk_widget_destroy);
          g_clear_object (&self->permission);
          G_OBJECT_CLASS (cc_user_panel_parent_class)->dispose (object);
-diff --git a/panels/user-accounts/um-fingerprint-dialog.c b/panels/user-accounts/um-fingerprint-dialog.c
-index ccbec54..d27aa3b 100644
---- a/panels/user-accounts/um-fingerprint-dialog.c
-+++ b/panels/user-accounts/um-fingerprint-dialog.c
+Index: gnome-control-center-3.36.3/panels/user-accounts/um-fingerprint-dialog.c
+===================================================================
+--- gnome-control-center-3.36.3.orig/panels/user-accounts/um-fingerprint-dialog.c
++++ gnome-control-center-3.36.3/panels/user-accounts/um-fingerprint-dialog.c
 @@ -45,12 +45,14 @@ enum {
  };
  
@@ -278,7 +278,7 @@ index ccbec54..d27aa3b 100644
                  }
          }
  
-@@ -206,12 +265,13 @@ set_fingerprint_label (GtkLabel *state_label)
+@@ -206,12 +265,13 @@ set_fingerprint_label (GtkLabel *state_l
          else
                  fingers = NULL;
  
@@ -296,7 +296,7 @@ index ccbec54..d27aa3b 100644
          }
  
          if (result != NULL)
-@@ -219,25 +279,35 @@ set_fingerprint_label (GtkLabel *state_label)
+@@ -219,25 +279,35 @@ set_fingerprint_label (GtkLabel *state_l
          if (fingers != NULL)
                  g_variant_iter_free (fingers);
          g_object_unref (device);
@@ -352,7 +352,7 @@ index ccbec54..d27aa3b 100644
  {
          GtkWidget *question;
          GtkWidget *button;
-@@ -270,8 +342,8 @@ delete_fingerprints_question (GtkWindow *parent,
+@@ -270,8 +342,8 @@ delete_fingerprints_question (GtkWindow
          gtk_dialog_set_default_response (GTK_DIALOG (question), GTK_RESPONSE_OK);
  
          if (gtk_dialog_run (GTK_DIALOG (question)) == GTK_RESPONSE_OK) {
@@ -371,7 +371,7 @@ index ccbec54..d27aa3b 100644
                  gtk_widget_destroy (data->ass);
  
                  g_free (data);
-@@ -413,10 +486,12 @@ finger_combobox_changed (GtkComboBox *combobox, EnrollData *data)
+@@ -413,10 +486,12 @@ finger_combobox_changed (GtkComboBox *co
  static void
  assistant_cancelled (GtkAssistant *ass, EnrollData *data)
  {
@@ -385,7 +385,7 @@ index ccbec54..d27aa3b 100644
  }
  
  static void
-@@ -605,9 +680,11 @@ assistant_prepare (GtkAssistant *ass, GtkWidget *page, EnrollData *data)
+@@ -605,9 +680,11 @@ assistant_prepare (GtkAssistant *ass, Gt
  }
  
  static void
@@ -457,10 +457,10 @@ index ccbec54..d27aa3b 100644
          }
  }
  
-diff --git a/panels/user-accounts/um-fingerprint-dialog.h b/panels/user-accounts/um-fingerprint-dialog.h
-index a1f6afc..09dbf51 100644
---- a/panels/user-accounts/um-fingerprint-dialog.h
-+++ b/panels/user-accounts/um-fingerprint-dialog.h
+Index: gnome-control-center-3.36.3/panels/user-accounts/um-fingerprint-dialog.h
+===================================================================
+--- gnome-control-center-3.36.3.orig/panels/user-accounts/um-fingerprint-dialog.h
++++ gnome-control-center-3.36.3/panels/user-accounts/um-fingerprint-dialog.h
 @@ -20,7 +20,11 @@
  #include <gtk/gtk.h>
  #include <act/act.h>
