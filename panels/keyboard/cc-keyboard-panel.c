@@ -131,7 +131,7 @@ transform_binding_to_accel (GBinding     *binding,
                             gpointer      user_data)
 {
   CcKeyboardItem *item;
-  CcKeyCombo *combo;
+  const CcKeyCombo *combo;
   gchar *accelerator;
 
   item = CC_KEYBOARD_ITEM (g_binding_get_source (binding));
@@ -283,10 +283,10 @@ add_item (CcKeyboardPanel *self,
   gtk_size_group_add_widget (self->accelerator_sizegroup, label);
 
   g_object_bind_property_full (item,
-                               "binding",
+                               "key-combos",
                                label,
-                              "label",
-                               G_SETTINGS_BIND_GET | G_BINDING_SYNC_CREATE,
+                               "label",
+			       G_BINDING_SYNC_CREATE,
                                transform_binding_to_accel,
                                NULL, NULL, NULL);
 
@@ -417,7 +417,7 @@ static gboolean
 search_match_shortcut (CcKeyboardItem *item,
                        const gchar    *search)
 {
-  CcKeyCombo *combo = cc_keyboard_item_get_primary_combo (item);
+  const CcKeyCombo *combo = cc_keyboard_item_get_primary_combo (item);
   GStrv shortcut_tokens, search_tokens;
   g_autofree gchar *normalized_accel = NULL;
   g_autofree gchar *accel = NULL;

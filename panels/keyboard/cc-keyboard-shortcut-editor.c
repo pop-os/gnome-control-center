@@ -144,22 +144,12 @@ apply_custom_item_fields (CcKeyboardShortcutEditor *self,
   /* Only setup the binding when it was actually edited */
   if (self->edited)
     {
-      CcKeyCombo *combo = cc_keyboard_item_get_primary_combo (item);
-      g_autofree gchar *binding = NULL;
+      CcKeyCombo *combo = self->custom_combo;
 
-      combo->keycode = self->custom_combo->keycode;
-      combo->keyval = self->custom_combo->keyval;
-      combo->mask = self->custom_combo->mask;
+      cc_keyboard_item_disable (item);
 
-      if (combo->keycode == 0 && combo->keyval == 0 && combo->mask == 0)
-        binding = g_strdup ("");
-      else
-        binding = gtk_accelerator_name_with_keycode (NULL,
-                                                     combo->keyval,
-                                                     combo->keycode,
-                                                     combo->mask);
-
-      g_object_set (G_OBJECT (item), "binding", binding, NULL);
+      if (combo->keycode != 0 || combo->keyval != 0 || combo->mask != 0)
+        cc_keyboard_item_add_key_combo (item, combo);
     }
 
   /* Set the keyboard shortcut name and command for custom entries */
@@ -263,7 +253,7 @@ update_shortcut (CcKeyboardShortcutEditor *self)
 
   /* Eventually disable the conflict shortcut */
   if (self->collision_item)
-    cc_keyboard_manager_disable_shortcut (self->manager, self->collision_item);
+    cc_keyboard_item_disable (self->collision_item);
 
   /* Cleanup whatever was set before */
   clear_custom_entries (self);
@@ -447,7 +437,7 @@ add_button_clicked_cb (CcKeyboardShortcutEditor *self)
 
   /* Eventually disable the conflict shortcut */
   if (self->collision_item)
-    cc_keyboard_manager_disable_shortcut (self->manager, self->collision_item);
+    cc_keyboard_item_disable (self->collision_item);
 
   /* Cleanup everything once we're done */
   clear_custom_entries (self);
@@ -513,7 +503,7 @@ reset_custom_clicked_cb (CcKeyboardShortcutEditor *self)
 static void
 reset_item_clicked_cb (CcKeyboardShortcutEditor *self)
 {
-  CcKeyCombo *combo;
+  const CcKeyCombo *combo;
   gchar *accel;
 
   /* Reset first, then update the shortcut */
@@ -537,7 +527,7 @@ static void
 setup_keyboard_item (CcKeyboardShortcutEditor *self,
                      CcKeyboardItem           *item)
 {
-  CcKeyCombo *combo;
+  const CcKeyCombo *combo;
   gboolean is_custom;
   g_autofree gchar *accel = NULL;
   g_autofree gchar *description_text = NULL;
