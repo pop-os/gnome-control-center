@@ -9,15 +9,15 @@ using a flowbox
 Origin: https://gitlab.gnome.org/GNOME/gnome-control-center/-/merge_requests/727
 Bug-Ubuntu: https://bugs.launchpad.net/ubuntu/+source/gnome-control-center/+bug/1865845
 ---
- panels/user-accounts/data/account-fingerprint.ui | 123 ++---------------------
- panels/user-accounts/um-fingerprint-dialog.c     |  45 +++++----
- 2 files changed, 35 insertions(+), 133 deletions(-)
+ panels/user-accounts/data/account-fingerprint.ui | 124 ++---------------------
+ panels/user-accounts/um-fingerprint-dialog.c     |  48 +++++----
+ 2 files changed, 39 insertions(+), 133 deletions(-)
 
 diff --git a/panels/user-accounts/data/account-fingerprint.ui b/panels/user-accounts/data/account-fingerprint.ui
-index 969f7ca..02ae182 100644
+index 969f7ca..1756877 100644
 --- a/panels/user-accounts/data/account-fingerprint.ui
 +++ b/panels/user-accounts/data/account-fingerprint.ui
-@@ -182,60 +182,19 @@
+@@ -182,60 +182,20 @@
            </packing>
          </child>
          <child>
@@ -85,10 +85,11 @@ index 969f7ca..02ae182 100644
 +            <property name="max-children-per-line">5</property>
 +            <property name="selection-mode">none</property>
 +            <property name="focus-on-click">False</property>
++            <property name="can-focus">False</property>
            </object>
            <packing>
              <property name="expand">False</property>
-@@ -243,68 +202,6 @@
+@@ -243,68 +203,6 @@
              <property name="position">1</property>
            </packing>
          </child>
@@ -158,7 +159,7 @@ index 969f7ca..02ae182 100644
            <object class="GtkLabel" id="status-label">
              <property name="visible">True</property>
 diff --git a/panels/user-accounts/um-fingerprint-dialog.c b/panels/user-accounts/um-fingerprint-dialog.c
-index 5ae8f27..05a809c 100644
+index 5ae8f27..bc90c83 100644
 --- a/panels/user-accounts/um-fingerprint-dialog.c
 +++ b/panels/user-accounts/um-fingerprint-dialog.c
 @@ -31,9 +31,6 @@
@@ -203,7 +204,7 @@ index 5ae8f27..05a809c 100644
                  char *path;
                  guint i;
                  GVariant *result;
-@@ -637,27 +638,30 @@ assistant_prepare (GtkAssistant *ass, GtkWidget *page, EnrollData *data)
+@@ -637,27 +638,33 @@ assistant_prepare (GtkAssistant *ass, GtkWidget *page, EnrollData *data)
                  }
  
                  data->num_enroll_stages = num_enroll_stages;
@@ -234,9 +235,12 @@ index 5ae8f27..05a809c 100644
 +                                image = gtk_bin_get_child (GTK_BIN (child));
 +                                gtk_image_set_from_resource (GTK_IMAGE (image), path);
 +                        } else {
++                                child = GTK_FLOW_BOX_CHILD (gtk_flow_box_child_new ());
 +                                image = gtk_image_new_from_resource (path);
-+                                gtk_container_add (GTK_CONTAINER (enroll_flowbox), image);
-+                                gtk_widget_set_visible (image, TRUE);
++                                gtk_widget_set_can_focus (GTK_WIDGET (child), FALSE);
++                                gtk_container_add (GTK_CONTAINER (child), image);
++                                gtk_container_add (GTK_CONTAINER (enroll_flowbox), GTK_WIDGET (child));
++                                gtk_widget_show_all (GTK_WIDGET (child));
 +                        }
                  }
                  g_free (path);
@@ -245,7 +249,7 @@ index 5ae8f27..05a809c 100644
                  g_signal_connect (data->device, "g-signal", G_CALLBACK (device_signal_cb), data);
  
                  if (!enroll_start (data, &error)) {
-@@ -678,6 +682,7 @@ assistant_prepare (GtkAssistant *ass, GtkWidget *page, EnrollData *data)
+@@ -678,6 +685,7 @@ assistant_prepare (GtkAssistant *ass, GtkWidget *page, EnrollData *data)
  
                          return;
                  }
