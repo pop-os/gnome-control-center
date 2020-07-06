@@ -1,18 +1,17 @@
-From b3574702e8126c292a678e0786fd92ae927fc041 Mon Sep 17 00:00:00 2001
 From: James Henstridge <james@jamesh.id.au>
 Date: Thu, 14 Sep 2017 10:58:16 +0800
 Subject: [PATCH 16/26] diagnostics: Add Whoopsie support
 
 ---
- meson.build                                |   9 ++
+ meson.build                                |   9 +++
  meson_options.txt                          |   1 +
- panels/diagnostics/cc-diagnostics-panel.c  | 117 +++++++++++++++++++++
- panels/diagnostics/cc-diagnostics-panel.ui |  43 +++++++-
+ panels/diagnostics/cc-diagnostics-panel.c  | 117 +++++++++++++++++++++++++++++
+ panels/diagnostics/cc-diagnostics-panel.ui |  43 ++++++++++-
  panels/diagnostics/meson.build             |   7 +-
  5 files changed, 175 insertions(+), 2 deletions(-)
 
 diff --git a/meson.build b/meson.build
-index eb3d8459f..86b1c71c6 100644
+index 5f3bcf5..d129832 100644
 --- a/meson.build
 +++ b/meson.build
 @@ -207,6 +207,14 @@ endif
@@ -38,7 +37,7 @@ index eb3d8459f..86b1c71c6 100644
  
  message(output)
 diff --git a/meson_options.txt b/meson_options.txt
-index e76308e8a..554c213a1 100644
+index e76308e..554c213 100644
 --- a/meson_options.txt
 +++ b/meson_options.txt
 @@ -7,3 +7,4 @@ option('tests', type: 'boolean', value: true, description: 'build tests')
@@ -47,7 +46,7 @@ index e76308e8a..554c213a1 100644
  option('profile', type: 'combo', choices: ['default','development'], value: 'default')
 +option('whoopsie', type: 'boolean', value: false, description: 'build with Whoopsie support')
 diff --git a/panels/diagnostics/cc-diagnostics-panel.c b/panels/diagnostics/cc-diagnostics-panel.c
-index 7f1b5e2f0..b4171d0e2 100644
+index 7f1b5e2..b4171d0 100644
 --- a/panels/diagnostics/cc-diagnostics-panel.c
 +++ b/panels/diagnostics/cc-diagnostics-panel.c
 @@ -18,6 +18,8 @@
@@ -231,7 +230,7 @@ index 7f1b5e2f0..b4171d0e2 100644
    url = cc_os_release_get_value ("PRIVACY_POLICY_URL");
    if (!url)
 diff --git a/panels/diagnostics/cc-diagnostics-panel.ui b/panels/diagnostics/cc-diagnostics-panel.ui
-index 1930e9133..0b6128159 100644
+index 1930e91..0b61281 100644
 --- a/panels/diagnostics/cc-diagnostics-panel.ui
 +++ b/panels/diagnostics/cc-diagnostics-panel.ui
 @@ -52,7 +52,7 @@
@@ -292,7 +291,7 @@ index 1930e9133..0b6128159 100644
                        <class name="view"/>
                        <class name="frame"/>
 diff --git a/panels/diagnostics/meson.build b/panels/diagnostics/meson.build
-index fac9b4cd8..61388e2a3 100644
+index fac9b4c..61388e2 100644
 --- a/panels/diagnostics/meson.build
 +++ b/panels/diagnostics/meson.build
 @@ -29,12 +29,17 @@ sources += gnome.compile_resources(
@@ -314,6 +313,3 @@ index fac9b4cd8..61388e2a3 100644
 +  dependencies: deps,
    c_args: cflags
  )
--- 
-2.25.1
-

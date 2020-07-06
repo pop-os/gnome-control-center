@@ -1,4 +1,3 @@
-From 9f21053a1b691f746446d58931bef7a4f9adbdff Mon Sep 17 00:00:00 2001
 From: Gunnar Hjalmarsson <gunnarhj@ubuntu.com>
 Date: Mon, 22 Jul 2019 22:24:00 +0200
 Subject: [PATCH 05/26] Adapts the region capplet and the language chooser in
@@ -38,15 +37,15 @@ Subject: [PATCH 05/26] Adapts the region capplet and the language chooser in
 
  * All the formats related locale categories set, not just a subset.
 ---
- panels/common/cc-common-language.c   | 137 ++++++++++++++++++++++-----
+ panels/common/cc-common-language.c   | 137 +++++++++++++++++++++++++++++------
  panels/common/cc-common-language.h   |   4 +
  panels/common/cc-language-chooser.c  |   4 +-
- panels/region/cc-region-panel.c      | 120 +++++++++++++++++------
+ panels/region/cc-region-panel.c      | 120 ++++++++++++++++++++++--------
  panels/user-accounts/cc-user-panel.c |  12 ++-
  5 files changed, 218 insertions(+), 59 deletions(-)
 
 diff --git a/panels/common/cc-common-language.c b/panels/common/cc-common-language.c
-index 9357c3e73..c923d825d 100644
+index 9357c3e..c923d82 100644
 --- a/panels/common/cc-common-language.c
 +++ b/panels/common/cc-common-language.c
 @@ -161,6 +161,55 @@ cc_common_language_get_current_language (void)
@@ -251,7 +250,7 @@ index 9357c3e73..c923d825d 100644
          g_hash_table_destroy (user_langs);
  }
 diff --git a/panels/common/cc-common-language.h b/panels/common/cc-common-language.h
-index 1f578b7d2..2e5a446fe 100644
+index 1f578b7..2e5a446 100644
 --- a/panels/common/cc-common-language.h
 +++ b/panels/common/cc-common-language.h
 @@ -43,6 +43,8 @@ guint    cc_common_language_add_available_languages (GtkListStore     *store,
@@ -271,7 +270,7 @@ index 1f578b7d2..2e5a446fe 100644
 +
  G_END_DECLS
 diff --git a/panels/common/cc-language-chooser.c b/panels/common/cc-language-chooser.c
-index 0dde398eb..6fde97207 100644
+index 0dde398..6fde972 100644
 --- a/panels/common/cc-language-chooser.c
 +++ b/panels/common/cc-language-chooser.c
 @@ -186,7 +186,7 @@ add_languages (CcLanguageChooser *chooser,
@@ -293,7 +292,7 @@ index 0dde398eb..6fde97207 100644
          chooser->no_results = g_object_ref_sink (no_results_widget_new ());
          gtk_widget_show (chooser->no_results);
 diff --git a/panels/region/cc-region-panel.c b/panels/region/cc-region-panel.c
-index 9b59b23c4..060b48e9e 100644
+index 9b59b23..060b48e 100644
 --- a/panels/region/cc-region-panel.c
 +++ b/panels/region/cc-region-panel.c
 @@ -365,6 +365,7 @@ static void
@@ -495,10 +494,10 @@ index 9b59b23c4..060b48e9e 100644
          g_dbus_proxy_call (self->localed,
                             "SetLocale",
 diff --git a/panels/user-accounts/cc-user-panel.c b/panels/user-accounts/cc-user-panel.c
-index c2af402a1..92d7988c2 100644
+index 3afe2b0..3e50fca 100644
 --- a/panels/user-accounts/cc-user-panel.c
 +++ b/panels/user-accounts/cc-user-panel.c
-@@ -836,6 +836,7 @@ show_user (ActUser *user, CcUserPanel *self)
+@@ -838,6 +838,7 @@ show_user (ActUser *user, CcUserPanel *self)
  
          name = NULL;
          lang = g_strdup (act_user_get_language (user));
@@ -506,7 +505,7 @@ index c2af402a1..92d7988c2 100644
  
          if (lang && *lang != '\0') {
                  name = gnome_get_language_from_locale (lang, NULL);
-@@ -1002,7 +1003,8 @@ language_response (GtkDialog   *dialog,
+@@ -1021,7 +1022,8 @@ language_response (GtkDialog   *dialog,
                     CcUserPanel *self)
  {
          ActUser *user;
@@ -516,7 +515,7 @@ index c2af402a1..92d7988c2 100644
  
          if (response_id != GTK_RESPONSE_OK) {
                  gtk_widget_hide (GTK_WIDGET (dialog));
-@@ -1010,12 +1012,13 @@ language_response (GtkDialog   *dialog,
+@@ -1029,12 +1031,13 @@ language_response (GtkDialog   *dialog,
          }
  
          user = get_selected_user (self);
@@ -532,7 +531,7 @@ index c2af402a1..92d7988c2 100644
                          act_user_set_language (user, lang);
                  }
  
-@@ -1030,10 +1033,13 @@ static void
+@@ -1049,10 +1052,13 @@ static void
  change_language (CcUserPanel *self)
  {
          const gchar *current_language;
@@ -546,6 +545,3 @@ index c2af402a1..92d7988c2 100644
  
          if (self->language_chooser) {
  		cc_language_chooser_clear_filter (self->language_chooser);
--- 
-2.25.1
-

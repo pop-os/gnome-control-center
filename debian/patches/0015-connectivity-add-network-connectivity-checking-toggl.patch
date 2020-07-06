@@ -1,4 +1,3 @@
-From 5805387e9daf5d8ee99dff568775e0066ecbb8da Mon Sep 17 00:00:00 2001
 From: James Henstridge <james@jamesh.id.au>
 Date: Wed, 9 Aug 2017 22:30:21 +0800
 Subject: [PATCH 15/26] connectivity: add network connectivity checking toggle
@@ -12,15 +11,15 @@ panel.
 
 https://bugzilla.gnome.org/show_bug.cgi?id=737362
 ---
- panels/connectivity/cc-connectivity-panel.c   | 131 ++++++++++++++++++
- panels/connectivity/cc-connectivity-panel.h   |  28 ++++
- panels/connectivity/cc-connectivity-panel.ui  |  67 +++++++++
- .../connectivity/connectivity.gresource.xml   |   6 +
- .../gnome-connectivity-panel.desktop.in.in    |  19 +++
- panels/connectivity/meson.build               |  45 ++++++
- panels/meson.build                            |   1 +
- po/POTFILES.in                                |   2 +
- shell/cc-panel-loader.c                       |   2 +
+ panels/connectivity/cc-connectivity-panel.c        | 131 +++++++++++++++++++++
+ panels/connectivity/cc-connectivity-panel.h        |  28 +++++
+ panels/connectivity/cc-connectivity-panel.ui       |  67 +++++++++++
+ panels/connectivity/connectivity.gresource.xml     |   6 +
+ .../gnome-connectivity-panel.desktop.in.in         |  19 +++
+ panels/connectivity/meson.build                    |  45 +++++++
+ panels/meson.build                                 |   1 +
+ po/POTFILES.in                                     |   2 +
+ shell/cc-panel-loader.c                            |   2 +
  9 files changed, 301 insertions(+)
  create mode 100644 panels/connectivity/cc-connectivity-panel.c
  create mode 100644 panels/connectivity/cc-connectivity-panel.h
@@ -31,7 +30,7 @@ https://bugzilla.gnome.org/show_bug.cgi?id=737362
 
 diff --git a/panels/connectivity/cc-connectivity-panel.c b/panels/connectivity/cc-connectivity-panel.c
 new file mode 100644
-index 000000000..6db7e7433
+index 0000000..6db7e74
 --- /dev/null
 +++ b/panels/connectivity/cc-connectivity-panel.c
 @@ -0,0 +1,131 @@
@@ -168,7 +167,7 @@ index 000000000..6db7e7433
 +}
 diff --git a/panels/connectivity/cc-connectivity-panel.h b/panels/connectivity/cc-connectivity-panel.h
 new file mode 100644
-index 000000000..1a21b5bc9
+index 0000000..1a21b5b
 --- /dev/null
 +++ b/panels/connectivity/cc-connectivity-panel.h
 @@ -0,0 +1,28 @@
@@ -202,7 +201,7 @@ index 000000000..1a21b5bc9
 +G_END_DECLS
 diff --git a/panels/connectivity/cc-connectivity-panel.ui b/panels/connectivity/cc-connectivity-panel.ui
 new file mode 100644
-index 000000000..dc7745e89
+index 0000000..dc7745e
 --- /dev/null
 +++ b/panels/connectivity/cc-connectivity-panel.ui
 @@ -0,0 +1,67 @@
@@ -275,7 +274,7 @@ index 000000000..dc7745e89
 +</interface>
 diff --git a/panels/connectivity/connectivity.gresource.xml b/panels/connectivity/connectivity.gresource.xml
 new file mode 100644
-index 000000000..e102045e5
+index 0000000..e102045
 --- /dev/null
 +++ b/panels/connectivity/connectivity.gresource.xml
 @@ -0,0 +1,6 @@
@@ -287,7 +286,7 @@ index 000000000..e102045e5
 +</gresources>
 diff --git a/panels/connectivity/gnome-connectivity-panel.desktop.in.in b/panels/connectivity/gnome-connectivity-panel.desktop.in.in
 new file mode 100644
-index 000000000..17d130fef
+index 0000000..4e97c28
 --- /dev/null
 +++ b/panels/connectivity/gnome-connectivity-panel.desktop.in.in
 @@ -0,0 +1,19 @@
@@ -312,7 +311,7 @@ index 000000000..17d130fef
 +Keywords=network;privacy;
 diff --git a/panels/connectivity/meson.build b/panels/connectivity/meson.build
 new file mode 100644
-index 000000000..e9c30d8b9
+index 0000000..e9c30d8
 --- /dev/null
 +++ b/panels/connectivity/meson.build
 @@ -0,0 +1,45 @@
@@ -362,7 +361,7 @@ index 000000000..e9c30d8b9
 +  c_args: cflags
 +)
 diff --git a/panels/meson.build b/panels/meson.build
-index 81ae0b1a7..7330e6460 100644
+index 81ae0b1..7330e64 100644
 --- a/panels/meson.build
 +++ b/panels/meson.build
 @@ -5,6 +5,7 @@ panels = [
@@ -374,7 +373,7 @@ index 81ae0b1a7..7330e6460 100644
    'default-apps',
    'diagnostics',
 diff --git a/po/POTFILES.in b/po/POTFILES.in
-index 1dec117a9..375c06b5a 100644
+index 1dec117..375c06b 100644
 --- a/po/POTFILES.in
 +++ b/po/POTFILES.in
 @@ -30,6 +30,8 @@ panels/common/cc-language-chooser.ui
@@ -387,7 +386,7 @@ index 1dec117a9..375c06b5a 100644
  panels/datetime/cc-datetime-panel.c
  panels/datetime/cc-datetime-panel.ui
 diff --git a/shell/cc-panel-loader.c b/shell/cc-panel-loader.c
-index bcf87674e..e870308a0 100644
+index bcf8767..e870308 100644
 --- a/shell/cc-panel-loader.c
 +++ b/shell/cc-panel-loader.c
 @@ -37,6 +37,7 @@ extern GType cc_background_panel_get_type (void);
@@ -406,6 +405,3 @@ index bcf87674e..e870308a0 100644
    PANEL_TYPE("datetime",         cc_date_time_panel_get_type,            NULL),
    PANEL_TYPE("default-apps",     cc_default_apps_panel_get_type,         NULL),
    PANEL_TYPE("diagnostics",      cc_diagnostics_panel_get_type,          cc_diagnostics_panel_static_init_func),
--- 
-2.25.1
-

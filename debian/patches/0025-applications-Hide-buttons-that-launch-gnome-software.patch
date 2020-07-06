@@ -1,4 +1,3 @@
-From 5cf9682a433b961f5cdb335539288ad257909ac7 Mon Sep 17 00:00:00 2001
 From: Robert Ancell <robert.ancell@canonical.com>
 Date: Mon, 16 Dec 2019 15:03:32 +1300
 Subject: [PATCH 25/26] applications: Hide buttons that launch gnome-software
@@ -10,10 +9,10 @@ Fixes #417
  panels/applications/cc-applications-panel.ui |  2 +-
  2 files changed, 13 insertions(+), 2 deletions(-)
 
-Index: gnome-control-center-3.36.2/panels/applications/cc-applications-panel.c
-===================================================================
---- gnome-control-center-3.36.2.orig/panels/applications/cc-applications-panel.c
-+++ gnome-control-center-3.36.2/panels/applications/cc-applications-panel.c
+diff --git a/panels/applications/cc-applications-panel.c b/panels/applications/cc-applications-panel.c
+index 7352ba5..0a228a0 100644
+--- a/panels/applications/cc-applications-panel.c
++++ b/panels/applications/cc-applications-panel.c
 @@ -75,6 +75,7 @@ struct _CcApplicationsPanel
    GSettings       *search_settings;
  
@@ -45,7 +44,7 @@ Index: gnome-control-center-3.36.2/panels/applications/cc-applications-panel.c
  
    g_clear_pointer (&self->current_app_id, g_free);
    g_clear_pointer (&self->current_portal_app_id, g_free);
-@@ -1876,6 +1884,7 @@ cc_applications_panel_class_init (CcAppl
+@@ -1876,6 +1884,7 @@ cc_applications_panel_class_init (CcApplicationsPanelClass *klass)
    gtk_widget_class_bind_template_child (widget_class, CcApplicationsPanel, handler_section);
    gtk_widget_class_bind_template_child (widget_class, CcApplicationsPanel, handler_reset);
    gtk_widget_class_bind_template_child (widget_class, CcApplicationsPanel, handler_list);
@@ -53,7 +52,7 @@ Index: gnome-control-center-3.36.2/panels/applications/cc-applications-panel.c
    gtk_widget_class_bind_template_child (widget_class, CcApplicationsPanel, integration_list);
    gtk_widget_class_bind_template_child (widget_class, CcApplicationsPanel, integration_section);
    gtk_widget_class_bind_template_child (widget_class, CcApplicationsPanel, location);
-@@ -1934,6 +1943,8 @@ cc_applications_panel_init (CcApplicatio
+@@ -1934,6 +1943,8 @@ cc_applications_panel_init (CcApplicationsPanel *self)
  
    gtk_widget_init_template (GTK_WIDGET (self));
  
@@ -62,10 +61,10 @@ Index: gnome-control-center-3.36.2/panels/applications/cc-applications-panel.c
    provider = GTK_STYLE_PROVIDER (gtk_css_provider_new ());
    gtk_css_provider_load_from_resource (GTK_CSS_PROVIDER (provider),
                                         "/org/gnome/control-center/applications/cc-applications-panel.css");
-Index: gnome-control-center-3.36.2/panels/applications/cc-applications-panel.ui
-===================================================================
---- gnome-control-center-3.36.2.orig/panels/applications/cc-applications-panel.ui
-+++ gnome-control-center-3.36.2/panels/applications/cc-applications-panel.ui
+diff --git a/panels/applications/cc-applications-panel.ui b/panels/applications/cc-applications-panel.ui
+index d52fd6a..09f939e 100644
+--- a/panels/applications/cc-applications-panel.ui
++++ b/panels/applications/cc-applications-panel.ui
 @@ -55,7 +55,7 @@
                        </packing>
                      </child>
