@@ -11,7 +11,7 @@ Origin: ubuntu
 Forwarded: not-needed
 ---
  panels/meson.build                             |   1 +
- panels/ubuntu/cc-ubuntu-panel.c                | 704 +++++++++++++++++++++++++
+ panels/ubuntu/cc-ubuntu-panel.c                | 709 +++++++++++++++++++++++++
  panels/ubuntu/cc-ubuntu-panel.h                |  35 ++
  panels/ubuntu/cc-ubuntu-panel.ui               | 393 ++++++++++++++
  panels/ubuntu/gnome-ubuntu-panel.desktop.in.in |  16 +
@@ -23,7 +23,7 @@ Forwarded: not-needed
  po/POTFILES.in                                 |   3 +
  shell/cc-panel-list.c                          |   1 +
  shell/cc-panel-loader.c                        |   3 +
- 13 files changed, 1724 insertions(+)
+ 13 files changed, 1729 insertions(+)
  create mode 100644 panels/ubuntu/cc-ubuntu-panel.c
  create mode 100644 panels/ubuntu/cc-ubuntu-panel.h
  create mode 100644 panels/ubuntu/cc-ubuntu-panel.ui
@@ -48,10 +48,10 @@ index 2f4fdc5..81ae0b1 100644
    'user-accounts'
 diff --git a/panels/ubuntu/cc-ubuntu-panel.c b/panels/ubuntu/cc-ubuntu-panel.c
 new file mode 100644
-index 0000000..b0ac4b9
+index 0000000..f6ef80f
 --- /dev/null
 +++ b/panels/ubuntu/cc-ubuntu-panel.c
-@@ -0,0 +1,704 @@
+@@ -0,0 +1,709 @@
 +/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 +/*
 + * Copyright (C) 2017-2020 Canonical Ltd
@@ -262,20 +262,25 @@ index 0000000..b0ac4b9
 +{
 +  g_autoptr(CcDisplayConfig) current = NULL;
 +  CcDisplayMonitor *primary_monitor;
++  GList *config_monitors = NULL;
 +  GList *valid_monitors, *l;
 +  gint n_valid_monitors;
 +
-+  if (config == NULL)
++  if (config)
++    {
++      config_monitors = cc_display_config_get_monitors (config);
++    }
++  else if (self->display_config_manager)
 +    {
 +      current = cc_display_config_manager_get_current (self->display_config_manager);
-+      config = current;
++      config_monitors = cc_display_config_get_monitors (current);
 +    }
 +
 +  primary_monitor = NULL;
 +  valid_monitors = NULL;
 +  n_valid_monitors = 0;
 +
-+  for (l = cc_display_config_get_monitors (config); l != NULL; l = l->next)
++  for (l = config_monitors; l != NULL; l = l->next)
 +    {
 +      CcDisplayMonitor *monitor = l->data;
 +
