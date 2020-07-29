@@ -1,23 +1,22 @@
-From 60e2ead830281f61ede228695f35124489f7d3fd Mon Sep 17 00:00:00 2001
 From: Robert Ancell <robert.ancell@canonical.com>
 Date: Fri, 3 Apr 2020 14:02:38 +1300
-Subject: [PATCH 29/29] applications: Use new snapd-glib API for labelling Snap
- interfaces
+Subject: [PATCH 29/29] applications: Use new snapd-glib API for labelling
+ Snap interfaces
 
 This removes the need to put translated strings in g-c-c, and allows them to be
 shared between multiple applications that use Snaps.
 ---
  meson.build                                 |   2 +-
- panels/applications/cc-applications-panel.c |  25 +++-
- panels/applications/cc-snap-row.c           | 130 ++------------------
+ panels/applications/cc-applications-panel.c |  25 +++++-
+ panels/applications/cc-snap-row.c           | 130 ++--------------------------
  panels/applications/cc-snap-row.h           |   7 +-
  po/POTFILES.in                              |   1 -
  5 files changed, 35 insertions(+), 130 deletions(-)
 
-Index: gnome-control-center-3.36.1/meson.build
-===================================================================
---- gnome-control-center-3.36.1.orig/meson.build
-+++ gnome-control-center-3.36.1/meson.build
+diff --git a/meson.build b/meson.build
+index ad91bc4..451dced 100644
+--- a/meson.build
++++ b/meson.build
 @@ -201,7 +201,7 @@ config_h.set10('HAVE_FN_EXPLICIT_BZERO',
  enable_snap = get_option('snap')
  if enable_snap
@@ -27,11 +26,11 @@ Index: gnome-control-center-3.36.1/meson.build
    ]
  endif
  config_h.set('HAVE_SNAP', enable_snap,
-Index: gnome-control-center-3.36.1/panels/applications/cc-applications-panel.c
-===================================================================
---- gnome-control-center-3.36.1.orig/panels/applications/cc-applications-panel.c
-+++ gnome-control-center-3.36.1/panels/applications/cc-applications-panel.c
-@@ -648,10 +648,13 @@ add_snap_permissions (CcApplicationsPane
+diff --git a/panels/applications/cc-applications-panel.c b/panels/applications/cc-applications-panel.c
+index baf03fa..1c328ad 100644
+--- a/panels/applications/cc-applications-panel.c
++++ b/panels/applications/cc-applications-panel.c
+@@ -648,10 +648,13 @@ add_snap_permissions (CcApplicationsPanel *self,
    g_autoptr(GList) rows = NULL;
    gint index;
    g_autoptr(SnapdClient) client = NULL;
@@ -45,7 +44,7 @@ Index: gnome-control-center-3.36.1/panels/applications/cc-applications-panel.c
  
    if (!g_str_has_prefix (app_id, PORTAL_SNAP_PREFIX))
      return FALSE;
-@@ -662,6 +665,14 @@ add_snap_permissions (CcApplicationsPane
+@@ -662,6 +665,14 @@ add_snap_permissions (CcApplicationsPanel *self,
    g_assert (index >= 0);
  
    client = snapd_client_new ();
@@ -60,7 +59,7 @@ Index: gnome-control-center-3.36.1/panels/applications/cc-applications-panel.c
    if (!snapd_client_get_connections2_sync (client,
                                             SNAPD_GET_CONNECTIONS_FLAGS_SELECT_ALL,
                                             NULL, NULL,
-@@ -669,7 +680,7 @@ add_snap_permissions (CcApplicationsPane
+@@ -669,7 +680,7 @@ add_snap_permissions (CcApplicationsPanel *self,
                                             &plugs, &slots,
                                             NULL, &error))
      {
@@ -69,7 +68,7 @@ Index: gnome-control-center-3.36.1/panels/applications/cc-applications-panel.c
        return FALSE;
      }
  
-@@ -704,7 +715,17 @@ add_snap_permissions (CcApplicationsPane
+@@ -704,7 +715,17 @@ add_snap_permissions (CcApplicationsPanel *self,
            g_ptr_array_add (available_slots, g_object_ref (slot));
          }
  
@@ -88,10 +87,10 @@ Index: gnome-control-center-3.36.1/panels/applications/cc-applications-panel.c
        gtk_widget_show (GTK_WIDGET (row));
        gtk_list_box_insert (GTK_LIST_BOX (self->permission_list), GTK_WIDGET (row), index);
        index++;
-Index: gnome-control-center-3.36.1/panels/applications/cc-snap-row.c
-===================================================================
---- gnome-control-center-3.36.1.orig/panels/applications/cc-snap-row.c
-+++ gnome-control-center-3.36.1/panels/applications/cc-snap-row.c
+diff --git a/panels/applications/cc-snap-row.c b/panels/applications/cc-snap-row.c
+index d20faf6..40a7fc4 100644
+--- a/panels/applications/cc-snap-row.c
++++ b/panels/applications/cc-snap-row.c
 @@ -48,127 +48,6 @@ typedef struct
    SnapdSlot *slot;
  } ConnectData;
@@ -233,7 +232,7 @@ Index: gnome-control-center-3.36.1/panels/applications/cc-snap-row.c
    GtkTreeIter iter;
  
    g_return_val_if_fail (SNAPD_IS_PLUG (plug), NULL);
-@@ -411,7 +291,11 @@ cc_snap_row_new (GCancellable *cancellab
+@@ -411,7 +291,11 @@ cc_snap_row_new (GCancellable *cancellable, SnapdPlug *plug, GPtrArray *slots)
          }
      }
  
@@ -246,10 +245,10 @@ Index: gnome-control-center-3.36.1/panels/applications/cc-snap-row.c
  
    /* Add option into combo box */
    gtk_list_store_append (self->slots_combo_model, &iter);
-Index: gnome-control-center-3.36.1/panels/applications/cc-snap-row.h
-===================================================================
---- gnome-control-center-3.36.1.orig/panels/applications/cc-snap-row.h
-+++ gnome-control-center-3.36.1/panels/applications/cc-snap-row.h
+diff --git a/panels/applications/cc-snap-row.h b/panels/applications/cc-snap-row.h
+index 26563bd..d37bb80 100644
+--- a/panels/applications/cc-snap-row.h
++++ b/panels/applications/cc-snap-row.h
 @@ -28,8 +28,9 @@ G_BEGIN_DECLS
  #define CC_TYPE_SNAP_ROW (cc_snap_row_get_type())
  G_DECLARE_FINAL_TYPE (CcSnapRow, cc_snap_row, CC, SNAP_ROW, GtkListBoxRow)
@@ -263,10 +262,10 @@ Index: gnome-control-center-3.36.1/panels/applications/cc-snap-row.h
 +                                 GPtrArray      *slots);
  
  G_END_DECLS
-Index: gnome-control-center-3.36.1/po/POTFILES.in
-===================================================================
---- gnome-control-center-3.36.1.orig/po/POTFILES.in
-+++ gnome-control-center-3.36.1/po/POTFILES.in
+diff --git a/po/POTFILES.in b/po/POTFILES.in
+index 915b235..61fc3b6 100644
+--- a/po/POTFILES.in
++++ b/po/POTFILES.in
 @@ -2,7 +2,6 @@
  # Please keep this file sorted alphabetically.
  panels/applications/cc-applications-panel.c

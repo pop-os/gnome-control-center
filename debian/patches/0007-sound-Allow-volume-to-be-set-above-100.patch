@@ -1,4 +1,3 @@
-From 947238ef6cecb4cf5830c95252c84cad9a2cf7d0 Mon Sep 17 00:00:00 2001
 From: Jeremy Bicha <jbicha@debian.org>
 Date: Sat, 9 Feb 2019 16:32:03 -0500
 Subject: [PATCH 07/26] sound: Allow volume to be set above 100%.
@@ -19,12 +18,12 @@ Origin: ubuntu
 Bug-Ubuntu: https://launchpad.net/bugs/1706524
 Bug: https://bugzilla.gnome.org/show_bug.cgi?id=710424
 ---
- panels/sound/cc-sound-panel.c  | 20 ++++++++
- panels/sound/cc-sound-panel.ui | 92 ++++++++++++++++++++++++++++++++++
+ panels/sound/cc-sound-panel.c  | 20 +++++++++
+ panels/sound/cc-sound-panel.ui | 92 ++++++++++++++++++++++++++++++++++++++++++
  2 files changed, 112 insertions(+)
 
 diff --git a/panels/sound/cc-sound-panel.c b/panels/sound/cc-sound-panel.c
-index 7a7e20b7d..30f12e180 100644
+index 7a7e20b..30f12e1 100644
 --- a/panels/sound/cc-sound-panel.c
 +++ b/panels/sound/cc-sound-panel.c
 @@ -65,6 +65,9 @@ struct _CcSoundPanel
@@ -89,7 +88,7 @@ index 7a7e20b7d..30f12e180 100644
    cc_device_combo_box_set_mixer_control (self->input_device_combo_box, self->mixer_control, FALSE);
    cc_device_combo_box_set_mixer_control (self->output_device_combo_box, self->mixer_control, TRUE);
 diff --git a/panels/sound/cc-sound-panel.ui b/panels/sound/cc-sound-panel.ui
-index 588c578d8..18a29951d 100644
+index 588c578..18a2995 100644
 --- a/panels/sound/cc-sound-panel.ui
 +++ b/panels/sound/cc-sound-panel.ui
 @@ -37,6 +37,98 @@
@@ -191,6 +190,3 @@ index 588c578d8..18a29951d 100644
                  <child>
                    <object class="GtkLabel">
                      <property name="visible">True</property>
--- 
-2.25.1
-
