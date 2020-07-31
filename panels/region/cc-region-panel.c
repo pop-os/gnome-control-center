@@ -32,6 +32,7 @@
 #include "cc-region-resources.h"
 #include "cc-language-chooser.h"
 #include "cc-format-chooser.h"
+#include "cc-format-preview.h"
 
 #include "cc-common-language.h"
 
@@ -60,6 +61,7 @@ struct _CcRegionPanel {
         GtkFrame        *language_section_frame;
         GtkButton       *restart_button;
         GtkRevealer     *restart_revealer;
+        CcFormatPreview *format_preview;
 
         gboolean     login;
         gboolean     login_auto_apply;
@@ -494,6 +496,7 @@ update_region_label (CcRegionPanel *self)
                 name = gnome_get_country_from_locale (DEFAULT_LOCALE, DEFAULT_LOCALE);
 
         gtk_label_set_label (self->formats_label, name);
+        g_object_set (G_OBJECT (self->format_preview), "region", region, NULL);
 }
 
 static void
@@ -775,6 +778,7 @@ cc_region_panel_class_init (CcRegionPanelClass * klass)
 
         gtk_widget_class_set_template_from_resource (widget_class, "/org/gnome/control-center/region/cc-region-panel.ui");
 
+        gtk_widget_class_bind_template_child (widget_class, CcRegionPanel, format_preview);
         gtk_widget_class_bind_template_child (widget_class, CcRegionPanel, formats_label);
         gtk_widget_class_bind_template_child (widget_class, CcRegionPanel, formats_row);
         gtk_widget_class_bind_template_child (widget_class, CcRegionPanel, login_label);
@@ -815,4 +819,5 @@ cc_region_panel_init (CcRegionPanel *self)
         needs_restart_file = get_needs_restart_file ();
         if (g_file_query_exists (needs_restart_file, NULL))
                 set_restart_notification_visible (self, NULL, TRUE);
+
 }

@@ -20,10 +20,12 @@ i18n.merge_file(
 sources = files(
   'cc-region-panel.c',
   'cc-format-chooser.c',
+  'cc-format-preview.c',
 )
 
 resource_data = files(
   'cc-format-chooser.ui',
+  'cc-format-preview.ui',
   'cc-region-panel.ui',
   'view-layout-symbolic.svg',
 )
