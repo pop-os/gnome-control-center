@@ -69,9 +69,9 @@ struct _CcAvatarChooser {
 G_DEFINE_TYPE (CcAvatarChooser, cc_avatar_chooser, GTK_TYPE_POPOVER)
 
 static void
-crop_dialog_response (GtkWidget       *dialog,
+crop_dialog_response (CcAvatarChooser *self,
                       gint             response_id,
-                      CcAvatarChooser *self)
+                      GtkWidget       *dialog)
 {
         GdkPixbuf *pb, *pb2;
 
@@ -113,8 +113,8 @@ cc_avatar_chooser_crop (CcAvatarChooser *self,
 
         gtk_window_set_icon_name (GTK_WINDOW (dialog), "system-users");
 
-        g_signal_connect (G_OBJECT (dialog), "response",
-                          G_CALLBACK (crop_dialog_response), self);
+        g_signal_connect_object (G_OBJECT (dialog), "response",
+                                 G_CALLBACK (crop_dialog_response), self, G_CONNECT_SWAPPED);
 
         /* Content */
         self->crop_area = cc_crop_area_new ();
@@ -132,9 +132,9 @@ cc_avatar_chooser_crop (CcAvatarChooser *self,
 }
 
 static void
-file_chooser_response (GtkDialog       *chooser,
+file_chooser_response (CcAvatarChooser *self,
                        gint             response,
-                       CcAvatarChooser *self)
+                       GtkDialog       *chooser)
 {
         gchar *filename;
         GError *error;
@@ -260,8 +260,8 @@ cc_avatar_chooser_select_file (CcAvatarChooser *self)
         gtk_file_filter_add_pixbuf_formats (filter);
         gtk_file_chooser_set_filter (GTK_FILE_CHOOSER (chooser), filter);
 
-        g_signal_connect (chooser, "response",
-                          G_CALLBACK (file_chooser_response), self);
+        g_signal_connect_object (chooser, "response",
+                                 G_CALLBACK (file_chooser_response), self, G_CONNECT_SWAPPED);
 
         gtk_window_present (GTK_WINDOW (chooser));
 }
@@ -275,9 +275,9 @@ destroy_chooser (GtkWidget *chooser)
 }
 
 static void
-webcam_response_cb (GtkDialog        *dialog,
+webcam_response_cb (CcAvatarChooser  *self,
                     int               response,
-                    CcAvatarChooser  *self)
+                    GtkDialog        *dialog)
 {
         if (response == GTK_RESPONSE_ACCEPT) {
                 GdkPixbuf *pb, *pb2;
@@ -306,8 +306,8 @@ webcam_icon_selected (CcAvatarChooser *self)
         gtk_window_set_transient_for (GTK_WINDOW (window),
                                       GTK_WINDOW (gtk_widget_get_toplevel (self->popup_button)));
         gtk_window_set_modal (GTK_WINDOW (window), TRUE);
-        g_signal_connect (G_OBJECT (window), "response",
-                          G_CALLBACK (webcam_response_cb), self);
+        g_signal_connect_object (G_OBJECT (window), "response",
+                                 G_CALLBACK (webcam_response_cb), self, G_CONNECT_SWAPPED);
         gtk_widget_show (window);
 }
 
@@ -321,18 +321,14 @@ update_photo_menu_status (CcAvatarChooser *self)
 }
 
 static void
-device_added (CheeseCameraDeviceMonitor   *monitor,
-              CheeseCameraDevice          *device,
-              CcAvatarChooser             *self)
+device_added (CcAvatarChooser *self)
 {
         self->num_cameras++;
         update_photo_menu_status (self);
 }
 
 static void
-device_removed (CheeseCameraDeviceMonitor   *monitor,
-                const char                  *id,
-                CcAvatarChooser             *self)
+device_removed (CcAvatarChooser *self)
 {
         self->num_cameras--;
         update_photo_menu_status (self);
@@ -341,9 +337,8 @@ device_removed (CheeseCameraDeviceMonitor   *monitor,
 #endif /* HAVE_CHEESE */
 
 static void
-face_widget_activated (GtkFlowBox        *flowbox,
-                       GtkFlowBoxChild   *child,
-                       CcAvatarChooser   *self)
+face_widget_activated (CcAvatarChooser *self,
+                       GtkFlowBoxChild *child)
 {
         const gchar *filename;
         GtkWidget   *image;
@@ -389,8 +384,8 @@ create_face_widget (gpointer item,
 static void
 setup_cheese_camera_device_monitor (CcAvatarChooser *self)
 {
-        g_signal_connect (G_OBJECT (self->monitor), "added", G_CALLBACK (device_added), self);
-        g_signal_connect (G_OBJECT (self->monitor), "removed", G_CALLBACK (device_removed), self);
+        g_signal_connect_object (G_OBJECT (self->monitor), "added", G_CALLBACK (device_added), self, G_CONNECT_SWAPPED);
+        g_signal_connect_object (G_OBJECT (self->monitor), "removed", G_CALLBACK (device_removed), self, G_CONNECT_SWAPPED);
         cheese_camera_device_monitor_coldplug (self->monitor);
 }
 
@@ -411,35 +406,57 @@ cheese_camera_device_monitor_new_cb (GObject *source,
 }
 #endif /* HAVE_CHEESE */
 
-static void
-setup_photo_popup (CcAvatarChooser *self)
+static GStrv
+get_settings_facesdirs (void)
+{
+        g_autoptr(GSettings) settings = g_settings_new ("org.gnome.desktop.interface");
+        g_auto(GStrv) settings_dirs = g_settings_get_strv (settings, "avatar-directories");
+        GPtrArray *facesdirs = g_ptr_array_new ();
+
+        if (settings_dirs != NULL) {
+                int i;
+                for (i = 0; settings_dirs[i] != NULL; i++) {
+                        char *path = settings_dirs[i];
+                        if (g_strcmp0 (path, "") != 0)
+                                g_ptr_array_add (facesdirs, g_strdup (path));
+                }
+        }
+        g_ptr_array_add (facesdirs, NULL);
+
+        return (GStrv) g_ptr_array_steal (facesdirs, NULL);
+}
+
+static GStrv
+get_system_facesdirs (void)
+{
+        const char * const * data_dirs;
+        GPtrArray *facesdirs;
+        int i;
+
+        facesdirs = g_ptr_array_new ();
+
+        data_dirs = g_get_system_data_dirs ();
+        for (i = 0; data_dirs[i] != NULL; i++) {
+                char *path = g_build_filename (data_dirs[i], "pixmaps", "faces", NULL);
+                g_ptr_array_add (facesdirs, path);
+        }
+        g_ptr_array_add (facesdirs, NULL);
+        return (GStrv) g_ptr_array_steal (facesdirs, NULL);
+}
+
+static gboolean
+add_faces_from_dirs (GListStore *faces, GStrv facesdirs, gboolean add_all)
 {
         GFile *file, *dir;
         GFileInfo *info;
         GFileEnumerator *enumerator;
         GFileType type;
         const gchar *target;
-        const gchar * const * dirs;
         guint i;
-        gboolean added_faces;
+        gboolean added_faces = FALSE;
 
-        self->faces = g_list_store_new (G_TYPE_FILE);
-        gtk_flow_box_bind_model (GTK_FLOW_BOX (self->flowbox),
-                                 G_LIST_MODEL (self->faces),
-                                 create_face_widget,
-                                 self,
-                                 NULL);
-
-        g_signal_connect (self->flowbox, "child-activated",
-                          G_CALLBACK (face_widget_activated), self);
-
-        dirs = g_get_system_data_dirs ();
-        for (i = 0; dirs[i] != NULL; i++) {
-                char *path;
-
-                path = g_build_filename (dirs[i], "pixmaps", "faces", NULL);
-                dir = g_file_new_for_path (path);
-                g_free (path);
+        for (i = 0; facesdirs[i] != NULL; i++) {
+                dir = g_file_new_for_path (facesdirs[i]);
 
                 enumerator = g_file_enumerate_children (dir,
                                                         G_FILE_ATTRIBUTE_STANDARD_NAME ","
@@ -454,8 +471,6 @@ setup_photo_popup (CcAvatarChooser *self)
                 }
 
                 while ((info = g_file_enumerator_next_file (enumerator, NULL, NULL)) != NULL) {
-                        added_faces = TRUE;
-
                         type = g_file_info_get_file_type (info);
                         if (type != G_FILE_TYPE_REGULAR &&
                             type != G_FILE_TYPE_SYMBOLIC_LINK) {
@@ -470,17 +485,43 @@ setup_photo_popup (CcAvatarChooser *self)
                         }
 
                         file = g_file_get_child (dir, g_file_info_get_name (info));
-                        g_list_store_append (self->faces, file);
+                        g_list_store_append (faces, file);
 
                         g_object_unref (info);
+                        added_faces = TRUE;
                 }
 
                 g_file_enumerator_close (enumerator, NULL, NULL);
                 g_object_unref (enumerator);
                 g_object_unref (dir);
 
-                if (added_faces)
+                if (added_faces && !add_all)
                         break;
+        }
+        return added_faces;
+}
+
+
+static void
+setup_photo_popup (CcAvatarChooser *self)
+{
+        g_auto(GStrv) settings_facesdirs = NULL;
+
+        self->faces = g_list_store_new (G_TYPE_FILE);
+        gtk_flow_box_bind_model (GTK_FLOW_BOX (self->flowbox),
+                                 G_LIST_MODEL (self->faces),
+                                 create_face_widget,
+                                 self,
+                                 NULL);
+
+        g_signal_connect_object (self->flowbox, "child-activated",
+                                 G_CALLBACK (face_widget_activated), self, G_CONNECT_SWAPPED);
+
+        settings_facesdirs = get_settings_facesdirs ();
+
+        if (!add_faces_from_dirs (self->faces, settings_facesdirs, TRUE)) {
+                g_auto(GStrv) system_facesdirs = get_system_facesdirs ();
+                add_faces_from_dirs (self->faces, system_facesdirs, FALSE);
         }
 
 #ifdef HAVE_CHEESE
@@ -497,24 +538,22 @@ setup_photo_popup (CcAvatarChooser *self)
 }
 
 static void
-popup_icon_menu (GtkToggleButton *button,
-                 CcAvatarChooser *self)
+popup_icon_menu (CcAvatarChooser *self)
 {
         gtk_popover_popup (GTK_POPOVER (self));
 }
 
 static gboolean
-on_popup_button_button_pressed (GtkToggleButton *button,
-                                GdkEventButton  *event,
-                                CcAvatarChooser *self)
+on_popup_button_button_pressed (CcAvatarChooser *self,
+                                GdkEventButton  *event)
 {
         if (event->button == 1) {
                 if (!gtk_widget_get_visible (GTK_WIDGET (self))) {
-                        popup_icon_menu (button, self);
-                        gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (button), TRUE);
+                        popup_icon_menu (self);
+                        gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (self->popup_button), TRUE);
                 } else {
                         gtk_popover_popdown (GTK_POPOVER (self));
-                        gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (button), FALSE);
+                        gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (self->popup_button), FALSE);
                 }
 
                 return TRUE;
@@ -537,10 +576,10 @@ cc_avatar_chooser_new (GtkWidget *button)
         /* Set up the popup */
         self->popup_button = button;
         setup_photo_popup (self);
-        g_signal_connect (button, "toggled",
-                          G_CALLBACK (popup_icon_menu), self);
-        g_signal_connect (button, "button-press-event",
-                          G_CALLBACK (on_popup_button_button_pressed), self);
+        g_signal_connect_object (button, "toggled",
+                                 G_CALLBACK (popup_icon_menu), self, G_CONNECT_SWAPPED);
+        g_signal_connect_object (button, "button-press-event",
+                                 G_CALLBACK (on_popup_button_button_pressed), self, G_CONNECT_SWAPPED);
 
         return self;
 }
@@ -588,9 +627,7 @@ cc_avatar_chooser_class_init (CcAvatarChooserClass *klass)
 }
 
 static void
-user_flowbox_activated (GtkFlowBox        *flowbox,
-                        GtkFlowBoxChild   *child,
-                        CcAvatarChooser   *self)
+user_flowbox_activated (CcAvatarChooser *self)
 {
         set_default_avatar (self->user);
 
@@ -620,6 +657,6 @@ cc_avatar_chooser_set_user (CcAvatarChooser *self,
         gtk_image_set_pixel_size (GTK_IMAGE (image), AVATAR_CHOOSER_PIXEL_SIZE);
         gtk_widget_show (image);
         gtk_container_add (GTK_CONTAINER (self->user_flowbox), image);
-        g_signal_connect (self->user_flowbox, "child-activated", G_CALLBACK (user_flowbox_activated), self);
+        g_signal_connect_object (self->user_flowbox, "child-activated", G_CALLBACK (user_flowbox_activated), self, G_CONNECT_SWAPPED);
 }
 

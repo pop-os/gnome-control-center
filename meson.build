@@ -1,6 +1,6 @@
 project(
   'gnome-control-center', 'c',
-        version : '3.36.4',
+        version : '3.37.3',
         license : 'GPL2+',
   meson_version : '>= 0.51.0'
 )
@@ -126,7 +126,7 @@ glib_dep = dependency('glib-2.0', version: '>= 2.56.0')
 gnome_desktop_dep = dependency('gnome-desktop-3.0', version: '>= 3.27.90')
 gnome_settings_dep = dependency('gnome-settings-daemon', version: '>= 3.27.90')
 goa_dep = dependency('goa-1.0', version: goa_req_version)
-gsettings_desktop_dep = dependency('gsettings-desktop-schemas', version: '>= 3.31.0')
+gsettings_desktop_dep = dependency('gsettings-desktop-schemas', version: '>= 3.37.1')
 libxml_dep = dependency('libxml-2.0')
 polkit_gobject_dep = dependency('polkit-gobject-1', version: '>= 0.114')
 pulse_dep = dependency('libpulse', version: pulse_req_version)
@@ -201,11 +201,19 @@ config_h.set10('HAVE_FN_EXPLICIT_BZERO',
 enable_snap = get_option('snap')
 if enable_snap
   snapd_glib_deps = [
-    dependency('snapd-glib', version: '>= 1.49')
+    dependency('snapd-glib', version: '>= 1.57')
   ]
 endif
 config_h.set('HAVE_SNAP', enable_snap,
              description: 'Define to 1 if Snap support is enabled')
+
+# malcontent support
+enable_malcontent = get_option('malcontent')
+if enable_malcontent
+  malcontent_dep = dependency('malcontent-0', version: '>= 0.7.0')
+endif
+config_h.set('HAVE_MALCONTENT', enable_malcontent,
+             description: 'Define to 1 if malcontent support is enabled')
 
 if host_is_linux
   # network manager
@@ -299,5 +307,6 @@ output += '     IBus (Region panel IBus support) ........... ' + enable_ibus.to_
 output += '     NetworkManager (Network panel) ............. ' + host_is_linux.to_string() + '\n'
 output += '     Wacom (Wacom tablet panel) ................. ' + host_is_linux_not_s390.to_string() + '\n'
 output += '     Snap support ............................... ' + enable_snap.to_string() + '\n'
+output += '     Malcontent support ......................... ' + enable_malcontent.to_string() + '\n'
 
 message(output)
