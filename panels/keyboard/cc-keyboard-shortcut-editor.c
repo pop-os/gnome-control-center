@@ -226,8 +226,6 @@ grab_seat (CcKeyboardShortcutEditor *self)
   self->grab_pointer = gdk_seat_get_keyboard (seat);
   if (!self->grab_pointer)
     self->grab_pointer = gdk_seat_get_pointer (seat);
-
-  gtk_grab_add (GTK_WIDGET (self));
 }
 
 static void
@@ -237,8 +235,6 @@ release_grab (CcKeyboardShortcutEditor *self)
     {
       gdk_seat_ungrab (gdk_device_get_seat (self->grab_pointer));
       self->grab_pointer = NULL;
-
-      gtk_grab_remove (GTK_WIDGET (self));
     }
 }
 
