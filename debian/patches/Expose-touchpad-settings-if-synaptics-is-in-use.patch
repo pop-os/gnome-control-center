@@ -20,11 +20,11 @@ https://gitlab.gnome.org/GNOME/mutter/merge_requests/37
  panels/mouse/cc-mouse-panel.c       | 16 +++++++++-------
  2 files changed, 16 insertions(+), 7 deletions(-)
 
-diff --git a/panels/mouse/cc-mouse-caps-helper.c b/panels/mouse/cc-mouse-caps-helper.c
-index 69546b2b6..39534b912 100644
---- a/panels/mouse/cc-mouse-caps-helper.c
-+++ b/panels/mouse/cc-mouse-caps-helper.c
-@@ -38,6 +38,13 @@ touchpad_check_capabilities_x11 (gboolean *have_two_finger_scrolling,
+Index: gnome-control-center/panels/mouse/cc-mouse-caps-helper.c
+===================================================================
+--- gnome-control-center.orig/panels/mouse/cc-mouse-caps-helper.c
++++ gnome-control-center/panels/mouse/cc-mouse-caps-helper.c
+@@ -38,6 +38,13 @@ touchpad_check_capabilities_x11 (gboolea
  	unsigned long nitems, bytes_after;
  	unsigned char *data;
  
@@ -38,11 +38,11 @@ index 69546b2b6..39534b912 100644
          gdisplay = gdk_display_get_default ();
          display = GDK_DISPLAY_XDISPLAY (gdk_display_get_default ());
  	prop_scroll_methods = XInternAtom (display, "libinput Scroll Methods Available", False);
-diff --git a/panels/mouse/cc-mouse-panel.c b/panels/mouse/cc-mouse-panel.c
-index df2cd4b7a..a90062f72 100644
---- a/panels/mouse/cc-mouse-panel.c
-+++ b/panels/mouse/cc-mouse-panel.c
-@@ -72,7 +72,6 @@ struct _CcMousePanel
+Index: gnome-control-center/panels/mouse/cc-mouse-panel.c
+===================================================================
+--- gnome-control-center.orig/panels/mouse/cc-mouse-panel.c
++++ gnome-control-center/panels/mouse/cc-mouse-panel.c
+@@ -68,7 +68,6 @@ struct _CcMousePanel
    gboolean           have_mouse;
    gboolean           have_touchpad;
    gboolean           have_touchscreen;
@@ -50,7 +50,7 @@ index df2cd4b7a..a90062f72 100644
  
    gboolean           left_handed;
    GtkGesture        *left_gesture;
-@@ -90,7 +89,7 @@ setup_touchpad_options (CcMousePanel *self)
+@@ -86,7 +85,7 @@ setup_touchpad_options (CcMousePanel *se
    gboolean have_edge_scrolling;
    gboolean have_tap_to_click;
  
@@ -59,9 +59,9 @@ index df2cd4b7a..a90062f72 100644
      gtk_widget_hide (GTK_WIDGET (self->touchpad_frame));
      return;
    }
-@@ -314,7 +313,10 @@ device_changed (GsdDeviceManager *device_manager,
-                 GsdDevice        *device,
-                 CcMousePanel     *self)
+@@ -308,7 +307,10 @@ setup_dialog (CcMousePanel *self)
+ static void
+ device_changed (CcMousePanel *self)
  {
 -  self->have_touchpad = touchpad_is_present ();
 +  self->have_touchpad = touchpad_is_present () || cc_synaptics_check ();
@@ -71,8 +71,8 @@ index df2cd4b7a..a90062f72 100644
  
    setup_touchpad_options (self);
  
-@@ -409,11 +411,11 @@ cc_mouse_panel_init (CcMousePanel *self)
-              G_CALLBACK (device_changed), self);
+@@ -397,11 +399,11 @@ cc_mouse_panel_init (CcMousePanel *self)
+                            G_CALLBACK (device_changed), self, G_CONNECT_SWAPPED);
  
    self->have_mouse = mouse_is_present ();
 -  self->have_touchpad = touchpad_is_present ();
@@ -87,6 +87,3 @@ index df2cd4b7a..a90062f72 100644
  
    setup_dialog (self);
  }
--- 
-2.25.1
-
