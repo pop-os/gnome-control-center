@@ -10,10 +10,10 @@ https://launchpad.net/bugs/1871195
  shell/cc-window.ui |  55 ++--------------------------
  2 files changed, 6 insertions(+), 154 deletions(-)
 
-diff --git a/shell/cc-window.c b/shell/cc-window.c
-index e84864e..906d35f 100644
---- a/shell/cc-window.c
-+++ b/shell/cc-window.c
+Index: gnome-control-center/shell/cc-window.c
+===================================================================
+--- gnome-control-center.orig/shell/cc-window.c
++++ gnome-control-center/shell/cc-window.c
 @@ -54,13 +54,9 @@ struct _CcWindow
  {
    GtkApplicationWindow parent;
@@ -37,7 +37,7 @@ index e84864e..906d35f 100644
  };
  
  static void     cc_shell_iface_init         (CcShellInterface      *iface);
-@@ -128,26 +122,6 @@ remove_all_custom_widgets (CcWindow *self)
+@@ -128,26 +122,6 @@ remove_all_custom_widgets (CcWindow *sel
    CC_EXIT;
  }
  
@@ -77,14 +77,14 @@ index e84864e..906d35f 100644
  
    sidebar_widget = cc_panel_get_sidebar_widget (CC_PANEL (self->current_panel));
    cc_panel_list_add_sidebar_widget (self->panel_list, sidebar_widget);
--  /* Ensure we show the panel when when the leaflet is folded and a sidebar
--   * widget's row is activated.
+-  /* Ensure we show the panel when the leaflet is folded and a sidebar widget's
+-   * row is activated.
 -   */
 -  g_signal_connect_object (self->current_panel, "sidebar-activated", G_CALLBACK (on_sidebar_activated_cb), self, G_CONNECT_SWAPPED);
  
    /* Finish profiling */
    g_timer_stop (timer);
-@@ -399,7 +367,6 @@ set_active_panel_from_id (CcWindow     *self,
+@@ -399,7 +367,6 @@ set_active_panel_from_id (CcWindow     *
                            const gchar  *start_id,
                            GVariant     *parameters,
                            gboolean      add_to_history,
@@ -92,7 +92,7 @@ index e84864e..906d35f 100644
                            GError      **error)
  {
    g_autoptr(GIcon) gicon = NULL;
-@@ -407,21 +374,15 @@ set_active_panel_from_id (CcWindow     *self,
+@@ -407,21 +374,15 @@ set_active_panel_from_id (CcWindow     *
    CcPanelVisibility visibility;
    GtkTreeIter iter;
    GtkWidget *old_panel;
@@ -114,7 +114,7 @@ index e84864e..906d35f 100644
        CC_RETURN (TRUE);
      }
  
-@@ -455,9 +416,6 @@ set_active_panel_from_id (CcWindow     *self,
+@@ -455,9 +416,6 @@ set_active_panel_from_id (CcWindow     *
    if (add_to_history)
      add_current_panel_to_history (self, start_id);
  
@@ -124,7 +124,7 @@ index e84864e..906d35f 100644
    g_free (self->current_panel_id);
    self->current_panel_id = g_strdup (start_id);
  
-@@ -507,51 +465,12 @@ switch_to_previous_panel (CcWindow *self)
+@@ -507,59 +465,20 @@ switch_to_previous_panel (CcWindow *self
  
    g_debug ("Going to previous panel (%s)", previous_panel_id);
  
@@ -135,7 +135,7 @@ index e84864e..906d35f 100644
  }
  
  /* Callbacks */
--static void
+ static void
 -update_fold_state (CcWindow *self)
 -{
 -  GtkWidget *header_child = hdy_leaflet_get_visible_child (self->header_box);
@@ -174,10 +174,10 @@ index e84864e..906d35f 100644
 -  cc_panel_list_set_selection_mode (self->panel_list, selection_mode);
 -}
 -
- static void
+-static void
  show_panel_cb (CcWindow    *self,
                 const gchar *panel_id)
-@@ -559,7 +478,7 @@ show_panel_cb (CcWindow    *self,
+ {
    if (!panel_id)
      return;
  
@@ -186,20 +186,20 @@ index e84864e..906d35f 100644
  }
  
  static void
-@@ -572,12 +491,6 @@ search_entry_activate_cb (CcWindow *self)
-   gtk_search_bar_set_search_mode (self->search_bar, !changed);
+@@ -573,12 +492,6 @@ search_entry_activate_cb (CcWindow *self
  }
  
--static void
+ static void
 -back_button_clicked_cb (CcWindow *self)
 -{
 -  show_sidebar (self);
 -}
 -
- static void
+-static void
  previous_button_clicked_cb (CcWindow *self)
  {
-@@ -704,7 +617,7 @@ cc_window_set_active_panel_from_id (CcShell      *shell,
+   g_debug ("Num previous panels? %d", g_queue_get_length (self->previous_panels));
+@@ -704,7 +617,7 @@ cc_window_set_active_panel_from_id (CcSh
                                      GVariant     *parameters,
                                      GError      **error)
  {
@@ -216,7 +216,7 @@ index e84864e..906d35f 100644
  
    G_OBJECT_CLASS (cc_window_parent_class)->constructed (object);
  }
-@@ -899,13 +811,9 @@ cc_window_class_init (CcWindowClass *klass)
+@@ -899,13 +811,9 @@ cc_window_class_init (CcWindowClass *kla
  
    gtk_widget_class_set_template_from_resource (widget_class, "/org/gnome/ControlCenter/gtk/cc-window.ui");
  
@@ -230,7 +230,7 @@ index e84864e..906d35f 100644
    gtk_widget_class_bind_template_child (widget_class, CcWindow, panel_headerbar);
    gtk_widget_class_bind_template_child (widget_class, CcWindow, panel_list);
    gtk_widget_class_bind_template_child (widget_class, CcWindow, previous_button);
-@@ -917,11 +825,7 @@ cc_window_class_init (CcWindowClass *klass)
+@@ -917,11 +825,7 @@ cc_window_class_init (CcWindowClass *kla
    gtk_widget_class_bind_template_child (widget_class, CcWindow, top_left_box);
    gtk_widget_class_bind_template_child (widget_class, CcWindow, top_right_box);
  
@@ -256,10 +256,10 @@ index e84864e..906d35f 100644
  }
  
  CcWindow *
-diff --git a/shell/cc-window.ui b/shell/cc-window.ui
-index dfaf65a..4125758 100644
---- a/shell/cc-window.ui
-+++ b/shell/cc-window.ui
+Index: gnome-control-center/shell/cc-window.ui
+===================================================================
+--- gnome-control-center.orig/shell/cc-window.ui
++++ gnome-control-center/shell/cc-window.ui
 @@ -10,12 +10,9 @@
      <signal name="map-event" handler="window_map_event_cb" object="CcWindow" swapped="yes" />
      <signal name="key-press-event" handler="window_key_press_event_cb" object="CcWindow" swapped="yes" after="yes" />
@@ -298,11 +298,10 @@ index dfaf65a..4125758 100644
                  <property name="title" translatable="yes">Settings</property>
                  <child>
                    <object class="GtkButton" id="previous_button">
-@@ -211,39 +202,6 @@
-                 <property name="can_focus">False</property>
+@@ -212,39 +203,6 @@
                  <property name="hexpand">True</property>
                  <property name="show_close_button">True</property>
--                <child>
+                 <child>
 -                  <object class="GtkRevealer" id="back_revealer">
 -                    <property name="can_focus">False</property>
 -                    <property name="transition-type">crossfade</property>
@@ -335,9 +334,10 @@ index dfaf65a..4125758 100644
 -                    </child>
 -                  </object>
 -                </child>
-                 <child>
+-                <child>
                    <object class="GtkBox" id="top_left_box">
                      <property name="visible">True</property>
+                     <property name="can_focus">True</property>
 @@ -267,13 +225,6 @@
      </child>
    </template>

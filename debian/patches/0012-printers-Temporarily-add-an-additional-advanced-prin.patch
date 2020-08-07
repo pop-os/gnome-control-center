@@ -15,10 +15,10 @@ Bug: https://bugzilla.gnome.org/show_bug.cgi?id=692532
  panels/printers/printers.ui         | 43 +++++++++++++++++++++++++++++++++++++
  2 files changed, 71 insertions(+)
 
-diff --git a/panels/printers/cc-printers-panel.c b/panels/printers/cc-printers-panel.c
-index 01bb678..01be98b 100644
---- a/panels/printers/cc-printers-panel.c
-+++ b/panels/printers/cc-printers-panel.c
+Index: gnome-control-center/panels/printers/cc-printers-panel.c
+===================================================================
+--- gnome-control-center.orig/panels/printers/cc-printers-panel.c
++++ gnome-control-center/panels/printers/cc-printers-panel.c
 @@ -25,6 +25,7 @@
  #include "pp-printer.h"
  
@@ -27,11 +27,10 @@ index 01bb678..01be98b 100644
  #include <glib/gi18n-lib.h>
  #include <glib/gstdio.h>
  #include <polkit/polkit.h>
-@@ -965,6 +966,25 @@ printer_add_cb (GtkToolButton *toolbutton,
-                     self);
+@@ -1002,6 +1003,25 @@ printer_add_cb (CcPrintersPanel *self)
  }
  
-+static void
+ static void
 +show_system_config_printer (void)
 +{
 +  g_autoptr(GAppInfo) app_info = NULL;
@@ -50,12 +49,13 @@ index 01bb678..01be98b 100644
 +    g_warning ("Failed to launch system-config-printer: %s", error->message);
 +}
 +
- static void
++static void
  update_sensitivity (gpointer user_data)
  {
-@@ -1240,6 +1260,14 @@ cc_printers_panel_init (CcPrintersPanel *self)
-     gtk_builder_get_object (self->builder, "printer-add-button2");
-   g_signal_connect (widget, "clicked", G_CALLBACK (printer_add_cb), self);
+   CcPrintersPanel         *self = (CcPrintersPanel*) user_data;
+@@ -1277,6 +1297,14 @@ cc_printers_panel_init (CcPrintersPanel
+   self->notification = (GtkRevealer*)
+     gtk_builder_get_object (self->builder, "notification");
  
 +  widget = (GtkWidget*) gtk_builder_get_object (self->builder, "system-config-printer-button1");
 +  g_signal_connect_swapped (widget, "clicked",
@@ -66,12 +66,12 @@ index 01bb678..01be98b 100644
 +                            G_CALLBACK (show_system_config_printer), NULL);
 +
    widget = (GtkWidget*)
-     gtk_builder_get_object (self->builder, "content");
-   gtk_list_box_set_filter_func (GTK_LIST_BOX (widget),
-diff --git a/panels/printers/printers.ui b/panels/printers/printers.ui
-index d8f8af2..f4c0d98 100644
---- a/panels/printers/printers.ui
-+++ b/panels/printers/printers.ui
+     gtk_builder_get_object (self->builder, "notification-undo-button");
+   g_signal_connect_object (widget, "clicked", G_CALLBACK (on_printer_deletion_undone), self, G_CONNECT_SWAPPED);
+Index: gnome-control-center/panels/printers/printers.ui
+===================================================================
+--- gnome-control-center.orig/panels/printers/printers.ui
++++ gnome-control-center/panels/printers/printers.ui
 @@ -134,6 +134,7 @@
              <child>
                <object class="GtkBox">
