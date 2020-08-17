@@ -1,0 +1,138 @@
+From: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Date: Tue, 31 Jul 2018 04:44:12 +0100
+Subject: [PATCH 12/26] printers: Temporarily add an additional advanced
+ printer button.
+
+The printers panel doesn't support printer sharing and other features.
+Workaround it for now by adding in multiple places an advanced printer
+button starting system-config-printer to avoid doubling the panel in Settings.
+Origin: ubuntu
+
+Bug-Ubuntu: https://launchpad.net/bugs/1706524a
+Bug: https://bugzilla.gnome.org/show_bug.cgi?id=692532
+---
+ panels/printers/cc-printers-panel.c | 28 ++++++++++++++++++++++++
+ panels/printers/printers.ui         | 43 +++++++++++++++++++++++++++++++++++++
+ 2 files changed, 71 insertions(+)
+
+diff --git a/panels/printers/cc-printers-panel.c b/panels/printers/cc-printers-panel.c
+index 01bb678..01be98b 100644
+--- a/panels/printers/cc-printers-panel.c
++++ b/panels/printers/cc-printers-panel.c
+@@ -25,6 +25,7 @@
+ #include "pp-printer.h"
+ 
+ #include <string.h>
++#include <gio/gdesktopappinfo.h>
+ #include <glib/gi18n-lib.h>
+ #include <glib/gstdio.h>
+ #include <polkit/polkit.h>
+@@ -965,6 +966,25 @@ printer_add_cb (GtkToolButton *toolbutton,
+                     self);
+ }
+ 
++static void
++show_system_config_printer (void)
++{
++  g_autoptr(GAppInfo) app_info = NULL;
++  g_autoptr(GdkAppLaunchContext) ctx = NULL;
++  g_autoptr(GError) error = NULL;
++
++  app_info = G_APP_INFO (g_desktop_app_info_new ("system-config-printer.desktop"));
++
++  if (app_info == NULL) {
++    g_warning ("Failed to launch system-config-printer: couldn't create GDesktopAppInfo");
++    return;
++  }
++
++  ctx = gdk_display_get_app_launch_context (gdk_display_get_default ());
++  if (!g_app_info_launch (app_info, NULL, G_APP_LAUNCH_CONTEXT (ctx), &error))
++    g_warning ("Failed to launch system-config-printer: %s", error->message);
++}
++
+ static void
+ update_sensitivity (gpointer user_data)
+ {
+@@ -1240,6 +1260,14 @@ cc_printers_panel_init (CcPrintersPanel *self)
+     gtk_builder_get_object (self->builder, "printer-add-button2");
+   g_signal_connect (widget, "clicked", G_CALLBACK (printer_add_cb), self);
+ 
++  widget = (GtkWidget*) gtk_builder_get_object (self->builder, "system-config-printer-button1");
++  g_signal_connect_swapped (widget, "clicked",
++                            G_CALLBACK (show_system_config_printer), NULL);
++
++  widget = (GtkWidget*) gtk_builder_get_object (self->builder, "system-config-printer-button2");
++  g_signal_connect_swapped (widget, "clicked",
++                            G_CALLBACK (show_system_config_printer), NULL);
++
+   widget = (GtkWidget*)
+     gtk_builder_get_object (self->builder, "content");
+   gtk_list_box_set_filter_func (GTK_LIST_BOX (widget),
+diff --git a/panels/printers/printers.ui b/panels/printers/printers.ui
+index d8f8af2..f4c0d98 100644
+--- a/panels/printers/printers.ui
++++ b/panels/printers/printers.ui
+@@ -134,6 +134,7 @@
+             <child>
+               <object class="GtkBox">
+                 <property name="visible">True</property>
++                <property name="orientation">vertical</property>
+                 <child>
+                   <object class="GtkListBox" id="content">
+                     <property name="visible">True</property>
+@@ -146,6 +147,32 @@
+                     </style>
+                   </object>
+                 </child>
++                <child>
++                  <object class="GtkBox">
++                    <property name="visible">True</property>
++                    <property name="can_focus">False</property>
++                    <property name="orientation">horizontal</property>
++                    <child>
++                      <object class="GtkButton" id="system-config-printer-button1">
++                        <property name="label" translatable="yes">Additional Printer Settings…</property>
++                        <property name="visible">True</property>
++                        <property name="can_focus">True</property>
++                        <property name="receives_default">True</property>
++                        <property name="margin-start">60</property>
++                        <property name="margin-end">60</property>
++                      </object>
++                      <packing>
++                        <property name="expand">False</property>
++                        <property name="fill">True</property>
++                        <property name="pack_type">end</property>
++                      </packing>
++                    </child>
++                  </object>
++                  <packing>
++                    <property name="expand">False</property>
++                    <property name="fill">True</property>
++                  </packing>
++                </child>
+               </object>
+             </child>
+           </object>
+@@ -213,6 +240,22 @@
+             <property name="position">2</property>
+           </packing>
+         </child>
++        <child>
++          <object class="GtkButton" id="system-config-printer-button2">
++            <property name="label" translatable="yes">Additional Printer Settings…</property>
++            <property name="visible">True</property>
++            <property name="can_focus">True</property>
++            <property name="receives_default">False</property>
++            <property name="halign">center</property>
++            <property name="relief">normal</property>
++            <property name="margin-top">30</property>
++          </object>
++          <packing>
++            <property name="expand">False</property>
++            <property name="fill">False</property>
++            <property name="position">3</property>
++          </packing>
++        </child>
+       </object>
+       <packing>
+         <property name="name">empty-state</property>

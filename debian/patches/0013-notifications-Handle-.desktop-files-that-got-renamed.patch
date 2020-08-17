@@ -1,0 +1,32 @@
+From: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Date: Tue, 31 Jul 2018 04:44:12 +0100
+Subject: [PATCH 13/26] notifications: Handle .desktop files that got renamed
+
+upstream, those use NoDisplay but the panel doesn't respect that key,
+skip known buggy entries for file-roller and nautilus
+Origin: ubuntu
+Bug-Ubuntu: https://launchpad.net/bugs/1716267
+Forwarded: not-needed
+---
+ panels/notifications/cc-notifications-panel.c | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/panels/notifications/cc-notifications-panel.c b/panels/notifications/cc-notifications-panel.c
+index 79c1f0d..d7d5204 100644
+--- a/panels/notifications/cc-notifications-panel.c
++++ b/panels/notifications/cc-notifications-panel.c
+@@ -446,6 +446,14 @@ process_app_info (CcNotificationsPanel *panel,
+   guint i;
+ 
+   app_id = app_info_get_id (app_info);
++
++  /* Ignore compatibility desktops (lp: #1716267) */
++  if (g_strcmp0 (app_id, "file-roller") == 0)
++    return;
++
++  if (g_strcmp0 (app_id, "nautilus") == 0)
++    return;
++
+   g_strcanon (app_id,
+               "0123456789"
+               "abcdefghijklmnopqrstuvwxyz"

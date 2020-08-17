@@ -1,0 +1,231 @@
+From: Tim Lunn <tim@feathertop.org>
+Date: Fri, 11 Sep 2015 13:43:40 +1000
+Subject: [PATCH 10/26] Provide an api for the installation of language packs
+
+This adds cc_common_language_maybe_install() which uses
+PackageKit WhatProvides locale() to locate and install
+language packs for the selected language
+---
+ panels/common/cc-common-language.c | 198 +++++++++++++++++++++++++++++++++++++
+ panels/common/cc-common-language.h |   2 +
+ 2 files changed, 200 insertions(+)
+
+diff --git a/panels/common/cc-common-language.c b/panels/common/cc-common-language.c
+index c923d82..d025bf2 100644
+--- a/panels/common/cc-common-language.c
++++ b/panels/common/cc-common-language.c
+@@ -393,3 +393,201 @@ cc_common_language_add_user_languages (GtkTreeModel *model)
+         g_hash_table_destroy (user_langs);
+ }
+ 
++typedef struct {
++        gchar *lang;
++        guint xid;
++        GDBusProxy *pk_proxy, *pk_transaction_proxy;
++        GPtrArray *array;
++} PkTransactionData;
++
++static void
++on_pk_what_provides_ready (GObject      *source,
++                           GAsyncResult *res,
++                           PkTransactionData *pk_data)
++{
++        g_autoptr(GError) error = NULL;
++        g_autoptr(GVariant) result = NULL;
++
++        result = g_dbus_proxy_call_finish (G_DBUS_PROXY (source), res, &error);
++        if (result == NULL)
++                g_debug ("Error getting PackageKit updates list: %s", error->message);
++}
++
++static void
++cc_common_language_install (guint xid, gchar **packages)
++{
++        g_autoptr(GDBusProxy) proxy = NULL;
++        g_autoptr(GVariant) retval = NULL;
++        g_autoptr(GError) error = NULL;
++
++        /* get a session bus proxy */
++        proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SESSION,
++                                               G_DBUS_PROXY_FLAGS_NONE, NULL,
++                                               "org.freedesktop.PackageKit",
++                                               "/org/freedesktop/PackageKit",
++                                               "org.freedesktop.PackageKit.Modify",
++                                               NULL, &error);
++        if (proxy == NULL) {
++                g_debug ("failed: %s", error->message);
++                return;
++        }
++
++        /* issue the sync request */
++        retval = g_dbus_proxy_call_sync (proxy,
++                                         "InstallPackageNames",
++                                         g_variant_new ("(u^a&ss)",
++                                                        xid,
++                                                        packages,
++                                                        "hide-finished"),
++                                         G_DBUS_CALL_FLAGS_NONE,
++                                         -1, /* timeout */
++                                         NULL, /* cancellable */
++                                         &error);
++        if (retval == NULL)
++                g_debug ("failed: %s", error->message);
++}
++
++static void
++on_pk_transaction_signal (GDBusProxy *proxy,
++                          char *sender_name,
++                          char *signal_name,
++                          GVariant *parameters,
++                          PkTransactionData *pk_data)
++{
++        if (g_strcmp0 (signal_name, "Package") == 0) {
++                const gchar *package, *unused;
++                guint32 status;
++
++                g_variant_get (parameters, "(u&s&s)", &status, &package, &unused);
++
++                if (status == 2) { /*PK_INFO_ENUM_AVAILABLE*/
++                        g_auto(GStrv) split = g_strsplit (package, ";", -1);
++                        g_ptr_array_add (pk_data->array, g_strdup (split[0]));
++                }
++        } else if (!g_strcmp0 (signal_name, "Finished")) {
++                g_auto(GStrv) lang = NULL;
++
++                g_ptr_array_add (pk_data->array, NULL);
++
++                lang = (GStrv) g_ptr_array_free (pk_data->array, FALSE);
++                /* Now install all packages returned by the previous call */
++                if (lang[0] != NULL)
++                        cc_common_language_install (pk_data->xid, lang);
++        } else if (g_strcmp0 (signal_name, "Destroy") == 0) {
++                g_free (pk_data->lang);
++                g_clear_object (&pk_data->pk_transaction_proxy);
++                g_clear_object (&pk_data->pk_proxy);
++        }
++}
++
++static void
++on_pk_get_tid_ready (GObject *source, GAsyncResult *res, PkTransactionData *pk_data)
++
++{
++        g_autoptr(GVariant) result = NULL;
++        const gchar *tid;
++        g_autoptr(GError) error = NULL;
++
++        const gchar * provides_args[] = { g_strdup_printf ("locale(%s)",pk_data->lang), NULL };
++        result = g_dbus_proxy_call_finish (G_DBUS_PROXY (source), res, &error);
++        if (result == NULL) {
++                if (g_error_matches (error, G_DBUS_ERROR, G_DBUS_ERROR_SERVICE_UNKNOWN) == FALSE)
++                        g_debug ("Error getting PackageKit transaction ID: %s", error->message);
++                return;
++        }
++
++        g_variant_get (result, "(&o)", &tid);
++
++        pk_data->pk_transaction_proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
++                                                                       G_DBUS_PROXY_FLAGS_NONE,
++                                                                       NULL,
++                                                                       "org.freedesktop.PackageKit",
++                                                                       tid,
++                                                                       "org.freedesktop.PackageKit.Transaction",
++                                                                       NULL,
++                                                                       NULL);
++
++        if (pk_data->pk_transaction_proxy == NULL) {
++                g_debug ("Unable to get PackageKit transaction proxy object");
++                return;
++        }
++
++        g_signal_connect (pk_data->pk_transaction_proxy,
++                          "g-signal",
++                          G_CALLBACK (on_pk_transaction_signal),
++                          pk_data);
++
++        g_dbus_proxy_call (pk_data->pk_transaction_proxy,
++                           "WhatProvides",
++                           /* TODO need to get enums from libpackagekit-glib2 */
++                           g_variant_new ("(tu^a&s)",
++                                          (guint64)1, /*PK_FILTER_ENUM_NONE*/
++                                          (guint32)11, /*PK_PROVIDES_ENUM_LANGUAGE_SUPPORT*/
++                                          provides_args),
++                           G_DBUS_CALL_FLAGS_NONE,
++                           -1,
++                           NULL,
++                           (GAsyncReadyCallback) on_pk_what_provides_ready,
++                           pk_data);
++}
++
++gboolean
++cc_common_language_maybe_install (guint xid, const gchar *lang, gboolean force)
++{
++        g_autofree gchar *language_code = NULL;
++        g_autofree gchar *territory_code = NULL;
++        g_autofree gchar *territory_lang = NULL;
++        g_auto(GStrv) langs = NULL;
++        int i;
++        PkTransactionData *pk_data = NULL;
++
++        gnome_parse_locale (lang, &language_code, &territory_code, NULL, NULL);
++
++        /* If the language is already available, do nothing */
++        if (g_strcmp0 (language_code, "zh") == 0 )
++                territory_lang = g_strdup_printf ("%s_%s", language_code, territory_code);
++        else
++                territory_lang = g_strdup (language_code);
++
++        langs = cc_common_language_get_installed_languages();
++        for (i = 0; langs[i] != NULL; i++) {
++                if (g_strrstr (langs[i], territory_lang) && !force) {
++                        g_warning ("Language is already installed");
++                        return TRUE;
++                }
++        }
++
++        g_warning ("Language %s not installed, trying to install it", lang);
++
++        pk_data = g_new0 (PkTransactionData, 1);
++        pk_data->lang = g_strdup (lang);
++        pk_data->array = g_ptr_array_new ();
++        pk_data->xid = xid;
++
++        /* Now try to retrieve the list of packages needed to install this language */
++        pk_data->pk_proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
++                                                           G_DBUS_PROXY_FLAGS_NONE,
++                                                           NULL,
++                                                           "org.freedesktop.PackageKit",
++                                                           "/org/freedesktop/PackageKit",
++                                                           "org.freedesktop.PackageKit",
++                                                           NULL,
++                                                           NULL);
++        if (pk_data->pk_proxy == NULL) {
++                /* if there's a PK error, ignore and assume the lang is available */
++                g_debug ("PackageKit not available, not installing language");
++                return FALSE;
++        }
++
++        /* Retrieve PK transaction */
++        g_dbus_proxy_call (pk_data->pk_proxy,
++                           "CreateTransaction",
++                           NULL,
++                           G_DBUS_CALL_FLAGS_NONE,
++                           -1,
++                           NULL,
++                           (GAsyncReadyCallback) on_pk_get_tid_ready,
++                           pk_data);
++
++        return FALSE;
++}
+diff --git a/panels/common/cc-common-language.h b/panels/common/cc-common-language.h
+index 2e5a446..4f46cc3 100644
+--- a/panels/common/cc-common-language.h
++++ b/panels/common/cc-common-language.h
+@@ -50,6 +50,8 @@ GHashTable *cc_common_language_get_initial_languages   (void);
+ GHashTable *cc_common_language_get_user_languages      (void);
+ GHashTable *cc_common_language_get_initial_regions     (const gchar *lang);
+ 
++gboolean cc_common_language_maybe_install           (guint32 xid,  const gchar *lang, gboolean force);
++
+ void     cc_common_language_setup_list              (GtkWidget    *treeview,
+ 						     GHashTable   *users,
+ 						     GHashTable   *initial);

@@ -1,0 +1,354 @@
+From: Robert Ancell <robert.ancell@canonical.com>
+Date: Wed, 20 Feb 2019 16:18:33 +0100
+Subject: [PATCH 27/28] window: Stop using HdyLeaflet
+
+This is too buggy for an LTS release and less useful in the desktop case.
+
+https://launchpad.net/bugs/1871195
+---
+ shell/cc-window.c  | 105 ++---------------------------------------------------
+ shell/cc-window.ui |  55 ++--------------------------
+ 2 files changed, 6 insertions(+), 154 deletions(-)
+
+diff --git a/shell/cc-window.c b/shell/cc-window.c
+index e84864e..906d35f 100644
+--- a/shell/cc-window.c
++++ b/shell/cc-window.c
+@@ -54,13 +54,9 @@ struct _CcWindow
+ {
+   GtkApplicationWindow parent;
+ 
+-  GtkRevealer       *back_revealer;
+   GtkMessageDialog  *development_warning_dialog;
+   GtkHeaderBar      *header;
+-  HdyLeaflet        *header_box;
+-  HdyHeaderGroup    *header_group;
+   GtkSizeGroup      *header_sizegroup;
+-  HdyLeaflet        *main_leaflet;
+   GtkHeaderBar      *panel_headerbar;
+   CcPanelList       *panel_list;
+   GtkButton         *previous_button;
+@@ -82,8 +78,6 @@ struct _CcWindow
+ 
+   CcPanel *active_panel;
+   GSettings *settings;
+-
+-  CcPanelListView previous_list_view;
+ };
+ 
+ static void     cc_shell_iface_init         (CcShellInterface      *iface);
+@@ -128,26 +122,6 @@ remove_all_custom_widgets (CcWindow *self)
+   CC_EXIT;
+ }
+ 
+-static void
+-show_panel (CcWindow *self)
+-{
+-  hdy_leaflet_set_visible_child (self->main_leaflet, GTK_WIDGET (self->stack));
+-  hdy_leaflet_set_visible_child (self->header_box, GTK_WIDGET (self->panel_headerbar));
+-}
+-
+-static void
+-show_sidebar (CcWindow *self)
+-{
+-  hdy_leaflet_set_visible_child (self->main_leaflet, GTK_WIDGET (self->sidebar_box));
+-  hdy_leaflet_set_visible_child (self->header_box, GTK_WIDGET (self->header));
+-}
+-
+-static void
+-on_sidebar_activated_cb (CcWindow *self)
+-{
+-  show_panel (self);
+-}
+-
+ static gboolean
+ activate_panel (CcWindow          *self,
+                 const gchar       *id,
+@@ -179,8 +153,6 @@ activate_panel (CcWindow          *self,
+   /* Begin the profile */
+   g_timer_start (timer);
+ 
+-  if (self->current_panel)
+-    g_signal_handlers_disconnect_by_data (self->current_panel, self);
+   self->current_panel = GTK_WIDGET (cc_panel_loader_load_by_name (CC_SHELL (self), id, parameters));
+   cc_shell_set_active_panel (CC_SHELL (self), CC_PANEL (self->current_panel));
+   gtk_widget_show (self->current_panel);
+@@ -200,10 +172,6 @@ activate_panel (CcWindow          *self,
+ 
+   sidebar_widget = cc_panel_get_sidebar_widget (CC_PANEL (self->current_panel));
+   cc_panel_list_add_sidebar_widget (self->panel_list, sidebar_widget);
+-  /* Ensure we show the panel when when the leaflet is folded and a sidebar
+-   * widget's row is activated.
+-   */
+-  g_signal_connect_object (self->current_panel, "sidebar-activated", G_CALLBACK (on_sidebar_activated_cb), self, G_CONNECT_SWAPPED);
+ 
+   /* Finish profiling */
+   g_timer_stop (timer);
+@@ -399,7 +367,6 @@ set_active_panel_from_id (CcWindow     *self,
+                           const gchar  *start_id,
+                           GVariant     *parameters,
+                           gboolean      add_to_history,
+-                          gboolean      force_moving_to_the_panel,
+                           GError      **error)
+ {
+   g_autoptr(GIcon) gicon = NULL;
+@@ -407,21 +374,15 @@ set_active_panel_from_id (CcWindow     *self,
+   CcPanelVisibility visibility;
+   GtkTreeIter iter;
+   GtkWidget *old_panel;
+-  CcPanelListView view;
+   gboolean activated;
+   gboolean found;
+ 
+   CC_ENTRY;
+ 
+-  view = cc_panel_list_get_view (self->panel_list);
+-
+   /* When loading the same panel again, just set its parameters */
+   if (g_strcmp0 (self->current_panel_id, start_id) == 0)
+     {
+       g_object_set (G_OBJECT (self->current_panel), "parameters", parameters, NULL);
+-      if (force_moving_to_the_panel || self->previous_list_view == view)
+-        show_panel (self);
+-      self->previous_list_view = view;
+       CC_RETURN (TRUE);
+     }
+ 
+@@ -455,9 +416,6 @@ set_active_panel_from_id (CcWindow     *self,
+   if (add_to_history)
+     add_current_panel_to_history (self, start_id);
+ 
+-  if (force_moving_to_the_panel)
+-    show_panel (self);
+-
+   g_free (self->current_panel_id);
+   self->current_panel_id = g_strdup (start_id);
+ 
+@@ -507,51 +465,12 @@ switch_to_previous_panel (CcWindow *self)
+ 
+   g_debug ("Going to previous panel (%s)", previous_panel_id);
+ 
+-  set_active_panel_from_id (self, previous_panel_id, NULL, FALSE, FALSE, NULL);
++  set_active_panel_from_id (self, previous_panel_id, NULL, FALSE, NULL);
+ 
+   CC_EXIT;
+ }
+ 
+ /* Callbacks */
+-static void
+-update_fold_state (CcWindow *self)
+-{
+-  GtkWidget *header_child = hdy_leaflet_get_visible_child (self->header_box);
+-  HdyFold fold = hdy_leaflet_get_fold (self->header_box);
+-
+-  hdy_header_group_set_focus (self->header_group, fold == HDY_FOLD_FOLDED ? GTK_HEADER_BAR (header_child) : NULL);
+-
+-  gtk_widget_set_visible (GTK_WIDGET (self->back_revealer), fold == HDY_FOLD_FOLDED);
+-  gtk_revealer_set_reveal_child (self->back_revealer, fold == HDY_FOLD_FOLDED);
+-}
+-
+-static void
+-notify_header_visible_child_cb (CcWindow *self)
+-{
+-  update_fold_state (self);
+-}
+-
+-static void
+-notify_fold_cb (CcWindow *self)
+-{
+-  update_fold_state (self);
+-}
+-
+-static void
+-on_main_leaflet_fold_changed_cb (CcWindow *self)
+-{
+-  GtkSelectionMode selection_mode;
+-
+-  g_assert (CC_IS_WINDOW (self));
+-
+-  selection_mode = GTK_SELECTION_SINGLE;
+-
+-  if (hdy_leaflet_get_fold (self->main_leaflet) == HDY_FOLD_FOLDED)
+-    selection_mode = GTK_SELECTION_NONE;
+-
+-  cc_panel_list_set_selection_mode (self->panel_list, selection_mode);
+-}
+-
+ static void
+ show_panel_cb (CcWindow    *self,
+                const gchar *panel_id)
+@@ -559,7 +478,7 @@ show_panel_cb (CcWindow    *self,
+   if (!panel_id)
+     return;
+ 
+-  set_active_panel_from_id (self, panel_id, NULL, TRUE, FALSE, NULL);
++  set_active_panel_from_id (self, panel_id, NULL, TRUE, NULL);
+ }
+ 
+ static void
+@@ -572,12 +491,6 @@ search_entry_activate_cb (CcWindow *self)
+   gtk_search_bar_set_search_mode (self->search_bar, !changed);
+ }
+ 
+-static void
+-back_button_clicked_cb (CcWindow *self)
+-{
+-  show_sidebar (self);
+-}
+-
+ static void
+ previous_button_clicked_cb (CcWindow *self)
+ {
+@@ -704,7 +617,7 @@ cc_window_set_active_panel_from_id (CcShell      *shell,
+                                     GVariant     *parameters,
+                                     GError      **error)
+ {
+-  return set_active_panel_from_id (CC_WINDOW (shell), start_id, parameters, TRUE, TRUE, error);
++  return set_active_panel_from_id (CC_WINDOW (shell), start_id, parameters, TRUE, error);
+ }
+ 
+ static void
+@@ -839,7 +752,6 @@ cc_window_constructed (GObject *object)
+                             self);
+ 
+   update_headerbar_buttons (self);
+-  show_sidebar (self);
+ 
+   G_OBJECT_CLASS (cc_window_parent_class)->constructed (object);
+ }
+@@ -899,13 +811,9 @@ cc_window_class_init (CcWindowClass *klass)
+ 
+   gtk_widget_class_set_template_from_resource (widget_class, "/org/gnome/ControlCenter/gtk/cc-window.ui");
+ 
+-  gtk_widget_class_bind_template_child (widget_class, CcWindow, back_revealer);
+   gtk_widget_class_bind_template_child (widget_class, CcWindow, development_warning_dialog);
+   gtk_widget_class_bind_template_child (widget_class, CcWindow, header);
+-  gtk_widget_class_bind_template_child (widget_class, CcWindow, header_box);
+-  gtk_widget_class_bind_template_child (widget_class, CcWindow, header_group);
+   gtk_widget_class_bind_template_child (widget_class, CcWindow, header_sizegroup);
+-  gtk_widget_class_bind_template_child (widget_class, CcWindow, main_leaflet);
+   gtk_widget_class_bind_template_child (widget_class, CcWindow, panel_headerbar);
+   gtk_widget_class_bind_template_child (widget_class, CcWindow, panel_list);
+   gtk_widget_class_bind_template_child (widget_class, CcWindow, previous_button);
+@@ -917,11 +825,7 @@ cc_window_class_init (CcWindowClass *klass)
+   gtk_widget_class_bind_template_child (widget_class, CcWindow, top_left_box);
+   gtk_widget_class_bind_template_child (widget_class, CcWindow, top_right_box);
+ 
+-  gtk_widget_class_bind_template_callback (widget_class, back_button_clicked_cb);
+   gtk_widget_class_bind_template_callback (widget_class, gdk_window_set_cb);
+-  gtk_widget_class_bind_template_callback (widget_class, notify_header_visible_child_cb);
+-  gtk_widget_class_bind_template_callback (widget_class, notify_fold_cb);
+-  gtk_widget_class_bind_template_callback (widget_class, on_main_leaflet_fold_changed_cb);
+   gtk_widget_class_bind_template_callback (widget_class, on_development_warning_dialog_responded_cb);
+   gtk_widget_class_bind_template_callback (widget_class, previous_button_clicked_cb);
+   gtk_widget_class_bind_template_callback (widget_class, search_entry_activate_cb);
+@@ -943,13 +847,10 @@ cc_window_init (CcWindow *self)
+   self->settings = g_settings_new ("org.gnome.ControlCenter");
+   self->custom_widgets = g_ptr_array_new_with_free_func ((GDestroyNotify) g_object_unref);
+   self->previous_panels = g_queue_new ();
+-  self->previous_list_view = cc_panel_list_get_view (self->panel_list);
+ 
+   /* Add a custom CSS class on development builds */
+   if (in_flatpak_sandbox ())
+     gtk_style_context_add_class (gtk_widget_get_style_context (GTK_WIDGET (self)), "devel");
+-
+-  update_fold_state (self);
+ }
+ 
+ CcWindow *
+diff --git a/shell/cc-window.ui b/shell/cc-window.ui
+index dfaf65a..4125758 100644
+--- a/shell/cc-window.ui
++++ b/shell/cc-window.ui
+@@ -10,12 +10,9 @@
+     <signal name="map-event" handler="window_map_event_cb" object="CcWindow" swapped="yes" />
+     <signal name="key-press-event" handler="window_key_press_event_cb" object="CcWindow" swapped="yes" after="yes" />
+     <child>
+-      <object class="HdyLeaflet" id="main_leaflet">
++      <object class="GtkBox" id="main_hbox">
+         <property name="visible">True</property>
+         <property name="can_focus">False</property>
+-        <property name="mode-transition-type">slide</property>
+-        <property name="child-transition-type">slide</property>
+-        <signal name="notify::fold" handler="on_main_leaflet_fold_changed_cb" object="CcWindow" swapped="yes" />
+         <child>
+           <object class="GtkBox" id="sidebar_box">
+             <property name="visible">True</property>
+@@ -107,21 +104,15 @@
+         <property name="visible">True</property>
+         <property name="can_focus">False</property>
+         <child>
+-          <object class="HdyLeaflet" id="header_box">
++          <object class="GtkBox">
+             <property name="visible">True</property>
+             <property name="can_focus">False</property>
+             <property name="orientation">horizontal</property>
+-            <property name="mode-transition-type" bind-source="main_leaflet" bind-property="mode-transition-type" bind-flags="bidirectional|sync-create"/>
+-            <property name="mode-transition-duration" bind-source="main_leaflet" bind-property="mode-transition-duration" bind-flags="bidirectional|sync-create"/>
+-            <property name="child-transition-type" bind-source="main_leaflet" bind-property="child-transition-type" bind-flags="bidirectional|sync-create"/>
+-            <property name="child-transition-duration" bind-source="main_leaflet" bind-property="child-transition-duration" bind-flags="bidirectional|sync-create"/>
+-            <signal name="notify::visible-child" handler="notify_header_visible_child_cb" swapped="yes"/>
+-            <signal name="notify::fold" handler="notify_fold_cb" object="CcWindow" after="yes" swapped="yes"/>
+             <child>
+               <object class="GtkHeaderBar" id="header">
+                 <property name="visible">True</property>
+                 <property name="can_focus">False</property>
+-                <property name="show-close-button">True</property>
++                <property name="show-close-button">False</property>
+                 <property name="title" translatable="yes">Settings</property>
+                 <child>
+                   <object class="GtkButton" id="previous_button">
+@@ -211,39 +202,6 @@
+                 <property name="can_focus">False</property>
+                 <property name="hexpand">True</property>
+                 <property name="show_close_button">True</property>
+-                <child>
+-                  <object class="GtkRevealer" id="back_revealer">
+-                    <property name="can_focus">False</property>
+-                    <property name="transition-type">crossfade</property>
+-                    <property name="transition-duration" bind-source="main_leaflet" bind-property="mode-transition-duration" bind-flags="bidirectional|sync-create"/>
+-                    <child>
+-                      <object class="GtkButton" id="back">
+-                        <property name="visible">True</property>
+-                        <property name="can_focus">False</property>
+-                        <property name="receives_default">False</property>
+-                        <property name="valign">center</property>
+-                        <property name="use-underline">True</property>
+-                        <signal name="clicked" handler="back_button_clicked_cb" object="CcWindow" swapped="yes" />
+-                        <style>
+-                          <class name="image-button"/>
+-                        </style>
+-                        <child internal-child="accessible">
+-                          <object class="AtkObject" id="a11y-back">
+-                            <property name="accessible-name" translatable="yes">Back</property>
+-                          </object>
+-                        </child>
+-                        <child>
+-                          <object class="GtkImage" id="back_image">
+-                            <property name="visible">True</property>
+-                            <property name="can_focus">False</property>
+-                            <property name="icon_name">go-previous-symbolic</property>
+-                            <property name="icon_size">1</property>
+-                          </object>
+-                        </child>
+-                      </object>
+-                    </child>
+-                  </object>
+-                </child>
+                 <child>
+                   <object class="GtkBox" id="top_left_box">
+                     <property name="visible">True</property>
+@@ -267,13 +225,6 @@
+     </child>
+   </template>
+ 
+-  <object class="HdyHeaderGroup" id="header_group">
+-    <headerbars>
+-      <headerbar name="header"/>
+-      <headerbar name="panel_headerbar"/>
+-    </headerbars>
+-  </object>
+-
+   <object class="GtkSizeGroup" id="header_sizegroup">
+     <property name="mode">vertical</property>
+     <widgets>

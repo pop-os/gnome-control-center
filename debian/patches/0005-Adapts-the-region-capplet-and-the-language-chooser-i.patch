@@ -1,0 +1,547 @@
+From: Gunnar Hjalmarsson <gunnarhj@ubuntu.com>
+Date: Mon, 22 Jul 2019 22:24:00 +0200
+Subject: [PATCH 05/26] Adapts the region capplet and the language chooser in
+ the user accounts capplet
+
+ Some background that explains the need for this patch:
+
+ * Ubuntu isn't shipped with all languages installed and all locales generated.
+   Instead the users install the needed language pack(s), and the corresponding
+   locales are generated.
+
+ * The code in accountsservice for handling languages has been extended via Ubuntu
+   specific patches. That code is shared by multiple packages. Currently those
+   packages are:
+   - gnome-control-center
+   - unity-control-center
+   - language-selector
+   - lightdm (for the language chooser in lightdm-gtk-greeter)
+
+ With this patch applied, the g-c-c region capplet and the language chooser in the
+ user accounts capplet behave approximately the same way as language-selector. No
+ migration code needed when standard Ubuntu drops the language-selector UI.
+
+ Compared with how the region capplet in g-c-c works out of the box, this patch
+ results in:
+
+ * Languages are dealt with using 'll' and 'll_CC' language codes instead of
+   complete locale names.
+
+ * Selected language is stored in both LANGUAGE and LANG.
+
+ * Only one language list that shows the translations belonging to the installed
+   language packs (not a 'short' and a 'long' list).
+
+ * User level settings of language and regional formats are stored as
+   accountsservice properties and in ~/.pam_environment.
+
+ * All the formats related locale categories set, not just a subset.
+---
+ panels/common/cc-common-language.c   | 137 +++++++++++++++++++++++++++++------
+ panels/common/cc-common-language.h   |   4 +
+ panels/common/cc-language-chooser.c  |   4 +-
+ panels/region/cc-region-panel.c      | 120 ++++++++++++++++++++++--------
+ panels/user-accounts/cc-user-panel.c |  12 ++-
+ 5 files changed, 218 insertions(+), 59 deletions(-)
+
+diff --git a/panels/common/cc-common-language.c b/panels/common/cc-common-language.c
+index 9357c3e..c923d82 100644
+--- a/panels/common/cc-common-language.c
++++ b/panels/common/cc-common-language.c
+@@ -161,6 +161,55 @@ cc_common_language_get_current_language (void)
+         return language;
+ }
+ 
++gchar *
++cc_common_language_get_property (const gchar *prop_name)
++{
++        g_autoptr(GDBusConnection) bus = NULL;
++        g_autofree gchar *user_path = NULL;
++        g_autoptr(GVariant) properties = NULL;
++        g_autoptr(GVariantIter) iter = NULL;
++        const gchar *key;
++        GVariant *value;
++        g_autoptr(GError) error = NULL;
++
++        if (g_strcmp0 (prop_name, "Language") != 0 && g_strcmp0 (prop_name, "FormatsLocale") != 0) {
++                g_warning ("Invalid argument: '%s'", prop_name);
++                return NULL;
++        }
++
++        bus = g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, NULL);
++        user_path = g_strdup_printf ("/org/freedesktop/Accounts/User%i", getuid ());
++
++        properties = g_dbus_connection_call_sync (bus,
++                                                  "org.freedesktop.Accounts",
++                                                  user_path,
++                                                  "org.freedesktop.DBus.Properties",
++                                                  "GetAll",
++                                                  g_variant_new ("(s)", "org.freedesktop.Accounts.User"),
++                                                  G_VARIANT_TYPE ("(a{sv})"),
++                                                  G_DBUS_CALL_FLAGS_NONE,
++                                                  -1,
++                                                  NULL,
++                                                  &error);
++        if (!properties) {
++                g_warning ("Error calling GetAll() when retrieving properties for %s: %s", user_path, error->message);
++
++                /* g_hash_table_lookup() is not NULL-safe, so don't return NULL */
++                if (g_strcmp0 (prop_name, "Language") == 0)
++                        return g_strdup ("en");
++                else
++                        return g_strdup ("en_US.UTF-8");
++        }
++
++        g_variant_get (properties, "(a{sv})", &iter);
++        while (g_variant_iter_loop (iter, "{&sv}", &key, &value)) {
++                if (g_strcmp0 (key, prop_name) == 0)
++                        return g_variant_dup_string (value, NULL);
++        }
++
++        return NULL;
++}
++
+ static char *
+ get_lang_for_user_object_path (const char *path)
+ {
+@@ -201,30 +250,62 @@ insert_language (GHashTable *ht,
+         g_autofree gchar *label_own_lang = NULL;
+         g_autofree gchar *label_current_lang = NULL;
+         g_autofree gchar *label_untranslated = NULL;
++        g_autofree gchar *key = NULL;
++
++        cc_common_language_get_locale (lang, &key);
+ 
+-        label_own_lang = gnome_get_language_from_locale (lang, lang);
+-        label_current_lang = gnome_get_language_from_locale (lang, NULL);
+-        label_untranslated = gnome_get_language_from_locale (lang, "C");
++        label_own_lang = gnome_get_language_from_locale (key, key);
++        label_current_lang = gnome_get_language_from_locale (key, NULL);
++        label_untranslated = gnome_get_language_from_locale (key, "C");
+ 
+         /* We don't have a translation for the label in
+          * its own language? */
+         if (g_strcmp0 (label_own_lang, label_untranslated) == 0) {
+                 if (g_strcmp0 (label_current_lang, label_untranslated) == 0)
+-                        g_hash_table_insert (ht, g_strdup (lang), g_strdup (label_untranslated));
++                        g_hash_table_insert (ht, g_strdup (key), g_strdup (label_untranslated));
+                 else
+-                        g_hash_table_insert (ht, g_strdup (lang), g_strdup (label_current_lang));
++                        g_hash_table_insert (ht, g_strdup (key), g_strdup (label_current_lang));
+         } else {
+-                g_hash_table_insert (ht, g_strdup (lang), g_strdup (label_own_lang));
++                g_hash_table_insert (ht, g_strdup (key), g_strdup (label_own_lang));
+         }
+ }
+ 
++gchar **
++cc_common_language_get_installed_languages (void)
++{
++        g_autofree gchar *output = NULL;
++        g_auto(GStrv) langs = NULL;
++        g_autoptr(GError) error = NULL;
++
++        if (!g_spawn_command_line_sync ("/usr/share/language-tools/language-options",
++                                        &output, NULL, NULL, &error)) {
++                g_warning ("Couldn't get installed languages: %s", error->message);
++                return NULL;
++        }
++        langs = g_strsplit (output, "\n", 0);
++
++        return g_steal_pointer (&langs);
++}
++
+ GHashTable *
+ cc_common_language_get_initial_languages (void)
+ {
+         GHashTable *ht;
++        gchar **langs;
++        gint i;
+ 
+         ht = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
+ 
++        langs = cc_common_language_get_installed_languages ();
++
++        if (langs) {
++                for (i = 0; langs[i]; i++) {
++                        insert_language (ht, langs[i]);
++                }
++
++                g_strfreev (langs);
++        }
++/*
+         insert_language (ht, "en_US.UTF-8");
+         insert_language (ht, "en_GB.UTF-8");
+         insert_language (ht, "de_DE.UTF-8");
+@@ -234,10 +315,30 @@ cc_common_language_get_initial_languages (void)
+         insert_language (ht, "ja_JP.UTF-8");
+         insert_language (ht, "ru_RU.UTF-8");
+         insert_language (ht, "ar_EG.UTF-8");
+-
++*/
+         return ht;
+ }
+ 
++void
++cc_common_language_get_locale (const gchar *language, gchar **locale)
++{
++        g_autofree gchar *command = NULL;
++        g_autoptr(GError) error = NULL;
++
++        /* Get locale that corresponds to the language */
++        command = g_strconcat ("/usr/share/language-tools/language2locale ", language, NULL);
++        if (!g_spawn_command_line_sync (command, locale, NULL, NULL, &error)) {
++                g_warning ("Couldn't get locale: %s", error->message);
++                return;
++        }
++
++        g_strchomp (*locale);
++        if (strlen (*locale) == 0) {
++                g_warning ("Couldn't get locale for language: %s", language);
++                return;
++        }
++
++}
+ static void
+ foreach_user_lang_cb (gpointer key,
+                       gpointer value,
+@@ -263,28 +364,18 @@ cc_common_language_add_user_languages (GtkTreeModel *model)
+         GtkListStore *store = GTK_LIST_STORE (model);
+         GHashTable *user_langs;
+         const char *display;
++        const char *lang;
+ 
+         gtk_list_store_clear (store);
+ 
+         user_langs = cc_common_language_get_initial_languages ();
+ 
+         /* Add the current locale first */
+-        name = cc_common_language_get_current_language ();
++        lang = cc_common_language_get_property ("Language");
++        cc_common_language_get_locale (lang, &name);
+         display = g_hash_table_lookup (user_langs, name);
+         if (!display) {
+-                g_autofree gchar *language = NULL;
+-                g_autofree gchar *country = NULL;
+-                g_autofree gchar *codeset = NULL;
+-
+-                gnome_parse_locale (name, &language, &country, &codeset, NULL);
+-
+-                if (!codeset || !g_str_equal (codeset, "UTF-8"))
+-                        g_warning ("Current user locale codeset isn't UTF-8");
+-
+-                g_free (name);
+-                name = g_strdup_printf ("%s_%s.UTF-8", language, country);
+-
+-                insert_language (user_langs, name);
++                insert_language (user_langs, lang);
+                 display = g_hash_table_lookup (user_langs, name);
+         }
+ 
+@@ -296,8 +387,8 @@ cc_common_language_add_user_languages (GtkTreeModel *model)
+         g_hash_table_foreach (user_langs, (GHFunc) foreach_user_lang_cb, store);
+ 
+         /* And now the "Other…" selection */
+-        gtk_list_store_append (store, &iter);
+-        gtk_list_store_set (store, &iter, LOCALE_COL, NULL, DISPLAY_LOCALE_COL, _("Other…"), -1);
++        //gtk_list_store_append (store, &iter);
++        //gtk_list_store_set (store, &iter, LOCALE_COL, NULL, DISPLAY_LOCALE_COL, _("Other…"), -1);
+ 
+         g_hash_table_destroy (user_langs);
+ }
+diff --git a/panels/common/cc-common-language.h b/panels/common/cc-common-language.h
+index 1f578b7..2e5a446 100644
+--- a/panels/common/cc-common-language.h
++++ b/panels/common/cc-common-language.h
+@@ -43,6 +43,8 @@ guint    cc_common_language_add_available_languages (GtkListStore     *store,
+                                                      GHashTable       *user_langs);
+ gboolean cc_common_language_has_font                (const gchar  *locale);
+ gchar   *cc_common_language_get_current_language    (void);
++gchar   *cc_common_language_get_property            (const gchar  *prop_name);
++gchar	**cc_common_language_get_installed_languages   (void);
+ 
+ GHashTable *cc_common_language_get_initial_languages   (void);
+ GHashTable *cc_common_language_get_user_languages      (void);
+@@ -55,4 +57,6 @@ void     cc_common_language_select_current_language (GtkTreeView  *treeview);
+ 
+ void     cc_common_language_add_user_languages (GtkTreeModel *model);
+ 
++void    cc_common_language_get_locale (const gchar *language, gchar **locale);
++
+ G_END_DECLS
+diff --git a/panels/common/cc-language-chooser.c b/panels/common/cc-language-chooser.c
+index 0dde398..6fde972 100644
+--- a/panels/common/cc-language-chooser.c
++++ b/panels/common/cc-language-chooser.c
+@@ -186,7 +186,7 @@ add_languages (CcLanguageChooser *chooser,
+                 gtk_container_add (GTK_CONTAINER (chooser->language_listbox), widget);
+         }
+ 
+-        gtk_container_add (GTK_CONTAINER (chooser->language_listbox), GTK_WIDGET (chooser->more_item));
++        /*gtk_container_add (GTK_CONTAINER (chooser->language_listbox), GTK_WIDGET (chooser->more_item));*/
+ }
+ 
+ static void
+@@ -412,7 +412,7 @@ cc_language_chooser_init (CcLanguageChooser *chooser)
+         gtk_widget_init_template (GTK_WIDGET (chooser));
+ 
+         chooser->more_item = more_widget_new ();
+-        gtk_widget_show (GTK_WIDGET (chooser->more_item));
++        /*gtk_widget_show (GTK_WIDGET (chooser->more_item));*/
+         /* We ref-sink here so we can reuse this widget multiple times */
+         chooser->no_results = g_object_ref_sink (no_results_widget_new ());
+         gtk_widget_show (chooser->no_results);
+diff --git a/panels/region/cc-region-panel.c b/panels/region/cc-region-panel.c
+index 9b59b23..060b48e 100644
+--- a/panels/region/cc-region-panel.c
++++ b/panels/region/cc-region-panel.c
+@@ -365,6 +365,7 @@ static void
+ update_language (CcRegionPanel *self,
+                  const gchar   *language)
+ {
++        g_debug ("Setting language to %s", language);
+         if (self->login) {
+                 set_system_language (self, language);
+         } else {
+@@ -405,6 +406,39 @@ set_system_region (CcRegionPanel *self,
+         set_localed_locale (self);
+ }
+ 
++static void
++set_formats_locale (const gchar *formats_locale)
++{
++        g_autoptr(GDBusProxy) proxy = NULL;
++        g_autofree gchar *user_path = NULL;
++        g_autoptr(GVariant) ret = NULL;
++        g_autoptr(GError) error = NULL;
++
++        user_path = g_strdup_printf ("/org/freedesktop/Accounts/User%i", getuid ());
++        proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
++                                               G_DBUS_PROXY_FLAGS_NONE,
++                                               NULL,
++                                               "org.freedesktop.Accounts",
++                                               user_path,
++                                               "org.freedesktop.Accounts.User",
++                                               NULL,
++                                               &error);
++        if (!proxy) {
++                g_warning ("Couldn't get accountsservice proxy for %s: %s", user_path, error->message);
++                return;
++        }
++
++        ret = g_dbus_proxy_call_sync (proxy,
++                                      "SetFormatsLocale",
++                                      g_variant_new ("(s)", formats_locale),
++                                      G_DBUS_CALL_FLAGS_NONE,
++                                      -1,
++                                      NULL,
++                                      &error);
++        if (!ret)
++                g_warning ("Couldn't set FormatsLocale: %s", error->message);
++}
++
+ static void
+ update_region (CcRegionPanel *self,
+                const gchar   *region)
+@@ -414,6 +448,7 @@ update_region (CcRegionPanel *self,
+         } else {
+                 if (g_strcmp0 (region, self->region) == 0)
+                         return;
++                set_formats_locale(region);
+                 g_settings_set_string (self->locale_settings, KEY_REGION, region);
+                 if (self->login_auto_apply)
+                         set_system_region (self, region);
+@@ -566,7 +601,7 @@ static void
+ update_region_from_setting (CcRegionPanel *self)
+ {
+         g_free (self->region);
+-        self->region = g_settings_get_string (self->locale_settings, KEY_REGION);
++        self->region = cc_common_language_get_property ("FormatsLocale");
+         update_region_label (self);
+ }
+ 
+@@ -592,15 +627,19 @@ static void
+ update_language_from_user (CcRegionPanel *self)
+ {
+         const gchar *language = NULL;
++        g_autofree gchar *locale = NULL;
+ 
+-        if (act_user_is_loaded (self->user))
++        if (act_user_is_loaded (self->user)) {
+                 language = act_user_get_language (self->user);
++                cc_common_language_get_locale (language, &locale);
++        }
+ 
+-        if (language == NULL || *language == '\0')
+-                language = setlocale (LC_MESSAGES, NULL);
++        if (language == NULL || *language == '\0') {
++                locale = g_strdup (setlocale (LC_MESSAGES, NULL));
++        }
+ 
+         g_free (self->language);
+-        self->language = g_strdup (language);
++        self->language = g_steal_pointer (&locale);
+         update_language_label (self);
+ }
+ 
+@@ -1251,6 +1290,16 @@ setup_input_section (CcRegionPanel *self)
+         update_modifiers_shortcut (self);
+ }
+ 
++static gchar *
++strip_quotes (const gchar *str)
++{
++        if ((g_str_has_prefix (str, "\"") && g_str_has_suffix (str, "\""))
++          || (g_str_has_prefix (str, "'") && g_str_has_suffix (str, "'")))
++                return g_strndup (str + 1, strlen (str) - 2);
++        else
++                return g_strdup (str);
++}
++
+ static void
+ on_localed_properties_changed (CcRegionPanel  *self,
+                                GVariant       *changed_properties,
+@@ -1263,28 +1312,38 @@ on_localed_properties_changed (CcRegionPanel  *self,
+                 g_autofree const gchar **strv = NULL;
+                 gsize len;
+                 gint i;
+-                const gchar *lang, *messages, *time;
++                g_autofree gchar *lang;
++                g_autofree gchar *language;
++                g_autofree gchar *messages;
++                g_autofree gchar *time;
+ 
+                 strv = g_variant_get_strv (v, &len);
+ 
+-                lang = messages = time = NULL;
++                lang = language = messages = time = NULL;
+                 for (i = 0; strv[i]; i++) {
+                         if (g_str_has_prefix (strv[i], "LANG=")) {
+-                                lang = strv[i] + strlen ("LANG=");
++                                lang = strip_quotes (strv[i] + strlen ("LANG="));
++                        } else if (g_str_has_prefix (strv[i], "LANGUAGE=")) {
++                                g_autofree gchar *tmp = strip_quotes (strv[i] + strlen ("LANGUAGE="));
++                                g_auto(GStrv) tokens = g_strsplit (tmp, ":", 2);
++                                language = g_strdup (tokens[0]);
+                         } else if (g_str_has_prefix (strv[i], "LC_MESSAGES=")) {
+-                                messages = strv[i] + strlen ("LC_MESSAGES=");
++                                messages = strip_quotes (strv[i] + strlen ("LC_MESSAGES="));
+                         } else if (g_str_has_prefix (strv[i], "LC_TIME=")) {
+-                                time = strv[i] + strlen ("LC_TIME=");
++                                time = strip_quotes (strv[i] + strlen ("LC_TIME="));
+                         }
+                 }
+                 if (!lang) {
+-                        lang = setlocale (LC_MESSAGES, NULL);
++                        lang = g_strdup ("en_US.UTF-8");
+                 }
+-                if (!messages) {
+-                        messages = lang;
++                if (!language) {
++                        if (messages)
++                                language = g_strdup (messages);
++                        else
++                                language = g_strdup (lang);
+                 }
+                 g_free (self->system_language);
+-                self->system_language = g_strdup (messages);
++                self->system_language = g_strdup (language);
+                 g_free (self->system_region);
+                 self->system_region = g_strdup (time);
+ 
+@@ -1338,27 +1397,26 @@ set_localed_locale (CcRegionPanel *self)
+ {
+         g_autoptr(GVariantBuilder) b = NULL;
+         g_autofree gchar *lang_value = NULL;
++        g_autofree gchar *lang = NULL;
++
++        cc_common_language_get_locale (self->system_language, &lang);
+ 
+         b = g_variant_builder_new (G_VARIANT_TYPE ("as"));
+-        lang_value = g_strconcat ("LANG=", self->system_language, NULL);
++        lang_value = g_strconcat ("LANG=", lang, NULL);
++        g_variant_builder_add (b, "s", lang_value);
++
++        g_free (lang_value);
++
++        lang_value = g_strconcat ("LANGUAGE=", self->system_language, NULL);
+         g_variant_builder_add (b, "s", lang_value);
+ 
+-        if (self->system_region != NULL) {
+-                g_autofree gchar *time_value = NULL;
+-                g_autofree gchar *numeric_value = NULL;
+-                g_autofree gchar *monetary_value = NULL;
+-                g_autofree gchar *measurement_value = NULL;
+-                g_autofree gchar *paper_value = NULL;
+-                time_value = g_strconcat ("LC_TIME=", self->system_region, NULL);
+-                g_variant_builder_add (b, "s", time_value);
+-                numeric_value = g_strconcat ("LC_NUMERIC=", self->system_region, NULL);
+-                g_variant_builder_add (b, "s", numeric_value);
+-                monetary_value = g_strconcat ("LC_MONETARY=", self->system_region, NULL);
+-                g_variant_builder_add (b, "s", monetary_value);
+-                measurement_value = g_strconcat ("LC_MEASUREMENT=", self->system_region, NULL);
+-                g_variant_builder_add (b, "s", measurement_value);
+-                paper_value = g_strconcat ("LC_PAPER=", self->system_region, NULL);
+-                g_variant_builder_add (b, "s", paper_value);
++        const gchar *format_categories[] = { "LC_NUMERIC", "LC_TIME",
++           "LC_MONETARY", "LC_PAPER", "LC_IDENTIFICATION", "LC_NAME",
++           "LC_ADDRESS", "LC_TELEPHONE", "LC_MEASUREMENT", NULL };
++        for (int i = 0; format_categories[i] != NULL; i++) {
++                g_autofree gchar *s = NULL;
++                s = g_strconcat (format_categories[i], "=", self->system_region, NULL);
++                g_variant_builder_add (b, "s", s);
+         }
+         g_dbus_proxy_call (self->localed,
+                            "SetLocale",
+diff --git a/panels/user-accounts/cc-user-panel.c b/panels/user-accounts/cc-user-panel.c
+index d5ddb75..0600c7c 100644
+--- a/panels/user-accounts/cc-user-panel.c
++++ b/panels/user-accounts/cc-user-panel.c
+@@ -857,6 +857,7 @@ show_user (ActUser *user, CcUserPanel *self)
+ 
+         name = NULL;
+         lang = g_strdup (act_user_get_language (user));
++        cc_common_language_get_locale (lang, &lang);
+ 
+         if (lang && *lang != '\0') {
+                 name = gnome_get_language_from_locale (lang, NULL);
+@@ -1036,7 +1037,8 @@ language_response (GtkDialog   *dialog,
+                    CcUserPanel *self)
+ {
+         ActUser *user;
+-        const gchar *lang, *account_language;
++        const gchar *lang;//, *account_language;
++        gchar *locale;
+ 
+         if (response_id != GTK_RESPONSE_OK) {
+                 gtk_widget_hide (GTK_WIDGET (dialog));
+@@ -1044,12 +1046,13 @@ language_response (GtkDialog   *dialog,
+         }
+ 
+         user = get_selected_user (self);
+-        account_language = act_user_get_language (user);
++        //account_language = act_user_get_language (user);
++        cc_common_language_get_locale (act_user_get_language (user), &locale);
+ 
+         lang = cc_language_chooser_get_language (CC_LANGUAGE_CHOOSER (dialog));
+         if (lang) {
+                 g_autofree gchar *name = NULL;
+-                if (g_strcmp0 (lang, account_language) != 0) {
++                if (g_strcmp0 (lang, locale) != 0) {
+                         act_user_set_language (user, lang);
+                 }
+ 
+@@ -1064,10 +1067,13 @@ static void
+ change_language (CcUserPanel *self)
+ {
+         const gchar *current_language;
++        g_autofree gchar *locale = NULL;
+         ActUser *user;
+ 
+         user = get_selected_user (self);
+         current_language = act_user_get_language (user);
++        cc_common_language_get_locale (current_language, &locale);
++        current_language = locale;
+ 
+         if (self->language_chooser) {
+ 		cc_language_chooser_clear_filter (self->language_chooser);

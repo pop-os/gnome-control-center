@@ -1,0 +1,25 @@
+#!/usr/bin/make -f
+
+export CCACHE_DISABLE=1
+
+export DEB_BUILD_MAINT_OPTIONS = hardening=+all
+export DEB_CPPFLAGS_MAINT_APPEND = -DSSHD_SERVICE=\"ssh.service\"
+export DEB_LDFLAGS_MAINT_APPEND = -Wl,-O1 -Wl,-z,defs -Wl,--as-needed
+
+%:
+	dh $@ --with gnome,migrations
+
+# -Dgnome_session_libexecdir can be removed after Bullseye release
+override_dh_auto_configure:
+	dh_auto_configure -- \
+		-Dprivileged_group=sudo \
+		-Dgnome_session_libexecdir=/usr/lib/gnome-session \
+		-Ddocumentation=true \
+		-Dsnap=true \
+		-Dwhoopsie=true
+
+override_dh_missing:
+	dh_missing --fail-missing
+
+override_dh_translations:
+	dh_translations --domain=gnome-control-center-2.0

@@ -1,0 +1,41 @@
+From: Robert Ancell <robert.ancell@canonical.com>
+Date: Tue, 12 Mar 2019 15:31:38 +1300
+Subject: [PATCH 18/26] applications: Add hack detect snaps before
+ X-SnapInstanceName works
+
+---
+ panels/applications/cc-applications-panel.c | 13 ++++++++++++-
+ 1 file changed, 12 insertions(+), 1 deletion(-)
+
+diff --git a/panels/applications/cc-applications-panel.c b/panels/applications/cc-applications-panel.c
+index 59964b1..7352ba5 100644
+--- a/panels/applications/cc-applications-panel.c
++++ b/panels/applications/cc-applications-panel.c
+@@ -225,8 +225,9 @@ get_portal_app_id (GAppInfo *info)
+ {
+   if (G_IS_DESKTOP_APP_INFO (info))
+     {
+-      g_autofree gchar *snap_name = NULL;
+       gchar *flatpak_id;
++      g_autofree gchar *snap_name = NULL;
++      g_autofree gchar *executable = NULL;
+ 
+       flatpak_id = g_desktop_app_info_get_string (G_DESKTOP_APP_INFO (info), "X-Flatpak");
+       if (flatpak_id != NULL)
+@@ -235,6 +236,16 @@ get_portal_app_id (GAppInfo *info)
+       snap_name = g_desktop_app_info_get_string (G_DESKTOP_APP_INFO (info), "X-SnapInstanceName");
+       if (snap_name != NULL)
+         return g_strdup_printf ("%s%s", PORTAL_SNAP_PREFIX, snap_name);
++
++      // FIXME: Hack until X-SnapInstanceName is ready
++      // https://github.com/snapcore/snapd/pull/6520
++      executable = g_desktop_app_info_get_string (G_DESKTOP_APP_INFO (info), "Exec");
++      if (executable != NULL && strstr (executable, "/snap/") != NULL)
++        {
++          const gchar *id = g_app_info_get_id (info);
++          g_auto(GStrv) tokens = g_strsplit (id, "_", 2);
++          return g_strdup_printf ("%s%s", PORTAL_SNAP_PREFIX, tokens[0]);
++        }
+     }
+ 
+   return NULL;

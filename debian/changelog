@@ -1,0 +1,4391 @@
+gnome-control-center (1:3.36.4-0ubuntu1pop1) focal; urgency=medium
+
+  * Upstream update 
+
+ -- Michael Aaron Murphy <michael@system76.com>  Wed, 29 Jul 2020 06:12:49 -0600
+
+gnome-control-center (1:3.36.4-0ubuntu1) focal; urgency=medium
+
+  [ Hui Wang ]
+  * debian/patches/gitlab_ucm_mixer_control_select.patch:
+    - consolidate port finding and setting with/without ucm (lp: #1885673)
+
+  [ Marco Trevisan (Treviño) ]
+  * New stable version (lp: #1886495)
+  * Refresh patches:
+    - d/p/0028-user-panel-Add-reference-to-selected-user-and-clear-.patch,
+      d/p/0029-user-panel-Don-t-wait-for-fprintd-on-initialization.patch,
+      d/p/0030-fingerprint-dialog-Don-t-use-sync-calls-for-deleting.patch,
+      d/p/0031-fingerprint-dialog-Don-t-limit-the-number-of-maximum.patch,
+      d/p/git-sound-profile.patch:
+      + Removed, applied upstream
+    - d/p/Revert-build-Bump-build-dependency-on-polkit.patch:
+      + Removed, was a duplicated file for patch 0021.
+  * user-accounts: Use newly designed fingerprint enroll dialog (LP: #1873298)
+
+ -- Sebastien Bacher <seb128@ubuntu.com>  Wed, 08 Jul 2020 17:03:08 +0200
+
+gnome-control-center (1:3.36.3-0ubuntu1) focal; urgency=medium
+
+  * New stable version (lp: #1884063)
+
+  [ Gunnar Hjalmarsson ]
+  * debian/patches/0030-temporarily-revert-alt-char-key.patch:
+    - Change po/POTFILES.in too, so dh_translations can create
+      gnome-control-center-2.0.pot.
+
+  [ Marco Trevisan (Treviño) ]
+  * d/p/0008-Allow-tweaking-some-settings-for-Ubuntu-Dock.patch:
+    - Ensure dock position is respected in RTL (LP: #1876937)
+    - Add proper matching the dock monitor ID (LP: #1877108)
+  * d/p/0024-display-Allow-fractional-scaling-to-be-enabled.patch:
+    - Improve fractional scaling toggling (LP: #1876891, #1876894)
+    - Look for proper fractional scaling key in Wayland and X11 (LP: #1871864)
+  * d/p/0031-fingerprint-dialog-Don-t-limit-the-number-of-maximum.patch:
+    - Don't make flowbox children selectable (LP: #1877441)
+
+ -- Sebastien Bacher <seb128@debian.org>  Tue, 23 Jun 2020 17:50:27 +0200
+
+gnome-control-center (1:3.36.2-0ubuntu1) focal; urgency=medium
+
+  * New upstream version rebased on Debian (lp: #1876256)
+  * debian/patches/0001-sound-Fix-translation-of-System-Sounds.patch,
+    debian/patches/0028-applications-Fix-only-connected-snap-interfaces-show.patch,
+    debian/patches/git-info-crash-on-nvidia.patch:
+    - removed, included in the new version
+
+  [ Marco Trevisan ]
+  * debian/patches/0008-Allow-tweaking-some-settings-for-Ubuntu-Dock.patch:
+    - disable dock in all monitors when choosing a specific one (lp: #1866088)
+    - Ignore inactive monitors (lp: #1873890)
+    - Show shell labels when using appearance panel (lp: #1873883)
+
+  [ Olivier Tilloy ]
+  * d/p/0032-online-accounts-maybe-leak-a-reference-to-the-panel.patch:
+    maybe leak a reference to the panel, to prevent a crash (LP: #1862553)
+
+ -- Sebastien Bacher <seb128@ubuntu.com>  Fri, 01 May 2020 09:10:17 +0200
+
+gnome-control-center (1:3.36.1-1ubuntu5) focal; urgency=medium
+
+  * debian/patches/git-info-crash-on-nvidia.patch:
+    - backport a fix for an info panel segfault on nvidia cards
+      (lp: #1870737)
+  * debian/patches/git-nongnome-segfault.patch:
+    - don't segfault when started outside of GNOME (lp: #1870735)
+
+  [ Marco Trevisan ]
+  * d/p/0028-user-panel-Add-reference-to-selected-user-and-clear-.patch,
+  * d/p/0029-user-panel-Don-t-wait-for-fprintd-on-initialization.patch,
+    d/p/0030-fingerprint-dialog-Don-t-use-sync-calls-for-deleting.patch,
+    d/p/0031-fingerprint-dialog-Don-t-limit-the-number-of-maximum.patch:
+    - Don't wait for fprintd on initialization and don't limit enroll stages
+      (lp: #1865845)
+
+  [ Robert Ancell ]
+  * debian/patches/0027-window-Stop-using-HdyLeaflet.patch:
+    - Disable adaptive layouts, theres some bugs and they're not required on
+      desktop (LP: #1871195)
+  * debian/patches/0028-applications-Fix-only-connected-snap-interfaces-show.patch:
+    - Fix disconnected snap interfaces not showing (LP: #1870600)
+  * debian/patches/0029-applications-Use-new-snapd-glib-API-for-labelling-Sn.patch:
+  * debian/control:
+    - Use shared names for snap interfaces, fixing some interfaces that don't
+      have labels.
+
+  [ Gunnar Hjalmarsson ]
+  * debian/patches/0030-temporarily-revert-alt-char-key.patch:
+    - Revert the "Alternate Characters Key" commit temporarily awaiting
+      a proper fix of LP: #1867548.
+
+ -- Sebastien Bacher <seb128@ubuntu.com>  Thu, 16 Apr 2020 12:30:37 +0200
+
+gnome-control-center (1:3.36.1-1ubuntu4) focal; urgency=medium
+
+  * debian/patches/0025-applications-Hide-buttons-that-launch-gnome-software.patch:
+  * debian/patches/0026-applications-Launch-snap-store-if-it-is-installed.patch:
+    - Launch snap-store if it is installed (LP: #1867000)
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Mon, 06 Apr 2020 11:00:15 +1200
+
+gnome-control-center (1:3.36.1-1ubuntu3) focal; urgency=medium
+
+  * debian/patches/0001-sound-Fix-translation-of-System-Sounds.patch:
+    - Fix system sounds not being translated (LP: #1870152)
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Thu, 02 Apr 2020 13:47:54 +1300
+
+gnome-control-center (1:3.36.1-1ubuntu2) focal; urgency=medium
+
+  [ Robert Ancell ]
+  * debian/patches/ubuntu-scaling-option.patch:
+    - display: Allow fractional scaling to be enabled (lp: #1868019)
+
+ -- Sebastien Bacher <seb128@ubuntu.com>  Tue, 31 Mar 2020 11:31:20 +0200
+
+gnome-control-center (1:3.36.1-1ubuntu1) focal; urgency=medium
+
+  * New upstream version
+
+ -- Sebastien Bacher <seb128@ubuntu.com>  Fri, 27 Mar 2020 10:27:03 +0100
+
+gnome-control-center (1:3.36.1-1) unstable; urgency=medium
+
+  * New upstream release
+
+ -- Sebastien Bacher <seb128@ubuntu.com>  Fri, 27 Mar 2020 10:17:23 +0100
+
+gnome-control-center (1:3.36.0-1) unstable; urgency=medium
+
+  * New upstream release
+    - Bump the build-dependencies
+    - debian/patches/Revert-build-Bump-build-dependency-on-polkit.patch:
+      Revert the bump of the minimal polkit version, ITS files were backported
+      in earlier versions in debian
+
+ -- Laurent Bigonville <bigon@debian.org>  Tue, 10 Mar 2020 19:17:55 +0100
+
+gnome-control-center (1:3.36.0-0ubuntu3) focal; urgency=medium
+
+  * debian/patches/0023-sound-Add-a-button-to-select-the-default-theme.patch
+    - Make able to restore sound theme to default (LP: #1753070)
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Thu, 19 Mar 2020 16:50:02 +1300
+
+gnome-control-center (1:3.36.0-0ubuntu2) focal; urgency=medium
+
+  * debian/patches/0008-Allow-tweaking-some-settings-for-Ubuntu-Dock.patch:
+    - Only show appearance panel in Ubuntu session (LP: #1866618)
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Tue, 10 Mar 2020 12:47:02 +1300
+
+gnome-control-center (1:3.36.0-0ubuntu1) focal; urgency=medium
+
+  * New upstream release
+  * debian/patches/0008-Allow-tweaking-some-settings-for-Ubuntu-Dock.patch:
+    - Fix crash when theme changed to unknown value (LP: #1866246)
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Tue, 10 Mar 2020 11:55:07 +1300
+
+gnome-control-center (1:3.35.92-1ubuntu1) focal; urgency=medium
+
+  * New upstream version
+
+ -- Sebastien Bacher <seb128@ubuntu.com>  Wed, 04 Mar 2020 15:02:08 +0100
+
+gnome-control-center (1:3.35.92-1) experimental; urgency=medium
+
+  * New upstream version, update based on Ubuntu
+  * debian/control.in:
+    - updated the requirements
+  * debian/patches/01_menu_category.patch:
+    - removed, those issues are fixed in the new version
+  * debian/patches/07_polkit_wheel_sudo_group.patch:
+    - removed in favor of the new build option
+  * debian/rules:
+    - use -Dprivileged_group=sudo
+
+ -- Sebastien Bacher <seb128@ubuntu.com>  Wed, 04 Mar 2020 12:18:35 +0100
+
+gnome-control-center (1:3.35.91-0ubuntu3) focal; urgency=medium
+
+  * debian/patches/0003-info-overview-Use-the-Ubuntu-logo-prominently.patch:
+    - Fix Ubuntu logo not showing in about panel (LP: #1864577)
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Tue, 03 Mar 2020 13:55:58 +0100
+
+gnome-control-center (1:3.35.91-0ubuntu2) focal; urgency=medium
+
+  * debian/patches/0008-Allow-tweaking-some-settings-for-Ubuntu-Dock.patch:
+    - Add theme selector to Ubuntu settings panel
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Tue, 25 Feb 2020 11:19:28 +1300
+
+gnome-control-center (1:3.35.91-0ubuntu1) focal; urgency=medium
+
+  * New upstream release
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Tue, 18 Feb 2020 15:41:59 +1300
+
+gnome-control-center (1:3.35.90-0ubuntu1) focal; urgency=medium
+
+  * New upstream release
+  * debian/control:
+    - Set minimum version for libgudev-1.0-dev
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Mon, 03 Feb 2020 14:30:26 +1300
+
+gnome-control-center (1:3.35.2-0ubuntu1) focal; urgency=medium
+
+  * New upstream release
+  * debian/rules:
+    - Build with -Dprivileged_group=sudo
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Fri, 31 Jan 2020 15:33:30 +1300
+
+gnome-control-center (1:3.34.1-1ubuntu2) eoan; urgency=medium
+
+  * debian/patches/gitlab_background_segfault.patch:
+    - patch from Robert Ancell to fix a segfault in the background panel
+      (lp: #1847103)
+
+ -- Sebastien Bacher <seb128@ubuntu.com>  Tue, 15 Oct 2019 17:52:51 +0200
+
+gnome-control-center (1:3.34.1-1ubuntu1) eoan; urgency=medium
+
+  * Merge with debian unstable. Remaining changes:
+    + debian/control.in:
+      - Depend on language-selector-gnome and whoopsie-preferences
+      - Depend on instead of Recommend system-config-printer
+      - Recommend ibus and ubuntu-system-service
+      - Suggest instead of Recommend gnome-user-share, realmd and rygel
+      - Build-Depend on dh-migrations and libwhoopsie-preferences-dev
+      - Don't recommend libnss-myhostname since systemd-resolved handles this
+        functionality
+      - Bump dep on g-s-d and schema
+    + Split gnome-control-center-faces to a separate package so that it can be
+      used by unity-control-center & recommend this
+    + Install apport hook
+    + debian/gnome-control-center-data.install:
+      - Don't install gnome-control-center.pkla since we use
+        policykit-desktop-privileges instead
+      - Install additional assets used by unity-control-center
+    + debian/ubuntu-logo-icon.png, debian/source/include-binaries,
+      debian/gnome-control-center-data.install: Include an Ubuntu logo
+    + debian/gnome-control-center-data.links:
+      - Link audio-speaker-center* to audio-speaker-mono* so that an
+        icon is shown in the test speaker panel.
+    + debian/rules: Enable whoospie integration
+    + Add migration script to transition from old user settings to new one.
+    + debian/patches:
+      - 52_region_language.patch:
+         Adapt region panel to use Ubuntu style regions
+      - 64_restore_terminal_keyboard_shortcut.patch
+         Bring back terminal shortcut
+      - 70_allow_sound_above_100.patch:
+         Allow setting volume above 100% in the Ubuntu session
+      - 71_ubuntu_dock_settings.patch
+         Add Dock panel for Ubuntu session
+      - 99_add_lock-on-suspend.patch
+         Add option to lock on suspend
+      - auto_quit_after_goa_add.patch
+         Hide window after adding an online account from another app.
+      - connectivity-switch.patch
+         Add Connectivity Checking switch to Privacy panel
+      - privacy-panel-whoopsie.patch
+         Support Ubuntu's whoopsie service in the Privacy panel
+      - ubuntu-default-height.patch:
+         Ensure all items fit in sidebar without scrolling with Yaru theme
+      - ubuntu-language-support.patch
+         Add Language Support button to Region & Language panel to work around
+      - ubuntu-legacy-notifications.patch
+         Ubuntu ships compatibility names for .desktop that got renamed
+         upstream, those use NoDisplay but the panel doesn't respect that key,
+         skip known buggy entries for file-roller and nautilus
+      - ubuntu-printer-support.patch
+         Add Advanced Printer Settings button to work around missing printer
+         sharing feature
+      - ubuntu-region-langpack-install.patch:
+         Check for missing language packs when loading region panel to pull
+         in packs that aren't included with the installer
+      - ubuntu-region-packagekit.patch
+         Fix detection of installed language packs
+  * debian/patches/online_accounts_segfault.patch:
+    - removed, the issue is fixed in the new version
+
+ -- Sebastien Bacher <seb128@ubuntu.com>  Mon, 07 Oct 2019 17:26:09 +0200
+
+gnome-control-center (1:3.34.1-1) unstable; urgency=medium
+
+  * New upstream release
+    - Fix crash on clicking 'Search Locations' (lp: #1846210)
+
+ -- Sebastien Bacher <seb128@ubuntu.com>  Mon, 07 Oct 2019 17:03:23 +0200
+
+gnome-control-center (1:3.34.0.1-2) unstable; urgency=medium
+
+  * Team upload.
+  * Upload to unstable
+
+ -- Andreas Henriksson <andreas@fatal.se>  Mon, 30 Sep 2019 17:48:50 +0200
+
+gnome-control-center (1:3.34.0.1-1) experimental; urgency=medium
+
+  * New upstream release
+    + Fix sliders not behaving properly (LP: #1841897)
+
+ -- Iain Lane <laney@debian.org>  Mon, 09 Sep 2019 17:11:55 +0100
+
+gnome-control-center (1:3.33.90-1ubuntu2) eoan; urgency=medium
+
+  * debian/control.in:
+    - restore rygel to a recommends since the MIR got review now
+
+ -- Sebastien Bacher <seb128@ubuntu.com>  Thu, 22 Aug 2019 17:37:01 +0200
+
+gnome-control-center (1:3.33.90-1ubuntu1) eoan; urgency=medium
+
+  * Merge with debian unstable. Remaining changes:
+    + debian/control.in:
+      - Depend on language-selector-gnome and whoopsie-preferences
+      - Depend on instead of Recommend system-config-printer
+      - Recommend ibus and ubuntu-system-service
+      - Suggest instead of Recommend gnome-user-share, realmd and rygel
+      - Build-Depend on dh-migrations and libwhoopsie-preferences-dev
+      - Don't recommend libnss-myhostname since systemd-resolved handles this
+        functionality
+      - Bump dep on g-s-d and schema
+    + Split gnome-control-center-faces to a separate package so that it can be
+      used by unity-control-center & recommend this
+    + Install apport hook
+    + debian/gnome-control-center-data.install:
+      - Don't install gnome-control-center.pkla since we use
+        policykit-desktop-privileges instead
+      - Install additional assets used by unity-control-center
+    + debian/ubuntu-logo-icon.png, debian/source/include-binaries,
+      debian/gnome-control-center-data.install: Include an Ubuntu logo
+    + debian/gnome-control-center-data.links:
+      - Link audio-speaker-center* to audio-speaker-mono* so that an
+        icon is shown in the test speaker panel.
+    + debian/rules: Enable whoospie integration
+    + Add migration script to transition from old user settings to new one.
+    + debian/patches:
+      - 52_region_language.patch:
+         Adapt region panel to use Ubuntu style regions
+      - 64_restore_terminal_keyboard_shortcut.patch
+         Bring back terminal shortcut
+      - 70_allow_sound_above_100.patch:
+         Allow setting volume above 100% in the Ubuntu session
+      - 71_ubuntu_dock_settings.patch
+         Add Dock panel for Ubuntu session
+      - 99_add_lock-on-suspend.patch
+         Add option to lock on suspend
+      - auto_quit_after_goa_add.patch
+         Hide window after adding an online account from another app.
+      - connectivity-switch.patch
+         Add Connectivity Checking switch to Privacy panel
+      - privacy-panel-whoopsie.patch
+         Support Ubuntu's whoopsie service in the Privacy panel
+      - ubuntu-default-height.patch:
+         Ensure all items fit in sidebar without scrolling with Yaru theme
+      - ubuntu-language-support.patch
+         Add Language Support button to Region & Language panel to work around
+      - ubuntu-legacy-notifications.patch
+         Ubuntu ships compatibility names for .desktop that got renamed
+         upstream, those use NoDisplay but the panel doesn't respect that key,
+         skip known buggy entries for file-roller and nautilus
+      - ubuntu-printer-support.patch
+         Add Advanced Printer Settings button to work around missing printer
+         sharing feature
+      - ubuntu-region-langpack-install.patch:
+         Check for missing language packs when loading region panel to pull
+         in packs that aren't included with the installer
+      - ubuntu-region-packagekit.patch
+         Fix detection of installed language packs
+
+ -- Iain Lane <iain.lane@canonical.com>  Mon, 19 Aug 2019 17:10:39 +0100
+
+gnome-control-center (1:3.33.90-1) experimental; urgency=medium
+
+  [ Laurent Bigonville ]
+  * debian/control.in: Drop libgnomekbd-dev from the build-dependencies, this
+    is apparently not needed for quite some time already
+
+  [ Iain Lane ]
+  * New upstream release
+    + Search
+      - Introduce Drag n' Drop
+      - Visual polishment
+      - Various minor improvements from the Every Detail Matters session
+      - Add shadows to application icons
+    + Background
+     - Redesigned panel
+    + Display
+     - Move Night Light to a tab, instead of a dialog
+    + Keyboard Shortcuts
+     - Panel renamed from "Keyboard"
+    + Mouse & Touchpad
+     - Reinstate keyboard navitation
+    + Power:
+     - Don't treat all batteries as laptop batteries
+    + Sharing
+      - Use a HdyLeaflet
+    + User Accounts
+      - Present the default avatar in the avatar popover
+    + Wacom
+      - Ensure calibrator UI CSS only applies to its UI
+  * control: Bump BDs per upstream
+  * 06_handle_passwd_with_ldap.patch: Drop, merged upstream
+
+ -- Iain Lane <laney@debian.org>  Mon, 19 Aug 2019 15:21:34 +0100
+
+gnome-control-center (1:3.32.2-1ubuntu5) eoan; urgency=medium
+
+  * Rebuild for new gnome-desktop soname version
+
+ -- Sebastien Bacher <seb128@ubuntu.com>  Mon, 19 Aug 2019 16:37:40 +0200
+
+gnome-control-center (1:3.32.2-1ubuntu4) eoan; urgency=medium
+
+  * Patch fixing:
+    - Upstreamed changes broken out to git_locale_modifiers.patch
+    - 52_region_language.patch modified accordingly and the description
+      somewhat updated.
+
+ -- Gunnar Hjalmarsson <gunnarhj@ubuntu.com>  Mon, 22 Jul 2019 23:08:00 +0200
+
+gnome-control-center (1:3.32.2-1ubuntu3) eoan; urgency=medium
+
+  * debian/patches/52_region_language.patch:
+    - Enable translation of locale modifiers shown in the language
+      list.
+  * debian/control, debian/control.in:
+    - Bump version of the libgnome-desktop-3-dev build dependency due
+      to use of a new gnome_get_translated_modifier() function.
+
+ -- Gunnar Hjalmarsson <gunnarhj@ubuntu.com>  Sat, 13 Jul 2019 21:09:00 +0200
+
+gnome-control-center (1:3.32.2-1ubuntu2) eoan; urgency=medium
+
+  * Restore revision 1:3.32.1-1ubuntu5 discarded by error
+
+ -- Sebastien Bacher <seb128@ubuntu.com>  Wed, 29 May 2019 12:50:31 +0200
+
+gnome-control-center (1:3.32.2-1ubuntu1) eoan; urgency=medium
+
+  * New upstream stable version, based on the Debian update (lp: #1830884)
+    - Fix crash if a monitor has no preferred mode (lp: #1820861)
+    - Set correct sleep value for the 90 minutes choice (lp: #1827346)
+  * d/p/git_nightlight_translations.patch,
+    d/p/0001-region-Fix-input-source-options-not-being-applied.patch:
+    - remove those patches, the changes are in the new version
+
+ -- Sebastien Bacher <seb128@ubuntu.com>  Wed, 29 May 2019 12:43:47 +0200
+
+gnome-control-center (1:3.32.2-1) experimental; urgency=medium
+
+  * New upstream release
+
+ -- Sebastien Bacher <seb128@ubuntu.com>  Wed, 29 May 2019 12:27:36 +0200
+
+gnome-control-center (1:3.32.1-1ubuntu5) eoan; urgency=medium
+
+  * debian/patches/52_region_language.patch:
+    Fix languages whose locale includes a modifier (LP: #1823778):
+    - Make language labels include modifiers when present
+    - Don't drop possible modifier when setting language
+
+ -- Gunnar Hjalmarsson <gunnarhj@ubuntu.com>  Mon, 29 Apr 2019 13:23:29 +0100
+
+gnome-control-center (1:3.32.1-1ubuntu4) disco; urgency=medium
+
+  * debian/patches/git_nightlight_translations.patch:
+    - define some strings in the night light dialog as translatable
+
+  [ Gunnar Hjalmarsson ]
+  * debian/patches/series:
+    - Disable ubuntu-region-langpack-install.patch (partially fixes
+      LP: #1823778).
+
+  [ Iain Lane ]
+  * Fix mismerged ubuntu-language-support patch.  The UI was put in the wrong
+    place in the .ui file, where it didn't show up.
+  * debian/patches/info-use-UDisks-to-retrieve-disk-size.patch: Drop.
+    This is upstream and no longer in the patch series.
+
+ -- Sebastien Bacher <seb128@ubuntu.com>  Fri, 12 Apr 2019 16:20:42 +0200
+
+gnome-control-center (1:3.32.1-1ubuntu3) disco; urgency=medium
+
+  * debian/patches/0001-region-Fix-input-source-options-not-being-applied.patch:
+    - Fix input sources per-window setting not being applied (LP: #1822775)
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Tue, 09 Apr 2019 14:27:07 +1200
+
+gnome-control-center (1:3.32.1-1ubuntu2) disco; urgency=medium
+
+  * debian/patches/ubuntu_privacy_hide_buggy_controls.patch:
+    - don't list non working camera/microphones items in the privacy
+      settings, those have been added this cycle but are not working
+
+  [ Marco Trevisan (Treviño) ]
+  * debian/patches/display-Support-UI-scaled-logical-monitor-mode.patch:
+    - Take care of global UI scaled logical monitors width (LP: #1823488)
+
+ -- Sebastien Bacher <seb128@ubuntu.com>  Mon, 08 Apr 2019 15:32:37 +0200
+
+gnome-control-center (1:3.32.1-1ubuntu1) disco; urgency=medium
+
+  * New upstream stable version, based on the Debian update
+    - Only show Bluetooth devices in Bluetooth section (lp: #1785311)
+  * Remove the patches included in the new version
+
+ -- Sebastien Bacher <seb128@ubuntu.com>  Fri, 05 Apr 2019 23:01:07 +0200
+
+gnome-control-center (1:3.32.1-1) experimental; urgency=medium
+
+  * New upstream release
+
+ -- Sebastien Bacher <seb128@ubuntu.com>  Wed, 03 Apr 2019 18:25:00 +0200
+
+gnome-control-center (1:3.32.0.1-1ubuntu6) disco; urgency=medium
+
+  * debian/patches/display-Don-t-always-set-the-primary-monitor-to-the-first.patch:
+    - Make sure the display panel primary monitor matches configured one
+  * debian/patches/display-Support-UI-scaled-logical-monitor-mode.patch:
+    - Support scaled logical monitors using UI scale as it could happen when
+      using the X11 Randr scaling (LP: #1820850)
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Wed, 27 Mar 2019 06:10:59 +0100
+
+gnome-control-center (1:3.32.0.1-1ubuntu5) disco; urgency=medium
+
+  * debian/patches/0001-sound-Fix-crash-when-sound-device-set-to-NULL.patch:
+    - Fix crash introduced in previous fix
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Thu, 14 Mar 2019 11:31:22 +1300
+
+gnome-control-center (1:3.32.0.1-1ubuntu4) disco; urgency=medium
+
+  * debian/patches/0001-sound-Apply-device-changes.patch:
+    - Fix sound output device change not being applied (LP: #1817338)
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Thu, 14 Mar 2019 11:05:45 +1300
+
+gnome-control-center (1:3.32.0.1-1ubuntu3) disco; urgency=medium
+
+  * debian/control:
+    - Add libsnapd-glib-deb to build-depends
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Wed, 13 Mar 2019 16:41:46 +1300
+
+gnome-control-center (1:3.32.0.1-1ubuntu2) disco; urgency=medium
+
+  * debian/rules:
+  * debian/patches/0001-applications-Fix-wrong-IDs-being-passed-to-portal-pe.patch:
+  * debian/patches/0002-applications-Add-missing-whitespace.patch:
+  * debian/patches/0003-applications-Fix-builtin-permissions-showing-when-no.patch:
+  * debian/patches/0004-applications-Rename-functions-as-portal-permssions-a.patch:
+  * debian/patches/0005-applications-Show-portal-permissions-for-snaps.patch:
+  * debian/patches/0006-applications-Show-snap-app-sizes.patch:
+  * debian/patches/0007-applications-Show-snap-interface-controls.patch:
+  * debian/patches/0008-applications-Add-hack-detect-snaps-before-X-SnapInst.patch:
+    - Show snap information on applications page (LP: #1819788)
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Wed, 13 Mar 2019 11:03:01 +1300
+
+gnome-control-center (1:3.32.0.1-1ubuntu1) disco; urgency=medium
+
+  * New upstream version
+    - Correctly select "single" mode when opening display panel
+      (lp: #1818751)
+  * Remove the patches included in the new version
+
+ -- Sebastien Bacher <seb128@ubuntu.com>  Tue, 12 Mar 2019 11:08:37 +0100
+
+gnome-control-center (1:3.32.0.1-1) experimental; urgency=medium
+
+  * New upstream release
+  * Remove the patches included in the new version
+
+ -- Sebastien Bacher <seb128@ubuntu.com>  Tue, 12 Mar 2019 10:47:36 +0100
+
+gnome-control-center (1:3.31.92-3) experimental; urgency=medium
+
+  * Cherry-pick two patches from upstream libhandy to fix translations
+
+ -- Iain Lane <laney@debian.org>  Thu, 07 Mar 2019 15:51:05 +0000
+
+gnome-control-center (1:3.31.92-2) experimental; urgency=medium
+
+  * debian/control.in:
+    - Build-Depends on libudisks2-dev
+
+ -- Sebastien Bacher <seb128@ubuntu.com>  Wed, 06 Mar 2019 16:05:01 +0100
+
+gnome-control-center (1:3.31.92-1ubuntu1) disco; urgency=medium
+
+  * New version includes:
+    - Revert making Settings responsive; it needs more polish to reach the
+      quality we want (lp: #1817509, #1817425)
+  * debian/patches/online_accounts_segfault.patch:
+    don't segfault when calling the online account panel with add provider,
+    thanks Andrea Azzarone
+  * Merge with debian unstable. Remaining changes:
+    + debian/control.in:
+      - Depend on language-selector-gnome and whoopsie-preferences
+      - Depend on instead of Recommend system-config-printer
+      - Recommend ibus and ubuntu-system-service
+      - Suggest instead of Recommend gnome-user-share, realmd and rygel
+      - Build-Depend on dh-migrations and libwhoopsie-preferences-dev
+      - Don't recommend libnss-myhostname since systemd-resolved handles this
+        functionality
+      - Bump dep on g-s-d and schema
+    + Split gnome-control-center-faces to a separate package so that it can be
+      used by unity-control-center & recommend this
+    + Install apport hook
+    + debian/gnome-control-center-data.install:
+      - Don't install gnome-control-center.pkla since we use
+        policykit-desktop-privileges instead
+      - Install additional assets used by unity-control-center
+    + debian/ubuntu-logo-icon.png, debian/source/include-binaries,
+      debian/gnome-control-center-data.install: Include an Ubuntu logo
+    + debian/gnome-control-center-data.links:
+      - Link audio-speaker-center* to audio-speaker-mono* so that an
+        icon is shown in the test speaker panel.
+    + debian/rules: Enable whoospie integration
+    + Add migration script to transition from old user settings to new one.
+    + debian/patches:
+      - 52_region_language.patch:
+         Adapt region panel to use Ubuntu style regions
+      - 64_restore_terminal_keyboard_shortcut.patch
+         Bring back terminal shortcut
+      - 70_allow_sound_above_100.patch:
+         Allow setting volume above 100% in the Ubuntu session
+      - 71_ubuntu_dock_settings.patch
+         Add Dock panel for Ubuntu session
+      - 99_add_lock-on-suspend.patch
+         Add option to lock on suspend
+      - auto_quit_after_goa_add.patch
+         Hide window after adding an online account from another app.
+      - connectivity-switch.patch
+         Add Connectivity Checking switch to Privacy panel
+      - privacy-panel-whoopsie.patch
+         Support Ubuntu's whoopsie service in the Privacy panel
+      - ubuntu-default-height.patch:
+         Ensure all items fit in sidebar without scrolling with Yaru theme
+      - ubuntu-language-support.patch
+         Add Language Support button to Region & Language panel to work around
+      - ubuntu-legacy-notifications.patch
+         Ubuntu ships compatibility names for .desktop that got renamed
+         upstream, those use NoDisplay but the panel doesn't respect that key,
+         skip known buggy entries for file-roller and nautilus
+      - ubuntu-printer-support.patch
+         Add Advanced Printer Settings button to work around missing printer
+         sharing feature
+      - ubuntu-region-langpack-install.patch:
+         Check for missing language packs when loading region panel to pull
+         in packs that aren't included with the installer
+      - ubuntu-region-packagekit.patch
+         Fix detection of installed language packs
+  * debian/control.in: Don't depend on desktop-base
+  * Modify distro-logo.patch: Use Ubuntu logo
+  * Refresh patches
+  * Fix 99_add_lock-on-suspend so that the switch actually shows up
+
+ -- Sebastien Bacher <seb128@ubuntu.com>  Wed, 06 Mar 2019 15:45:06 +0100
+
+gnome-control-center (1:3.31.92-1) experimental; urgency=medium
+
+  * New upstream release
+
+ -- Sebastien Bacher <seb128@ubuntu.com>  Wed, 06 Mar 2019 15:26:53 +0100
+
+gnome-control-center (1:3.31.90-1) experimental; urgency=medium
+
+  * New upstream development release
+  * Build-Depend on libgsound-dev
+  * Bump Build-Depends: meson 0.48.0, libupower-glib-dev 0.99.8 and
+    gsettings-desktop-schemas-dev 3.31.0
+  * Remove 10 patches applied in new release
+  * Refresh patches
+
+ -- Jeremy Bicha <jbicha@debian.org>  Thu, 07 Feb 2019 14:27:18 -0500
+
+gnome-control-center (1:3.30.2-5) unstable; urgency=medium
+
+  * Add distro-logo.patch used by Fedora and Ubuntu. See the
+    desktop-base README.Debian for how to override using Debian alternatives.
+
+ -- Jeremy Bicha <jbicha@debian.org>  Wed, 06 Feb 2019 20:39:07 -0500
+
+gnome-control-center (1:3.30.2-4ubuntu2) disco; urgency=medium
+
+  * debian/patches/71_ubuntu_dock_settings.patch,
+    debian/patches/ubuntu-default-height.patch:
+    - change the default height so all category are on screen,
+      we previously increased the value in the dock patch since we add an
+      entry there but that's not enough so let's split that part now
+      (lp: #1728450)
+
+ -- Sebastien Bacher <seb128@ubuntu.com>  Thu, 31 Jan 2019 15:10:30 +0100
+
+gnome-control-center (1:3.30.2-4ubuntu1) disco; urgency=medium
+
+  * Merge with debian unstable. Remaining changes:
+    + debian/control.in:
+      - Depend on language-selector-gnome and whoopsie-preferences
+      - Depend on instead of Recommend system-config-printer
+      - Recommend ibus and ubuntu-system-service
+      - Suggest instead of Recommend gnome-user-share, realmd and rygel
+      - Build-Depend on dh-migrations and libwhoopsie-preferences-dev
+      - Don't recommend libnss-myhostname since systemd-resolved handles this
+        functionality
+      - Bump dep on g-s-d and schema
+    + Split gnome-control-center-faces to a separate package so that it can be
+      used by unity-control-center & recommend this
+    + Install apport hook
+    + debian/gnome-control-center-data.install:
+      - Don't install gnome-control-center.pkla since we use
+        policykit-desktop-privileges instead
+      - Install additional assets used by unity-control-center
+    + debian/ubuntu-logo-icon.png, debian/source/include-binaries,
+      debian/gnome-control-center-data.install: Include an Ubuntu logo
+    + debian/gnome-control-center-data.links:
+      - Link audio-speaker-center* to audio-speaker-mono* so that an
+        icon is shown in the test speaker panel.
+    + debian/rules: Enable whoospie integration
+    + Add migration script to transition from old user settings to new one.
+    + debian/patches:
+      - 52_region_language.patch:
+         Adapt region panel to use Ubuntu style regions
+      - 64_restore_terminal_keyboard_shortcut.patch
+         Bring back terminal shortcut
+      - 70_allow_sound_above_100.patch:
+         Allow setting volume above 100% in the Ubuntu session
+      - 71_ubuntu_dock_settings.patch
+         Add Dock panel for Ubuntu session
+      - 99_add_lock-on-suspend.patch
+         Add option to lock on suspend
+      - auto_quit_after_goa_add.patch
+         Hide window after adding an online account from another app.
+      - connectivity-switch.patch
+         Add Connectivity Checking switch to Privacy panel
+      - distro-logo.patch:
+         Add Ubuntu branding to Details panel
+      - privacy-panel-whoopsie.patch
+         Support Ubuntu's whoopsie service in the Privacy panel
+      - ubuntu-language-support.patch
+         Add Language Support button to Region & Language panel to work around
+      - ubuntu-legacy-notifications.patch
+         Ubuntu ships compatibility names for .desktop that got renamed
+         upstream, those use NoDisplay but the panel doesn't respect that key,
+         skip known buggy entries for file-roller and nautilus
+      - ubuntu-printer-support.patch
+         Add Advanced Printer Settings button to work around missing printer
+         sharing feature
+      - ubuntu-region-langpack-install.patch:
+         Check for missing language packs when loading region panel to pull
+         in packs that aren't included with the installer
+      - ubuntu-region-packagekit.patch
+         Fix detection of installed language packs
+
+ -- Iain Lane <iain.lane@canonical.com>  Fri, 25 Jan 2019 14:02:27 +0000
+
+gnome-control-center (1:3.30.2-4) unstable; urgency=medium
+
+  * debian/patches/power-Label-the-PENDING_CHARGING-state-as-Not-Charging.patch:
+    - Label the PENDING_CHARGING state as "Not Charging" (LP: #1745032)
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Fri, 25 Jan 2019 12:39:58 +0000
+
+gnome-control-center (1:3.30.2-3ubuntu1) disco; urgency=medium
+
+  * Merge with debian unstable. Remaining changes:
+    + debian/control.in:
+      - Depend on language-selector-gnome and whoopsie-preferences
+      - Depend on instead of Recommend system-config-printer
+      - Recommend ibus and ubuntu-system-service
+      - Suggest instead of Recommend gnome-user-share, realmd and rygel
+      - Build-Depend on dh-migrations and libwhoopsie-preferences-dev
+      - Don't recommend libnss-myhostname since systemd-resolved handles this
+        functionality
+      - Bump dep on g-s-d and schema
+    + Split gnome-control-center-faces to a separate package so that it can be
+      used by unity-control-center & recommend this
+    + Install apport hook
+    + debian/gnome-control-center-data.install:
+      - Don't install gnome-control-center.pkla since we use
+        policykit-desktop-privileges instead
+      - Install additional assets used by unity-control-center
+    + debian/ubuntu-logo-icon.png, debian/source/include-binaries,
+      debian/gnome-control-center-data.install: Include an Ubuntu logo
+    + debian/gnome-control-center-data.links:
+      - Link audio-speaker-center* to audio-speaker-mono* so that an
+        icon is shown in the test speaker panel.
+    + debian/rules: Enable whoospie integration
+    + Add migration script to transition from old user settings to new one.
+    + debian/patches:
+      - 52_region_language.patch:
+         Adapt region panel to use Ubuntu style regions
+      - 64_restore_terminal_keyboard_shortcut.patch
+         Bring back terminal shortcut
+      - 70_allow_sound_above_100.patch:
+         Allow setting volume above 100% in the Ubuntu session
+      - 71_ubuntu_dock_settings.patch
+         Add Dock panel for Ubuntu session
+      - 99_add_lock-on-suspend.patch
+         Add option to lock on suspend
+      - auto_quit_after_goa_add.patch
+         Hide window after adding an online account from another app.
+      - connectivity-switch.patch
+         Add Connectivity Checking switch to Privacy panel
+      - distro-logo.patch:
+         Add Ubuntu branding to Details panel
+      - privacy-panel-whoopsie.patch
+         Support Ubuntu's whoopsie service in the Privacy panel
+      - ubuntu-language-support.patch
+         Add Language Support button to Region & Language panel to work around
+      - ubuntu-legacy-notifications.patch
+         Ubuntu ships compatibility names for .desktop that got renamed
+         upstream, those use NoDisplay but the panel doesn't respect that key,
+         skip known buggy entries for file-roller and nautilus
+      - ubuntu-printer-support.patch
+         Add Advanced Printer Settings button to work around missing printer
+         sharing feature
+      - ubuntu-region-langpack-install.patch:
+         Check for missing language packs when loading region panel to pull
+         in packs that aren't included with the installer
+      - ubuntu-region-packagekit.patch
+         Fix detection of installed language packs
+
+ -- Iain Lane <iain.lane@canonical.com>  Mon, 14 Jan 2019 16:35:53 +0000
+
+gnome-control-center (1:3.30.2-3) unstable; urgency=medium
+
+  * Cherry-pick 8 commits to improve accessibility
+    - Include fix for reversed Repeat Keys speed slider (LP: #1736883)
+
+ -- Jeremy Bicha <jbicha@debian.org>  Thu, 10 Jan 2019 09:08:13 -0500
+
+gnome-control-center (1:3.30.2-2) unstable; urgency=medium
+
+  * Drop Build-Depend on gnome-common & intltool (Closes: #829788)
+  * Restore -Wl,-O1 to our LDFLAGS
+  * Enable all hardening flags
+  * Bump Standards-Version to 4.3.0
+
+ -- Jeremy Bicha <jbicha@debian.org>  Sun, 23 Dec 2018 11:17:33 -0500
+
+gnome-control-center (1:3.30.2-1ubuntu1) disco; urgency=medium
+
+  * Merge with debian unstable (LP: #1802313). Remaining changes:
+    + debian/control.in:
+      - Depend on language-selector-gnome and whoopsie-preferences
+      - Depend on instead of Recommend system-config-printer
+      - Recommend ibus and ubuntu-system-service
+      - Suggest instead of Recommend gnome-user-share, realmd and rygel
+      - Build-Depend on dh-migrations and libwhoopsie-preferences-dev
+      - Don't recommend libnss-myhostname since systemd-resolved handles this
+        functionality
+      - Bump dep on g-s-d and schema
+    + Split gnome-control-center-faces to a separate package so that it can be
+      used by unity-control-center & recommend this
+    + Install apport hook
+    + debian/gnome-control-center-data.install:
+      - Don't install gnome-control-center.pkla since we use
+        policykit-desktop-privileges instead
+      - Install additional assets used by unity-control-center
+    + debian/ubuntu-logo-icon.png, debian/source/include-binaries,
+      debian/gnome-control-center-data.install: Include an Ubuntu logo
+    + debian/gnome-control-center-data.links:
+      - Link audio-speaker-center* to audio-speaker-mono* so that an
+        icon is shown in the test speaker panel.
+    + debian/rules: Enable whoospie integration
+    + Add migration script to transition from old user settings to new one.
+    + debian/patches:
+      - 52_region_language.patch:
+         Adapt region panel to use Ubuntu style regions
+      - 64_restore_terminal_keyboard_shortcut.patch
+         Bring back terminal shortcut
+      - 70_allow_sound_above_100.patch:
+         Allow setting volume above 100% in the Ubuntu session
+      - 71_ubuntu_dock_settings.patch
+         Add Dock panel for Ubuntu session
+      - 99_add_lock-on-suspend.patch
+         Add option to lock on suspend
+      - auto_quit_after_goa_add.patch
+         Hide window after adding an online account from another app.
+      - connectivity-switch.patch
+         Add Connectivity Checking switch to Privacy panel
+      - distro-logo.patch:
+         Add Ubuntu branding to Details panel
+      - privacy-panel-whoopsie.patch
+         Support Ubuntu's whoopsie service in the Privacy panel
+      - ubuntu-language-support.patch
+         Add Language Support button to Region & Language panel to work around
+      - ubuntu-legacy-notifications.patch
+         Ubuntu ships compatibility names for .desktop that got renamed
+         upstream, those use NoDisplay but the panel doesn't respect that key,
+         skip known buggy entries for file-roller and nautilus
+      - ubuntu-printer-support.patch
+         Add Advanced Printer Settings button to work around missing printer
+         sharing feature
+      - ubuntu-region-langpack-install.patch:
+         Check for missing language packs when loading region panel to pull
+         in packs that aren't included with the installer
+      - ubuntu-region-packagekit.patch
+         Fix detection of installed language packs
+  * debian/patches:
+    + 08_lowercase_user_names.patch: Drop because an alternative fix is included
+      in Debian.
+    + d/p/region-Fix-double-free-when-closing-the-input-chooser-dia.patch: Drop
+      because applied upstream.
+    + Patches have been round-tripped through gbp-pq and all rebased on the new
+      version - that's why their metadata has changed.
+
+ -- Andrea Azzarone <andrea.azzarone@canonical.com>  Fri, 09 Nov 2018 18:05:32 +0000
+
+gnome-control-center (1:3.30.2-1) unstable; urgency=medium
+
+  * d/p/Debian-s-adduser-doesn-t-allow-uppercase-letters-by-defau.patch:
+    - Debian's adduser doesn't allow uppercase letters by default
+      (Closes: #910141)
+  * New upstream release
+  * d/p/region-Autodisconnect-IBusBus-connected-handler.patch:
+    - Do not segfault when region panel is closed during init
+      (Cherry-picked from upstream commit 88ca2fcd)
+
+ -- Andrea Azzarone <andrea.azzarone@canonical.com>  Thu, 08 Nov 2018 12:55:32 +0000
+
+gnome-control-center (1:3.30.1-1ubuntu2) cosmic; urgency=medium
+
+  * d/p/region-Fix-double-free-when-closing-the-input-chooser-dia.patch:
+    - Cherry pick upstream segfault fix for the region settings
+
+  [ Andrea Azzarone ]
+  * d/p/privacy-panel-whoopsie.patch: Unref the whoopsie proxy (LP: #1796872)
+
+ -- Sebastien Bacher <seb128@ubuntu.com>  Wed, 10 Oct 2018 16:28:01 +0200
+
+gnome-control-center (1:3.30.1-1ubuntu1) cosmic; urgency=medium
+
+  * Merge with debian unstable (LP: #1795460)
+    Remaining changes:
+    + debian/control.in:
+      - Depend on language-selector-gnome and whoopsie-preferences
+      - Depend on instead of Recommend system-config-printer
+      - Recommend ibus and ubuntu-system-service
+      - Suggest instead of Recommend gnome-user-share, realmd and rygel
+      - Build-Depend on dh-migrations and libwhoopsie-preferences-dev
+      - Don't recommend libnss-myhostname since systemd-resolved handles this
+        functionality
+      - Bump dep on g-s-d and schema
+    + Split gnome-control-center-faces to a separate package so that it can be
+      used by unity-control-center & recommend this
+    + Install apport hook
+    + debian/gnome-control-center-data.install:
+      - Don't install gnome-control-center.pkla since we use
+        policykit-desktop-privileges instead
+      - Install additional assets used by unity-control-center
+    + debian/ubuntu-logo-icon.png, debian/source/include-binaries,
+      debian/gnome-control-center-data.install: Include an Ubuntu logo
+    + debian/gnome-control-center-data.links:
+      - Link audio-speaker-center* to audio-speaker-mono* so that an
+        icon is shown in the test speaker panel.
+    + debian/rules: Enable whoospie integration
+    + Add migration script to transition from old user settings to new one.
+    + debian/patches:
+      - 08_lowercase_user_names.patch:
+         Disallow upper-case letters in user names for compliance with adduser
+      - 52_region_language.patch:
+         Adapt region panel to use Ubuntu style regions
+      - 64_restore_terminal_keyboard_shortcut.patch
+         Bring back terminal shortcut
+      - 70_allow_sound_above_100.patch:
+         Allow setting volume above 100% in the Ubuntu session
+      - 71_ubuntu_dock_settings.patch
+         Add Dock panel for Ubuntu session
+      - 99_add_lock-on-suspend.patch
+         Add option to lock on suspend
+      - auto_quit_after_goa_add.patch
+         Hide window after adding an online account from another app.
+      - connectivity-switch.patch
+         Add Connectivity Checking switch to Privacy panel
+      - distro-logo.patch:
+         Add Ubuntu branding to Details panel
+      - privacy-panel-whoopsie.patch
+         Support Ubuntu's whoopsie service in the Privacy panel
+      - ubuntu-language-support.patch
+         Add Language Support button to Region & Language panel to work around
+      - ubuntu-legacy-notifications.patch
+         Ubuntu ships compatibility names for .desktop that got renamed
+         upstream, those use NoDisplay but the panel doesn't respect that key,
+         skip known buggy entries for file-roller and nautilus
+      - ubuntu-printer-support.patch
+         Add Advanced Printer Settings button to work around missing printer
+         sharing feature
+      - ubuntu-region-langpack-install.patch:
+         Check for missing language packs when loading region panel to pull
+         in packs that aren't included with the installer
+      - ubuntu-region-packagekit.patch
+         Fix detection of installed language packs
+  * Patches have been round-tripped through gbp-pq and all rebased on the new
+    version - that's why their metadata has changed.
+
+ -- Andrea Azzarone <andrea.azzarone@canonical.com>  Tue, 02 Oct 2018 18:18:58 +0100
+
+gnome-control-center (1:3.30.1-1) unstable; urgency=medium
+
+  * New upstream release
+    - d/p/Fix-icons-in-translations.patch:
+    - d/p/Update-Belarusian-translation.patch:
+    - d/p/Update-German-translation.patch:
+    - d/p/Update-Russian-translation.patch:
+    - d/p/Updated-Czech-translation-1.patch:
+    - d/p/Updated-Czech-translation-2.patch:
+    - d/p/Updated-Czech-translation.patch:
+    - d/p/color-Fix-fallout-from-the-GtkTemplate-port.patch:
+    - d/p/region-Cancel-async-permission-requests-when-panel-is-clo.patch:
+    - d/p/region-Do-not-release-locale-keys-in-IM-hash-table.patch:
+    - d/p/region-Don-t-leak-GFile-objects.patch:
+    - d/p/region-Fix-language-section-not-being-marked-insensitive.patch:
+    - d/p/region-Remove-duplicate-cancellable-code.patch:
+    - d/p/region-Replace-tab-characters-with-spaces.patch:
+      Drop patches applied upstream.
+  * debian/rules:
+    - Bump Standards-Version to 4.2.1 (no changes required)
+    - Don't include gnome-get-source.mk because it's no longer required since
+      Debian Policy 4.1.4
+
+ -- Andrea Azzarone <andrea.azzarone@canonical.com>  Mon, 01 Oct 2018 16:37:52 +0100
+
+gnome-control-center (1:3.30.0-2) unstable; urgency=medium
+
+  * Team upload
+  * d/patches: Update from upstream gnome-3-30 branch at commit
+    3.30.0-21-g230f659a3 (excluding CI and Flatpak changes) for bug fixes
+    and translation updates
+  * Release to unstable
+    - d/gbp.conf, d/control: Switch branches for unstable
+    - d/watch: Watch for upstream stable (even-numbered) releases
+
+ -- Simon McVittie <smcv@debian.org>  Thu, 20 Sep 2018 12:49:10 +0100
+
+gnome-control-center (1:3.30.0-1) experimental; urgency=medium
+
+  * Team upload
+  * d/gbp.conf: Update from glib2.0
+  * New upstream release
+
+ -- Simon McVittie <smcv@debian.org>  Wed, 19 Sep 2018 14:55:49 +0100
+
+gnome-control-center (1:3.30.0-0ubuntu1) cosmic; urgency=medium
+
+  * Update to 3.30.0
+
+ -- Didier Roche <didrocks@ubuntu.com>  Tue, 04 Sep 2018 11:34:27 +0200
+
+gnome-control-center (1:3.29.92-1ubuntu1) cosmic; urgency=medium
+
+  * Update to 3.29.92
+
+ -- Sebastien Bacher <seb128@ubuntu.com>  Tue, 28 Aug 2018 10:57:56 +0200
+
+gnome-control-center (1:3.29.92-1) experimental; urgency=medium
+
+  * New upstream version
+    - Wi-Fi, Fix a potential crash (lp: #1718727)
+
+ -- Sebastien Bacher <seb128@ubuntu.com>  Tue, 28 Aug 2018 10:38:40 +0200
+
+gnome-control-center (1:3.29.90-1~ubuntu2) cosmic; urgency=medium
+
+  [ Gunnar Hjalmarsson ]
+  * Fix a typo in debian/patches/52_region_language.patch which broke
+    displaying the selected language in the language panell of
+    gnome-control-center (LP: #1786880)
+  * debian/rules:
+    Make use of updated dh_translations; drop workarounds.
+
+ -- Iain Lane <laney@debian.org>  Fri, 24 Aug 2018 11:53:10 +0200
+
+gnome-control-center (1:3.29.90-1~ubuntu1) cosmic; urgency=medium
+
+  [ Iain Lane ]
+  * Merge with unreleased Debian version (LP: #1784396)
+    Remaining changes:
+    + debian/control.in:
+      - Depend on language-selector-gnome and whoopsie-preferences
+      - Depend on instead of Recommend network-manager-gnome and
+        system-config-printer-common
+      - Recommend ibus
+      - Suggest instead of Recommend gnome-user-share, realmd and rygel
+      - Build-Depend on libwhoopsie-preferences-dev
+      - Don't recommend libnss-myhostname since systemd-resolved handles this
+        functionality
+    + Split gnome-control-center-faces to a separate package so
+      that it can be used by unity-control-center & recommend this
+    + Install apport hook
+    + debian/gnome-control-center-data.install:
+      - Don't install gnome-control-center.pkla since we use
+        policykit-desktop-privileges instead
+      - Install additional assets used by unity-control-center
+    * debian/ubuntu-logo-icon.png, debian/source/include-binaries,
+      debian/gnome-control-center-data.install: Include an Ubuntu logo
+    * debian/gnome-control-center-data.links:
+      - Link audio-speaker-center* to audio-speaker-mono* so that an
+        icon is shown in the test speaker panel.
+    + debian/rules: Enable whoospie integration
+    + debian/patches:
+      - 08_lowercase_user_names.patch:
+         Disallow upper-case letters in user names for compliance with adduser
+      - 52_region_language.patch:
+         Adapt region panel to use Ubuntu style regions
+      - 64_restore_terminal_keyboard_shortcut.patch
+         Bring back terminal shortcut
+      - 70_allow_sound_above_100.patch:
+         Allow setting volume above 100% in the Ubuntu session
+      - 71_ubuntu_dock_settings.patch
+         Add Dock panel for Ubuntu session
+      - 99_add_lock-on-suspend.patch
+         Add option to lock on suspend
+      - distro-logo.patch:
+         Add Ubuntu branding to Details panel
+      - ubuntu-region-packagekit.patch
+         fix detection of installed language packs
+      - ubuntu-region-langpack-install.patch:
+         check for missing language packs when loading region panel to pull
+         in packs that arent included with the installer
+      - ubuntu-language-support.patch
+         Add Language Support button to Region & Language panel to
+         work around
+      - ubuntu-printer-support.patch
+         Add Advanced Printer Settings button to work around missing printer
+         sharing feature
+      - ubuntu-legacy-notifications.patch
+         Ubuntu ships compatibility names for .desktop that got renamed
+         upstream, those use NoDisplay but the panel doesn't respect that key,
+         skip known buggy entries for file-roller and nautilus
+      - connectivity-switch.patch
+         Add Connectivity Checking switch to Privacy panel
+      - privacy-panel-whoopsie.patch
+         Support Ubuntu's whoopsie service in the Privacy panel
+      - auto_quit_after_goa_add.patch
+         Hide window after adding an online account from another app.
+  * Patches have been round-tripped through gbp-pq and all rebased on the new
+    version- that's why their metadata has changed.
+
+  [ Didier Roche ]
+  * debian/patches/70_allow_sound_above_100.patch:
+    - switch gsettings key targetting volume above 100% to use now
+      upstream key (schema already in 3.28, but support introduced in
+      g-s-d in 3.29.90.1)
+  * debian/control*:
+    - bump dep on g-s-d and schema
+  * add migration script to transition from old user settings to new one.
+
+ -- Iain Lane <laney@ubuntu.com>  Fri, 03 Aug 2018 11:34:57 +0100
+
+gnome-control-center (1:3.29.90-1) UNRELEASED; urgency=medium
+
+  [ Arnaud Rebillout ]
+  * Team upload
+  * Bump requirement for libgtk-3, libupower-glib and cheese (per meson.build)
+
+  [ Simon McVittie ]
+  * Bump Standards-Version to 4.1.5 (no changes required)
+  * Set Rules-Requires-Root to no
+
+  [ Iain Lane ]
+  * debian/gbp.conf:
+    + Upstream's tags are normal now - remove the commented out
+      upstream-vcs-tag.
+    + Use patch-numbers = False
+  * debian/*: Update for experimental / 3.29 series
+  * New upstream release 3.29.4
+    + Use symbolic icons in Shell search
+    + Introduce Dynamic Panel
+    + Display:
+      - Improve display arrangement widget
+      - Fix a few crashers
+    + Sharing:
+      - Expose Remote Desktop work on Wayland
+    + User Accounts:
+      - Use term "Confirm" instead of "Verify"
+      - Use the same phrase when passwords do not match
+    + Wacom:
+      - Hide when no Wacom devices are connected
+      - Remove deprecated APIs
+    + Wi-Fi:
+      - Hide when no Wi-Fi adapters are available
+    + Power:
+      - Fix showing approximate percentages
+    + Thunderbolt:
+      - Introduce new Thunderbolt panel
+    + User Accounts:
+      - Fix hint for wrong enterprise user/password
+    + Improve logging engine
+    + Add an object caching mechanism
+    + Vastly improve CI
+    + Organize tests
+    + Add Network tests
+  * d/p/Show-scrollbar-on-first-Language-window-if-needed.patch: Drop, applied
+    upstream.
+  * d/p/Expose-touchpad-settings-if-synaptics-is-in-use.patch: Refresh.
+  * debian/control*:
+    + Bump libnm* deps, and add libsecret-1-dev per meson.build.
+    + Add test deps (xvfb, python3-dbusmock, at-spi2-core)
+  * debian/gnome-control-center.docs: Remove AUTHORS, README → README.md
+  * debian/control*: Require gnome-settings-daemon 3.29
+
+ -- Iain Lane <laney@debian.org>  Fri, 27 Jul 2018 16:32:23 +0100
+
+gnome-control-center (1:3.28.2-1) unstable; urgency=medium
+
+  * Team upload
+  * New upstream release 3.28.2
+    - Fixes file permissions regression introduced in meson conversion
+      (Closes: #900911)
+  * Standards-Version: 4.1.4 (no changes required)
+
+ -- Simon McVittie <smcv@debian.org>  Wed, 27 Jun 2018 09:18:33 +0100
+
+gnome-control-center (1:3.28.2-0ubuntu1) cosmic; urgency=medium
+
+  * New bugfix version (lp: #1780280)
+  * debian/patches/0006-build-Fix-USER_DIR_MODE-value-in-config.h.patch,
+    debian/patches/0007-fix-open-last-page.patch,
+    debian/patches/only-try-to-select-an-existing-panel-on-startup.patch,
+    git_invalid_dereferencing.patch:
+    - remove, it's included in the new version
+
+ -- Sebastien Bacher <seb128@ubuntu.com>  Thu, 05 Jul 2018 16:52:46 +0200
+
+gnome-control-center (1:3.28.1-1) unstable; urgency=medium
+
+  [ Gunnar Hjalmarsson ]
+  * d/p/0005-Show-scrollbar-on-first-Language-window-if-needed.patch:
+    - If the list of languages in the region & language panel is too long,
+      show a scroll bar.
+
+  [ Michael Biebl ]
+  * New upstream version 3.28.1
+  * Drop Build-Depends on network-manager-dev, no longer necessary
+
+ -- Michael Biebl <biebl@debian.org>  Wed, 11 Apr 2018 18:20:17 +0200
+
+gnome-control-center (1:3.28.1-0ubuntu5) cosmic; urgency=medium
+
+  * debian/{gbp.conf,control{,.in}}: Added and updated for Ubuntu
+  * debian/patches/privacy-panel-whoopsie.patch:
+    - display and enable correct section of error reporting mode
+      (never/manual/auto) (LP: #1774597)
+
+ -- Didier Roche <didrocks@ubuntu.com>  Thu, 31 May 2018 17:21:59 +0200
+
+gnome-control-center (1:3.28.1-0ubuntu4) cosmic; urgency=medium
+
+  [ Andrea Azzarone ]
+    * debian/patches/git_invalid_dereferencing.patch:
+    - Avoid dereferencing invalid pointer (lp: #1759468)
+
+ -- Sebastien Bacher <seb128@ubuntu.com>  Fri, 25 May 2018 16:25:16 +0200
+
+gnome-control-center (1:3.28.1-0ubuntu3) cosmic; urgency=medium
+
+  * debian/patches/0001-shell-Don-t-set-per-panel-icon.patch,
+    debian/patches/0002-shell-Icon-name-helper-returns-symbolic-name.patch,
+    debian/patches/0003-thunderbolt-new-panel-for-device-management.patch,
+    debian/patches/0004-thunderbolt-move-to-the-Devices-page.patch:
+    - backport the new upstream "thunderbolt" panel (same patches as fedora
+      is using). Also change to not use per panel icons but just the
+      settings one, that's the right thing to do and avoid issues when
+      some panels like the thunderbolt one don't have a symbolic icon.
+      (lp: #1773378)
+
+  [ Jeremy Bicha ]
+  * Cherry-pick only-try-to-select-an-existing-panel-on-startup.patch:
+    Fix crash when trying to open non-existent panel (LP: #1766799)
+
+ -- Sebastien Bacher <seb128@ubuntu.com>  Fri, 25 May 2018 16:06:18 +0200
+
+gnome-control-center (1:3.28.1-0ubuntu2) cosmic; urgency=medium
+
+  * Rename ubuntu-gnome-version.patch to distro-logo.patch for proposed
+    upstreaming to Debian. Drop the hardcoded use of the Ubuntu font.
+    (LP: #1770473)
+  * debian/control.in:
+    - Drop now unnecessary fonts-ubuntu dependency
+    - Don't recommend libnss-myhostname since systemd-resolved handles this
+      functionality (LP: #1766575)
+    - Demote network-manager-gnome dependency back to recommends
+      (LP: #1770673)
+    - Depend on system-config-printer instead of system-config-printer-common
+      for the Additional Printer Settings button (LP: #1770695)
+  * Add 0007-fix-open-last-page.patch:
+    - Proposed patch fixes the "open last opened page" feature for Devices and
+      Details pages (LP: #1770699)
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Fri, 11 May 2018 12:59:17 -0400
+
+gnome-control-center (1:3.28.1-0ubuntu1) bionic; urgency=medium
+
+  * New upstream release (LP: #1764591)
+  * Drop Build-Depends on network-manager-dev, no longer necessary
+  * Cherry-pick 0006-build-Fix-USER_DIR_MODE-value-in-config.h.patch:
+    - Fix file permissions regression introduced in meson conversion
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Mon, 16 Apr 2018 21:46:17 -0400
+
+gnome-control-center (1:3.28.0-1) unstable; urgency=medium
+
+  [ Simon McVittie ]
+  * New upstream stable release
+  * Switch Vcs-* to salsa.debian.org git
+  * d/gbp.conf: Add
+  * Refresh patches via gbp pq
+
+  [ Daniel van Vugt ]
+  * Add 0004-Expose-touchpad-settings-if-synaptics-is-in-use.patch
+    - Allow touchpad settings to work with xserver-xorg-input-synaptics
+      Note that this is unneeded on GNOME on Wayland where libinput is
+      always used. (LP: #1686081)
+
+ -- Jeremy Bicha <jbicha@debian.org>  Sun, 18 Mar 2018 20:14:00 -0400
+
+gnome-control-center (1:3.28.0-0ubuntu6) bionic; urgency=medium
+
+  [ Gunnar Hjalmarsson ]
+  * debian/patches/0005-region-Show-scrollbars-if-needed.patch: Apply to
+    Formats and Input Sources as well. (LP: #1758979)
+
+ -- Iain Lane <iain.lane@canonical.com>  Thu, 29 Mar 2018 17:30:50 +0100
+
+gnome-control-center (1:3.28.0-0ubuntu5) bionic; urgency=medium
+
+  * debian/patches/71_ubuntu_dock_settings.patch:
+    - add context for dock settings where left/right is translated differently
+      to mouse buttons (LP: #1719462).
+
+ -- Didier Roche <didrocks@ubuntu.com>  Wed, 28 Mar 2018 15:27:01 +0200
+
+gnome-control-center (1:3.28.0-0ubuntu4) bionic; urgency=medium
+
+  * debian/patches/ubuntu-printer-support.patch
+    - Connect to the system-config-printer-button{1,2} clicked signals
+      during init rather than in update_sensitivity.  This prevents us
+      from connecting to the signal multiple times. (LP: #1755514)
+
+ -- Ken VanDine <ken.vandine@canonical.com>  Tue, 27 Mar 2018 14:59:55 -0400
+
+gnome-control-center (1:3.28.0-0ubuntu3) bionic; urgency=medium
+
+  * debian/patches/ubuntu-white-lists.patch:
+    - remove patch, this is done in the theme now
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Thu, 22 Mar 2018 14:31:51 -0500
+
+gnome-control-center (1:3.28.0-0ubuntu2) bionic; urgency=medium
+
+  [ Gunnar Hjalmarsson ]
+   * debian/patches/52_region_language.patch:
+    - Enable scrollbar in "Language" window when needed (LP: #1727710).
+    - Hide the "Install More..." thing since we can't install languages
+      that way yet.
+
+  [ Iain Lane ]
+  * debian/patches/0005-Show-scrollbar-on-first-Language-window-if-needed.patch:
+    Split out from 52_region_language as forwarded upstream.
+
+ -- Iain Lane <iain.lane@canonical.com>  Mon, 19 Mar 2018 15:34:01 +0000
+
+gnome-control-center (1:3.28.0-0ubuntu1) bionic; urgency=medium
+
+  [ Jeremy Bicha ]
+  * New upstream release
+
+  [ Gunnar Hjalmarsson ]
+  * debian/rules:
+    - Add X-Ubuntu-Gettext-Domain to .desktop files and strip inline
+      translations (LP: #1755473).
+    - Build gnome-control-center-2.0.pot.
+  * Modify 71_ubuntu_dock_settings.patch:
+    - Drop non-existing gnome-ubuntu-panel.desktop.in from POTFILES.in.
+
+  [ Daniel van Vugt ]
+  * Add 0004-Expose-touchpad-settings-if-synaptics-is-in-use.patch
+    - Allow touchpad settings to work with xserver-xorg-input-synaptics
+      Note that this is unneeded on GNOME on Wayland where libinput is
+      always used. (LP: #1686081)
+
+  [ Andrea Azzarone ]
+  * Add auto_quit_after_goa_add.patch:
+    - Hide window after adding an online account from another app.
+      (LP: #1754651)
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Mon, 19 Mar 2018 08:37:32 -0400
+
+gnome-control-center (1:3.27.92-1ubuntu1) bionic; urgency=medium
+
+  [ Jeremy Bicha ]
+  * Sync with Debian. (LP: #1750174, LP: #1752928, LP: #1691867)
+    Remaining changes:
+    + debian/control.in:
+      - Depend on fonts-ubuntu, language-selector-gnome, and
+        whoopsie-preferences
+      - Depend on instead of Recommend network-manager-gnome and
+        system-config-printer-common
+      - Recommend ibus, unity-control-center-faces, & ubuntu-system-service
+      - Suggest instead of Recommend realmd and rygel
+      - Build-Depend on libwhoopsie-preferences-dev
+    + Split gnome-control-center-faces to a separate package so
+      that it can be used by unity-control-center
+    + Install apport hook
+    + debian/gnome-control-center-data.install:
+      - Don't install gnome-control-center.pkla since we use
+        policykit-desktop-privileges instead
+      - Install additional assets used by unity-control-center
+    * debian/ubuntu-logo-icon.png, debian/source/include-binaries,
+      debian/gnome-control-center-data.install: Include an Ubuntu logo
+    * debian/gnome-control-center-data.links:
+      - Link audio-speaker-center* to audio-speaker-mono* so that an
+        icon is shown in the test speaker panel. (LP: #1704002)
+    + debian/rules: Enable whoospie integration
+    + debian/patches:
+      - 08_lowercase_user_names.patch:
+         Disallow upper-case letters in user names for compliance with adduser
+      - 52_region_language.patch:
+         Adapt region panel to use Ubuntu style regions
+      - 64_restore_terminal_keyboard_shortcut.patch
+         Bring back terminal shortcut
+      - 70_allow_sound_above_100.patch:
+         Allow setting volume above 100% in the Ubuntu session
+      - 71_ubuntu_dock_settings.patch
+         Add Dock panel for Ubuntu session
+      - 99_add_lock-on-suspend.patch
+         Add option to lock on suspend
+      - ubuntu-gnome-version.patch:
+         Add Ubuntu branding to Details panel
+      - ubuntu-region-packagekit.patch
+         fix detection of installed language packs
+      - ubuntu-region-langpack-install.patch:
+         check for missing language packs when loading region panel to pull
+         in packs that arent included with the installer
+      - ubuntu-language-support.patch
+         Add Language Support button to Region & Language panel to
+         work around (LP: #1631750)
+      - ubuntu-printer-support.patch
+         Add Advanced Printer Settings button to work around missing printer
+         sharing feature (LP: #1718083)
+      - ubuntu-legacy-notifications.patch
+         Ubuntu ships compatibility names for .desktop that got renamed
+         upstream, those use NoDisplay but the panel doesn't respect that key,
+         skip known buggy entries for file-roller and nautilus (LP: #1716267)
+      - connectivity-switch.patch
+         Add Connectivity Checking switch to Privacy panel
+      - privacy-panel-whoopsie.patch
+         Support Ubuntu's whoopsie service in the Privacy panel
+      - ubuntu-white-lists.patch
+         Ensure lists have white background when used with Ambiance & Radiance
+  * Update connectivity-switch.patch with latest version proposed to GNOME
+  * Drop patches applied in new release:
+    - gnome-desktop327.patch
+    - monospace-wifihotspot-password.patch
+    - search-provider-locale.patch
+
+  [ Didier Roche ]
+  * Rebased 70_allow_sound_above_100.patch
+  * Dep on latest gsettings-desktop-schemas for binary
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Sat, 10 Mar 2018 15:54:34 -0500
+
+gnome-control-center (1:3.27.92-1) unstable; urgency=medium
+
+  * New upstream release candidate
+  * Build with meson
+  * Build-Depend on policykit-1 for itstool rules
+  * Build-Depend on networkmanager-dev
+  * Bump minimum gnome-desktop3 and gsettings-desktop-schemas
+  * Bump debhelper compat to 11
+  * Bump Standards-Version to 4.1.3
+
+ -- Jeremy Bicha <jbicha@debian.org>  Sat, 10 Mar 2018 14:50:31 -0500
+
+gnome-control-center (1:3.26.2-1) unstable; urgency=medium
+
+  * New upstream release
+  * Recommend gnome-user-docs instead of transitional package gnome-user-guide
+  * Drop debian/patches/fix-about-desktop.patch, merged upstream
+  * Switch to dh_missing and abort on uninstalled files
+
+ -- Michael Biebl <biebl@debian.org>  Sun, 05 Nov 2017 19:11:44 +0100
+
+gnome-control-center (1:3.26.1-2) unstable; urgency=medium
+
+  * Release to unstable
+  * Add fix-about-desktop.patch:
+    - Fix launching About panel (LP: #1721802)
+  * Bump Standards-Version to 4.1.1
+
+ -- Jeremy Bicha <jbicha@debian.org>  Fri, 13 Oct 2017 17:16:32 -0400
+
+gnome-control-center (1:3.26.1-1) experimental; urgency=medium
+
+  * Team upload
+  * New upstream release
+
+ -- Simon McVittie <smcv@debian.org>  Fri, 06 Oct 2017 10:36:51 +0100
+
+gnome-control-center (1:3.26.0-1) experimental; urgency=medium
+
+  * Team upload
+  * debian/watch: Go back to checking for stable versions only
+  * New upstream stable release
+
+ -- Simon McVittie <smcv@debian.org>  Wed, 13 Sep 2017 11:56:48 +0100
+
+gnome-control-center (1:3.25.92.1-1) experimental; urgency=medium
+
+  * Team upload
+  * debian/watch: Check for development versions too
+  * New upstream release
+    - Increase build and runtime dependencies as per configure.ac
+  * Add Suggests: gnome-software | gnome-packagekit, for Updates
+    button in overview panel
+
+ -- Simon McVittie <smcv@debian.org>  Thu, 07 Sep 2017 11:59:44 +0100
+
+gnome-control-center (1:3.24.3-1) unstable; urgency=medium
+
+  [ Laurent Bigonville ]
+  * New upstream release.
+    - Drop d/p/git_allow_empty_ip4_gateway.patch and
+      d/p/info-Do-not-crash-if-Renderer-is-not-set-by-SessionM.patch, applied
+      upstream
+    - debian/control.in: Bump (build-)dependencies
+
+  [ Jeremy Bicha ]
+  * debian/control.in:
+    - Bump minimum gnome-settings-daemon to 3.23.90
+  * Bump Standards-Version to 4.1.0
+
+ -- Laurent Bigonville <bigon@debian.org>  Wed, 30 Aug 2017 02:01:50 +0200
+
+gnome-control-center (1:3.22.2-3) unstable; urgency=medium
+
+  * Add debian/patches/git_allow_empty_ip4_gateway.patch
+    - Allow entering manual ipv4 configuration *without* a gateway.
+      (Cherry-picked from upstream commit 898d0aa4e9780078ff3)
+      Closes: #863595 (see also bgo: #708500)
+
+ -- Andreas Henriksson <andreas@fatal.se>  Tue, 30 May 2017 22:29:04 +0200
+
+gnome-control-center (1:3.22.2-2) unstable; urgency=medium
+
+  * Remove leftover Build-Depends on network-manager-dev, libnm-util-dev and
+    libnm-glib-dev. Those are no longer needed after the switch to
+    libnm-dev/libnma-dev.
+
+ -- Michael Biebl <biebl@debian.org>  Mon, 15 May 2017 17:21:05 +0200
+
+gnome-control-center (1:3.22.2-1) unstable; urgency=medium
+
+  * New upstream release.
+  * Set --with-gnome-session-libexecdir so gnome-control-center can find the
+    gnome-session-check-accelerated binary which is required for the info
+    panel.
+  * debian/patches/info-Do-not-crash-if-Renderer-is-not-set-by-SessionM.patch
+    - Fix a crash in the info panel if the renderer can not be retrieved from
+      SessionManager.
+
+ -- Michael Biebl <biebl@debian.org>  Tue, 14 Mar 2017 23:15:36 +0100
+
+gnome-control-center (1:3.22.1-2) unstable; urgency=medium
+
+  [ Helmut Grohne ]
+  * Mark gnome-control-center-{dev,data} Multi-Arch: foreign.
+    (Closes: #842527)
+
+  [ Michael Biebl ]
+  * Drop Recommends: gnome-control-center from gnome-control-center-data.
+    (Closes: #819458)
+
+ -- Michael Biebl <biebl@debian.org>  Wed, 25 Jan 2017 16:51:16 +0100
+
+gnome-control-center (1:3.22.1-1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Michael Biebl <biebl@debian.org>  Tue, 11 Oct 2016 17:30:11 +0200
+
+gnome-control-center (1:3.22.0-2) unstable; urgency=medium
+
+  [ Jeremy Bicha ]
+  * debian/control.in:
+    - Recommend libcanberra-pulse for Test Speakers feature (Closes: #676234)
+
+  [ Andreas Henriksson ]
+  * Add build-dependency on tzdata as zone.tab is used in tests.
+    (Closes:  #839485)
+
+ -- Andreas Henriksson <andreas@fatal.se>  Sat, 08 Oct 2016 22:42:58 +0200
+
+gnome-control-center (1:3.22.0-1) unstable; urgency=medium
+
+  * New upstream release.
+  * Drop fix-crash-entering-ipv4-gateway.patch and
+    fix-crash-entering-ipv4-routes.patch, merged upstream.
+  * Bump debhelper compat level to 10.
+  * Bump Build-Depends on libgtk-3-dev to (>= 3.22.0) for
+    GtkScrolledWindow.propagate_natural_width. (Closes: #838336)
+  * Use non-multiarch path (/usr/lib/gnome-control-center) for libexecdir.
+
+ -- Michael Biebl <biebl@debian.org>  Wed, 21 Sep 2016 02:00:20 +0200
+
+gnome-control-center (1:3.21.92-2) unstable; urgency=high
+
+  * Team upload.
+  * Add fix-crash-entering-ipv4-gateway.patch and
+    fix-crash-entering-ipv4-routes.patch taken from upstream git fixing
+    crashes when setting IPv4 gateway or IPv4 routes. They can be dropped for
+    3.21.93. Closes: #836835
+  * High urgency to get those fixes in testing as quickly as possible.
+
+ -- Raphaël Hertzog <hertzog@debian.org>  Thu, 15 Sep 2016 21:40:56 +0200
+
+gnome-control-center (1:3.21.92-1) unstable; urgency=medium
+
+  * New upstream beta release.
+  * debian/gnome-control-center.install: ship usr/share/gettext/its
+    - this installs the new gnome-keybindings.its and .loc
+  * Append a ~ to the versioned libsmbclient-dev build-dependency
+    to silence lintian.
+
+ -- Andreas Henriksson <andreas@fatal.se>  Tue, 13 Sep 2016 14:19:49 +0200
+
+gnome-control-center (1:3.21.90-1) unstable; urgency=medium
+
+  [ Andreas Henriksson ]
+  * New upstream beta release.
+  * Update (build-)dependencies according to configure.ac changes:
+    - bump gsettings-desktop-schemas-dev to >= 3.21.4
+    - bump libgoa-1.0-dev to >= 3.21.5
+    - bump libgnome-desktop-3-dev to >= 3.21.2
+    - bump libgtk-3-dev to >= 3.21.4
+    - bump libnm-* to >= 1.2.0
+    - Replace libnm-glib-dev, libnm-glib-vpn-dev, libnm-gtk-dev and
+      libnm-util-dev with libnm-dev (>= 1.2.0) and libnma-dev (>= 1.2.0)
+  * Drop Recommends on mesa-utils
+    - not needed for a long time since upstream commit c60221e0b4187a
+      which has now been superseded by fetching the info over dbus
+      from gnome-session.
+  * Bump build-dependency on libgtk-3-dev to >= 3.21.5
+    - the keyboard panel uses GtkShortcutLabel which is not in 3.21.4.
+
+  [ Michael Biebl ]
+  * Drop Build-Depends on libdbus-1-dev and libnotify-dev, no longer required.
+  * Drop obsolete cleanup code in maintainer scripts.
+  * Convert from cdbs to dh.
+
+ -- Michael Biebl <biebl@debian.org>  Thu, 01 Sep 2016 12:43:52 +0200
+
+gnome-control-center (1:3.20.1-2) unstable; urgency=medium
+
+  * debian/control.in: Switch system-config-printer recommends to
+    system-config-printer-common, g-c-c only needs a subset of s-c-p
+  * debian/control.in: Bump Standards-Version to 3.9.8 (no further changes)
+
+ -- Laurent Bigonville <bigon@debian.org>  Sun, 05 Jun 2016 14:10:48 +0200
+
+gnome-control-center (1:3.20.1-1) unstable; urgency=medium
+
+  * New upstream release.
+  * Drop Build-Depends on libdbus-glib-1-dev, no longer needed.
+  * Recommend policykit-1 instead of policykit-1-gnome. The GNOME Shell
+    already has a PolicyKit authentication agent builtin, so we only need the
+    system service.
+  * Upload to unstable.
+
+ -- Michael Biebl <biebl@debian.org>  Tue, 19 Apr 2016 15:22:11 +0200
+
+gnome-control-center (1:3.19.92-1) experimental; urgency=medium
+
+  [ Dmitry Shachnev ]
+  * Drop dependencies on gnome-icon-theme{,-symbolic}. It is superseded
+    by adwaita-icon-theme, which is pulled in by libgtk-3-common.
+
+  [ Andreas Henriksson ]
+  * New upstream release.
+  * Update (build-)dependencies according to configure.ac changes:
+    - Bump gnome-settings-daemon(-dev) to >= 3.19.1
+    - Bump gsettings-desktop-schemas(-dev) to >= 3.19.3
+    - Bump libglib2.0-dev to (>= 2.44.0)
+    - Bump libgnome-desktop3-dev to >= 3.19.93
+    - Bump gtk+ to >= 3.19.12
+    - switch libgrilo-0.2-dev -> libgrilo-0.3-dev (>= 0.3.0)
+  * Bump Standards-Version to 3.9.7
+
+ -- Andreas Henriksson <andreas@fatal.se>  Thu, 17 Mar 2016 23:47:32 +0100
+
+gnome-control-center (1:3.18.2-1) unstable; urgency=medium
+
+  [ Laurent Bigonville ]
+  * Add pulseaudio-module-bluetooth to the Recommends, this is allowing the
+    user to use his computer as an external speaker for devices like
+    smartphones
+
+  [ Michael Biebl ]
+  * New upstream release.
+  * Drop 08_fix_syntax_errors_in_sharing_panel_translations.patch, merged
+    upstream.
+
+ -- Michael Biebl <biebl@debian.org>  Wed, 11 Nov 2015 16:32:17 +0100
+
+gnome-control-center (1:3.18.1-1) unstable; urgency=medium
+
+  * New upstream release.
+  * Upload to unstable.
+  * Update Build-Depends as per configure.ac:
+    - Bump libgrilo-0.2-dev to (>= 0.2.12).
+    - Bump libgnome-bluetooth-dev to (>= 3.18.0).
+  * Drop debian/patches/debian-uses-ssh-service.patch and instead set
+    SSHD_SERVICE=ssh.service via CPPFLAGS in debian/rules.
+  * Cherry-pick patch from upstream which fixes syntax errors in
+    gnome-sharing-panel.desktop translations.
+
+ -- Michael Biebl <biebl@debian.org>  Wed, 14 Oct 2015 21:51:58 +0200
+
+gnome-control-center (1:3.17.92-1) experimental; urgency=medium
+
+  [ Josselin Mouette ]
+  * Remove Debian menu entry.
+
+  [ Andreas Henriksson ]
+  * New upstream release candidate.
+  * Update build-dependencies according to configure.ac changes:
+    - bump gnome-bluetooth >= 3.17.90
+    - bump gnome-desktop >= 3.17.4
+  * Update debian/patches/debian-uses-ssh-service.patch
+
+ -- Andreas Henriksson <andreas@fatal.se>  Wed, 16 Sep 2015 17:22:36 +0200
+
+gnome-control-center (1:3.16.3-1) unstable; urgency=medium
+
+  [ Andreas Henriksson ]
+  * Add debian/patches/debian-uses-ssh-service.patch
+    - look for ssh.service (rathen than sshd.service) to make
+      Remote Login show up under sharing panel.
+
+  [ Michael Biebl ]
+  * New upstream release.
+  * Drop clean-la.mk include from debian/rules, the package no longer ships
+    any libtool .la files.
+  * Drop obsolete Breaks/Replaces from pre-wheezy and the no longer used
+    Conflicts/Replaces/Provides: capplet-data.
+  * Bump debhelper compatibility level to 9.
+
+ -- Michael Biebl <biebl@debian.org>  Wed, 22 Jul 2015 21:00:37 +0200
+
+gnome-control-center (1:3.16.2-2) unstable; urgency=medium
+
+  * Upload to unstable.
+
+ -- Emilio Pozuelo Monfort <pochu@debian.org>  Sun, 14 Jun 2015 13:44:52 +0200
+
+gnome-control-center (1:3.16.2-1) experimental; urgency=medium
+
+  * New upstream release.
+  * Update build-dependencies according to configure.ac changes:
+    - Bump libaccountsservice-dev to >= 0.6.39
+    - Bump gsettings-desktop-schemas-dev to >= 3.15.4
+    - Bump libgoa-1.0-dev to >= 3.15.1
+    - Bump libgtk-3-dev to >= 3.15.0
+    - Bump gsettings-desktop-schemas to >= 3.15.4
+    - Add libgudev-1.0-dev [linux-any]
+  * gnome-control-center: install new appdata file
+
+ -- Andreas Henriksson <andreas@fatal.se>  Thu, 11 Jun 2015 15:51:24 +0200
+
+gnome-control-center (1:3.14.4-1) unstable; urgency=medium
+
+  * New upstream release.
+  * Update patches.
+
+ -- Michael Biebl <biebl@debian.org>  Mon, 27 Apr 2015 16:35:53 +0200
+
+gnome-control-center (1:3.14.2-3) unstable; urgency=medium
+
+  * Re-add system-config-printer recommendation. (Closes: #774257)
+    - it's still needed to be able to add new printers.
+
+ -- Andreas Henriksson <andreas@fatal.se>  Thu, 05 Feb 2015 19:44:41 +0100
+
+gnome-control-center (1:3.14.2-2) unstable; urgency=medium
+
+  * Remove system-config-printer recommendation.
+
+ -- Josselin Mouette <joss@debian.org>  Sun, 30 Nov 2014 14:38:52 +0100
+
+gnome-control-center (1:3.14.2-1) unstable; urgency=medium
+
+  * New upstream translation and bugfix release.
+    + Disables SSLv3 because POODLE.
+  * 30_stack_overflow.patch: patch from upstream git. Prevents stack
+    overflow in sharing panel.
+  * 31_printers_border.patch: patch from upstream git. Removes unwanted
+    border around printer model name.
+
+ -- Josselin Mouette <joss@debian.org>  Sun, 30 Nov 2014 11:08:12 +0100
+
+gnome-control-center (1:3.14.1-1) unstable; urgency=medium
+
+  * New upstream release.
+  * debian/control.in: Bump Standards-Version to 3.9.6 (no further changes)
+
+ -- Laurent Bigonville <bigon@debian.org>  Sat, 18 Oct 2014 01:35:32 +0200
+
+gnome-control-center (1:3.14.0-1) unstable; urgency=medium
+
+  * Bump gnome-settings-daemon dependency
+    - 'org.gnome.settings-daemon.plugins.media-keys' key 'control-center'
+      added during 3.13 and needed by gnome-control-center keyboard panel.
+  * Drop Recommends on ntp since we now rely on systemd-timesyncd for
+    automatic time (and AIUI ntp integration in gnome never really worked
+    anyway because of the default configuration the debian package shipped).
+  * New upstream release.
+  * Upload to unstable.
+
+ -- Andreas Henriksson <andreas@fatal.se>  Mon, 22 Sep 2014 19:49:03 +0200
+
+gnome-control-center (1:3.13.91-1) experimental; urgency=medium
+
+  [ Jordi Mallach ]
+  * Add cracklib-runtime to Recommends, it's needed for password changing.
+
+  [ Andreas Henriksson ]
+  * New upstream development release.
+  * Update build-dependencies according to configure.ac changes:
+    - Bump gsettings-desktop-schemas-dev to (>= 3.13.91)
+    - Drop libgnome-menu-3-dev
+    - Bump libgtk-3-dev to (>= 3.13.0)
+  * Update dependencies:
+    - Drop gnome-menus
+    - Bump gsettings-desktop-schemas to (>= 3.13.91)
+
+  [ Laurent Bigonville ]
+  * Add debian/patches/07_polkit_wheel_sudo_group.patch: The "wheel" group is
+    not existing on debian, check if the user is member of the "sudo" group
+    instead (Closes: #760722)
+
+  [ Andreas Henriksson ]
+  * Update debian/gnome-control-center.pkla with what is currently listed
+    in upstreams panels/common/gnome-control-center.rules since we don't yet
+    have/depend-on policykit-1 >= 0.106 which means the rules file is still
+    unused. This fixes automatic time/timezone, etc.
+
+ -- Andreas Henriksson <andreas@fatal.se>  Sun, 07 Sep 2014 11:34:18 +0200
+
+gnome-control-center (1:3.12.1-4) unstable; urgency=medium
+
+  [ Laurent Bigonville ]
+  * debian/control.in: Recommends realmd package
+
+  [ Emilio Pozuelo Monfort ]
+  * debian/control.in:
+    + Drop duplicate libgnome-bluetooth-dev build dependency.
+
+  [ Andreas Henriksson ]
+  * Bump dependency on gsettings-desktop-schemas to >= 3.9.91
+    - build-dependency already set to this version.
+    - needed for newly added datetime schema
+    (Closes: #752569)
+  * Upload to unstable.
+
+ -- Andreas Henriksson <andreas@fatal.se>  Mon, 14 Jul 2014 23:49:42 +0200
+
+gnome-control-center (1:3.12.1-3) experimental; urgency=medium
+
+  * debian/control.in:
+    Add recommends to libnss-myhostname (Closes: #705319)
+
+ -- Sjoerd Simons <sjoerd@debian.org>  Sun, 27 Apr 2014 18:20:29 +0200
+
+gnome-control-center (1:3.12.1-2) experimental; urgency=medium
+
+  [ Josselin Mouette ]
+  * Remove Suggests on screensavers.
+
+ -- Sjoerd Simons <sjoerd@debian.org>  Sun, 27 Apr 2014 10:14:45 +0200
+
+gnome-control-center (1:3.12.1-1) experimental; urgency=medium
+
+  [ Laurent Bigonville]
+  * New upstream release.
+    - Add libkrb5-dev to the build-dependencies
+    - Re-add libgnome-bluetooth-dev build-dependency
+  * debian/control.in: Bump Standards-Version to 3.9.5 (no further changes)
+
+  [ Sjoerd Simons ]
+  * Re-add gnome-bluetooth support
+
+ -- Sjoerd Simons <sjoerd@debian.org>  Sat, 26 Apr 2014 18:41:34 +0200
+
+gnome-control-center (1:3.12.0-1) experimental; urgency=medium
+
+  * New upstream release.
+
+ -- Andreas Henriksson <andreas@fatal.se>  Mon, 24 Mar 2014 19:58:34 +0100
+
+gnome-control-center (1:3.11.91-1) experimental; urgency=medium
+
+  [ Jordi Mallach ]
+  * Bumb Build-Depends for libgnome-bluetooth-dev to >= 3.9.3.
+
+  [ Andreas Henriksson ]
+  * New upstream release.
+  * Update build-dependencies according to configure.ac changes:
+    - Bump libgnome-desktop-3-dev to >= 3.11.3
+    - Bump libgtk-3-dev to >= 3.11.1
+    - Bump libupower-glib-dev to >= 0.99.0
+    - Add libgrilo-0.2-dev (>= 0.2.6)
+    - Drop libsocialweb-client-dev
+  * Drop debian/patches/background-Fix-compilation-with-libsocialweb.patch
+    - socialweb integration dropped upstream.
+  * debian/rules: remove --with-libsocialweb configure flag
+  * Drop d/p/background-Fix-test-chooser-dialog-build-with-some-l.patch
+    - merged upstream.
+  * Have quilt refresh remaining patches
+  * Drop build-dependency on libgnome-bluetooth-dev [linux-any]
+    - Looks like we won't get bluez 5.x in unstable until some time
+      after hell freezes over, so just disable the bluetooth panel
+      for now to not let this hold us back.
+
+ -- Andreas Henriksson <andreas@fatal.se>  Tue, 11 Mar 2014 23:44:49 +0100
+
+gnome-control-center (1:3.10.1-1) experimental; urgency=low
+
+  * New upstream release
+  * debian/patches/background-Fix-compilation-with-libsocialweb.patch
+    + Fix compilation with libsocialweb
+  * debian/patches/background-Fix-test-chooser-dialog-build-with-some-l.patch
+    + Fix compilation with more strictl linkers
+  * debian/control: Recommend network-manager instead of depending
+    (Closes: #726395)
+
+ -- Sjoerd Simons <sjoerd@debian.org>  Fri, 01 Nov 2013 23:11:23 +0100
+
+gnome-control-center (1:3.8.3-3) unstable; urgency=low
+
+  * Drop recommends on gnome-session, it doesn't seem to be needed anymore
+    and brings in all of gnome when installing network-manager-gnome which
+    is also used in non-gnome environments.
+  * Upload to unstable.
+
+ -- Emilio Pozuelo Monfort <pochu@debian.org>  Sun, 13 Oct 2013 18:04:36 +0200
+
+gnome-control-center (1:3.8.3-2) experimental; urgency=low
+
+  [ Emilio Pozuelo Monfort ]
+  * debian/control.in:
+    + Recommend gkbd-capplet, used by the Region & Language panel to
+      display the selected keyboard layout.
+    + Recommend ntp for the Date & Time panel.
+
+  [ Laurent Bigonville ]
+  * debian/control.in:
+    - Use canonical URL for Vcs-Svn field
+    - Drop duplicate Section to please lintian
+    - Also Suggests libcanberra-gtk3-module
+  * debian/rules:
+    - Use DEB_LDFLAGS_MAINT_APPEND instead of LDFLAGS so we are
+      sure we are not overrinding the hardening flags
+    - Pass -Wl,-z,defs to DEB_LDFLAGS_MAINT_APPEND so we can detect undefined
+      symbols during build
+  * gnome-control-center-data.maintscript: Remove /etc/xdg/menus/gnomecc.menu
+    and /etc/xdg/autostart/gnome-sound-applet.desktop on upgrade, the files
+    are no longer shipped (Closes: #712831)
+  * debian/control.in, debian/rules: Re-enable ibus support (Closes: #720585)
+
+  [ Jeremy Bicha ]
+  * Build-depend on gtk-doc-tools instead of docbook directly
+  * Don't build-depend on gnome-doc-utils
+
+ -- Laurent Bigonville <bigon@debian.org>  Sat, 24 Aug 2013 14:05:49 +0200
+
+gnome-control-center (1:3.8.3-1) experimental; urgency=low
+
+  [ Andreas Henriksson ]
+  * Recommend both gnome-user-share and rygel | rygel-tracker
+    - Needs to be of recent version, but we don't have versioned recommends.
+    - This Makes Bluetooth Sharing, Personal File Sharing and Media Sharing
+      visible under the Sharing panel.
+      (Also, Remote Login will not show up until we ship a sshd.service
+       in Debian.)
+
+  [ Emilio Pozuelo Monfort ]
+  * New upstream release.
+
+ -- Emilio Pozuelo Monfort <pochu@debian.org>  Sat, 08 Jun 2013 18:32:00 +0200
+
+gnome-control-center (1:3.8.2-1) experimental; urgency=low
+
+  [ Thomas Bechtold ]
+  * New upstream release 3.8.1.
+  * debian/control:
+    - Build-Depends on libgoa-1.0-dev (>= 3.8.1) according to
+      configure.ac.
+    - Bump Standards-Version to 3.9.4.
+
+  [ Emilio Pozuelo Monfort ]
+  * debian/control.in:
+    + Bump minimum gnome-menus dependency to fix loading desktop
+      files from the shell. Thanks to Luca Bruno for pointing it
+      out.
+    + Recommend system-config-printer for the printers panel.
+  * New upstream release 3.8.2.
+    + Doesn't crash if the printing dbus service is missing.
+      Closes: #709451.
+
+ -- Emilio Pozuelo Monfort <pochu@debian.org>  Sat, 25 May 2013 13:00:07 +0200
+
+gnome-control-center (1:3.8.0-2) experimental; urgency=low
+
+  [ Emilio Pozuelo Monfort ]
+  * debian/control.in:
+    + Remove obsolete libgconf2-dev build dependency.
+
+  [ Sjoerd Simons ]
+  * debian/control.in: Add libsmbclient-dev for the printer panel
+  * debian/control.in: Add libnm*-dev (>= 0.9.8) for the network panel
+  * debian/control.in: Add run-time depend on network-manager-gnome (>= 0.9.8)
+
+ -- Sjoerd Simons <sjoerd@debian.org>  Wed, 10 Apr 2013 09:22:02 +0100
+
+gnome-control-center (1:3.8.0-1) experimental; urgency=low
+
+  [ Jeremy Bicha ]
+  * debian/gnome-control-center-data.install, gnome-control-center.install:
+    - Move the new polkit rules to gnome-control-center-data
+      like the existing rule
+  * debian/control.in:
+    - Add temporary breaks/replaces for the previous change
+  * Add gnome-control-center.pkla to allow admins to change the hostname
+    without needing policykit from experimental (Closes: #693071)
+
+  [ Thomas Bechtold ]
+  *  New upstream release
+
+ -- Thomas Bechtold <thomasbechtold@jpberlin.de>  Wed, 27 Mar 2013 19:02:54 +0100
+
+gnome-control-center (1:3.7.92-1) experimental; urgency=low
+
+  [ Sjoerd Simons ]
+  * New upstream release
+  * debian/patches/90_force_fallback.patch
+    + Dropped, no longer applicable
+  * debian/patches/revert_git_datetime_port.patch
+    + Follow upstream in the systemd datetime usage
+  * debian/control.in: Bump build-deps
+  * debian/control.in: Add run-time depend on colord
+  * debian/gnome-control-center.install: Don't install panel .so files, all
+    plugins are now static
+  * debian/gnome-control-center-data.install: Remove installation of fallback
+    files, no longer shipped with g-c-c
+
+  [ Jean Schurger ]
+  * debian/control.in: Dropped valac build-dependency (not longer needed).
+
+  [ Sjoerd Simons ]
+  * New upstream release (3.7.92)
+  * debian/gnome-control-center.install: Install policykit rules & search
+    provider
+  * debian/control.in: Depend on gnome-icon-theme >= 3.7
+
+ -- Sjoerd Simons <sjoerd@debian.org>  Sat, 23 Mar 2013 20:19:50 +0100
+
+gnome-control-center (1:3.6.3-1) experimental; urgency=low
+
+  [ Sjoerd Simons ]
+  * debian/control.in: Bump libgnome-bluetooth-dev to >= 3.5.5
+  * debian/control.in: Bump libcheese-gtk-dev to >= 3.5.91
+
+  [ Jeremy Bicha ]
+  * New upstream version.
+  * debian/gnome-control-center.sgml, debian/gnome-control-center.install
+    debian/rules
+    - Ship improved man page from GNOME
+
+  [ Aron Xu ]
+  * debian/control.in debian/rules: disable ibus integration.
+    (Closes: #694301, #691656)
+
+ -- Sjoerd Simons <sjoerd@debian.org>  Sun, 10 Feb 2013 13:17:20 +0100
+
+gnome-control-center (1:3.6.2-1) experimental; urgency=low
+
+  * Team upload
+
+  [ Andreas Henriksson ]
+  * Fix typo in gsettings-desktop-schemas-dev build dependency version
+    (3.3.91 should be 3.5.91). (Closes: #693027)
+
+  [ Simon McVittie ]
+  * Bump build-dependency to libgnome-desktop-3-dev (>= 3.5.91) as well,
+    otherwise it'll continue to FTBFS
+  * New upstream release
+  * Install org.gnome.controlcenter.user-accounts.policy PolicyKit rule,
+    which means that authenticating for
+    org.gnome.controlcenter.user-accounts.administration is sufficient
+    to administer accountsservice and (if later added to Debian) realmd
+  * Do not install gnome-control-center.rules for now; it won't work in Debian
+    since we don't have a wheel group. Patching it to use group sudo is
+    a possibility for a future upload.
+
+ -- Simon McVittie <smcv@debian.org>  Mon, 12 Nov 2012 17:14:50 +0000
+
+gnome-control-center (1:3.6.1-1) experimental; urgency=low
+
+  [ Josselin Mouette ]
+  * Add missing epoch on libxi build-dependency.
+
+  [ Michael Biebl ]
+  * Rebuild with xz compression. Closes: #687279
+
+  [ Sjoerd Simons ]
+  * New upstream release (3.6.1)
+  * debian/control.in: Updated dependencies
+  * debian/patches/02_no_assert_on_null_streams.patch
+    + Removed, was supposed to be a temporary patch
+  * debian/patches/10_optional_wacom_support.patch
+    + Removed, fixed upstream
+  * debian/patches/90_force_fallback.patch: Refreshed
+
+ -- Sjoerd Simons <sjoerd@debian.org>  Sun, 14 Oct 2012 21:42:26 +0200
+
+gnome-control-center (1:3.4.2-2) unstable; urgency=low
+
+  * Upload to unstable.
+
+ -- Michael Biebl <biebl@debian.org>  Wed, 30 May 2012 12:54:24 +0200
+
+gnome-control-center (1:3.4.2-1) experimental; urgency=low
+
+  [ Sjoerd Simons ]
+  * New upstream release
+  * Sync with Ubuntu:
+    + debian/control.in: Update build-depends
+    + debian/patches/02_no_assert_on_null_streams.patch:
+      - Don't crash on null streams (bgo: #633728, LP: #741155)
+    + debian/patches/90_force_fallback.patch:
+      - Refreshed
+    + debian/patches/06_handle_passwd_with_ldap.patch:
+      - Refreshed
+    + debian/patches/revert_git_datetime_port.patch:
+      - Added, don't switch to systemd for datetime functionality just yet.
+  * Drop libgnome-control-center1 package, gnome-control-center no longer
+    builds a library.
+  * debian/patches/00git_handle_media_dialog_close.patch,
+    debian/patches/91_configure_cheese.patch,
+    debian/patches/08_dont_crash_on_null_territories.patch,
+    debian/patches/92_link_language_chooser_against_fontconfig.patch:
+    + All removed, fixed upstream
+  * debian/rules: Don't use -Wl,-z,defs as it cause the panel plugins to fail
+    to build
+  * debian/gnome-control-center-data.install: gnome-control-center no longer
+    ships a manual.
+
+  [ Michael Biebl ]
+  * Add Build-Depends on libwacom-dev and libxi-dev for the Wacom panel and
+    libgnome-bluetooth-dev for the Bluetooth panel.
+  * Mark libwacom-dev and libgnome-bluetooth-dev as linux-any.
+  * Update Build-Depends according to configure.ac.
+  * Add Breaks/Replaces: gnome-bluetooth (<< 3.4) as the Bluetooth panel moved
+    into gnome-control-center.
+  * debian/patches/10_optional_wacom_support.patch: Build the Wacom panel
+    conditionally to support plattforms where libwacom-dev is not available.
+  * Bump Standards-Version to 3.9.3.
+  * Add Breaks against libgnome-bluetooth8 since loading booth
+    libgnome-bluetooth8 and libgnome-bluetooth10 will lead to crashes when
+    using the Bluetooth panel. Eventually we should use versioned directories
+    for the gnome-bluetooth plugins but for now the Breaks will do.
+
+ -- Michael Biebl <biebl@debian.org>  Sat, 19 May 2012 23:57:55 +0200
+
+gnome-control-center (1:3.2.2-3) unstable; urgency=low
+
+  * debian/patches/92_link_language_chooser_against_fontconfig.patch: Link
+    language chooser panel against fontconfig. Patch cherry-picked from
+    upstream Git.
+
+ -- Michael Biebl <biebl@debian.org>  Thu, 29 Mar 2012 23:36:02 +0200
+
+gnome-control-center (1:3.2.2-2) unstable; urgency=low
+
+  [ Josselin Mouette ]
+  * Recommend cups-pk-helper. Closes: #622688.
+
+  [ Michael Biebl ]
+  * Add Recommends on mesa-utils. The glxinfo utilitity is required to show
+    details about the graphics card.
+  * Upload to unstable.
+
+ -- Michael Biebl <biebl@debian.org>  Fri, 16 Dec 2011 23:55:34 +0100
+
+gnome-control-center (1:3.2.2-1) experimental; urgency=low
+
+  [ Laurent Bigonville ]
+  * debian/control.in: Bump libgnome-desktop-3-dev build-dependency
+    (Closes: #647954)
+
+  [ Josselin Mouette ]
+  * Breaks/Replaces g-p-m < 3.2. Closes: #648410.
+
+  [ Michael Biebl ]
+  * New upstream release.
+  * Refresh debian/patches/91_configure_cheese.patch.
+  * debian/control.in:
+    - Mark Build-Depends on libnm-gtk-dev as linux-any.
+    - Bump Build-Depends on libnotify-dev to (>= 0.7.3).
+    - Bump Depends on gsettings-desktop-schemas to (>= 3.0.2).
+  * Remove debian/libgnome-control-center-dev.install, obsolete.
+  * Remove debian/libgnome-control-center1.symbols and instead add a strict
+    dependency between gnome-control-center and libgnome-control-center1.
+
+ -- Michael Biebl <biebl@debian.org>  Wed, 16 Nov 2011 00:45:49 +0100
+
+gnome-control-center (1:3.2.1-1) experimental; urgency=low
+
+  * New upstream release
+  * Sync with Ubuntu
+    + debian/libgnome-control-center1.symbols: Update symbols
+    + debian/patches/90_force_fallback.patch: Updated
+    + debian/patches/06_handle_passwd_with_ldap.patch: Added
+    + debian/patches/08_dont_crash_on_null_territories.patch: Added
+  * debian/patches/02_https.patch: Removed, fixed upstream
+  * debian/patches/03_ppd_h.patch: Removed, fixed upstream
+  * debian/patches/91_configure_cheese.patch: Include cheese pkg-config flags
+    as symbols of it are being used
+  * debian/control.in: Remove libgnome-control-center-dev package
+  * debian/control.in: Add build-dependency on libgoa-1.0-dev, libcolord-dev,
+    and libnotify-dev
+  * debian/control.in: Tighten libgtk-3-dev build-dependency
+  * debian/control.in: Add libnm-gtk-dev b-d for network panel
+  * debian/control.in: Add libcheese-gtk-dev b-d to take account pictures
+  * debian/control.in: Add libsocialweb-client-dev b-d to use flickr background
+     service
+
+ -- Sjoerd Simons <sjoerd@debian.org>  Sat, 05 Nov 2011 00:46:41 +0000
+
+gnome-control-center (1:3.0.2-3) unstable; urgency=low
+
+  * debian/control.in:
+    - Also add Breaks/Replaces against gdm (<< 3.0). Closes: #645400
+    - Update Depends on gnome-desktop-data to gnome-desktop3-data.
+  * Rename control-center2.xpm to gnome-control-center.xpm and refresh the
+    icon based on what's currently shipped in gnome-icon-theme.
+    Update the menu file accordingly.
+
+ -- Michael Biebl <biebl@debian.org>  Sat, 15 Oct 2011 20:49:56 +0200
+
+gnome-control-center (1:3.0.2-2) unstable; urgency=low
+
+  [ Josselin Mouette ]
+  * Drop useless gst-alsa | gst-audiosink suggstion; suggest
+    gst-pulseaudio instead.
+
+  [ Michael Biebl ]
+  * Upload to unstable.
+  * debian/watch:
+    - Switch to .xz tarballs.
+    - Track stable releases.
+  * Bump debhelper compatibility level to 8.
+    - Update Build-Depends on debhelper.
+    - Strip debian/tmp/ from .install files.
+  * debian/control.in:
+    - Update Vcs-* URLs.
+    - Bump Standards-Version to 3.9.2. No further changes.
+    - Change network-manager build-dependencies to linux-any.
+    - Add Breaks/Replaces against gdm3 (<< 3.0) which shipped the faces
+      in previous versions.
+    - Add Breaks/Replaces against gnome-settings-daemon (<< 3.0).
+      Closes: #625783
+  * Refresh patches.
+  * debian/gnome-control-center-data.install
+    - Install face pictures.
+
+ -- Michael Biebl <biebl@debian.org>  Fri, 14 Oct 2011 16:13:54 +0200
+
+gnome-control-center (1:3.0.2-1) experimental; urgency=low
+
+  [ Josselin Mouette ]
+  * Break glib < 2.28.6-2 for x-scheme-handler support.
+
+  [ Sjoerd Simons ]
+  * New upstream release
+
+  [ Josselin Mouette ]
+  * Break gnome-session < 3.0 because of the sound-applet startup.
+  * 01_menu_category.patch: new patch. Put g-c-c.desktop in the Settings
+    menu instead of the System one.
+  * 90_force_fallback.patch: new patch. Disable the “forced fallback
+    mode” switch, since we already provide a xsession file for it in
+    gnome-session-fallback.
+  * Break gnome-power-manager < 3.0 because of the power panel.
+  * 02_https.patch: patch from upstream git. Correctly register https
+    scheme together with http.
+  * 03_ppd_h.patch: patch from upstream git. Include ppd.h explicitly.
+  * Use dh-autoreconf to go with this patch.
+
+ -- Josselin Mouette <joss@debian.org>  Sun, 04 Sep 2011 19:15:55 +0200
+
+gnome-control-center (1:3.0.1.1-1) experimental; urgency=low
+
+  * New upstream release.
+  * gnome-control-center-data.install: drop GConf schemas.
+  * gnome-control-center-data.gconf-defaults: dropped, obsolete.
+
+ -- Josselin Mouette <joss@debian.org>  Fri, 29 Apr 2011 02:24:28 +0200
+
+gnome-control-center (1:3.0.0.1-1) experimental; urgency=low
+
+  * New upstream release.
+  * debian/control.in:
+    + add build dependency on new libnm-glib-dev, libnm-util-dev, and
+      network-manager-dev.
+    + bump build dependency on gnome-settings-daemon-dev.
+    + add dependency on gnome-icon-theme-symbolic.
+    + bump dependency on gnome-settings-daemon, required for new gsettings
+      schema.
+  * debian/patches/00_disable-nm.patch: removed as NM 0.9 is now available.
+  * debian/patches/99_autoreconf.patch: removed.
+  * debian/libgnome-control-center-dev.install: do not install gtk-doc as it
+    was incomplete and got removed.
+
+ -- Frederic Peters <fpeters@debian.org>  Thu, 31 Mar 2011 01:01:31 +0530
+
+gnome-control-center (1:2.91.93-1) experimental; urgency=low
+
+  * New upstream release.
+
+  [ Emilio Pozuelo Monfort ]
+  * debian/control.in:
+    + Build depend on a new enough version of gdk-pixbuf. Closes: #619282.
+    + Drop Breaks on gnome-media-common.
+
+  [ Frederic Peters ]
+  * debian/patches/00_disable-nm.patch: updated.
+  * debian/patches/99_autoreconf.patch: refreshed.
+
+ -- Frederic Peters <fpeters@debian.org>  Wed, 30 Mar 2011 23:44:16 +0530
+
+gnome-control-center (1:2.91.92-1) experimental; urgency=low
+
+  * New upstream release.
+
+  [ Emilio Pozuelo Monfort ]
+  * debian/control.in:
+    + gnome-control-center-dev belongs in the devel section.
+
+  [ Laurent Bigonville ]
+  * debian/control.in
+    - Add Vcs-* fields
+    - Bump libglib2.0-dev and gnome-settings-daemon-dev Build-dependencies
+    - Bump gnome-control-center Dependency against gnome-settings-daemon
+    - gnome-control-center-data Breaks gnome-media-common (<< 2.91)
+
+  [ Frederic Peters ]
+  * debian/patches/00_disable-nm.patch: updated.
+  * debian/images/, debian/patches/12_timezones.patch: merged upstream.
+  * debian/patches/10_libshortcuts-link.patch: merged upstream.
+  * debian/control.in: update build-deps.
+  * debian/control.in: add dependency on gsettings-desktop-schemas.
+
+ -- Frederic Peters <fpeters@debian.org>  Mon, 21 Mar 2011 22:30:04 +0100
+
+gnome-control-center (1:2.91.91-3) experimental; urgency=low
+
+  * debian/control.in: add build-dep on locales, required for the datetime
+    test-endianess check.
+
+ -- Frederic Peters <fpeters@debian.org>  Sun, 13 Mar 2011 20:05:56 +0100
+
+gnome-control-center (1:2.91.91-2) experimental; urgency=low
+
+  * debian/rules, debian/images/*, debian/patches/12_timezones.patch: ship
+    and install missing timezone graphics.
+  * debian/libgnome-control-center1.symbols: updated with three new symbols.
+
+ -- Frederic Peters <fpeters@debian.org>  Sat, 12 Mar 2011 21:38:35 +0100
+
+gnome-control-center (1:2.91.91-1) experimental; urgency=low
+
+  * New upstream release.
+    + debian/patches/00_disable-nm.patch: updated.
+    + debian/patches/10_mouse-panel-link.patch: fixed upstream.
+    + debian/patches/11_keyboard-panel-link.patch: ditto.
+    + debian/patches/10_libshortcuts-link.patch: fix linking of the shortcut
+      code.
+    + debian/patches/99_autoreconf.patch: refreshed.
+    + debian/control.in: build build-dep on libgnomekbd-dev
+
+ -- Frederic Peters <fpeters@debian.org>  Thu, 10 Mar 2011 17:35:21 +0100
+
+gnome-control-center (1:2.91.90-1) experimental; urgency=low
+
+  * New upstream release.
+    + debian/patches/00_disable-nm.patch: disable Network Manager 0.9 bits.
+    + debian/patches/10_mouse-panel-link.patch: fix linking of the mouse
+      panel.
+    + debian/patches/11_keyboard-panel-link.patch: fix linking of the keyboard
+      panel.
+    + debian/libgnome-control-center1.symbols: updated with a new symbol.
+
+ -- Frederic Peters <fpeters@debian.org>  Fri, 25 Feb 2011 10:44:34 +0100
+
+gnome-control-center (1:2.91.6-1) experimental; urgency=low
+
+  * debian/control.in:
+    + Depend on accountsservice and apg for the User Accounts panel.
+    + Update for the new gtk+ package names.
+  * New upstream release.
+    + debian/patches/01_printers_link.patch:
+      - Fix linking for the printers capplet.
+    + debian/control.in:
+      - Update build dependencies.
+
+ -- Emilio Pozuelo Monfort <pochu@debian.org>  Sat, 19 Feb 2011 14:40:15 +0000
+
+gnome-control-center (1:2.91.5-2) experimental; urgency=low
+
+  * debian/control.in:
+    - Drop gnome-control-center breaks/replaces against gnome-media(-common),
+      they seem unneeded.
+    - capplets-data replaces gnome-media-common.
+    - Build depend on docbook-xml, needed to build the docs.
+    - capplets-data: stop breaking g-c-c, it already depends on a new
+      enough version of the former so this is not needed.
+    - gnome-control-center: no need to manually depend on
+      libgnome-control-center1. The shlibs does that for us.
+    - Don't use tabs for padding.
+    - Drop obsolete dpkg-dev b-d.
+  * debian/control.in,
+    debian/rules,
+    debian/source/format:
+    - Switch to source format 3.0 (quilt).
+  * debian/control.in,
+    debian/{capplets,gnome-control-center}-data.*,
+    debian/rules:
+    - Rename capplets-data to gnome-control-center-data.
+  * debian/index.theme:
+    - Removed, unused.
+  * debian/libgnome-control-center1.symbols:
+    - Add a Build-Depends-Package field.
+  * debian/gnome-keyboard-properties.1,
+    debian/gnome-control-center.manpages:
+    - gnome-keyboard-properties is gone, drop the manpage.
+
+ -- Emilio Pozuelo Monfort <pochu@debian.org>  Sun, 16 Jan 2011 23:01:37 +0000
+
+gnome-control-center (1:2.91.5-1) experimental; urgency=low
+
+  * New upstream release
+  * Based on ubuntu 1:2.91.3.1-0ubuntu1~build2, by Robert Ancell and others
+  * debian/patches/01_ml_po.patch
+    - Removed
+  * patches/25_window_manager_settings.patch
+    - Removed, no longer applicable
+
+ -- Sjoerd Simons <sjoerd@debian.org>  Sat, 15 Jan 2011 12:18:29 +0000
+
+control-center (1:2.30.1-2) unstable; urgency=low
+
+  * debian/control.in:
+    - Let gnome-control-center depend on evolution-data-server, instead of
+      only recommending it. It's needed by gnome-about-me. Closes: #592525.
+
+ -- Emilio Pozuelo Monfort <pochu@debian.org>  Wed, 11 Aug 2010 01:37:07 +0200
+
+control-center (1:2.30.1-1) unstable; urgency=low
+
+  * New upstream release.
+  * Update build-dependencies.
+  * Require g-s-d 2.30.
+  * 01_fix_libslab_build.patch, 02_xrandr_assert.patch: dropped, merged
+    upstream.
+  * 70_relibtoolize.patch: updated for the new version.
+  * 01_ml_po.patch: new patch. Fix Malayalam translation that causes
+    GConf errors.
+
+ -- Josselin Mouette <joss@debian.org>  Tue, 27 Apr 2010 20:22:38 +0200
+
+control-center (1:2.28.1-2) unstable; urgency=low
+
+  * Drop libxxf86misc-dev build-dependency, it is not used.
+    Closes: #559694.
+  * 02_xrandr_assert.patch: stolen upstream. Fix assertion when using
+    mirroring. Closes: #563094.
+
+ -- Josselin Mouette <joss@debian.org>  Mon, 04 Jan 2010 18:26:06 +0100
+
+control-center (1:2.28.1-1) unstable; urgency=low
+
+  * New upstream release.
+    - debian/patches/70_relibtoolize.patch:
+      + Updated.
+    - debian/control.in:
+      + Stop build depending on libhal-dev, it's not needed anymore.
+  * debian/rules: Remove check-dist.mk include to upload to unstable.
+
+ -- Emilio Pozuelo Monfort <pochu@debian.org>  Thu, 22 Oct 2009 05:11:23 +0200
+
+control-center (1:2.28.0-2) experimental; urgency=low
+
+  * Build depend on a recent libslab-dev to build against one that doesn't
+    use libgnomeui, making gnome-control-center start again. Closes: #550461.
+
+ -- Emilio Pozuelo Monfort <pochu@debian.org>  Mon, 12 Oct 2009 01:58:10 +0200
+
+control-center (1:2.28.0-1) experimental; urgency=low
+
+  [ Loic Minier ]
+  * Drop --disable-mime-cache configure flag which was introduced in a Debian
+    specific patch which was dropped in 1:2.18.1-1.
+
+  [ Emilio Pozuelo Monfort ]
+  * debian/patches/05_ta_po.patch: forwarded, add header.
+
+  [ Josselin Mouette ]
+  * Require gnome-settings-daemon 2.26. Closes: #540418.
+
+  [ Emilio Pozuelo Monfort ]
+  * New upstream release.
+    - debian/control.in:
+      + Bump libgtk2.0-dev and libgnomekbd-dev build dependencies.
+      + Build depend on libxklavier-dev >= 4.0 rather than libxklavier12-dev.
+      + Remove libglade2-dev, libpanel-applet2-dev and libgnomeui-dev build
+        dependencies.
+      + Add libunique-dev and libxi-dev build dependencies.
+      + Remove libpolkit-gnome-dev from build depends, recommend
+        policykit-1-gnome for PolicyKit 1 support.
+    - debian/patches/05_ta_po.patch:
+      + Removed, the issue is no longer present in the po file.
+    - debian/patches/01_fix_libslab_build.patch:
+      + Updated from https://bugzilla.gnome.org/show_bug.cgi?id=591428.
+    - debian/patches/25_window_manager_settings.patch,
+      debian/patches/70_relibtoolize.patch:
+      + Updated.
+    - debian/patches/04_path_xtra.patch:
+      + Removed, Debian's autoconf patch doesn't patch AC_PATH_XTRA to check
+        for its arguments anymore, so it's useless.
+  * debian/rules:
+    - Stop touching every file, it was done to workaround a broken tarball.
+    - Include check-dist.mk to avoid uploads to experimental.
+  * debian/control.in:
+    - Tighten libgnome-window-settings-dev dependency on the shared library.
+    - Standards-Version is 3.8.3, no changes needed.
+    - Remove old conflicts/replaces.
+
+ -- Emilio Pozuelo Monfort <pochu@debian.org>  Fri, 09 Oct 2009 20:54:05 +0200
+
+control-center (1:2.26.0-1) unstable; urgency=low
+
+  * Stop mentioning GNOME 2.
+  * Remove scrollkeeper dependency.
+  * New upstream release.
+  * Update build-dependencies.
+  * Remove build-deps unneeded thanks to the external libslab: librsvg,
+    pango.
+  * 02_build_libgnome.patch, 06_gnomedesktop_api.patch: removed, fixed
+    upstream.
+  * 03_a11y_logout.patch: removed, now uses the gnome-session dbus
+    interface.
+  * 05_ta_po.patch, 70_relibtoolize.patch: updated for the new version.
+  * Install the autostart file in /usr/share/gnome/autostart.
+  * capplets-data.postinst: remove the one in the old location.
+
+ -- Josselin Mouette <joss@debian.org>  Fri, 29 May 2009 13:28:19 +0200
+
+control-center (1:2.24.0.1-5) unstable; urgency=low
+
+  * Remove useless build-dependency on libeel2-dev.
+
+ -- Josselin Mouette <joss@debian.org>  Sat, 25 Apr 2009 13:18:24 +0200
+
+control-center (1:2.24.0.1-4) unstable; urgency=low
+
+  * Set the team as primary maintainer. Closes: #523535.
+  * 02_build_libgnome.patch: new patch. Fix build failure by linking
+    explicitly to libgnomeui for stuff incorrectly listing gnome-desktop
+    only as a requirement. Closes: #524308.
+  * 06_gnomedesktop_api.patch: patch to cope with the API changes in
+    GnomeRR 2.26.
+  * 70_relibtoolize.patch: regenerated.
+  * Bump build-dependency on gnome-desktop to 2.26.
+
+ -- Josselin Mouette <joss@debian.org>  Thu, 16 Apr 2009 10:34:54 +0200
+
+control-center (1:2.24.0.1-3) unstable; urgency=low
+
+  * capplets-data.gconf-defaults: remove the keybinding settings. Now
+    that X.org returns correctly the XF86* keys, they must be used
+    instead.
+  * Add missing shortcuts for Home and Help.
+
+ -- Josselin Mouette <joss@debian.org>  Fri, 10 Apr 2009 20:51:39 +0200
+
+control-center (1:2.24.0.1-2) unstable; urgency=low
+
+  [ Josselin Mouette ]
+  * Depend on gnome-settings-daemon >= 2.24. Closes: #510172.
+  * Standards version is 3.8.1.
+  * Upload to unstable.
+
+  [ Emilio Pozuelo Monfort ]
+  * debian/rules, debian/shlibs.local: Call dh_makeshlibs for libgnome-
+    window-settings1 instead of using shlibs.local. It was likely
+    there to workaround dpkg-dev setting ignoring the dependency from
+    the Depends line and using that of dpkg-shlibdeps, but it's no
+    longer the case. As a side effect, this makes the shlibs
+    file be versioned as it should be.
+
+  [ Loic Minier ]
+  * Demote the scrollkeeper dep of capplets-data to a Suggest on rarian-compat
+    | scrollkeeper; the scrollkeeper dep seems to have been added around 2002
+    due to use of scrollkeeper-update in the postinst.
+
+ -- Josselin Mouette <joss@debian.org>  Tue, 07 Apr 2009 09:11:09 +0200
+
+control-center (1:2.24.0.1-1) experimental; urgency=low
+
+  * 03_a11y_logout.patch: use gnome-panel-logout for logout when
+    available.
+  * New upstream release.
+    + Correctly sets background without nautilus. Closes: #472902.
+    + The about-me capplet correctly saves emails. Closes: #350651.
+    + Resolutions are sorted in the display capplet. Closes: #509899.
+  * Update build-dependencies.
+  * Build-depend on libeel 2.24 to build against the experimental
+    version.
+  * Suggest libcanberra-gtk-module instead of esound-clients.
+  * Remove obsolete files: libgnome-settings-daemon-dev.install,
+    gnome-control-center.dirs.
+  * Switch to quilt for managing patches; build-depend on quilt.
+  * 01_fix_libslab_build.patch: updated for the new version.
+  * 02_xklavier_utf8.patch: dropped, merged upstream
+  * 25_window_manager_settings.patch: don’t patch the Makefile.in’s.
+  * 70_relibtoolize.patch: regenerated.
+  * capplets-data.gconf-defaults: the /music key is renamed to /media.
+  * Don’t remove the GConf schemas in the installation target.
+  * *.install: simplify a lot the installation files.
+    + Remove the pkg-config files in capplets-data.
+  * Remove -1 suffix in build-deps.
+  * 99_ltmain_as-needed.patch: make --as-needed work for the library as
+    well.
+  * debian/gnome-control-center.postinst: remove gnome-vfs conffiles.
+  * 05_ta_po.patch: new patch. Fix Tamil translation of the GConf
+    defaults.
+
+ -- Josselin Mouette <joss@debian.org>  Sun, 28 Dec 2008 12:38:50 +0100
+
+control-center (1:2.22.2.1-2) unstable; urgency=low
+
+  * 02_xklavier_utf8.patch: patch from upstream to accommodate the UTF8
+    changes in libxklavier 3.5-2.
+  * Standards version is 3.8.0, no changes.
+  * Suggest x11-xserver-utils for xrdb instead of xbase-clients.
+
+ -- Josselin Mouette <joss@debian.org>  Wed, 10 Sep 2008 12:34:52 +0200
+
+control-center (1:2.22.2.1-1) unstable; urgency=low
+
+  [ Josselin Mouette ]
+  * Suggest gstreamer0.10-alsa | gstreamer0.10-audiosink.
+    Closes: #482794.
+
+  [ Sebastian Dröge ]
+  * New upstream bugfix release:
+    + debian/patches/70_relibtoolize.patch:
+      - Updated to apply cleanly again.
+    + debian/rules:
+      - Run touch on every file to fix up timestamps.
+
+ -- Sebastian Dröge <slomo@debian.org>  Thu, 29 May 2008 10:32:54 +0200
+
+control-center (1:2.22.1-1) unstable; urgency=low
+
+  * New upstream bugfix release:
+    + debian/patches/70_relibtoolize.patch:
+      - Updated for the new version.
+
+ -- Sebastian Dröge <slomo@debian.org>  Wed, 16 Apr 2008 11:03:33 +0200
+
+control-center (1:2.22.0-2) unstable; urgency=low
+
+  * Upload to unstable.
+  * debian/control.in,
+    debian/gnome-control-center.install:
+    + Use nautilus 2.20 for now.
+
+ -- Sebastian Dröge <slomo@debian.org>  Wed, 19 Mar 2008 02:14:49 +0100
+
+control-center (1:2.22.0-1) experimental; urgency=low
+
+  * New upstream stable release:
+    + Upload to experimental first because of intrusive changes.
+    + gnome-settings-daemon moved to it's own source package.
+    + Update build dependencies and dependencies.
+
+ -- Sebastian Dröge <slomo@debian.org>  Sat, 15 Mar 2008 19:06:48 +0100
+
+control-center (1:2.20.3-3) unstable; urgency=low
+
+  [ Josselin Mouette ]
+  * Conflict against gnome-session << 2.20.3-2 because earlier versions
+    require the dbus service file.
+
+  [ Sebastian Dröge ]
+  * debian/control.in:
+    + Build depend on libxklavier12-dev | libxklavier-dev and rebuild against
+      the new soname.
+
+ -- Sebastian Dröge <slomo@debian.org>  Thu, 28 Feb 2008 10:03:20 +0100
+
+control-center (1:2.20.3-2) unstable; urgency=low
+
+  * capplets-data.install: don’t install the dbus service file, as g-s-d
+    should not be started through dbus.
+  * gnome-keyboard-properties.1:
+    + Fix missing space.
+    + Fix whatis entry.
+  * gnome-control-center.dirs: removed.
+  * Don’t run dh_makeshlibs for g-c-c.
+  * Update menu entry to the latest menu layout.
+
+ -- Josselin Mouette <joss@debian.org>  Sat, 16 Feb 2008 14:58:03 +0100
+
+control-center (1:2.20.3-1) unstable; urgency=low
+
+  * New upstream bugfix release.
+  * debian/control.in:
+    + Update Standards-Version to 3.7.3, no additional changes needed.
+  * debian/patches/70_relibtoolize.patch:
+    + Updated for the new version.
+
+ -- Sebastian Dröge <slomo@debian.org>  Sat, 12 Jan 2008 07:34:06 +0100
+
+control-center (1:2.20.1-2) unstable; urgency=high
+
+  [ Josselin Mouette ]
+  * 30_pkgconfig-path.patch: provide the path to the
+    gnome-settings-daemon binary in the pkgconfig file.
+
+  [ Loic Minier ]
+  * Upload with urgency high as we need this minor change for next
+    gnome-session.
+
+ -- Loic Minier <lool@dooz.org>  Tue, 27 Nov 2007 13:57:27 +0100
+
+control-center (1:2.20.1-1) unstable; urgency=low
+
+  * New upstream bugfix release:
+    + debian/patches/70_relibtoolize.patch:
+      - Regenerated for the new version.
+
+ -- Sebastian Dröge <slomo@debian.org>  Thu, 25 Oct 2007 19:45:06 +0200
+
+control-center (1:2.20.0.1-1) unstable; urgency=low
+
+  [ Loic Minier ]
+  * gnome-settings-daemon is in /usr/lib/control-center, not
+    gnome-control-center; closes: #443997.
+  * Drop the version of the scrollkeeper dependency.
+
+  [ Josselin Mouette ]
+  * Run dh_installmime for capplets-data, otherwise cdbs runs it before
+    dh_install.
+
+  [ Sven Arvidsson ]
+  * Add man page for gnome-keyboard-properties (Closes: #345818)
+
+  [ Sebastian Dröge ]
+  * New upstream bugfix release:
+    + debian/patches/70_relibtoolize.patch:
+      - Updated for the new version.
+
+ -- Sebastian Dröge <slomo@debian.org>  Fri, 05 Oct 2007 08:45:45 +0200
+
+control-center (1:2.20.0-1) unstable; urgency=low
+
+  [ Loic Minier ]
+  * Bump up gnome-icon-theme dep to >= 2.16 for applications-internet etc.
+  * Bump up libpango1.0-dev b-dep to >= 1.17 to help experimental's sbuild to
+    install libgtk2.0-dev >= 2.11.
+
+  [ Sebastian Dröge ]
+  * New upstream release:
+    + debian/patches/27_nobashizms.patch:
+      - Dropped, merged upstream.
+    + 70_relibtoolize.patch:
+      - Updated for the new version.
+  * Upload to unstable, drop check-dist include.
+
+ -- Sebastian Dröge <slomo@debian.org>  Sat, 22 Sep 2007 11:06:14 +0200
+
+control-center (1:2.19.6-1) experimental; urgency=low
+
+  * New upstream development release; no API change.
+    - Bump up libgtk2.0-dev build-dep to >= 2.11.6.
+    - Relibtoolize.
+    - Drop 99_ltmain_as-needed; fails to apply and not easy to update for me.
+
+ -- Loic Minier <lool@dooz.org>  Fri, 03 Aug 2007 10:28:44 +0200
+
+control-center (1:2.19.5-2) experimental; urgency=low
+
+  * Update defaults to string type by explicitely quoting them;
+    closes: #432933.
+
+ -- Loic Minier <lool@dooz.org>  Fri, 13 Jul 2007 11:14:52 +0200
+
+control-center (1:2.19.5-1) experimental; urgency=low
+
+  [ Josselin Mouette ]
+  * capplets-data.gconf-defaults: set the default keybindings, formerly
+    in patches/07_default_keys.patch.
+  * patches/07_default_keys.patch: removed.
+  * 99_ltmain_as-needed.patch: get --as-needed back to work.
+
+  [ Loic Minier ]
+  * Drop DEB_CONFIGURE_LOCALSTATEDIR which seems to be useless since forever.
+  * Drop Marc Dequènes (Duck) from Uploaders; thanks!
+  * Cleanups.
+  * New upstream release series; these are development releases, the API may
+    still change incompatibly; no API change in this release though.
+    - Target at experimental; include check-dist.
+    - Set GNOME_MODULE and update watch and copyright files as the upstream
+      module was renamed to gnome-control-center; update debian/*.install and
+      *.links files for new pathnames.
+    - Update patch 01_fix_libslab_build.
+    - Update patch 02_xrdb to only patch
+      gnome-settings-daemon/gnome-settings-xrdb.c (same as Ubuntu package).
+    - Update patch 09_locate_pointer (from Ubuntu package).
+    - Drop patch 10_eggaccelerators, merged upstream.
+    - Drop patch 15_gconf_peditor which has no documentation and seems
+      completely obsolete.
+    - Update patch 19_extra_keybindings (from the Ubuntu package).
+    - Drop patch 24_theme_dont_require_metacity, deprecated with the new
+      version (from the Ubuntu package).
+    - Drop patch 36-compiz-keybindings-support, deprecated with the new
+      version (from the Ubuntu package).
+    - Update relibtoolizing patch, 70_relibtoolize.
+    - Drop patch 90_workaround_gnome_doc_utils_bug, workaround not required
+      anymore.
+    - Bump up libglib2.0-dev build-dep to >> 2.13.
+    - Drop private icon dir and png pixmaps from capplets-data.install.
+    - Drop gnome-font-properties, gnome-background-properties,
+      gnome-theme-manager, and gnome-ui-properties from
+      gnome-control-center.install.
+    - Add a (libxklavier11-dev >= 3.2) build-dep.
+    - Update GConf defaults for the music and calculator keybindings and bind
+      the rhythmbox command to the default media player.
+    - Install gnome-keybindings.pc in libgnome-settings-daemon-dev.
+    - Misc updates to *.install files.
+    - New patch, 27_nobashizms, fixes a bashism in gnome-at-commandline; found
+      in the Ubuntu package.
+    - Install all files under usr/bin to gnome-control-center to ease handling
+      of its install file.
+
+ -- Loic Minier <lool@dooz.org>  Tue, 10 Jul 2007 18:55:45 +0200
+
+control-center (1:2.18.1-1) unstable; urgency=low
+
+  [ Marco Cabizza ]
+  * New upstream release:
+    - gswitchit should be working as most of the keyboard-releated stuff
+      has been moved to libgnomekbd ( therefore depending on it ).
+    - dropping 12_sort_entries.patch, 22_bkg_capplet_follow_symlink.patch,
+      and 23_menu_files_conflict.patch due to code reorganisation.
+    - dropping 28_thunderbird-no-compose-flag.patch and
+      29_iceweasel-icedove-preferred-apps.patch as they're merged upstream.
+    - fixing 02_xrdb.patch for the new upstream.
+    - don't create the libslab* packages, depend on gnome-main-menu's
+      libslab-dev.
+    - don't install the control-center schema as it's provided by slab.
+  * Fixing the .install files.
+
+  [ Riccardo Setti ]
+  * Built with the libslab-dev package provided by gnome-main-menu
+    instead of the libslab shipped in the source
+    - 01_fix_libslab_build.patch
+  * Removed 06_disable_update_mime_at_install.patch. Use
+    --disable-update-mimedb directly from the configure switch.
+  * Updated 04_path_xtra.patch, 02_xrdb.patch
+  * Added 05_autotools.patch
+  * Dropped 30_pulseaudio.patch, merged upstream.
+  * Added 07_default_keys.patch (patch taken from the ubuntu package)
+  * Added 91_from_svn_fix_gstreamer_warning.patch:
+    patch from SVN, "Initialise threads early, and fix option context
+    translation". (patch taken from the ubuntu package)
+
+  [ Loic Minier ]
+  * Drop commented out DEB_BUILDDIR completely; seems useless; cleanups.
+  * Set LDFLAGS directly instead of via DEB_CONFIGURE_SCRIPT_ENV; build-dep on
+    cdbs >= 0.4.41.
+  * New upstream release has API additions in gnome-settings-client.h, bump up
+    shlibs to >= 2.17.5.
+  * Suggest xrdb.
+  * Bump up intltool build-dep to 0.35.5.
+  * Build-depend on libpango1.0-dev, libgnomekbdui-dev.
+  * Drop build-dep on liborbit2-dev, libxklavier11-dev.
+  * Bump up dep on gnome-menus to >= 2.12.0.
+  * Version the libgnomekbd and libgnomekbdui build-deps to >= 0.1.
+  * New upstream release; no API change in libgnome-window-settings.
+    - Apply update to patch 07_default_keys, found in the Ubuntu package.
+    - Drop patch 91_from_svn_fix_gstreamer_warning, merged upstream.
+    - Rename patch 05_autotools to 70_relibtoolize and update it.
+    - New patch, 90_workaround_gnome_doc_utils_bug, works around a build
+      failure with newer gnome-doc-utils; from the Ubuntu package.
+  * New patch, 36-compiz-keybindings-support, permits configuring keybindings
+    when using compiz as window manager; from the Ubuntu package.
+  * Upload to unstable; drop check-dist include.
+  * Wrap build-deps and deps.
+  * Fix URL in copyright.
+  * Build-depend on scrollkeeper.
+
+ -- Loic Minier <lool@dooz.org>  Sun, 22 Apr 2007 13:48:12 +0200
+
+control-center (1:2.16.3-1) experimental; urgency=low
+
+  [ Sven Arvidsson ]
+  * New patch, 30_pulseaudio.patch, Polypaudio is now PulseAudio;
+    thanks Mike Hommey.
+
+  [ Loic Minier ]
+  * Merge 1:2.14.2-6 and 1:2.14.2-7; SVN r7995:8671.
+  * New upstream stable release; bug fixes and translations.
+    - Update patch 25_window_manager_settings.
+    - Drop patch 30_null-terminate-font-list, merged upstream.
+    - Update patch 30_pulseaudio.
+    - Build-depend on scrollkeeper.
+
+ -- Loic Minier <lool@dooz.org>  Sat, 17 Mar 2007 15:49:26 +0100
+
+control-center (1:2.16.2-3) experimental; urgency=low
+
+  * Add a get-orig-source target to retrieve the upstream tarball.
+  * Include the new check-dist Makefile to prevent accidental uploads to
+    unstable; bump build-dep on gnome-pkg-tools to >= 0.10.
+  * Build-depend on libgtk2.0-dev >= 2.10 for multihead support and to build
+    typing-break which uses GtkStatusIcon, par of the 2.10 API.
+  * Bump up libgnomeui-dev build-dep to >= 2.16.0-2 to get a Gtk 2.10
+    transitionned version.
+
+ -- Loic Minier <lool@dooz.org>  Sun,  4 Feb 2007 13:22:54 +0100
+
+control-center (1:2.16.2-2) experimental; urgency=low
+
+  * Conflict with gnome-session < 2.16.
+
+ -- Josselin Mouette <joss@debian.org>  Mon, 27 Nov 2006 20:55:48 +0100
+
+control-center (1:2.16.2-1) experimental; urgency=low
+
+  [ Marco Cabizza ]
+  * New upstream release:
+    - gnome-settings-daemon doesn't crash anymore, hooray! (Closes: #372873)
+    - dropping merged patches 26_ignore_pmu_permissions.patch and 27_bzip2.patch
+    - adapting 19_extra_keybindings.patch
+  * Bumping dependencies: libgtk2.0-dev, libxklavier11-dev, libebook-dev
+  * Build-Depends on hal and dbus
+  * Splitting off some stuff (gnome-window-settings.pc and its headers) into
+    libgnome-window-settings-dev, and thus including the dbus .service in
+    capplets-data
+  * Updated the watch file
+
+  [ Loic Minier ]
+  * Fix watch file to track stable releases and use HTTP.
+
+  [ Josselin Mouette ]
+  * Merge 2.14.2-5.
+  * rules: call clean-la.mk.
+  * Build-depend on gnome-pkg-tools 0.7.
+  * 29_iceweasel-icedove-preferred-apps.patch: remove the tons of
+    useless translations of iceweasel and icedove by themselves.
+
+ -- Josselin Mouette <joss@debian.org>  Sun, 26 Nov 2006 21:38:20 +0100
+
+control-center (1:2.14.2-7) unstable; urgency=medium
+
+  * Add a get-orig-source target to retrieve the upstream tarball.
+  * New patch, 30_null-terminate-font-list, fixes crash triggerred by missing
+    NULL terminator in name list; GNOME #356435.
+
+ -- Loic Minier <lool@dooz.org>  Mon, 26 Feb 2007 11:00:38 +0100
+
+control-center (1:2.14.2-6) unstable; urgency=low
+
+  * Update patch 29_iceweasel-icedove-preferred-apps to drop the -compose
+    flag, as in 28_thunderbird-no-compose-flag.
+
+ -- Loic Minier <lool@dooz.org>  Mon, 27 Nov 2006 16:52:30 +0100
+
+control-center (1:2.14.2-5) unstable; urgency=low
+
+  * Update patch 29_iceweasel-icedove-preferred-apps to change the mixed case
+    IceWeasel in Iceweasel.
+
+ -- Loic Minier <lool@dooz.org>  Sat, 25 Nov 2006 13:34:41 +0100
+
+control-center (1:2.14.2-4) unstable; urgency=low
+
+  * New patch, 29_iceweasel-icedove-preferred-apps, to offer IceWeasel and
+    Icedove in the list of preferred applications; thanks Sven Arvidsson;
+    closes: #393549.
+
+ -- Loic Minier <lool@dooz.org>  Sat, 25 Nov 2006 11:41:26 +0100
+
+control-center (1:2.14.2-3) unstable; urgency=low
+
+  [ Loic Minier ]
+  * New patch, 28_thunderbird-no-compose-flag, to fix the way browsers invoke
+    Thunderbird (drop the -compose flag which is added automatically for
+    mailto: URLs); thanks Manuel Bilderbeek. (Closes: #380284)
+  * Recommend gnome-user-guide instead of gnome2-user-guide; thanks Luk Claes.
+    (Closes: #378718)
+
+  [ Marco Cabizza ]
+  * Set the correct path for bzip2 adding patches/27_bzip2.patch, and
+    Recommends: bzip2, (Closes: #378141)
+
+  [ Josselin Mouette ]
+  * Suggest gnome-screensaver first, xscreensaver second.
+  * Make libgnome-window-settings-dev tolerate binNMUs.
+  * Depend on gnome-pkg-tools 0.6.
+  * Use ${gnome:Version} and ${gnome:NextVersion}.
+  * Call gnome-version.mk in rules.
+
+ -- Josselin Mouette <joss@debian.org>  Fri,  1 Sep 2006 21:24:32 +0200
+
+control-center (1:2.14.2-2) unstable; urgency=high
+
+  [ Marco Cabizza ]
+  * debian/control, debian/control.in:
+    - libgnome-window-settings1 replaces capplets (Closes: #372804)
+
+  [ Sjoerd Simons ]
+  * debian/patches/26_ignore_pmu_permissions.patch
+    - Added. Ignore errors when we can't open or use the pmu device for
+      brightness settings. A better fix would be to use hal instead.
+      (Closes: #373146)
+
+  [ Loic Minier ]
+  * Fix versioned dependency of capplets-data on gnome-control-center.
+  * Let libgnome-window-settings1 conflict with capplets too.
+  * Drop capplets Provides.
+
+ -- Loic Minier <lool@dooz.org>  Fri,  7 Jul 2006 22:28:58 +0200
+
+control-center (1:2.14.2-1) unstable; urgency=low
+
+  * New upstream release
+  * debian/control, debian/control.in:
+    - libgnome-window-settings1, libgnome-window-settings-dev Replaces
+      gnome-control-center << 1:2.14.0-1 (Closes: #370211)
+    - New maintainer
+  * compat, libgnome-window-settings1.install, gnome-control-center.install:
+    - Debhelper compatibility is 5
+    - Fixed some missing files errors
+
+ -- Marco Cabizza <marco87@gmail.com>  Sun, 28 May 2006 18:53:48 +0200
+
+control-center (1:2.14.1-1) unstable; urgency=low
+
+  [ Marco Cabizza ]
+  * New upstream release.
+    - fixed the xkb releated bugs (Closes: #348809, #349399, #351798)
+    - evdev doesn't crash gnome-settings-daemon any more
+    (Closes: #362107, #362563)
+    - fixed the gnome-settings-daemon crash at startup (Closes: #347796)
+  * debian/control, debian/control.in:
+    - dropped the dependency on xlibs due to its deprecation and since
+      libxklavier depends on xkb-data (Closes: 342536, #365977)
+    - standards version is 3.7.2
+    - Build-depend on libgtk2.0-dev (>= 2.8.12) and
+      libgstreamer-plugins-base0.10-dev
+  * debian/rules:
+    - append --enable-gstreamer=0.10 to configure
+  * debian/capplets-data.install:
+    - added usr/share/desktop-directories to the list
+  * debian/patches/02_xrdb.patch:
+    - updated to fit upstream
+  * debian/patches/08_pmu_fix.patch:
+    - dropped; already merged upstream
+  * New packages:
+    - Move libgnome-window-settings.so.1 in the newly created
+      libgnome-window-settings1 and add libgnome-window-settings1.shlibs
+    - Move the libwindow-settings' header files in the newly created
+      libgnome-window-settings-dev
+  * debian/patches/25_window_manager_settings.patch:
+    - rename /usr/lib/window-manager-settings to
+      /usr/lib/libgnome-window-settings1.
+
+  [ Josselin Mouette ]
+  * Make the package binNMU-safe.
+    + Build-depend on dpkg-dev 1.13.19.
+    + Use ${source:Version}.
+
+ -- Marco Cabizza <marco87@gmail.com>  Sat,  6 May 2006 17:01:39 +0200
+
+control-center (1:2.12.3-2) unstable; urgency=medium
+
+  * Build-depend on libxrender-dev, libx11-dev, and libxt-dev explicitely as
+    these are used in configure.in, fixes FTBFS.
+    [debian/control, debian/control.in]
+  * Add missing build-deps on libgconf2-dev, libbonoboui2-dev, libesd0-dev,
+    libgnomevfs2-dev, libfontconfig1-dev, libfreetype6-dev, libglib2.0-dev.
+    [debian/control, debian/control.in]
+  * Fix old changelog entries:
+    - Fix the bug number closed in 1:2.12.1-2.
+    - Explain Marillat's joke in 1:2.4.0-8. (Closes: #244288)
+
+ -- Loic Minier <lool@dooz.org>  Tue, 21 Feb 2006 11:38:12 +0100
+
+control-center (1:2.12.3-1) unstable; urgency=low
+
+  * New upstream release.
+  * Recommend evolution-data-server since gnome-about-me seems to require it.
+    (Closes: #340419)
+    [debian/control, debian/control.in]
+
+ -- Loic Minier <lool@dooz.org>  Mon, 20 Feb 2006 18:27:00 +0100
+
+control-center (1:2.12.2-2) unstable; urgency=low
+
+  [ Gustavo Noronha Silva ]
+  * debian/control.in:
+  - increased debhelper b-dep to >= 4.1.0, because of cdbs
+
+  [ Josselin Mouette ]
+  * Rebuild to get rid of libgamin0 dependency (closes: #348347).
+
+ -- Josselin Mouette <joss@debian.org>  Mon, 16 Jan 2006 20:47:30 +0100
+
+control-center (1:2.12.2-1) unstable; urgency=low
+
+  * New upstream release
+  * debian/control.in:
+  - removed duplicated build-dep on libgnome-menu-dev, leaving
+    the bigger one (>= 2.12), thanks to Kurt Roeckx <kurt@roeckx.be>
+    for pointing out
+
+ -- Gustavo Noronha Silva <kov@debian.org>  Sun,  8 Jan 2006 12:02:37 -0200
+
+control-center (1:2.12.1-2) UNRELEASED; urgency=low
+
+  * Only install /usr/share/applications/*.desktop, not
+    /usr/share/applications in capplets-data, and rm -rf
+    /usr/share/applications/mimeinfo.cache in
+    binary-post-install/capplets-data:: to be completely safe (the
+    update-desktop-database can't be deactivated via configure).
+    (Closes: #346062)
+    [debian/capplets-data.install, debian/rules]
+
+ -- Loic Minier <lool@dooz.org>  Sat,  7 Jan 2006 15:30:16 +0100
+
+control-center (1:2.12.1-1) experimental; urgency=low
+
+  [ Loic Minier ]
+  * New upstream releases.
+    - Update watch file. [debian/watch]
+    - Don't run scrollkeeper. [debian/rules]
+    - Bump libgtk2.0-dev build-dep to >= 2.6.0.
+      [debian/control, debian/control.in]
+    - Add a libxft-dev build-dep on >= 2.1.2.
+      [debian/control, debian/control.in]
+    - Version libgnome-menu-dev build-dep on >= 2.10.1.
+      [debian/control, debian/control.in]
+    - Enable about-me capplet.
+      . Update configure flags. [debian/rules]
+      . Add libebook1.2-dev build-dep. [debian/control, debian/control.in]
+    - Suggest gnome-screensaver. [debian/control, debian/control.in]
+  * Add CDBS' utils. [debian/rules]
+  * Don't overwrite DEB_CONFIGURE_EXTRA_FLAGS and
+    DEB_INSTALL_MANPAGES_gnome-control-center. [debian/rules]
+
+  [ Sjoerd Simons ]
+  * debian/patches/12_sort_entries.patch
+    - Updated for new upstream
+  * debian/patches/20_gswitchit_dont_crash_when_no_xkb_config.patch
+    - Removed. fixed upstream
+  * debian/patches/22_bkg_capplet_follow_symlink.patch
+    - Updated for new upstream (from the ubuntu package)
+  * debian/patches/23_menu_files_conflict.patch
+    - Update for new upstream
+  * debian/patches/99_reautogenization.patch
+    - Removed
+  * Updated build-depends
+  * Install gnome-about-me and the nautilus extensions
+  * Use upstream versions of gnome-font-viewer.desktop and
+    themus-theme-applier.desktop
+
+ -- Sjoerd Simons <sjoerd@debian.org>  Mon, 21 Nov 2005 18:21:32 +0000
+
+control-center (1:2.10.2-1) unstable; urgency=low
+
+  [ Josselin Mouette ]
+  * Use again --as-needed.
+
+  [ Marc Dequènes (Duck) ]
+  * New upstream release.
+  * Applied patch for gnome-font-viewer 'fonts:///' url capability from
+    Sam Morris (Closes: #316188).
+  * Fixed 'Apply theme' contextual entry in 'themes://' (corrected
+    'debian/themus-theme-applier.desktop') (Closes #298360).
+  * Regenerated and merged reautogenization patches.
+
+ -- Marc Dequènes (Duck) <Duck@DuckCorp.org>  Fri, 30 Sep 2005 15:08:27 +0200
+
+control-center (1:2.10.1-6) unstable; urgency=medium
+
+  * Urgency medium because of FTBFS on sparc and alpha (binutils issue).
+  * Remove --as-needed from LD_FLAGS.
+
+ -- Loic Minier <lool@dooz.org>  Wed, 10 Aug 2005 12:48:11 +0200
+
+control-center (1:2.10.1-5) unstable; urgency=high
+
+  * Urgency high because of RC bugfix and because this holds the GNOME 2.10
+    transition.
+  * Add missing build-deps on libxss-dev (Closes: #319971) and
+    libxinerama-dev.
+
+ -- Loic Minier <lool@dooz.org>  Tue, 26 Jul 2005 09:52:43 +0200
+
+control-center (1:2.10.1-4) unstable; urgency=medium
+
+  * Don't overwrite DEB_CONFIGURE_SCRIPT_ENV completely.
+  * 24_theme_dont_require_metacity.patch: make gnome-theme-manager work
+    without metacity being installed (closes: #315730).
+  * Use type-handling's Provides: feature to avoid hacking the control file.
+  * Remove the capplets package, which doesn't have a purpose anymore. Move
+    all package contents back to gnome-control-center.
+  * Remove most Replaces: and Conflicts:, not useful anymore.
+  * Standards-version is 3.6.2.
+
+ -- Josselin Mouette <joss@debian.org>  Sat, 25 Jun 2005 19:11:37 +0200
+
+control-center (1:2.10.1-3) unstable; urgency=low
+
+  * Fix menu files conflict (renaming 'preferences.menu' to 'gnome-
+    preferences.menu') (causing control-center summary window to be
+    empty).
+  * Now building in 'debian/build/' directory (cleaner & avoid non-
+    idempotency hackerie).
+  * Updated 'debian/copyright' download URL.
+  * 'debian/rules' spring-cleaning.
+
+ -- Marc Dequènes (Duck) <Duck@DuckCorp.org>  Wed, 15 Jun 2005 00:47:05 +0200
+
+control-center (1:2.10.1-2) unstable; urgency=low
+
+  * Upload to unstable (GNOME Team upload) (Closes: #313217).
+  * Fixed in 2.10 :
+    + crashes at startup when loading settings (Closes: #251126).
+    + installing files from ~/.themes fails (Closes: #166983).
+    + bad icon themes install path (Closes: #257241).
+    + installing bad theme fails silently (Closes: #166982).
+    + incorrect position of volume dialog (Closes: #260277).
+    + cannot turn off sound events (Closes: #216927).
+    and probably some more...
+  * Buildsys not idempotent breaking next build because of missing
+    schema '.in' file worked around in clean rule (GNOME people should
+    really learn to test before releasing...).
+
+ -- Marc Dequènes (Duck) <Duck@DuckCorp.org>  Sun, 12 Jun 2005 19:43:28 +0200
+
+control-center (1:2.10.1-1) experimental; urgency=low
+
+  * New upstream release.
+  * debian/control.in:
+    - Updated build-dependencies
+  * debian/patches:
+    - 01_gnome-default-applications-properties-structs.c.patch: Removed as
+    Debian's default applications are included upstream
+    - 03_gsd_actions_makefile.am.patch: Not more needed
+    - 05_path_xtra-2.patch: Regenerated
+    - 06_disable_update_mime_at_install.patch:
+    - 07_disable_update_mime_at_install-2.patch:
+      Don't call update-desktop-database
+    - 11_sleepkey.patch: patch taken to seb128's package to use gdm-signal
+    - 12_sort_entries.patch: Sort entries in each categories
+    when suspending from keyboard key
+    - 21_show_xkb_warning_one_time.patch: should not be needed anymore
+    - 21_show_xkb_warning_one_time.patch: updated
+    - 17_locate_pointer.patch:
+    - 23_infinite_loop_theme_manager.patch:
+      This upstream version has theses patches
+
+ -- Arnaud Patard <arnaud.patard@rtp-net.org>  Sat,  9 Apr 2005 01:00:12 +0200
+
+control-center (1:2.8.2-3) unstable; urgency=medium
+
+  * 20_gswitchit_dont_crash_when_no_xkb_config.patch:
+    + Reverse a wrong test condition.
+    + Don't check the "options" key (closes: #296434).
+
+ -- Josselin Mouette <joss@debian.org>  Thu, 17 Mar 2005 22:28:32 +0100
+
+control-center (1:2.8.2-2) unstable; urgency=low
+
+  * debian/control:
+    - fixes the Build-Depends (Closes: #299753).
+
+ -- Sebastien Bacher <seb128@debian.org>  Wed, 16 Mar 2005 23:29:27 +0100
+
+control-center (1:2.8.2-1) unstable; urgency=low
+
+  * New upstream version:
+    - Fix theme thumbnailing
+    - Fix widget expansion in the keyboard preferences
+    - Handle backspace in multilayout setups correctly
+    - theme-thumbnailer doesn't require an absolute path
+  * debian/patches:
+    - 05_relibtoolised.patch : Removed as no more accurate
+    - 06_gst-fix.patch: Merged
+    - 14_gst-mixer-grab.patch : Merged
+    - 16_disable_text_editor_tab.patch: Merged
+    - 18_logout.patch: Merged
+    - 04_path_xtra.patch: Updated to patch only the configure.in file. The
+    configure update is now in 05_path_xtra.patch-2.patch
+    - 23_infinite_loop_theme_manager.patch: Forgotten patch in the 2.8.2
+    release
+  * debian/rules:
+    - Pass --as-needed to LDFLAGS to reduce dependencies and removes
+    dependency upon libhowl0. (Closes: 298805)
+  * debian/control.in:
+    - Depends on libgnomeui >= 2.8.1-3 to be sure to remove the dependency on
+    the libhowl0
+
+ -- Arnaud Patard <arnaud.patard@rtp-net.org>  Wed,  9 Mar 2005 23:18:44 +0100
+
+control-center (1:2.8.1-4) unstable; urgency=low
+
+  * debian/patches:
+    - 17_locate_pointer.patch: fix the "locate pointer" when numlock is
+    activated.
+    - 18_logout.patch: fix the logout shortcut (Closes: #289009).
+    - 01_gnome-default-applications-properties-structs.c.patch: Corrected
+    Thunderbird command (Closes: #278762)
+    - Updated 08_pmu_fix.patch with patches from Sjoerd Simons and Sven Luther
+    as a fix for the pmu error message
+    - 19_extra_keybindings.patch: Add bindings for calculator and music
+    multimedia keys (Closes: #291917)
+    - 20_gswitchit_dont_crash_when_no_xkb_config.patch: Patch from kov to
+    prevent crash when used remotely (Closes: #286220)
+    - 21_show_xkb_warning_one_time.patch: Adopt a similar behaviour as for the
+    xmodmap warning (Closes: #287965)
+    - 22_bkg_capplet_follow_symlink.patch: Resolv symlink to generate the
+    thumbnails (Closes: #281657)
+
+ -- Arnaud Patard <arnaud.patard@rtp-net.org>  Sun,  6 Feb 2005 19:13:04 +0100
+
+control-center (1:2.8.1-3) unstable; urgency=low
+
+  * debian/rules:
+    - Corrected erroneous line responsible for not including the .desktop
+    files (Closes: #274401)
+  * debian/patches:
+    - Suppressed 'Text Editor' in the "preferred applications" as it's useless
+    with the new mime type system.
+
+ -- Arnaud Patard <arnaud.patard@rtp-net.org>  Thu, 25 Nov 2004 21:16:04 +0100
+
+control-center (1:2.8.1-2) unstable; urgency=low
+
+  * debian/rules,debian/capplets.install:
+    - Added manually a .desktop for fontilus taken from Gnome's cvs
+    (Closes: #274401)
+    - Added manually a .desktop for themes:///. Thanks to Dan Korostelev
+
+ -- Arnaud Patard <arnaud.patard@rtp-net.org>  Wed, 17 Nov 2004 23:44:21 +0100
+
+control-center (1:2.8.1-1) experimental; urgency=low
+
+  * New upstream release
+    - Some tweaking of the available default applications
+    - Background capplet fixes
+    - keyboard patchs
+    - Patch leak in XKB code
+    - update translations
+  * Update the package with the modifications from the 2.6 package
+  * Added Evolution 2.0 to preferred applications (Closes: 279198)
+  * debian/patches:
+    - Removed 13_drw_monitor.patch
+    - Re-added an updated version of 14_gst-mixer-grab.patch as the bug
+      isn't fixed upstream
+
+ -- Arnaud Patard <arnaud.patard@rtp-net.org>  Tue,  9 Nov 2004 00:24:23 +0100
+
+control-center (1:2.8.0-1) experimental; urgency=low
+
+  * GNOME Team Upload with Rtp's permission.
+  * New upstream release :
+    + fix french typo (Closes: #238387) (or even closed in 2.6).
+    + fix german typo (Closes: #267767)
+  * Removed 07_acme_position.patch and 11_default_app.patch now
+    applied upstream.
+  * Removed part of the 12_custom_browser.patch related to the dead
+    file-types capplet (due to mime system changes).
+  * Corrected 'patch unexpectedly ends in middle of line' in
+    13_drw_monitor.patch.
+  * Removed 14_gst-mixer-grab.patch recoded upstream.
+  * Updated URL in 'debian/copyright'.
+  * Updated watch file.
+  * 'debian/control.in' : using ${misc:Depends} and updated versions.
+  * Added 'autotools-dev' to build dependencies to take advantage of the
+    CDBS automatic 'config.*' management.
+  * Regenerated relibtoolize patch.
+  * As not (yet) DD i'm not listed as GNOME Team member, so adding
+    myself to Uploaders to avoid this upload to be considered a NMU.
+
+ -- Marc Dequènes (Duck) <Duck@DuckCorp.org>  Wed, 15 Sep 2004 04:20:24 +0200
+
+control-center (1:2.6.1-13) unstable; urgency=low
+
+  * debian/patches:
+    - Added a sanity check on the type of gconf value before calling strcmp in
+    gconf_property_editor (Closes: #272358)
+    - Check that one is on a powerpc with a pmu before reporting that's
+    there is no /dev/pmu in 08_pmu_fix.patch (Closes: #273336)
+    - Updated 01_gnome-default-applications-properties-structs.c.patch to add
+    FireFox and ThunderBird (Closes: #265882)
+    - Added a check on self->priv in 14_gst-mixer-grab.patch in order to
+    provent a crash if something went wrong during initialiastion
+    (Closes: #269429)
+    - Updated 09_locate_pointer.patch XUngrabKeyboard call thanks to Sjoerd
+    Simons (Closes: #275723)
+  * debian/control{,.in},debian/rules:
+    - Patch from Robert Millan to build on kfreebsd-gnu (Closes: #272722)
+
+ -- Arnaud Patard <arnaud.patard@rtp-net.org>  Tue, 12 Oct 2004 13:49:27 +0200
+
+control-center (1:2.6.1-12) unstable; urgency=low
+
+  * debian/patches:
+    - Corrected patch 11_default_app.patch so that it checks the pointer value
+    before calling strlen (Closes: #264288)
+    - Added a patch that close the mixer devices after 4s of inactivity
+    (Closes: #255793)
+
+ -- Arnaud Patard <arnaud.patard@rtp-net.org>  Fri, 13 Aug 2004 12:47:09 +0200
+
+control-center (1:2.6.1-11) unstable; urgency=low
+
+  * debian/patches:
+    - Added a patch for fixing the default applications properties capplet
+    (Closes: #245237)
+    - Added a patch from http://bugzilla.gnome.org/show_bug.cgi?id=123487 for
+    handling http,https, unknow urls with the custom browser setting
+    (Closes: #236297)
+    - Backported a patch from control-center 2.7 for preventing the typing
+    break to starts while watching a movie with totem
+  * debian/control.in:
+    - Updated the libgnomeui-dev build-depends to get gnutls11
+    (Closes: #263609)
+
+ -- Arnaud Patard <arnaud.patard@rtp-net.org>  Thu,  5 Aug 2004 17:46:37 +0200
+
+control-center (1:2.6.1-10) unstable; urgency=low
+
+  * debian/patch
+    - Added a patch so that using the 'locate cursor' mouse option doesn't
+    disable all multimedia keybinding (Closes: #257581)
+    - Corrected the patch for the pmu by suppressing the wrong test, as
+    discussed with upstream (Closes: #258105)
+    - Added a patch from http://bugzilla.gnome.org/show_bug.cgi?id=145271 to
+    ensure that all keysims in shortcuts exists in the keymap (Closes: 254745)
+  * debian
+    - Corrected some errors in the man page.
+
+ -- Arnaud Patard <arnaud.patard@rtp-net.org>  Mon, 12 Jul 2004 23:32:27 +0200
+
+control-center (1:2.6.1-9) unstable; urgency=low
+
+  * debian/patch:
+    - Corrected the patch so that all modified files are in the diff
+    (Closes: #257352)
+    - Modified 06_gst-fix.patch to ensure the usage of the first soundcard on
+    system with multiple soundcards
+
+ -- Arnaud Patard <arnaud.patard@rtp-net.org>  Sat,  3 Jul 2004 12:50:18 +0200
+
+control-center (1:2.6.1-8) unstable; urgency=low
+
+  * debian/capplets-data.install:
+    - Suppressed the line that was reponsible for copying Xresources two times
+     (Closes: #252324).
+  * debian/control.in:
+    - Added libgstreamer-plugins0.8-dev to build-depends
+    - Added some gstreamer sound plugin for the volume keybindings
+  * debian/patch:
+    - Added a patch from Sjoerd Simons to fix the gstreamer volume code
+      (Closes: #251831,#253416)
+    - Added a patch for setting the position of the volume window after
+      showing it (Closes: #254822)
+    - Added a patch for cleaning error messages for /dev/pmu from
+      http://bugzilla.gnome.org/show_bug.cgi?id=132655. It will be merged
+      in 2.7 (Closes: #252460)
+
+ -- Arnaud Patard <arnaud.patard@rtp-net.org>  Thu,  1 Jul 2004 22:16:30 +0200
+
+control-center (1:2.6.1-7) unstable; urgency=high
+
+  * debian/control.in:
+    + removed libgstreamer-plugins0.8-dev from Build-Depends.
+
+ -- Sebastien Bacher <seb128@debian.org>  Sat, 19 Jun 2004 15:10:37 +0200
+
+control-center (1:2.6.1-6) unstable; urgency=high
+
+  * Rebuilt without gstreamer to try to get control-center in testing fast
+    to fix nautilus' breakage.
+
+ -- Sebastien Bacher <seb128@debian.org>  Fri, 18 Jun 2004 01:26:12 +0200
+
+control-center (1:2.6.1-5) unstable; urgency=low
+
+  * Rebuilt in a pbuilder, fix the crashe due to linkage with both libxft
+    (Closes: #254076).
+
+ -- Sebastien Bacher <seb128@debian.org>  Sat, 12 Jun 2004 23:22:42 +0200
+
+control-center (1:2.6.1-4) unstable; urgency=low
+
+  * Gnome Team Upload.
+  * Added a link to the gnome-settings-daemon in /usr/bin (Closes: #251953).
+  * debian/control.in:
+    + Depends on xlibs (Closes: #253287).
+    + Recommends gnome2-user-guide (Closes: #251992).
+
+ -- Sebastien Bacher <seb128@debian.org>  Thu, 10 Jun 2004 22:28:02 +0200
+
+control-center (1:2.6.1-3) unstable; urgency=low
+
+  * debian/rules :
+    - As gstreamer 0.8 as reached unstable, reactivate the default option to use
+    it with the keybindings.
+  * debian/control.in :
+    - Added build dependency on libgstreamer-plugins0.8-dev
+    - Removes dependency on libgnome-keyring-dev since no more needed.
+    - Added libXrandr-dev as build dependency (Closes: #251429).
+  * debian/patch :
+    - Added a patch for resolving conflictings ALSA_CFLAGS problems (Closes:
+    #249357).
+    - Added a pathc for using Debian's ac_path_xtra
+    - Modified the patch for relibtoolizing
+
+ -- Arnaud Patard <arnaud.patard@rtp-net.org>  Sat, 29 May 2004 18:01:45 +0200
+
+control-center (1:2.6.1-2) unstable; urgency=low
+
+  * GNOME Team Upload.
+  * Upload in unstable.
+
+ -- Sebastien Bacher <seb128@debian.org>  Wed, 26 May 2004 17:30:32 +0200
+
+control-center (1:2.6.1-1) experimental; urgency=low
+
+  * New upstream release.
+    - Fix uniqueness test for binding special keys with no name
+    - Fix theme manager selection when not running metacity
+    - Match nautilus' interpretation of icons in desktop files
+    - Add Evolution 1.5 and 1.6 to "Preferred Applications" (Closes: #243973).
+  * debian/patches:
+    - Removes patch for keyboards
+    - Updates patch for libtool
+  * debian.control:
+    - Added a dependency on gconf2 for capplets-data (Closes: #243894).
+
+ -- Arnaud Patard <arnaud.patard@rtp-net.org>  Fri, 16 Apr 2004 12:50:54 +0200
+
+control-center (1:2.6.0.3-2) experimental; urgency=low
+
+  * debian/patch:
+    - Added a patch from gnome cvs for fixing issues with multimedia
+    keybindings (see http://bugs.gnome.org/show_bug.cgi?id=139190).
+    - Added a patch to regenerate libtool files.
+
+ -- Arnaud Patard <arnaud.patard@rtp-net.org>  Wed,  7 Apr 2004 01:44:10 +0200
+
+control-center (1:2.6.0.3-1) experimental; urgency=low
+
+  * New upstream release
+    - Fix some keyboard problems
+    (see http://bugzilla.gnome.org/show_bug.cgi?id=138701).
+  * control.in:
+    - Added versionning informations on depend for capplets (needed to ensure
+    having right version of capplets when upgrapding).
+
+ -- Arnaud Patard <arnaud.patard@rtp-net.org>  Sun,  4 Apr 2004 15:39:57 +0200
+
+control-center (1:2.6.0.2-1) experimental; urgency=low
+
+  * New Upstream release.
+    + Disabled GStreamer (as it now depends on it by default and the package
+    is not yet upgraded)
+  * control.in:
+    + Updated dependencies to libnautilus2 2.6.0.
+    + Added a conflict on acme, since it's now a part of control-center
+    + Changed the build dependency on libxrender-dev to libxcursor-dev
+    (Closes #240483)
+
+ -- Arnaud Patard <arnaud.patard@rtp-net.org>  Thu,  1 Apr 2004 00:09:52 +0200
+
+control-center (1:2.5.4-1) experimental; urgency=low
+
+  * New maintainer (Closes: #238876)
+  * New upstream release
+    - fix implicitly conversion (Closes: #226554).
+    - support icon themes now (Closes: #215851).
+  * debian/control.in, debian/rules:
+    - now, it uses cdbs.
+    - adapted for the gnome team packaging.
+  * Modified patch 01_gnome-default-applications-properties-structs.c.patch to
+    fit with new version.
+
+ -- Arnaud Patard <arnaud.patard@rtp-net.org>  Thu, 25 Mar 2004 00:07:35 +0100
+
+control-center (1:2.4.0-9) unstable; urgency=low
+
+  * Debian/control set Maintainer to Debian QA Group
+
+ -- Christian Marillat <marillat@debian.org>  Sat, 20 Mar 2004 09:34:15 +0100
+
+control-center (1:2.4.0-8) unstable; urgency=low
+
+  * You need
+  * Notes by Loic Minier <lool@dooz.org>: the above changelog message was
+    meant to be some sort of joke, a message split between many source
+    packages.  No actual change besides orphaning was done in this version.
+    You can read the full story at:
+       <http://lists.debian.org/debian-curiosa/2004/03/msg00017.html>
+
+ -- Christian Marillat <marillat@debian.org>  Fri, 19 Mar 2004 15:08:21 +0100
+
+control-center (1:2.4.0-7) unstable; urgency=low
+
+  * debian/control capplets package need to depends on capplets-data (Closes: #237311)
+
+ -- Christian Marillat <marillat@debian.org>  Thu, 11 Mar 2004 09:07:06 +0100
+
+control-center (1:2.4.0-6) unstable; urgency=low
+
+  * Split the package. The gnome-control-center binary like nautilus is
+    simply a front-end for capplets, thus move all capplets in a separate
+    package (capplets) and add a dependency to 'gnome-control-center |
+    nautilus | gnome-panel' for that package. Also move data files in
+    capplets-data package.
+  * Remove /usr/lib/libgnome-window-settings.{a,la,so},
+    gnome-window-settings-2.0.pc and include files. These files are not
+    needed and should not be packaged (Closes: #221283)
+
+ -- Christian Marillat <marillat@debian.org>  Sun, 29 Feb 2004 17:40:37 +0100
+
+control-center (1:2.4.0-5) unstable; urgency=low
+
+  * debian/prerm Unregister schemas file from the database.
+  * Patch from bugzilla to fix "symlink" in fontilus (Closes: #231639)
+
+ -- Christian Marillat <marillat@debian.org>  Thu, 12 Feb 2004 14:35:46 +0100
+
+control-center (1:2.4.0-4) unstable; urgency=low
+
+  * Move Xresources files in /etc/gnome/config and disable all resources.
+
+ -- Christian Marillat <marillat@debian.org>  Mon, 27 Oct 2003 15:51:37 +0100
+
+control-center (1:2.4.0-3) unstable; urgency=low
+
+  * Update gnome-desktop-data version in Replaces field (Closes: #217284)
+
+ -- Christian Marillat <marillat@debian.org>  Fri, 24 Oct 2003 18:56:02 +0200
+
+control-center (1:2.4.0-2) unstable; urgency=low
+
+  * Suggest xbase-clients for xrdb
+  * Rebuild to remove liblinc dependency in the -dev package (Closes: #216722)
+  * Don't package .la files for modules (Closes: #182873)
+  * Run libtoolize, I don't know but something is broken in the original tarball.
+
+ -- Christian Marillat <marillat@debian.org>  Tue, 21 Oct 2003 21:56:55 +0200
+
+control-center (1:2.4.0-1) unstable; urgency=low
+
+  * New upstream release.
+  * Conflicts with drwright and fontilus.
+  * Need to Build-Depends on libnautilus2-dev
+  * Add gok and gnopernicus in suggests
+
+ -- Christian Marillat <marillat@debian.org>  Sat, 18 Oct 2003 16:54:45 +0200
+
+control-center (1:2.2.2-3) unstable; urgency=low
+
+  * debian/control Should suggests xscreensaver (Closes: #212737)
+
+ -- Christian Marillat <marillat@debian.org>  Fri, 26 Sep 2003 14:39:18 +0200
+
+control-center (1:2.2.2-2) unstable; urgency=low
+
+  * debian/rules fix DEB_BUILD_OPTIONS=noopt (Closes: #199189)
+  * Don't need to depends on xbase-clients
+  * Suggests esound-clients (Closes: #205700)
+  * Create /usr/share/themes/metacity-1 directory to remove warning (Closes: #211182)
+  * Add hack to remove libtool rpath
+  * Add libxrender-dev in Builde-Depends
+
+ -- Christian Marillat <marillat@debian.org>  Sun, 21 Sep 2003 10:17:00 +0200
+
+control-center (1:2.2.2-1) unstable; urgency=low
+
+  * New upstream release.
+  * New patches :
+    * 02_network-preferences
+      fix range of proxy port (Closes: #195644)
+    * 01_gnome-default-applications-properties-structs.c:
+      add epiphany in ww-browser list (Closes: #192241)
+  * Add icon for Debian menu
+  * Fix linkage bug (Closes: #187368)
+  * debian/control Remove Suggests: xscreensaver-gnome
+
+ -- Christian Marillat <marillat@debian.org>  Mon, 23 Jun 2003 11:18:45 +0200
+
+control-center (1:2.2.1-2) unstable; urgency=low
+
+  * Update section
+  * Move metacity-properties package in control-center (Closes: #188077)
+
+ -- Christian Marillat <marillat@debian.org>  Mon,  7 Apr 2003 22:42:55 +0200
+
+control-center (1:2.2.1-1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Christian Marillat <marillat@debian.org>  Fri, 14 Mar 2003 15:17:56 +0100
+
+control-center (1:2.2.0.1-1) unstable; urgency=low
+
+  * New upstream release.
+  * Hack the Icon tag in Advanced.directory (Closes: #179593)
+
+ -- Christian Marillat <marillat@debian.org>  Wed,  5 Feb 2003 09:49:20 +0100
+
+control-center (1:2.2.0-2) unstable; urgency=low
+
+  * Add flex and autotools-dev in Build-Depends (Closes: #178702)
+  * Move the metacity capplet in a new package metacity-properties
+
+ -- Christian Marillat <marillat@debian.org>  Thu, 30 Jan 2003 18:40:33 +0100
+
+control-center (1:2.2.0-1) unstable; urgency=low
+
+  * New upstream release.
+  * Add a default theme. Thanks to Johannes Rohr
+  * Drag and drop for theme work (Closes: #166980)
+  * Themes aren't sorted case-sensitively (Closes: #166981)
+  * Should fix key gnome binding properties and metacity key bindings (Closes: #172380)
+
+ -- Christian Marillat <marillat@debian.org>  Thu, 23 Jan 2003 16:32:09 +0100
+
+control-center (1:2.0.3.2-3) unstable; urgency=low
+
+  * Remove duplicate advanced-directory.png
+
+ -- Christian Marillat <marillat@debian.org>  Sat, 18 Jan 2003 11:54:29 +0100
+
+control-center (1:2.0.3.2-2) unstable; urgency=low
+
+  * Use sensible-browser as default browser.
+  * Add replaces with gnome-desktop-data (Closes: #177141, #176977)
+
+ -- Christian Marillat <marillat@debian.org>  Fri, 17 Jan 2003 16:10:52 +0100
+
+control-center (1:2.0.3.2-1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Christian Marillat <marillat@debian.org>  Fri, 20 Dec 2002 13:27:59 +0100
+
+control-center (1:2.0.3-2) unstable; urgency=low
+
+  * Should depends on scrollkeeper (Closes: #169850)
+
+ -- Christian Marillat <marillat@debian.org>  Sun, 24 Nov 2002 16:11:14 +0100
+
+control-center (1:2.0.3-1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Christian Marillat <marillat@debian.org>  Sun, 24 Nov 2002 15:27:52 +0100
+
+control-center (1:2.0.2.91-1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Christian Marillat <marillat@debian.org>  Sun, 17 Nov 2002 00:52:21 +0100
+
+control-center (1:2.0.1.1-5) unstable; urgency=low
+
+  * Upload to unstable
+  * Call scrollkeeper-update with -q (Closes: #166625)
+  * New upstream release (Closes: #110004)
+  * keyboard setup are correctly restored (Closes: #156856)
+  * Bugs related to the old interface (Closes: #62491, #81299, #131440, #71042)
+  * No more problem when rescaling an image (Closes: #72602)
+  * Sould build correctly under mips (Closes: #163604)
+  * Can center large image (Closes: #68651)
+
+ -- Christian Marillat <marillat@debian.org>  Mon, 28 Oct 2002 11:46:53 +0100
+
+control-center (1:2.0.1.1-4) experimental; urgency=low
+
+  * Upload with the new original tarball
+
+ -- Christian Marillat <marillat@debian.org>  Sun, 29 Sep 2002 17:22:15 +0200
+
+control-center2 (1:2.0.1.1-3) experimental; urgency=low
+
+  * Update package veriosn to 1:2.0.1.1-3 to supersedes the unstable version
+    which is 1:1.4.0.5-6
+
+ -- Christian Marillat <marillat@debian.org>  Sat, 28 Sep 2002 20:07:45 +0200
+
+control-center2 (2.0.1.1-2) experimental; urgency=low
+
+  * Update to standards version 3.5.7
+  * Upload withtout the 2 suffix
+
+ -- Christian Marillat <marillat@debian.org>  Sat, 28 Sep 2002 18:05:58 +0200
+
+control-center2 (2.0.1.1-1) experimental; urgency=low
+
+  * New upstream release.
+  * Remove fam from recommends should be in libgnomevfs2-0 package.
+
+ -- Christian Marillat <marillat@debian.org>  Thu, 22 Aug 2002 15:44:13 +0200
+
+control-center2 (2.0.1-2) experimental; urgency=low
+
+  * Build against the latest libgnomevfs2-dev 2.0.2-4
+
+ -- Christian Marillat <marillat@debian.org>  Fri, 16 Aug 2002 17:44:03 +0200
+
+control-center2 (2.0.1-1) experimental; urgency=low
+
+  * New upstream release.
+
+ -- Christian Marillat <marillat@debian.org>  Wed,  7 Aug 2002 12:33:10 +0200
+
+control-center2 (2.0.0-3) experimental; urgency=low
+
+  * Should recommends fame.
+
+ -- Christian Marillat <marillat@debian.org>  Thu, 25 Jul 2002 15:28:22 +0200
+
+control-center2 (2.0.0-2) experimental; urgency=low
+
+  * Add x-terminal-emulator in the list of terminal.
+  * Build against the latest libzvt
+
+ -- Christian Marillat <marillat@debian.org>  Sun,  7 Jul 2002 20:44:23 +0200
+
+control-center2 (2.0.0-1) experimental; urgency=low
+
+  * New upstream release.
+  * Add support for DEB_HOST_GNU_TYPE DEB_BUILD_GNU_TYPE and
+    DEB_BUILD_OPTIONS
+
+ -- Christian Marillat <marillat@debian.org>  Tue, 18 Jun 2002 12:34:40 +0200
+
+control-center2 (1.99.10-2) experimental; urgency=low
+
+  * debian/rules Add GCONF_DISABLE_MAKEFILE_SCHEMA_INSTALL=1 in install target.
+  * Install schemas file in postinst.
+  * debian/postinst check if schemas files are present before calling
+    gconftool-2
+  * debian/postrm call scrollkeeper-update with -q
+  * Removed old package in suggests
+  * Update the menu file with the rigth binary name
+
+ -- Christian Marillat <marillat@debian.org>  Sun,  9 Jun 2002 20:29:30 +0200
+
+control-center2 (1.99.10-1) experimental; urgency=low
+
+  * New upstream release.
+
+ -- Christian Marillat <marillat@debian.org>  Sun, 12 May 2002 14:59:06 +0200
+
+control-center2 (1.99.9-1) experimental; urgency=low
+
+  * New upstream release.
+
+ -- Christian Marillat <marillat@debian.org>  Tue, 30 Apr 2002 10:47:01 +0200
+
+control-center2 (1.99.7-1) experimental; urgency=low
+
+  * New upstream release.
+
+ -- Christian Marillat <marillat@debian.org>  Mon, 22 Apr 2002 18:17:28 +0200
+
+control-center2 (1.99.6-1) experimental; urgency=low
+
+  * New upstream release.
+
+ -- Christian Marillat <marillat@debian.org>  Sun, 14 Apr 2002 17:43:36 +0200
+
+control-center2 (1.99.4-3) experimental; urgency=low
+
+  * Need to Depends on gnome-desktop-data
+
+ -- Christian Marillat <marillat@debian.org>  Wed, 13 Mar 2002 11:17:58 +0100
+
+control-center2 (1.99.4-2) experimental; urgency=low
+
+  * Need to Depends on gnome-session2 (Closes: #137961)
+
+ -- Christian Marillat <marillat@debian.org>  Wed, 13 Mar 2002 11:05:26 +0100
+
+control-center2 (1.99.4-1) experimental; urgency=low
+
+  * New upstream release.
+
+ -- Christian Marillat <marillat@debian.org>  Mon, 11 Mar 2002 14:49:29 +0100
+
+control-center2 (1.99.3-2) experimental; urgency=low
+
+  * Remove duplicate session.desktop file.
+
+ -- Christian Marillat <marillat@debian.org>  Mon, 25 Feb 2002 18:14:07 +0100
+
+control-center2 (1.99.3-1) experimental; urgency=low
+
+  * New upstream release
+
+ -- Christian Marillat <marillat@debian.org>  Fri, 15 Feb 2002 00:35:49 +0100
+
+control-center2 (1.99.0-1) experimental; urgency=low
+
+  * New upstream release.
+
+ -- Christian Marillat <marillat@debian.org>  Sun, 20 Jan 2002 18:08:37 +0100
+
+control-center (1:1.5.11-1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Christian Marillat <marillat@debian.org>  Mon, 17 Dec 2001 17:49:00 +0100
+
+control-center (1:1.5.8-1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Christian Marillat <marillat@debian.org>  Sat,  6 Oct 2001 19:12:41 +0200
+
+control-center (1:1.5.4-1) unstable; urgency=low
+
+  * New upstream release.
+  * debian/*.sgml Use docbook 4.1
+
+ -- Christian Marillat <marillat@debian.org>  Mon,  6 Aug 2001 15:30:44 +0200
+
+control-center (1:1.4.0.1-11) unstable; urgency=low
+
+  * Update config.sub and config.guess (Closes: #103733, #103903)
+  *  Remove libtool hack.
+
+ -- Christian Marillat <marillat@debian.org>  Sun,  8 Jul 2001 11:36:30 +0200
+
+control-center (1:1.4.0.1-10) unstable; urgency=low
+
+  * Switch to debhelper V3
+  * Change the WPrefs location in WindowMaker.desktop (Closes: #101148)
+  * Change libraries versionning to (>= 1:1.4.0.1-6) instead of the latest
+    package number.
+
+ -- Christian Marillat <marillat@debian.org>  Fri, 22 Jun 2001 16:48:15 +0200
+
+control-center (1:1.4.0.1-9) unstable; urgency=low
+
+  * Rewrote the callbacks.c patch (not complete) (Closes: #98085)
+
+ -- Christian Marillat <marillat@debian.org>  Sun, 20 May 2001 09:36:48 +0200
+
+control-center (1:1.4.0.1-8) unstable; urgency=low
+
+  * Depends on gnome-bin (Closes: #97677)
+  * Depends on xbase-clients
+
+ -- Christian Marillat <marillat@debian.org>  Fri, 18 May 2001 00:06:13 +0200
+
+control-center (1:1.4.0.1-7) unstable; urgency=low
+
+  * Patch callbacks.c to reflect change in the new xscreensaver package (3.32-1)
+    and update the suggests field. Thaks to Roderich Schupp. (Closes: #96542)
+
+ -- Christian Marillat <marillat@debian.org>  Sun,  6 May 2001 22:34:12 +0200
+
+control-center (1:1.4.0.1-6) unstable; urgency=low
+
+  * Build against the latest gnome-libs 1.2.13-5.
+
+ -- Christian Marillat <marillat@debian.org>  Tue, 24 Apr 2001 12:39:50 +0200
+
+control-center (1:1.4.0.1-5) unstable; urgency=low
+
+  * Typo in build depends (Closes: #93267)
+  * Rewrote Flame.desktop
+
+ -- Christian Marillat <marillat@debian.org>  Sat, 14 Apr 2001 15:32:28 +0200
+
+control-center (1:1.4.0.1-4) unstable; urgency=low
+
+  * Really add docbook-to-man in build-depends (Closes: #93190)
+  * Replace libungif3g-dev by libungif4-dev in build-depends (Closes: #93197)
+
+ -- Christian Marillat <marillat@debian.org>  Sat,  7 Apr 2001 12:18:03 +0200
+
+control-center (1:1.4.0.1-3) unstable; urgency=low
+
+  * Remove unused Flame.desktop (Closes: #92850)
+  * Patch po/Makefile.in.in to use DESTDIR
+  * Add scrollkeeper in depends (Closes: #93007)
+
+ -- Christian Marillat <marillat@debian.org>  Thu,  5 Apr 2001 18:30:35 +0200
+
+control-center (1:1.4.0.1-2) unstable; urgency=low
+
+  * Add docbook-to-man in build-depends (Closes: #92421)
+  * Don't compress control-center.sgml (Closes: #92603)
+  * Call scrollkeeper-update in postinst and prerm for gnome-control-center
+
+ -- Christian Marillat <marillat@debian.org>  Mon,  2 Apr 2001 21:35:15 +0200
+
+control-center (1:1.4.0.1-1) unstable; urgency=low
+
+  * New upstream release.
+  * Write 12 manpages (Closes: #87098)
+
+ -- Christian Marillat <marillat@debian.org>  Fri, 30 Mar 2001 19:38:51 +0200
+
+control-center (1:1.4.0-1) unstable; urgency=low
+
+  * New upstream release.
+  * debian/control build-depends on libgnome-vfs-dev and xml-i18n-tools
+
+ -- Christian Marillat <marillat@debian.org>  Mon, 19 Mar 2001 11:10:30 +0100
+
+control-center (1:1.2.4-1) unstable; urgency=low
+
+  * New upstream release.
+  * Add libgdk-pixbuf-dev in build-depends (Closes: #87416)
+  * debian/menu The session properties capplet is now on the gnome-core
+    package, remove this menu entry.
+
+ -- Christian Marillat <marillat@debian.org>  Thu,  8 Mar 2001 00:12:29 +0100
+
+control-center (1:1.2.3-1) unstable; urgency=low
+
+  * New upstream release.
+  * Removed locale and callback patchs included by upstream.
+  * No more lockup while closing desktop (Closes: #76215)
+
+ -- Christian Marillat <marillat@debian.org>  Sun, 18 Feb 2001 15:57:25 +0100
+
+control-center (1:1.2.2-10) unstable; urgency=low
+
+  * Build against the latest gnome-libs 1.2.11
+
+ -- Christian Marillat <marillat@debian.org>  Mon,  5 Feb 2001 14:53:58 +0100
+
+control-center (1:1.2.2-9) unstable; urgency=low
+
+  * Remove xpm4g-dev from Build-depends (Closes: #82556)
+
+ -- Christian Marillat <marillat@debian.org>  Wed, 17 Jan 2001 10:04:01 +0100
+
+control-center (1:1.2.2-8) unstable; urgency=low
+
+  * Patch to show the right debian version (Closes: #82391)
+
+ -- Christian Marillat <marillat@debian.org>  Mon, 15 Jan 2001 15:35:59 +0100
+
+control-center (1:1.2.2-7) unstable; urgency=low
+
+  * Remove imlib-progs from depends. Move gnome-core from depends to Suggests.
+
+ -- Christian Marillat <marillat@debian.org>  Thu, 30 Nov 2000 11:59:04 +0100
+
+control-center (1:1.2.2-6) unstable; urgency=low
+
+  * Change fonts attribute in callback.dpatch (Closes: #75320)
+  * Install symlinks in /usr/share/doc for -dev package.
+
+ -- Christian Marillat <marillat@debian.org>  Thu,  2 Nov 2000 17:48:11 +0100
+
+control-center (1:1.2.2-5) unstable; urgency=low
+
+  * Patch all capplets to add a call to setlocale(LC_ALL, "").
+
+ -- Christian Marillat <marillat@debian.org>  Fri, 20 Oct 2000 15:55:34 +0200
+
+control-center (1:1.2.2-4) unstable; urgency=low
+
+  * Add a patch to display russian and other 8 byte character correctly
+    thanks to ChiDeok Hwang <hwang@mizi.co.kr>
+  * New version close this old bug (Closes: #58797)
+
+ -- Christian Marillat <marillat@debian.org>  Wed, 11 Oct 2000 17:54:29 +0200
+
+control-center (1:1.2.2-3) unstable; urgency=low
+
+  * Fix bad symlink in gnome-control-center (Closes: #74279)
+
+ -- Christian Marillat <marillat@debian.org>  Mon,  9 Oct 2000 15:02:57 +0200
+
+control-center (1:1.2.2-2) unstable; urgency=low
+
+  * Arrange documentation for dhelp.
+
+ -- Christian Marillat <marillat@debian.org>  Fri,  6 Oct 2000 17:09:54 +0200
+
+control-center (1:1.2.2-1) unstable; urgency=low
+
+  * Return to the 1.2 branch, because 1.3 is ...
+  * Switch to debhelper V2.
+  * New/old GUI (Closes: #71043, #71040, #71039, #71038)
+
+ -- Christian Marillat <marillat@debian.org>  Mon, 25 Sep 2000 17:33:23 +0200
+
+control-center (1.3.0-5) unstable; urgency=low
+
+  * Add debhelper in Build-Depends (Closes: #70220)
+  * Build against libungif4g (Closes: #71236)
+
+ -- Christian Marillat <marillat@debian.org>  Sun, 10 Sep 2000 00:48:36 +0200
+
+control-center (1.3.0-4) unstable; urgency=low
+
+  * Patch configure to install session-properties-capplet.
+
+ -- Christian Marillat <marillat@debian.org>  Thu, 24 Aug 2000 20:35:38 +0200
+
+control-center (1.3.0-3) unstable; urgency=low
+
+  * Install screensaver-properties.desktop in the right place (Closes: #69502).
+  * Install Documents.directory and Session.directory files.
+
+ -- Christian Marillat <marillat@debian.org>  Mon, 21 Aug 2000 00:59:43 +0200
+
+control-center (1.3.0-2) unstable; urgency=low
+
+  * debian/control Added imlib-progs in the dependencies field (Closes: #69427).
+
+ -- Christian Marillat <marillat@debian.org>  Sat, 19 Aug 2000 22:31:37 +0200
+
+control-center (1.3.0-1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Christian Marillat <marillat@debian.org>  Mon, 14 Aug 2000 15:32:43 +0200
+
+control-center (1.2.1-1) unstable; urgency=low
+
+  * New upstrem release.
+  * debian/patches Added 2 patches for IceWM.desktop and WindowMaker.desktop
+    (Closes: #47353, #48099).
+  * New e-mail address.
+  * Removed 2 undocumented manpages (bell-properties-capplet.1, e-conf.1).
+  * Removed property-background patche.
+  * debian/menu removed entry for bell-properties and put all entrys in
+    System/Gnome.
+
+ -- Christian Marillat <marillat@debian.org>  Wed,  2 Aug 2000 09:03:59 +0200
+
+control-center (1.2.0-2) unstable; urgency=low
+
+  * Updated the Build-depends field. (Closes: #64904)
+
+ -- Christian Marillat <marillat.christian@wanadoo.fr>  Tue, 30 May 2000 10:15:38 +0200
+
+control-center (1.2.0-1) unstable; urgency=low
+
+  * New upstream source (Closes: #64584)
+  * debian/control removed depends libcapplet0 provided by shlibs:Depends.
+  * Updated Standards-Version to 3.1.1.1 added Build-depends field.
+
+ -- Christian Marillat <marillat.christian@wanadoo.fr>  Thu, 25 May 2000 19:21:14 +0200
+
+control-center (1.0.53-1) unstable; urgency=low
+
+  * New upstream source.
+
+ -- Christian Marillat <marillat.christian@wanadoo.fr>  Fri, 31 Mar 2000 11:32:47 +0200
+
+control-center (1.0.51-5) frozen unstable; urgency=low
+
+  * debian/copyright updated to the new directory.
+
+ -- Christian Marillat <marillat.christian@wanadoo.fr>  Wed, 22 Mar 2000 23:17:17 +0100
+
+control-center (1.0.51-4) frozen unstable; urgency=low
+
+  * Apply a patch I wrote to fix the RCB. Closes: #51568
+  * New maintainer. Christian Marillat is taking the package over.
+    I'm sponsoring him for the moment ...
+  * Changed the description. Removed the part about beta software.
+    Closes: #54979
+  * Applied the patch for centering the background picture.
+    Closes: #54285
+  * Added patch-on-the-fly support to debian/rules.
+
+ -- Raphael Hertzog <hertzog@debian.org>  Tue, 21 Mar 2000 20:31:20 +0100
+
+control-center (1.0.51-3) frozen unstable; urgency=low
+
+  * NMU.
+  * Fixes RC bug #56769, WindowMaker wm settings fixed.
+
+ -- Chris McKillop <cdm@debian.org>  Thu,  3 Feb 2000 07:13:39 -0500
+
+control-center (1.0.51-2) frozen unstable; urgency=low
+
+  * Orphaned.
+
+ -- Michael Alan Dorman <mdorman@debian.org>  Thu,  3 Feb 2000 07:13:29 -0500
+
+control-center (1.0.51-1) unstable; urgency=low
+
+  * Officially claimed as my own.
+  * libcapplet has been stripped for a while (closes: bug#31245)
+  * We've updated... (closes: bug#44136)
+  * Correct xworm definition for screensaver (closes: bug#51514)
+  * The libc/libglib issues are resolved now (closes: bug#37535)
+  * control-center is much more stable, and should work with window-maker (closes: bug#38706)
+  * gnomecc seems to respect current bg color better (closes: bug#38917)
+  * Couldn't reproduce this error with current versions (closes: bug#38995)
+  * Invoking individual capplets seems to work now (closes: bug#39135)
+  * Screensavers seem to be more stable now (closes: bug#41992)
+  * URL handler assignments seems to work now (closes: bug#44983)
+  * Fudged dependency on esd to get rid of versioned depends (closes: bug#52353)
+  * Totally revamped build process (closes: bug#33848, bug#38344)
+  * Appears to have been fixed (closes: bug#33736, bug#33472))
+
+ -- Michael Alan Dorman <mdorman@debian.org>  Mon, 20 Dec 1999 14:19:48 -0500
+
+control-center (1.0.51-0.2) unstable; urgency=low
+
+  * Fix from Christian Marillat <marillat@alpes-net.fr> for wm-properties
+
+ -- Michael Alan Dorman <mdorman@debian.org>  Tue, 19 Oct 1999 14:22:43 -0400
+
+control-center (1.0.51-0.1) unstable; urgency=low
+
+  * New upstream version.  NMU.
+
+ -- Michael Alan Dorman <mdorman@debian.org>  Sun, 10 Oct 1999 16:48:39 -0400
+
+control-center (1.0.50-0.1) unstable; urgency=low
+
+  * New upstream version.  NMU
+
+ -- Michael Alan Dorman <mdorman@debian.org>  Thu, 30 Sep 1999 22:24:11 -0400
+
+control-center (1.0.5-2) unstable; urgency=low
+
+  * Actually changed maintainer address in debian/control
+  * Fixed up WindowMaker and IceWM paths for wm-properties
+
+ -- Steve Haslam <araqnid@debian.org>  Thu, 27 May 1999 02:05:10 +0100
+
+control-center (1.0.5-1) unstable; urgency=low
+
+  * New maintainer.
+  * Moved "xscreensaver" to "Suggests:" field. (Bug#32724)
+  * Called dh_strip when making libcapplet-dev
+
+ -- Steve Haslam <araqnid@debian.org>  Thu, 20 May 1999 03:50:25 +0100
+
+control-center (1.0.5-0.1) unstable; urgency=low
+
+  * Non-maintainer upload
+  * New upstream version
+
+ -- Steve Haslam <araqnid@debian.org>  Mon, 19 Apr 1999 10:08:13 +0100
+
+control-center (1.0.1-0.1) unstable; urgency=low
+
+  * NMU for GNOME-1.0
+
+ -- Jules Bean <jules@debian.org>  Fri,  5 Mar 1999 10:34:56 +0000
+
+control-center (0.99.3-3) unstable; urgency=low
+
+  * Patched to remove #define HAVE_REDHAT_SCREENSAVER_RPM.
+    Also, added Recommends: xscreensaver
+    Fixes: BUG#32462
+
+ -- Jim Pick <jim@jimpick.com>  Wed, 27 Jan 1999 21:40:24 -0800
+
+control-center (0.99.3-2) unstable; urgency=low
+
+  * Recompiled due to dependencies.
+
+ -- Jim Pick <jim@jimpick.com>  Sun, 24 Jan 1999 01:11:12 -0800
+
+control-center (0.99.3-1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Jim Pick <jim@jimpick.com>  Thu, 21 Jan 1999 21:31:48 -0800
+
+gnome-core (0.30-2) frozen unstable; urgency=low
+
+  * Recompiled with new libs.
+  * Fixed reference to /usr/X11R6 in README.Debian.
+  * Added warnings (Gnome is ALPHA).
+  * Patched dialer_applet to use pon/poff.
+  * Patched drivemount_applet to default to /floppy.
+
+ -- Jim Pick <jim@jimpick.com>  Tue, 24 Nov 1998 10:56:08 -0800
+
+gnome-core (0.30-1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Jim Pick <jim@jimpick.com>  Thu, 24 Sep 1998 21:28:02 -0700
+
+gnome-core (0.28.1-1) unstable; urgency=low
+
+  * New upstream release.
+  * Hopefully fixes panel applet bug.
+
+ -- Jim Pick <jim@jimpick.com>  Wed, 19 Aug 1998 20:12:25 -0700
+
+gnome-core (0.28-1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Jim Pick <jim@jimpick.com>  Mon, 17 Aug 1998 12:59:26 -0700
+
+gnome-core (0.27-1) unstable; urgency=low
+
+  * New upstream release.
+  * Added /usr/doc/gnome
+
+ -- Jim Pick <jim@jimpick.com>  Sat, 15 Aug 1998 14:21:06 -0700
+
+gnome-core (0.25-1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Jim Pick <jim@jimpick.com>  Thu,  6 Aug 1998 22:51:22 -0700
+
+gnome-core (0.20-2) unstable; urgency=low
+
+  * Added Debian menu-method for gnome-panel.  Fixed Bug #24025
+    (Thanks to Ray Dassen for reporting the bug, and Riku Voipio
+     who wrote the menu method for Gnome 0.12)
+
+ -- Jim Pick <jim@jimpick.com>  Wed, 22 Jul 1998 20:22:00 -0700
+
+gnome-core (0.20-1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Jim Pick <jim@jimpick.com>  Mon,  8 Jun 1998 12:00:08 -0700
+
+gnome-core (0.13-1) unstable; urgency=low
+
+  * Initial Release.
+
+ -- Jim Pick <jim@jimpick.com>  Mon, 16 Mar 1998 15:27:43 -0800

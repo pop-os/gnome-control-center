@@ -1,0 +1,124 @@
+From: Robert Ancell <robert.ancell@canonical.com>
+Date: Thu, 19 Mar 2020 16:44:44 +1300
+Subject: [PATCH 23/26] sound: Add a button to select the default theme
+
+---
+ panels/sound/cc-alert-chooser.c  | 44 +++++++++++++++++++++++++++++++++++++++-
+ panels/sound/cc-alert-chooser.ui |  7 +++++++
+ 2 files changed, 50 insertions(+), 1 deletion(-)
+
+diff --git a/panels/sound/cc-alert-chooser.c b/panels/sound/cc-alert-chooser.c
+index 8e60659..77363e1 100644
+--- a/panels/sound/cc-alert-chooser.c
++++ b/panels/sound/cc-alert-chooser.c
+@@ -31,6 +31,7 @@ struct _CcAlertChooser
+   GtkBox         parent_instance;
+ 
+   CcSoundButton *bark_button;
++  CcSoundButton *default_button;
+   CcSoundButton *drip_button;
+   CcSoundButton *glass_button;
+   CcSoundButton *sonar_button;
+@@ -124,6 +125,27 @@ set_sound_symlink (const gchar *alert_name,
+     g_warning ("Failed to make sound theme symbolic link %s->%s: %s", source_path, target_path, error->message);
+ }
+ 
++static void
++remove_sound_symlink (const gchar *alert_name)
++{
++  g_autofree gchar *dir = NULL;
++  g_autofree gchar *source_filename = NULL;
++  g_autofree gchar *source_path = NULL;
++  g_autoptr(GFile) file = NULL;
++  g_autoptr(GError) error = NULL;
++
++  dir = get_theme_dir ();
++  source_filename = g_strdup_printf ("%s.ogg", alert_name);
++  source_path = g_build_filename (dir, source_filename, NULL);
++
++  file = g_file_new_for_path (source_path);
++  if (!g_file_delete (file, NULL, &error))
++    {
++      if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_NOT_FOUND))
++        g_warning ("Failed to remove existing sound symbolic link %s: %s", source_path, error->message);
++    }
++}
++
+ static void
+ set_custom_theme (CcAlertChooser *self,
+                   const gchar    *name)
+@@ -165,6 +187,16 @@ set_custom_theme (CcAlertChooser *self,
+   g_settings_set_string (self->sound_settings, "theme-name", CUSTOM_THEME_NAME);
+ }
+ 
++static void
++set_default_theme (CcAlertChooser *self)
++{
++  remove_sound_symlink ("bell-terminal");
++  remove_sound_symlink ("bell-window-system");
++
++  g_settings_set_boolean (self->sound_settings, "event-sounds", TRUE);
++  g_settings_reset (self->sound_settings, "theme-name");
++}
++
+ static void
+ select_sound (CcAlertChooser *self,
+               const gchar    *name)
+@@ -199,6 +231,11 @@ clicked_cb (CcAlertChooser *self,
+ {
+   if (button == self->bark_button)
+     select_sound (self, "bark");
++  else if (button == self->default_button)
++    {
++      set_default_theme (self);
++      gdk_window_beep (gtk_widget_get_window (GTK_WIDGET (self)));
++    }
+   else if (button == self->drip_button)
+     select_sound (self, "drip");
+   else if (button == self->glass_button)
+@@ -209,6 +246,8 @@ clicked_cb (CcAlertChooser *self,
+   set_button (self, button, TRUE);
+   if (button != self->bark_button)
+     set_button (self, self->bark_button, FALSE);
++  if (button != self->default_button)
++    set_button (self, self->default_button, FALSE);
+   if (button != self->drip_button)
+     set_button (self, self->drip_button, FALSE);
+   if (button != self->glass_button)
+@@ -239,6 +278,7 @@ cc_alert_chooser_class_init (CcAlertChooserClass *klass)
+   gtk_widget_class_set_template_from_resource (widget_class, "/org/gnome/control-center/sound/cc-alert-chooser.ui");
+ 
+   gtk_widget_class_bind_template_child (widget_class, CcAlertChooser, bark_button);
++  gtk_widget_class_bind_template_child (widget_class, CcAlertChooser, default_button);
+   gtk_widget_class_bind_template_child (widget_class, CcAlertChooser, drip_button);
+   gtk_widget_class_bind_template_child (widget_class, CcAlertChooser, glass_button);
+   gtk_widget_class_bind_template_child (widget_class, CcAlertChooser, sonar_button);
+@@ -265,7 +305,9 @@ cc_alert_chooser_init (CcAlertChooser *self)
+   self->sound_settings = g_settings_new (KEY_SOUNDS_SCHEMA);
+ 
+   alert_name = get_alert_name ();
+-  if (g_strcmp0 (alert_name, "bark") == 0)
++  if (alert_name == NULL)
++    set_button (self, self->default_button, TRUE);
++  else if (g_strcmp0 (alert_name, "bark") == 0)
+     set_button (self, self->bark_button, TRUE);
+   else if (g_strcmp0 (alert_name, "drip") == 0)
+     set_button (self, self->drip_button, TRUE);
+diff --git a/panels/sound/cc-alert-chooser.ui b/panels/sound/cc-alert-chooser.ui
+index c673711..4fa0fbc 100644
+--- a/panels/sound/cc-alert-chooser.ui
++++ b/panels/sound/cc-alert-chooser.ui
+@@ -6,6 +6,13 @@
+     <style>
+       <class name="linked"/>
+     </style>
++    <child>
++      <object class="CcSoundButton" id="default_button">
++        <property name="visible">True</property>
++        <property name="label" translatable="yes">Default</property>
++        <signal name="clicked" handler="clicked_cb" object="CcAlertChooser" swapped="yes"/>
++      </object>
++    </child>
+     <child>
+       <object class="CcSoundButton" id="bark_button">
+         <property name="visible">True</property>

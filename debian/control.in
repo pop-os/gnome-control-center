@@ -1,0 +1,151 @@
+Source: gnome-control-center
+Section: gnome
+Priority: optional
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+XSBC-Original-Maintainer: Debian GNOME Maintainers <pkg-gnome-maintainers@lists.alioth.debian.org>
+Uploaders: @GNOME_TEAM@
+Build-Depends: debhelper-compat (= 12),
+               dh-migrations,
+               libaccountsservice-dev (>= 0.6.39),
+               desktop-file-utils,
+               gnome-pkg-tools (>= 0.10),
+               gnome-settings-daemon-dev (>= 3.29.90.1),
+               gsettings-desktop-schemas-dev (>= 3.31.0),
+               gtk-doc-tools,
+               libcanberra-gtk3-dev,
+               libcheese-dev (>= 3.28.0),
+               libcheese-gtk-dev (>= 3.5.91),
+               libcolord-dev (>= 0.1.29),
+               libcolord-gtk-dev (>= 0.1.24),
+               libcups2-dev,
+               libfirmware-manager-dev,
+               libgdk-pixbuf2.0-dev (>= 2.23.0),
+               libgirepository1.0-dev,
+               libglib2.0-dev (>= 2.56.0),
+               libgnome-desktop-3-dev (>= 3.32.2-2ubuntu2),
+               libgnomekbd-dev (>= 2.91.91),
+               libgnome-bluetooth-dev (>= 3.18.0) [linux-any],
+               libibus-1.0-dev (>= 1.5.2),
+               libgoa-1.0-dev (>= 3.25.3),
+               libgrilo-0.3-dev (>= 0.3.0),
+               libgsound-dev,
+               libgtk-3-dev (>= 3.22.20),
+               libgtop2-dev,
+               libgudev-1.0-dev (>= 232) [linux-any],
+               libkrb5-dev,
+               libnm-dev (>= 1.12.0) [linux-any],
+               libnma-dev (>= 1.8.0) [linux-any],
+               libmm-glib-dev [linux-any],
+               libpolkit-gobject-1-dev (>= 0.103),
+               libpop-theme-switcher-dev,
+               libpop-upgrade-gtk-dev,
+               libpulse-dev,
+               libpwquality-dev,
+               libsecret-1-dev,
+               libsmbclient-dev (>= 2:3.6.12-1~),
+               libsnapd-glib-dev (>= 1.57),
+               libs76-hidpi-widget-dev,
+               libudisks2-dev,
+               libupower-glib-dev (>= 0.99.8),
+               libwacom-dev (>= 0.7) [linux-any],
+               libwhoopsie-preferences-dev,
+               libxi-dev (>= 2:1.2),
+               libx11-dev,
+               libxft-dev (>= 2.1.2),
+               libxklavier-dev (>= 5.1),
+               libxml2-dev,
+               libxml2-utils,
+               locales,
+               meson (>= 0.51.0),
+               policykit-1,
+               shared-mime-info,
+               tzdata <!nocheck>,
+               xvfb,
+               python3-dbusmock,
+               at-spi2-core
+Standards-Version: 4.5.0
+Rules-Requires-Root: no
+XS-Debian-Vcs-Git: https://salsa.debian.org/gnome-team/gnome-control-center.git
+XS-Debian-Vcs-Browser: https://salsa.debian.org/gnome-team/gnome-control-center
+Vcs-Git: https://salsa.debian.org/gnome-team/gnome-control-center.git -b ubuntu/focal
+Vcs-Browser: https://salsa.debian.org/gnome-team/gnome-control-center/tree/ubuntu/focal
+
+Package: gnome-control-center
+Architecture: amd64
+Depends: ${misc:Depends},
+         ${shlibs:Depends},
+         accountsservice,
+         apg,
+         colord (>= 0.1.30),
+#         desktop-base (>= 10.0.0),
+         desktop-file-utils,
+         gnome-control-center-data (<< ${gnome:NextVersion}),
+         gnome-control-center-data (>= ${source:Version}),
+         gnome-desktop3-data,
+         gnome-settings-daemon (>= 3.29),
+         gsettings-desktop-schemas (>= 3.31.0),
+         language-selector-gnome (>= 0.179~),
+         libfirmware-manager,
+         libpop-theme-switcher,
+         libpop-upgrade-gtk,
+         libs76-hidpi-widget,
+         system-config-printer (>= 1.4),
+Recommends: cups-pk-helper,
+            gnome-online-accounts (>= 3.25.3),
+            gnome-user-docs,
+            gkbd-capplet,
+            ibus,
+            iso-codes,
+            libcanberra-pulse,
+            mousetweaks,
+            policykit-1,
+            network-manager-gnome (>= 0.9.8),
+            cracklib-runtime,
+            pulseaudio-module-bluetooth,
+            gnome-control-center-faces,
+            rygel | rygel-tracker,
+Suggests: gnome-software | gnome-packagekit,
+          gnome-user-share,
+          realmd,
+          gstreamer1.0-pulseaudio,
+          libcanberra-gtk-module,
+          libcanberra-gtk3-module,
+          x11-xserver-utils
+Provides: firmware-manager-virtual
+Description: utilities to configure the GNOME desktop
+ This package contains configuration applets for the GNOME desktop,
+ allowing to set accessibility configuration, desktop fonts, keyboard
+ and mouse properties, sound setup, desktop theme and background, user
+ interface properties, screen resolution, and other GNOME parameters.
+ .
+ It also contains a front end to these applets, which can also be
+ accessed with the GNOME panel or the Nautilus file manager.
+
+Package: gnome-control-center-faces
+Architecture: all
+Multi-Arch: foreign
+Depends: ${misc:Depends}
+Conflicts: unity-control-center-faces
+Replaces: unity-control-center-faces
+Provides: unity-control-center-faces
+Description: utilities to configure the GNOME desktop - faces images
+ This package contains images that can be used for user profile's icon
+
+Package: gnome-control-center-dev
+Architecture: all
+Multi-Arch: foreign
+Section: devel
+Depends: ${misc:Depends},
+         gnome-control-center-data
+Description: utilities to configure the GNOME desktop
+ This package contains the file required to get the keydirs location
+
+Package: gnome-control-center-data
+Architecture: all
+Multi-Arch: foreign
+Depends: ${misc:Depends}
+Breaks: gnome-control-center (<< 1:3.7.92-2~)
+Replaces: gnome-control-center (<< 1:3.7.92-2~)
+Description: configuration applets for GNOME - data files
+ This package contains data files (icons, pixmaps, locales files) needed by
+ the configuration applets in the gnome-control-center package.

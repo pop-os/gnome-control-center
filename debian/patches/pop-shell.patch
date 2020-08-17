@@ -1,0 +1,99 @@
+Index: gnome-control-center/panels/keyboard/meson.build
+===================================================================
+--- gnome-control-center.orig/panels/keyboard/meson.build
++++ gnome-control-center/panels/keyboard/meson.build
+@@ -40,6 +40,9 @@ xml_files = [
+   '01-launchers.xml',
+   '01-screenshot.xml',
+   '01-system.xml',
++  '10-pop-shell-move.xml',
++  '10-pop-shell-navigate.xml',
++  '10-pop-shell-tile.xml',
+   '50-accessibility.xml'
+ ]
+ 
+Index: gnome-control-center/panels/keyboard/cc-keyboard-item.c
+===================================================================
+--- gnome-control-center.orig/panels/keyboard/cc-keyboard-item.c
++++ gnome-control-center/panels/keyboard/cc-keyboard-item.c
+@@ -674,7 +674,26 @@ cc_keyboard_item_load_from_gsettings (Cc
+   item->key = g_strdup (key);
+   item->description = g_strdup (description);
+ 
+-  item->settings = g_settings_new (item->schema);
++  if (g_strcmp0(schema, "org.gnome.shell.extensions.pop-shell") == 0) {
++      GSettingsSchemaSource *settings_schema_source = g_settings_schema_source_new_from_directory (
++          "/usr/share/gnome-shell/extensions/pop-shell@system76.com/schemas",
++          NULL,
++          FALSE,
++          NULL
++      );
++      GSettingsSchema *settings_schema = g_settings_schema_source_lookup (
++          settings_schema_source,
++          schema,
++          FALSE
++      );
++      item->settings = g_settings_new_full (
++          settings_schema,
++          NULL,
++          NULL
++      );
++  } else {
++      item->settings = g_settings_new (item->schema);
++  }
+   g_free (item->binding);
+   item->binding = settings_get_binding (item->settings, item->key);
+   item->editable = g_settings_is_writable (item->settings, item->key);
+@@ -881,4 +900,3 @@ cc_keyboard_item_get_settings (CcKeyboar
+   g_return_val_if_fail (CC_IS_KEYBOARD_ITEM (item), NULL);
+   return item->settings;
+ }
+-
+Index: gnome-control-center/panels/keyboard/10-pop-shell-move.xml.in
+===================================================================
+--- /dev/null
++++ gnome-control-center/panels/keyboard/10-pop-shell-move.xml.in
+@@ -0,0 +1,19 @@
++<?xml version="1.0" encoding="UTF-8" ?>
++<KeyListEntries group="system" schema="org.gnome.shell.extensions.pop-shell" name="Move, resize, and swap windows">
++    <KeyListEntry name="tile-accept" description="Apply changes"/>
++    <KeyListEntry name="tile-enter" description="Enter adjustment mode"/>
++    <KeyListEntry name="tile-move-down" description="Move window down"/>
++    <KeyListEntry name="tile-move-left" description="Move window left"/>
++    <KeyListEntry name="tile-move-right" description="Move window right"/>
++    <KeyListEntry name="tile-move-up" description="Move window up"/>
++    <KeyListEntry name="tile-reject" description="Cancel changes"/>
++    <KeyListEntry name="tile-resize-left" description="Resize window smaller"/>
++    <KeyListEntry name="tile-resize-right" description="Resize window larger"/>
++    <KeyListEntry name="tile-resize-up" description="Resize window shorter"/>
++    <KeyListEntry name="tile-resize-down" description="Resize window taller"/>
++    <KeyListEntry name="tile-swap-down" description="Swap window down"/>
++    <KeyListEntry name="tile-swap-left" description="Swap window left"/>
++    <KeyListEntry name="tile-swap-right" description="Swap window right"/>
++    <KeyListEntry name="tile-swap-up" description="Swap window up"/>
++    <KeyListEntry name="tile-orientation" description="Change window orientation"/>
++</KeyListEntries>
+Index: gnome-control-center/panels/keyboard/10-pop-shell-navigate.xml.in
+===================================================================
+--- /dev/null
++++ gnome-control-center/panels/keyboard/10-pop-shell-navigate.xml.in
+@@ -0,0 +1,8 @@
++<?xml version="1.0" encoding="UTF-8" ?>
++<KeyListEntries group="system" schema="org.gnome.shell.extensions.pop-shell" name="Navigate applications and windows">
++    <KeyListEntry name="activate-launcher" description="Launch and switch applications"/>
++    <KeyListEntry name="focus-down" description="Switch focus to window down"/>
++    <KeyListEntry name="focus-left" description="Switch focus to window left"/>
++    <KeyListEntry name="focus-right" description="Switch focus to window right"/>
++    <KeyListEntry name="focus-up" description="Switch focus to window up"/>
++</KeyListEntries>
+Index: gnome-control-center/panels/keyboard/10-pop-shell-tile.xml.in
+===================================================================
+--- /dev/null
++++ gnome-control-center/panels/keyboard/10-pop-shell-tile.xml.in
+@@ -0,0 +1,6 @@
++<?xml version="1.0" encoding="UTF-8" ?>
++<KeyListEntries group="system" schema="org.gnome.shell.extensions.pop-shell" name="Tiling">
++    <KeyListEntry name="management-orientation" description="Change current window orientation"/>
++    <KeyListEntry name="toggle-floating" description="Toggles a window between floating and tiling"/>
++    <KeyListEntry name="toggle-tiling" description="Toggles auto-tiling"/>
++</KeyListEntries>

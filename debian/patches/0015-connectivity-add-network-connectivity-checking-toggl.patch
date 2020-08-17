@@ -1,0 +1,407 @@
+From: James Henstridge <james@jamesh.id.au>
+Date: Wed, 9 Aug 2017 22:30:21 +0800
+Subject: [PATCH 15/26] connectivity: add network connectivity checking toggle
+
+NetworkManager supports toggling the periodic network check,
+a check that by itself can be a security threat since it leaks
+information about the host.
+
+This patch adds a periodic network check toggle to the Privacy
+panel.
+
+https://bugzilla.gnome.org/show_bug.cgi?id=737362
+---
+ panels/connectivity/cc-connectivity-panel.c        | 131 +++++++++++++++++++++
+ panels/connectivity/cc-connectivity-panel.h        |  28 +++++
+ panels/connectivity/cc-connectivity-panel.ui       |  67 +++++++++++
+ panels/connectivity/connectivity.gresource.xml     |   6 +
+ .../gnome-connectivity-panel.desktop.in.in         |  19 +++
+ panels/connectivity/meson.build                    |  45 +++++++
+ panels/meson.build                                 |   1 +
+ po/POTFILES.in                                     |   2 +
+ shell/cc-panel-loader.c                            |   2 +
+ 9 files changed, 301 insertions(+)
+ create mode 100644 panels/connectivity/cc-connectivity-panel.c
+ create mode 100644 panels/connectivity/cc-connectivity-panel.h
+ create mode 100644 panels/connectivity/cc-connectivity-panel.ui
+ create mode 100644 panels/connectivity/connectivity.gresource.xml
+ create mode 100644 panels/connectivity/gnome-connectivity-panel.desktop.in.in
+ create mode 100644 panels/connectivity/meson.build
+
+diff --git a/panels/connectivity/cc-connectivity-panel.c b/panels/connectivity/cc-connectivity-panel.c
+new file mode 100644
+index 0000000..6db7e74
+--- /dev/null
++++ b/panels/connectivity/cc-connectivity-panel.c
+@@ -0,0 +1,131 @@
++/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*-
++ *
++ * Copyright (C) 2020 Canonical Ltd
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, see <http://www.gnu.org/licenses/>.
++ */
++
++#include <config.h>
++
++#ifdef HAVE_NETWORK_MANAGER
++#  include <NetworkManager.h>
++#endif
++
++#include "shell/cc-object-storage.h"
++#include "list-box-helper.h"
++#include "cc-connectivity-panel.h"
++#include "cc-connectivity-resources.h"
++
++#include <glib/gi18n.h>
++
++struct _CcConnectivityPanel
++{
++  CcPanel parent_instance;
++
++  GtkSwitch *connectivity_switch;
++
++#ifdef HAVE_NETWORK_MANAGER
++  GCancellable *cancellable;
++  NMClient     *nm_client;
++#endif
++};
++
++CC_PANEL_REGISTER (CcConnectivityPanel, cc_connectivity_panel)
++
++static void
++setup_nm_client (CcConnectivityPanel *self,
++                 NMClient            *client)
++{
++  self->nm_client = client;
++
++  g_object_bind_property (self->nm_client, NM_CLIENT_CONNECTIVITY_CHECK_AVAILABLE,
++                          self->connectivity_switch, "sensitive",
++                          G_BINDING_SYNC_CREATE);
++
++  g_object_bind_property (self->nm_client, NM_CLIENT_CONNECTIVITY_CHECK_ENABLED,
++                          self->connectivity_switch, "active",
++                          G_BINDING_BIDIRECTIONAL | G_BINDING_SYNC_CREATE);
++}
++
++static void
++nm_client_ready_cb (GObject *source_object,
++                    GAsyncResult *res,
++                    gpointer user_data)
++{
++  CcConnectivityPanel *self;
++  NMClient *client;
++  g_autoptr(GError) error = NULL;
++
++  client = nm_client_new_finish (res, &error);
++  if (!client)
++    {
++      if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED))
++        g_warning ("Failed to create NetworkManager client: %s",
++                   error->message);
++      return;
++    }
++
++  self = user_data;
++
++  /* Setup the client */
++  setup_nm_client (self, client);
++
++  /* Store the object in the cache too */
++  cc_object_storage_add_object (CC_OBJECT_NMCLIENT, client);
++}
++
++static void
++cc_connectivity_panel_dispose (GObject *object)
++{
++  CcConnectivityPanel *self = CC_CONNECTIVITY_PANEL (object);
++
++  g_cancellable_cancel (self->cancellable);
++
++#ifdef HAVE_NETWORK_MANAGER
++  g_clear_object (&self->nm_client);
++#endif
++
++  G_OBJECT_CLASS (cc_connectivity_panel_parent_class)->dispose (object);
++}
++
++static void
++cc_connectivity_panel_class_init (CcConnectivityPanelClass *klass)
++{
++  GObjectClass *object_class = G_OBJECT_CLASS (klass);
++  GtkWidgetClass *widget_class = GTK_WIDGET_CLASS (klass);
++
++  object_class->dispose = cc_connectivity_panel_dispose;
++
++  gtk_widget_class_set_template_from_resource (widget_class, "/org/gnome/control-center/connectivity/cc-connectivity-panel.ui");
++
++  gtk_widget_class_bind_template_child (widget_class, CcConnectivityPanel, connectivity_switch);
++}
++
++static void
++cc_connectivity_panel_init (CcConnectivityPanel *self)
++{
++  g_resources_register (cc_connectivity_get_resource ());
++
++  gtk_widget_init_template (GTK_WIDGET (self));
++
++  self->cancellable = g_cancellable_new ();
++
++#ifdef HAVE_NETWORK_MANAGER
++  /* Create and store a NMClient instance if it doesn't exist yet */
++  if (cc_object_storage_has_object (CC_OBJECT_NMCLIENT))
++    setup_nm_client (self, cc_object_storage_get_object (CC_OBJECT_NMCLIENT));
++  else
++    nm_client_new_async (self->cancellable, nm_client_ready_cb, self);
++#endif
++}
+diff --git a/panels/connectivity/cc-connectivity-panel.h b/panels/connectivity/cc-connectivity-panel.h
+new file mode 100644
+index 0000000..1a21b5b
+--- /dev/null
++++ b/panels/connectivity/cc-connectivity-panel.h
+@@ -0,0 +1,28 @@
++/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*-
++ *
++ * Copyright (C) 2020 Canonical Ltd
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, see <http://www.gnu.org/licenses/>.
++ */
++
++#pragma once
++
++#include <shell/cc-panel.h>
++
++G_BEGIN_DECLS
++
++#define CC_TYPE_CONNECTIVITY_PANEL (cc_connectivity_panel_get_type ())
++G_DECLARE_FINAL_TYPE (CcConnectivityPanel, cc_connectivity_panel, CC, CONNECTIVITY_PANEL, CcPanel)
++
++G_END_DECLS
+diff --git a/panels/connectivity/cc-connectivity-panel.ui b/panels/connectivity/cc-connectivity-panel.ui
+new file mode 100644
+index 0000000..dc7745e
+--- /dev/null
++++ b/panels/connectivity/cc-connectivity-panel.ui
+@@ -0,0 +1,67 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<interface>
++  <requires lib="gtk+" version="3.14"/>
++  <template class="CcConnectivityPanel" parent="CcPanel">
++    <property name="visible">True</property>
++    <child>
++      <object class="GtkScrolledWindow">
++        <property name="visible">True</property>
++        <property name="hscrollbar-policy">never</property>
++        <child>
++          <object class="HdyColumn">
++            <property name="visible">True</property>
++            <property name="maximum_width">600</property>
++            <property name="linear_growth_width">400</property>
++            <property name="margin_top">32</property>
++            <property name="margin_bottom">32</property>
++            <property name="margin_start">12</property>
++            <property name="margin_end">12</property>
++            <child>
++              <object class="GtkBox">
++                <property name="visible">True</property>
++                <property name="orientation">vertical</property>
++                <property name="hexpand">True</property>
++                <child>
++                  <object class="GtkLabel">
++                    <property name="visible">True</property>
++                    <property name="margin-bottom">12</property>
++                    <property name="label" translatable="yes">Connectivity checking is used to detect connection issues and helps you to stay online. If your network communications are being monitored, it could be used to gather technical information about this computer.</property>
++                    <property name="wrap">True</property>
++                    <property name="max-width-chars">50</property>
++                    <property name="xalign">0</property>
++                  </object>
++                </child>
++                <child>
++                  <object class="GtkListBox">
++                    <property name="visible">True</property>
++                    <property name="can-focus">True</property>
++                    <property name="selection-mode">none</property>
++                    <child>
++                      <object class="HdyActionRow">
++                        <property name="visible">true</property>
++                        <property name="title" translatable="yes">_Connectivity Checking</property>
++                        <property name="activatable-widget">connectivity_switch</property>
++                        <property name="use-underline">true</property>
++                        <child type="action">
++                          <object class="GtkSwitch" id="connectivity_switch">
++                            <property name="visible">True</property>
++                            <property name="halign">end</property>
++                            <property name="valign">center</property>
++                          </object>
++                        </child>
++                      </object>
++                    </child>
++                    <style>
++                      <class name="view"/>
++                      <class name="frame"/>
++                    </style>
++                  </object>
++                </child>
++              </object>
++            </child>
++          </object>
++        </child>
++      </object>
++    </child>
++  </template>
++</interface>
+diff --git a/panels/connectivity/connectivity.gresource.xml b/panels/connectivity/connectivity.gresource.xml
+new file mode 100644
+index 0000000..e102045
+--- /dev/null
++++ b/panels/connectivity/connectivity.gresource.xml
+@@ -0,0 +1,6 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<gresources>
++  <gresource prefix="/org/gnome/control-center/connectivity">
++    <file preprocess="xml-stripblanks">cc-connectivity-panel.ui</file>
++  </gresource>
++</gresources>
+diff --git a/panels/connectivity/gnome-connectivity-panel.desktop.in.in b/panels/connectivity/gnome-connectivity-panel.desktop.in.in
+new file mode 100644
+index 0000000..4e97c28
+--- /dev/null
++++ b/panels/connectivity/gnome-connectivity-panel.desktop.in.in
+@@ -0,0 +1,19 @@
++[Desktop Entry]
++Name=Connectivity
++Comment=Protect connectivity feature
++Exec=gnome-control-center connectivity
++# FIXME
++# Translators: Do NOT translate or transliterate this text (this is an icon file name)!
++Icon=network-workgroup
++Terminal=false
++Type=Application
++NoDisplay=true
++StartupNotify=true
++Categories=GNOME;GTK;Settings;DesktopSettings;X-GNOME-Settings-Panel;X-GNOME-PrivacySettings;
++OnlyShowIn=GNOME;Unity;
++X-GNOME-Bugzilla-Bugzilla=GNOME
++X-GNOME-Bugzilla-Product=gnome-control-center
++X-GNOME-Bugzilla-Component=privacy
++X-GNOME-Bugzilla-Version=@VERSION@
++# Translators: Search terms to find the Privacy panel. Do NOT translate or localize the semicolons! The list MUST also end with a semicolon!
++Keywords=network;
+diff --git a/panels/connectivity/meson.build b/panels/connectivity/meson.build
+new file mode 100644
+index 0000000..e9c30d8
+--- /dev/null
++++ b/panels/connectivity/meson.build
+@@ -0,0 +1,45 @@
++panels_list += cappletname
++desktop = 'gnome-@0@-panel.desktop'.format(cappletname)
++
++desktop_in = configure_file(
++  input: desktop + '.in.in',
++  output: desktop + '.in',
++  configuration: desktop_conf
++)
++
++i18n.merge_file(
++  desktop,
++  type: 'desktop',
++  input: desktop_in,
++  output: desktop,
++  po_dir: po_dir,
++  install: true,
++  install_dir: control_center_desktopdir
++)
++
++sources = files('cc-connectivity-panel.c')
++
++resource_data = files('cc-connectivity-panel.ui')
++
++sources += gnome.compile_resources(
++  'cc-' + cappletname + '-resources',
++  cappletname + '.gresource.xml',
++  c_name: 'cc_' + cappletname,
++  dependencies: resource_data,
++  export: true
++)
++
++deps = common_deps
++if host_is_linux
++  deps += network_manager_deps
++endif
++
++cflags += '-DGNOMELOCALEDIR="@0@"'.format(control_center_localedir)
++
++panels_libs += static_library(
++  cappletname,
++  sources: sources,
++  include_directories: [top_inc, common_inc],
++  dependencies: deps,
++  c_args: cflags
++)
+diff --git a/panels/meson.build b/panels/meson.build
+index 81ae0b1..7330e64 100644
+--- a/panels/meson.build
++++ b/panels/meson.build
+@@ -5,6 +5,7 @@ panels = [
+   'background',
+   'camera',
+   'color',
++  'connectivity',
+   'datetime',
+   'default-apps',
+   'diagnostics',
+diff --git a/po/POTFILES.in b/po/POTFILES.in
+index 2440ec9..915b235 100644
+--- a/po/POTFILES.in
++++ b/po/POTFILES.in
+@@ -30,6 +30,8 @@ panels/common/cc-language-chooser.ui
+ panels/common/cc-permission-infobar.ui
+ panels/common/cc-util.c
+ panels/common/hostname-helper.c
++panels/connectivity/cc-connectivity-panel.ui
++panels/connectivity/gnome-connectivity-panel.desktop.in.in
+ panels/datetime/big.ui
+ panels/datetime/cc-datetime-panel.c
+ panels/datetime/cc-datetime-panel.ui
+diff --git a/shell/cc-panel-loader.c b/shell/cc-panel-loader.c
+index bcf8767..e870308 100644
+--- a/shell/cc-panel-loader.c
++++ b/shell/cc-panel-loader.c
+@@ -37,6 +37,7 @@ extern GType cc_background_panel_get_type (void);
+ extern GType cc_bluetooth_panel_get_type (void);
+ #endif /* BUILD_BLUETOOTH */
+ extern GType cc_color_panel_get_type (void);
++extern GType cc_connectivity_panel_get_type (void);
+ extern GType cc_date_time_panel_get_type (void);
+ extern GType cc_default_apps_panel_get_type (void);
+ extern GType cc_display_panel_get_type (void);
+@@ -99,6 +100,7 @@ static CcPanelLoaderVtable default_panels[] =
+ #endif
+   PANEL_TYPE("camera",           cc_camera_panel_get_type,               NULL),
+   PANEL_TYPE("color",            cc_color_panel_get_type,                NULL),
++  PANEL_TYPE("connectivity",     cc_connectivity_panel_get_type,         NULL),
+   PANEL_TYPE("datetime",         cc_date_time_panel_get_type,            NULL),
+   PANEL_TYPE("default-apps",     cc_default_apps_panel_get_type,         NULL),
+   PANEL_TYPE("diagnostics",      cc_diagnostics_panel_get_type,          cc_diagnostics_panel_static_init_func),

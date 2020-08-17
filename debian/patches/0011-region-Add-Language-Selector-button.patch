@@ -1,0 +1,102 @@
+From: Jeremy Bicha <jbicha@ubuntu.com>
+Date: Thu, 14 Sep 2017 09:23:42 -0400
+Subject: [PATCH 11/26] region: Add Language Selector button
+
+Workaround for https://launchpad.net/bugs/1631750
+---
+ panels/region/cc-region-panel.c  | 23 +++++++++++++++++++++++
+ panels/region/cc-region-panel.ui | 26 ++++++++++++++++++++++++++
+ 2 files changed, 49 insertions(+)
+
+diff --git a/panels/region/cc-region-panel.c b/panels/region/cc-region-panel.c
+index 060b48e..a8f7293 100644
+--- a/panels/region/cc-region-panel.c
++++ b/panels/region/cc-region-panel.c
+@@ -73,6 +73,7 @@ struct _CcRegionPanel {
+         GtkListBox      *language_list;
+         GtkListBoxRow   *language_row;
+         GtkFrame        *language_section_frame;
++        GtkButton       *language_support_button;
+         GtkLabel        *next_source;
+         GtkLabel        *next_source_label;
+         GtkListBoxRow   *no_inputs_row;
+@@ -1300,6 +1301,26 @@ strip_quotes (const gchar *str)
+                 return g_strdup (str);
+ }
+ 
++
++static void
++show_language_support (CcRegionPanel *self)
++{
++        g_autoptr(GAppInfo) app_info = NULL;
++        g_autoptr(GdkAppLaunchContext) ctx = NULL;
++        g_autoptr(GError) error = NULL;
++
++        app_info = G_APP_INFO (g_desktop_app_info_new ("gnome-language-selector.desktop"));
++
++        if (app_info == NULL) {
++                g_warning ("Failed to launch language-selector: couldn't create GDesktopAppInfo");
++                return;
++        }
++
++        ctx = gdk_display_get_app_launch_context (gdk_display_get_default ());
++        if (!g_app_info_launch (app_info, NULL, G_APP_LAUNCH_CONTEXT (ctx), &error))
++                g_warning ("Failed to launch language-selector: %s", error->message);
++}
++
+ static void
+ on_localed_properties_changed (CcRegionPanel  *self,
+                                GVariant       *changed_properties,
+@@ -1625,6 +1646,7 @@ cc_region_panel_class_init (CcRegionPanelClass * klass)
+         gtk_widget_class_bind_template_child (widget_class, CcRegionPanel, language_list);
+         gtk_widget_class_bind_template_child (widget_class, CcRegionPanel, language_row);
+         gtk_widget_class_bind_template_child (widget_class, CcRegionPanel, language_section_frame);
++        gtk_widget_class_bind_template_child (widget_class, CcRegionPanel, language_support_button);
+         gtk_widget_class_bind_template_child (widget_class, CcRegionPanel, next_source);
+         gtk_widget_class_bind_template_child (widget_class, CcRegionPanel, next_source_label);
+         gtk_widget_class_bind_template_child (widget_class, CcRegionPanel, no_inputs_row);
+@@ -1638,6 +1660,7 @@ cc_region_panel_class_init (CcRegionPanelClass * klass)
+ 
+         gtk_widget_class_bind_template_callback (widget_class, input_row_activated_cb);
+         gtk_widget_class_bind_template_callback (widget_class, restart_now);
++        gtk_widget_class_bind_template_callback (widget_class, show_language_support);
+ }
+ 
+ static void
+diff --git a/panels/region/cc-region-panel.ui b/panels/region/cc-region-panel.ui
+index 20456aa..77da641 100644
+--- a/panels/region/cc-region-panel.ui
++++ b/panels/region/cc-region-panel.ui
+@@ -304,6 +304,32 @@
+                    </style>
+                   </object>
+                 </child>
++                <child>
++                  <object class="GtkBox">
++                    <property name="visible">True</property>
++                    <property name="can_focus">False</property>
++                    <property name="orientation">vertical</property>
++                    <child>
++                      <object class="GtkButton" id="language_support_button">
++                        <property name="label" translatable="yes">Manage Installed Languages</property>
++                        <property name="visible">True</property>
++                        <property name="can_focus">True</property>
++                        <property name="receives_default">True</property>
++                        <signal name="clicked" handler="show_language_support" object="CcRegionPanel" swapped="yes"/>
++                      </object>
++                      <packing>
++                        <property name="expand">False</property>
++                        <property name="fill">True</property>
++                        <property name="pack_type">end</property>
++                      </packing>
++                    </child>
++                  </object>
++                  <packing>
++                    <property name="expand">False</property>
++                    <property name="fill">True</property>
++                    <property name="position">3</property>
++                  </packing>
++                </child>
+               </object>
+             </child>
+           </object>

@@ -1,0 +1,48 @@
+From: Robert Ancell <robert.ancell@canonical.com>
+Date: Mon, 3 Feb 2020 14:23:34 +1300
+Subject: [PATCH 22/26] info-overview: Show updates in software propeties
+ instead of GNOME Software
+
+---
+ panels/info-overview/cc-info-overview-panel.c | 14 ++++++++++++--
+ 1 file changed, 12 insertions(+), 2 deletions(-)
+
+diff --git a/panels/info-overview/cc-info-overview-panel.c b/panels/info-overview/cc-info-overview-panel.c
+index 9e7c1b3..07b5bb8 100644
+--- a/panels/info-overview/cc-info-overview-panel.c
++++ b/panels/info-overview/cc-info-overview-panel.c
+@@ -719,6 +719,12 @@ info_overview_panel_setup_overview (CcInfoOverviewPanel *self)
+   cc_list_row_set_secondary_markup (self->graphics_row, graphics_hardware_string);
+ }
+ 
++static gboolean
++does_software_properties_exist (void)
++{
++  return g_file_test (BINDIR "/software-properties-gtk", G_FILE_TEST_EXISTS);
++}
++
+ static gboolean
+ does_gnome_software_exist (void)
+ {
+@@ -739,7 +745,11 @@ open_software_update (CcInfoOverviewPanel *self)
+   g_auto(GStrv) argv = NULL;
+ 
+   argv = g_new0 (gchar *, 3);
+-  if (does_gnome_software_exist ())
++  if (does_software_properties_exist ())
++    {
++      argv[0] = g_build_filename (BINDIR, "software-properties-gtk", NULL);
++    }
++  else if (does_gnome_software_exist ())
+     {
+       argv[0] = g_build_filename (BINDIR, "gnome-software", NULL);
+       argv[1] = g_strdup_printf ("--mode=updates");
+@@ -849,7 +859,7 @@ cc_info_overview_panel_init (CcInfoOverviewPanel *self)
+ 
+   g_resources_register (cc_info_overview_get_resource ());
+ 
+-  if (!does_gnome_software_exist () && !does_gpk_update_viewer_exist ())
++  if (!does_software_properties_exist () && !does_gnome_software_exist () && !does_gpk_update_viewer_exist ())
+     gtk_widget_hide (GTK_WIDGET (self->software_updates_row));
+ 
+   info_overview_panel_setup_overview (self);
