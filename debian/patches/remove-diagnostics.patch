@@ -1,54 +1,8 @@
-Index: gnome-control-center/panels/meson.build
-===================================================================
---- gnome-control-center.orig/panels/meson.build	2020-05-08 10:18:35.760079082 -0600
-+++ gnome-control-center/panels/meson.build	2020-05-08 10:19:53.779450644 -0600
-@@ -8,7 +8,6 @@
-   'connectivity',
-   'datetime',
-   'default-apps',
--  'diagnostics',
-   'display',
-   'firmware',
-   'info-overview',
-Index: gnome-control-center/shell/cc-panel-list.c
-===================================================================
---- gnome-control-center.orig/shell/cc-panel-list.c	2020-05-08 10:18:35.760079082 -0600
-+++ gnome-control-center/shell/cc-panel-list.c	2020-05-08 10:20:23.655545424 -0600
-@@ -404,7 +404,6 @@
-   "thunderbolt",
-   "usage",
-   "lock",
--  "diagnostics",
- 
-   /* Devices page */
-   "sound",
-Index: gnome-control-center/shell/cc-panel-loader.c
-===================================================================
---- gnome-control-center.orig/shell/cc-panel-loader.c	2020-05-08 10:18:35.760079082 -0600
-+++ gnome-control-center/shell/cc-panel-loader.c	2020-05-08 10:20:41.617677499 -0600
-@@ -72,10 +72,8 @@
- extern GType cc_microphone_panel_get_type (void);
- extern GType cc_usage_panel_get_type (void);
- extern GType cc_lock_panel_get_type (void);
--extern GType cc_diagnostics_panel_get_type (void);
- 
- /* Static init functions */
--extern void cc_diagnostics_panel_static_init_func (void);
- #ifdef BUILD_NETWORK
- extern void cc_wifi_panel_static_init_func (void);
- #endif /* BUILD_NETWORK */
-@@ -103,7 +101,6 @@
-   PANEL_TYPE("connectivity",     cc_connectivity_panel_get_type,         NULL),
-   PANEL_TYPE("datetime",         cc_date_time_panel_get_type,            NULL),
-   PANEL_TYPE("default-apps",     cc_default_apps_panel_get_type,         NULL),
--  PANEL_TYPE("diagnostics",      cc_diagnostics_panel_get_type,          cc_diagnostics_panel_static_init_func),
-   PANEL_TYPE("display",          cc_display_panel_get_type,              NULL),
-   PANEL_TYPE("firmware",         cc_firmware_panel_get_type,             NULL),
-   PANEL_TYPE("info-overview",    cc_info_overview_panel_get_type,        NULL),
-Index: gnome-control-center/panels/diagnostics/gnome-diagnostics-panel.desktop.in.in
-===================================================================
---- gnome-control-center.orig/panels/diagnostics/gnome-diagnostics-panel.desktop.in.in	2020-05-08 10:18:20.808629854 -0600
-+++ /dev/null	1970-01-01 00:00:00.000000000 +0000
+diff --git a/panels/diagnostics/gnome-diagnostics-panel.desktop.in.in b/panels/diagnostics/gnome-diagnostics-panel.desktop.in.in
+deleted file mode 100644
+index 33d2a9d3b..000000000
+--- a/panels/diagnostics/gnome-diagnostics-panel.desktop.in.in
++++ /dev/null
 @@ -1,19 +0,0 @@
 -[Desktop Entry]
 -Name=Diagnostics
@@ -68,4 +22,63 @@ Index: gnome-control-center/panels/diagnostics/gnome-diagnostics-panel.desktop.i
 -X-GNOME-Bugzilla-Component=privacy
 -X-GNOME-Bugzilla-Version=@VERSION@
 -# Translators: Search terms to find the Privacy panel. Do NOT translate or localize the semicolons! The list MUST also end with a semicolon!
--Keywords=screen;lock;diagnostics;crash;private;recent;temporary;tmp;index;name;network;identity;
+-Keywords=screen;lock;diagnostics;crash;private;recent;temporary;tmp;index;name;network;identity;privacy;
+diff --git a/panels/meson.build b/panels/meson.build
+index 2f4fdc5e3..f6eb6baba 100644
+--- a/panels/meson.build
++++ b/panels/meson.build
+@@ -7,7 +7,6 @@ panels = [
+   'color',
+   'datetime',
+   'default-apps',
+-  'diagnostics',
+   'display',
+   'info-overview',
+   'keyboard',
+diff --git a/shell/cc-panel-list.c b/shell/cc-panel-list.c
+index d425067d7..4c760e74c 100644
+--- a/shell/cc-panel-list.c
++++ b/shell/cc-panel-list.c
+@@ -404,7 +404,6 @@ static const gchar * const panel_order[] = {
+   "thunderbolt",
+   "usage",
+   "lock",
+-  "diagnostics",
+ 
+   /* Devices page */
+   "sound",
+diff --git a/shell/cc-panel-loader.c b/shell/cc-panel-loader.c
+index f20384394..d0a7eca43 100644
+--- a/shell/cc-panel-loader.c
++++ b/shell/cc-panel-loader.c
+@@ -69,10 +69,8 @@ extern GType cc_camera_panel_get_type (void);
+ extern GType cc_microphone_panel_get_type (void);
+ extern GType cc_usage_panel_get_type (void);
+ extern GType cc_lock_panel_get_type (void);
+-extern GType cc_diagnostics_panel_get_type (void);
+ 
+ /* Static init functions */
+-extern void cc_diagnostics_panel_static_init_func (void);
+ #ifdef BUILD_NETWORK
+ extern void cc_wifi_panel_static_init_func (void);
+ #endif /* BUILD_NETWORK */
+@@ -99,7 +97,6 @@ static CcPanelLoaderVtable default_panels[] =
+   PANEL_TYPE("color",            cc_color_panel_get_type,                NULL),
+   PANEL_TYPE("datetime",         cc_date_time_panel_get_type,            NULL),
+   PANEL_TYPE("default-apps",     cc_default_apps_panel_get_type,         NULL),
+-  PANEL_TYPE("diagnostics",      cc_diagnostics_panel_get_type,          cc_diagnostics_panel_static_init_func),
+   PANEL_TYPE("display",          cc_display_panel_get_type,              NULL),
+   PANEL_TYPE("info-overview",    cc_info_overview_panel_get_type,        NULL),
+   PANEL_TYPE("keyboard",         cc_keyboard_panel_get_type,             NULL),
+diff --git a/po/POTFILES.in b/po/POTFILES.in
+index 0f809aaf0..3ee463b07 100644
+--- a/po/POTFILES.in
++++ b/po/POTFILES.in
+@@ -43,7 +43,6 @@ panels/default-apps/cc-default-apps-panel.ui
+ panels/default-apps/gnome-default-apps-panel.desktop.in.in
+ panels/diagnostics/cc-diagnostics-panel.c
+ panels/diagnostics/cc-diagnostics-panel.ui
+-panels/diagnostics/gnome-diagnostics-panel.desktop.in.in
+ panels/display/cc-display-panel.c
+ panels/display/cc-display-panel.ui
+ panels/display/cc-display-settings.c
