@@ -18,13 +18,13 @@ test_hdy_preferences_page_add (void)
   page = g_object_ref_sink (HDY_PREFERENCES_PAGE (hdy_preferences_page_new ()));
   g_assert_nonnull (page);
 
-  group = hdy_preferences_group_new ();
+  group = HDY_PREFERENCES_GROUP (hdy_preferences_group_new ());
   g_assert_nonnull (group);
   gtk_container_add (GTK_CONTAINER (page), GTK_WIDGET (group));
 
   widget = gtk_switch_new ();
   g_assert_nonnull (widget);
-  g_test_expect_message (G_LOG_DOMAIN, G_LOG_LEVEL_WARNING, "Can't add children of type GtkSwitch to HdyPreferencesPage");
+  g_test_expect_message (HDY_LOG_DOMAIN, G_LOG_LEVEL_WARNING, "Can't add children of type GtkSwitch to HdyPreferencesPage");
   gtk_container_add (GTK_CONTAINER (page), widget);
   g_test_assert_expected_messages ();
 }
@@ -71,7 +71,7 @@ main (gint argc,
       gchar *argv[])
 {
   gtk_test_init (&argc, &argv, NULL);
-  hdy_init (&argc, &argv);
+  hdy_init ();
 
   g_test_add_func("/Handy/PreferencesPage/add", test_hdy_preferences_page_add);
   g_test_add_func("/Handy/PreferencesPage/title", test_hdy_preferences_page_title);

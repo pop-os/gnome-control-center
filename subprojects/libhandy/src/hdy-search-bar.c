@@ -48,7 +48,7 @@
 
 /**
  * SECTION:hdy-search-bar
- * @Short_description: A toolbar to integrate a search entry with
+ * @short_description: A toolbar to integrate a search entry with.
  * @Title: HdySearchBar
  *
  * #HdySearchBar is a container made to have a search entry (possibly
@@ -69,11 +69,11 @@
  *
  * HdySearchBar is very similar to #GtkSearchBar, the main difference being that
  * it allows the search entry to fill all the available space. This allows you
- * to control your search entry's width with a #HdyColumn.
+ * to control your search entry's width with a #HdyClamp.
  *
  * # CSS nodes
  *
- * HdySearchBar has a single CSS node with name searchbar.
+ * #HdySearchBar has a single CSS node with name searchbar.
  *
  * Since: 0.0.6
  */
@@ -82,10 +82,13 @@ typedef struct {
   /* Template widgets */
   GtkWidget *revealer;
   GtkWidget *tool_box;
+  GtkWidget *start;
+  GtkWidget *end;
   GtkWidget *close_button;
 
   GtkWidget *entry;
   gboolean reveal_child;
+  gboolean show_close_button;
 } HdySearchBarPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE (HdySearchBar, hdy_search_bar, GTK_TYPE_BIN)
@@ -332,12 +335,7 @@ hdy_search_bar_add (GtkContainer *container,
   HdySearchBar *self = HDY_SEARCH_BAR (container);
   HdySearchBarPrivate *priv = hdy_search_bar_get_instance_private (self);
 
-  /* When constructing the widget, we want the revealer to be added
-   * as the first child of the search bar, as an implementation detail.
-   * After that, the child added by the application should be added
-   * to column.
-   */
-  if (priv->tool_box == NULL) {
+  if (priv->revealer == NULL) {
     GTK_CONTAINER_CLASS (hdy_search_bar_parent_class)->add (container, child);
   } else {
     gtk_box_set_center_widget (GTK_BOX (priv->tool_box), child);
@@ -473,6 +471,8 @@ hdy_search_bar_class_init (HdySearchBarClass *klass)
                                                "/sm/puri/handy/ui/hdy-search-bar.ui");
   gtk_widget_class_bind_template_child_private (widget_class, HdySearchBar, tool_box);
   gtk_widget_class_bind_template_child_private (widget_class, HdySearchBar, revealer);
+  gtk_widget_class_bind_template_child_private (widget_class, HdySearchBar, start);
+  gtk_widget_class_bind_template_child_private (widget_class, HdySearchBar, end);
   gtk_widget_class_bind_template_child_private (widget_class, HdySearchBar, close_button);
 
   gtk_widget_class_set_css_name (widget_class, "searchbar");
@@ -495,7 +495,8 @@ hdy_search_bar_init (HdySearchBar *self)
   g_signal_connect (priv->revealer, "notify::child-revealed",
                     G_CALLBACK (child_revealed_changed_cb), self);
 
-  gtk_widget_set_no_show_all (priv->close_button, TRUE);
+  gtk_widget_set_no_show_all (priv->start, TRUE);
+  gtk_widget_set_no_show_all (priv->end, TRUE);
   g_signal_connect (priv->close_button, "clicked",
                     G_CALLBACK (close_button_clicked_cb), self);
 };
@@ -623,7 +624,7 @@ hdy_search_bar_get_show_close_button (HdySearchBar *self)
 
   g_return_val_if_fail (HDY_IS_SEARCH_BAR (self), FALSE);
 
-  return gtk_widget_get_visible (priv->close_button);
+  return priv->show_close_button;
 }
 
 /**
@@ -648,8 +649,11 @@ hdy_search_bar_set_show_close_button (HdySearchBar *self,
 
   visible = visible != FALSE;
 
-  if (gtk_widget_get_visible (priv->close_button) != visible) {
-    gtk_widget_set_visible (priv->close_button, visible);
-    g_object_notify (G_OBJECT (self), "show-close-button");
-  }
+  if (priv->show_close_button == visible)
+    return;
+
+  priv->show_close_button = visible;
+  gtk_widget_set_visible (priv->start, visible);
+  gtk_widget_set_visible (priv->end, visible);
+  g_object_notify (G_OBJECT (self), "show-close-button");
 }

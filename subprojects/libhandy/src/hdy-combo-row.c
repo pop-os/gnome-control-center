@@ -8,12 +8,10 @@
 #include "hdy-combo-row.h"
 
 #include <glib/gi18n-lib.h>
-#include "hdy-list-box.h"
-#include "hdy-style-private.h"
 
 /**
  * SECTION:hdy-combo-row
- * @short_description: A #GtkListBox row used to choose from a list of items
+ * @short_description: A #GtkListBox row used to choose from a list of items.
  * @Title: HdyComboRow
  *
  * The #HdyComboRow widget allows the user to choose from a list of valid
@@ -23,6 +21,19 @@
  * The #HdyComboRow uses the model-view pattern; the list of valid choices
  * is specified in the form of a #GListModel, and the display of the choices can
  * be adapted to the data in the model via widget creation functions.
+ *
+ * #HdyComboRow is #GtkListBoxRow:activatable if a model is set.
+ *
+ * # CSS nodes
+ *
+ * #HdyComboRow has a main CSS node with name row.
+ *
+ * Its popover has the node name popover with the .combo style class, it
+ * contains a #GtkScrolledWindow, which in turn contains a #GtkListBox, both are
+ * accessible via their regular nodes.
+ *
+ * A checkmark of node and style class image.checkmark in the popover denotes
+ * the current item.
  *
  * Since: 0.0.6
  */
@@ -52,6 +63,7 @@ typedef struct
   GtkListBoxCreateWidgetFunc create_list_widget_func;
   GtkListBoxCreateWidgetFunc create_current_widget_func;
   gpointer create_widget_func_data;
+  GDestroyNotify create_widget_func_data_free_func;
   /* This is owned by create_widget_func_data, which is ultimately owned by the
    * list box, and hence should not be destroyed manually.
    */
@@ -79,10 +91,9 @@ create_list_label (gpointer item,
   return g_object_new (GTK_TYPE_LABEL,
                        "ellipsize", PANGO_ELLIPSIZE_END,
                        "label", name,
-                       "margin", 12,
                        "max-width-chars", 20,
+                       "valign", GTK_ALIGN_CENTER,
                        "visible", TRUE,
-                       "width-chars", 20,
                        "xalign", 0.0,
                         NULL);
 }
@@ -105,6 +116,44 @@ create_current_label (gpointer item,
                        "visible", TRUE,
                        "xalign", 0.0,
                         NULL);
+}
+
+static void
+create_list_widget_data_free (gpointer user_data)
+{
+  HdyComboRow *self = HDY_COMBO_ROW (user_data);
+  HdyComboRowPrivate *priv = hdy_combo_row_get_instance_private (self);
+
+  if (priv->create_widget_func_data_free_func)
+    priv->create_widget_func_data_free_func (priv->create_widget_func_data);
+}
+
+static GtkWidget *
+create_list_widget (gpointer item,
+                    gpointer user_data)
+{
+  HdyComboRow *self = HDY_COMBO_ROW (user_data);
+  HdyComboRowPrivate *priv = hdy_combo_row_get_instance_private (self);
+  GtkWidget *checkmark = g_object_new (GTK_TYPE_IMAGE,
+                                       "halign", GTK_ALIGN_START,
+                                       "icon-name", "emblem-ok-symbolic",
+                                       "valign", GTK_ALIGN_CENTER,
+                                       NULL);
+  GtkWidget *box = g_object_new (GTK_TYPE_BOX,
+                                 "child", priv->create_list_widget_func (item, priv->create_widget_func_data),
+                                 "child", checkmark,
+                                 "halign", GTK_ALIGN_START,
+                                 "spacing", 6,
+                                 "valign", GTK_ALIGN_CENTER,
+                                 "visible", TRUE,
+                                 NULL);
+  GtkStyleContext *checkmark_context = gtk_widget_get_style_context (checkmark);
+
+  gtk_style_context_add_class (checkmark_context, "checkmark");
+
+  g_object_set_data (G_OBJECT (box), "checkmark", checkmark);
+
+  return box;
 }
 
 static void
@@ -143,6 +192,20 @@ update (HdyComboRow *self)
   g_assert (priv->selected_index >= 0 && priv->selected_index <= g_list_model_get_n_items (priv->bound_model));
 
   gtk_widget_set_sensitive (GTK_WIDGET (self), TRUE);
+
+  {
+    g_autoptr (GList) rows = gtk_container_get_children (GTK_CONTAINER (priv->list));
+    GList *l;
+    int i = 0;
+
+    for (l = rows; l; l = l->next) {
+      GtkWidget *row = GTK_WIDGET (l->data);
+      GtkWidget *box = gtk_bin_get_child (GTK_BIN (row));
+
+      gtk_widget_set_visible (GTK_WIDGET (g_object_get_data (G_OBJECT (box), "checkmark")),
+                              priv->selected_index == i++);
+    }
+  }
 
   item = g_list_model_get_item (priv->bound_model, priv->selected_index);
   if (priv->use_subtitle) {
@@ -209,19 +272,23 @@ destroy_model (HdyComboRow *self)
 {
   HdyComboRowPrivate *priv = hdy_combo_row_get_instance_private (self);
 
-  if (priv->bound_model) {
-    /* Disconnect the bound model *before* releasing it. */
-    g_signal_handlers_disconnect_by_func (priv->bound_model, bound_model_changed, self);
+  if (!priv->bound_model)
+    return;
 
-    /* Destroy the model and the user data. */
-    if (priv->list)
-      gtk_list_box_bind_model (priv->list, NULL, NULL, NULL, NULL);
+  /* Disconnect the bound model *before* releasing it. */
+  g_signal_handlers_disconnect_by_func (priv->bound_model, bound_model_changed, self);
 
-    priv->bound_model = NULL;
-    priv->create_list_widget_func = NULL;
-    priv->create_current_widget_func = NULL;
-    priv->create_widget_func_data = NULL;
-  }
+  /* Destroy the model and the user data. */
+  if (priv->list)
+    gtk_list_box_bind_model (priv->list, NULL, NULL, NULL, NULL);
+
+  priv->bound_model = NULL;
+  priv->create_list_widget_func = NULL;
+  priv->create_current_widget_func = NULL;
+  priv->create_widget_func_data = NULL;
+  priv->create_widget_func_data_free_func = NULL;
+
+  gtk_list_box_row_set_activatable (GTK_LIST_BOX_ROW (self), FALSE);
 }
 
 static void
@@ -376,29 +443,14 @@ hdy_combo_row_class_init (HdyComboRowClass *klass)
 }
 
 static void
-list_init (HdyComboRow *self)
-{
-  HdyComboRowPrivate *priv = hdy_combo_row_get_instance_private (self);
-  g_autoptr (GtkCssProvider) provider = gtk_css_provider_new ();
-
-  gtk_css_provider_load_from_resource (provider, "/sm/puri/handy/style/hdy-combo-row-list.css");
-  gtk_style_context_add_provider (gtk_widget_get_style_context (GTK_WIDGET (priv->list)),
-                                  GTK_STYLE_PROVIDER (provider),
-                                  HDY_STYLE_PROVIDER_PRIORITY);
-}
-
-static void
 hdy_combo_row_init (HdyComboRow *self)
 {
   HdyComboRowPrivate *priv = hdy_combo_row_get_instance_private (self);
 
   gtk_widget_init_template (GTK_WIDGET (self));
 
-  list_init (self);
-
   priv->selected_index = -1;
 
-  gtk_list_box_set_header_func (priv->list, hdy_list_box_separator_header, NULL, NULL);
   g_signal_connect_object (priv->list, "row-activated", G_CALLBACK (gtk_widget_hide),
                            priv->popover, G_CONNECT_SWAPPED);
   g_signal_connect_object (priv->list, "row-activated", G_CALLBACK (row_activated_cb),
@@ -416,7 +468,7 @@ hdy_combo_row_init (HdyComboRow *self)
  *
  * Since: 0.0.6
  */
-HdyComboRow *
+GtkWidget *
 hdy_combo_row_new (void)
 {
   return g_object_new (HDY_TYPE_COMBO_ROW, NULL);
@@ -452,8 +504,8 @@ hdy_combo_row_get_model (HdyComboRow *self)
  *   widgets for items to display in the list, or %NULL in case you also passed
  *   %NULL as @model
  * @create_current_widget_func: (nullable) (scope call): a function that creates
- *   widgets for items to display as the seleted item, or %NULL in case you also
- *   passed %NULL as @model
+ *   widgets for items to display as the selected item, or %NULL in case you
+ *   also passed %NULL as @model
  * @user_data: user data passed to @create_list_widget_func and
  *   @create_current_widget_func
  * @user_data_free_func: function for freeing @user_data
@@ -497,18 +549,21 @@ hdy_combo_row_bind_model (HdyComboRow                *self,
     return;
   }
 
-  gtk_list_box_bind_model (priv->list, model, create_list_widget_func, user_data, user_data_free_func);
-
   /* We don't need take a reference as the list box holds one for us. */
   priv->bound_model = model;
   priv->create_list_widget_func = create_list_widget_func;
   priv->create_current_widget_func = create_current_widget_func;
   priv->create_widget_func_data = user_data;
+  priv->create_widget_func_data_free_func = user_data_free_func;
 
   g_signal_connect (priv->bound_model, "items-changed", G_CALLBACK (bound_model_changed), self);
 
   if (g_list_model_get_n_items (priv->bound_model) > 0)
     priv->selected_index = 0;
+
+  gtk_list_box_bind_model (priv->list, model, create_list_widget, self, create_list_widget_data_free);
+
+  gtk_list_box_row_set_activatable (GTK_LIST_BOX_ROW (self), TRUE);
 
   update (self);
 
@@ -532,8 +587,8 @@ hdy_combo_row_bind_model (HdyComboRow                *self,
  * items from @model. @self is updated whenever @model changes. If @model is
  * %NULL, @self is left empty.
  *
- * This is more conventient to use than hdy_combo_row_bind_model() if you want
- * to represent items of the model with names.
+ * This is more convenient to use than hdy_combo_row_bind_model() if you want to
+ * represent items of the model with names.
  *
  * Since: 0.0.6
  */
@@ -576,7 +631,7 @@ hdy_combo_row_bind_name_model (HdyComboRow            *self,
  * items from @model. @self is updated whenever @model changes. If @model is
  * %NULL, @self is left empty.
  *
- * This is more conventient to use than hdy_combo_row_bind_name_model() if you
+ * This is more convenient to use than hdy_combo_row_bind_name_model() if you
  * want to represent values of an enumeration with names.
  *
  * See hdy_enum_value_row_name().

@@ -17,11 +17,7 @@ G_BEGIN_DECLS
 
 #define HDY_TYPE_VIEW_SWITCHER (hdy_view_switcher_get_type())
 
-struct _HdyViewSwitcherClass {
-  GtkBoxClass parent_class;
-};
-
-G_DECLARE_DERIVABLE_TYPE (HdyViewSwitcher, hdy_view_switcher, HDY, VIEW_SWITCHER, GtkBox)
+G_DECLARE_FINAL_TYPE (HdyViewSwitcher, hdy_view_switcher, HDY, VIEW_SWITCHER, GtkBin)
 
 typedef enum {
   HDY_VIEW_SWITCHER_POLICY_AUTO,
@@ -29,7 +25,7 @@ typedef enum {
   HDY_VIEW_SWITCHER_POLICY_WIDE,
 } HdyViewSwitcherPolicy;
 
-HdyViewSwitcher *hdy_view_switcher_new (void);
+GtkWidget *hdy_view_switcher_new (void);
 
 HdyViewSwitcherPolicy hdy_view_switcher_get_policy (HdyViewSwitcher *self);
 void                  hdy_view_switcher_set_policy (HdyViewSwitcher       *self,

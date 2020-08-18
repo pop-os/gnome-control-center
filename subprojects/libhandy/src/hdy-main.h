@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Purism SPC
+ * Copyright (C) 2020 Purism SPC
  *
  * SPDX-License-Identifier: LGPL-2.1+
  */
@@ -13,6 +13,6 @@
 
 G_BEGIN_DECLS
 
-gboolean hdy_init(int *argc, char ***argv);
+void hdy_init (void);
 
 G_END_DECLS
