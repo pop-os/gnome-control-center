@@ -19,13 +19,9 @@ G_BEGIN_DECLS
 
 #define HDY_TYPE_VIEW_SWITCHER_BAR (hdy_view_switcher_bar_get_type())
 
-struct _HdyViewSwitcherBarClass {
-  GtkBinClass parent_class;
-};
+G_DECLARE_FINAL_TYPE (HdyViewSwitcherBar, hdy_view_switcher_bar, HDY, VIEW_SWITCHER_BAR, GtkBin)
 
-G_DECLARE_DERIVABLE_TYPE (HdyViewSwitcherBar, hdy_view_switcher_bar, HDY, VIEW_SWITCHER_BAR, GtkBin)
-
-HdyViewSwitcherBar *hdy_view_switcher_bar_new (void);
+GtkWidget *hdy_view_switcher_bar_new (void);
 
 HdyViewSwitcherPolicy hdy_view_switcher_bar_get_policy (HdyViewSwitcherBar *self);
 void                  hdy_view_switcher_bar_set_policy (HdyViewSwitcherBar    *self,

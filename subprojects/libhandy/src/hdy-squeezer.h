@@ -17,23 +17,14 @@ G_BEGIN_DECLS
 
 #define HDY_TYPE_SQUEEZER (hdy_squeezer_get_type ())
 
-G_DECLARE_DERIVABLE_TYPE (HdySqueezer, hdy_squeezer, HDY, SQUEEZER, GtkContainer)
+G_DECLARE_FINAL_TYPE (HdySqueezer, hdy_squeezer, HDY, SQUEEZER, GtkContainer)
 
 typedef enum {
   HDY_SQUEEZER_TRANSITION_TYPE_NONE,
   HDY_SQUEEZER_TRANSITION_TYPE_CROSSFADE,
 } HdySqueezerTransitionType;
 
-/**
- * HdySqueezerClass
- * @parent_class: The parent class
- */
-struct _HdySqueezerClass
-{
-  GtkContainerClass parent_class;
-};
-
-HdySqueezer *hdy_squeezer_new (void);
+GtkWidget *hdy_squeezer_new (void);
 
 gboolean hdy_squeezer_get_homogeneous (HdySqueezer *self);
 void     hdy_squeezer_set_homogeneous (HdySqueezer *self,

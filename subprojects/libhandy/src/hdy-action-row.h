@@ -30,7 +30,7 @@ struct _HdyActionRowClass
   void (*activate) (HdyActionRow *self);
 };
 
-HdyActionRow *hdy_action_row_new (void);
+GtkWidget *hdy_action_row_new (void);
 
 const gchar *hdy_action_row_get_title (HdyActionRow *self);
 void         hdy_action_row_set_title (HdyActionRow *self,
@@ -51,9 +51,6 @@ void       hdy_action_row_set_activatable_widget (HdyActionRow *self,
 gboolean hdy_action_row_get_use_underline (HdyActionRow *self);
 void     hdy_action_row_set_use_underline (HdyActionRow *self,
                                            gboolean      use_underline);
-
-void hdy_action_row_add_action (HdyActionRow *self,
-                                GtkWidget    *widget);
 
 void hdy_action_row_add_prefix (HdyActionRow *self,
                                 GtkWidget    *widget);

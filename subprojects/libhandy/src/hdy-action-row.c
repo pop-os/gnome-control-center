@@ -11,36 +11,46 @@
 
 /**
  * SECTION:hdy-action-row
- * @short_description: A #GtkListBox row used to present actions
+ * @short_description: A #GtkListBox row used to present actions.
  * @Title: HdyActionRow
  *
  * The #HdyActionRow widget can have a title, a subtitle and an icon. The row
- * can receive action widgets at its end, prefix widgets at its start or widgets
- * below it.
+ * can receive additional widgets at its end, or prefix widgets at its start.
  *
- * Note that action widgets are packed starting from the end.
+ * It is convenient to present a preference and its related actions.
  *
- * It is convenient to present a list of preferences and their related actions.
+ * #HdyActionRow is unactivatable by default, giving it an activatable widget
+ * will automatically make it activatable, but unsetting it won't change the
+ * row's activatability.
  *
  * # HdyActionRow as GtkBuildable
  *
  * The GtkWindow implementation of the GtkBuildable interface supports setting a
- * child as an action widget by specifying “action” as the “type” attribute of a
- * &lt;child&gt; element.
+ * child at its end by omitting the “type” attribute of a &lt;child&gt; element.
  *
  * It also supports setting a child as a prefix widget by specifying “prefix” as
  * the “type” attribute of a &lt;child&gt; element.
+ *
+ * # CSS nodes
+ *
+ * #HdyActionRow has a main CSS node with name row.
+ *
+ * It contains the subnode box.header for its main horizontal box, and box.title
+ * for the vertical box containing the title and subtitle labels.
+ *
+ * It contains subnodes label.title and label.subtitle representing respectively
+ * the title label and subtitle label.
  *
  * Since: 0.0.6
  */
 
 typedef struct
 {
-  GtkBox *box;
   GtkBox *header;
   GtkImage *image;
   GtkBox *prefixes;
   GtkLabel *subtitle;
+  GtkBox *suffixes;
   GtkLabel *title;
   GtkBox *title_box;
 
@@ -70,6 +80,13 @@ enum {
 };
 
 static GParamSpec *props[LAST_PROP];
+
+enum {
+  SIGNAL_ACTIVATED,
+  SIGNAL_LAST_SIGNAL,
+};
+
+static guint signals[SIGNAL_LAST_SIGNAL];
 
 static void
 row_activated_cb (HdyActionRow  *self,
@@ -193,6 +210,11 @@ hdy_action_row_show_all (GtkWidget *widget)
   gtk_container_foreach (GTK_CONTAINER (priv->prefixes),
                          (GtkCallback) gtk_widget_show_all,
                          NULL);
+
+  gtk_container_foreach (GTK_CONTAINER (priv->suffixes),
+                         (GtkCallback) gtk_widget_show_all,
+                         NULL);
+
   GTK_WIDGET_CLASS (hdy_action_row_parent_class)->show_all (widget);
 }
 
@@ -202,15 +224,15 @@ hdy_action_row_destroy (GtkWidget *widget)
   HdyActionRow *self = HDY_ACTION_ROW (widget);
   HdyActionRowPrivate *priv = hdy_action_row_get_instance_private (self);
 
-  if (priv->box) {
-    gtk_widget_destroy (GTK_WIDGET (priv->box));
-    priv->box = NULL;
+  if (priv->header) {
+    gtk_widget_destroy (GTK_WIDGET (priv->header));
+    priv->header = NULL;
   }
 
   hdy_action_row_set_activatable_widget (self, NULL);
 
   priv->prefixes = NULL;
-  priv->header = NULL;
+  priv->suffixes = NULL;
 
   GTK_WIDGET_CLASS (hdy_action_row_parent_class)->destroy (widget);
 }
@@ -225,10 +247,27 @@ hdy_action_row_add (GtkContainer *container,
   /* When constructing the widget, we want the box to be added as the child of
    * the GtkListBoxRow, as an implementation detail.
    */
-  if (priv->box == NULL)
+  if (priv->header == NULL)
     GTK_CONTAINER_CLASS (hdy_action_row_parent_class)->add (container, child);
+  else {
+    gtk_container_add (GTK_CONTAINER (priv->suffixes), child);
+    gtk_widget_show (GTK_WIDGET (priv->suffixes));
+  }
+}
+
+static void
+hdy_action_row_remove (GtkContainer *container,
+                       GtkWidget    *child)
+{
+  HdyActionRow *self = HDY_ACTION_ROW (container);
+  HdyActionRowPrivate *priv = hdy_action_row_get_instance_private (self);
+
+  if (child == GTK_WIDGET (priv->header))
+    GTK_CONTAINER_CLASS (hdy_action_row_parent_class)->remove (container, child);
+  else if (gtk_widget_get_parent (child) == GTK_WIDGET (priv->prefixes))
+    gtk_container_remove (GTK_CONTAINER (priv->prefixes), child);
   else
-    gtk_container_add (GTK_CONTAINER (priv->box), child);
+    gtk_container_remove (GTK_CONTAINER (priv->suffixes), child);
 }
 
 typedef struct {
@@ -244,9 +283,9 @@ for_non_internal_child (GtkWidget *widget,
   ForallData *data = callback_data;
   HdyActionRowPrivate *priv = hdy_action_row_get_instance_private (data->row);
 
-  if (widget != (GtkWidget *) priv->box &&
-      widget != (GtkWidget *) priv->image &&
+  if (widget != (GtkWidget *) priv->image &&
       widget != (GtkWidget *) priv->prefixes &&
+      widget != (GtkWidget *) priv->suffixes &&
       widget != (GtkWidget *) priv->title_box)
     data->callback (widget, data->callback_data);
 }
@@ -273,10 +312,10 @@ hdy_action_row_forall (GtkContainer *container,
 
   if (priv->prefixes)
     GTK_CONTAINER_GET_CLASS (priv->prefixes)->forall (GTK_CONTAINER (priv->prefixes), include_internals, for_non_internal_child, &data);
+  if (priv->suffixes)
+    GTK_CONTAINER_GET_CLASS (priv->suffixes)->forall (GTK_CONTAINER (priv->suffixes), include_internals, for_non_internal_child, &data);
   if (priv->header)
     GTK_CONTAINER_GET_CLASS (priv->header)->forall (GTK_CONTAINER (priv->header), include_internals, for_non_internal_child, &data);
-  if (priv->box)
-    GTK_CONTAINER_GET_CLASS (priv->box)->forall (GTK_CONTAINER (priv->box), include_internals, for_non_internal_child, &data);
 }
 
 static void
@@ -286,6 +325,8 @@ hdy_action_row_activate_real (HdyActionRow *self)
 
   if (priv->activatable_widget)
     gtk_widget_mnemonic_activate (priv->activatable_widget, FALSE);
+
+  g_signal_emit (self, signals[SIGNAL_ACTIVATED], 0);
 }
 
 static void
@@ -303,6 +344,7 @@ hdy_action_row_class_init (HdyActionRowClass *klass)
   widget_class->show_all = hdy_action_row_show_all;
 
   container_class->add = hdy_action_row_add;
+  container_class->remove = hdy_action_row_remove;
   container_class->forall = hdy_action_row_forall;
 
   klass->activate = hdy_action_row_activate_real;
@@ -380,13 +422,30 @@ hdy_action_row_class_init (HdyActionRowClass *klass)
 
   g_object_class_install_properties (object_class, LAST_PROP, props);
 
+  /**
+   * HdyActionRow::activated:
+   * @self: The #HdyActionRow instance
+   *
+   * This signal is emitted after the row has been activated.
+   *
+   * Since: 1.0
+   */
+  signals[SIGNAL_ACTIVATED] =
+    g_signal_new ("activated",
+                  G_TYPE_FROM_CLASS (klass),
+                  G_SIGNAL_RUN_LAST,
+                  0,
+                  NULL, NULL, NULL,
+                  G_TYPE_NONE,
+                  0);
+
   gtk_widget_class_set_template_from_resource (widget_class,
                                                "/sm/puri/handy/ui/hdy-action-row.ui");
-  gtk_widget_class_bind_template_child_private (widget_class, HdyActionRow, box);
   gtk_widget_class_bind_template_child_private (widget_class, HdyActionRow, header);
   gtk_widget_class_bind_template_child_private (widget_class, HdyActionRow, image);
   gtk_widget_class_bind_template_child_private (widget_class, HdyActionRow, prefixes);
   gtk_widget_class_bind_template_child_private (widget_class, HdyActionRow, subtitle);
+  gtk_widget_class_bind_template_child_private (widget_class, HdyActionRow, suffixes);
   gtk_widget_class_bind_template_child_private (widget_class, HdyActionRow, title);
   gtk_widget_class_bind_template_child_private (widget_class, HdyActionRow, title_box);
 }
@@ -408,12 +467,15 @@ hdy_action_row_buildable_add_child (GtkBuildable *buildable,
                                     GObject      *child,
                                     const gchar  *type)
 {
-  if (type && strcmp (type, "action") == 0)
-    hdy_action_row_add_action (HDY_ACTION_ROW (buildable), GTK_WIDGET (child));
+  HdyActionRow *self = HDY_ACTION_ROW (buildable);
+  HdyActionRowPrivate *priv = hdy_action_row_get_instance_private (self);
+
+  if (priv->header == NULL || !type)
+    gtk_container_add (GTK_CONTAINER (self), GTK_WIDGET (child));
   else if (type && strcmp (type, "prefix") == 0)
-    hdy_action_row_add_prefix (HDY_ACTION_ROW (buildable), GTK_WIDGET (child));
+    hdy_action_row_add_prefix (self, GTK_WIDGET (child));
   else
-    parent_buildable_iface->add_child (buildable, builder, child, type);
+    GTK_BUILDER_WARN_INVALID_CHILD_TYPE (self, type);
 }
 
 static void
@@ -432,7 +494,7 @@ hdy_action_row_buildable_init (GtkBuildableIface *iface)
  *
  * Since: 0.0.6
  */
-HdyActionRow *
+GtkWidget *
 hdy_action_row_new (void)
 {
   return g_object_new (HDY_TYPE_ACTION_ROW, NULL);
@@ -653,14 +715,12 @@ hdy_action_row_set_activatable_widget (HdyActionRow *self,
   HdyActionRowPrivate *priv;
 
   g_return_if_fail (HDY_IS_ACTION_ROW (self));
+  g_return_if_fail (widget == NULL || GTK_IS_WIDGET (widget));
 
   priv = hdy_action_row_get_instance_private (self);
 
   if (priv->activatable_widget == widget)
     return;
-
-  if (widget != NULL)
-    g_return_if_fail (GTK_IS_WIDGET (widget));
 
   if (priv->activatable_widget)
     g_object_weak_unref (G_OBJECT (priv->activatable_widget),
@@ -669,10 +729,12 @@ hdy_action_row_set_activatable_widget (HdyActionRow *self,
 
   priv->activatable_widget = widget;
 
-  if (priv->activatable_widget != NULL)
+  if (priv->activatable_widget != NULL) {
     g_object_weak_ref (G_OBJECT (priv->activatable_widget),
                        activatable_widget_weak_notify,
                        self);
+    gtk_list_box_row_set_activatable (GTK_LIST_BOX_ROW (self), TRUE);
+  }
 
   g_object_notify_by_pspec (G_OBJECT (self), props[PROP_ACTIVATABLE_WIDGET]);
 }
@@ -735,31 +797,9 @@ hdy_action_row_set_use_underline (HdyActionRow *self,
 }
 
 /**
- * hdy_action_row_add_action:
- * @self: a #HdyActionRow
- * @widget: (allow-none): the action widget
- *
- * Adds an action widget to @self.
- *
- * Since: 0.0.6
- */
-void
-hdy_action_row_add_action (HdyActionRow *self,
-                           GtkWidget    *widget)
-{
-  HdyActionRowPrivate *priv;
-
-  g_return_if_fail (HDY_IS_ACTION_ROW (self));
-
-  priv = hdy_action_row_get_instance_private (self);
-
-  gtk_box_pack_end (priv->header, widget, FALSE, TRUE, 0);
-}
-
-/**
  * hdy_action_row_add_prefix:
  * @self: a #HdyActionRow
- * @widget: (allow-none): the prefix widget
+ * @widget: the prefix widget
  *
  * Adds a prefix widget to @self.
  *
@@ -772,6 +812,7 @@ hdy_action_row_add_prefix (HdyActionRow *self,
   HdyActionRowPrivate *priv;
 
   g_return_if_fail (HDY_IS_ACTION_ROW (self));
+  g_return_if_fail (GTK_IS_WIDGET (self));
 
   priv = hdy_action_row_get_instance_private (self);
 
