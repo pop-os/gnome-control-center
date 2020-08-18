@@ -1,0 +1,11 @@
+stages:
+- test
+
+build-fedora:
+  image: fedora:latest
+  stage: test
+  before_script:
+    - dnf install -y redhat-rpm-config gcc make pulseaudio-libs-devel alsa-lib-devel gtk3-devel
+  script:
+    - make -f Makefile.tests
+
