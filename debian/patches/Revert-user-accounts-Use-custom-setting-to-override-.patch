@@ -1,0 +1,154 @@
+From 9a912247d69c646998af8a1c96e2b0a1a41cb887 Mon Sep 17 00:00:00 2001
+From: Ian Douglas Scott <idscott@system76.com>
+Date: Tue, 18 Aug 2020 11:18:10 -0700
+Subject: [PATCH] Revert "user-accounts: Use custom setting to override faces"
+
+This reverts commit 3bcea691b8d4ab06ec2e01ca240217cc5a615635.
+
+Causes crash with the older Gnome version.
+---
+ panels/user-accounts/cc-avatar-chooser.c | 96 ++++++------------------
+ 1 file changed, 25 insertions(+), 71 deletions(-)
+
+diff --git a/panels/user-accounts/cc-avatar-chooser.c b/panels/user-accounts/cc-avatar-chooser.c
+index d0d4e1bbe..d7fe7f9cc 100644
+--- a/panels/user-accounts/cc-avatar-chooser.c
++++ b/panels/user-accounts/cc-avatar-chooser.c
+@@ -407,57 +407,35 @@ cheese_camera_device_monitor_new_cb (GObject *source,
+ }
+ #endif /* HAVE_CHEESE */
+ 
+-static GStrv
+-get_settings_facesdirs (void)
+-{
+-        g_autoptr(GSettings) settings = g_settings_new ("org.gnome.desktop.interface");
+-        g_auto(GStrv) settings_dirs = g_settings_get_strv (settings, "avatar-directories");
+-        GPtrArray *facesdirs = g_ptr_array_new ();
+-
+-        if (settings_dirs != NULL) {
+-                int i;
+-                for (i = 0; settings_dirs[i] != NULL; i++) {
+-                        char *path = settings_dirs[i];
+-                        if (g_strcmp0 (path, "") != 0)
+-                                g_ptr_array_add (facesdirs, g_strdup (path));
+-                }
+-        }
+-        g_ptr_array_add (facesdirs, NULL);
+-
+-        return (GStrv) g_ptr_array_steal (facesdirs, NULL);
+-}
+-
+-static GStrv
+-get_system_facesdirs (void)
+-{
+-        const char * const * data_dirs;
+-        GPtrArray *facesdirs;
+-        int i;
+-
+-        facesdirs = g_ptr_array_new ();
+-
+-        data_dirs = g_get_system_data_dirs ();
+-        for (i = 0; data_dirs[i] != NULL; i++) {
+-                char *path = g_build_filename (data_dirs[i], "pixmaps", "faces", NULL);
+-                g_ptr_array_add (facesdirs, path);
+-        }
+-        g_ptr_array_add (facesdirs, NULL);
+-        return (GStrv) g_ptr_array_steal (facesdirs, NULL);
+-}
+-
+-static gboolean
+-add_faces_from_dirs (GListStore *faces, GStrv facesdirs, gboolean add_all)
++static void
++setup_photo_popup (CcAvatarChooser *self)
+ {
+         GFile *file, *dir;
+         GFileInfo *info;
+         GFileEnumerator *enumerator;
+         GFileType type;
+         const gchar *target;
++        const gchar * const * dirs;
+         guint i;
+-        gboolean added_faces = FALSE;
++        gboolean added_faces;
++
++        self->faces = g_list_store_new (G_TYPE_FILE);
++        gtk_flow_box_bind_model (GTK_FLOW_BOX (self->flowbox),
++                                 G_LIST_MODEL (self->faces),
++                                 create_face_widget,
++                                 self,
++                                 NULL);
++
++        g_signal_connect_object (self->flowbox, "child-activated",
++                                 G_CALLBACK (face_widget_activated), self, G_CONNECT_SWAPPED);
++
++        dirs = g_get_system_data_dirs ();
++        for (i = 0; dirs[i] != NULL; i++) {
++                char *path;
+ 
+-        for (i = 0; facesdirs[i] != NULL; i++) {
+-                dir = g_file_new_for_path (facesdirs[i]);
++                path = g_build_filename (dirs[i], "pixmaps", "faces", NULL);
++                dir = g_file_new_for_path (path);
++                g_free (path);
+ 
+                 enumerator = g_file_enumerate_children (dir,
+                                                         G_FILE_ATTRIBUTE_STANDARD_NAME ","
+@@ -472,6 +450,8 @@ add_faces_from_dirs (GListStore *faces, GStrv facesdirs, gboolean add_all)
+                 }
+ 
+                 while ((info = g_file_enumerator_next_file (enumerator, NULL, NULL)) != NULL) {
++                        added_faces = TRUE;
++
+                         type = g_file_info_get_file_type (info);
+                         if (type != G_FILE_TYPE_REGULAR &&
+                             type != G_FILE_TYPE_SYMBOLIC_LINK) {
+@@ -486,44 +466,18 @@ add_faces_from_dirs (GListStore *faces, GStrv facesdirs, gboolean add_all)
+                         }
+ 
+                         file = g_file_get_child (dir, g_file_info_get_name (info));
+-                        g_list_store_append (faces, file);
++                        g_list_store_append (self->faces, file);
+ 
+                         g_object_unref (info);
+-                        added_faces = TRUE;
+                 }
+ 
+                 g_file_enumerator_close (enumerator, NULL, NULL);
+                 g_object_unref (enumerator);
+                 g_object_unref (dir);
+ 
+-                if (added_faces && !add_all)
++                if (added_faces)
+                         break;
+         }
+-        return added_faces;
+-}
+-
+-
+-static void
+-setup_photo_popup (CcAvatarChooser *self)
+-{
+-        g_auto(GStrv) settings_facesdirs = NULL;
+-
+-        self->faces = g_list_store_new (G_TYPE_FILE);
+-        gtk_flow_box_bind_model (GTK_FLOW_BOX (self->flowbox),
+-                                 G_LIST_MODEL (self->faces),
+-                                 create_face_widget,
+-                                 self,
+-                                 NULL);
+-
+-        g_signal_connect_object (self->flowbox, "child-activated",
+-                                 G_CALLBACK (face_widget_activated), self, G_CONNECT_SWAPPED);
+-
+-        settings_facesdirs = get_settings_facesdirs ();
+-
+-        if (!add_faces_from_dirs (self->faces, settings_facesdirs, TRUE)) {
+-                g_auto(GStrv) system_facesdirs = get_system_facesdirs ();
+-                add_faces_from_dirs (self->faces, system_facesdirs, FALSE);
+-        }
+ 
+ #ifdef HAVE_CHEESE
+         gtk_widget_set_visible (self->take_picture_button, TRUE);
+-- 
+2.25.1
+
