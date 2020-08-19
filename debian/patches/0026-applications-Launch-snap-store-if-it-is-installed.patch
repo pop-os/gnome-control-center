@@ -10,7 +10,7 @@ Index: gnome-control-center/panels/applications/cc-applications-panel.c
 ===================================================================
 --- gnome-control-center.orig/panels/applications/cc-applications-panel.c
 +++ gnome-control-center/panels/applications/cc-applications-panel.c
-@@ -160,6 +160,13 @@ gnome_software_is_installed (void)
+@@ -161,6 +161,13 @@ gnome_software_is_installed (void)
    return path != NULL;
  }
  
@@ -24,7 +24,7 @@ Index: gnome-control-center/panels/applications/cc-applications-panel.c
  /* Callbacks */
  
  static gboolean
-@@ -179,6 +186,9 @@ open_software_cb (CcApplicationsPanel *s
+@@ -180,6 +187,9 @@ open_software_cb (CcApplicationsPanel *s
  {
    const gchar *argv[] = { "gnome-software", "--details", "appid", NULL };
  
@@ -34,7 +34,7 @@ Index: gnome-control-center/panels/applications/cc-applications-panel.c
    if (self->current_app_id == NULL)
      argv[1] = NULL;
    else
-@@ -1621,7 +1631,7 @@ update_panel (CcApplicationsPanel *self,
+@@ -1678,7 +1688,7 @@ update_panel (CcApplicationsPanel *self,
  
    gtk_label_set_label (self->title_label, g_app_info_get_display_name (info));
    gtk_stack_set_visible_child (self->stack, GTK_WIDGET (self->settings_box));
@@ -43,7 +43,7 @@ Index: gnome-control-center/panels/applications/cc-applications-panel.c
  
    g_clear_pointer (&self->current_app_id, g_free);
    g_clear_pointer (&self->current_portal_app_id, g_free);
-@@ -2001,7 +2011,7 @@ cc_applications_panel_init (CcApplicatio
+@@ -2063,7 +2073,7 @@ cc_applications_panel_init (CcApplicatio
  
    gtk_widget_init_template (GTK_WIDGET (self));
  
