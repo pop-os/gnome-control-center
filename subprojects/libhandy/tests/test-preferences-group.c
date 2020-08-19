@@ -18,7 +18,7 @@ test_hdy_preferences_group_add (void)
   group = g_object_ref_sink (HDY_PREFERENCES_GROUP (hdy_preferences_group_new ()));
   g_assert_nonnull (group);
 
-  row = hdy_preferences_row_new ();
+  row = HDY_PREFERENCES_ROW (hdy_preferences_row_new ());
   g_assert_nonnull (row);
   gtk_container_add (GTK_CONTAINER (group), GTK_WIDGET (row));
 
@@ -72,7 +72,7 @@ main (gint argc,
       gchar *argv[])
 {
   gtk_test_init (&argc, &argv, NULL);
-  hdy_init (&argc, &argv);
+  hdy_init ();
 
   g_test_add_func("/Handy/PreferencesGroup/add", test_hdy_preferences_group_add);
   g_test_add_func("/Handy/PreferencesGroup/title", test_hdy_preferences_group_title);

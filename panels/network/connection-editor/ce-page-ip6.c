@@ -79,7 +79,7 @@ enum {
         IP6_METHOD_MANUAL,
         IP6_METHOD_LINK_LOCAL,
         IP6_METHOD_SHARED,
-        IP6_METHOD_IGNORE
+        IP6_METHOD_DISABLED
 };
 
 static void
@@ -135,13 +135,13 @@ update_row_sensitivity (CEPageIP6 *self, GtkWidget *list)
 }
 
 static void
-remove_row (CEPageIP6 *self)
+remove_row (CEPageIP6 *self, GtkButton *button)
 {
         GtkWidget *row;
         GtkWidget *row_box;
         GtkWidget *list;
 
-        row_box = gtk_widget_get_parent (GTK_WIDGET (self));
+        row_box = gtk_widget_get_parent (GTK_WIDGET (button));
         row = gtk_widget_get_parent (row_box);
         list = gtk_widget_get_parent (row);
 
@@ -173,28 +173,6 @@ validate_row (GtkWidget *row)
         g_list_free (children);
 
         return valid;
-}
-
-static gint
-sort_first_last (gconstpointer a, gconstpointer b, gpointer data)
-{
-        gboolean afirst, bfirst, alast, blast;
-
-        afirst = GPOINTER_TO_INT (g_object_get_data (G_OBJECT (a), "first"));
-        bfirst = GPOINTER_TO_INT (g_object_get_data (G_OBJECT (b), "first"));
-        alast = GPOINTER_TO_INT (g_object_get_data (G_OBJECT (a), "last"));
-        blast = GPOINTER_TO_INT (g_object_get_data (G_OBJECT (b), "last"));
-
-        if (afirst)
-                return -1;
-        if (bfirst)
-                return 1;
-        if (alast)
-                return 1;
-        if (blast)
-                return -1;
-
-        return 0;
 }
 
 static void
@@ -287,7 +265,6 @@ add_address_box (CEPageIP6 *self)
         self->address_list = list = gtk_list_box_new ();
         gtk_list_box_set_selection_mode (GTK_LIST_BOX (list), GTK_SELECTION_NONE);
         gtk_list_box_set_header_func (GTK_LIST_BOX (list), cc_list_box_update_header_func, NULL, NULL);
-        gtk_list_box_set_sort_func (GTK_LIST_BOX (list), (GtkListBoxSortFunc)sort_first_last, NULL, NULL);
         gtk_container_add (GTK_CONTAINER (self->address_box), list);
 
         for (i = 0; i < nm_setting_ip_config_get_num_addresses (self->setting); i++) {
@@ -444,7 +421,6 @@ add_routes_box (CEPageIP6 *self)
         self->routes_list = list = gtk_list_box_new ();
         gtk_list_box_set_selection_mode (GTK_LIST_BOX (list), GTK_SELECTION_NONE);
         gtk_list_box_set_header_func (GTK_LIST_BOX (list), cc_list_box_update_header_func, NULL, NULL);
-        gtk_list_box_set_sort_func (GTK_LIST_BOX (list), (GtkListBoxSortFunc)sort_first_last, NULL, NULL);
         gtk_container_add (GTK_CONTAINER (self->routes_box), list);
         gtk_switch_set_active (self->auto_routes_switch, !nm_setting_ip_config_get_ignore_auto_routes (self->setting));
         g_signal_connect_object (self->auto_routes_switch, "notify::active", G_CALLBACK (ce_page_changed), self, G_CONNECT_SWAPPED);
@@ -456,7 +432,7 @@ add_routes_box (CEPageIP6 *self)
 
                 route = nm_setting_ip_config_get_route (self->setting, i);
                 prefix = g_strdup_printf ("%u", nm_ip_route_get_prefix (route));
-                metric = g_strdup_printf ("%u", (guint32) MIN (0, nm_ip_route_get_metric (route)));
+                metric = g_strdup_printf ("%" G_GINT64_FORMAT, nm_ip_route_get_metric (route));
                 add_route_row (self, nm_ip_route_get_dest (route),
                                prefix,
                                nm_ip_route_get_next_hop (route),
@@ -498,8 +474,9 @@ connect_ip6_page (CEPageIP6 *self)
                 method = IP6_METHOD_MANUAL;
         } else if (g_strcmp0 (str_method, NM_SETTING_IP6_CONFIG_METHOD_SHARED) == 0) {
                 method = IP6_METHOD_SHARED;
-        } else if (g_strcmp0 (str_method, NM_SETTING_IP6_CONFIG_METHOD_IGNORE) == 0) {
-                method = IP6_METHOD_IGNORE;
+        } else if (g_strcmp0 (str_method, NM_SETTING_IP6_CONFIG_METHOD_DISABLED) == 0 ||
+                   g_strcmp0 (str_method, NM_SETTING_IP6_CONFIG_METHOD_IGNORE) == 0) {
+                method = IP6_METHOD_DISABLED;
         }
 
         gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (self->never_default_check),
@@ -528,7 +505,7 @@ connect_ip6_page (CEPageIP6 *self)
         case IP6_METHOD_SHARED:
                 gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (self->shared_radio), TRUE);
                 break;
-        case IP6_METHOD_IGNORE:
+        case IP6_METHOD_DISABLED:
                 gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (self->disabled_radio), TRUE);
                 break;
         default:
@@ -552,7 +529,7 @@ ui_to_setting (CEPageIP6 *self)
         guint i;
 
         if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (self->disabled_radio)))
-                method = NM_SETTING_IP6_CONFIG_METHOD_IGNORE;
+                method = NM_SETTING_IP6_CONFIG_METHOD_DISABLED;
         else if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (self->manual_radio)))
                 method = NM_SETTING_IP6_CONFIG_METHOD_MANUAL;
         else if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (self->local_radio)))
@@ -685,7 +662,8 @@ ui_to_setting (CEPageIP6 *self)
                 const gchar *text_prefix;
                 const gchar *text_gateway;
                 const gchar *text_metric;
-                guint32 prefix, metric;
+                guint32 prefix;
+                gint64 metric;
                 gchar *end;
                 NMIPRoute *route;
 
@@ -729,10 +707,10 @@ ui_to_setting (CEPageIP6 *self)
                         widget_unset_error (g_object_get_data (G_OBJECT (row), "gateway"));
                 }
 
-                metric = 0;
+                metric = -1;
                 if (*text_metric) {
                         errno = 0;
-                        metric = strtoul (text_metric, NULL, 10);
+                        metric = g_ascii_strtoull (text_metric, NULL, 10);
                         if (errno) {
                                 widget_set_error (g_object_get_data (G_OBJECT (row), "metric"));
                                 ret = FALSE;

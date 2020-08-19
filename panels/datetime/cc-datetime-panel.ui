@@ -161,10 +161,8 @@
         <property name="can-focus">False</property>
         <property name="hscrollbar-policy">never</property>
         <child>
-          <object class="HdyColumn">
+          <object class="HdyClamp">
             <property name="visible">True</property>
-            <property name="maximum_width">600</property>
-            <property name="linear_growth_width">400</property>
             <property name="margin_top">32</property>
             <property name="margin_bottom">32</property>
             <property name="margin_start">12</property>
@@ -177,13 +175,13 @@
                 <property name="orientation">vertical</property>
                 <property name="spacing">32</property>
                 <child>
-                  <object class="GtkFrame" id="frame">
+                  <object class="GtkFrame" id="datetime_frame">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <property name="label_xalign">0</property>
                     <property name="shadow_type">in</property>
                     <child>
-                      <object class="GtkListBox" id="listbox1">
+                      <object class="GtkListBox" id="listbox2">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="selection_mode">none</property>
@@ -196,7 +194,7 @@
                             <property name="title" translatable="yes">Automatic _Date &amp; Time</property>
                             <property name="subtitle" translatable="yes">Requires internet access</property>
                             <property name="use_underline">True</property>
-                            <child type="action">
+                            <child>
                               <object class="GtkSwitch" id="network_time_switch">
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
@@ -211,33 +209,56 @@
                           </object>
                         </child>
                         <child>
+                          <object class="HdyActionRow" id="datetime_button">
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <property name="title" translatable="yes">Date &amp; _Time</property>
+                            <property name="use_underline">True</property>
+                            <property name="activatable">True</property>
+                            <child>
+                              <object class="GtkLabel" id="datetime_label">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="xalign">0</property>
+                                <property name="label">20 June 2012, 6:45 AM</property>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkFrame" id="timezone_frame">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="label_xalign">0</property>
+                    <property name="shadow_type">in</property>
+                    <child>
+                      <object class="GtkListBox" id="listbox1">
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="selection_mode">none</property>
+                        <signal name="row-activated" handler="list_box_row_activated" object="CcDateTimePanel" swapped="no"/>
+                        <signal name="keynav-failed" handler="keynav_failed" object="CcDateTimePanel" swapped="no"/>
+                        <child>
                           <object class="HdyActionRow" id="auto_timezone_row">
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                             <property name="title" translatable="yes">Automatic Time _Zone</property>
                             <property name="subtitle" translatable="yes">Requires location services enabled and internet access</property>
                             <property name="use_underline">True</property>
-                            <child type="action">
+                            <child>
                               <object class="GtkSwitch" id="auto_timezone_switch">
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
                                 <property name="valign">center</property>
-                              </object>
-                            </child>
-                          </object>
-                        </child>
-                        <child>
-                          <object class="HdyActionRow" id="datetime_button">
-                            <property name="visible">True</property>
-                            <property name="can_focus">True</property>
-                            <property name="title" translatable="yes">Date &amp; _Time</property>
-                            <property name="use_underline">True</property>
-                            <child type="action">
-                              <object class="GtkLabel" id="datetime_label">
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="xalign">0</property>
-                                <property name="label">20 June 2012, 6:45 AM</property>
                               </object>
                             </child>
                           </object>
@@ -248,7 +269,8 @@
                             <property name="can_focus">True</property>
                             <property name="title" translatable="yes">Time Z_one</property>
                             <property name="use_underline">True</property>
-                            <child type="action">
+                            <property name="activatable">True</property>
+                            <child>
                               <object class="GtkLabel" id="timezone_label">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
@@ -265,7 +287,7 @@
                   <packing>
                     <property name="expand">False</property>
                     <property name="fill">True</property>
-                    <property name="position">0</property>
+                    <property name="position">1</property>
                   </packing>
                 </child>
                 <child>
@@ -275,7 +297,7 @@
                     <property name="label_xalign">0</property>
                     <property name="shadow_type">in</property>
                     <child>
-                      <object class="GtkListBox" id="listbox2">
+                      <object class="GtkListBox" id="listbox3">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="selection_mode">none</property>
@@ -287,7 +309,7 @@
                             <property name="can_focus">True</property>
                             <property name="title" translatable="yes">Time _Format</property>
                             <property name="use_underline">True</property>
-                            <child type="action">
+                            <child>
                               <object class="GtkComboBoxText" id="format_combobox">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
@@ -307,7 +329,7 @@
                   <packing>
                     <property name="expand">False</property>
                     <property name="fill">True</property>
-                    <property name="position">1</property>
+                    <property name="position">2</property>
                   </packing>
                 </child>
               </object>

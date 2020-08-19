@@ -1,6 +1,6 @@
 project(
   'gnome-control-center', 'c',
-        version : '3.37.3',
+        version : '3.37.90',
         license : 'GPL2+',
   meson_version : '>= 0.51.0'
 )
@@ -99,7 +99,7 @@ libgvc = subproject(
 )
 libgvc_dep = libgvc.get_variable('libgvc_dep')
 
-libhandy_dep = dependency('libhandy-0.0', version: '>= 0.0.9', required: false)
+libhandy_dep = dependency('libhandy-1', version: '>= 0.84.0', required: false)
 if not libhandy_dep.found()
   libhandy = subproject(
     'libhandy',
@@ -107,7 +107,6 @@ if not libhandy_dep.found()
       'examples=false',
       'glade_catalog=disabled',
       'introspection=disabled',
-      'static=true',
       'tests=false',
       'vapi=false',
     ]
@@ -218,7 +217,7 @@ config_h.set('HAVE_MALCONTENT', enable_malcontent,
 if host_is_linux
   # network manager
   network_manager_deps = [
-    dependency('libnm', version: '>= 1.12.0'),
+    dependency('libnm', version: '>= 1.20.0'),
     dependency('libnma', version: '>= 1.8.0'),
     dependency('mm-glib', version: '>= 0.7')
   ]
