@@ -7,10 +7,10 @@ Subject: [PATCH 09/26] lock: Add "Lock Screen on Suspend" option
  panels/lock/cc-lock-panel.ui | 17 +++++++++++++++++
  2 files changed, 25 insertions(+)
 
-Index: gnome-control-center/panels/lock/cc-lock-panel.c
+Index: gnome-control-center-3.37.90/panels/lock/cc-lock-panel.c
 ===================================================================
---- gnome-control-center.orig/panels/lock/cc-lock-panel.c
-+++ gnome-control-center/panels/lock/cc-lock-panel.c
+--- gnome-control-center-3.37.90.orig/panels/lock/cc-lock-panel.c
++++ gnome-control-center-3.37.90/panels/lock/cc-lock-panel.c
 @@ -46,6 +46,7 @@ struct _CcLockPanel
    GtkSwitch     *usb_protection_switch;
    GDBusProxy    *usb_proxy;
@@ -40,10 +40,10 @@ Index: gnome-control-center/panels/lock/cc-lock-panel.c
    value = g_settings_get_uint (self->session_settings, "idle-delay");
    set_blank_screen_delay_value (self, value);
  
-Index: gnome-control-center/panels/lock/cc-lock-panel.ui
+Index: gnome-control-center-3.37.90/panels/lock/cc-lock-panel.ui
 ===================================================================
---- gnome-control-center.orig/panels/lock/cc-lock-panel.ui
-+++ gnome-control-center/panels/lock/cc-lock-panel.ui
+--- gnome-control-center-3.37.90.orig/panels/lock/cc-lock-panel.ui
++++ gnome-control-center-3.37.90/panels/lock/cc-lock-panel.ui
 @@ -96,6 +96,23 @@
                        </object>
                      </child>
@@ -55,7 +55,7 @@ Index: gnome-control-center/panels/lock/cc-lock-panel.ui
 +                        <property name="title" translatable="yes">Lock Screen on Suspend</property>
 +                        <property name="activatable-widget">lock_on_suspend_switch</property>
 +                        <property name="use-underline">true</property>
-+                        <child type="action">
++                        <child>
 +                          <object class="GtkSwitch" id="lock_on_suspend_switch">
 +                            <property name="visible">1</property>
 +                            <property name="halign">end</property>

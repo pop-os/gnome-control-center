@@ -28,10 +28,10 @@ https://bugzilla.gnome.org/show_bug.cgi?id=737362
  create mode 100644 panels/connectivity/gnome-connectivity-panel.desktop.in.in
  create mode 100644 panels/connectivity/meson.build
 
-Index: gnome-control-center/panels/connectivity/cc-connectivity-panel.c
+Index: gnome-control-center-3.37.90/panels/connectivity/cc-connectivity-panel.c
 ===================================================================
 --- /dev/null
-+++ gnome-control-center/panels/connectivity/cc-connectivity-panel.c
++++ gnome-control-center-3.37.90/panels/connectivity/cc-connectivity-panel.c
 @@ -0,0 +1,131 @@
 +/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*-
 + *
@@ -164,10 +164,10 @@ Index: gnome-control-center/panels/connectivity/cc-connectivity-panel.c
 +    nm_client_new_async (self->cancellable, nm_client_ready_cb, self);
 +#endif
 +}
-Index: gnome-control-center/panels/connectivity/cc-connectivity-panel.h
+Index: gnome-control-center-3.37.90/panels/connectivity/cc-connectivity-panel.h
 ===================================================================
 --- /dev/null
-+++ gnome-control-center/panels/connectivity/cc-connectivity-panel.h
++++ gnome-control-center-3.37.90/panels/connectivity/cc-connectivity-panel.h
 @@ -0,0 +1,28 @@
 +/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*-
 + *
@@ -197,11 +197,11 @@ Index: gnome-control-center/panels/connectivity/cc-connectivity-panel.h
 +G_DECLARE_FINAL_TYPE (CcConnectivityPanel, cc_connectivity_panel, CC, CONNECTIVITY_PANEL, CcPanel)
 +
 +G_END_DECLS
-Index: gnome-control-center/panels/connectivity/cc-connectivity-panel.ui
+Index: gnome-control-center-3.37.90/panels/connectivity/cc-connectivity-panel.ui
 ===================================================================
 --- /dev/null
-+++ gnome-control-center/panels/connectivity/cc-connectivity-panel.ui
-@@ -0,0 +1,67 @@
++++ gnome-control-center-3.37.90/panels/connectivity/cc-connectivity-panel.ui
+@@ -0,0 +1,65 @@
 +<?xml version="1.0" encoding="UTF-8"?>
 +<interface>
 +  <requires lib="gtk+" version="3.14"/>
@@ -212,10 +212,8 @@ Index: gnome-control-center/panels/connectivity/cc-connectivity-panel.ui
 +        <property name="visible">True</property>
 +        <property name="hscrollbar-policy">never</property>
 +        <child>
-+          <object class="HdyColumn">
++          <object class="HdyClamp">
 +            <property name="visible">True</property>
-+            <property name="maximum_width">600</property>
-+            <property name="linear_growth_width">400</property>
 +            <property name="margin_top">32</property>
 +            <property name="margin_bottom">32</property>
 +            <property name="margin_start">12</property>
@@ -246,7 +244,7 @@ Index: gnome-control-center/panels/connectivity/cc-connectivity-panel.ui
 +                        <property name="title" translatable="yes">_Connectivity Checking</property>
 +                        <property name="activatable-widget">connectivity_switch</property>
 +                        <property name="use-underline">true</property>
-+                        <child type="action">
++                        <child>
 +                          <object class="GtkSwitch" id="connectivity_switch">
 +                            <property name="visible">True</property>
 +                            <property name="halign">end</property>
@@ -269,10 +267,10 @@ Index: gnome-control-center/panels/connectivity/cc-connectivity-panel.ui
 +    </child>
 +  </template>
 +</interface>
-Index: gnome-control-center/panels/connectivity/connectivity.gresource.xml
+Index: gnome-control-center-3.37.90/panels/connectivity/connectivity.gresource.xml
 ===================================================================
 --- /dev/null
-+++ gnome-control-center/panels/connectivity/connectivity.gresource.xml
++++ gnome-control-center-3.37.90/panels/connectivity/connectivity.gresource.xml
 @@ -0,0 +1,6 @@
 +<?xml version="1.0" encoding="UTF-8"?>
 +<gresources>
@@ -280,10 +278,10 @@ Index: gnome-control-center/panels/connectivity/connectivity.gresource.xml
 +    <file preprocess="xml-stripblanks">cc-connectivity-panel.ui</file>
 +  </gresource>
 +</gresources>
-Index: gnome-control-center/panels/connectivity/gnome-connectivity-panel.desktop.in.in
+Index: gnome-control-center-3.37.90/panels/connectivity/gnome-connectivity-panel.desktop.in.in
 ===================================================================
 --- /dev/null
-+++ gnome-control-center/panels/connectivity/gnome-connectivity-panel.desktop.in.in
++++ gnome-control-center-3.37.90/panels/connectivity/gnome-connectivity-panel.desktop.in.in
 @@ -0,0 +1,19 @@
 +[Desktop Entry]
 +Name=Connectivity
@@ -304,10 +302,10 @@ Index: gnome-control-center/panels/connectivity/gnome-connectivity-panel.desktop
 +X-GNOME-Bugzilla-Version=@VERSION@
 +# Translators: Search terms to find the Privacy panel. Do NOT translate or localize the semicolons! The list MUST also end with a semicolon!
 +Keywords=network;privacy;
-Index: gnome-control-center/panels/connectivity/meson.build
+Index: gnome-control-center-3.37.90/panels/connectivity/meson.build
 ===================================================================
 --- /dev/null
-+++ gnome-control-center/panels/connectivity/meson.build
++++ gnome-control-center-3.37.90/panels/connectivity/meson.build
 @@ -0,0 +1,45 @@
 +panels_list += cappletname
 +desktop = 'gnome-@0@-panel.desktop'.format(cappletname)
@@ -354,10 +352,10 @@ Index: gnome-control-center/panels/connectivity/meson.build
 +  dependencies: deps,
 +  c_args: cflags
 +)
-Index: gnome-control-center/panels/meson.build
+Index: gnome-control-center-3.37.90/panels/meson.build
 ===================================================================
---- gnome-control-center.orig/panels/meson.build
-+++ gnome-control-center/panels/meson.build
+--- gnome-control-center-3.37.90.orig/panels/meson.build
++++ gnome-control-center-3.37.90/panels/meson.build
 @@ -5,6 +5,7 @@ panels = [
    'background',
    'camera',
@@ -366,10 +364,10 @@ Index: gnome-control-center/panels/meson.build
    'datetime',
    'default-apps',
    'diagnostics',
-Index: gnome-control-center/po/POTFILES.in
+Index: gnome-control-center-3.37.90/po/POTFILES.in
 ===================================================================
---- gnome-control-center.orig/po/POTFILES.in
-+++ gnome-control-center/po/POTFILES.in
+--- gnome-control-center-3.37.90.orig/po/POTFILES.in
++++ gnome-control-center-3.37.90/po/POTFILES.in
 @@ -31,6 +31,8 @@ panels/common/cc-time-editor.ui
  panels/common/cc-time-entry.c
  panels/common/cc-util.c
@@ -379,10 +377,10 @@ Index: gnome-control-center/po/POTFILES.in
  panels/datetime/big.ui
  panels/datetime/cc-datetime-panel.c
  panels/datetime/cc-datetime-panel.ui
-Index: gnome-control-center/shell/cc-panel-loader.c
+Index: gnome-control-center-3.37.90/shell/cc-panel-loader.c
 ===================================================================
---- gnome-control-center.orig/shell/cc-panel-loader.c
-+++ gnome-control-center/shell/cc-panel-loader.c
+--- gnome-control-center-3.37.90.orig/shell/cc-panel-loader.c
++++ gnome-control-center-3.37.90/shell/cc-panel-loader.c
 @@ -37,6 +37,7 @@ extern GType cc_background_panel_get_typ
  extern GType cc_bluetooth_panel_get_type (void);
  #endif /* BUILD_BLUETOOTH */
