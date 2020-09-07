@@ -22,8 +22,15 @@
  * the two modes.
  *
  * When there is enough space the children are displayed side by side, otherwise
- * only one is displayed. The threshold is dictated by the preferred minimum
- * sizes of the children.
+ * only one is displayed and the leaflet is said to be “folded”.
+ * The threshold is dictated by the preferred minimum sizes of the children.
+ * When a leaflet is folded, the children can be navigated using swipe gestures.
+ *
+ * The “over” and “under” stack the children one on top of the other, while the
+ * “slide” transition puts the children side by side. While navigating to a
+ * child on the side or below can be performed by swiping the current child
+ * away, navigating to an upper child requires dragging it from the edge where
+ * it resides. This doesn't affect non-dragging swipes.
  *
  * The “over” and “under” transitions can draw their shadow on top of the
  * window's transparent areas, like the rounded corners. This is a side-effect
@@ -77,7 +84,7 @@ enum {
 enum {
   CHILD_PROP_0,
   CHILD_PROP_NAME,
-  CHILD_PROP_ALLOW_VISIBLE,
+  CHILD_PROP_NAVIGATABLE,
   LAST_CHILD_PROP,
 };
 
@@ -434,7 +441,7 @@ hdy_leaflet_get_interpolate_size (HdyLeaflet *self)
  * @can_swipe_back: the new value
  *
  * Sets whether or not @self allows switching to the previous child that has
- * 'allow-visible' child property set to %TRUE via a swipe gesture
+ * 'navigatable' child property set to %TRUE via a swipe gesture
  *
  * Since: 0.0.12
  */
@@ -471,7 +478,7 @@ hdy_leaflet_get_can_swipe_back (HdyLeaflet *self)
  * @can_swipe_forward: the new value
  *
  * Sets whether or not @self allows switching to the next child that has
- * 'allow-visible' child property set to %TRUE via a swipe gesture.
+ * 'navigatable' child property set to %TRUE via a swipe gesture.
  *
  * Since: 0.0.12
  */
@@ -507,7 +514,7 @@ hdy_leaflet_get_can_swipe_forward (HdyLeaflet *self)
  * @self: a #HdyLeaflet
  * @direction: the direction
  *
- * Gets the previous or next child that doesn't have 'allow-visible' child
+ * Gets the previous or next child that doesn't have 'navigatable' child
  * property set to %FALSE, or %NULL if it doesn't exist. This will be the same
  * widget hdy_leaflet_navigate() will navigate to.
  *
@@ -530,9 +537,9 @@ hdy_leaflet_get_adjacent_child (HdyLeaflet             *self,
  * @self: a #HdyLeaflet
  * @direction: the direction
  *
- * Switches to the previous or next child that doesn't have 'allow-visible'
- * child property set to %FALSE, similar to performing a swipe gesture to go
- * in @direction.
+ * Switches to the previous or next child that doesn't have 'navigatable' child
+ * property set to %FALSE, similar to performing a swipe gesture to go in
+ * @direction.
  *
  * Returns: %TRUE if visible child was changed, %FALSE otherwise.
  *
@@ -545,6 +552,27 @@ hdy_leaflet_navigate (HdyLeaflet             *self,
   g_return_val_if_fail (HDY_IS_LEAFLET (self), FALSE);
 
   return hdy_stackable_box_navigate (HDY_GET_HELPER (self), direction);
+}
+
+/**
+ * hdy_leaflet_get_child_by_name:
+ * @self: a #HdyLeaflet
+ * @name: the name of the child to find
+ *
+ * Finds the child of @self with the name given as the argument. Returns %NULL
+ * if there is no child with this name.
+ *
+ * Returns: (transfer none) (nullable): the requested child of @self
+ *
+ * Since: 1.0
+ */
+GtkWidget *
+hdy_leaflet_get_child_by_name (HdyLeaflet  *self,
+                               const gchar *name)
+{
+  g_return_val_if_fail (HDY_IS_LEAFLET (self), NULL);
+
+  return hdy_stackable_box_get_child_by_name (HDY_GET_HELPER (self), name);
 }
 
 /* This private method is prefixed by the call name because it will be a virtual
@@ -782,8 +810,8 @@ hdy_leaflet_get_child_property (GtkContainer *container,
     g_value_set_string (value, hdy_stackable_box_get_child_name (HDY_GET_HELPER (container), widget));
     break;
 
-  case CHILD_PROP_ALLOW_VISIBLE:
-    g_value_set_boolean (value, hdy_stackable_box_get_child_allow_visible (HDY_GET_HELPER (container), widget));
+  case CHILD_PROP_NAVIGATABLE:
+    g_value_set_boolean (value, hdy_stackable_box_get_child_navigatable (HDY_GET_HELPER (container), widget));
     break;
 
   default:
@@ -805,8 +833,8 @@ hdy_leaflet_set_child_property (GtkContainer *container,
     gtk_container_child_notify_by_pspec (container, widget, pspec);
     break;
 
-  case CHILD_PROP_ALLOW_VISIBLE:
-    hdy_stackable_box_set_child_allow_visible (HDY_GET_HELPER (container), widget, g_value_get_boolean (value));
+  case CHILD_PROP_NAVIGATABLE:
+    hdy_stackable_box_set_child_navigatable (HDY_GET_HELPER (container), widget, g_value_get_boolean (value));
     gtk_container_child_notify_by_pspec (container, widget, pspec);
     break;
 
@@ -877,6 +905,15 @@ static gdouble
 hdy_leaflet_get_cancel_progress (HdySwipeable *swipeable)
 {
   return hdy_stackable_box_get_cancel_progress (HDY_GET_HELPER (swipeable));
+}
+
+static void
+hdy_leaflet_get_swipe_area (HdySwipeable           *swipeable,
+                            HdyNavigationDirection  navigation_direction,
+                            gboolean                is_drag,
+                            GdkRectangle           *rect)
+{
+  hdy_stackable_box_get_swipe_area (HDY_GET_HELPER (swipeable), navigation_direction, is_drag, rect);
 }
 
 static void
@@ -1040,8 +1077,8 @@ hdy_leaflet_class_init (HdyLeafletClass *klass)
   /**
    * HdyLeaflet:can-swipe-back:
    *
-   * Whether or not @self allows switching to the previous child that has
-   * 'allow-visible' child property set to %TRUE via a swipe gesture.
+   * Whether or not the leaflet allows switching to the previous child that has
+   * 'navigatable' child property set to %TRUE via a swipe gesture.
    *
    * Since: 0.0.12
    */
@@ -1055,8 +1092,8 @@ hdy_leaflet_class_init (HdyLeafletClass *klass)
   /**
    * HdyLeaflet:can-swipe-forward:
    *
-   * Whether or not @self allows switching to the next child that has
-   * 'allow-visible' child property set to %TRUE via a swipe gesture.
+   * Whether or not the leaflet allows switching to the next child that has
+   * 'navigatable' child property set to %TRUE via a swipe gesture.
    *
    * Since: 0.0.12
    */
@@ -1077,19 +1114,20 @@ hdy_leaflet_class_init (HdyLeafletClass *klass)
                          G_PARAM_READWRITE);
 
   /**
-   * HdyLeaflet:allow-visible:
+   * HdyLeaflet:navigatable:
    *
-   * Whether the child can be visible when folded. This can be used used in
-   * conjunction with #HdyLeaflet:can-swipe-back or
-   * #HdyLeaflet:can-swipe-forward to prevent switching to widgets like
-   * separators.
+   * Whether the child can be navigated to when folded.
+   * If %FALSE, the child will be ignored by hdy_leaflet_get_adjacent_child(),
+   * hdy_leaflet_navigate(), and swipe gestures.
    *
-   * Since: 0.0.12
+   * This can be used used to prevent switching to widgets like separators.
+   *
+   * Since: 1.0
    */
-  child_props[CHILD_PROP_ALLOW_VISIBLE] =
-    g_param_spec_boolean ("allow-visible",
-                          _("Allow visible"),
-                          _("Whether the child can be visible in folded mode"),
+  child_props[CHILD_PROP_NAVIGATABLE] =
+    g_param_spec_boolean ("navigatable",
+                          _("Navigatable"),
+                          _("Whether the child can be navigated to"),
                           TRUE,
                           G_PARAM_READWRITE);
 
@@ -1167,4 +1205,5 @@ hdy_leaflet_swipeable_init (HdySwipeableInterface *iface)
   iface->get_snap_points = hdy_leaflet_get_snap_points;
   iface->get_progress = hdy_leaflet_get_progress;
   iface->get_cancel_progress = hdy_leaflet_get_cancel_progress;
+  iface->get_swipe_area = hdy_leaflet_get_swipe_area;
 }

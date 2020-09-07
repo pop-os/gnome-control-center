@@ -22,6 +22,7 @@
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="can-swipe-back">True</property>
+        <property name="width-request">360</property>
         <child>
           <object class="GtkBox">
             <property name="visible">True</property>
@@ -126,7 +127,7 @@
             </child>
           </object>
           <packing>
-            <property name="allow-visible">False</property>
+            <property name="navigatable">False</property>
           </packing>
         </child>
         <child>
@@ -352,7 +353,7 @@
                             <property name="valign">center</property>
                             <property name="margin_bottom">18</property>
                             <property name="pixel_size">128</property>
-                            <property name="icon_name">phone-symbolic</property>
+                            <property name="icon_name">gnome-smartphone-symbolic</property>
                             <property name="icon_size">0</property>
                             <style>
                               <class name="dim-label"/>
@@ -456,7 +457,7 @@
                                     <property name="can_focus">False</property>
                                     <property name="valign">center</property>
                                     <property name="pixel_size">128</property>
-                                    <property name="icon_name">view-dual-symbolic</property>
+                                    <property name="icon_name">widget-leaflet-symbolic</property>
                                     <property name="icon-size">0</property>
                                     <property name="margin-bottom">18</property>
                                     <style>
@@ -535,7 +536,7 @@
                                 <property name="expand">True</property>
                                 <property name="selection-mode">none</property>
                                 <style>
-                                  <class name="preferences"/>
+                                  <class name="content"/>
                                 </style>
                                 <child>
                                   <object class="HdyComboRow" id="leaflet_transition_row">
@@ -598,7 +599,7 @@
                                         <property name="can_focus">False</property>
                                         <property name="valign">center</property>
                                         <property name="pixel_size">128</property>
-                                        <property name="icon_name">view-paged-symbolic</property>
+                                        <property name="icon_name">widget-deck-symbolic</property>
                                         <property name="icon-size">0</property>
                                         <property name="margin-bottom">18</property>
                                         <style>
@@ -677,7 +678,7 @@
                                     <property name="expand">True</property>
                                     <property name="selection-mode">none</property>
                                     <style>
-                                      <class name="preferences"/>
+                                      <class name="content"/>
                                     </style>
                                     <child>
                                       <object class="HdyComboRow" id="deck_transition_row">
@@ -796,7 +797,7 @@
                                     <property name="can_focus">False</property>
                                     <property name="valign">center</property>
                                     <property name="pixel_size">128</property>
-                                    <property name="icon_name">input-dialpad-symbolic</property>
+                                    <property name="icon_name">widget-keypad-symbolic</property>
                                     <property name="icon-size">0</property>
                                     <property name="margin-bottom">18</property>
                                     <style>
@@ -875,16 +876,16 @@
                                         <property name="expand">True</property>
                                         <property name="selection-mode">none</property>
                                         <style>
-                                          <class name="preferences"/>
+                                          <class name="content"/>
                                         </style>
                                         <child>
                                           <object class="HdyActionRow">
                                             <property name="visible">True</property>
                                             <property name="can_focus">False</property>
-                                            <property name="title" translatable="yes">Show extra symbols</property>
-                                            <property name="activatable_widget">keypad_show_symbols</property>
+                                            <property name="title" translatable="yes">Show letters</property>
+                                            <property name="activatable_widget">keypad_letters_visible</property>
                                             <child>
-                                              <object class="GtkSwitch" id="keypad_show_symbols">
+                                              <object class="GtkSwitch" id="keypad_letters_visible">
                                                 <property name="visible">True</property>
                                                 <property name="can_focus">True</property>
                                                 <property name="state">True</property>
@@ -897,12 +898,13 @@
                                           <object class="HdyActionRow">
                                             <property name="visible">True</property>
                                             <property name="can_focus">False</property>
-                                            <property name="title" translatable="yes">Show only digits</property>
-                                            <property name="activatable_widget">keypad_only_digits</property>
+                                            <property name="title" translatable="yes">Show symbols</property>
+                                            <property name="activatable_widget">keypad_symbols_visible</property>
                                             <child>
-                                              <object class="GtkSwitch" id="keypad_only_digits">
+                                              <object class="GtkSwitch" id="keypad_symbols_visible">
                                                 <property name="visible">True</property>
                                                 <property name="can_focus">True</property>
+                                                <property name="state">True</property>
                                                 <property name="valign">center</property>
                                               </object>
                                             </child>
@@ -920,13 +922,10 @@
                                       <object class="HdyKeypad" id="keypad">
                                         <property name="visible">True</property>
                                         <property name="can_focus">False</property>
-                                        <property name="column_spacing">10</property>
-                                        <property name="row_spacing">8</property>
-                                        <property name="only_digits">FALSE</property>
                                         <property name="halign">center</property>
                                         <property name="entry">entry_keypad</property>
-                                        <property name="only-digits" bind-source="keypad_only_digits" bind-property="state" bind-flags="sync-create | bidirectional"/>
-                                        <property name="show-symbols" bind-source="keypad_show_symbols" bind-property="state" bind-flags="sync-create | bidirectional"/>
+                                        <property name="symbols-visible" bind-source="keypad_symbols_visible" bind-property="state" bind-flags="sync-create | bidirectional"/>
+                                        <property name="letters-visible" bind-source="keypad_letters_visible" bind-property="state" bind-flags="sync-create | bidirectional"/>
                                       </object>
                                       <packing>
                                         <property name="expand">False</property>
@@ -982,7 +981,7 @@
                                     <property name="can_focus">False</property>
                                     <property name="valign">center</property>
                                     <property name="pixel_size">128</property>
-                                    <property name="icon_name">edit-select-symbolic</property>
+                                    <property name="icon_name">widget-clamp-symbolic</property>
                                     <property name="icon-size">0</property>
                                     <property name="margin-bottom">18</property>
                                     <style>
@@ -1061,7 +1060,7 @@
                                 <property name="expand">True</property>
                                 <property name="selection-mode">none</property>
                                 <style>
-                                  <class name="preferences"/>
+                                  <class name="content"/>
                                 </style>
                                 <child>
                                   <object class="HdyActionRow">
@@ -1136,7 +1135,7 @@
                                     <property name="can_focus">False</property>
                                     <property name="valign">center</property>
                                     <property name="pixel_size">128</property>
-                                    <property name="icon_name">format-justify-fill-symbolic</property>
+                                    <property name="icon_name">widget-list-symbolic</property>
                                     <property name="icon-size">0</property>
                                     <property name="margin-bottom">18</property>
                                     <style>
@@ -1215,7 +1214,7 @@
                                 <property name="expand">True</property>
                                 <property name="selection-mode">none</property>
                                 <style>
-                                  <class name="preferences"/>
+                                  <class name="content"/>
                                 </style>
                                 <child>
                                   <object class="HdyActionRow">
@@ -1509,7 +1508,7 @@
                                 <property name="valign">center</property>
                                 <property name="margin_bottom">18</property>
                                 <property name="pixel_size">128</property>
-                                <property name="icon_name">edit-find-symbolic</property>
+                                <property name="icon_name">widget-search-symbolic</property>
                                 <property name="icon_size">0</property>
                                 <style>
                                   <class name="dim-label"/>
@@ -1618,7 +1617,7 @@
                                 <property name="can_focus">False</property>
                                 <property name="valign">center</property>
                                 <property name="pixel_size">128</property>
-                                <property name="icon_name">view-more-horizontal-symbolic</property>
+                                <property name="icon_name">widget-view-switcher-symbolic</property>
                                 <property name="icon-size">0</property>
                                 <property name="margin-bottom">18</property>
                                 <style>
@@ -1704,47 +1703,137 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="HdyCarousel" id="carousel">
+                      <object class="GtkBox">
                         <property name="visible">True</property>
-                        <property name="center_content">True</property>
-                        <property name="indicator_spacing">6</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkBox" id="carousel_box">
+                        <property name="visible">True</property>
+                        <property name="orientation">vertical</property>
                         <child>
-                          <object class="GtkBox">
+                          <object class="GtkBox" id="carousel_empty_box">
                             <property name="visible">True</property>
-                            <property name="orientation">vertical</property>
-                            <property name="can_focus">False</property>
-                            <property name="halign">center</property>
-                            <property name="valign">center</property>
-                            <property name="vexpand">True</property>
-                            <property name="hexpand">True</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="HdyCarousel" id="carousel">
+                            <property name="visible">True</property>
                             <child>
-                              <object class="GtkImage">
+                              <object class="GtkBox">
+                                <property name="visible">True</property>
+                                <property name="orientation">vertical</property>
+                                <property name="can_focus">False</property>
+                                <property name="halign">center</property>
+                                <property name="valign">center</property>
+                                <property name="vexpand">True</property>
+                                <property name="hexpand">True</property>
+                                <child>
+                                  <object class="GtkImage">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">False</property>
+                                    <property name="valign">center</property>
+                                    <property name="pixel_size">128</property>
+                                    <property name="icon_name">widget-carousel-symbolic</property>
+                                    <property name="icon-size">0</property>
+                                    <property name="margin-bottom">18</property>
+                                    <style>
+                                      <class name="dim-label"/>
+                                      <class name="carousel-icon"/>
+                                    </style>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkBox">
+                                    <property name="visible">True</property>
+                                    <property name="orientation">vertical</property>
+                                    <child>
+                                      <object class="GtkLabel">
+                                        <property name="visible">True</property>
+                                        <property name="opacity">0.5</property>
+                                        <property name="can_focus">False</property>
+                                        <property name="label" translatable="yes">Carousel</property>
+                                        <property name="halign">center</property>
+                                        <property name="xalign">0</property>
+                                        <property name="margin-bottom">12</property>
+                                        <attributes>
+                                          <attribute name="weight" value="bold"/>
+                                          <attribute name="scale" value="2"/>
+                                        </attributes>
+                                      </object>
+                                    </child>
+                                    <child>
+                                      <object class="GtkLabel">
+                                        <property name="visible">True</property>
+                                        <property name="opacity">0.5</property>
+                                        <property name="can_focus">False</property>
+                                        <property name="label" translatable="yes">A widget for paginated scrolling.</property>
+                                        <property name="justify">center</property>
+                                        <property name="use_markup">true</property>
+                                        <property name="wrap">True</property>
+                                      </object>
+                                    </child>
+                                  </object>
+                                </child>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="HdyClamp">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
-                                <property name="valign">center</property>
-                                <property name="pixel_size">128</property>
-                                <property name="icon_name">view-continuous-symbolic</property>
-                                <property name="icon-size">0</property>
-                                <property name="margin-bottom">18</property>
-                                <style>
-                                  <class name="dim-label"/>
-                                  <class name="carousel-icon"/>
-                                </style>
+                                <property name="halign">fill</property>
+                                <property name="valign">fill</property>
+                                <property name="margin-bottom">32</property>
+                                <property name="margin-start">12</property>
+                                <property name="margin-end">12</property>
+                                <property name="expand">True</property>
+                                <property name="maximum-size">400</property>
+                                <property name="tightening-threshold">300</property>
+                                <child>
+                                  <object class="GtkListBox" id="carousel_listbox">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">False</property>
+                                    <property name="valign">center</property>
+                                    <property name="selection-mode">none</property>
+                                    <style>
+                                      <class name="content"/>
+                                    </style>
+                                    <child>
+                                      <object class="HdyComboRow" id="carousel_orientation_row">
+                                        <property name="title" translatable="yes">Orientation</property>
+                                        <property name="visible">True</property>
+                                        <signal name="notify::selected-index" handler="notify_carousel_orientation_cb" swapped="no"/>
+                                      </object>
+                                    </child>
+                                    <child>
+                                      <object class="HdyComboRow" id="carousel_indicators_row">
+                                        <property name="title" translatable="yes">Page Indicators</property>
+                                        <property name="visible">True</property>
+                                        <signal name="notify::selected-index" handler="notify_carousel_indicators_cb" swapped="no"/>
+                                      </object>
+                                    </child>
+                                  </object>
+                                </child>
                               </object>
                             </child>
                             <child>
                               <object class="GtkBox">
                                 <property name="visible">True</property>
                                 <property name="orientation">vertical</property>
+                                <property name="can_focus">False</property>
+                                <property name="halign">center</property>
+                                <property name="valign">center</property>
+                                <property name="vexpand">True</property>
+                                <property name="hexpand">True</property>
+                                <property name="spacing">24</property>
                                 <child>
                                   <object class="GtkLabel">
                                     <property name="visible">True</property>
-                                    <property name="opacity">0.5</property>
                                     <property name="can_focus">False</property>
-                                    <property name="label" translatable="yes">Carousel</property>
-                                    <property name="halign">center</property>
-                                    <property name="xalign">0</property>
-                                    <property name="margin-bottom">12</property>
+                                    <property name="label" translatable="yes">Another page</property>
+                                    <property name="justify">center</property>
+                                    <property name="wrap">True</property>
+                                    <property name="opacity">0.5</property>
                                     <attributes>
                                       <attribute name="weight" value="bold"/>
                                       <attribute name="scale" value="2"/>
@@ -1752,14 +1841,15 @@
                                   </object>
                                 </child>
                                 <child>
-                                  <object class="GtkLabel">
+                                  <object class="GtkButton">
                                     <property name="visible">True</property>
-                                    <property name="opacity">0.5</property>
                                     <property name="can_focus">False</property>
-                                    <property name="label" translatable="yes">A widget for paginated scrolling.</property>
-                                    <property name="justify">center</property>
-                                    <property name="use_markup">true</property>
-                                    <property name="wrap">True</property>
+                                    <property name="label" translatable="yes">_Return to the first page</property>
+                                    <property name="use-underline">True</property>
+                                    <signal name="clicked" handler="carousel_return_clicked_cb" swapped="no"/>
+                                    <style>
+                                      <class name="suggested-action"/>
+                                    </style>
                                   </object>
                                 </child>
                               </object>
@@ -1767,79 +1857,29 @@
                           </object>
                         </child>
                         <child>
-                          <object class="HdyClamp">
+                          <object class="GtkStack" id="carousel_indicators_stack">
                             <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="halign">fill</property>
-                            <property name="valign">fill</property>
-                            <property name="margin-bottom">32</property>
-                            <property name="margin-start">12</property>
-                            <property name="margin-end">12</property>
-                            <property name="expand">True</property>
-                            <property name="maximum-size">400</property>
-                            <property name="tightening-threshold">300</property>
+                            <property name="homogeneous">False</property>
+                            <property name="margin">6</property>
                             <child>
-                              <object class="GtkListBox" id="carousel_listbox">
+                              <object class="HdyCarouselIndicatorDots">
                                 <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="valign">center</property>
-                                <property name="selection-mode">none</property>
-                                <style>
-                                  <class name="preferences"/>
-                                </style>
-                                <child>
-                                  <object class="HdyComboRow" id="carousel_orientation_row">
-                                    <property name="title" translatable="yes">Orientation</property>
-                                    <property name="visible">True</property>
-                                    <signal name="notify::selected-index" handler="notify_carousel_orientation_cb" swapped="no"/>
-                                  </object>
-                                </child>
-                                <child>
-                                  <object class="HdyComboRow" id="carousel_indicator_style_row">
-                                    <property name="title" translatable="yes">Page Indicators</property>
-                                    <property name="visible">True</property>
-                                    <signal name="notify::selected-index" handler="notify_carousel_indicator_style_cb" swapped="no"/>
-                                  </object>
-                                </child>
+                                <property name="carousel">carousel</property>
+                                <property name="orientation" bind-source="carousel" bind-property="orientation" bind-flags="sync-create"/>
                               </object>
-                            </child>
-                          </object>
-                        </child>
-                        <child>
-                          <object class="GtkBox">
-                            <property name="visible">True</property>
-                            <property name="orientation">vertical</property>
-                            <property name="can_focus">False</property>
-                            <property name="halign">center</property>
-                            <property name="valign">center</property>
-                            <property name="vexpand">True</property>
-                            <property name="hexpand">True</property>
-                            <property name="spacing">24</property>
-                            <child>
-                              <object class="GtkLabel">
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="label" translatable="yes">Another page</property>
-                                <property name="justify">center</property>
-                                <property name="wrap">True</property>
-                                <property name="opacity">0.5</property>
-                                <attributes>
-                                  <attribute name="weight" value="bold"/>
-                                  <attribute name="scale" value="2"/>
-                                </attributes>
-                              </object>
+                              <packing>
+                                <property name="name">dots</property>
+                              </packing>
                             </child>
                             <child>
-                              <object class="GtkButton">
+                              <object class="HdyCarouselIndicatorLines">
                                 <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="label" translatable="yes">_Return to the first page</property>
-                                <property name="use-underline">True</property>
-                                <signal name="clicked" handler="carousel_return_clicked_cb" swapped="no"/>
-                                <style>
-                                  <class name="suggested-action"/>
-                                </style>
+                                <property name="carousel">carousel</property>
+                                <property name="orientation" bind-source="carousel" bind-property="orientation" bind-flags="sync-create"/>
                               </object>
+                              <packing>
+                                <property name="name">lines</property>
+                              </packing>
                             </child>
                           </object>
                         </child>
@@ -1950,7 +1990,7 @@
                                     <property name="expand">True</property>
                                     <property name="selection-mode">none</property>
                                     <style>
-                                      <class name="preferences"/>
+                                      <class name="content"/>
                                     </style>
                                     <child>
                                       <object class="HdyActionRow">
@@ -1962,7 +2002,6 @@
                                             <property name="visible">True</property>
                                             <property name="can_focus">True</property>
                                             <property name="valign">center</property>
-                                            <property name="text">Mario Rossi</property>
                                           </object>
                                         </child>
                                       </object>
@@ -2034,6 +2073,17 @@
                                     </child>
                                   </object>
                                 </child>
+                                <child>
+                                  <object class="GtkListBox" id="avatar_contacts">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">False</property>
+                                    <property name="expand">True</property>
+                                    <property name="selection-mode">none</property>
+                                    <style>
+                                      <class name="content"/>
+                                    </style>
+                                  </object>
+                                </child>
                               </object>
                             </child>
                           </object>
@@ -2079,7 +2129,7 @@
                                     <property name="can_focus">False</property>
                                     <property name="valign">center</property>
                                     <property name="pixel_size">128</property>
-                                    <property name="icon_name">window-symbolic</property>
+                                    <property name="icon_name">widget-window-symbolic</property>
                                     <property name="icon-size">0</property>
                                     <property name="margin-bottom">18</property>
                                     <style>
@@ -2174,7 +2224,7 @@
                                 <property name="expand">True</property>
                                 <property name="selection-mode">none</property>
                                 <style>
-                                  <class name="preferences"/>
+                                  <class name="content"/>
                                 </style>
                                 <child>
                                   <object class="HdyActionRow">
@@ -2205,7 +2255,7 @@
                                     <property name="expand">True</property>
                                     <property name="selection-mode">none</property>
                                     <style>
-                                      <class name="preferences"/>
+                                      <class name="content"/>
                                     </style>
                                     <child>
                                       <object class="HdyActionRow">
@@ -2276,6 +2326,13 @@
     <property name="value">500</property>
     <property name="page-increment">100</property>
     <property name="step-increment">10</property>
+  </object>
+  <object class="GtkSizeGroup">
+    <property name="mode">both</property>
+    <widgets>
+      <widget name="carousel_empty_box"/>
+      <widget name="carousel_indicators_stack"/>
+    </widgets>
   </object>
   <object class="GtkAdjustment" id="avatar_adjustment">
     <property name="lower">24</property>

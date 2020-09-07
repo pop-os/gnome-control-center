@@ -132,12 +132,15 @@
     </refsect3>
 
     <refsect3>
-      <title>Replace HdyPaginator by HdyCarousel</title>
+      <title>Adapt to HdyPaginator API changes</title>
       <para>
         HdyPaginator has been renamed HdyCarousel, so you should replace the
         former by the later.
-        Similarly, HdyPaginatorIndicatorStyle has been renamed
-        HdyCarouselIndicatorStyle.
+      </para>
+      <para>
+        The “indicator-style”, “indicator-spacing” and “center-content”
+        properties have been removed, instead use #HdyCarouselIndicatorDots
+        or #HdyCarouselIndicatorLines widgets.
       </para>
     </refsect3>
 
@@ -168,12 +171,20 @@
         of a #HdyFold.
       </para>
       <para>
+        On touchscreens, swiping forward with the “over” transition and swiping
+        back with the “under” transition can now only be done from the edge
+        where the upper child is.
+      </para>
+      <para>
         The “over” and “under” transitions can draw their shadow on top of the
         window's transparent areas, like the rounded corners.
         This is a side-effect of allowing shadows to be drawn on top of OpenGL
         areas.
         It can be mitigated by using #HdyWindow or #HdyApplicationWindow as they
         will crop anything drawn beyond the rounded corners.
+      </para>
+      <para>
+        The “allow-visible” child property has been renamed “navigatable”.
       </para>
     </refsect3>
 
@@ -195,6 +206,10 @@
         #HdyViewSwitcher doesn't subclass #GtkBox anymore. Instead, it
         subclasses #GtkBin and contains a box.
       </para>
+      <para>
+        The “icon-size” property has been dropped without replacement, you must
+        stop using it.
+      </para>
     </refsect3>
 
     <refsect3>
@@ -203,6 +218,10 @@
         #HdyViewSwitcherBar won't be revealed if the #HdyViewSwitcherBar:stack
         property is %NULL or if it has less than two pages, even if you set
         #HdyViewSwitcherBar:reveal to %TRUE.
+      </para>
+      <para>
+        The “icon-size” property has been dropped without replacement, you must
+        stop using it.
       </para>
     </refsect3>
 
@@ -286,13 +305,48 @@
         #HdyKeypad doesn't subclass #Gtkgrid anymore. Instead, it subclasses
         #GtkBin and contains a grid.
       </para>
+      <para>
+        The “show-symbols” property has been replaced by
+        #HdyHeaderGroup:letters-visible.
+      </para>
+      <para>
+        The “only-digits” property has been replaced by
+        #HdyHeaderGroup:symbols-visible, which has a inverse boolean meaning.
+        This also affects the corresponding parameter of the constructor.
+      </para>
+      <para>
+        The “left-action” property has been replaced by
+        #HdyHeaderGroup:start-action, and the “right-action” property has been
+        replaced by #HdyHeaderGroup:end-action.
+      </para>
+      <para>
+        The “entry” property isn't a #GtkWidget anymore but a #GtkEntry.
+      </para>
     </refsect3>
 
     <refsect3>
       <title>Stop using hdy_list_box_separator_header()</title>
       <para>
-        Instead, either use CSS styling (the list.preferences style class may
+        Instead, either use CSS styling (the list.content style class may
         fit your need), or implement it yourself as it is trivial.
+      </para>
+    </refsect3>
+
+    <refsect3>
+      <title>Stop acknowledging the Instability</title>
+      <para>
+        When the library was young and changing a lot, we required you to
+        acknowledge that your are using an unstable API. To do so, you had to
+        define <literal>HANDY_USE_UNSTABLE_API</literal> for compilation to
+        succeed.
+      </para>
+      <para>
+        The API remained stable since many versions, despite this acknowlegment
+        still being required. To reflect that proven stability, the
+        acknowlegment isn't necessary and you can stop defining
+        <literal>HANDY_USE_UNSTABLE_API</literal>, either before including the
+        &package_string; header in C-compatible languages, or with the
+        definition option of your compiler.
       </para>
     </refsect3>
 

@@ -21,6 +21,12 @@
  * #GtkStack. The children are strictly ordered and can be navigated using
  * swipe gestures.
  *
+ * The “over” and “under” stack the children one on top of the other, while the
+ * “slide” transition puts the children side by side. While navigating to a
+ * child on the side or below can be performed by swiping the current child
+ * away, navigating to an upper child requires dragging it from the edge where
+ * it resides. This doesn't affect non-dragging swipes.
+ *
  * The “over” and “under” transitions can draw their shadow on top of the
  * window's transparent areas, like the rounded corners. This is a side-effect
  * of allowing shadows to be drawn on top of OpenGL areas. It can be mitigated
@@ -504,6 +510,27 @@ hdy_deck_navigate (HdyDeck                *self,
   return hdy_stackable_box_navigate (HDY_GET_HELPER (self), direction);
 }
 
+/**
+ * hdy_deck_get_child_by_name:
+ * @self: a #HdyDeck
+ * @name: the name of the child to find
+ *
+ * Finds the child of @self with the name given as the argument. Returns %NULL
+ * if there is no child with this name.
+ *
+ * Returns: (transfer none) (nullable): the requested child of @self
+ *
+ * Since: 1.0
+ */
+GtkWidget *
+hdy_deck_get_child_by_name (HdyDeck     *self,
+                            const gchar *name)
+{
+  g_return_val_if_fail (HDY_IS_DECK (self), NULL);
+
+  return hdy_stackable_box_get_child_by_name (HDY_GET_HELPER (self), name);
+}
+
 /* This private method is prefixed by the call name because it will be a virtual
  * method in GTK 4.
  */
@@ -807,6 +834,15 @@ hdy_deck_get_cancel_progress (HdySwipeable *swipeable)
 }
 
 static void
+hdy_deck_get_swipe_area (HdySwipeable           *swipeable,
+                         HdyNavigationDirection  navigation_direction,
+                         gboolean                is_drag,
+                         GdkRectangle           *rect)
+{
+  hdy_stackable_box_get_swipe_area (HDY_GET_HELPER (swipeable), navigation_direction, is_drag, rect);
+}
+
+static void
 hdy_deck_class_init (HdyDeckClass *klass)
 {
   GObjectClass *object_class = G_OBJECT_CLASS (klass);
@@ -961,7 +997,7 @@ hdy_deck_class_init (HdyDeckClass *klass)
   /**
    * HdyDeck:can-swipe-back:
    *
-   * Whether or not @self allows switching to the previous child via a swipe
+   * Whether or not the deck allows switching to the previous child via a swipe
    * gesture.
    *
    * Since: 1.0
@@ -976,7 +1012,8 @@ hdy_deck_class_init (HdyDeckClass *klass)
   /**
    * HdyDeck:can-swipe-forward:
    *
-   * Whether or not @self allows switching to the next child via a swipe gesture.
+   * Whether or not the deck allows switching to the next child via a swipe
+   * gesture.
    *
    * Since: 1.0
    */
@@ -1062,4 +1099,5 @@ hdy_deck_swipeable_init (HdySwipeableInterface *iface)
   iface->get_snap_points = hdy_deck_get_snap_points;
   iface->get_progress = hdy_deck_get_progress;
   iface->get_cancel_progress = hdy_deck_get_cancel_progress;
+  iface->get_swipe_area = hdy_deck_get_swipe_area;
 }

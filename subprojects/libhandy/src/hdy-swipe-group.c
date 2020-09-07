@@ -9,7 +9,6 @@
 #include "hdy-swipe-group.h"
 #include <gtk/gtk.h>
 #include "hdy-navigation-direction.h"
-#include "hdy-swipeable.h"
 #include "hdy-swipe-tracker-private.h"
 
 #define BUILDABLE_TAG_OBJECT "object"
@@ -105,7 +104,7 @@ hdy_swipe_group_new (void)
 
 static void
 child_switched_cb (HdySwipeGroup *self,
-                   uint           index,
+                   guint          index,
                    gint64         duration,
                    HdySwipeable  *swipeable)
 {
