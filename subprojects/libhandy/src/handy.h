@@ -20,16 +20,14 @@ G_BEGIN_DECLS
 
 #define _HANDY_INSIDE
 
-#ifndef HANDY_USE_UNSTABLE_API
-#error    libhandy is unstable API. You must define HANDY_USE_UNSTABLE_API before including handy.h
-#endif
-
 #include "hdy-version.h"
 #include "hdy-action-row.h"
 #include "hdy-animation.h"
 #include "hdy-application-window.h"
 #include "hdy-avatar.h"
 #include "hdy-carousel.h"
+#include "hdy-carousel-indicator-dots.h"
+#include "hdy-carousel-indicator-lines.h"
 #include "hdy-clamp.h"
 #include "hdy-combo-row.h"
 #include "hdy-deck.h"
@@ -52,6 +50,7 @@ G_BEGIN_DECLS
 #include "hdy-swipe-tracker.h"
 #include "hdy-swipeable.h"
 #include "hdy-title-bar.h"
+#include "hdy-types.h"
 #include "hdy-value-object.h"
 #include "hdy-view-switcher.h"
 #include "hdy-view-switcher-bar.h"

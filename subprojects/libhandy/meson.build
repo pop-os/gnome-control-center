@@ -1,5 +1,5 @@
 project('libhandy', 'c',
-          version: '0.84.0',
+          version: '0.90.0',
           license: 'LGPL-2.1+',
     meson_version: '>= 0.49.0',
   default_options: [ 'warning_level=1', 'buildtype=debugoptimized', 'c_std=gnu11' ],
@@ -28,15 +28,6 @@ endif
 current = handy_version_minor * 100 + handy_version_micro - handy_interface_age
 revision = handy_interface_age
 libversion = '@0@.@1@.@2@'.format(soversion, current, revision)
-
-config_h = configuration_data()
-config_h.set_quoted('GETTEXT_PACKAGE', 'libhandy')
-config_h.set_quoted('LOCALEDIR', get_option('prefix') / get_option('localedir'))
-
-configure_file(
-         output: 'config.h',
-  configuration: config_h,
-)
 
 add_project_arguments([
   '-DHAVE_CONFIG_H',

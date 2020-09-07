@@ -4,7 +4,6 @@
  * SPDX-License-Identifier: LGPL-2.1+
  */
 
-#define HANDY_USE_UNSTABLE_API
 #include <handy.h>
 
 
@@ -21,21 +20,6 @@ test_hdy_expander_row_add (void)
   g_assert_nonnull (sw);
 
   gtk_container_add (GTK_CONTAINER (row), sw);
-}
-
-
-static void
-test_hdy_expander_row_title (void)
-{
-  g_autoptr (HdyExpanderRow) row = NULL;
-
-  row = g_object_ref_sink (HDY_EXPANDER_ROW (hdy_expander_row_new ()));
-  g_assert_nonnull (row);
-
-  g_assert_cmpstr (hdy_expander_row_get_title (row), ==, "");
-
-  hdy_expander_row_set_title (row, "Dummy title");
-  g_assert_cmpstr (hdy_expander_row_get_title (row), ==, "Dummy title");
 }
 
 
@@ -158,7 +142,6 @@ main (gint argc,
   hdy_init ();
 
   g_test_add_func("/Handy/ExpanderRow/add", test_hdy_expander_row_add);
-  g_test_add_func("/Handy/ExpanderRow/title", test_hdy_expander_row_title);
   g_test_add_func("/Handy/ExpanderRow/subtitle", test_hdy_expander_row_subtitle);
   g_test_add_func("/Handy/ExpanderRow/icon_name", test_hdy_expander_row_icon_name);
   g_test_add_func("/Handy/ExpanderRow/use_underline", test_hdy_expander_row_use_undeline);
