@@ -223,8 +223,7 @@ add_item (CcKeyboardShortcutDialog *self,
 
   row = GTK_WIDGET (cc_keyboard_shortcut_row_new (item,
                                                   self->manager,
-                                                  CC_KEYBOARD_SHORTCUT_EDITOR (self->shortcut_editor),
-		                                  self->accelerator_sizegroup));
+                                                  CC_KEYBOARD_SHORTCUT_EDITOR (self->shortcut_editor)));
 
   g_object_set_data_full (G_OBJECT (row),
                           "data",
