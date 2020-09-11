@@ -161,8 +161,8 @@ add_section (CcKeyboardShortcutDialog *self,
                       "spacing", 8,
                       "margin_left", 12,
                       "margin_right", 12,
-                      "margin_top", 8,
-                      "margin_bottom", 8,
+                      "margin_top", 12,
+                      "margin_bottom", 12,
                       NULL);
   gtk_container_add (GTK_CONTAINER (box), label);
   gtk_box_pack_end (GTK_BOX (box), icon, FALSE, FALSE, 0);
