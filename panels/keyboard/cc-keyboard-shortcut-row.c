@@ -164,6 +164,13 @@ update_bindings (CcKeyboardShortcutRow *self)
 
   key_combos = cc_keyboard_item_get_key_combos (self->item);
 
+  if (!cc_keyboard_item_can_set_multiple (self->item))
+    gtk_label_set_text (self->add_shortcut_button_label, _("Modify shortcut"));
+  if (key_combos == NULL)
+    gtk_label_set_text (self->add_shortcut_button_label, _("Add shortcut"));
+  else
+    gtk_label_set_text (self->add_shortcut_button_label, _("Add another shortcut"));
+
   if (key_combos == NULL)
     {
       shortcut_label = g_object_new (GTK_TYPE_LABEL,
@@ -241,11 +248,6 @@ cc_keyboard_shortcut_row_new (CcKeyboardItem *item,
   self->manager = manager;
   self->shortcut_editor = shortcut_editor;
   self->is_custom_shortcut = cc_keyboard_item_get_item_type (item) == CC_KEYBOARD_ITEM_TYPE_GSETTINGS_PATH;
-
-  if (cc_keyboard_item_can_set_multiple (item))
-    gtk_label_set_text (self->add_shortcut_button_label, _("Add another shortcut"));
-  else
-    gtk_label_set_text (self->add_shortcut_button_label, _("Modify shortcut"));
 
   if (!self->is_custom_shortcut)
     gtk_label_set_text (self->reset_shortcut_button_label, _("Reset to default"));
