@@ -228,8 +228,6 @@ release_grab (CcKeyboardShortcutEditor *self)
     {
       gdk_seat_ungrab (gdk_device_get_seat (self->grab_pointer));
       self->grab_pointer = NULL;
-
-      gtk_grab_remove (GTK_WIDGET (self));
     }
 }
 
