@@ -1,40 +1,13 @@
-Index: gnome-control-center/panels/background/meson.build
-===================================================================
---- gnome-control-center.orig/panels/background/meson.build
-+++ gnome-control-center/panels/background/meson.build
-@@ -94,7 +94,8 @@ deps = common_deps + [
-   goa_dep,
-   libxml_dep,
-   dependency('cairo-gobject'),
--  dependency('grilo-0.3', version: '>= 0.3.0')
-+  dependency('grilo-0.3', version: '>= 0.3.0'),
-+  dependency('pop_theme_switcher')
- ]
- 
- cflags += [
-Index: gnome-control-center/panels/background/gnome-background-panel.desktop.in.in
-===================================================================
---- gnome-control-center.orig/panels/background/gnome-background-panel.desktop.in.in
-+++ gnome-control-center/panels/background/gnome-background-panel.desktop.in.in
-@@ -1,6 +1,6 @@
- [Desktop Entry]
--Name=Background
--Comment=Change your background image to a wallpaper or photo
-+Name=Appearance
-+Comment=Change your background image. Toggle dark and light mode.
- Exec=gnome-control-center background
- # Translators: Do NOT translate or transliterate this text (this is an icon file name)!
- Icon=preferences-desktop-wallpaper
-@@ -11,4 +11,4 @@ StartupNotify=true
- Categories=GNOME;GTK;Settings;DesktopSettings;X-GNOME-Settings-Panel;X-GNOME-PersonalizationSettings;
- OnlyShowIn=GNOME;
- # Translators: Search terms to find the Background panel. Do NOT translate or localize the semicolons! The list MUST also end with a semicolon!
--Keywords=Wallpaper;Screen;Desktop;
-+Keywords=Wallpaper;Screen;Desktop;Dark;Light;Theme;Night;
-Index: gnome-control-center/panels/background/cc-background-panel.c
-===================================================================
---- gnome-control-center.orig/panels/background/cc-background-panel.c
-+++ gnome-control-center/panels/background/cc-background-panel.c
+commit 0070b4a71d2ba55807d3dcfece6ee639aa99e4cb
+Author: Ian Douglas Scott <idscott@system76.com>
+Date:   Mon Sep 14 09:29:24 2020 -0700
+
+    pop-appearance
+
+diff --git a/panels/background/cc-background-panel.c b/panels/background/cc-background-panel.c
+index 29dedf165..26ec961d0 100644
+--- a/panels/background/cc-background-panel.c
++++ b/panels/background/cc-background-panel.c
 @@ -24,6 +24,7 @@
  #include <glib.h>
  #include <glib/gi18n-lib.h>
@@ -52,10 +25,10 @@ Index: gnome-control-center/panels/background/cc-background-panel.c
    GSettings *settings;
    GSettings *lock_settings;
  
-@@ -64,10 +67,28 @@ struct _CcBackgroundPanel
- 
-   GtkWidget *spinner;
-   GtkWidget *chooser;
+@@ -61,10 +64,28 @@ struct _CcBackgroundPanel
+   CcBackgroundChooser *background_chooser;
+   GtkButton *add_picture_button;
+   CcBackgroundPreview *desktop_preview;
 +
 +  GtkWidget *stack;
 +  GtkWidget *stack_switcher;
@@ -81,9 +54,9 @@ Index: gnome-control-center/panels/background/cc-background-panel.c
  static void
  update_preview (CcBackgroundPanel *panel)
  {
-@@ -235,6 +256,35 @@ cc_background_panel_constructed (GObject
+@@ -230,6 +251,35 @@ cc_background_panel_constructed (GObject *object)
  
-   cc_shell_embed_widget_in_header (shell, self->add_picture_button, GTK_POS_RIGHT);
+   cc_shell_embed_widget_in_header (shell, GTK_WIDGET (self->add_picture_button), GTK_POS_RIGHT);
  
 +  GtkWidget *widget = pop_theme_switcher_widget (self->switcher);
 +  gtk_widget_set_valign (widget, GTK_ALIGN_START);
@@ -117,15 +90,15 @@ Index: gnome-control-center/panels/background/cc-background-panel.c
    G_OBJECT_CLASS (cc_background_panel_parent_class)->constructed (object);
  }
  
-@@ -248,6 +298,7 @@ cc_background_panel_dispose (GObject *ob
+@@ -241,6 +291,7 @@ cc_background_panel_dispose (GObject *object)
+   g_clear_object (&panel->settings);
+   g_clear_object (&panel->lock_settings);
    g_clear_object (&panel->thumb_factory);
- 
-   g_clear_pointer (&panel->chooser, gtk_widget_destroy);
 +  g_clear_pointer (&panel->switcher, pop_theme_switcher_free);
  
    G_OBJECT_CLASS (cc_background_panel_parent_class)->dispose (object);
  }
-@@ -273,6 +324,7 @@ cc_background_panel_class_init (CcBackgr
+@@ -266,6 +317,7 @@ cc_background_panel_class_init (CcBackgroundPanelClass *klass)
    g_type_ensure (CC_TYPE_BACKGROUND_PREVIEW);
  
    panel_class->get_help_uri = cc_background_panel_get_help_uri;
@@ -133,7 +106,7 @@ Index: gnome-control-center/panels/background/cc-background-panel.c
  
    object_class->constructed = cc_background_panel_constructed;
    object_class->dispose = cc_background_panel_dispose;
-@@ -283,6 +335,9 @@ cc_background_panel_class_init (CcBackgr
+@@ -276,6 +328,9 @@ cc_background_panel_class_init (CcBackgroundPanelClass *klass)
    gtk_widget_class_bind_template_child (widget_class, CcBackgroundPanel, add_picture_button);
    gtk_widget_class_bind_template_child (widget_class, CcBackgroundPanel, background_chooser);
    gtk_widget_class_bind_template_child (widget_class, CcBackgroundPanel, desktop_preview);
@@ -143,7 +116,7 @@ Index: gnome-control-center/panels/background/cc-background-panel.c
  
    gtk_widget_class_bind_template_callback (widget_class, on_chooser_background_chosen_cb);
    gtk_widget_class_bind_template_callback (widget_class, on_add_picture_button_clicked_cb);
-@@ -310,10 +365,12 @@ cc_background_panel_init (CcBackgroundPa
+@@ -301,10 +356,12 @@ cc_background_panel_init (CcBackgroundPanel *panel)
  
    panel->settings = g_settings_new (WP_PATH_ID);
    g_settings_delay (panel->settings);
@@ -157,11 +130,11 @@ Index: gnome-control-center/panels/background/cc-background-panel.c
    /* Load the background */
    reload_current_bg (panel);
    update_preview (panel);
-Index: gnome-control-center/panels/background/cc-background-panel.ui
-===================================================================
---- gnome-control-center.orig/panels/background/cc-background-panel.ui
-+++ gnome-control-center/panels/background/cc-background-panel.ui
-@@ -1,49 +1,79 @@
+diff --git a/panels/background/cc-background-panel.ui b/panels/background/cc-background-panel.ui
+index 7b5c3d385..d6254031f 100644
+--- a/panels/background/cc-background-panel.ui
++++ b/panels/background/cc-background-panel.ui
+@@ -1,49 +1,77 @@
  <?xml version="1.0" encoding="UTF-8"?>
  <interface>
    <!-- interface-requires gtk+ 3.0 -->
@@ -183,10 +156,10 @@ Index: gnome-control-center/panels/background/cc-background-panel.ui
  
 +        <!-- Background page -->
          <child>
--          <object class="HdyColumn">
+-          <object class="HdyClamp">
 -            <property name="visible">1</property>
--            <property name="maximum_width">300</property>
--            <property name="linear_growth_width">200</property>
+-            <property name="maximum_size">300</property>
+-            <property name="tightening_threshold">200</property>
 +          <object class="GtkBox">
 +            <property name="visible">True</property>
 +            <property name="can_focus">False</property>
@@ -202,10 +175,8 @@ Index: gnome-control-center/panels/background/cc-background-panel.ui
 -                <property name="margin-top">18</property>
 -                <property name="margin-bottom">18</property>
 -                <property name="hexpand">True</property>
-+              <object class="HdyColumn">
++              <object class="HdyClamp">
 +                <property name="visible">1</property>
-+                <property name="maximum_width">300</property>
-+                <property name="linear_growth_width">200</property>
                  <child>
 -                  <object class="CcBackgroundPreview" id="desktop_preview">
 +                  <object class="GtkBox">
@@ -235,7 +206,7 @@ Index: gnome-control-center/panels/background/cc-background-panel.ui
 +                <property name="visible">True</property>
 +                <property name="can_focus">False</property>
 +                <property name="expand">True</property>
-+                <signal name="background-chosen" handler="on_chooser_background_chosen_cb" object="CcBackgroundPanel" swapped="no" />
++                <signal name="background-chosen" handler="on_chooser_background_chosen_cb" object="CcBackgroundPanel" swapped="yes" />
 +              </object>
 +            </child>
            </object>
@@ -252,7 +223,7 @@ Index: gnome-control-center/panels/background/cc-background-panel.ui
              <property name="visible">True</property>
              <property name="can_focus">False</property>
 -            <property name="expand">True</property>
--            <signal name="background-chosen" handler="on_chooser_background_chosen_cb" object="CcBackgroundPanel" swapped="no" />
+-            <signal name="background-chosen" handler="on_chooser_background_chosen_cb" object="CcBackgroundPanel" swapped="yes" />
 +            <property name="orientation">vertical</property>
            </object>
 +          <packing>
@@ -262,3 +233,36 @@ Index: gnome-control-center/panels/background/cc-background-panel.ui
          </child>
        </object>
      </child>
+diff --git a/panels/background/gnome-background-panel.desktop.in.in b/panels/background/gnome-background-panel.desktop.in.in
+index 76534b028..d19a2b11b 100644
+--- a/panels/background/gnome-background-panel.desktop.in.in
++++ b/panels/background/gnome-background-panel.desktop.in.in
+@@ -1,6 +1,6 @@
+ [Desktop Entry]
+-Name=Background
+-Comment=Change your background image to a wallpaper or photo
++Name=Appearance
++Comment=Change your background image. Toggle dark and light mode.
+ Exec=gnome-control-center background
+ # Translators: Do NOT translate or transliterate this text (this is an icon file name)!
+ Icon=preferences-desktop-wallpaper
+@@ -11,4 +11,4 @@ StartupNotify=true
+ Categories=GNOME;GTK;Settings;DesktopSettings;X-GNOME-Settings-Panel;X-GNOME-PersonalizationSettings;
+ OnlyShowIn=GNOME;
+ # Translators: Search terms to find the Background panel. Do NOT translate or localize the semicolons! The list MUST also end with a semicolon!
+-Keywords=Wallpaper;Screen;Desktop;
++Keywords=Wallpaper;Screen;Desktop;Dark;Light;Theme;Night;
+diff --git a/panels/background/meson.build b/panels/background/meson.build
+index e9fa398d4..a6a8ef844 100644
+--- a/panels/background/meson.build
++++ b/panels/background/meson.build
+@@ -94,7 +94,8 @@ deps = common_deps + [
+   goa_dep,
+   libxml_dep,
+   dependency('cairo-gobject'),
+-  dependency('grilo-0.3', version: '>= 0.3.0')
++  dependency('grilo-0.3', version: '>= 0.3.0'),
++  dependency('pop_theme_switcher')
+ ]
+ 
+ cflags += [
