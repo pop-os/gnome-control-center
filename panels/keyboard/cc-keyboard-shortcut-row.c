@@ -166,7 +166,7 @@ update_bindings (CcKeyboardShortcutRow *self)
 
   if (!cc_keyboard_item_can_set_multiple (self->item))
     gtk_label_set_text (self->add_shortcut_button_label, _("Modify shortcut"));
-  if (key_combos == NULL)
+  else if (key_combos == NULL)
     gtk_label_set_text (self->add_shortcut_button_label, _("Add shortcut"));
   else
     gtk_label_set_text (self->add_shortcut_button_label, _("Add another shortcut"));
