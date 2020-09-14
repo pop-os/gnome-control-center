@@ -10,13 +10,13 @@ Subject: [PATCH 16/26] diagnostics: Add Whoopsie support
  panels/diagnostics/meson.build             |   7 +-
  5 files changed, 175 insertions(+), 2 deletions(-)
 
-diff --git a/meson.build b/meson.build
-index 5f3bcf5..d129832 100644
---- a/meson.build
-+++ b/meson.build
-@@ -207,6 +207,14 @@ endif
- config_h.set('HAVE_SNAP', enable_snap,
-              description: 'Define to 1 if Snap support is enabled')
+Index: gnome-control-center/meson.build
+===================================================================
+--- gnome-control-center.orig/meson.build
++++ gnome-control-center/meson.build
+@@ -214,6 +214,14 @@ endif
+ config_h.set('HAVE_MALCONTENT', enable_malcontent,
+              description: 'Define to 1 if malcontent support is enabled')
  
 +# Whoopsie (Ubuntu error reporting service)
 +enable_whoopsie = get_option('whoopsie')
@@ -29,26 +29,17 @@ index 5f3bcf5..d129832 100644
  if host_is_linux
    # network manager
    network_manager_deps = [
-@@ -299,5 +307,6 @@ output += '     IBus (Region panel IBus support) ........... ' + enable_ibus.to_
- output += '     NetworkManager (Network panel) ............. ' + host_is_linux.to_string() + '\n'
+@@ -307,5 +315,6 @@ output += '     NetworkManager (Network
  output += '     Wacom (Wacom tablet panel) ................. ' + host_is_linux_not_s390.to_string() + '\n'
  output += '     Snap support ............................... ' + enable_snap.to_string() + '\n'
+ output += '     Malcontent support ......................... ' + enable_malcontent.to_string() + '\n'
 +output += '     Whoopsie  .................................. ' + enable_whoopsie.to_string() + '\n'
  
  message(output)
-diff --git a/meson_options.txt b/meson_options.txt
-index e76308e..554c213 100644
---- a/meson_options.txt
-+++ b/meson_options.txt
-@@ -7,3 +7,4 @@ option('tests', type: 'boolean', value: true, description: 'build tests')
- option('tracing', type: 'boolean', value: false, description: 'add extra debugging information')
- option('wayland', type: 'boolean', value: true, description: 'build with Wayland support')
- option('profile', type: 'combo', choices: ['default','development'], value: 'default')
-+option('whoopsie', type: 'boolean', value: false, description: 'build with Whoopsie support')
-diff --git a/panels/diagnostics/cc-diagnostics-panel.c b/panels/diagnostics/cc-diagnostics-panel.c
-index 7f1b5e2..b4171d0 100644
---- a/panels/diagnostics/cc-diagnostics-panel.c
-+++ b/panels/diagnostics/cc-diagnostics-panel.c
+Index: gnome-control-center/panels/diagnostics/cc-diagnostics-panel.c
+===================================================================
+--- gnome-control-center.orig/panels/diagnostics/cc-diagnostics-panel.c
++++ gnome-control-center/panels/diagnostics/cc-diagnostics-panel.c
 @@ -18,6 +18,8 @@
   * Author: Matthias Clasen <mclasen@redhat.com>
   */
@@ -83,7 +74,7 @@ index 7f1b5e2..b4171d0 100644
  };
  
  CC_PANEL_REGISTER (CcDiagnosticsPanel, cc_diagnostics_panel)
-@@ -71,9 +82,86 @@ abrt_vanished_cb (GDBusConnection *connection,
+@@ -71,9 +82,86 @@ abrt_vanished_cb (GDBusConnection *conne
                    gpointer         user_data)
  {
    g_debug ("ABRT vanished");
@@ -102,8 +93,8 @@ index 7f1b5e2..b4171d0 100644
 +
 +  if (!whoopsie_preferences_call_set_report_crashes_finish (WHOOPSIE_PREFERENCES (source_object), res, &error))
 +    g_warning ("Failed to toggle crash reporting: %s", error->message);
-+}
-+
+ }
+ 
 +static void
 +whoopsie_set_report_crashes_mode_done (GObject *source_object,
 +                                       GAsyncResult *res,
@@ -146,8 +137,8 @@ index 7f1b5e2..b4171d0 100644
 +                                                                NULL,
 +                                                                whoopsie_set_report_crashes_mode_done,
 +                                                                NULL);
- }
- 
++}
++
 +static void
 +whoopsie_properties_changed (CcDiagnosticsPanel *self)
 +{
@@ -170,7 +161,7 @@ index 7f1b5e2..b4171d0 100644
  void
  cc_diagnostics_panel_static_init_func (void)
  {
-@@ -85,7 +173,9 @@ cc_diagnostics_panel_static_init_func (void)
+@@ -85,7 +173,9 @@ cc_diagnostics_panel_static_init_func (v
                      NULL,
                      NULL);
  
@@ -180,7 +171,7 @@ index 7f1b5e2..b4171d0 100644
  }
  
  static void
-@@ -110,7 +200,13 @@ cc_diagnostics_panel_class_init (CcDiagnosticsPanelClass *klass)
+@@ -110,7 +200,13 @@ cc_diagnostics_panel_class_init (CcDiagn
  
    gtk_widget_class_bind_template_child (widget_class, CcDiagnosticsPanel, diagnostics_explanation_label);
    gtk_widget_class_bind_template_child (widget_class, CcDiagnosticsPanel, diagnostics_list_box);
@@ -194,7 +185,7 @@ index 7f1b5e2..b4171d0 100644
  }
  
  static void
-@@ -120,6 +216,7 @@ cc_diagnostics_panel_init (CcDiagnosticsPanel *self)
+@@ -120,6 +216,7 @@ cc_diagnostics_panel_init (CcDiagnostics
    g_autofree gchar *url = NULL;
    g_autofree gchar *msg = NULL;
    g_autofree gchar *link = NULL;
@@ -202,7 +193,7 @@ index 7f1b5e2..b4171d0 100644
  
    g_resources_register (cc_diagnostics_get_resource ());
  
-@@ -135,6 +232,26 @@ cc_diagnostics_panel_init (CcDiagnosticsPanel *self)
+@@ -135,6 +232,26 @@ cc_diagnostics_panel_init (CcDiagnostics
                     self->abrt_switch, "active",
                     G_SETTINGS_BIND_DEFAULT);
  
@@ -229,11 +220,11 @@ index 7f1b5e2..b4171d0 100644
    os_name = cc_os_release_get_value ("NAME");
    url = cc_os_release_get_value ("PRIVACY_POLICY_URL");
    if (!url)
-diff --git a/panels/diagnostics/cc-diagnostics-panel.ui b/panels/diagnostics/cc-diagnostics-panel.ui
-index 1930e91..0b61281 100644
---- a/panels/diagnostics/cc-diagnostics-panel.ui
-+++ b/panels/diagnostics/cc-diagnostics-panel.ui
-@@ -52,7 +52,7 @@
+Index: gnome-control-center/panels/diagnostics/cc-diagnostics-panel.ui
+===================================================================
+--- gnome-control-center.orig/panels/diagnostics/cc-diagnostics-panel.ui
++++ gnome-control-center/panels/diagnostics/cc-diagnostics-panel.ui
+@@ -50,7 +50,7 @@
                      <property name="can-focus">1</property>
                      <property name="selection-mode">none</property>
                      <child>
@@ -242,10 +233,13 @@ index 1930e91..0b61281 100644
                          <property name="visible">1</property>
                          <child>
                            <object class="GtkBox">
-@@ -85,6 +85,47 @@
-                         </child>
-                       </object>
-                     </child>
+@@ -80,6 +80,47 @@
+                               </object>
+                             </child>
+                           </object>
++                        </child>
++                      </object>
++                    </child>
 +                    <child>
 +                      <object class="GtkListBoxRow">
 +                        <property name="visible">1</property>
@@ -284,16 +278,13 @@ index 1930e91..0b61281 100644
 +                              </object>
 +                            </child>
 +                          </object>
-+                        </child>
-+                      </object>
-+                    </child>
-                     <style>
-                       <class name="view"/>
-                       <class name="frame"/>
-diff --git a/panels/diagnostics/meson.build b/panels/diagnostics/meson.build
-index fac9b4c..61388e2 100644
---- a/panels/diagnostics/meson.build
-+++ b/panels/diagnostics/meson.build
+                         </child>
+                       </object>
+                     </child>
+Index: gnome-control-center/panels/diagnostics/meson.build
+===================================================================
+--- gnome-control-center.orig/panels/diagnostics/meson.build
++++ gnome-control-center/panels/diagnostics/meson.build
 @@ -29,12 +29,17 @@ sources += gnome.compile_resources(
    export: true
  )
@@ -313,3 +304,12 @@ index fac9b4c..61388e2 100644
 +  dependencies: deps,
    c_args: cflags
  )
+Index: gnome-control-center/meson_options.txt
+===================================================================
+--- gnome-control-center.orig/meson_options.txt
++++ gnome-control-center/meson_options.txt
+@@ -8,3 +8,4 @@ option('tracing', type: 'boolean', value
+ option('wayland', type: 'boolean', value: true, description: 'build with Wayland support')
+ option('profile', type: 'combo', choices: ['default','development'], value: 'default')
+ option('malcontent', type: 'boolean', value: false, description: 'build with malcontent support')
++option('whoopsie', type: 'boolean', value: false, description: 'build with Whoopsie support')
