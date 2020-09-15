@@ -26,6 +26,7 @@
 
 #include "hdy-animation-private.h"
 #include "hdy-cairo-private.h"
+#include "hdy-css-private.h"
 #include "hdy-enums.h"
 #include "hdy-window-handle-controller-private.h"
 #include "gtkprogresstrackerprivate.h"
@@ -68,7 +69,7 @@
 #define DEFAULT_SPACING 6
 #define MIN_TITLE_CHARS 5
 
-#define MOBILE_WINDOW_WIDTH  400
+#define MOBILE_WINDOW_WIDTH  480
 #define MOBILE_WINDOW_HEIGHT 800
 
 typedef struct {
@@ -613,7 +614,7 @@ compute_is_mobile_window (GtkWindow *window)
   gtk_window_get_size (window, &window_width, &window_height);
 
   if (window_width <= MOBILE_WINDOW_WIDTH &&
-      window_height <= MOBILE_WINDOW_HEIGHT)
+      gtk_window_is_maximized (window))
     return TRUE;
 
   /* Mobile landscape mode. */
@@ -779,12 +780,12 @@ hdy_header_bar_get_size (GtkWidget      *widget,
       strict_centering_t = priv->centering_policy == HDY_CENTERING_POLICY_STRICT ? 1.0 : 0.0;
 
     *minimum = center_min + n_start_children * priv->spacing +
-               hdy_lerp (2 * MAX (start_min_spaced, end_min_spaced),
-                         start_min_spaced + end_min_spaced,
+               hdy_lerp (start_min_spaced + end_min_spaced,
+                         2 * MAX (start_min_spaced, end_min_spaced),
                          strict_centering_t);
     *natural = center_nat + n_start_children * priv->spacing +
-               hdy_lerp (2 * MAX (start_nat_spaced, end_nat_spaced),
-                         start_nat_spaced + end_nat_spaced,
+               hdy_lerp (start_nat_spaced + end_nat_spaced,
+                         2 * MAX (start_nat_spaced, end_nat_spaced),
                          strict_centering_t);
   } else {
     *minimum = MAX (MAX (start_min, end_min), center_min);
@@ -971,9 +972,6 @@ hdy_header_bar_measure (GtkWidget      *widget,
                         gint           *minimum_baseline,
                         gint           *natural_baseline)
 {
-  GtkStyleContext *style_context;
-  GtkStateFlags state_flags;
-  GtkBorder border, margin, padding;
   gint css_width, css_height;
 
   gtk_style_context_get (gtk_widget_get_style_context (widget),
@@ -989,29 +987,7 @@ hdy_header_bar_measure (GtkWidget      *widget,
   else
     hdy_header_bar_compute_size_for_opposing_orientation (widget, MAX (for_size, css_width), minimum, natural);
 
-  /* Manually apply the border, the padding and the margin as we can't use the
-   * private GtkGagdet.
-   */
-  style_context = gtk_widget_get_style_context (widget);
-  state_flags = gtk_widget_get_state_flags (widget);
-  gtk_style_context_get_border (style_context, state_flags, &border);
-  gtk_style_context_get_margin (style_context, state_flags, &margin);
-  gtk_style_context_get_padding (style_context, state_flags, &padding);
-  if (orientation == GTK_ORIENTATION_VERTICAL) {
-    *minimum = MAX (*minimum, css_height) +
-               border.top + margin.top + padding.top +
-               border.bottom + margin.bottom + padding.bottom;
-    *natural = MAX (*natural, css_height) +
-               border.top + margin.top + padding.top +
-               border.bottom + margin.bottom + padding.bottom;
-  } else {
-    *minimum = MAX (*minimum, css_width) +
-               border.left + margin.left + padding.left +
-               border.right + margin.right + padding.right;
-    *natural = MAX (*natural, css_width) +
-               border.left + margin.left + padding.left +
-               border.right + margin.right + padding.right;
-  }
+  hdy_css_measure (widget, orientation, minimum, natural);
 }
 
 static void
@@ -1449,9 +1425,6 @@ hdy_header_bar_size_allocate (GtkWidget     *widget,
   Child *child;
   GtkAllocation child_allocation;
   GtkTextDirection direction;
-  GtkStyleContext *style_context;
-  GtkStateFlags state_flags;
-  GtkBorder border, margin, padding;
   GtkWidget *decoration_box[2] = { priv->titlebar_start_box, priv->titlebar_end_box };
   gint decoration_width[2] = { 0 };
 
@@ -1471,22 +1444,7 @@ hdy_header_bar_size_allocate (GtkWidget     *widget,
                             allocation->width,
                             allocation->height);
 
-  /* Manually apply the border, the padding and the margin as we can't use the
-   * private GtkGagdet.
-   */
-  style_context = gtk_widget_get_style_context (widget);
-  state_flags = gtk_widget_get_state_flags (widget);
-  gtk_style_context_get_border (style_context, state_flags, &border);
-  gtk_style_context_get_margin (style_context, state_flags, &margin);
-  gtk_style_context_get_padding (style_context, state_flags, &padding);
-  allocation->width -= border.left + border.right +
-                       margin.left + margin.right +
-                       padding.left + padding.right;
-  allocation->height -= border.top + border.bottom +
-                        margin.top + margin.bottom +
-                        padding.top + padding.bottom;
-  allocation->x = border.left + margin.left + padding.left;
-  allocation->y = border.top + margin.top + padding.top;
+  hdy_css_size_allocate (widget, allocation);
 
   direction = gtk_widget_get_direction (widget);
   nvis_children = count_visible_children (self);
@@ -1549,15 +1507,15 @@ hdy_header_bar_size_allocate (GtkWidget     *widget,
     get_strict_centering_allocations (self, allocation, &strict_allocations, &strict_title_allocation, decoration_width);
 
     for (i = 0; i < nvis_children; i++) {
-      allocations[i].x = hdy_lerp (strict_allocations[i].x, allocations[i].x, strict_centering_t);
-      allocations[i].y = hdy_lerp (strict_allocations[i].y, allocations[i].y, strict_centering_t);
-      allocations[i].width = hdy_lerp (strict_allocations[i].width, allocations[i].width, strict_centering_t);
-      allocations[i].height = hdy_lerp (strict_allocations[i].height, allocations[i].height, strict_centering_t);
+      allocations[i].x = hdy_lerp (allocations[i].x, strict_allocations[i].x, strict_centering_t);
+      allocations[i].y = hdy_lerp (allocations[i].y, strict_allocations[i].y, strict_centering_t);
+      allocations[i].width = hdy_lerp (allocations[i].width, strict_allocations[i].width, strict_centering_t);
+      allocations[i].height = hdy_lerp (allocations[i].height, strict_allocations[i].height, strict_centering_t);
     }
-    title_allocation.x = hdy_lerp (strict_title_allocation.x, title_allocation.x, strict_centering_t);
-    title_allocation.y = hdy_lerp (strict_title_allocation.y, title_allocation.y, strict_centering_t);
-    title_allocation.width = hdy_lerp (strict_title_allocation.width, title_allocation.width, strict_centering_t);
-    title_allocation.height = hdy_lerp (strict_title_allocation.height, title_allocation.height, strict_centering_t);
+    title_allocation.x = hdy_lerp (title_allocation.x, strict_title_allocation.x, strict_centering_t);
+    title_allocation.y = hdy_lerp (title_allocation.y, strict_title_allocation.y, strict_centering_t);
+    title_allocation.width = hdy_lerp (title_allocation.width, strict_title_allocation.width, strict_centering_t);
+    title_allocation.height = hdy_lerp (title_allocation.height, strict_title_allocation.height, strict_centering_t);
   }
 
   /* Allocate the children on both sides of the title. */

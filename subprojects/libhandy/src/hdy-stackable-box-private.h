@@ -70,6 +70,9 @@ GtkWidget       *hdy_stackable_box_get_adjacent_child (HdyStackableBox        *s
 gboolean         hdy_stackable_box_navigate (HdyStackableBox        *self,
                                              HdyNavigationDirection  direction);
 
+GtkWidget       *hdy_stackable_box_get_child_by_name (HdyStackableBox *self,
+                                                      const gchar     *name);
+
 GtkOrientation   hdy_stackable_box_get_orientation (HdyStackableBox *self);
 void             hdy_stackable_box_set_orientation (HdyStackableBox *self,
                                                     GtkOrientation   orientation);
@@ -79,11 +82,11 @@ const gchar     *hdy_stackable_box_get_child_name (HdyStackableBox *self,
 void             hdy_stackable_box_set_child_name (HdyStackableBox *self,
                                                    GtkWidget       *widget,
                                                    const gchar     *name);
-gboolean         hdy_stackable_box_get_child_allow_visible (HdyStackableBox *self,
-                                                            GtkWidget       *widget);
-void             hdy_stackable_box_set_child_allow_visible (HdyStackableBox *self,
-                                                            GtkWidget       *widget,
-                                                            gboolean         allow_visible);
+gboolean         hdy_stackable_box_get_child_navigatable (HdyStackableBox *self,
+                                                          GtkWidget       *widget);
+void             hdy_stackable_box_set_child_navigatable (HdyStackableBox *self,
+                                                          GtkWidget       *widget,
+                                                          gboolean         navigatable);
 
 void             hdy_stackable_box_switch_child (HdyStackableBox *self,
                                                  guint            index,
@@ -95,6 +98,10 @@ gdouble         *hdy_stackable_box_get_snap_points (HdyStackableBox *self,
                                                     gint            *n_snap_points);
 gdouble          hdy_stackable_box_get_progress (HdyStackableBox *self);
 gdouble          hdy_stackable_box_get_cancel_progress (HdyStackableBox *self);
+void             hdy_stackable_box_get_swipe_area (HdyStackableBox        *self,
+                                                   HdyNavigationDirection  navigation_direction,
+                                                   gboolean                is_drag,
+                                                   GdkRectangle           *rect);
 
 void             hdy_stackable_box_add (HdyStackableBox *self,
                                         GtkWidget       *widget);

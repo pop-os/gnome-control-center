@@ -70,17 +70,11 @@ enum {
   LAST_PROP,
 };
 
-enum {
-  CHILD_PROP_0,
-  CHILD_PROP_NAME,
-  CHILD_PROP_ALLOW_VISIBLE,
-  LAST_CHILD_PROP,
-};
-
 #define HDY_FOLD_UNFOLDED FALSE
 #define HDY_FOLD_FOLDED TRUE
 #define HDY_FOLD_MAX 2
 #define GTK_ORIENTATION_MAX 2
+#define HDY_SWIPE_BORDER 16
 
 typedef struct _HdyStackableBoxChildInfo HdyStackableBoxChildInfo;
 
@@ -89,7 +83,7 @@ struct _HdyStackableBoxChildInfo
   GtkWidget *widget;
   GdkWindow *window;
   gchar *name;
-  gboolean allow_visible;
+  gboolean navigatable;
 
   /* Convenience storage for per-child temporary frequently computed values. */
   GtkAllocation alloc;
@@ -168,7 +162,6 @@ struct _HdyStackableBox
 };
 
 static GParamSpec *props[LAST_PROP];
-static GParamSpec *child_props[LAST_CHILD_PROP];
 
 static gint HOMOGENEOUS_PROP[HDY_FOLD_MAX][GTK_ORIENTATION_MAX] = {
   { PROP_HHOMOGENEOUS_UNFOLDED, PROP_VHOMOGENEOUS_UNFOLDED},
@@ -380,8 +373,8 @@ hdy_stackable_box_child_transition_cb (GtkWidget     *widget,
                                         gdk_frame_clock_get_frame_time (frame_clock));
     progress = gtk_progress_tracker_get_ease_out_cubic (&self->child_transition.tracker, FALSE);
     self->child_transition.progress =
-      hdy_lerp (self->child_transition.end_progress,
-                self->child_transition.start_progress, progress);
+      hdy_lerp (self->child_transition.start_progress,
+                self->child_transition.end_progress, progress);
   } else
     self->child_transition.first_frame_skipped = TRUE;
 
@@ -593,7 +586,7 @@ set_visible_child_info (HdyStackableBox               *self,
     for (children = self->children; children; children = children->next) {
       child_info = children->data;
 
-      if (!child_info->allow_visible)
+      if (!child_info->navigatable)
         continue;
 
       if (child_info == new_visible_child)
@@ -1114,7 +1107,7 @@ hdy_stackable_box_get_interpolate_size (HdyStackableBox *self)
  * @can_swipe_back: the new value
  *
  * Sets whether or not @self allows switching to the previous child that has
- * 'allow-visible' child property set to %TRUE via a swipe gesture
+ * 'navigatable' child property set to %TRUE via a swipe gesture
  *
  * Since: 1.0
  */
@@ -1159,7 +1152,7 @@ hdy_stackable_box_get_can_swipe_back (HdyStackableBox *self)
  * @can_swipe_forward: the new value
  *
  * Sets whether or not @self allows switching to the next child that has
- * 'allow-visible' child property set to %TRUE via a swipe gesture.
+ * 'navigatable' child property set to %TRUE via a swipe gesture.
  *
  * Since: 1.0
  */
@@ -1213,7 +1206,7 @@ find_swipeable_child (HdyStackableBox        *self,
       break;
 
     child = children->data;
-  } while (child && !child->allow_visible);
+  } while (child && !child->navigatable);
 
   return child;
 }
@@ -1223,7 +1216,7 @@ find_swipeable_child (HdyStackableBox        *self,
  * @self: a #HdyStackableBox
  * @direction: the direction
  *
- * Gets the previous or next child that doesn't have 'allow-visible' child
+ * Gets the previous or next child that doesn't have 'navigatable' child
  * property set to %FALSE, or %NULL if it doesn't exist. This will be the same
  * widget hdy_stackable_box_navigate() will navigate to.
  *
@@ -1253,7 +1246,7 @@ hdy_stackable_box_get_adjacent_child (HdyStackableBox        *self,
  * @self: a #HdyStackableBox
  * @direction: the direction
  *
- * Switches to the previous or next child that doesn't have 'allow-visible'
+ * Switches to the previous or next child that doesn't have 'navigatable'
  * child property set to %FALSE, similar to performing a swipe gesture to go
  * in @direction.
  *
@@ -1279,6 +1272,32 @@ hdy_stackable_box_navigate (HdyStackableBox        *self,
   return TRUE;
 }
 
+/**
+ * hdy_stackable_box_get_child_by_name:
+ * @self: a #HdyStackableBox
+ * @name: the name of the child to find
+ *
+ * Finds the child of @self with the name given as the argument. Returns %NULL
+ * if there is no child with this name.
+ *
+ * Returns: (transfer none) (nullable): the requested child of @self
+ *
+ * Since: 1.0
+ */
+GtkWidget *
+hdy_stackable_box_get_child_by_name (HdyStackableBox *self,
+                                     const gchar     *name)
+{
+  HdyStackableBoxChildInfo *child_info;
+
+  g_return_val_if_fail (HDY_IS_STACKABLE_BOX (self), NULL);
+  g_return_val_if_fail (name != NULL, NULL);
+
+  child_info = find_child_info_for_name (self, name);
+
+  return child_info ? child_info->widget : NULL;
+}
+
 static void
 get_preferred_size (gint     *min,
                     gint     *nat,
@@ -1296,7 +1315,7 @@ get_preferred_size (gint     *min,
   if (same_orientation) {
     *min = homogeneous_folded ?
              max_min :
-             hdy_lerp (visible_min, last_visible_min, visible_child_progress);
+             hdy_lerp (last_visible_min, visible_min, visible_child_progress);
     *nat = homogeneous_unfolded ?
              max_nat * visible_children :
              sum_nat;
@@ -1304,7 +1323,7 @@ get_preferred_size (gint     *min,
   else {
     *min = homogeneous_folded ?
              max_min :
-             hdy_lerp (visible_min, last_visible_min, visible_child_progress);
+             hdy_lerp (last_visible_min, visible_min, visible_child_progress);
     *nat = max_nat;
   }
 }
@@ -2263,7 +2282,7 @@ hdy_stackable_box_add (HdyStackableBox *self,
 
   child_info = g_new0 (HdyStackableBoxChildInfo, 1);
   child_info->widget = widget;
-  child_info->allow_visible = TRUE;
+  child_info->navigatable = TRUE;
 
   self->children = g_list_append (self->children, child_info);
   self->children_reversed = g_list_prepend (self->children_reversed, child_info);
@@ -2648,6 +2667,56 @@ hdy_stackable_box_get_cancel_progress (HdyStackableBox *self)
 }
 
 void
+hdy_stackable_box_get_swipe_area (HdyStackableBox        *self,
+                                  HdyNavigationDirection  navigation_direction,
+                                  gboolean                is_drag,
+                                  GdkRectangle           *rect)
+{
+  gint width = gtk_widget_get_allocated_width (GTK_WIDGET (self->container));
+  gint height = gtk_widget_get_allocated_height (GTK_WIDGET (self->container));
+  gdouble progress = 0;
+
+  rect->x = 0;
+  rect->y = 0;
+  rect->width = width;
+  rect->height = height;
+
+  if (!is_drag)
+    return;
+
+  if (self->transition_type == HDY_STACKABLE_BOX_TRANSITION_TYPE_SLIDE)
+    return;
+
+  if (self->child_transition.is_gesture_active ||
+      gtk_progress_tracker_get_state (&self->child_transition.tracker) != GTK_PROGRESS_STATE_AFTER)
+    progress = self->child_transition.progress;
+
+  if (self->orientation == GTK_ORIENTATION_HORIZONTAL) {
+    gboolean is_rtl = gtk_widget_get_direction (GTK_WIDGET (self->container)) == GTK_TEXT_DIR_RTL;
+
+    if (self->transition_type == HDY_STACKABLE_BOX_TRANSITION_TYPE_OVER &&
+         navigation_direction == HDY_NAVIGATION_DIRECTION_FORWARD) {
+      rect->width = MAX (progress * width, HDY_SWIPE_BORDER);
+      rect->x = is_rtl ? 0 : width - rect->width;
+    } else if (self->transition_type == HDY_STACKABLE_BOX_TRANSITION_TYPE_UNDER &&
+               navigation_direction == HDY_NAVIGATION_DIRECTION_BACK) {
+      rect->width = MAX (progress * width, HDY_SWIPE_BORDER);
+      rect->x = is_rtl ? width - rect->width : 0;
+    }
+  } else {
+    if (self->transition_type == HDY_STACKABLE_BOX_TRANSITION_TYPE_OVER &&
+        navigation_direction == HDY_NAVIGATION_DIRECTION_FORWARD) {
+      rect->height = MAX (progress * height, HDY_SWIPE_BORDER);
+      rect->y = height - rect->height;
+    } else if (self->transition_type == HDY_STACKABLE_BOX_TRANSITION_TYPE_UNDER &&
+               navigation_direction == HDY_NAVIGATION_DIRECTION_BACK) {
+      rect->height = MAX (progress * height, HDY_SWIPE_BORDER);
+      rect->y = 0;
+    }
+  }
+}
+
+void
 hdy_stackable_box_switch_child (HdyStackableBox *self,
                                 guint            index,
                                 gint64           duration)
@@ -2659,7 +2728,7 @@ hdy_stackable_box_switch_child (HdyStackableBox *self,
   for (children = self->children; children; children = children->next) {
     child_info = children->data;
 
-    if (!child_info->allow_visible)
+    if (!child_info->navigatable)
       continue;
 
     if (i == index)
@@ -2816,8 +2885,8 @@ hdy_stackable_box_set_child_name (HdyStackableBox *self,
 }
 
 gboolean
-hdy_stackable_box_get_child_allow_visible (HdyStackableBox *self,
-                                           GtkWidget       *widget)
+hdy_stackable_box_get_child_navigatable (HdyStackableBox *self,
+                                         GtkWidget       *widget)
 {
   HdyStackableBoxChildInfo *child_info;
 
@@ -2825,13 +2894,13 @@ hdy_stackable_box_get_child_allow_visible (HdyStackableBox *self,
 
   g_return_val_if_fail (child_info != NULL, FALSE);
 
-  return child_info->allow_visible;
+  return child_info->navigatable;
 }
 
 void
-hdy_stackable_box_set_child_allow_visible (HdyStackableBox *self,
-                                           GtkWidget       *widget,
-                                           gboolean         allow_visible)
+hdy_stackable_box_set_child_navigatable (HdyStackableBox *self,
+                                         GtkWidget       *widget,
+                                         gboolean         navigatable)
 {
   HdyStackableBoxChildInfo *child_info;
 
@@ -2839,9 +2908,9 @@ hdy_stackable_box_set_child_allow_visible (HdyStackableBox *self,
 
   g_return_if_fail (child_info != NULL);
 
-  child_info->allow_visible = allow_visible;
+  child_info->navigatable = navigatable;
 
-  if (!child_info->allow_visible &&
+  if (!child_info->navigatable &&
       hdy_stackable_box_get_visible_child (self) == widget)
     set_visible_child_info (self, NULL, self->transition_type, self->child_transition.duration, TRUE);
 }
@@ -2983,8 +3052,8 @@ hdy_stackable_box_class_init (HdyStackableBoxClass *klass)
   /**
    * HdyStackableBox:can-swipe-back:
    *
-   * Whether or not @self allows switching to the previous child that has
-   * 'allow-visible' child property set to %TRUE via a swipe gesture.
+   * Whether or not the widget allows switching to the previous child that has
+   * 'navigatable' child property set to %TRUE via a swipe gesture.
    *
    * Since: 1.0
    */
@@ -2998,8 +3067,8 @@ hdy_stackable_box_class_init (HdyStackableBoxClass *klass)
   /**
    * HdyStackableBox:can-swipe-forward:
    *
-   * Whether or not @self allows switching to the next child that has
-   * 'allow-visible' child property set to %TRUE via a swipe gesture.
+   * Whether or not the widget allows switching to the next child that has
+   * 'navigatable' child property set to %TRUE via a swipe gesture.
    *
    * Since: 1.0
    */
@@ -3019,13 +3088,6 @@ hdy_stackable_box_class_init (HdyStackableBoxClass *klass)
                          G_PARAM_READWRITE | G_PARAM_EXPLICIT_NOTIFY);
 
   g_object_class_install_properties (object_class, LAST_PROP, props);
-
-  child_props[CHILD_PROP_NAME] =
-    g_param_spec_string ("name",
-                         _("Name"),
-                         _("The name of the child page"),
-                         NULL,
-                         G_PARAM_READWRITE);
 }
 
 HdyStackableBox *

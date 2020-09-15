@@ -22,6 +22,7 @@
 #include "gtkprogresstrackerprivate.h"
 #include "hdy-animation-private.h"
 #include "hdy-cairo-private.h"
+#include "hdy-css-private.h"
 
 /**
  * SECTION:hdy-squeezer
@@ -58,11 +59,13 @@ enum  {
   PROP_TRANSITION_TYPE,
   PROP_TRANSITION_RUNNING,
   PROP_INTERPOLATE_SIZE,
+  PROP_XALIGN,
+  PROP_YALIGN,
 
   /* Overridden properties */
   PROP_ORIENTATION,
 
-  LAST_PROP = PROP_INTERPOLATE_SIZE + 1,
+  LAST_PROP = PROP_YALIGN + 1,
 };
 
 enum {
@@ -107,6 +110,9 @@ struct _HdySqueezer
   HdySqueezerTransitionType active_transition_type;
 
   gboolean interpolate_size;
+
+  gfloat xalign;
+  gfloat yalign;
 
   GtkOrientation orientation;
 };
@@ -473,6 +479,12 @@ hdy_squeezer_get_property (GObject    *object,
   case PROP_INTERPOLATE_SIZE:
     g_value_set_boolean (value, hdy_squeezer_get_interpolate_size (self));
     break;
+  case PROP_XALIGN:
+    g_value_set_float (value, hdy_squeezer_get_xalign (self));
+    break;
+  case PROP_YALIGN:
+    g_value_set_float (value, hdy_squeezer_get_yalign (self));
+    break;
   case PROP_ORIENTATION:
     g_value_set_enum (value, get_orientation (self));
     break;
@@ -502,6 +514,12 @@ hdy_squeezer_set_property (GObject      *object,
     break;
   case PROP_INTERPOLATE_SIZE:
     hdy_squeezer_set_interpolate_size (self, g_value_get_boolean (value));
+    break;
+  case PROP_XALIGN:
+    hdy_squeezer_set_xalign (self, g_value_get_float (value));
+    break;
+  case PROP_YALIGN:
+    hdy_squeezer_set_yalign (self, g_value_get_float (value));
     break;
   case PROP_ORIENTATION:
     set_orientation (self, g_value_get_enum (value));
@@ -672,9 +690,12 @@ hdy_squeezer_draw_crossfade (GtkWidget *widget,
   cairo_paint (cr);
 
   if (self->last_visible_surface != NULL) {
+    gint width_diff = gtk_widget_get_allocated_width (widget) - self->last_visible_surface_allocation.width;
+    gint height_diff = gtk_widget_get_allocated_height (widget) - self->last_visible_surface_allocation.height;
+
     cairo_set_source_surface (cr, self->last_visible_surface,
-                              self->last_visible_surface_allocation.x,
-                              self->last_visible_surface_allocation.y);
+                              width_diff * self->xalign,
+                              height_diff * self->yalign);
     cairo_set_operator (cr, CAIRO_OPERATOR_ADD);
     cairo_paint_with_alpha (cr, MAX (1.0 - progress, 0));
   }
@@ -758,6 +779,8 @@ hdy_squeezer_size_allocate (GtkWidget     *widget,
   gint child_min;
   GList *l;
   GtkAllocation child_allocation;
+
+  hdy_css_size_allocate (widget, allocation);
 
   gtk_widget_set_allocation (widget, allocation);
 
@@ -905,13 +928,15 @@ hdy_squeezer_measure (GtkWidget      *widget,
       self->last_visible_child != NULL) {
     gdouble t = gtk_progress_tracker_get_ease_out_cubic (&self->tracker, FALSE);
     if (orientation == GTK_ORIENTATION_VERTICAL) {
-      *minimum = hdy_lerp (*minimum, self->last_visible_widget_height, t);
-      *natural = hdy_lerp (*natural, self->last_visible_widget_height, t);
+      *minimum = hdy_lerp (self->last_visible_widget_height, *minimum, t);
+      *natural = hdy_lerp (self->last_visible_widget_height, *natural, t);
     } else {
-      *minimum = hdy_lerp (*minimum, self->last_visible_widget_width, t);
-      *natural = hdy_lerp (*natural, self->last_visible_widget_width, t);
+      *minimum = hdy_lerp (self->last_visible_widget_width, *minimum, t);
+      *natural = hdy_lerp (self->last_visible_widget_width, *natural, t);
     }
   }
+
+  hdy_css_measure (widget, orientation, minimum, natural);
 }
 
 static void
@@ -1104,6 +1129,50 @@ hdy_squeezer_class_init (HdySqueezerClass *klass)
                             FALSE,
                             G_PARAM_READWRITE | G_PARAM_EXPLICIT_NOTIFY);
 
+  /**
+   * HdySqueezer:xalign:
+   *
+   * The xalign property determines the horizontal aligment of the children
+   * inside the squeezer's size allocation.
+   * Compare this to #GtkWidget:halign, which determines how the squeezer's size
+   * allocation is positioned in the space available for the squeezer.
+   * The range goes from 0 (start) to 1 (end).
+   *
+   * This will affect the position of children too wide to fit in the squeezer
+   * as they are fading out.
+   *
+   * Since: 1.0
+   */
+  props[PROP_XALIGN] =
+    g_param_spec_float ("xalign",
+                        _("X align"),
+                        _("The horizontal alignment, from 0 (start) to 1 (end)"),
+                        0.0, 1.0,
+                        0.5,
+                        G_PARAM_READWRITE | G_PARAM_EXPLICIT_NOTIFY);
+
+  /**
+   * HdySqueezer:yalign:
+   *
+   * The yalign property determines the vertical aligment of the children inside
+   * the squeezer's size allocation.
+   * Compare this to #GtkWidget:valign, which determines how the squeezer's size
+   * allocation is positioned in the space available for the squeezer.
+   * The range goes from 0 (top) to 1 (bottom).
+   *
+   * This will affect the position of children too tall to fit in the squeezer
+   * as they are fading out.
+   *
+   * Since: 1.0
+   */
+  props[PROP_YALIGN] =
+    g_param_spec_float ("yalign",
+                        _("Y align"),
+                        _("The vertical alignment, from 0 (top) to 1 (bottom)"),
+                        0.0, 1.0,
+                        0.5,
+                        G_PARAM_READWRITE | G_PARAM_EXPLICIT_NOTIFY);
+
   g_object_class_install_properties (object_class, LAST_PROP, props);
 
   child_props[CHILD_PROP_ENABLED] =
@@ -1127,6 +1196,8 @@ hdy_squeezer_init (HdySqueezer *self)
   self->homogeneous = TRUE;
   self->transition_duration = 200;
   self->transition_type = HDY_SQUEEZER_TRANSITION_TYPE_NONE;
+  self->xalign = 0.5;
+  self->yalign = 0.5;
 }
 
 /**
@@ -1416,4 +1487,90 @@ hdy_squeezer_set_child_enabled (HdySqueezer *self,
 
   child_info->enabled = enabled;
   gtk_widget_queue_resize (GTK_WIDGET (self));
+}
+
+/**
+ * hdy_squeezer_get_xalign:
+ * @self: a #HdySqueezer
+ *
+ * Gets the #HdySqueezer:xalign property for @self.
+ *
+ * Returns: the xalign property
+ *
+ * Since: 1.0
+ */
+gfloat
+hdy_squeezer_get_xalign (HdySqueezer *self)
+{
+  g_return_val_if_fail (HDY_IS_SQUEEZER (self), 0.5);
+
+  return self->xalign;
+}
+
+/**
+ * hdy_squeezer_set_xalign:
+ * @self: a #HdySqueezer
+ * @xalign: the new xalign value, between 0 and 1
+ *
+ * Sets the #HdySqueezer:xalign property for @self.
+ *
+ * Since: 1.0
+ */
+void
+hdy_squeezer_set_xalign (HdySqueezer *self,
+                         gfloat       xalign)
+{
+  g_return_if_fail (HDY_IS_SQUEEZER (self));
+
+  xalign = CLAMP (xalign, 0.0, 1.0);
+
+  if (self->xalign == xalign)
+    return;
+
+  self->xalign = xalign;
+  gtk_widget_queue_draw (GTK_WIDGET (self));
+  g_object_notify_by_pspec (G_OBJECT (self), props[PROP_XALIGN]);
+}
+
+/**
+ * hdy_squeezer_get_yalign:
+ * @self: a #HdySqueezer
+ *
+ * Gets the #HdySqueezer:yalign property for @self.
+ *
+ * Returns: the yalign property
+ *
+ * Since: 1.0
+ */
+gfloat
+hdy_squeezer_get_yalign (HdySqueezer *self)
+{
+  g_return_val_if_fail (HDY_IS_SQUEEZER (self), 0.5);
+
+  return self->yalign;
+}
+
+/**
+ * hdy_squeezer_set_yalign:
+ * @self: a #HdySqueezer
+ * @yalign: the new yalign value, between 0 and 1
+ *
+ * Sets the #HdySqueezer:yalign property for @self.
+ *
+ * Since: 1.0
+ */
+void
+hdy_squeezer_set_yalign (HdySqueezer *self,
+                         gfloat       yalign)
+{
+  g_return_if_fail (HDY_IS_SQUEEZER (self));
+
+  yalign = CLAMP (yalign, 0.0, 1.0);
+
+  if (self->yalign == yalign)
+    return;
+
+  self->yalign = yalign;
+  gtk_widget_queue_draw (GTK_WIDGET (self));
+  g_object_notify_by_pspec (G_OBJECT (self), props[PROP_YALIGN]);
 }

@@ -8,7 +8,6 @@ libhandy_resources = gnome.compile_resources(
 )
 
 hdy_public_enum_headers = [
-  'hdy-carousel.h',
   'hdy-deck.h',
   'hdy-header-bar.h',
   'hdy-header-group.h',
@@ -71,6 +70,8 @@ src_headers = [
   'hdy-application-window.h',
   'hdy-avatar.h',
   'hdy-carousel.h',
+  'hdy-carousel-indicator-dots.h',
+  'hdy-carousel-indicator-lines.h',
   'hdy-clamp.h',
   'hdy-combo-row.h',
   'hdy-deck.h',
@@ -93,6 +94,7 @@ src_headers = [
   'hdy-swipe-tracker.h',
   'hdy-swipeable.h',
   'hdy-title-bar.h',
+  'hdy-types.h',
   'hdy-value-object.h',
   'hdy-view-switcher.h',
   'hdy-view-switcher-bar.h',
@@ -120,8 +122,11 @@ src_sources = [
   'hdy-avatar.c',
   'hdy-carousel.c',
   'hdy-carousel-box.c',
+  'hdy-carousel-indicator-dots.c',
+  'hdy-carousel-indicator-lines.c',
   'hdy-clamp.c',
   'hdy-combo-row.c',
+  'hdy-css.c',
   'hdy-deck.c',
   'hdy-enum-value-object.c',
   'hdy-expander-row.c',
@@ -184,6 +189,28 @@ libhandy_deps = [
 libhandy_c_args = [
   '-DG_LOG_DOMAIN="Handy"',
 ]
+
+config_h = configuration_data()
+config_h.set_quoted('GETTEXT_PACKAGE', 'libhandy')
+config_h.set_quoted('LOCALEDIR', get_option('prefix') / get_option('localedir'))
+
+# Symbol visibility
+if target_system == 'windows'
+  config_h.set('DLL_EXPORT', true)
+  config_h.set('_HDY_EXTERN', '__declspec(dllexport) extern')
+  if cc.get_id() != 'msvc'
+    libhandy_c_args += ['-fvisibility=hidden']
+  endif
+else
+  config_h.set('_HDY_EXTERN', '__attribute__((visibility("default"))) extern')
+  libhandy_c_args += ['-fvisibility=hidden']
+endif
+
+configure_file(
+         output: 'config.h',
+  configuration: config_h,
+)
+
 libhandy_link_args = []
 libhandy_symbols_file = 'libhandy.syms'
 

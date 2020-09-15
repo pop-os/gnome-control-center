@@ -408,8 +408,18 @@ static void
 add_preferences_to_model (HdyPreferencesRow *row,
                           GListStore        *model)
 {
+  const gchar *title;
+
   g_assert (HDY_IS_PREFERENCES_ROW (row));
   g_assert (G_IS_LIST_STORE (model));
+
+  if (!gtk_widget_get_visible (GTK_WIDGET (row)))
+    return;
+
+  title = hdy_preferences_row_get_title (row);
+
+  if (!title || !*title)
+    return;
 
   g_list_store_append (model, row);
 }
@@ -431,6 +441,9 @@ hdy_preferences_group_add_preferences_to_model (HdyPreferencesGroup *self,
 
   g_return_if_fail (HDY_IS_PREFERENCES_GROUP (self));
   g_return_if_fail (G_IS_LIST_STORE (model));
+
+  if (!gtk_widget_get_visible (GTK_WIDGET (self)))
+    return;
 
   gtk_container_foreach (GTK_CONTAINER (priv->listbox), (GtkCallback) add_preferences_to_model, model);
 }

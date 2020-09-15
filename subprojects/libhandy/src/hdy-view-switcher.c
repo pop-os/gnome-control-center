@@ -11,6 +11,7 @@
 #include "config.h"
 #include <glib/gi18n-lib.h>
 
+#include "hdy-css-private.h"
 #include "hdy-enums.h"
 #include "hdy-view-switcher.h"
 #include "hdy-view-switcher-button-private.h"
@@ -52,7 +53,6 @@
 enum {
   PROP_0,
   PROP_POLICY,
-  PROP_ICON_SIZE,
   PROP_NARROW_ELLIPSIZE,
   PROP_STACK,
   LAST_PROP,
@@ -69,7 +69,6 @@ struct _HdyViewSwitcher
   guint switch_timer;
 
   HdyViewSwitcherPolicy policy;
-  GtkIconSize icon_size;
   PangoEllipsizeMode narrow_ellipsize;
   GtkStack *stack;
 };
@@ -105,7 +104,7 @@ update_button (HdyViewSwitcher       *self,
 
   g_object_set (G_OBJECT (button),
                 "icon-name", icon_name,
-                "icon-size", self->icon_size,
+                "icon-size", GTK_ICON_SIZE_BUTTON,
                 "label", title,
                 "needs-attention", needs_attention,
                 NULL);
@@ -226,7 +225,6 @@ add_button_for_stack_child (HdyViewSwitcher *self,
   HdyViewSwitcherButton *button = HDY_VIEW_SWITCHER_BUTTON (hdy_view_switcher_button_new ());
 
   g_object_set_data (G_OBJECT (button), "stack-child", stack_child);
-  g_object_bind_property (self, "icon-size", button, "icon-size", G_BINDING_SYNC_CREATE);
   hdy_view_switcher_button_set_narrow_ellipsize (button, self->narrow_ellipsize);
 
   update_button (self, stack_child, button);
@@ -328,9 +326,6 @@ hdy_view_switcher_get_property (GObject    *object,
   case PROP_POLICY:
     g_value_set_enum (value, hdy_view_switcher_get_policy (self));
     break;
-  case PROP_ICON_SIZE:
-    g_value_set_int (value, hdy_view_switcher_get_icon_size (self));
-    break;
   case PROP_NARROW_ELLIPSIZE:
     g_value_set_enum (value, hdy_view_switcher_get_narrow_ellipsize (self));
     break;
@@ -354,9 +349,6 @@ hdy_view_switcher_set_property (GObject      *object,
   switch (prop_id) {
   case PROP_POLICY:
     hdy_view_switcher_set_policy (self, g_value_get_enum (value));
-    break;
-  case PROP_ICON_SIZE:
-    hdy_view_switcher_set_icon_size (self, g_value_get_int (value));
     break;
   case PROP_NARROW_ELLIPSIZE:
     hdy_view_switcher_set_narrow_ellipsize (self, g_value_get_enum (value));
@@ -437,6 +429,8 @@ hdy_view_switcher_get_preferred_width (GtkWidget *widget,
     *nat = max_h_nat * n_children;
     break;
   }
+
+  hdy_css_measure (widget, GTK_ORIENTATION_HORIZONTAL, min, nat);
 }
 
 static gint
@@ -472,7 +466,11 @@ hdy_view_switcher_size_allocate (GtkWidget     *widget,
   HdyViewSwitcher *self = HDY_VIEW_SWITCHER (widget);
 
   g_autoptr (GList) children = gtk_container_get_children (GTK_CONTAINER (self->box));
-  GtkOrientation orientation = is_narrow (HDY_VIEW_SWITCHER (widget), allocation->width) ?
+  GtkOrientation orientation;
+
+  hdy_css_size_allocate (widget, allocation);
+
+  orientation = is_narrow (HDY_VIEW_SWITCHER (widget), allocation->width) ?
     GTK_ORIENTATION_VERTICAL :
     GTK_ORIENTATION_HORIZONTAL;
 
@@ -512,21 +510,6 @@ hdy_view_switcher_class_init (HdyViewSwitcherClass *klass)
                        _("The policy to determine the mode to use"),
                        HDY_TYPE_VIEW_SWITCHER_POLICY, HDY_VIEW_SWITCHER_POLICY_AUTO,
                        G_PARAM_EXPLICIT_NOTIFY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
-
-  /**
-   * HdyViewSwitcher:icon-size:
-   *
-   * Use the "icon-size" property to hint the icons to use, you almost certainly
-   * want to leave this as %GTK_ICON_SIZE_BUTTON.
-   *
-   * Since: 0.0.10
-   */
-  props[PROP_ICON_SIZE] =
-    g_param_spec_int ("icon-size",
-                      _("Icon Size"),
-                      _("Symbolic size to use for named icon"),
-                      0, G_MAXINT, GTK_ICON_SIZE_BUTTON,
-                      G_PARAM_EXPLICIT_NOTIFY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
 
   /**
    * HdyViewSwitcher:narrow-ellipsize:
@@ -576,7 +559,6 @@ hdy_view_switcher_init (HdyViewSwitcher *self)
   gtk_box_set_homogeneous (GTK_BOX (self->box), TRUE);
   gtk_container_add (GTK_CONTAINER (self), self->box);
 
-  self->icon_size = GTK_ICON_SIZE_BUTTON;
   self->buttons = g_hash_table_new (g_direct_hash, g_direct_equal);
 
   gtk_widget_set_valign (GTK_WIDGET (self), GTK_ALIGN_FILL);
@@ -641,49 +623,6 @@ hdy_view_switcher_set_policy (HdyViewSwitcher       *self,
   g_object_notify_by_pspec (G_OBJECT (self), props[PROP_POLICY]);
 
   gtk_widget_queue_resize (GTK_WIDGET (self));
-}
-
-/**
- * hdy_view_switcher_get_icon_size:
- * @self: a #HdyViewSwitcher
- *
- * Get the icon size of the images used in the #HdyViewSwitcher.
- *
- * See: hdy_view_switcher_set_icon_size()
- *
- * Returns: the icon size of the images
- *
- * Since: 0.0.10
- */
-GtkIconSize
-hdy_view_switcher_get_icon_size (HdyViewSwitcher *self)
-{
-  g_return_val_if_fail (HDY_IS_VIEW_SWITCHER (self), GTK_ICON_SIZE_BUTTON);
-
-  return self->icon_size;
-}
-
-/**
- * hdy_view_switcher_set_icon_size:
- * @self: a #HdyViewSwitcher
- * @icon_size: the new icon size
- *
- * Change the icon size hint for the icons in a #HdyViewSwitcher.
- *
- * Since: 0.0.10
- */
-void
-hdy_view_switcher_set_icon_size (HdyViewSwitcher *self,
-                                 GtkIconSize      icon_size)
-{
-  g_return_if_fail (HDY_IS_VIEW_SWITCHER (self));
-
-  if (self->icon_size == icon_size)
-    return;
-
-  self->icon_size = icon_size;
-
-  g_object_notify_by_pspec (G_OBJECT (self), props[PROP_ICON_SIZE]);
 }
 
 /**

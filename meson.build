@@ -1,6 +1,6 @@
 project(
   'gnome-control-center', 'c',
-        version : '3.37.90',
+        version : '3.38.0',
         license : 'GPL2+',
   meson_version : '>= 0.51.0'
 )
@@ -30,8 +30,8 @@ enable_tracing = get_option('tracing')
 
 config_h = configuration_data()
 
-py3 = import('python3')
-python = py3.find_python()
+py = import('python')
+python = py.find_installation('python3')
 
 config_h.set_quoted('TEST_NM_PYTHON', python.path())
 
@@ -99,7 +99,7 @@ libgvc = subproject(
 )
 libgvc_dep = libgvc.get_variable('libgvc_dep')
 
-libhandy_dep = dependency('libhandy-1', version: '>= 0.84.0', required: false)
+libhandy_dep = dependency('libhandy-1', version: '>= 0.90.0', required: false)
 if not libhandy_dep.found()
   libhandy = subproject(
     'libhandy',
