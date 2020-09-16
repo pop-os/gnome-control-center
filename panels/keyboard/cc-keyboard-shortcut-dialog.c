@@ -465,6 +465,8 @@ reset_all_clicked_cb (CcKeyboardShortcutDialog *self)
     }
 
   gtk_widget_destroy (dialog);
+
+  update_modified_counts (self);
 }
 
 static void
