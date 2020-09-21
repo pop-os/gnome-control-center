@@ -81,7 +81,7 @@ static const XkbModifier LV3_MODIFIER = {
     { NC_("keyboard key", "Right Ctrl"),  "lv3:switch" },
     { NULL,                               NULL }
   },
-  "lv3:ralt_switch",
+  NULL,
 };
 
 static const XkbModifier COMPOSE_MODIFIER = {
