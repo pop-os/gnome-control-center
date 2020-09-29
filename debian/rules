@@ -4,6 +4,12 @@ export DEB_BUILD_MAINT_OPTIONS = hardening=+all
 export DEB_CPPFLAGS_MAINT_APPEND = -DSSHD_SERVICE=\"ssh.service\"
 export DEB_LDFLAGS_MAINT_APPEND = -Wl,-O1 -Wl,-z,defs -Wl,--as-needed
 
+ifneq (,$(filter $(DEB_HOST_ARCH), amd64 arm64 armel armhf i386 mips mipsel mips64el ppc64el s390x hppa powerpc powerpcspe ppc64))
+MALCONTENT := -Dmalcontent=true
+else
+MALCONTENT := -Dmalcontent=false
+endif
+
 %:
 	dh $@ --with gnome
 
@@ -12,7 +18,8 @@ override_dh_auto_configure:
 	dh_auto_configure -- \
 		-Dprivileged_group=sudo \
 		-Dgnome_session_libexecdir=/usr/lib/gnome-session \
-		-Ddocumentation=true
+		-Ddocumentation=true \
+		$(MALCONTENT)
 
 override_dh_missing:
 	dh_missing --fail-missing
