@@ -45,7 +45,7 @@ Index: gnome-control-center/panels/sound/cc-sound-panel.c
  }
  
  static void
-@@ -104,6 +109,7 @@ output_device_changed_cb (CcSoundPanel *
+@@ -107,6 +112,7 @@ output_device_changed_cb (CcSoundPanel *
      stream = gvc_mixer_control_get_stream_from_device (self->mixer_control, device);
  
    cc_volume_slider_set_stream (self->output_volume_slider, stream, CC_STREAM_TYPE_OUTPUT);
@@ -53,7 +53,7 @@ Index: gnome-control-center/panels/sound/cc-sound-panel.c
    cc_level_bar_set_stream (self->output_level_bar, stream, CC_STREAM_TYPE_OUTPUT);
  
    if (stream != NULL)
-@@ -232,6 +238,9 @@ cc_sound_panel_class_init (CcSoundPanelC
+@@ -210,6 +216,9 @@ cc_sound_panel_class_init (CcSoundPanelC
    gtk_widget_class_bind_template_child (widget_class, CcSoundPanel, output_profile_combo_box);
    gtk_widget_class_bind_template_child (widget_class, CcSoundPanel, output_profile_row);
    gtk_widget_class_bind_template_child (widget_class, CcSoundPanel, output_volume_slider);
@@ -63,7 +63,7 @@ Index: gnome-control-center/panels/sound/cc-sound-panel.c
    gtk_widget_class_bind_template_child (widget_class, CcSoundPanel, stream_list_box);
    gtk_widget_class_bind_template_child (widget_class, CcSoundPanel, subwoofer_row);
    gtk_widget_class_bind_template_child (widget_class, CcSoundPanel, subwoofer_slider);
-@@ -276,12 +285,23 @@ cc_sound_panel_init (CcSoundPanel *self)
+@@ -254,12 +263,23 @@ cc_sound_panel_init (CcSoundPanel *self)
                             G_CONNECT_SWAPPED);
    allow_amplified_changed_cb (self);
  
