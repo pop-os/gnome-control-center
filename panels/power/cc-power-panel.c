@@ -24,6 +24,7 @@
 #include <libupower-glib/upower.h>
 #include <glib/gi18n.h>
 #include <gnome-settings-daemon/gsd-enums.h>
+#include <handy.h>
 
 #ifdef HAVE_NETWORK_MANAGER
 #include <NetworkManager.h>
@@ -33,6 +34,7 @@
 #include "list-box-helper.h"
 #include "cc-battery-row.h"
 #include "cc-brightness-scale.h"
+#include "cc-charge-threshold-dialog.h"
 #include "cc-power-panel.h"
 #include "cc-power-resources.h"
 #include "cc-util.h"
@@ -102,6 +104,10 @@ struct _CcPowerPanel
   CcBrightnessScale *brightness_scale;
   GtkWidget     *kbd_brightness_row;
   CcBrightnessScale *kbd_brightness_scale;
+  S76PowerDaemon *power_proxy;
+  GtkWidget* threshold_row;
+  GtkWidget* threshold_label;
+  ChargeProfile  charge_profile;
 
   GtkWidget     *automatic_suspend_row;
   GtkWidget     *automatic_suspend_label;
@@ -370,8 +376,10 @@ up_client_changed (CcPowerPanel *self)
   g_autofree gchar *s = NULL;
 
   battery_children = gtk_container_get_children (GTK_CONTAINER (self->battery_list));
-  for (l = battery_children; l != NULL; l = l->next)
-    gtk_container_remove (GTK_CONTAINER (self->battery_list), l->data);
+  for (l = battery_children; l != NULL; l = l->next) {
+    if (CC_IS_BATTERY_ROW (l->data))
+      gtk_container_remove (GTK_CONTAINER (self->battery_list), l->data);
+  }
   gtk_widget_hide (self->battery_section);
 
   device_children = gtk_container_get_children (GTK_CONTAINER (self->device_list));
@@ -1783,12 +1791,20 @@ add_general_section (CcPowerPanel *self)
 static gint
 battery_sort_func (GtkListBoxRow *a, GtkListBoxRow *b, gpointer data)
 {
-  CcBatteryRow *row_a = CC_BATTERY_ROW (a);
-  CcBatteryRow *row_b = CC_BATTERY_ROW (b);
+  CcBatteryRow *row_a;
+  CcBatteryRow *row_b;
   gboolean a_primary;
   gboolean b_primary;
   UpDeviceKind a_kind;
   UpDeviceKind b_kind;
+
+  if (!CC_IS_BATTERY_ROW (a))
+    return 1;
+  else if (!CC_IS_BATTERY_ROW (b))
+    return -1;
+
+  row_a = CC_BATTERY_ROW (a);
+  row_b = CC_BATTERY_ROW (b);
 
   a_primary = cc_battery_row_get_primary(row_a);
   b_primary = cc_battery_row_get_primary(row_b);
@@ -1802,6 +1818,68 @@ battery_sort_func (GtkListBoxRow *a, GtkListBoxRow *b, gpointer data)
   b_kind = cc_battery_row_get_kind(row_b);
 
   return a_kind - b_kind;
+}
+
+static void
+charge_thresholds_ready(GObject *source_object,
+                        GAsyncResult *res,
+                        gpointer user_data) {
+  GVariant *thresholds = NULL;
+  g_autoptr(GError) error = NULL;
+  CcPowerPanel *self = CC_POWER_PANEL (user_data);
+  guchar start, end;
+
+  s76_power_daemon_call_get_charge_thresholds_finish (self->power_proxy, &thresholds, res, &error);
+  if (!thresholds) {
+    if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED))
+      g_warning ("Failed to call get-charge-thresholds: %s", error->message);
+    return;
+  }
+
+  gtk_widget_show_all (self->threshold_row);
+
+  g_variant_get(thresholds, "(yy)", &start, &end);
+  self->charge_profile = charge_profile_from_thresholds (start, end);
+  char *title = charge_profile_title_from_thresholds (start, end);
+  gtk_label_set_label (GTK_LABEL (self->threshold_label), title);
+  g_free (title);
+}
+
+static void
+load_charge_thresholds (CcPowerPanel *self)
+{
+  s76_power_daemon_call_get_charge_thresholds(self->power_proxy, cc_panel_get_cancellable (CC_PANEL (self)), charge_thresholds_ready, self);
+}
+
+static void
+power_proxy_ready(GObject *source_object,
+                           GAsyncResult *res,
+                           gpointer user_data) {
+  CcPowerPanel *self = CC_POWER_PANEL (user_data);
+  S76PowerDaemon *proxy;
+  g_autoptr(GError) error = NULL;
+
+  proxy = s76_power_daemon_proxy_new_for_bus_finish (res, &error);
+  if (!proxy) {
+    if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED))
+      g_warning ("Failed to get system76-power proxy: %s", error->message);
+    return;
+  }
+
+  self->power_proxy = proxy;
+
+  load_charge_thresholds (self);
+}
+
+static void
+battery_row_activated (CcPowerPanel *self)
+{
+  GtkWindow *toplevel;
+  CcChargeThresholdDialog *dialog = cc_charge_threshold_dialog_new (self->power_proxy, self->charge_profile);
+  toplevel = GTK_WINDOW (gtk_widget_get_toplevel (GTK_WIDGET (self)));
+  gtk_window_set_transient_for (GTK_WINDOW (dialog), toplevel);
+  g_signal_connect_object (G_OBJECT (dialog), "destroy", G_CALLBACK (load_charge_thresholds), self, G_CONNECT_SWAPPED);
+  gtk_widget_show (GTK_WIDGET (dialog));
 }
 
 static void
@@ -1848,6 +1926,22 @@ add_battery_section (CcPowerPanel *self)
   gtk_frame_set_shadow_type (GTK_FRAME (frame), GTK_SHADOW_IN);
   gtk_container_add (GTK_CONTAINER (frame), widget);
   gtk_box_pack_start (GTK_BOX (box), frame, FALSE, TRUE, 0);
+
+  g_signal_connect_object(self->battery_list, "row-activated", G_CALLBACK (battery_row_activated), self, G_CONNECT_SWAPPED);
+
+  // TODO add HdyActionRow
+  GtkWidget* image = gtk_image_new_from_icon_name ("go-next-symbolic", GTK_ICON_SIZE_BUTTON);
+  gtk_style_context_add_class (gtk_widget_get_style_context (image), "dim-label");
+  GtkWidget* threshold_row = hdy_action_row_new ();
+  hdy_preferences_row_set_title (HDY_PREFERENCES_ROW (threshold_row), "Charge Threshold");
+  hdy_action_row_set_subtitle (HDY_ACTION_ROW (threshold_row), "Adjust threshold to extend battery lifespan.");
+  gtk_list_box_row_set_activatable (GTK_LIST_BOX_ROW (threshold_row), TRUE);
+  GtkWidget* threshold_label = gtk_label_new (NULL);
+  gtk_container_add (GTK_CONTAINER (threshold_row), threshold_label);
+  gtk_container_add (GTK_CONTAINER (threshold_row), image);
+  gtk_container_add (GTK_CONTAINER (self->battery_list), threshold_row);
+  self->threshold_row = threshold_row;
+  self->threshold_label = threshold_label;
 }
 
 static void
@@ -1944,4 +2038,14 @@ cc_power_panel_init (CcPowerPanel *self)
 
   self->focus_adjustment = gtk_scrolled_window_get_vadjustment (GTK_SCROLLED_WINDOW (self->main_scroll));
   gtk_container_set_focus_vadjustment (GTK_CONTAINER (self->main_box), self->focus_adjustment);
+
+  s76_power_daemon_proxy_new_for_bus (
+		  G_BUS_TYPE_SYSTEM,
+		  G_DBUS_PROXY_FLAGS_NONE,
+		  "com.system76.PowerDaemon",
+		  "/com/system76/PowerDaemon",
+		  cc_panel_get_cancellable (CC_PANEL (self)),
+		  power_proxy_ready,
+		  self
+  );
 }
