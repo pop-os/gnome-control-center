@@ -1,5 +1,5 @@
 project('gvc', 'c',
-  meson_version: '>= 0.38.0',
+  meson_version: '>= 0.42.0',
   default_options: ['static=true']
 )
 
@@ -27,6 +27,10 @@ libgvc_gir_headers = [
   'gvc-mixer-ui-device.h'
 ]
 
+libgvc_enums = gnome.mkenums_simple('gvc-enum-types',
+  sources: libgvc_gir_headers
+)
+
 libgvc_gir_sources = [
   'gvc-channel-map.c',
   'gvc-mixer-card.c',
@@ -51,7 +55,7 @@ libgvc_no_gir_sources = [
 libgvc_deps = [
   dependency('gio-2.0'),
   dependency('gobject-2.0'),
-  dependency('libpulse', version: '>= 2.0'),
+  dependency('libpulse', version: '>= 12.99.3'),
   dependency('libpulse-mainloop-glib')
 ]
 
@@ -75,7 +79,7 @@ endif
 
 if enable_static
   libgvc_static = static_library('gvc',
-    sources: libgvc_gir_sources + libgvc_no_gir_sources,
+    sources: libgvc_gir_sources + libgvc_no_gir_sources + libgvc_enums,
     dependencies: libgvc_deps,
     c_args: c_args
   )
@@ -87,7 +91,7 @@ else
   endif
 
   libgvc_shared = shared_library('gvc',
-    sources: libgvc_gir_sources + libgvc_no_gir_sources,
+    sources: libgvc_gir_sources + libgvc_no_gir_sources + libgvc_enums,
     dependencies: libgvc_deps,
     c_args: c_args,
     install_dir: pkglibdir,
@@ -101,7 +105,7 @@ if enable_introspection
   assert(pkgdatadir != '', 'Installing introspection, but pkgdatadir is unset!')
 
   libgvc_gir = gnome.generate_gir(libgvc,
-    sources: libgvc_gir_sources + libgvc_gir_headers,
+    sources: libgvc_gir_sources + libgvc_gir_headers + libgvc_enums,
     nsversion: '1.0',
     namespace: 'Gvc',
     includes: ['Gio-2.0', 'GObject-2.0'],
