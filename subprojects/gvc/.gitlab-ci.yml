@@ -5,7 +5,9 @@ build-fedora:
   image: fedora:latest
   stage: test
   before_script:
-    - dnf install -y redhat-rpm-config gcc make pulseaudio-libs-devel alsa-lib-devel gtk3-devel
+    - dnf install -y redhat-rpm-config gcc meson pulseaudio-libs-devel alsa-lib-devel gtk3-devel
   script:
-    - make -f Makefile.tests
+    - cd .gitlab-ci
+    - meson _build
+    - ninja -C _build
 
