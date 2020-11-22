@@ -64,6 +64,14 @@ typedef struct
         gboolean available;
 } GvcMixerStreamPort;
 
+typedef enum
+{
+        GVC_STREAM_STATE_INVALID,
+        GVC_STREAM_STATE_RUNNING,
+        GVC_STREAM_STATE_IDLE,
+        GVC_STREAM_STATE_SUSPENDED
+} GvcMixerStreamState;
+
 GType               gvc_mixer_stream_port_get_type   (void) G_GNUC_CONST;
 GType               gvc_mixer_stream_get_type        (void) G_GNUC_CONST;
 
@@ -95,6 +103,7 @@ const char *        gvc_mixer_stream_get_application_id (GvcMixerStream *stream)
 gboolean            gvc_mixer_stream_is_event_stream (GvcMixerStream *stream);
 gboolean            gvc_mixer_stream_is_virtual      (GvcMixerStream *stream);
 guint               gvc_mixer_stream_get_card_index  (GvcMixerStream *stream);
+GvcMixerStreamState gvc_mixer_stream_get_state       (GvcMixerStream *stream);
 
 /* private */
 gboolean            gvc_mixer_stream_set_volume      (GvcMixerStream *stream,
@@ -129,6 +138,8 @@ gboolean            gvc_mixer_stream_set_ports       (GvcMixerStream *stream,
                                                       GList          *ports);
 gboolean            gvc_mixer_stream_set_card_index  (GvcMixerStream *stream,
                                                       guint           card_index);
+gboolean            gvc_mixer_stream_set_state       (GvcMixerStream      *stream,
+                                                      GvcMixerStreamState  state);
 
 G_END_DECLS
 

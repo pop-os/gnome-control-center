@@ -32,6 +32,7 @@
 #include "gvc-mixer-stream.h"
 #include "gvc-mixer-stream-private.h"
 #include "gvc-channel-map-private.h"
+#include "gvc-enum-types.h"
 
 static guint32 stream_serial = 1;
 
@@ -57,6 +58,7 @@ struct GvcMixerStreamPrivate
         char          *port;
         char          *human_port;
         GList         *ports;
+        GvcMixerStreamState state;
 };
 
 enum
@@ -80,6 +82,7 @@ enum
         PROP_IS_VIRTUAL,
         PROP_CARD_INDEX,
         PROP_PORT,
+        PROP_STATE,
 };
 
 static void     gvc_mixer_stream_finalize   (GObject            *object);
@@ -580,6 +583,27 @@ gvc_mixer_stream_get_ports (GvcMixerStream *stream)
         return stream->priv->ports;
 }
 
+gboolean
+gvc_mixer_stream_set_state (GvcMixerStream      *stream,
+                            GvcMixerStreamState  state)
+{
+        g_return_val_if_fail (GVC_IS_MIXER_STREAM (stream), FALSE);
+
+        if (stream->priv->state != state) {
+                stream->priv->state = state;
+                g_object_notify (G_OBJECT (stream), "state");
+        }
+
+        return TRUE;
+}
+
+GvcMixerStreamState
+gvc_mixer_stream_get_state (GvcMixerStream      *stream)
+{
+        g_return_val_if_fail (GVC_IS_MIXER_STREAM (stream), GVC_STREAM_STATE_INVALID);
+        return stream->priv->state;
+}
+
 static int
 sort_ports (GvcMixerStreamPort *a,
             GvcMixerStreamPort *b)
@@ -686,6 +710,9 @@ gvc_mixer_stream_set_property (GObject       *object,
         case PROP_PORT:
                 gvc_mixer_stream_set_port (self, g_value_get_string (value));
                 break;
+        case PROP_STATE:
+                gvc_mixer_stream_set_state (self, g_value_get_enum (value));
+                break;
         case PROP_CARD_INDEX:
                 self->priv->card_index = g_value_get_long (value);
                 break;
@@ -756,6 +783,9 @@ gvc_mixer_stream_get_property (GObject     *object,
                 break;
         case PROP_PORT:
                 g_value_set_string (value, self->priv->port);
+                break;
+        case PROP_STATE:
+                g_value_set_enum (value, self->priv->state);
                 break;
         case PROP_CARD_INDEX:
                 g_value_set_long (value, self->priv->card_index);
@@ -986,6 +1016,14 @@ gvc_mixer_stream_class_init (GvcMixerStreamClass *klass)
                                                               "The name of the current port for this stream",
                                                               NULL,
                                                               G_PARAM_READWRITE));
+        g_object_class_install_property (gobject_class,
+                                         PROP_STATE,
+                                         g_param_spec_enum ("state",
+                                                            "State",
+                                                            "The current state of this stream",
+                                                            GVC_TYPE_MIXER_STREAM_STATE,
+                                                            GVC_STREAM_STATE_INVALID,
+                                                            G_PARAM_READWRITE));
         g_object_class_install_property (gobject_class,
                                          PROP_CARD_INDEX,
                                          g_param_spec_long ("card-index",
