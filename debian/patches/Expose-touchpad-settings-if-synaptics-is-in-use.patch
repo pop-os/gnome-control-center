@@ -1,4 +1,3 @@
-From 81899262bee17c66dc993065fd77307f00e0b265 Mon Sep 17 00:00:00 2001
 From: Daniel van Vugt <daniel.van.vugt@canonical.com>
 Date: Fri, 16 Mar 2018 13:53:10 -0400
 Subject: [PATCH 01/22] Expose touchpad settings if synaptics is in use
@@ -20,11 +19,11 @@ https://gitlab.gnome.org/GNOME/mutter/merge_requests/37
  panels/mouse/cc-mouse-panel.c       | 16 +++++++++-------
  2 files changed, 16 insertions(+), 7 deletions(-)
 
-Index: gnome-control-center/panels/mouse/cc-mouse-caps-helper.c
-===================================================================
---- gnome-control-center.orig/panels/mouse/cc-mouse-caps-helper.c
-+++ gnome-control-center/panels/mouse/cc-mouse-caps-helper.c
-@@ -38,6 +38,13 @@ touchpad_check_capabilities_x11 (gboolea
+diff --git a/panels/mouse/cc-mouse-caps-helper.c b/panels/mouse/cc-mouse-caps-helper.c
+index 69546b2..39534b9 100644
+--- a/panels/mouse/cc-mouse-caps-helper.c
++++ b/panels/mouse/cc-mouse-caps-helper.c
+@@ -38,6 +38,13 @@ touchpad_check_capabilities_x11 (gboolean *have_two_finger_scrolling,
  	unsigned long nitems, bytes_after;
  	unsigned char *data;
  
@@ -38,10 +37,10 @@ Index: gnome-control-center/panels/mouse/cc-mouse-caps-helper.c
          gdisplay = gdk_display_get_default ();
          display = GDK_DISPLAY_XDISPLAY (gdk_display_get_default ());
  	prop_scroll_methods = XInternAtom (display, "libinput Scroll Methods Available", False);
-Index: gnome-control-center/panels/mouse/cc-mouse-panel.c
-===================================================================
---- gnome-control-center.orig/panels/mouse/cc-mouse-panel.c
-+++ gnome-control-center/panels/mouse/cc-mouse-panel.c
+diff --git a/panels/mouse/cc-mouse-panel.c b/panels/mouse/cc-mouse-panel.c
+index a7f018b..08304bf 100644
+--- a/panels/mouse/cc-mouse-panel.c
++++ b/panels/mouse/cc-mouse-panel.c
 @@ -68,7 +68,6 @@ struct _CcMousePanel
    gboolean           have_mouse;
    gboolean           have_touchpad;
@@ -50,7 +49,7 @@ Index: gnome-control-center/panels/mouse/cc-mouse-panel.c
  
    gboolean           left_handed;
    GtkGesture        *left_gesture;
-@@ -86,7 +85,7 @@ setup_touchpad_options (CcMousePanel *se
+@@ -86,7 +85,7 @@ setup_touchpad_options (CcMousePanel *self)
    gboolean have_edge_scrolling;
    gboolean have_tap_to_click;
  
