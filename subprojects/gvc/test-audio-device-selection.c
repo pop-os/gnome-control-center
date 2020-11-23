@@ -8,7 +8,7 @@
 
 typedef struct {
 	GvcHeadsetPortChoice choice;
-	gchar *name;
+	const char *name;
 } AudioSelectionChoice;
 
 static AudioSelectionChoice audio_selection_choices[] = {
@@ -24,7 +24,7 @@ audio_selection_needed (GvcMixerControl      *volume,
 			GvcHeadsetPortChoice  choices,
 			gpointer              user_data)
 {
-	char *args[G_N_ELEMENTS (audio_selection_choices) + 1];
+	const char *args[G_N_ELEMENTS (audio_selection_choices) + 1];
 	guint i, n;
 	int response = -1;
 
@@ -51,7 +51,7 @@ audio_selection_needed (GvcMixerControl      *volume,
 		g_print ("What is your choice?\n");
 		if (scanf ("%d", &res) == 1 &&
 		    res > 0 &&
-		    res < g_strv_length (args)) {
+		    res < (int) g_strv_length ((char **)  args)) {
 			response = res;
 			break;
 		}

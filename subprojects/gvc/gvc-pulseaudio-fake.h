@@ -21,14 +21,10 @@
 #ifndef __GVC_PULSEAUDIO_FAKE_H
 #define __GVC_PULSEAUDIO_FAKE_H
 
-#ifdef WITH_INTROSPECTION
-
 #ifndef PA_API_VERSION
 #define pa_channel_position_t int
 #define pa_volume_t guint32
 #define pa_context gpointer
 #endif /* PA_API_VERSION */
-
-#endif /* WITH_INTROSPECTION */
 
 #endif /* __GVC_PULSEAUDIO_FAKE_H */
