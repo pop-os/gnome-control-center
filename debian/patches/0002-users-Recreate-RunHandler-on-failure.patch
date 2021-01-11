@@ -1,0 +1,46 @@
+From b6adea6686b80ac8b596d5e37d2040a8ac80c651 Mon Sep 17 00:00:00 2001
+From: Ian Douglas Scott <idscott@system76.com>
+Date: Mon, 11 Jan 2021 13:27:15 -0800
+Subject: [PATCH] users: Recreate RunHandler on failure
+
+Workaround for buggy behavior in `run-passwd.c`, which is generally kind
+of a mess.
+---
+ panels/user-accounts/cc-password-dialog.c | 15 +++++++++++++++
+ 1 file changed, 15 insertions(+)
+
+diff --git a/panels/user-accounts/cc-password-dialog.c b/panels/user-accounts/cc-password-dialog.c
+index b199999c0..e803ed152 100644
+--- a/panels/user-accounts/cc-password-dialog.c
++++ b/panels/user-accounts/cc-password-dialog.c
+@@ -38,6 +38,13 @@
+ 
+ #define PASSWORD_CHECK_TIMEOUT 600
+ 
++static void
++auth_cb (PasswdHandler    *handler,
++         GError           *error,
++         CcPasswordDialog *self);
++static void
++update_sensitivity (CcPasswordDialog *self);
++
+ struct _CcPasswordDialog
+ {
+         GtkDialog           parent_instance;
+@@ -150,6 +157,14 @@ password_changed_cb (PasswdHandler    *handler,
+                                                   "%s", secondary_text);
+         gtk_dialog_run (GTK_DIALOG (dialog));
+         gtk_widget_destroy (dialog);
++
++        passwd_destroy (self->passwd_handler);
++        self->passwd_handler = passwd_init ();
++        self->old_password_ok = FALSE;
++        clear_entry_validation_error (self->old_password_entry);
++        update_sensitivity (self);
++        const gchar *text = gtk_entry_get_text (self->old_password_entry);
++        passwd_authenticate (self->passwd_handler, text, (PasswdCallback)auth_cb, self);
+ }
+ 
+ static void
+-- 
+2.27.0
