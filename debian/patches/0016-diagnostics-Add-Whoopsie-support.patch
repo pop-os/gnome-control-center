@@ -74,7 +74,7 @@ Index: gnome-control-center/panels/diagnostics/cc-diagnostics-panel.c
  };
  
  CC_PANEL_REGISTER (CcDiagnosticsPanel, cc_diagnostics_panel)
-@@ -71,9 +82,85 @@ abrt_vanished_cb (GDBusConnection *conne
+@@ -71,9 +82,82 @@ abrt_vanished_cb (GDBusConnection *conne
                    gpointer         user_data)
  {
    g_debug ("ABRT vanished");
@@ -143,13 +143,10 @@ Index: gnome-control-center/panels/diagnostics/cc-diagnostics-panel.c
 +{
 +  const gchar *id = "never";
 +
-+  if (whoopsie_preferences_get_report_crashes (self->whoopsie))
-+    {
-+      if (whoopsie_preferences_get_automatically_report_crashes (self->whoopsie))
-+        id = "auto";
-+      else
-+        id = "manual";
-+    }
++  if (whoopsie_preferences_get_automatically_report_crashes (self->whoopsie))
++    id = "auto";
++  else if (whoopsie_preferences_get_report_crashes (self->whoopsie))
++    id = "manual";
 +
 +  g_signal_handlers_block_by_func (self->whoopsie_combo, on_whoopsie_combo_changed_cb, self);
 +  gtk_combo_box_set_active_id (GTK_COMBO_BOX (self->whoopsie_combo), id);
@@ -160,7 +157,7 @@ Index: gnome-control-center/panels/diagnostics/cc-diagnostics-panel.c
  void
  cc_diagnostics_panel_static_init_func (void)
  {
-@@ -85,7 +172,9 @@ cc_diagnostics_panel_static_init_func (v
+@@ -85,7 +169,9 @@ cc_diagnostics_panel_static_init_func (v
                      NULL,
                      NULL);
  
@@ -170,7 +167,7 @@ Index: gnome-control-center/panels/diagnostics/cc-diagnostics-panel.c
  }
  
  static void
-@@ -110,7 +199,13 @@ cc_diagnostics_panel_class_init (CcDiagn
+@@ -110,7 +196,13 @@ cc_diagnostics_panel_class_init (CcDiagn
  
    gtk_widget_class_bind_template_child (widget_class, CcDiagnosticsPanel, diagnostics_explanation_label);
    gtk_widget_class_bind_template_child (widget_class, CcDiagnosticsPanel, diagnostics_list_box);
@@ -184,7 +181,7 @@ Index: gnome-control-center/panels/diagnostics/cc-diagnostics-panel.c
  }
  
  static void
-@@ -120,6 +215,7 @@ cc_diagnostics_panel_init (CcDiagnostics
+@@ -120,6 +212,7 @@ cc_diagnostics_panel_init (CcDiagnostics
    g_autofree gchar *url = NULL;
    g_autofree gchar *msg = NULL;
    g_autofree gchar *link = NULL;
@@ -192,7 +189,7 @@ Index: gnome-control-center/panels/diagnostics/cc-diagnostics-panel.c
  
    g_resources_register (cc_diagnostics_get_resource ());
  
-@@ -135,6 +231,26 @@ cc_diagnostics_panel_init (CcDiagnostics
+@@ -135,6 +228,26 @@ cc_diagnostics_panel_init (CcDiagnostics
                     self->abrt_switch, "active",
                     G_SETTINGS_BIND_DEFAULT);
  
