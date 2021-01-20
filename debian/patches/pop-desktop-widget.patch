@@ -1,0 +1,146 @@
+Index: gnome-control-center/panels/background/meson.build
+===================================================================
+--- gnome-control-center.orig/panels/background/meson.build
++++ gnome-control-center/panels/background/meson.build
+@@ -95,7 +95,7 @@ deps = common_deps + [
+   libxml_dep,
+   dependency('cairo-gobject'),
+   dependency('grilo-0.3', version: '>= 0.3.0'),
+-  dependency('pop_theme_switcher')
++  dependency('pop_desktop_widget')
+ ]
+ 
+ cflags += [
+Index: gnome-control-center/panels/background/cc-background-panel.c
+===================================================================
+--- gnome-control-center.orig/panels/background/cc-background-panel.c
++++ gnome-control-center/panels/background/cc-background-panel.c
+@@ -24,7 +24,7 @@
+ #include <glib.h>
+ #include <glib/gi18n-lib.h>
+ #include <glib/gstdio.h>
+-#include "pop_theme_switcher.h"
++#include "pop_desktop_widget.h"
+ 
+ #include <gdesktop-enums.h>
+ 
+@@ -52,7 +52,7 @@ struct _CcBackgroundPanel
+ 
+   GDBusConnection *connection;
+ 
+-  PopThemeSwitcher *switcher;
++  PopDesktopWidget *pop;
+ 
+   GSettings *settings;
+   GSettings *lock_settings;
+@@ -67,16 +67,16 @@ struct _CcBackgroundPanel
+ 
+   GtkWidget *stack;
+   GtkWidget *stack_switcher;
+-  GtkWidget *appearance_container;
++  GtkWidget *background_container;
+ };
+ 
+ CC_PANEL_REGISTER (CcBackgroundPanel, cc_background_panel)
+ 
+ static void visible_child_changed (GtkWidget *stack, GParamSpec *pspec, CcBackgroundPanel *self) {
+-  if (gtk_stack_get_visible_child (GTK_STACK (stack)) == self->appearance_container) {
+-    gtk_widget_hide (self->add_picture_button);
+-  } else {
++  if (gtk_stack_get_visible_child (GTK_STACK (stack)) == self->background_container) {
+     gtk_widget_show (self->add_picture_button);
++  } else {
++    gtk_widget_hide (self->add_picture_button);
+   }
+ }
+ 
+@@ -251,27 +251,6 @@ cc_background_panel_constructed (GObject
+ 
+   cc_shell_embed_widget_in_header (shell, GTK_WIDGET (self->add_picture_button), GTK_POS_RIGHT);
+ 
+-  GtkWidget *widget = pop_theme_switcher_widget (self->switcher);
+-  gtk_widget_set_valign (widget, GTK_ALIGN_START);
+-  gtk_container_set_border_width (GTK_CONTAINER (widget), 24);
+-  gtk_flow_box_set_min_children_per_line (GTK_FLOW_BOX (widget), 1);
+-
+-  GtkWidget *scrolled = gtk_scrolled_window_new (
+-    gtk_adjustment_new (0, 0, 0, 0, 0, 0),
+-    gtk_adjustment_new (0, 0, 0, 0, 0, 0)
+-  );
+-
+-  gtk_scrolled_window_set_propagate_natural_height (GTK_SCROLLED_WINDOW (scrolled), TRUE);
+-  gtk_container_add (GTK_CONTAINER (scrolled), widget);
+-  gtk_scrolled_window_set_policy (
+-    GTK_SCROLLED_WINDOW (scrolled),
+-    GTK_POLICY_NEVER,
+-    GTK_POLICY_AUTOMATIC
+-  );
+-
+-  gtk_container_add (GTK_CONTAINER (self->appearance_container), scrolled);
+-  gtk_widget_show_all (self->appearance_container);
+-
+   g_signal_connect_object (
+     self->stack,
+     "notify::visible-child",
+@@ -291,7 +270,7 @@ cc_background_panel_dispose (GObject *ob
+   g_clear_object (&panel->settings);
+   g_clear_object (&panel->lock_settings);
+   g_clear_object (&panel->thumb_factory);
+-  g_clear_pointer (&panel->switcher, pop_theme_switcher_free);
++  g_clear_pointer (&panel->pop, pop_desktop_widget_free);
+ 
+   G_OBJECT_CLASS (cc_background_panel_parent_class)->dispose (object);
+ }
+@@ -330,7 +309,7 @@ cc_background_panel_class_init (CcBackgr
+   gtk_widget_class_bind_template_child (widget_class, CcBackgroundPanel, desktop_preview);
+   gtk_widget_class_bind_template_child (widget_class, CcBackgroundPanel, stack);
+   gtk_widget_class_bind_template_child (widget_class, CcBackgroundPanel, stack_switcher);
+-  gtk_widget_class_bind_template_child (widget_class, CcBackgroundPanel, appearance_container);
++  gtk_widget_class_bind_template_child (widget_class, CcBackgroundPanel, background_container);
+ 
+   gtk_widget_class_bind_template_callback (widget_class, on_chooser_background_chosen_cb);
+   gtk_widget_class_bind_template_callback (widget_class, on_add_picture_button_clicked_cb);
+@@ -360,7 +339,9 @@ cc_background_panel_init (CcBackgroundPa
+   panel->lock_settings = g_settings_new (WP_LOCK_PATH_ID);
+   g_settings_delay (panel->lock_settings);
+ 
+-  panel->switcher = pop_theme_switcher_new ();
++  printf("stack: %p\n", panel->stack);
++  panel->pop = pop_desktop_widget_new (GTK_STACK (panel->stack));
++  printf("pop: %p\n", panel->pop);
+ 
+   /* Load the background */
+   reload_current_bg (panel);
+Index: gnome-control-center/panels/background/cc-background-panel.ui
+===================================================================
+--- gnome-control-center.orig/panels/background/cc-background-panel.ui
++++ gnome-control-center/panels/background/cc-background-panel.ui
+@@ -16,7 +16,7 @@
+ 
+         <!-- Background page -->
+         <child>
+-          <object class="GtkBox">
++          <object class="GtkBox" id="background_container">
+             <property name="visible">True</property>
+             <property name="can_focus">False</property>
+             <property name="orientation">vertical</property>
+@@ -60,19 +60,6 @@
+             <property name="title" translatable="yes" comments="Change the background in Pop!_OS">Background</property>
+           </packing>
+         </child>
+-
+-        <!-- Appearance Page -->
+-        <child>
+-          <object class="GtkBox" id="appearance_container">
+-            <property name="visible">True</property>
+-            <property name="can_focus">False</property>
+-            <property name="orientation">vertical</property>
+-          </object>
+-          <packing>
+-            <property name="name">appearance</property>
+-            <property name="title" translatable="yes" comments="Change the appearance of Pop!_OS">Appearance</property>
+-          </packing>
+-        </child>
+       </object>
+     </child>
+   </template>
