@@ -24,7 +24,23 @@
 
 G_BEGIN_DECLS
 
+typedef struct {
+  gchar *id;
+  gchar *title;
+  gchar *description;
+  guchar start;
+  guchar end;
+} ChargeProfile;
+
 #define CC_TYPE_CHARGE_THRESHOLD_ROW (cc_charge_threshold_row_get_type())
 G_DECLARE_FINAL_TYPE (CcChargeThresholdRow, cc_charge_threshold_row, CC, CHARGE_THRESHOLD_ROW, GtkListBoxRow)
+CcChargeThresholdRow* cc_charge_threshold_row_new (ChargeProfile *profile);
+GtkRadioButton* cc_charge_threshold_row_get_radio (CcChargeThresholdRow *self);
+ChargeProfile* cc_charge_threshold_row_get_profile (CcChargeThresholdRow *self);
+
+ChargeProfile *charge_profiles_get (ChargeProfile **profiles, guchar start, guchar end);
+ChargeProfile **charge_profiles_from_variant (GVariant *variant);
+ChargeProfile **charge_profiles_from_variant (GVariant *variant);
+void charge_profiles_free (ChargeProfile **profiles);
 
 G_END_DECLS

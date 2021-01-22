@@ -105,9 +105,12 @@ struct _CcPowerPanel
   GtkWidget     *kbd_brightness_row;
   CcBrightnessScale *kbd_brightness_scale;
   S76PowerDaemon *power_proxy;
-  GtkWidget* threshold_row;
-  GtkWidget* threshold_label;
-  ChargeProfile  charge_profile;
+  GtkWidget*     threshold_row;
+  GtkWidget*     threshold_label;
+  ChargeProfile **charge_profiles;
+  ChargeProfile *charge_profile;
+  guint          threshold_start;
+  guint          threshold_end;
 
   GtkWidget     *automatic_suspend_row;
   GtkWidget     *automatic_suspend_label;
@@ -1821,13 +1824,47 @@ battery_sort_func (GtkListBoxRow *a, GtkListBoxRow *b, gpointer data)
 }
 
 static void
+charge_profiles_ready(GObject *source_object,
+                      GAsyncResult *res,
+                      gpointer user_data) {
+  g_autoptr(GError) error = NULL;
+  CcPowerPanel *self = CC_POWER_PANEL (user_data);
+  GVariant *profiles = NULL;
+
+  s76_power_daemon_call_get_charge_profiles_finish (self->power_proxy, &profiles, res, &error);
+  if (error) {
+   if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED))
+      g_warning ("Failed to call get-charge-profiles: %s", error->message);
+    return;
+  }
+
+  ChargeProfile **charge_profiles = charge_profiles_from_variant (profiles);
+  ChargeProfile *profile = charge_profiles_get (charge_profiles, self->threshold_start, self->threshold_end);
+  if (profile != NULL)
+    gtk_label_set_label (GTK_LABEL (self->threshold_label), profile->title);
+  else
+    {
+      char *title = g_strdup_printf ("Custom (%d%% - %d%%)", self->threshold_start, self->threshold_end);
+      gtk_label_set_label (GTK_LABEL (self->threshold_label), title);
+      g_free (title);
+    }
+  if (self->charge_profiles != NULL)
+    charge_profiles_free (self->charge_profiles);
+  self->charge_profiles = charge_profiles;
+  self->charge_profile = profile;
+
+  gtk_widget_show_all (self->threshold_row);
+
+  g_variant_unref (profiles);
+}
+
+static void
 charge_thresholds_ready(GObject *source_object,
                         GAsyncResult *res,
                         gpointer user_data) {
   GVariant *thresholds = NULL;
   g_autoptr(GError) error = NULL;
   CcPowerPanel *self = CC_POWER_PANEL (user_data);
-  guchar start, end;
 
   s76_power_daemon_call_get_charge_thresholds_finish (self->power_proxy, &thresholds, res, &error);
   if (!thresholds) {
@@ -1836,13 +1873,8 @@ charge_thresholds_ready(GObject *source_object,
     return;
   }
 
-  gtk_widget_show_all (self->threshold_row);
-
-  g_variant_get(thresholds, "(yy)", &start, &end);
-  self->charge_profile = charge_profile_from_thresholds (start, end);
-  char *title = charge_profile_title_from_thresholds (start, end);
-  gtk_label_set_label (GTK_LABEL (self->threshold_label), title);
-  g_free (title);
+  g_variant_get(thresholds, "(yy)", &self->threshold_start, &self->threshold_end);
+  s76_power_daemon_call_get_charge_profiles(self->power_proxy, cc_panel_get_cancellable (CC_PANEL (self)), charge_profiles_ready, self);
 }
 
 static void
@@ -1875,7 +1907,7 @@ static void
 battery_row_activated (CcPowerPanel *self)
 {
   GtkWindow *toplevel;
-  CcChargeThresholdDialog *dialog = cc_charge_threshold_dialog_new (self->power_proxy, self->charge_profile);
+  CcChargeThresholdDialog *dialog = cc_charge_threshold_dialog_new (self->power_proxy, self->charge_profiles, self->charge_profile);
   toplevel = GTK_WINDOW (gtk_widget_get_toplevel (GTK_WIDGET (self)));
   gtk_window_set_transient_for (GTK_WINDOW (dialog), toplevel);
   g_signal_connect_object (G_OBJECT (dialog), "destroy", G_CALLBACK (load_charge_thresholds), self, G_CONNECT_SWAPPED);

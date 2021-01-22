@@ -22,21 +22,12 @@
 
 #include <gtk/gtk.h>
 #include "cc-system76-power-generated.h"
+#include "cc-charge-threshold-row.h"
 
 G_BEGIN_DECLS
 
-typedef enum {
-  CHARGE_PROFILE_MAX_LIFESPAN,
-  CHARGE_PROFILE_BALANCED,
-  CHARGE_PROFILE_FULL_CHARGE,
-  CHARGE_PROFILE_UNDEFINED,
-} ChargeProfile;
-
 #define CC_TYPE_CHARGE_THRESHOLD_DIALOG (cc_charge_threshold_dialog_get_type())
 G_DECLARE_FINAL_TYPE (CcChargeThresholdDialog, cc_charge_threshold_dialog, CC, CHARGE_THRESHOLD_DIALOG, GtkDialog)
-CcChargeThresholdDialog* cc_charge_threshold_dialog_new (S76PowerDaemon *power_proxy, ChargeProfile profile);
-ChargeProfile charge_profile_from_thresholds (guchar start, guchar end);
-void charge_profile_get_thresholds (ChargeProfile profile, guchar *start, guchar *end);
-gchar *charge_profile_title_from_thresholds (guchar start, guchar end);
+CcChargeThresholdDialog* cc_charge_threshold_dialog_new (S76PowerDaemon *power_proxy, ChargeProfile **profiles, ChargeProfile *profile);
 
 G_END_DECLS
