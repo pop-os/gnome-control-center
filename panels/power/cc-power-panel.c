@@ -108,7 +108,6 @@ struct _CcPowerPanel
   GtkWidget*     threshold_row;
   GtkWidget*     threshold_label;
   ChargeProfile **charge_profiles;
-  ChargeProfile *charge_profile;
   guint          threshold_start;
   guint          threshold_end;
 
@@ -1851,7 +1850,6 @@ charge_profiles_ready(GObject *source_object,
   if (self->charge_profiles != NULL)
     charge_profiles_free (self->charge_profiles);
   self->charge_profiles = charge_profiles;
-  self->charge_profile = profile;
 
   gtk_widget_show_all (self->threshold_row);
 
@@ -1907,7 +1905,7 @@ static void
 battery_row_activated (CcPowerPanel *self)
 {
   GtkWindow *toplevel;
-  CcChargeThresholdDialog *dialog = cc_charge_threshold_dialog_new (self->power_proxy, self->charge_profiles, self->charge_profile);
+  CcChargeThresholdDialog *dialog = cc_charge_threshold_dialog_new (self->power_proxy, self->charge_profiles, self->threshold_start, self->threshold_end);
   toplevel = GTK_WINDOW (gtk_widget_get_toplevel (GTK_WIDGET (self)));
   gtk_window_set_transient_for (GTK_WINDOW (dialog), toplevel);
   g_signal_connect_object (G_OBJECT (dialog), "destroy", G_CALLBACK (load_charge_thresholds), self, G_CONNECT_SWAPPED);

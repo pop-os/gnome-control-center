@@ -28,6 +28,6 @@ G_BEGIN_DECLS
 
 #define CC_TYPE_CHARGE_THRESHOLD_DIALOG (cc_charge_threshold_dialog_get_type())
 G_DECLARE_FINAL_TYPE (CcChargeThresholdDialog, cc_charge_threshold_dialog, CC, CHARGE_THRESHOLD_DIALOG, GtkDialog)
-CcChargeThresholdDialog* cc_charge_threshold_dialog_new (S76PowerDaemon *power_proxy, ChargeProfile **profiles, ChargeProfile *profile);
+CcChargeThresholdDialog* cc_charge_threshold_dialog_new (S76PowerDaemon *power_proxy, ChargeProfile **profiles, guint start, guint end);
 
 G_END_DECLS

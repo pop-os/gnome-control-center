@@ -9,6 +9,7 @@ struct _CcChargeThresholdDialog {
   GtkListBox *listbox;
   GtkRadioButton *hidden_radio;
   GtkRadioButton *previous_radio;
+  GtkLabel       *custom_label;
 };
 
 G_DEFINE_TYPE (CcChargeThresholdDialog, cc_charge_threshold_dialog, GTK_TYPE_DIALOG)
@@ -76,6 +77,7 @@ cc_charge_threshold_dialog_class_init (CcChargeThresholdDialogClass *klass)
 
   gtk_widget_class_set_template_from_resource (widget_class, "/org/gnome/control-center/power/cc-charge-threshold-dialog.ui");
 
+  gtk_widget_class_bind_template_child (widget_class, CcChargeThresholdDialog, custom_label);
   gtk_widget_class_bind_template_child (widget_class, CcChargeThresholdDialog, listbox);
   gtk_widget_class_bind_template_child (widget_class, CcChargeThresholdDialog, hidden_radio);
 
@@ -94,12 +96,13 @@ cc_charge_threshold_dialog_init (CcChargeThresholdDialog *self)
 }
 
 CcChargeThresholdDialog*
-cc_charge_threshold_dialog_new (S76PowerDaemon *power_proxy, ChargeProfile **profiles, ChargeProfile *profile)
+cc_charge_threshold_dialog_new (S76PowerDaemon *power_proxy, ChargeProfile **profiles, guint start, guint end)
 {
   GtkRadioButton *selected_radio = NULL;
   CcChargeThresholdDialog *dialog = g_object_new (CC_TYPE_CHARGE_THRESHOLD_DIALOG,
                                                   "use-header-bar", 1,
                                                   NULL);
+  g_autofree gchar *label = NULL;
   dialog->power_proxy = power_proxy;
 
   for (int i = 0; profiles[i] != NULL; i++)
@@ -111,7 +114,7 @@ cc_charge_threshold_dialog_new (S76PowerDaemon *power_proxy, ChargeProfile **pro
       gtk_radio_button_join_group (radio, dialog->hidden_radio);
       g_signal_connect_object (radio, "toggled", G_CALLBACK (radio_toggled_cb), dialog, G_CONNECT_SWAPPED);
 
-      if (profiles[i] == profile)
+      if (profiles[i]->start == start && profiles[i]->end == end)
         selected_radio = radio;
     }
 
@@ -124,6 +127,11 @@ cc_charge_threshold_dialog_new (S76PowerDaemon *power_proxy, ChargeProfile **pro
   else
     {
       gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (dialog->hidden_radio), TRUE);
+      label = g_strdup_printf ("Custom battery charge threshold (%d%% – %d%%) "
+                               "set via command line. Selecting one of the "
+                               "profiles above will override custom setting.",
+                               start, end);
+      gtk_label_set_text (dialog->custom_label, label);
     }
 
   return dialog;
