@@ -10,10 +10,10 @@ Subject: [PATCH 24/26] display: Allow fractional scaling to be enabled
  panels/display/cc-display-settings.ui   |  16 +++
  5 files changed, 313 insertions(+), 1 deletion(-)
 
-Index: gnome-control-center-3.38.0/panels/display/cc-display-config-dbus.c
-===================================================================
---- gnome-control-center-3.38.0.orig/panels/display/cc-display-config-dbus.c
-+++ gnome-control-center-3.38.0/panels/display/cc-display-config-dbus.c
+diff --git a/panels/display/cc-display-config-dbus.c b/panels/display/cc-display-config-dbus.c
+index 221c29b..a8bfeb2 100644
+--- a/panels/display/cc-display-config-dbus.c
++++ b/panels/display/cc-display-config-dbus.c
 @@ -890,6 +890,8 @@ struct _CcDisplayConfigDBus
    gboolean supports_changing_layout_mode;
    gboolean global_scale_required;
@@ -23,7 +23,7 @@ Index: gnome-control-center-3.38.0/panels/display/cc-display-config-dbus.c
  
    GList *monitors;
    CcDisplayMonitorDBus *primary;
-@@ -1058,6 +1060,9 @@ cc_display_config_dbus_equal (CcDisplayC
+@@ -1058,6 +1060,9 @@ cc_display_config_dbus_equal (CcDisplayConfig *pself,
    g_return_val_if_fail (pself, FALSE);
    g_return_val_if_fail (pother, FALSE);
  
@@ -33,7 +33,7 @@ Index: gnome-control-center-3.38.0/panels/display/cc-display-config-dbus.c
    cc_display_config_dbus_ensure_non_offset_coords (self);
    cc_display_config_dbus_ensure_non_offset_coords (other);
  
-@@ -1214,6 +1219,20 @@ cc_display_config_dbus_layout_use_ui_sca
+@@ -1214,6 +1219,20 @@ cc_display_config_dbus_layout_use_ui_scale (CcDisplayConfig *pself)
    return self->layout_mode == CC_DISPLAY_LAYOUT_MODE_GLOBAL_UI_LOGICAL;
  }
  
@@ -54,7 +54,7 @@ Index: gnome-control-center-3.38.0/panels/display/cc-display-config-dbus.c
  static gboolean
  is_scaled_mode_allowed (CcDisplayConfigDBus *self,
                          CcDisplayMode       *pmode,
-@@ -1513,6 +1532,14 @@ cc_display_config_dbus_constructed (GObj
+@@ -1513,6 +1532,14 @@ cc_display_config_dbus_constructed (GObject *object)
          {
            g_variant_get (v, "b", &self->global_scale_required);
          }
@@ -69,7 +69,7 @@ Index: gnome-control-center-3.38.0/panels/display/cc-display-config-dbus.c
        else if (g_str_equal (s, "layout-mode"))
          {
            guint32 u = 0;
-@@ -1598,6 +1625,7 @@ cc_display_config_dbus_finalize (GObject
+@@ -1598,6 +1625,7 @@ cc_display_config_dbus_finalize (GObject *object)
    g_clear_pointer (&self->monitors, g_list_free);
    g_clear_pointer (&self->logical_monitors, g_hash_table_destroy);
    g_clear_pointer (&self->clone_modes, g_list_free);
@@ -77,7 +77,7 @@ Index: gnome-control-center-3.38.0/panels/display/cc-display-config-dbus.c
  
    G_OBJECT_CLASS (cc_display_config_dbus_parent_class)->finalize (object);
  }
-@@ -1627,6 +1655,8 @@ cc_display_config_dbus_class_init (CcDis
+@@ -1627,6 +1655,8 @@ cc_display_config_dbus_class_init (CcDisplayConfigDBusClass *klass)
    parent_class->get_panel_orientation_managed =
      cc_display_config_dbus_get_panel_orientation_managed;
    parent_class->layout_use_ui_scale = cc_display_config_dbus_layout_use_ui_scale;
@@ -86,10 +86,10 @@ Index: gnome-control-center-3.38.0/panels/display/cc-display-config-dbus.c
  
    pspec = g_param_spec_variant ("state",
                                  "GVariant",
-Index: gnome-control-center-3.38.0/panels/display/cc-display-config.c
-===================================================================
---- gnome-control-center-3.38.0.orig/panels/display/cc-display-config.c
-+++ gnome-control-center-3.38.0/panels/display/cc-display-config.c
+diff --git a/panels/display/cc-display-config.c b/panels/display/cc-display-config.c
+index 6ec274f..01d21b7 100644
+--- a/panels/display/cc-display-config.c
++++ b/panels/display/cc-display-config.c
 @@ -17,6 +17,11 @@
   *
   */
@@ -102,7 +102,7 @@ Index: gnome-control-center-3.38.0/panels/display/cc-display-config.c
  #include <gio/gio.h>
  #include <math.h>
  #include "cc-display-config.h"
-@@ -419,6 +424,10 @@ cc_display_monitor_set_ui_info (CcDispla
+@@ -419,6 +424,10 @@ cc_display_monitor_set_ui_info (CcDisplayMonitor *self, gint ui_number, gchar *u
  
  struct _CcDisplayConfigPrivate {
    GList *ui_sorted_monitors;
@@ -113,7 +113,7 @@ Index: gnome-control-center-3.38.0/panels/display/cc-display-config.c
  };
  typedef struct _CcDisplayConfigPrivate CcDisplayConfigPrivate;
  
-@@ -426,6 +435,68 @@ G_DEFINE_TYPE_WITH_PRIVATE (CcDisplayCon
+@@ -426,6 +435,68 @@ G_DEFINE_TYPE_WITH_PRIVATE (CcDisplayConfig,
                              cc_display_config,
                              G_TYPE_OBJECT)
  
@@ -128,7 +128,7 @@ Index: gnome-control-center-3.38.0/panels/display/cc-display-config.c
 +  if (g_str_equal (renderer, "xrandr"))
 +    return MUTTER_FEATURE_FRACTIONAL_SCALING_X11;
 +
-+  if (g_str_equal (renderer, "native"))
++  if (g_str_equal (renderer, "native") || g_str_equal (renderer, "kms"))
 +    return MUTTER_FEATURE_FRACTIONAL_SCALING_WAYLAND;
 +
 +  g_return_val_if_reached (NULL);
@@ -182,7 +182,7 @@ Index: gnome-control-center-3.38.0/panels/display/cc-display-config.c
  static void
  cc_display_config_init (CcDisplayConfig *self)
  {
-@@ -463,6 +534,10 @@ cc_display_config_constructed (GObject *
+@@ -463,6 +534,10 @@ cc_display_config_constructed (GObject *object)
  
        ui_number += 1;
      }
@@ -193,7 +193,7 @@ Index: gnome-control-center-3.38.0/panels/display/cc-display-config.c
  }
  
  static void
-@@ -472,6 +547,7 @@ cc_display_config_finalize (GObject *obj
+@@ -472,6 +547,7 @@ cc_display_config_finalize (GObject *object)
    CcDisplayConfigPrivate *priv = cc_display_config_get_instance_private (self);
  
    g_list_free (priv->ui_sorted_monitors);
@@ -227,7 +227,7 @@ Index: gnome-control-center-3.38.0/panels/display/cc-display-config.c
    if (!CC_IS_DISPLAY_CONFIG (self))
      {
        g_warning ("Cannot apply invalid configuration");
-@@ -582,6 +667,12 @@ cc_display_config_apply (CcDisplayConfig
+@@ -582,6 +667,12 @@ cc_display_config_apply (CcDisplayConfig *self,
        return FALSE;
      }
  
@@ -240,7 +240,7 @@ Index: gnome-control-center-3.38.0/panels/display/cc-display-config.c
    return CC_DISPLAY_CONFIG_GET_CLASS (self)->apply (self, error);
  }
  
-@@ -623,13 +714,37 @@ cc_display_config_set_minimum_size (CcDi
+@@ -623,13 +714,37 @@ cc_display_config_set_minimum_size (CcDisplayConfig *self,
    CC_DISPLAY_CONFIG_GET_CLASS (self)->set_minimum_size (self, width, height);
  }
  
@@ -278,7 +278,7 @@ Index: gnome-control-center-3.38.0/panels/display/cc-display-config.c
    return CC_DISPLAY_CONFIG_GET_CLASS (self)->is_scaled_mode_valid (self, mode, scale);
  }
  
-@@ -664,3 +779,121 @@ cc_display_config_get_maximum_scaling (C
+@@ -664,3 +779,121 @@ cc_display_config_get_maximum_scaling (CcDisplayConfig *self)
  
    return max_scale;
  }
@@ -400,10 +400,10 @@ Index: gnome-control-center-3.38.0/panels/display/cc-display-config.c
 +
 +  return priv->fractional_scaling;
 +}
-Index: gnome-control-center-3.38.0/panels/display/cc-display-config.h
-===================================================================
---- gnome-control-center-3.38.0.orig/panels/display/cc-display-config.h
-+++ gnome-control-center-3.38.0/panels/display/cc-display-config.h
+diff --git a/panels/display/cc-display-config.h b/panels/display/cc-display-config.h
+index 48e2bc5..f54a1dd 100644
+--- a/panels/display/cc-display-config.h
++++ b/panels/display/cc-display-config.h
 @@ -162,6 +162,8 @@ struct _CcDisplayConfigClass
                                      double            scale);
    gboolean (* get_panel_orientation_managed) (CcDisplayConfig    *self);
@@ -413,7 +413,7 @@ Index: gnome-control-center-3.38.0/panels/display/cc-display-config.h
  };
  
  
-@@ -191,8 +193,13 @@ gboolean          cc_display_config_is_s
+@@ -191,8 +193,13 @@ gboolean          cc_display_config_is_scaled_mode_valid    (CcDisplayConfig
  gboolean          cc_display_config_get_panel_orientation_managed
                                                              (CcDisplayConfig    *self);
  gboolean          cc_display_config_layout_use_ui_scale     (CcDisplayConfig    *self);
@@ -427,10 +427,10 @@ Index: gnome-control-center-3.38.0/panels/display/cc-display-config.h
  
  const char*       cc_display_monitor_get_display_name       (CcDisplayMonitor   *monitor);
  gboolean          cc_display_monitor_is_active              (CcDisplayMonitor   *monitor);
-Index: gnome-control-center-3.38.0/panels/display/cc-display-settings.c
-===================================================================
---- gnome-control-center-3.38.0.orig/panels/display/cc-display-settings.c
-+++ gnome-control-center-3.38.0/panels/display/cc-display-settings.c
+diff --git a/panels/display/cc-display-settings.c b/panels/display/cc-display-settings.c
+index 49ddcf0..ffbe5ed 100644
+--- a/panels/display/cc-display-settings.c
++++ b/panels/display/cc-display-settings.c
 @@ -48,6 +48,8 @@ struct _CcDisplaySettings
    GtkWidget        *resolution_row;
    GtkWidget        *scale_bbox;
@@ -440,7 +440,7 @@ Index: gnome-control-center-3.38.0/panels/display/cc-display-settings.c
    GtkWidget        *underscanning_row;
    GtkWidget        *underscanning_switch;
  };
-@@ -70,7 +72,6 @@ static void on_scale_btn_active_changed_
+@@ -70,7 +72,6 @@ static void on_scale_btn_active_changed_cb (GtkWidget         *widget,
                                              GParamSpec        *pspec,
                                              CcDisplaySettings *self);
  
@@ -448,7 +448,7 @@ Index: gnome-control-center-3.38.0/panels/display/cc-display-settings.c
  static gboolean
  should_show_rotation (CcDisplaySettings *self)
  {
-@@ -241,6 +242,7 @@ cc_display_settings_rebuild_ui (CcDispla
+@@ -241,6 +242,7 @@ cc_display_settings_rebuild_ui (CcDisplaySettings *self)
        gtk_widget_set_visible (self->refresh_rate_row, FALSE);
        gtk_widget_set_visible (self->resolution_row, FALSE);
        gtk_widget_set_visible (self->scale_row, FALSE);
@@ -456,7 +456,7 @@ Index: gnome-control-center-3.38.0/panels/display/cc-display-settings.c
        gtk_widget_set_visible (self->underscanning_row, FALSE);
  
        return G_SOURCE_REMOVE;
-@@ -428,6 +430,10 @@ cc_display_settings_rebuild_ui (CcDispla
+@@ -428,6 +430,10 @@ cc_display_settings_rebuild_ui (CcDisplaySettings *self)
  
    gtk_widget_set_visible (self->scale_row, buttons > 1);
  
@@ -467,7 +467,7 @@ Index: gnome-control-center-3.38.0/panels/display/cc-display-settings.c
    gtk_widget_set_visible (self->underscanning_row,
                            cc_display_monitor_supports_underscanning (self->selected_output) &&
                            !cc_display_config_is_cloning (self->config));
-@@ -670,6 +676,8 @@ cc_display_settings_class_init (CcDispla
+@@ -670,6 +676,8 @@ cc_display_settings_class_init (CcDisplaySettingsClass *klass)
    gtk_widget_class_bind_template_child (widget_class, CcDisplaySettings, resolution_row);
    gtk_widget_class_bind_template_child (widget_class, CcDisplaySettings, scale_bbox);
    gtk_widget_class_bind_template_child (widget_class, CcDisplaySettings, scale_row);
@@ -476,10 +476,11 @@ Index: gnome-control-center-3.38.0/panels/display/cc-display-settings.c
    gtk_widget_class_bind_template_child (widget_class, CcDisplaySettings, underscanning_row);
    gtk_widget_class_bind_template_child (widget_class, CcDisplaySettings, underscanning_switch);
  
-@@ -680,10 +688,28 @@ cc_display_settings_class_init (CcDispla
+@@ -679,11 +687,29 @@ cc_display_settings_class_init (CcDisplaySettingsClass *klass)
+   gtk_widget_class_bind_template_callback (widget_class, on_underscanning_switch_active_changed_cb);
  }
  
- static void
++static void
 +on_scale_fractional_toggled (CcDisplaySettings *self)
 +{
 +  gboolean active;
@@ -492,7 +493,7 @@ Index: gnome-control-center-3.38.0/panels/display/cc-display-settings.c
 +  g_signal_emit_by_name (G_OBJECT (self), "updated", self->selected_output);
 +}
 +
-+static void
+ static void
  cc_display_settings_init (CcDisplaySettings *self)
  {
    gtk_widget_init_template (GTK_WIDGET (self));
@@ -505,10 +506,10 @@ Index: gnome-control-center-3.38.0/panels/display/cc-display-settings.c
    gtk_list_box_set_header_func (GTK_LIST_BOX (self),
                                  cc_list_box_update_header_func,
                                  NULL, NULL);
-Index: gnome-control-center-3.38.0/panels/display/cc-display-settings.ui
-===================================================================
---- gnome-control-center-3.38.0.orig/panels/display/cc-display-settings.ui
-+++ gnome-control-center-3.38.0/panels/display/cc-display-settings.ui
+diff --git a/panels/display/cc-display-settings.ui b/panels/display/cc-display-settings.ui
+index 7715ba3..83c79d1 100644
+--- a/panels/display/cc-display-settings.ui
++++ b/panels/display/cc-display-settings.ui
 @@ -68,5 +68,21 @@
          </child>
        </object>
