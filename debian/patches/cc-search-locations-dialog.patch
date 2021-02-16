@@ -1,0 +1,45 @@
+commit 88359334123e82ab8cdcc7d40c587cdd4eeff4a6
+Author: Ian Douglas Scott <idscott@system76.com>
+Date:   Tue Feb 16 14:06:13 2021 -0800
+
+    search: Do not error in location dialog when an XDG directory is `$HOME`
+    
+    `path_from_tracker_dir()` shouldn't return `NULL` since the functions
+    calling it do not check for a `NULL` return value.
+    
+    Reported in https://github.com/pop-os/gnome-control-center/issues/149
+
+diff --git a/panels/search/cc-search-locations-dialog.c b/panels/search/cc-search-locations-dialog.c
+index 764016ffc..0462f4b4d 100644
+--- a/panels/search/cc-search-locations-dialog.c
++++ b/panels/search/cc-search-locations-dialog.c
+@@ -238,21 +238,21 @@ path_from_tracker_dir (const gchar *value)
+   const gchar *path;
+ 
+   if (g_strcmp0 (value, "&DESKTOP") == 0)
+-    path = get_user_special_dir_if_not_home (G_USER_DIRECTORY_DESKTOP);
++    path = g_get_user_special_dir (G_USER_DIRECTORY_DESKTOP);
+   else if (g_strcmp0 (value, "&DOCUMENTS") == 0)
+-    path = get_user_special_dir_if_not_home (G_USER_DIRECTORY_DOCUMENTS);
++    path = g_get_user_special_dir (G_USER_DIRECTORY_DOCUMENTS);
+   else if (g_strcmp0 (value, "&DOWNLOAD") == 0)
+-    path = get_user_special_dir_if_not_home (G_USER_DIRECTORY_DOWNLOAD);
++    path = g_get_user_special_dir (G_USER_DIRECTORY_DOWNLOAD);
+   else if (g_strcmp0 (value, "&MUSIC") == 0)
+-    path = get_user_special_dir_if_not_home (G_USER_DIRECTORY_MUSIC);
++    path = g_get_user_special_dir (G_USER_DIRECTORY_MUSIC);
+   else if (g_strcmp0 (value, "&PICTURES") == 0)
+-    path = get_user_special_dir_if_not_home (G_USER_DIRECTORY_PICTURES);
++    path = g_get_user_special_dir (G_USER_DIRECTORY_PICTURES);
+   else if (g_strcmp0 (value, "&PUBLIC_SHARE") == 0)
+-    path = get_user_special_dir_if_not_home (G_USER_DIRECTORY_PUBLIC_SHARE);
++    path = g_get_user_special_dir (G_USER_DIRECTORY_PUBLIC_SHARE);
+   else if (g_strcmp0 (value, "&TEMPLATES") == 0)
+-    path = get_user_special_dir_if_not_home (G_USER_DIRECTORY_TEMPLATES);
++    path = g_get_user_special_dir (G_USER_DIRECTORY_TEMPLATES);
+   else if (g_strcmp0 (value, "&VIDEOS") == 0)
+-    path = get_user_special_dir_if_not_home (G_USER_DIRECTORY_VIDEOS);
++    path = g_get_user_special_dir (G_USER_DIRECTORY_VIDEOS);
+   else if (g_strcmp0 (value, "$HOME") == 0)
+     path = g_get_home_dir ();
+   else
