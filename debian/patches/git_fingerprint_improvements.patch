@@ -1,14 +1,20 @@
-From 269feb19407e0adbc48e5ff7707dcf6353075fc1 Mon Sep 17 00:00:00 2001
+From a0f028671c7a7861bb1ea7e8e983a074f288dde1 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Marco=20Trevisan=20=28Trevi=C3=B1o=29?= <mail@3v1n0.net>
-Date: Fri, 11 Dec 2020 01:24:52 +0100
-Subject: [PATCH 2/8] fingerprint-dialog: Always call EnrollStop on enrollment
- completed
+Date: Fri, 11 Dec 2020 03:52:15 +0100
+Subject: [PATCH 4/8] fingerprint-dialog: Add generic dialog actions state
+ tracking
 
-Even if we got an error we need to always call EnrollStop so don't unset
-enrolling_finger status until we're really done with it.
+Use flags to track the dialog actions state so that we can:
+ 1. Remove multiple flags to track specific states
+ 2. Prevent starting again an action we're still waiting for completion
+ 3. Handle global visual elements (such as the busy spinner) correctly
+
+Specifically point 3. allows to ensure that when doing concurrent
+actions such as prints listing and device claiming, we will stop the
+spinner only once all the operations are over.
 ---
- panels/user-accounts/cc-fingerprint-dialog.c | 1 -
- 1 file changed, 1 deletion(-)
+ panels/user-accounts/cc-fingerprint-dialog.c | 133 ++++++++++++++-----
+ 1 file changed, 97 insertions(+), 36 deletions(-)
 
 Index: gnome-control-center/panels/user-accounts/cc-fingerprint-dialog.c
 ===================================================================
@@ -42,12 +48,13 @@ Index: gnome-control-center/panels/user-accounts/cc-fingerprint-dialog.c
  struct _CcFingerprintDialog
  {
    GtkWindow parent_instance;
-@@ -68,13 +85,12 @@ struct _CcFingerprintDialog
+@@ -68,14 +85,12 @@ struct _CcFingerprintDialog
    GtkWidget      *prints_manager;
  
    CcFingerprintManager *manager;
 +  DialogState           dialog_state;
    CcFprintdDevice      *device;
+-  gboolean              claiming;
 -  gboolean              device_claimed;
    gulong                device_signal_id;
    gulong                device_name_owner_id;
@@ -57,7 +64,7 @@ Index: gnome-control-center/panels/user-accounts/cc-fingerprint-dialog.c
    guint                 enroll_stages_passed;
    guint                 enroll_stage_passed_id;
    gdouble               enroll_progress;
-@@ -143,6 +159,104 @@ cc_fingerprint_dialog_new (CcFingerprint
+@@ -144,6 +159,104 @@ cc_fingerprint_dialog_new (CcFingerprint
                         NULL);
  }
  
@@ -162,7 +169,7 @@ Index: gnome-control-center/panels/user-accounts/cc-fingerprint-dialog.c
  static void
  disconnect_device_signals (CcFingerprintDialog *self)
  {
-@@ -169,11 +283,11 @@ cc_fingerprint_dialog_dispose (GObject *
+@@ -170,11 +283,11 @@ cc_fingerprint_dialog_dispose (GObject *
  
    g_clear_handle_id (&self->enroll_stage_passed_id, g_source_remove);
  
@@ -176,7 +183,7 @@ Index: gnome-control-center/panels/user-accounts/cc-fingerprint-dialog.c
          cc_fprintd_device_call_enroll_stop_sync (self->device, NULL, NULL);
        cc_fprintd_device_call_release (self->device, NULL, NULL, NULL);
      }
-@@ -441,6 +555,7 @@ list_enrolled_cb (GObject      *object,
+@@ -442,6 +555,7 @@ list_enrolled_cb (GObject      *object,
  {
    g_auto(GStrv) enrolled_fingers = NULL;
    g_autoptr(GError) error = NULL;
@@ -184,7 +191,7 @@ Index: gnome-control-center/panels/user-accounts/cc-fingerprint-dialog.c
    CcFprintdDevice *fprintd_device = CC_FPRINTD_DEVICE (object);
    CcFingerprintDialog *self = user_data;
    guint n_enrolled_fingers = 0;
-@@ -452,23 +567,23 @@ list_enrolled_cb (GObject      *object,
+@@ -453,23 +567,23 @@ list_enrolled_cb (GObject      *object,
    if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED))
      return;
  
@@ -213,7 +220,7 @@ Index: gnome-control-center/panels/user-accounts/cc-fingerprint-dialog.c
            g_warning ("Listing of fingerprints on device %s failed: %s",
                       cc_fprintd_device_get_name (self->device), error->message);
            notify_error (self, error_message);
-@@ -500,7 +615,9 @@ update_prints_store (CcFingerprintDialog
+@@ -501,7 +615,9 @@ update_prints_store (CcFingerprintDialog
  
    g_assert_true (CC_FPRINTD_IS_DEVICE (self->device));
  
@@ -224,7 +231,7 @@ Index: gnome-control-center/panels/user-accounts/cc-fingerprint-dialog.c
    gtk_widget_set_sensitive (GTK_WIDGET (self->add_print_icon), FALSE);
    gtk_widget_hide (GTK_WIDGET (self->delete_prints_button));
  
-@@ -532,9 +649,8 @@ delete_prints_cb (GObject      *object,
+@@ -533,9 +649,8 @@ delete_prints_cb (GObject      *object,
      {
        g_autofree char *error_message = NULL;
  
@@ -235,7 +242,7 @@ Index: gnome-control-center/panels/user-accounts/cc-fingerprint-dialog.c
        g_warning ("Deletion of fingerprints on device %s failed: %s",
                   cc_fprintd_device_get_name (self->device), error->message);
        notify_error (self, error_message);
-@@ -547,10 +663,12 @@ delete_prints_cb (GObject      *object,
+@@ -548,10 +663,12 @@ delete_prints_cb (GObject      *object,
  static void
  delete_enrolled_prints (CcFingerprintDialog *self)
  {
@@ -250,7 +257,7 @@ Index: gnome-control-center/panels/user-accounts/cc-fingerprint-dialog.c
  
    cc_fprintd_device_call_delete_enrolled_fingers2 (self->device,
                                                     self->cancellable,
-@@ -650,7 +768,7 @@ handle_enroll_signal (CcFingerprintDialo
+@@ -651,7 +768,7 @@ handle_enroll_signal (CcFingerprintDialo
  {
    gboolean completed;
  
@@ -259,7 +266,7 @@ Index: gnome-control-center/panels/user-accounts/cc-fingerprint-dialog.c
  
    g_debug ("Device enroll result message: %s, done: %d", result, done);
  
-@@ -726,13 +844,20 @@ handle_enroll_signal (CcFingerprintDialo
+@@ -727,11 +844,19 @@ handle_enroll_signal (CcFingerprintDialo
            const char *message;
  
            if (g_str_equal (result, "enroll-disconnected"))
@@ -280,10 +287,8 @@ Index: gnome-control-center/panels/user-accounts/cc-fingerprint-dialog.c
 +              message = _("Failed to enroll new fingerprint");
 +            }
  
--          self->enrolling_finger = NULL;
            set_enroll_result_message (self, ENROLL_STATE_WARNING, message);
          }
-     }
 @@ -744,6 +869,7 @@ enroll_start_cb (GObject      *object,
                   gpointer      user_data)
  {
@@ -437,22 +442,23 @@ Index: gnome-control-center/panels/user-accounts/cc-fingerprint-dialog.c
    CcFprintdDevice *fprintd_device = CC_FPRINTD_DEVICE (object);
    CcFingerprintDialog *self = user_data;
  
-@@ -1121,25 +1250,30 @@ claim_device_cb (GObject      *object,
+@@ -1121,28 +1250,30 @@ claim_device_cb (GObject      *object,
    if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED))
      return;
  
+-  self->claiming = FALSE;
 +  state_remover = auto_state_remover (self, DIALOG_STATE_DEVICE_CLAIMING);
-+
+ 
    if (error)
      {
        g_autofree char *dbus_error = g_dbus_error_get_remote_error (error);
        g_autofree char *error_message = NULL;
  
--      if (dbus_error && g_str_has_suffix (dbus_error, ".Error.AlreadyInUse"))
--        self->device_claimed = TRUE;
+-      if (dbus_error && g_str_has_suffix (dbus_error, ".Error.AlreadyInUse") &&
+-          self->device_claimed)
 +      if (dbus_error && g_str_equal (dbus_error, CC_FPRINTD_NAME ".Error.AlreadyInUse") &&
 +          (self->dialog_state & DIALOG_STATE_DEVICE_CLAIMED))
-+         return;
+          return;
  
 -      g_dbus_error_strip_remote_error (error);
        error_message = g_strdup_printf (_("Failed to claim fingerprint device %s: %s"),
@@ -474,19 +480,24 @@ Index: gnome-control-center/panels/user-accounts/cc-fingerprint-dialog.c
    self->device_signal_id = g_signal_connect_object (self->device, "g-signal",
                                                      G_CALLBACK (on_device_signal),
                                                      self, G_CONNECT_SWAPPED);
-@@ -1153,6 +1287,11 @@ claim_device (CcFingerprintDialog *self)
+@@ -1156,14 +1287,13 @@ claim_device (CcFingerprintDialog *self)
  {
    ActUser *user;
  
+-  g_return_if_fail (!self->device_claimed);
 +  g_return_if_fail (!(self->dialog_state & DIALOG_STATE_DEVICE_CLAIMED));
-+
+ 
+-  if (self->claiming)
 +  if (!add_dialog_state (self, DIALOG_STATE_DEVICE_CLAIMING))
-+    return;
-+
+     return;
+ 
    user = cc_fingerprint_manager_get_user (self->manager);
    gtk_widget_set_sensitive (self->prints_manager, FALSE);
+-  self->claiming = TRUE;
  
-@@ -1185,7 +1324,7 @@ on_stack_child_changed (CcFingerprintDia
+   cc_fprintd_device_call_claim (self->device,
+                                 act_user_get_user_name (user),
+@@ -1194,7 +1324,7 @@ on_stack_child_changed (CcFingerprintDia
        notify_error (self, NULL);
        update_prints_store (self);
  
@@ -495,7 +506,7 @@ Index: gnome-control-center/panels/user-accounts/cc-fingerprint-dialog.c
          claim_device (self);
      }
    else if (visible_child == self->enrollment_view)
-@@ -1252,13 +1391,18 @@ on_devices_list (GObject      *object,
+@@ -1261,13 +1391,18 @@ on_devices_list (GObject      *object,
                   gpointer      user_data)
  {
    g_autolist (CcFprintdDevice) fprintd_devices = NULL;
@@ -515,7 +526,7 @@ Index: gnome-control-center/panels/user-accounts/cc-fingerprint-dialog.c
  
    if (fprintd_devices == NULL)
      {
-@@ -1266,10 +1410,9 @@ on_devices_list (GObject      *object,
+@@ -1275,10 +1410,9 @@ on_devices_list (GObject      *object,
          {
            g_autofree char *error_message = NULL;
  
@@ -528,7 +539,7 @@ Index: gnome-control-center/panels/user-accounts/cc-fingerprint-dialog.c
            notify_error (self, error_message);
          }
  
-@@ -1313,7 +1456,7 @@ cc_fingerprint_dialog_constructed (GObje
+@@ -1322,7 +1456,7 @@ cc_fingerprint_dialog_constructed (GObje
    bindtextdomain ("fprintd", GNOMELOCALEDIR);
    bind_textdomain_codeset ("fprintd", "UTF-8");
  
@@ -537,7 +548,7 @@ Index: gnome-control-center/panels/user-accounts/cc-fingerprint-dialog.c
    cc_fingerprint_manager_get_devices (self->manager, self->cancellable,
                                        on_devices_list, self);
  }
-@@ -1355,7 +1498,7 @@ delete_prints_button_clicked_cb (CcFinge
+@@ -1364,7 +1498,7 @@ delete_prints_button_clicked_cb (CcFinge
  static void
  cancel_button_clicked_cb (CcFingerprintDialog *self)
  {
@@ -546,7 +557,7 @@ Index: gnome-control-center/panels/user-accounts/cc-fingerprint-dialog.c
      {
        g_cancellable_cancel (self->cancellable);
        g_set_object (&self->cancellable, g_cancellable_new ());
-@@ -1372,7 +1515,7 @@ cancel_button_clicked_cb (CcFingerprintD
+@@ -1381,7 +1515,7 @@ cancel_button_clicked_cb (CcFingerprintD
  static void
  done_button_clicked_cb (CcFingerprintDialog *self)
  {
