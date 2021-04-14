@@ -1,0 +1,46 @@
+From 04e2c2670f8f8806fa80e216343d6f45b85666cb Mon Sep 17 00:00:00 2001
+From: Ian Douglas Scott <idscott@system76.com>
+Date: Wed, 14 Apr 2021 09:01:32 -0700
+Subject: [PATCH] shell: Fix bug when multiple panels use custom sidebar widget
+
+This is not currently a problem because the feature is only used in the
+Applications panel, but this fixes the behavior if a custom sidebar is used
+in more than one panel.
+---
+ shell/cc-panel-list.c | 13 ++++++-------
+ 1 file changed, 6 insertions(+), 7 deletions(-)
+
+diff --git a/shell/cc-panel-list.c b/shell/cc-panel-list.c
+index e23da0b87..a8eb279d7 100644
+--- a/shell/cc-panel-list.c
++++ b/shell/cc-panel-list.c
+@@ -1068,20 +1068,19 @@ void
+ cc_panel_list_add_sidebar_widget (CcPanelList *self,
+                                   GtkWidget   *widget)
+ {
++  GtkWidget *previous;
++
+   g_return_if_fail (CC_IS_PANEL_LIST (self));
+ 
++  previous = get_widget_from_view (self, CC_PANEL_LIST_WIDGET);
++  if (previous)
++    gtk_container_remove (GTK_CONTAINER (self), previous);
++
+   if (widget)
+     {
+       gtk_stack_add_named (GTK_STACK (self), widget, "custom-widget");
+       switch_to_view (self, CC_PANEL_LIST_WIDGET);
+     }
+-  else
+-    {
+-      widget = get_widget_from_view (self, CC_PANEL_LIST_WIDGET);
+-
+-      if (widget)
+-        gtk_container_remove (GTK_CONTAINER (self), widget);
+-    }
+ }
+ 
+ void
+-- 
+2.30.2
+
