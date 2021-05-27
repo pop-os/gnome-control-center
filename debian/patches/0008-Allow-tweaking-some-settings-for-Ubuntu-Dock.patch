@@ -50,7 +50,7 @@ Index: gnome-control-center/panels/ubuntu/cc-ubuntu-panel.c
 ===================================================================
 --- /dev/null
 +++ gnome-control-center/panels/ubuntu/cc-ubuntu-panel.c
-@@ -0,0 +1,709 @@
+@@ -0,0 +1,712 @@
 +/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 +/*
 + * Copyright (C) 2017-2020 Canonical Ltd
@@ -202,7 +202,10 @@ Index: gnome-control-center/panels/ubuntu/cc-ubuntu-panel.c
 +  g_variant_builder_close (&builder);
 +
 +  if (number < 2 || n_monitors < 2)
-+    return monitor_labeler_hide (self);
++    {
++      g_variant_builder_clear (&builder);
++      return monitor_labeler_hide (self);
++    }
 +
 +  g_dbus_proxy_call (self->shell_proxy,
 +                     "ShowMonitorLabels",
