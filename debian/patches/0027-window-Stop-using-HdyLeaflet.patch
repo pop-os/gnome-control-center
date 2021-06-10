@@ -6,14 +6,14 @@ This is too buggy for an LTS release and less useful in the desktop case.
 
 https://launchpad.net/bugs/1871195
 ---
- shell/cc-window.c  | 105 ++---------------------------------------------------
- shell/cc-window.ui |  55 ++--------------------------
- 2 files changed, 6 insertions(+), 154 deletions(-)
+ shell/cc-window.c  | 75 +++---------------------------------------------------
+ shell/cc-window.ui | 54 +++------------------------------------
+ 2 files changed, 6 insertions(+), 123 deletions(-)
 
-Index: gnome-control-center-3.38.0/shell/cc-window.c
-===================================================================
---- gnome-control-center-3.38.0.orig/shell/cc-window.c
-+++ gnome-control-center-3.38.0/shell/cc-window.c
+diff --git a/shell/cc-window.c b/shell/cc-window.c
+index 400c391..161069a 100644
+--- a/shell/cc-window.c
++++ b/shell/cc-window.c
 @@ -53,12 +53,9 @@ struct _CcWindow
  {
    GtkApplicationWindow parent;
@@ -36,7 +36,7 @@ Index: gnome-control-center-3.38.0/shell/cc-window.c
  };
  
  static void     cc_shell_iface_init         (CcShellInterface      *iface);
-@@ -126,26 +121,6 @@ remove_all_custom_widgets (CcWindow *sel
+@@ -126,26 +121,6 @@ remove_all_custom_widgets (CcWindow *self)
    CC_EXIT;
  }
  
@@ -83,7 +83,7 @@ Index: gnome-control-center-3.38.0/shell/cc-window.c
  
    /* Finish profiling */
    g_timer_stop (timer);
-@@ -397,7 +366,6 @@ set_active_panel_from_id (CcWindow     *
+@@ -397,7 +366,6 @@ set_active_panel_from_id (CcWindow     *self,
                            const gchar  *start_id,
                            GVariant     *parameters,
                            gboolean      add_to_history,
@@ -91,7 +91,7 @@ Index: gnome-control-center-3.38.0/shell/cc-window.c
                            GError      **error)
  {
    g_autoptr(GIcon) gicon = NULL;
-@@ -405,21 +373,15 @@ set_active_panel_from_id (CcWindow     *
+@@ -405,21 +373,15 @@ set_active_panel_from_id (CcWindow     *self,
    CcPanelVisibility visibility;
    GtkTreeIter iter;
    GtkWidget *old_panel;
@@ -113,7 +113,7 @@ Index: gnome-control-center-3.38.0/shell/cc-window.c
        CC_RETURN (TRUE);
      }
  
-@@ -453,9 +415,6 @@ set_active_panel_from_id (CcWindow     *
+@@ -453,9 +415,6 @@ set_active_panel_from_id (CcWindow     *self,
    if (add_to_history)
      add_current_panel_to_history (self, start_id);
  
@@ -123,7 +123,7 @@ Index: gnome-control-center-3.38.0/shell/cc-window.c
    g_free (self->current_panel_id);
    self->current_panel_id = g_strdup (start_id);
  
-@@ -505,35 +464,20 @@ switch_to_previous_panel (CcWindow *self
+@@ -505,27 +464,12 @@ switch_to_previous_panel (CcWindow *self)
  
    g_debug ("Going to previous panel (%s)", previous_panel_id);
  
@@ -134,7 +134,7 @@ Index: gnome-control-center-3.38.0/shell/cc-window.c
  }
  
  /* Callbacks */
- static void
+-static void
 -on_main_leaflet_folded_changed_cb (CcWindow *self)
 -{
 -  GtkSelectionMode selection_mode;
@@ -149,10 +149,10 @@ Index: gnome-control-center-3.38.0/shell/cc-window.c
 -  cc_panel_list_set_selection_mode (self->panel_list, selection_mode);
 -}
 -
--static void
+ static void
  show_panel_cb (CcWindow    *self,
                 const gchar *panel_id)
- {
+@@ -533,7 +477,7 @@ show_panel_cb (CcWindow    *self,
    if (!panel_id)
      return;
  
@@ -161,20 +161,20 @@ Index: gnome-control-center-3.38.0/shell/cc-window.c
  }
  
  static void
-@@ -547,12 +491,6 @@ search_entry_activate_cb (CcWindow *self
+@@ -546,12 +490,6 @@ search_entry_activate_cb (CcWindow *self)
+   gtk_search_bar_set_search_mode (self->search_bar, !changed);
  }
  
- static void
+-static void
 -back_button_clicked_cb (CcWindow *self)
 -{
 -  show_sidebar (self);
 -}
 -
--static void
+ static void
  previous_button_clicked_cb (CcWindow *self)
  {
-   g_debug ("Num previous panels? %d", g_queue_get_length (self->previous_panels));
-@@ -678,7 +616,7 @@ cc_window_set_active_panel_from_id (CcSh
+@@ -678,7 +616,7 @@ cc_window_set_active_panel_from_id (CcShell      *shell,
                                      GVariant     *parameters,
                                      GError      **error)
  {
@@ -191,7 +191,7 @@ Index: gnome-control-center-3.38.0/shell/cc-window.c
  
    G_OBJECT_CLASS (cc_window_parent_class)->constructed (object);
  }
-@@ -873,12 +810,9 @@ cc_window_class_init (CcWindowClass *kla
+@@ -873,12 +810,9 @@ cc_window_class_init (CcWindowClass *klass)
  
    gtk_widget_class_set_template_from_resource (widget_class, "/org/gnome/ControlCenter/gtk/cc-window.ui");
  
@@ -204,7 +204,7 @@ Index: gnome-control-center-3.38.0/shell/cc-window.c
    gtk_widget_class_bind_template_child (widget_class, CcWindow, panel_headerbar);
    gtk_widget_class_bind_template_child (widget_class, CcWindow, panel_list);
    gtk_widget_class_bind_template_child (widget_class, CcWindow, previous_button);
-@@ -890,9 +824,7 @@ cc_window_class_init (CcWindowClass *kla
+@@ -890,9 +824,7 @@ cc_window_class_init (CcWindowClass *klass)
    gtk_widget_class_bind_template_child (widget_class, CcWindow, top_left_box);
    gtk_widget_class_bind_template_child (widget_class, CcWindow, top_right_box);
  
@@ -222,10 +222,10 @@ Index: gnome-control-center-3.38.0/shell/cc-window.c
  
    /* Add a custom CSS class on development builds */
    if (in_flatpak_sandbox ())
-Index: gnome-control-center-3.38.0/shell/cc-window.ui
-===================================================================
---- gnome-control-center-3.38.0.orig/shell/cc-window.ui
-+++ gnome-control-center-3.38.0/shell/cc-window.ui
+diff --git a/shell/cc-window.ui b/shell/cc-window.ui
+index f4072b8..4125758 100644
+--- a/shell/cc-window.ui
++++ b/shell/cc-window.ui
 @@ -10,11 +10,9 @@
      <signal name="map-event" handler="window_map_event_cb" object="CcWindow" swapped="yes" />
      <signal name="key-press-event" handler="window_key_press_event_cb" object="CcWindow" swapped="yes" after="yes" />
@@ -260,10 +260,11 @@ Index: gnome-control-center-3.38.0/shell/cc-window.ui
                  <property name="title" translatable="yes">Settings</property>
                  <child>
                    <object class="GtkButton" id="previous_button">
-@@ -208,41 +203,6 @@
+@@ -207,41 +202,6 @@
+                 <property name="can_focus">False</property>
                  <property name="hexpand">True</property>
                  <property name="show_close_button">True</property>
-                 <child>
+-                <child>
 -                  <object class="GtkRevealer" id="back_revealer">
 -                    <property name="can_focus">False</property>
 -                    <property name="transition-type">crossfade</property>
@@ -298,10 +299,9 @@ Index: gnome-control-center-3.38.0/shell/cc-window.ui
 -                    </child>
 -                  </object>
 -                </child>
--                <child>
+                 <child>
                    <object class="GtkBox" id="top_left_box">
                      <property name="visible">True</property>
-                     <property name="can_focus">True</property>
 @@ -265,14 +225,6 @@
      </child>
    </template>

@@ -7,10 +7,10 @@ Subject: [PATCH 09/26] lock: Add "Lock Screen on Suspend" option
  panels/lock/cc-lock-panel.ui | 17 +++++++++++++++++
  2 files changed, 25 insertions(+)
 
-Index: gnome-control-center-3.37.90/panels/lock/cc-lock-panel.c
-===================================================================
---- gnome-control-center-3.37.90.orig/panels/lock/cc-lock-panel.c
-+++ gnome-control-center-3.37.90/panels/lock/cc-lock-panel.c
+diff --git a/panels/lock/cc-lock-panel.c b/panels/lock/cc-lock-panel.c
+index 86800e8..7700a01 100644
+--- a/panels/lock/cc-lock-panel.c
++++ b/panels/lock/cc-lock-panel.c
 @@ -46,6 +46,7 @@ struct _CcLockPanel
    GtkSwitch     *usb_protection_switch;
    GDBusProxy    *usb_proxy;
@@ -19,7 +19,7 @@ Index: gnome-control-center-3.37.90/panels/lock/cc-lock-panel.c
  };
  
  CC_PANEL_REGISTER (CcLockPanel, cc_lock_panel)
-@@ -270,6 +271,7 @@ cc_lock_panel_class_init (CcLockPanelCla
+@@ -270,6 +271,7 @@ cc_lock_panel_class_init (CcLockPanelClass *klass)
    gtk_widget_class_bind_template_child (widget_class, CcLockPanel, show_notifications_switch);
    gtk_widget_class_bind_template_child (widget_class, CcLockPanel, usb_protection_switch);
    gtk_widget_class_bind_template_child (widget_class, CcLockPanel, usb_protection_row);
@@ -40,10 +40,10 @@ Index: gnome-control-center-3.37.90/panels/lock/cc-lock-panel.c
    value = g_settings_get_uint (self->session_settings, "idle-delay");
    set_blank_screen_delay_value (self, value);
  
-Index: gnome-control-center-3.37.90/panels/lock/cc-lock-panel.ui
-===================================================================
---- gnome-control-center-3.37.90.orig/panels/lock/cc-lock-panel.ui
-+++ gnome-control-center-3.37.90/panels/lock/cc-lock-panel.ui
+diff --git a/panels/lock/cc-lock-panel.ui b/panels/lock/cc-lock-panel.ui
+index f32dde1..3b36af7 100644
+--- a/panels/lock/cc-lock-panel.ui
++++ b/panels/lock/cc-lock-panel.ui
 @@ -96,6 +96,23 @@
                        </object>
                      </child>

@@ -1,0 +1,27 @@
+From: Ian Douglas Scott <idscott@system76.com>
+Date: Tue, 8 Dec 2020 12:06:56 -0800
+Subject: keyboard: Allow disabling alternate characters key
+
+Support for toggling a binding was added to accommodate the compose key.
+At the time, I avoided changing the behavior of the alternate characters
+key.
+
+But it seems good to change this, which should resolve
+https://gitlab.gnome.org/GNOME/gnome-control-center/-/issues/918
+---
+ panels/keyboard/cc-keyboard-panel.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/panels/keyboard/cc-keyboard-panel.c b/panels/keyboard/cc-keyboard-panel.c
+index 7a3fb41..baa5764 100644
+--- a/panels/keyboard/cc-keyboard-panel.c
++++ b/panels/keyboard/cc-keyboard-panel.c
+@@ -79,7 +79,7 @@ static const XkbModifier LV3_MODIFIER = {
+     { NC_("keyboard key", "Right Ctrl"),  "lv3:switch" },
+     { NULL,                               NULL }
+   },
+-  "lv3:ralt_switch",
++  NULL,
+ };
+ 
+ static const XkbModifier COMPOSE_MODIFIER = {

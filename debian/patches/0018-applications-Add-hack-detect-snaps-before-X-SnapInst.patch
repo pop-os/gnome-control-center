@@ -7,11 +7,11 @@ Subject: [PATCH 18/26] applications: Add hack detect snaps before
  panels/applications/cc-applications-panel.c | 13 ++++++++++++-
  1 file changed, 12 insertions(+), 1 deletion(-)
 
-Index: gnome-control-center/panels/applications/cc-applications-panel.c
-===================================================================
---- gnome-control-center.orig/panels/applications/cc-applications-panel.c
-+++ gnome-control-center/panels/applications/cc-applications-panel.c
-@@ -237,8 +237,9 @@ get_portal_app_id (GAppInfo *info)
+diff --git a/panels/applications/cc-applications-panel.c b/panels/applications/cc-applications-panel.c
+index 6b9a1c0..a2bd1d5 100644
+--- a/panels/applications/cc-applications-panel.c
++++ b/panels/applications/cc-applications-panel.c
+@@ -245,8 +245,9 @@ get_portal_app_id (GAppInfo *info)
  {
    if (G_IS_DESKTOP_APP_INFO (info))
      {
@@ -22,7 +22,7 @@ Index: gnome-control-center/panels/applications/cc-applications-panel.c
  
        flatpak_id = g_desktop_app_info_get_string (G_DESKTOP_APP_INFO (info), "X-Flatpak");
        if (flatpak_id != NULL)
-@@ -247,6 +248,16 @@ get_portal_app_id (GAppInfo *info)
+@@ -255,6 +256,16 @@ get_portal_app_id (GAppInfo *info)
        snap_name = g_desktop_app_info_get_string (G_DESKTOP_APP_INFO (info), "X-SnapInstanceName");
        if (snap_name != NULL)
          return g_strdup_printf ("%s%s", PORTAL_SNAP_PREFIX, snap_name);

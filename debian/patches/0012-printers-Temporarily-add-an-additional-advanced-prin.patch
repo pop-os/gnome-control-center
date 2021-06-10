@@ -15,10 +15,10 @@ Bug: https://bugzilla.gnome.org/show_bug.cgi?id=692532
  panels/printers/printers.ui         | 43 +++++++++++++++++++++++++++++++++++++
  2 files changed, 71 insertions(+)
 
-Index: gnome-control-center/panels/printers/cc-printers-panel.c
-===================================================================
---- gnome-control-center.orig/panels/printers/cc-printers-panel.c
-+++ gnome-control-center/panels/printers/cc-printers-panel.c
+diff --git a/panels/printers/cc-printers-panel.c b/panels/printers/cc-printers-panel.c
+index 4c7d3f7..3b01d66 100644
+--- a/panels/printers/cc-printers-panel.c
++++ b/panels/printers/cc-printers-panel.c
 @@ -25,6 +25,7 @@
  #include "pp-printer.h"
  
@@ -27,10 +27,11 @@ Index: gnome-control-center/panels/printers/cc-printers-panel.c
  #include <glib/gi18n-lib.h>
  #include <glib/gstdio.h>
  #include <polkit/polkit.h>
-@@ -1002,6 +1003,25 @@ printer_add_cb (CcPrintersPanel *self)
+@@ -961,6 +962,25 @@ printer_add_cb (CcPrintersPanel *self)
+                            G_CONNECT_SWAPPED);
  }
  
- static void
++static void
 +show_system_config_printer (void)
 +{
 +  g_autoptr(GAppInfo) app_info = NULL;
@@ -49,11 +50,10 @@ Index: gnome-control-center/panels/printers/cc-printers-panel.c
 +    g_warning ("Failed to launch system-config-printer: %s", error->message);
 +}
 +
-+static void
+ static void
  update_sensitivity (gpointer user_data)
  {
-   CcPrintersPanel         *self = (CcPrintersPanel*) user_data;
-@@ -1277,6 +1297,14 @@ cc_printers_panel_init (CcPrintersPanel
+@@ -1213,6 +1233,14 @@ cc_printers_panel_init (CcPrintersPanel *self)
    self->notification = (GtkRevealer*)
      gtk_builder_get_object (self->builder, "notification");
  
@@ -68,11 +68,11 @@ Index: gnome-control-center/panels/printers/cc-printers-panel.c
    widget = (GtkWidget*)
      gtk_builder_get_object (self->builder, "notification-undo-button");
    g_signal_connect_object (widget, "clicked", G_CALLBACK (on_printer_deletion_undone), self, G_CONNECT_SWAPPED);
-Index: gnome-control-center/panels/printers/printers.ui
-===================================================================
---- gnome-control-center.orig/panels/printers/printers.ui
-+++ gnome-control-center/panels/printers/printers.ui
-@@ -134,6 +134,7 @@
+diff --git a/panels/printers/printers.ui b/panels/printers/printers.ui
+index 843e7ed..5988ba8 100644
+--- a/panels/printers/printers.ui
++++ b/panels/printers/printers.ui
+@@ -135,6 +135,7 @@
              <child>
                <object class="GtkBox">
                  <property name="visible">True</property>
@@ -80,7 +80,7 @@ Index: gnome-control-center/panels/printers/printers.ui
                  <child>
                    <object class="GtkListBox" id="content">
                      <property name="visible">True</property>
-@@ -146,6 +147,32 @@
+@@ -147,6 +148,32 @@
                      </style>
                    </object>
                  </child>
@@ -113,7 +113,7 @@ Index: gnome-control-center/panels/printers/printers.ui
                </object>
              </child>
            </object>
-@@ -213,6 +240,22 @@
+@@ -214,6 +241,22 @@
              <property name="position">2</property>
            </packing>
          </child>
