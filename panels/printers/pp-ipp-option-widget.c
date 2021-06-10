@@ -168,14 +168,13 @@ static GtkWidget *
 combo_box_new (void)
 {
   GtkCellRenderer *cell;
-  GtkListStore    *store;
+  g_autoptr(GtkListStore) store = NULL;
   GtkWidget       *combo_box;
 
   combo_box = gtk_combo_box_new ();
 
   store = gtk_list_store_new (N_COLUMNS, G_TYPE_STRING, G_TYPE_STRING);
   gtk_combo_box_set_model (GTK_COMBO_BOX (combo_box), GTK_TREE_MODEL (store));
-  g_object_unref (store);
 
   cell = gtk_cell_renderer_text_new ();
   gtk_cell_layout_pack_start (GTK_CELL_LAYOUT (combo_box), cell, TRUE);
@@ -280,11 +279,8 @@ switch_changed_cb (PpIPPOptionWidget *self)
   else
     values[0] = g_strdup ("False");
 
-  if (self->cancellable)
-    {
-      g_cancellable_cancel (self->cancellable);
-      g_object_unref (self->cancellable);
-    }
+  g_cancellable_cancel (self->cancellable);
+  g_clear_object (&self->cancellable);
 
   self->cancellable = g_cancellable_new ();
   printer_add_option_async (self->printer_name,
@@ -306,11 +302,8 @@ combo_changed_cb (PpIPPOptionWidget *self)
   values = g_new0 (gchar *, 2);
   values[0] = combo_box_get (self->combo);
 
-  if (self->cancellable)
-    {
-      g_cancellable_cancel (self->cancellable);
-      g_object_unref (self->cancellable);
-    }
+  g_cancellable_cancel (self->cancellable);
+  g_clear_object (&self->cancellable);
 
   self->cancellable = g_cancellable_new ();
   printer_add_option_async (self->printer_name,
@@ -332,11 +325,8 @@ spin_button_changed_cb (PpIPPOptionWidget *self)
   values = g_new0 (gchar *, 2);
   values[0] = g_strdup_printf ("%d", gtk_spin_button_get_value_as_int (GTK_SPIN_BUTTON (self->spin_button)));
 
-  if (self->cancellable)
-    {
-      g_cancellable_cancel (self->cancellable);
-      g_object_unref (self->cancellable);
-    }
+  g_cancellable_cancel (self->cancellable);
+  g_clear_object (&self->cancellable);
 
   self->cancellable = g_cancellable_new ();
   printer_add_option_async (self->printer_name,
@@ -384,6 +374,7 @@ construct_widget (PpIPPOptionWidget *self)
             {
               case IPP_ATTRIBUTE_TYPE_BOOLEAN:
                   self->switch_button = gtk_switch_new ();
+                  gtk_widget_show (self->switch_button);
 
                   gtk_box_pack_start (GTK_BOX (self), self->switch_button, FALSE, FALSE, 0);
                   g_signal_connect_object (self->switch_button, "notify::active", G_CALLBACK (switch_changed_cb), self, G_CONNECT_SWAPPED);
@@ -391,6 +382,7 @@ construct_widget (PpIPPOptionWidget *self)
 
               case IPP_ATTRIBUTE_TYPE_INTEGER:
                   self->combo = combo_box_new ();
+                  gtk_widget_show (self->combo);
 
                   for (i = 0; i < self->option_supported->num_of_values; i++)
                     {
@@ -409,6 +401,7 @@ construct_widget (PpIPPOptionWidget *self)
 
               case IPP_ATTRIBUTE_TYPE_STRING:
                   self->combo = combo_box_new ();
+                  gtk_widget_show (self->combo);
 
                   for (i = 0; i < self->option_supported->num_of_values; i++)
                     combo_box_append (self->combo,
@@ -425,6 +418,7 @@ construct_widget (PpIPPOptionWidget *self)
                                         self->option_supported->attribute_values[0].lower_range,
                                         self->option_supported->attribute_values[0].upper_range,
                                         1);
+                  gtk_widget_show (self->spin_button);
 
                   gtk_box_pack_start (GTK_BOX (self), self->spin_button, FALSE, FALSE, 0);
                   g_signal_connect_object (self->spin_button, "value-changed", G_CALLBACK (spin_button_changed_cb), self, G_CONNECT_SWAPPED);
@@ -545,7 +539,7 @@ get_ipp_attributes_cb (GHashTable *table,
   if (self->ipp_attribute)
     g_hash_table_unref (self->ipp_attribute);
 
-  self->ipp_attribute = table;
+  self->ipp_attribute = g_hash_table_ref (table);
 
   update_widget_real (self);
 }

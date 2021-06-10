@@ -60,6 +60,48 @@ enum {
 
 static GParamSpec *props[LAST_PROP];
 
+/* Copied and modified from gtklabel.c, separate_uline_pattern() */
+static gchar *
+strip_mnemonic (const gchar *src)
+{
+  g_autofree gchar *new_str = g_new (gchar, strlen (src) + 1);
+  gchar *dest = new_str;
+  gboolean underscore = FALSE;
+
+  while (*src) {
+    gunichar c;
+    const gchar *next_src;
+
+    c = g_utf8_get_char (src);
+    if (c == (gunichar) -1) {
+      g_warning ("Invalid input string");
+
+      return NULL;
+    }
+
+    next_src = g_utf8_next_char (src);
+
+    if (underscore) {
+      while (src < next_src)
+        *dest++ = *src++;
+
+      underscore = FALSE;
+    } else {
+      if (c == '_'){
+        underscore = TRUE;
+        src = next_src;
+      } else {
+        while (src < next_src)
+          *dest++ = *src++;
+      }
+    }
+  }
+
+  *dest = 0;
+
+  return g_steal_pointer (&new_str);
+}
+
 static gboolean
 filter_search_results (HdyActionRow         *row,
                        HdyPreferencesWindow *self)
@@ -80,7 +122,16 @@ filter_search_results (HdyActionRow         *row,
    * See https://gitlab.gnome.org/GNOME/libhandy/-/merge_requests/424
    */
 
-  if (strstr (title, text)) {
+  if (hdy_preferences_row_get_use_underline (HDY_PREFERENCES_ROW (row))) {
+    gchar *stripped_title = strip_mnemonic (title);
+
+    if (stripped_title) {
+      g_free (title);
+      title = stripped_title;
+    }
+  }
+
+  if (!!strstr (title, text)) {
     priv->n_last_search_results++;
     gtk_widget_show (GTK_WIDGET (row));
 
@@ -209,12 +260,29 @@ key_press_event_cb (GtkWidget            *sender,
   GdkModifierType default_modifiers = gtk_accelerator_get_default_mod_mask ();
   guint keyval;
   GdkModifierType state;
+  GdkKeymap *keymap;
+  GdkEventKey *key_event = (GdkEventKey *) event;
 
-  if (priv->subpage)
-    return GDK_EVENT_PROPAGATE;
-
-  gdk_event_get_keyval (event, &keyval);
   gdk_event_get_state (event, &state);
+
+  keymap = gdk_keymap_get_for_display (gtk_widget_get_display (sender));
+
+  gdk_keymap_translate_keyboard_state (keymap,
+                                       key_event->hardware_keycode,
+                                       state,
+                                       key_event->group,
+                                       &keyval, NULL, NULL, NULL);
+
+  if (priv->subpage) {
+    if (keyval == GDK_KEY_Escape &&
+        hdy_preferences_window_get_can_swipe_back (self)) {
+      hdy_preferences_window_close_subpage (self);
+
+      return GDK_EVENT_STOP;
+    }
+
+    return GDK_EVENT_PROPAGATE;
+  }
 
   if (priv->search_enabled &&
       (keyval == GDK_KEY_f || keyval == GDK_KEY_F) &&
@@ -227,6 +295,12 @@ key_press_event_cb (GtkWidget            *sender,
   if (priv->search_enabled &&
       gtk_search_entry_handle_event (priv->search_entry, event)) {
     gtk_toggle_button_set_active (priv->search_button, TRUE);
+
+    return GDK_EVENT_STOP;
+  }
+
+  if (keyval == GDK_KEY_Escape) {
+    gtk_window_close (GTK_WINDOW (self));
 
     return GDK_EVENT_STOP;
   }

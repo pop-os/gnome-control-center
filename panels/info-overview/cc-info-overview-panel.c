@@ -63,11 +63,13 @@ struct _CcInfoOverviewPanel
   CcListRow       *gnome_version_row;
   CcListRow       *graphics_row;
   GtkListBox      *hardware_box;
+  CcListRow       *hardware_model_row;
   GtkDialog       *hostname_editor;
   CcHostnameEntry *hostname_entry;
   CcListRow       *hostname_row;
   CcListRow       *memory_row;
   GtkListBox      *os_box;
+  GtkImage        *os_logo;
   CcListRow       *os_name_row;
   CcListRow       *os_type_row;
   CcListRow       *processor_row;
@@ -520,6 +522,57 @@ get_primary_disc_info (CcInfoOverviewPanel *self)
     }
 }
 
+static void
+get_hardware_model (CcInfoOverviewPanel *self)
+{
+  g_autoptr(GDBusProxy) hostnamed_proxy = NULL;
+  g_autoptr(GVariant) vendor_variant = NULL;
+  g_autoptr(GVariant) model_variant = NULL;
+  const char *vendor_string, *model_string;
+  g_autoptr(GError) error = NULL;
+
+  hostnamed_proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
+                                                   G_DBUS_PROXY_FLAGS_NONE,
+                                                   NULL,
+                                                   "org.freedesktop.hostname1",
+                                                   "/org/freedesktop/hostname1",
+                                                   "org.freedesktop.hostname1",
+                                                   NULL,
+                                                   &error);
+  if (hostnamed_proxy == NULL)
+    {
+      g_debug ("Couldn't get hostnamed to start, bailing: %s", error->message);
+      return;
+    }
+
+  vendor_variant = g_dbus_proxy_get_cached_property (hostnamed_proxy, "HardwareVendor");
+  if (!vendor_variant)
+    {
+      g_debug ("Unable to retrieve org.freedesktop.hostname1.HardwareVendor property");
+      return;
+    }
+
+  model_variant = g_dbus_proxy_get_cached_property (hostnamed_proxy, "HardwareModel");
+  if (!model_variant)
+    {
+      g_debug ("Unable to retrieve org.freedesktop.hostname1.HardwareModel property");
+      return;
+    }
+
+  vendor_string = g_variant_get_string (vendor_variant, NULL),
+  model_string = g_variant_get_string (model_variant, NULL);
+
+  if (vendor_string && g_strcmp0 (vendor_string, "") != 0)
+    {
+      g_autofree gchar *vendor_model = NULL;
+
+      vendor_model = g_strdup_printf ("%s %s", vendor_string, model_string);
+
+      cc_list_row_set_secondary_label (self->hardware_model_row, vendor_model);
+      gtk_widget_set_visible (GTK_WIDGET (self->hardware_model_row), TRUE);
+    }
+}
+
 static char *
 get_cpu_info (const glibtop_sysinfo *info)
 {
@@ -698,6 +751,8 @@ info_overview_panel_setup_overview (CcInfoOverviewPanel *self)
 
   cc_list_row_set_secondary_label (self->windowing_system_row, get_windowing_system ());
 
+  get_hardware_model (self);
+
   glibtop_get_mem (&mem);
   memory_text = g_format_size_full (mem.total, G_FORMAT_SIZE_IEC_UNITS);
   cc_list_row_set_secondary_label (self->memory_row, memory_text);
@@ -722,13 +777,15 @@ info_overview_panel_setup_overview (CcInfoOverviewPanel *self)
 static gboolean
 does_gnome_software_exist (void)
 {
-  return g_file_test (BINDIR "/gnome-software", G_FILE_TEST_EXISTS);
+  g_autofree gchar *path = g_find_program_in_path ("gnome-software");
+  return path != NULL;
 }
 
 static gboolean
 does_gpk_update_viewer_exist (void)
 {
-  return g_file_test (BINDIR "/gpk-update-viewer", G_FILE_TEST_EXISTS);
+  g_autofree gchar *path = g_find_program_in_path ("gpk-update-viewer");
+  return path != NULL;
 }
 
 static void
@@ -736,19 +793,20 @@ open_software_update (CcInfoOverviewPanel *self)
 {
   g_autoptr(GError) error = NULL;
   gboolean ret;
-  g_auto(GStrv) argv = NULL;
+  char *argv[3];
 
-  argv = g_new0 (gchar *, 3);
   if (does_gnome_software_exist ())
     {
-      argv[0] = g_build_filename (BINDIR, "gnome-software", NULL);
-      argv[1] = g_strdup_printf ("--mode=updates");
+      argv[0] = "gnome-software";
+      argv[1] = "--mode=updates";
+      argv[2] = NULL;
     }
   else
     {
-      argv[0] = g_build_filename (BINDIR, "gpk-update-viewer", NULL);
+      argv[0] = "gpk-update-viewer";
+      argv[1] = NULL;
     }
-  ret = g_spawn_async (NULL, argv, NULL, 0, NULL, NULL, NULL, &error);
+  ret = g_spawn_async (NULL, argv, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL, NULL, &error);
   if (!ret)
       g_warning ("Failed to spawn %s: %s", argv[0], error->message);
 }
@@ -809,6 +867,21 @@ cc_info_panel_row_activated_cb (CcInfoOverviewPanel *self,
 }
 
 static void
+setup_os_logo (CcInfoOverviewPanel *panel)
+{
+  g_autofree char *logo_name = g_get_os_info ("LOGO");
+  if (logo_name != NULL)
+    {
+      gtk_image_set_from_icon_name (panel->os_logo, logo_name, GTK_ICON_SIZE_INVALID);
+      gtk_image_set_pixel_size (panel->os_logo, 256);
+    }
+  else
+    {
+      gtk_image_set_from_resource (panel->os_logo, "/org/gnome/control-center/info-overview/GnomeLogoVerticalMedium.svg");
+    }
+}
+
+static void
 cc_info_overview_panel_class_init (CcInfoOverviewPanelClass *klass)
 {
   GtkWidgetClass *widget_class = GTK_WIDGET_CLASS (klass);
@@ -820,11 +893,13 @@ cc_info_overview_panel_class_init (CcInfoOverviewPanelClass *klass)
   gtk_widget_class_bind_template_child (widget_class, CcInfoOverviewPanel, gnome_version_row);
   gtk_widget_class_bind_template_child (widget_class, CcInfoOverviewPanel, graphics_row);
   gtk_widget_class_bind_template_child (widget_class, CcInfoOverviewPanel, hardware_box);
+  gtk_widget_class_bind_template_child (widget_class, CcInfoOverviewPanel, hardware_model_row);
   gtk_widget_class_bind_template_child (widget_class, CcInfoOverviewPanel, hostname_editor);
   gtk_widget_class_bind_template_child (widget_class, CcInfoOverviewPanel, hostname_entry);
   gtk_widget_class_bind_template_child (widget_class, CcInfoOverviewPanel, hostname_row);
   gtk_widget_class_bind_template_child (widget_class, CcInfoOverviewPanel, memory_row);
   gtk_widget_class_bind_template_child (widget_class, CcInfoOverviewPanel, os_box);
+  gtk_widget_class_bind_template_child (widget_class, CcInfoOverviewPanel, os_logo);
   gtk_widget_class_bind_template_child (widget_class, CcInfoOverviewPanel, os_name_row);
   gtk_widget_class_bind_template_child (widget_class, CcInfoOverviewPanel, os_type_row);
   gtk_widget_class_bind_template_child (widget_class, CcInfoOverviewPanel, processor_row);
@@ -854,6 +929,8 @@ cc_info_overview_panel_init (CcInfoOverviewPanel *self)
 
   info_overview_panel_setup_overview (self);
   info_overview_panel_setup_virt (self);
+
+  setup_os_logo (self);
 }
 
 GtkWidget *
