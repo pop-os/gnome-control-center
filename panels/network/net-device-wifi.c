@@ -47,9 +47,6 @@
 static void nm_device_wifi_refresh_ui (NetDeviceWifi *self);
 static void show_wifi_list (NetDeviceWifi *self);
 static void show_hotspot_ui (NetDeviceWifi *self);
-static void ap_activated (NetDeviceWifi *self, GtkListBoxRow *row);
-static gint ap_sort (gconstpointer a, gconstpointer b, gpointer data);
-static void show_details_for_row (NetDeviceWifi *self, CcWifiConnectionRow *row, CcWifiConnectionList *list );
 
 
 struct _NetDeviceWifi
@@ -57,6 +54,7 @@ struct _NetDeviceWifi
         GtkStack                 parent;
 
         GtkBox                  *center_box;
+        GtkButton               *connect_hidden_button;
         GtkSwitch               *device_off_switch;
         GtkBox                  *header_box;
         GtkBox                  *hotspot_box;
@@ -118,6 +116,7 @@ wireless_enabled_toggled (NetDeviceWifi *self)
         gtk_switch_set_active (self->device_off_switch, enabled);
         if (!enabled)
                 disable_scan_timeout (self);
+        gtk_widget_set_sensitive (GTK_WIDGET (self->connect_hidden_button), enabled);
         self->updating_device = FALSE;
 }
 
@@ -380,6 +379,7 @@ device_off_switch_changed_cb (NetDeviceWifi *self)
         nm_client_wireless_set_enabled (self->client, active);
         if (!active)
                 disable_scan_timeout (self);
+        gtk_widget_set_sensitive (GTK_WIDGET (self->connect_hidden_button), active);
 }
 
 static void
@@ -915,11 +915,36 @@ history_sort (gconstpointer a, gconstpointer b, gpointer data)
 static gint
 ap_sort (gconstpointer a, gconstpointer b, gpointer data)
 {
+        NetDeviceWifi *self = data;
+        CcWifiConnectionRow *a_row = CC_WIFI_CONNECTION_ROW ((gpointer) a);
+        CcWifiConnectionRow *b_row = CC_WIFI_CONNECTION_ROW ((gpointer) b);
+        NMActiveConnection *active_connection;
+        gboolean a_configured, b_configured;
         NMAccessPoint *apa, *apb;
         guint sa, sb;
 
-        apa = cc_wifi_connection_row_best_access_point (CC_WIFI_CONNECTION_ROW ((gpointer) a));
-        apb = cc_wifi_connection_row_best_access_point (CC_WIFI_CONNECTION_ROW ((gpointer) b));
+        /* Show the connected AP first */
+        active_connection = nm_device_get_active_connection (NM_DEVICE (self->device));
+        if (active_connection != NULL) {
+                NMConnection *connection = NM_CONNECTION (nm_active_connection_get_connection (active_connection));
+                if (connection == cc_wifi_connection_row_get_connection (a_row))
+                        return -1;
+                else if (connection == cc_wifi_connection_row_get_connection (b_row))
+                        return 1;
+        }
+
+        /* Show configured networks before non-configured */
+        a_configured = cc_wifi_connection_row_get_connection (a_row) != NULL;
+        b_configured = cc_wifi_connection_row_get_connection (b_row) != NULL;
+        if (a_configured != b_configured) {
+                if (a_configured) return -1;
+                if (b_configured) return 1;
+        }
+
+        /* Show higher strength networks above lower strength ones */
+
+        apa = cc_wifi_connection_row_best_access_point (a_row);
+        apb = cc_wifi_connection_row_best_access_point (b_row);
 
         if (apa)
                 sa = nm_access_point_get_strength (apa);
@@ -942,16 +967,14 @@ show_details_for_row (NetDeviceWifi *self, CcWifiConnectionRow *row, CcWifiConne
 {
         NMConnection *connection;
         NMAccessPoint *ap;
-        GtkWidget *window;
         NetConnectionEditor *editor;
-
-        window = gtk_widget_get_toplevel (GTK_WIDGET (row));
 
         connection = cc_wifi_connection_row_get_connection (row);
         ap = cc_wifi_connection_row_best_access_point (row);
 
-        editor = net_connection_editor_new (GTK_WINDOW (window), connection, self->device, ap, self->client);
-        net_connection_editor_run (editor);
+        editor = net_connection_editor_new (connection, self->device, ap, self->client);
+        gtk_window_set_transient_for (GTK_WINDOW (editor), GTK_WINDOW (gtk_widget_get_toplevel (GTK_WIDGET (row))));
+        gtk_window_present (GTK_WINDOW (editor));
 }
 
 static void
@@ -1149,6 +1172,7 @@ net_device_wifi_class_init (NetDeviceWifiClass *klass)
         gtk_widget_class_set_template_from_resource (widget_class, "/org/gnome/control-center/network/network-wifi.ui");
 
         gtk_widget_class_bind_template_child (widget_class, NetDeviceWifi, center_box);
+        gtk_widget_class_bind_template_child (widget_class, NetDeviceWifi, connect_hidden_button);
         gtk_widget_class_bind_template_child (widget_class, NetDeviceWifi, device_off_switch);
         gtk_widget_class_bind_template_child (widget_class, NetDeviceWifi, header_box);
         gtk_widget_class_bind_template_child (widget_class, NetDeviceWifi, hotspot_box);
@@ -1175,7 +1199,7 @@ net_device_wifi_init (NetDeviceWifi *self)
 }
 
 
-void
+static void
 nm_client_on_permission_change (NetDeviceWifi *self) {
         NMClientPermissionResult perm;
         NMDeviceWifiCapabilities caps;
@@ -1221,7 +1245,7 @@ net_device_wifi_new (CcPanel *panel, NMClient *client, NMDevice *device)
         gtk_container_add (GTK_CONTAINER (self->listbox_box), list);
 
         gtk_list_box_set_header_func (GTK_LIST_BOX (list), cc_list_box_update_header_func, NULL, NULL);
-        gtk_list_box_set_sort_func (GTK_LIST_BOX (list), (GtkListBoxSortFunc)ap_sort, NULL, NULL);
+        gtk_list_box_set_sort_func (GTK_LIST_BOX (list), (GtkListBoxSortFunc)ap_sort, self, NULL);
 
         g_signal_connect_object (list, "row-activated",
                                  G_CALLBACK (ap_activated), self, G_CONNECT_SWAPPED);

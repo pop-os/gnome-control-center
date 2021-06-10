@@ -33,48 +33,43 @@ struct _CcUserImage {
 G_DEFINE_TYPE (CcUserImage, cc_user_image, GTK_TYPE_IMAGE)
 
 static cairo_surface_t *
+render_rounded (GdkPixbuf *source, gint scale)
+{
+        g_autoptr(GdkPixbuf) rounded_pixbuf = NULL;
+        rounded_pixbuf = round_image (source);
+        return gdk_cairo_surface_create_from_pixbuf (rounded_pixbuf, scale, NULL);
+}
+
+static cairo_surface_t *
 render_user_icon (ActUser *user,
                   gint     icon_size,
                   gint     scale)
 {
-        g_autoptr(GdkPixbuf) source_pixbuf = NULL;
-        GdkPixbuf    *pixbuf = NULL;
-        const gchar  *icon_file;
-        cairo_surface_t *surface = NULL;
+        const gchar *icon_file;
+        g_autoptr(GdkPixbuf) default_pixbuf = NULL;
 
         g_return_val_if_fail (ACT_IS_USER (user), NULL);
         g_return_val_if_fail (icon_size > 12, NULL);
 
         icon_file = act_user_get_icon_file (user);
-        pixbuf = NULL;
         if (icon_file) {
-                source_pixbuf = gdk_pixbuf_new_from_file_at_size (icon_file,
-                                                                  icon_size * scale,
-                                                                  icon_size * scale,
-                                                                  NULL);
-                if (source_pixbuf)
-                        pixbuf = round_image (source_pixbuf);
+                g_autoptr(GdkPixbuf) icon_pixbuf = NULL;
+
+                icon_pixbuf = gdk_pixbuf_new_from_file_at_size (icon_file,
+                                                                icon_size * scale,
+                                                                icon_size * scale,
+                                                                NULL);
+                if (icon_pixbuf) {
+                        return render_rounded (icon_pixbuf, scale);
+                }
         }
 
-        if (pixbuf != NULL) {
-                goto out;
+        default_pixbuf = generate_default_avatar (user, icon_size * scale);
+        if (default_pixbuf) {
+            return render_rounded (default_pixbuf, scale);
         }
 
-        if (source_pixbuf != NULL) {
-                g_object_unref (source_pixbuf);
-        }
-
-        source_pixbuf = generate_default_avatar (user, icon_size * scale);
-        if (source_pixbuf)
-            pixbuf = round_image (source_pixbuf);
- out:
-
-        if (pixbuf != NULL) {
-                surface = gdk_cairo_surface_create_from_pixbuf (pixbuf, scale, NULL);
-                g_object_unref (pixbuf);
-        }
-
-        return surface;
+        return NULL;
 }
 
 static void

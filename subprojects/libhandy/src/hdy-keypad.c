@@ -114,7 +114,7 @@ insert_text_cb (HdyKeypad   *self,
   if (g_ascii_isdigit (*text))
      return;
 
-  if (!priv->symbols_visible && strchr ("#*+", *text))
+  if (priv->symbols_visible && strchr ("#*+", *text))
      return;
 
   g_signal_stop_emission_by_name (editable, "insert-text");
@@ -129,7 +129,7 @@ long_press_zero_cb (HdyKeypad  *self,
 {
   HdyKeypadPrivate *priv = hdy_keypad_get_instance_private (self);
 
-  if (priv->symbols_visible)
+  if (!priv->symbols_visible)
     return;
 
   g_debug ("Long press on zero button");

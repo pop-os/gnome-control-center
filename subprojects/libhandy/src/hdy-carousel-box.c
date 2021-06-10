@@ -236,6 +236,37 @@ invalidate_handler_cb (GdkWindow      *window,
 }
 
 static void
+invalidate_cache_for_child (HdyCarouselBox          *self,
+                            HdyCarouselBoxChildInfo *child)
+{
+  cairo_rectangle_int_t rect;
+
+  rect.x = 0;
+  rect.y = 0;
+  rect.width = self->child_width;
+  rect.height = self->child_height;
+
+  if (child->surface)
+    g_clear_pointer (&child->surface, cairo_surface_destroy);
+
+  if (child->dirty_region)
+    cairo_region_destroy (child->dirty_region);
+  child->dirty_region = cairo_region_create_rectangle (&rect);
+}
+
+static void
+invalidate_drawing_cache (HdyCarouselBox *self)
+{
+  GList *l;
+
+  for (l = self->children; l; l = l->next) {
+    HdyCarouselBoxChildInfo *child_info = l->data;
+
+    invalidate_cache_for_child (self, child_info);
+  }
+}
+
+static void
 register_window (HdyCarouselBoxChildInfo *info,
                  HdyCarouselBox          *self)
 {
@@ -273,6 +304,8 @@ register_window (HdyCarouselBoxChildInfo *info,
   info->window = window;
 
   gdk_window_set_invalidate_handler (window, invalidate_handler_cb);
+
+  invalidate_cache_for_child (self, info);
 }
 
 static void
@@ -680,37 +713,6 @@ hdy_carousel_box_get_preferred_height_for_width (GtkWidget *widget,
 }
 
 static void
-invalidate_cache_for_child (HdyCarouselBox          *self,
-                            HdyCarouselBoxChildInfo *child)
-{
-  cairo_rectangle_int_t rect;
-
-  rect.x = 0;
-  rect.y = 0;
-  rect.width = self->child_width;
-  rect.height = self->child_height;
-
-  if (child->surface)
-    g_clear_pointer (&child->surface, cairo_surface_destroy);
-
-  if (child->dirty_region)
-    cairo_region_destroy (child->dirty_region);
-  child->dirty_region = cairo_region_create_rectangle (&rect);
-}
-
-static void
-invalidate_drawing_cache (HdyCarouselBox *self)
-{
-  GList *l;
-
-  for (l = self->children; l; l = l->next) {
-    HdyCarouselBoxChildInfo *child_info = l->data;
-
-    invalidate_cache_for_child (self, child_info);
-  }
-}
-
-static void
 update_windows (HdyCarouselBox *self)
 {
   GList *children;
@@ -903,7 +905,6 @@ hdy_carousel_box_size_allocate (GtkWidget     *widget,
     gtk_widget_size_allocate (child, &alloc);
   }
 
-  invalidate_drawing_cache (self);
   gtk_widget_set_clip (widget, allocation);
 }
 
@@ -1723,7 +1724,7 @@ hdy_carousel_box_get_closest_snap_point (HdyCarouselBox *self)
  * the current position, the returned widget will match the currently
  * displayed page.
  *
- * Returns: the closest page.
+ * Returns: (nullable): the closest page.
  *
  * Since: 1.0
  */
@@ -1741,6 +1742,9 @@ hdy_carousel_box_get_page_at_position (HdyCarouselBox *self,
   position = CLAMP (position, lower, upper);
 
   child = get_closest_child_at (self, position, TRUE, FALSE);
+
+  if (!child)
+    return NULL;
 
   return child->widget;
 }

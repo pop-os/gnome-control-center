@@ -1,6 +1,8 @@
 name = 'connection-editor'
 
 sources = files(
+  'ce-ip-address-entry.c',
+  'ce-netmask-entry.c',
   'ce-page-8021x-security.c',
   'ce-page-details.c',
   'ce-page-ethernet.c',

@@ -75,25 +75,6 @@ printer_name_changed (PpDetailsDialog *self)
   gtk_label_set_label (self->dialog_title, title);
 }
 
-static void
-ppd_names_free (gpointer user_data)
-{
-  PPDName **names = (PPDName **) user_data;
-  gint      i;
-
-  if (names)
-    {
-      for (i = 0; names[i]; i++)
-        {
-          g_free (names[i]->ppd_name);
-          g_free (names[i]->ppd_display_name);
-          g_free (names[i]);
-        }
-
-      g_free (names);
-    }
-}
-
 static void set_ppd_cb (const gchar *printer_name, gboolean success, gpointer user_data);
 
 static void
@@ -114,7 +95,6 @@ get_ppd_names_cb (PPDName     **names,
                                  self->cancellable,
                                  set_ppd_cb,
                                  self);
-          ppd_names_free (names);
         }
       else
         {
@@ -174,7 +154,7 @@ ppd_selection_dialog_response_cb (GtkDialog *dialog,
         }
     }
 
-  pp_ppd_selection_dialog_free (self->pp_ppd_selection_dialog);
+  gtk_widget_destroy (GTK_WIDGET (self->pp_ppd_selection_dialog));
   self->pp_ppd_selection_dialog = NULL;
 }
 
@@ -184,7 +164,7 @@ get_all_ppds_async_cb (PPDList  *ppds,
 {
   PpDetailsDialog *self = user_data;
 
-  self->all_ppds_list = ppds;
+  self->all_ppds_list = ppd_list_copy (ppds);
 
   if (self->pp_ppd_selection_dialog)
     pp_ppd_selection_dialog_set_ppd_list (self->pp_ppd_selection_dialog,
@@ -231,11 +211,15 @@ select_ppd_in_dialog (PpDetailsDialog *self)
          }
 
         self->pp_ppd_selection_dialog = pp_ppd_selection_dialog_new (
-          GTK_WINDOW (gtk_widget_get_toplevel (GTK_WIDGET (self))),
           self->all_ppds_list,
           manufacturer,
           ppd_selection_dialog_response_cb,
           self);
+
+        gtk_window_set_transient_for (GTK_WINDOW (self->pp_ppd_selection_dialog),
+                                      GTK_WINDOW (self));
+
+        gtk_dialog_run (GTK_DIALOG (self->pp_ppd_selection_dialog));
     }
 }
 

@@ -1,0 +1,32 @@
+From: Bastien Nocera <hadess@hadess.net>
+Date: Mon, 3 Feb 2020 14:46:15 +0100
+Subject: info-overview: Use the Vendor logo prominently
+
+This removes GNOME branding in favour of the vendor branding. We don't
+make changes to the text information as the distribution/OS is clearly
+visible above the GNOME version.
+
+This may be removed when debian will expose the LOGO property in
+/etc/os-release (as per upstream commit f39cd5a93)
+
+See https://bugzilla.gnome.org/show_bug.cgi?id=695691
+Bug-Debian: https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=989690
+Bug-Ubuntu: https://bugs.launchpad.net/ubuntu/+source/base-files/+bug/1931582
+---
+ panels/info-overview/cc-info-overview-panel.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/panels/info-overview/cc-info-overview-panel.c b/panels/info-overview/cc-info-overview-panel.c
+index bd0e077..f99d6f0 100644
+--- a/panels/info-overview/cc-info-overview-panel.c
++++ b/panels/info-overview/cc-info-overview-panel.c
+@@ -877,7 +877,8 @@ setup_os_logo (CcInfoOverviewPanel *panel)
+     }
+   else
+     {
+-      gtk_image_set_from_resource (panel->os_logo, "/org/gnome/control-center/info-overview/GnomeLogoVerticalMedium.svg");
++      gtk_image_set_from_file (panel->os_logo, "/usr/share/icons/vendor/scalable/emblems/emblem-vendor.svg");
++      gtk_image_set_pixel_size (panel->os_logo, 128);
+     }
+ }
+ 

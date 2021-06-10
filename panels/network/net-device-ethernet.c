@@ -154,8 +154,7 @@ add_details (GtkWidget *details, NMDevice *device, NMConnection *connection)
                 add_details_row (details, i++, _("IP Address"), ip6_address);
         }
 
-        add_details_row (details, i++, _("Hardware Address"),
-                         nm_device_ethernet_get_hw_address (NM_DEVICE_ETHERNET (device)));
+        add_details_row (details, i++, _("Hardware Address"), nm_device_get_hw_address (device));
 
         if (ip4_route)
                 add_details_row (details, i++, _("Default Route"), ip4_route);
@@ -232,19 +231,17 @@ show_details (NetDeviceEthernet *self, GtkButton *button, const gchar *title)
 {
         GtkWidget *row;
         NMConnection *connection;
-        GtkWidget *window;
         NetConnectionEditor *editor;
-
-        window = gtk_widget_get_toplevel (GTK_WIDGET (self));
 
         row = g_object_get_data (G_OBJECT (button), "row");
         connection = NM_CONNECTION (g_object_get_data (G_OBJECT (row), "connection"));
 
-        editor = net_connection_editor_new (GTK_WINDOW (window), connection, self->device, NULL, self->client);
+        editor = net_connection_editor_new (connection, self->device, NULL, self->client);
+        gtk_window_set_transient_for (GTK_WINDOW (editor), GTK_WINDOW (gtk_widget_get_toplevel (GTK_WIDGET (self))));
         if (title)
                 net_connection_editor_set_title (editor, title);
         g_signal_connect_object (editor, "done", G_CALLBACK (editor_done), self, G_CONNECT_SWAPPED);
-        net_connection_editor_run (editor);
+        gtk_window_present (GTK_WINDOW (editor));
 }
 
 static void
@@ -406,7 +403,6 @@ add_profile_button_clicked_cb (NetDeviceEthernet *self)
         g_autofree gchar *uuid = NULL;
         g_autofree gchar *id = NULL;
         NetConnectionEditor *editor;
-        GtkWidget *window;
         const GPtrArray *connections;
 
         connection = nm_simple_connection_new ();
@@ -427,11 +423,10 @@ add_profile_button_clicked_cb (NetDeviceEthernet *self)
 
         nm_connection_add_setting (connection, nm_setting_wired_new ());
 
-        window = gtk_widget_get_toplevel (GTK_WIDGET (self));
-
-        editor = net_connection_editor_new (GTK_WINDOW (window), connection, self->device, NULL, self->client);
+        editor = net_connection_editor_new (connection, self->device, NULL, self->client);
+        gtk_window_set_transient_for (GTK_WINDOW (editor), GTK_WINDOW (gtk_widget_get_toplevel (GTK_WIDGET (self))));
         g_signal_connect_object (editor, "done", G_CALLBACK (editor_done), self, G_CONNECT_SWAPPED);
-        net_connection_editor_run (editor);
+        gtk_window_present (GTK_WINDOW (editor));
 }
 
 static void

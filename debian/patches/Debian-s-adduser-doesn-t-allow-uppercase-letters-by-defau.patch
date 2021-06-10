@@ -1,0 +1,23 @@
+From: Andrea Azzarone <andrea.azzarone@canonical.com>
+Date: Tue, 31 Jul 2018 04:44:11 +0100
+Subject: Debian's adduser doesn't allow uppercase letters by default.
+
+Forwarded: no
+Bug: https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=910141
+---
+ panels/user-accounts/cc-add-user-dialog.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/panels/user-accounts/cc-add-user-dialog.c b/panels/user-accounts/cc-add-user-dialog.c
+index 3d1daa4..eaa6930 100644
+--- a/panels/user-accounts/cc-add-user-dialog.c
++++ b/panels/user-accounts/cc-add-user-dialog.c
+@@ -232,7 +232,7 @@ local_create_user (CcAddUserDialog *self)
+ 
+         manager = act_user_manager_get_default ();
+         act_user_manager_create_user_async (manager,
+-                                            username,
++                                            g_ascii_strdown (username, -1),
+                                             name,
+                                             account_type,
+                                             self->cancellable,

@@ -24,7 +24,6 @@
 #include <string.h>
 #include <gdk/gdk.h>
 #include <gdk/gdkx.h>
-#include <gnome-settings-daemon/gsd-enums.h>
 #include <math.h>
 
 #include "cc-mouse-test.h"
@@ -134,7 +133,7 @@ setup_information_label (CcMouseTest *self)
 	}
 
 	if (self->double_click_state == DOUBLE_CLICK_TEST_GEGL) {
-		message = _("Five clicks, GEGL time!"), "</b>";
+		message = _("Five clicks, GEGL time!");
 	} else {
 		double_click = (self->double_click_state >= DOUBLE_CLICK_TEST_ON);
 		switch (self->button_state) {
@@ -367,7 +366,7 @@ cc_mouse_test_init (CcMouseTest *self)
 	self->double_click_state = DOUBLE_CLICK_TEST_OFF;
 	self->button_state = 0;
 
-	self->mouse_settings = g_settings_new ("org.gnome.settings-daemon.peripherals.mouse");
+	self->mouse_settings = g_settings_new ("org.gnome.desktop.peripherals.mouse");
 
 	self->information_label_timeout_id = 0;
 	self->button_drawing_area_timeout_id = 0;
