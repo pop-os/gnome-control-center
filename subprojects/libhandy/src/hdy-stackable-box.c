@@ -74,7 +74,7 @@ enum {
 #define HDY_FOLD_FOLDED TRUE
 #define HDY_FOLD_MAX 2
 #define GTK_ORIENTATION_MAX 2
-#define HDY_SWIPE_BORDER 16
+#define HDY_SWIPE_BORDER 32
 
 typedef struct _HdyStackableBoxChildInfo HdyStackableBoxChildInfo;
 
@@ -1396,6 +1396,8 @@ hdy_stackable_box_measure (HdyStackableBox *self,
     else
       get_preferred_size_for_size (self->last_visible_child->widget, for_size,
                                    &last_visible_min, NULL);
+  } else {
+    last_visible_min = visible_min;
   }
 
   visible_child_progress = self->child_transition.interpolate_size ? self->child_transition.progress : 1.0;

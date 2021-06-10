@@ -1,8 +1,8 @@
 project(
   'gnome-control-center', 'c',
-        version : '3.38.3',
+        version : '40.0',
         license : 'GPL2+',
-  meson_version : '>= 0.51.0'
+  meson_version : '>= 0.53.0'
 )
 
 control_center_prefix = get_option('prefix')
@@ -99,7 +99,7 @@ libgvc = subproject(
 )
 libgvc_dep = libgvc.get_variable('libgvc_dep')
 
-libhandy_dep = dependency('libhandy-1', version: '>= 0.90.0', required: false)
+libhandy_dep = dependency('libhandy-1', version: '>= 1.0.0', required: false)
 if not libhandy_dep.found()
   libhandy = subproject(
     'libhandy',
@@ -122,7 +122,7 @@ colord_dep = dependency('colord', version: '>= 0.1.34')
 gdk_pixbuf_dep = dependency('gdk-pixbuf-2.0', version: '>= 2.23.0')
 gio_dep = dependency('gio-2.0')
 glib_dep = dependency('glib-2.0', version: '>= 2.56.0')
-gnome_desktop_dep = dependency('gnome-desktop-3.0', version: '>= 3.27.90')
+gnome_desktop_dep = dependency('gnome-desktop-3.0', version: '>= 3.33.4')
 gnome_settings_dep = dependency('gnome-settings-daemon', version: '>= 3.27.90')
 goa_dep = dependency('goa-1.0', version: goa_req_version)
 gsettings_desktop_dep = dependency('gsettings-desktop-schemas', version: '>= 3.37.1')
@@ -210,6 +210,8 @@ config_h.set('HAVE_SNAP', enable_snap,
 enable_malcontent = get_option('malcontent')
 if enable_malcontent
   malcontent_dep = dependency('malcontent-0', version: '>= 0.7.0')
+  config_h.set('HAVE_MALCONTENT_0_10', malcontent_dep.version().version_compare('>= 0.10.0'),
+               description: 'Define to 1 if malcontent ≥ 0.10.0')
 endif
 config_h.set('HAVE_MALCONTENT', enable_malcontent,
              description: 'Define to 1 if malcontent support is enabled')
@@ -217,7 +219,7 @@ config_h.set('HAVE_MALCONTENT', enable_malcontent,
 if host_is_linux
   # network manager
   network_manager_deps = [
-    dependency('libnm', version: '>= 1.20.0'),
+    dependency('libnm', version: '>= 1.24.0'),
     dependency('libnma', version: '>= 1.8.0'),
     dependency('mm-glib', version: '>= 0.7')
   ]
@@ -291,21 +293,22 @@ configure_file(
   configuration: config_h
 )
 
-output = ''
-output += '\n        ' + meson.project_name() + ' - ' + meson.project_version() + '\n'
-output += '    ===================================\n'
-output += ' Options \n'
-output += '     Documentation .............................. ' + get_option('documentation').to_string() + '\n'
-output += '     Build Tests ................................ ' + get_option('tests').to_string() + '\n'
-output += '     Tracing .................................... ' + enable_tracing.to_string() + '\n'
-output += '     Optimized .................................. ' + control_center_optimized.to_string() + '\n'
-output += ' Panels \n'
-output += '     GNOME Bluetooth (Bluetooth panel) .......... ' + host_is_linux_not_s390.to_string() + '\n'
-output += '     Cheese (Users panel webcam support) ........ ' + enable_cheese.to_string() + '\n'
-output += '     IBus (Region panel IBus support) ........... ' + enable_ibus.to_string() + '\n'
-output += '     NetworkManager (Network panel) ............. ' + host_is_linux.to_string() + '\n'
-output += '     Wacom (Wacom tablet panel) ................. ' + host_is_linux_not_s390.to_string() + '\n'
-output += '     Snap support ............................... ' + enable_snap.to_string() + '\n'
-output += '     Malcontent support ......................... ' + enable_malcontent.to_string() + '\n'
+summary({
+  'Documentation': get_option('documentation'),
+  'Tests': get_option('tests'),
+  'Tracing': enable_tracing,
+  'Optimized': control_center_optimized,
+})
 
-message(output)
+summary({
+  'GNOME Bluetooth': host_is_linux_not_s390,
+  'NetworkManager': host_is_linux,
+  'Wacom': host_is_linux_not_s390,
+}, section: 'Dependencies')
+
+summary({
+  'Cheese': enable_cheese,
+  'IBus': enable_ibus,
+  'Snap': enable_snap,
+  'Malcontent': enable_malcontent,
+}, section: 'Optional Dependencies')

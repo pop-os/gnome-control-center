@@ -371,7 +371,7 @@ hdy_window_mixin_draw (HdyWindowMixin *self,
     h = height - shadow.top - shadow.bottom;
 
     gtk_style_context_get (context,
-                           gtk_style_context_get_state (self->decoration_context),
+                           gtk_style_context_get_state (context),
                            GTK_STYLE_PROPERTY_BORDER_RADIUS, &r,
                            NULL);
 
@@ -470,13 +470,9 @@ hdy_window_mixin_draw (HdyWindowMixin *self,
 void
 hdy_window_mixin_destroy (HdyWindowMixin *self)
 {
-  if (self->titlebar) {
-    hdy_window_mixin_remove (self, self->titlebar);
-    self->titlebar = NULL;
-  }
-
   if (self->content) {
     hdy_window_mixin_remove (self, self->content);
+    gtk_widget_destroy (self->content);
     self->content = NULL;
     self->child = NULL;
   }

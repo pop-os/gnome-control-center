@@ -34,12 +34,6 @@ struct _PpPrinter
 
 G_DEFINE_TYPE (PpPrinter, pp_printer, G_TYPE_OBJECT)
 
-enum
-{
-  PROP_0 = 0,
-  PROP_NAME
-};
-
 static void
 pp_printer_dispose (GObject *object)
 {
@@ -51,60 +45,11 @@ pp_printer_dispose (GObject *object)
 }
 
 static void
-pp_printer_get_property (GObject    *object,
-                         guint       property_id,
-                         GValue     *value,
-                         GParamSpec *pspec)
-{
-  PpPrinter *self = PP_PRINTER (object);
-
-  switch (property_id)
-    {
-      case PROP_NAME:
-        g_value_set_string (value, self->printer_name);
-        break;
-      default:
-        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
-        break;
-    }
-}
-
-static void
-pp_printer_set_property (GObject      *object,
-                         guint         property_id,
-                         const GValue *value,
-                         GParamSpec   *pspec)
-{
-  PpPrinter *self = PP_PRINTER (object);
-
-  switch (property_id)
-    {
-      case PROP_NAME:
-        g_free (self->printer_name);
-        self->printer_name = g_value_dup_string (value);
-        break;
-      default:
-        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
-        break;
-    }
-
-}
-
-static void
 pp_printer_class_init (PpPrinterClass *klass)
 {
   GObjectClass *gobject_class = G_OBJECT_CLASS (klass);
 
-  gobject_class->set_property = pp_printer_set_property;
-  gobject_class->get_property = pp_printer_get_property;
   gobject_class->dispose = pp_printer_dispose;
-
-  g_object_class_install_property (gobject_class, PROP_NAME,
-    g_param_spec_string ("printer-name",
-                         "Printer name",
-                         "Name of this printer",
-                         NULL,
-                         G_PARAM_READWRITE));
 }
 
 static void
@@ -115,9 +60,18 @@ pp_printer_init (PpPrinter *self)
 PpPrinter *
 pp_printer_new (const gchar *name)
 {
-  PpPrinter *self = g_object_new (PP_TYPE_PRINTER, "printer-name", name, NULL);
+  PpPrinter *self = g_object_new (PP_TYPE_PRINTER, NULL);
+
+  self->printer_name = g_strdup (name);
 
   return self;
+}
+
+const gchar *
+pp_printer_get_name (PpPrinter *self)
+{
+  g_return_val_if_fail (PP_IS_PRINTER (self), NULL);
+  return self->printer_name;
 }
 
 static void
@@ -128,16 +82,14 @@ printer_rename_thread (GTask        *task,
 {
   PpPrinter        *self = PP_PRINTER (source_object);
   gboolean          result;
-  gchar            *new_printer_name = task_data;
-  g_autofree gchar *old_printer_name = NULL;
+  const gchar      *new_printer_name = task_data;
 
-  g_object_get (self, "printer-name", &old_printer_name, NULL);
-
-  result = printer_rename (old_printer_name, new_printer_name);
+  result = printer_rename (self->printer_name, new_printer_name);
 
   if (result)
     {
-      g_object_set (self, "printer-name", new_printer_name, NULL);
+      g_free (self->printer_name);
+      self->printer_name = g_strdup (new_printer_name);
     }
 
   g_task_return_boolean (task, result);
@@ -152,30 +104,28 @@ printer_rename_dbus_cb (GObject      *source_object,
   g_autoptr(GVariant) output = NULL;
   gboolean            result = FALSE;
   g_autoptr(GError)   error = NULL;
-  GTask              *task = user_data;
+  g_autoptr(GTask)    task = user_data;
 
   output = g_dbus_connection_call_finish (G_DBUS_CONNECTION (source_object),
                                           res,
                                           &error);
-  g_object_unref (source_object);
 
   if (output != NULL)
     {
-      g_autofree gchar *old_printer_name = NULL;
       const gchar *ret_error;
 
       self = g_task_get_source_object (task);
-      g_object_get (self, "printer-name", &old_printer_name, NULL);
 
       g_variant_get (output, "(&s)", &ret_error);
       if (ret_error[0] != '\0')
         {
-          g_warning ("cups-pk-helper: renaming of printer %s failed: %s", old_printer_name, ret_error);
+          g_warning ("cups-pk-helper: renaming of printer %s failed: %s", self->printer_name, ret_error);
         }
       else
         {
           result = TRUE;
-          g_object_set (self, "printer-name", g_task_get_task_data (task), NULL);
+          g_free (self->printer_name);
+          self->printer_name = g_strdup (g_task_get_task_data (task));
         }
 
       g_task_return_boolean (task, result);
@@ -202,25 +152,22 @@ get_bus_cb (GObject      *source_object,
             GAsyncResult *res,
             gpointer      user_data)
 {
+  PpPrinter *self;
   GDBusConnection  *bus;
   g_autoptr(GError) error = NULL;
-  GTask            *task = user_data;
+  g_autoptr(GTask)  task = user_data;
 
   bus = g_bus_get_finish (res, &error);
   if (bus != NULL)
     {
-      g_autofree gchar *printer_name = NULL;
-
-      g_object_get (g_task_get_source_object (task),
-                    "printer-name", &printer_name,
-                    NULL);
+      self = g_task_get_source_object (task);
       g_dbus_connection_call (bus,
                               MECHANISM_BUS,
                               "/",
                               MECHANISM_BUS,
                               "PrinterRename",
                               g_variant_new ("(ss)",
-                                             printer_name,
+                                             self->printer_name,
                                              g_task_get_task_data (task)),
                               G_VARIANT_TYPE ("(s)"),
                               G_DBUS_CALL_FLAGS_NONE,
@@ -228,6 +175,7 @@ get_bus_cb (GObject      *source_object,
                               g_task_get_cancellable (task),
                               printer_rename_dbus_cb,
                               task);
+      g_steal_pointer (&task);
     }
   else
     {
@@ -262,7 +210,6 @@ pp_printer_rename_finish (PpPrinter     *self,
                           GError       **error)
 {
   g_return_val_if_fail (g_task_is_valid (res, self), FALSE);
-  g_object_unref (res);
 
   return g_task_propagate_boolean (G_TASK (res), error);
 }
@@ -296,10 +243,8 @@ get_jobs_thread (GTask        *task,
   gint              num_jobs;
   gint              i, j;
 
-  g_object_get (self, "printer-name", &printer_name, NULL);
-
   num_jobs = cupsGetJobs (&jobs,
-                          printer_name,
+                          self->printer_name,
                           get_jobs_data->myjobs ? 1 : 0,
                           get_jobs_data->which_jobs);
 
@@ -329,7 +274,7 @@ get_jobs_thread (GTask        *task,
 
                   if (auth_info_required == NULL)
                     {
-                      g_autofree gchar *printer_uri = g_strdup_printf ("ipp://localhost/printers/%s", printer_name);
+                      g_autofree gchar *printer_uri = g_strdup_printf ("ipp://localhost/printers/%s", self->printer_name);
 
                       printer_request = ippNewRequest (IPP_GET_PRINTER_ATTRIBUTES);
                       ippAddString (printer_request, IPP_TAG_OPERATION, IPP_TAG_URI,
@@ -359,12 +304,7 @@ get_jobs_thread (GTask        *task,
             }
         }
 
-      job = g_object_new (pp_job_get_type (),
-                          "id",    jobs[i].id,
-                          "title", jobs[i].title,
-                          "state", jobs[i].state,
-                          "auth-info-required", auth_info_is_required ? auth_info_required : NULL,
-                          NULL);
+      job = pp_job_new (jobs[i].id, jobs[i].title, jobs[i].state, auth_info_is_required ? auth_info_required : NULL);
 
       g_ptr_array_add (array, job);
     }
@@ -387,7 +327,7 @@ pp_printer_get_jobs_async (PpPrinter           *self,
                            gpointer             user_data)
 {
   GetJobsData *get_jobs_data;
-  GTask       *task;
+  g_autoptr(GTask) task = NULL;
 
   get_jobs_data = g_new (GetJobsData, 1);
   get_jobs_data->myjobs = myjobs;
@@ -397,7 +337,6 @@ pp_printer_get_jobs_async (PpPrinter           *self,
   g_task_set_task_data (task, get_jobs_data, g_free);
   g_task_set_return_on_cancel (task, TRUE);
   g_task_run_in_thread (task, get_jobs_thread);
-  g_object_unref (task);
 }
 
 GPtrArray *
@@ -415,6 +354,7 @@ pp_printer_delete_dbus_cb (GObject      *source_object,
                            GAsyncResult *res,
                            gpointer      user_data)
 {
+  PpPrinter *self;
   g_autoptr(GVariant) output = NULL;
   gboolean            result = FALSE;
   g_autoptr(GError)   error = NULL;
@@ -423,18 +363,16 @@ pp_printer_delete_dbus_cb (GObject      *source_object,
   output = g_dbus_connection_call_finish (G_DBUS_CONNECTION (source_object),
                                           res,
                                           &error);
-  g_object_unref (source_object);
 
   if (output != NULL)
     {
-      g_autofree gchar *printer_name = NULL;
       const gchar      *ret_error;
 
-      g_object_get (g_task_get_source_object (task), "printer-name", &printer_name, NULL);
+      self = g_task_get_source_object (task);
 
       g_variant_get (output, "(&s)", &ret_error);
       if (ret_error[0] != '\0')
-        g_warning ("cups-pk-helper: removing of printer %s failed: %s", printer_name, ret_error);
+        g_warning ("cups-pk-helper: removing of printer %s failed: %s", self->printer_name, ret_error);
       else
         result = TRUE;
 
@@ -453,6 +391,7 @@ pp_printer_delete_cb (GObject      *source_object,
                       GAsyncResult *res,
                       gpointer      user_data)
 {
+  PpPrinter *self;
   GDBusConnection  *bus;
   g_autoptr(GError) error = NULL;
   GTask            *task = user_data;
@@ -460,18 +399,14 @@ pp_printer_delete_cb (GObject      *source_object,
   bus = g_bus_get_finish (res, &error);
   if (bus != NULL)
     {
-      g_autofree gchar *printer_name = NULL;
-
-      g_object_get (g_task_get_source_object (task),
-                    "printer-name", &printer_name,
-                    NULL);
+      self = g_task_get_source_object (task);
 
       g_dbus_connection_call (bus,
                               MECHANISM_BUS,
                               "/",
                               MECHANISM_BUS,
                               "PrinterDelete",
-                              g_variant_new ("(s)", printer_name),
+                              g_variant_new ("(s)", self->printer_name),
                               G_VARIANT_TYPE ("(s)"),
                               G_DBUS_CALL_FLAGS_NONE,
                               -1,
@@ -539,14 +474,12 @@ print_file_thread (GTask        *task,
   cups_dest_t      *dest = NULL;
   const gchar      *printer_type = NULL;
   gboolean          ret = FALSE;
-  g_autofree gchar *printer_name = NULL;
   g_autofree gchar *printer_uri = NULL;
   g_autofree gchar *resource = NULL;
   ipp_t            *response = NULL;
   ipp_t            *request;
 
-  g_object_get (self, "printer-name", &printer_name, NULL);
-  dest = cupsGetNamedDest (CUPS_HTTP_DEFAULT, printer_name, NULL);
+  dest = cupsGetNamedDest (CUPS_HTTP_DEFAULT, self->printer_name, NULL);
   if (dest != NULL)
     {
       printer_type = cupsGetOption ("printer-type",
@@ -560,13 +493,13 @@ print_file_thread (GTask        *task,
 
   if (type & CUPS_PRINTER_CLASS)
     {
-      printer_uri = g_strdup_printf ("ipp://localhost/classes/%s", printer_name);
-      resource = g_strdup_printf ("/classes/%s", printer_name);
+      printer_uri = g_strdup_printf ("ipp://localhost/classes/%s", self->printer_name);
+      resource = g_strdup_printf ("/classes/%s", self->printer_name);
     }
   else
     {
-      printer_uri = g_strdup_printf ("ipp://localhost/printers/%s", printer_name);
-      resource = g_strdup_printf ("/printers/%s", printer_name);
+      printer_uri = g_strdup_printf ("ipp://localhost/printers/%s", self->printer_name);
+      resource = g_strdup_printf ("/printers/%s", self->printer_name);
     }
 
   print_file_data = g_task_get_task_data (task);
@@ -605,7 +538,7 @@ pp_printer_print_file_async (PpPrinter           *self,
                              gpointer             user_data)
 {
   PrintFileData *print_file_data;
-  GTask *task;
+  g_autoptr(GTask) task = NULL;
 
   print_file_data = g_new (PrintFileData, 1);
   print_file_data->filename = g_strdup (filename);
@@ -617,7 +550,6 @@ pp_printer_print_file_async (PpPrinter           *self,
   g_task_set_task_data (task, print_file_data, (GDestroyNotify) print_file_data_free);
 
   g_task_run_in_thread (task, print_file_thread);
-  g_object_unref (task);
 }
 
 gboolean

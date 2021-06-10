@@ -35,6 +35,7 @@
 #include "pp-jobs-dialog.h"
 #include "pp-utils.h"
 #include "pp-job.h"
+#include "pp-job-row.h"
 #include "pp-cups.h"
 #include "pp-printer.h"
 
@@ -174,118 +175,11 @@ authenticate_popover_update (PpJobsDialog *self)
   gtk_widget_set_sensitive (GTK_WIDGET (self->authenticate_button), FALSE);
 }
 
-static void
-job_stop_cb (GtkButton *button,
-             PpJob     *job)
-{
-  pp_job_cancel_purge_async (job, FALSE);
-}
-
-static void
-job_pause_cb (GtkButton *button,
-              PpJob     *job)
-{
-  gint job_state;
-
-  g_object_get (job, "state", &job_state, NULL);
-
-  pp_job_set_hold_until_async (job, job_state == IPP_JOB_HELD ? "no-hold" : "indefinite");
-
-  gtk_button_set_image (button,
-                        gtk_image_new_from_icon_name (job_state == IPP_JOB_HELD ?
-                                                      "media-playback-pause-symbolic" : "media-playback-start-symbolic",
-                                                      GTK_ICON_SIZE_SMALL_TOOLBAR));
-}
-
 static GtkWidget *
 create_listbox_row (gpointer item,
                     gpointer user_data)
 {
-  GtkWidget  *widget;
-  GtkWidget  *box;
-  PpJob      *job = (PpJob *)item;
-  gchar     **auth_info_required;
-  gchar      *title;
-  gchar      *state_string = NULL;
-  gint        job_state;
-
-  g_object_get (job,
-                "title", &title,
-                "state", &job_state,
-                "auth-info-required", &auth_info_required,
-                NULL);
-
-  switch (job_state)
-    {
-      case IPP_JOB_PENDING:
-        /* Translators: Job's state (job is waiting to be printed) */
-        state_string = g_strdup (C_("print job", "Pending"));
-        break;
-      case IPP_JOB_HELD:
-        if (auth_info_required == NULL)
-          {
-            /* Translators: Job's state (job is held for printing) */
-            state_string = g_strdup (C_("print job", "Paused"));
-          }
-        else
-          {
-            /* Translators: Job's state (job needs authentication to proceed further) */
-            state_string = g_strdup_printf ("<span foreground=\"#ff0000\">%s</span>", C_("print job", "Authentication required"));
-          }
-        break;
-      case IPP_JOB_PROCESSING:
-        /* Translators: Job's state (job is currently printing) */
-        state_string = g_strdup (C_("print job", "Processing"));
-        break;
-      case IPP_JOB_STOPPED:
-        /* Translators: Job's state (job has been stopped) */
-        state_string = g_strdup (C_("print job", "Stopped"));
-        break;
-      case IPP_JOB_CANCELED:
-        /* Translators: Job's state (job has been canceled) */
-        state_string = g_strdup (C_("print job", "Canceled"));
-        break;
-      case IPP_JOB_ABORTED:
-        /* Translators: Job's state (job has aborted due to error) */
-        state_string = g_strdup (C_("print job", "Aborted"));
-        break;
-      case IPP_JOB_COMPLETED:
-        /* Translators: Job's state (job has completed successfully) */
-        state_string = g_strdup (C_("print job", "Completed"));
-        break;
-    }
-
-  box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
-  g_object_set (box, "margin", 6, NULL);
-  gtk_container_set_border_width (GTK_CONTAINER (box), 2);
-
-  widget = gtk_label_new (title);
-  gtk_label_set_max_width_chars (GTK_LABEL (widget), 40);
-  gtk_label_set_ellipsize (GTK_LABEL (widget), PANGO_ELLIPSIZE_END);
-  gtk_widget_set_halign (widget, GTK_ALIGN_START);
-  gtk_box_pack_start (GTK_BOX (box), widget, TRUE, TRUE, 10);
-
-  widget = gtk_label_new (NULL);
-  gtk_label_set_markup (GTK_LABEL (widget), state_string);
-  gtk_widget_set_halign (widget, GTK_ALIGN_END);
-  gtk_widget_set_margin_end (widget, 64);
-  gtk_widget_set_margin_start (widget, 64);
-  gtk_box_pack_start (GTK_BOX (box), widget, FALSE, FALSE, 10);
-
-  widget = gtk_button_new_from_icon_name (job_state == IPP_JOB_HELD ? "media-playback-start-symbolic" : "media-playback-pause-symbolic",
-                                          GTK_ICON_SIZE_SMALL_TOOLBAR);
-  g_signal_connect (widget, "clicked", G_CALLBACK (job_pause_cb), item);
-  gtk_widget_set_sensitive (widget, auth_info_required == NULL);
-  gtk_box_pack_start (GTK_BOX (box), widget, FALSE, FALSE, 4);
-
-  widget = gtk_button_new_from_icon_name ("edit-delete-symbolic",
-                                          GTK_ICON_SIZE_SMALL_TOOLBAR);
-  g_signal_connect (widget, "clicked", G_CALLBACK (job_stop_cb), item);
-  gtk_box_pack_start (GTK_BOX (box), widget, FALSE, FALSE, 4);
-
-  gtk_widget_show_all (box);
-
-  return box;
+  return GTK_WIDGET (pp_job_row_new (PP_JOB (item)));
 }
 
 static void
@@ -305,7 +199,6 @@ update_jobs_list_cb (GObject      *source_object,
   g_autoptr(GError)    error = NULL;
   g_autoptr(GPtrArray) jobs;
   PpJob               *job;
-  gchar              **auth_info_required = NULL;
   gint                 num_of_auth_jobs = 0;
   guint                i;
 
@@ -339,19 +232,12 @@ update_jobs_list_cb (GObject      *source_object,
 
       g_list_store_append (self->store, g_object_ref (job));
 
-      g_object_get (G_OBJECT (job),
-                    "auth-info-required", &auth_info_required,
-                    NULL);
-      if (auth_info_required != NULL)
+      if (pp_job_get_auth_info_required (job) != NULL)
         {
           num_of_auth_jobs++;
 
           if (self->actual_auth_info_required == NULL)
-            self->actual_auth_info_required = auth_info_required;
-          else
-            g_strfreev (auth_info_required);
-
-          auth_info_required = NULL;
+            self->actual_auth_info_required = g_strdupv (pp_job_get_auth_info_required (job));
         }
     }
 
@@ -389,7 +275,7 @@ update_jobs_list_cb (GObject      *source_object,
 static void
 update_jobs_list (PpJobsDialog *self)
 {
-  PpPrinter *printer;
+  g_autoptr(PpPrinter) printer = NULL;
 
   if (self->printer_name != NULL)
     {
@@ -452,7 +338,6 @@ static void
 authenticate_button_clicked (PpJobsDialog *self)
 {
   PpJob        *job;
-  gchar       **auth_info_required = NULL;
   gchar       **auth_info;
   guint         num_items;
   gint          i;
@@ -473,13 +358,9 @@ authenticate_button_clicked (PpJobsDialog *self)
     {
       job = PP_JOB (g_list_model_get_item (G_LIST_MODEL (self->store), i));
 
-      g_object_get (job, "auth-info-required", &auth_info_required, NULL);
-      if (auth_info_required != NULL)
+      if (pp_job_get_auth_info_required (job) != NULL)
         {
           pp_job_authenticate_async (job, auth_info, NULL, pp_job_authenticate_cb, self);
-
-          g_strfreev (auth_info_required);
-          auth_info_required = NULL;
         }
     }
 

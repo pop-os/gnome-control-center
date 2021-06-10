@@ -25,7 +25,6 @@
 #include <glib/gi18n.h>
 
 #include "keyboard-shortcuts.h"
-#include "cc-keyboard-option.h"
 
 #define CUSTOM_KEYS_BASENAME  "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings"
 
@@ -243,7 +242,7 @@ keyval_is_forbidden (guint keyval)
 }
 
 gboolean
-is_valid_binding (CcKeyCombo *combo)
+is_valid_binding (const CcKeyCombo *combo)
 {
   if ((combo->mask == 0 || combo->mask == GDK_SHIFT_MASK) && combo->keycode != 0)
     {
@@ -268,7 +267,7 @@ is_valid_binding (CcKeyCombo *combo)
 }
 
 gboolean
-is_empty_binding (CcKeyCombo *combo)
+is_empty_binding (const CcKeyCombo *combo)
 {
   if (combo->keyval == 0 &&
       combo->mask == 0 &&
@@ -278,7 +277,7 @@ is_empty_binding (CcKeyCombo *combo)
 }
 
 gboolean
-is_valid_accel (CcKeyCombo *combo)
+is_valid_accel (const CcKeyCombo *combo)
 {
   /* Unlike gtk_accelerator_valid(), we want to allow Tab when combined
    * with some modifiers (Alt+Tab and friends)
@@ -356,7 +355,7 @@ parse_keylist_from_file (const gchar *path)
  * https://git.gnome.org/browse/gtk+/tree/gtk/gtkcellrendereraccel.c#n261
  */
 gchar*
-convert_keysym_state_to_string (CcKeyCombo *combo)
+convert_keysym_state_to_string (const CcKeyCombo *combo)
 {
   gchar *name;
 

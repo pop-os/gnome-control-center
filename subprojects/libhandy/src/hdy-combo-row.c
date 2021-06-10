@@ -136,8 +136,10 @@ create_list_widget (gpointer item,
   HdyComboRowPrivate *priv = hdy_combo_row_get_instance_private (self);
   GtkWidget *checkmark = g_object_new (GTK_TYPE_IMAGE,
                                        "halign", GTK_ALIGN_START,
-                                       "icon-name", "emblem-ok-symbolic",
+                                       "icon-name", "object-select-symbolic",
+                                       "opacity", 0.0,
                                        "valign", GTK_ALIGN_CENTER,
+                                       "visible", TRUE,
                                        NULL);
   GtkWidget *box = g_object_new (GTK_TYPE_BOX,
                                  "child", priv->create_list_widget_func (item, priv->create_widget_func_data),
@@ -204,8 +206,8 @@ update (HdyComboRow *self)
       GtkWidget *row = GTK_WIDGET (l->data);
       GtkWidget *box = gtk_bin_get_child (GTK_BIN (row));
 
-      gtk_widget_set_visible (GTK_WIDGET (g_object_get_data (G_OBJECT (box), "checkmark")),
-                              priv->selected_index == i++);
+      gtk_widget_set_opacity (GTK_WIDGET (g_object_get_data (G_OBJECT (box), "checkmark")),
+                              (priv->selected_index == i++) ? 1 : 0);
     }
   }
 
@@ -235,8 +237,10 @@ bound_model_changed (GListModel *list,
   HdyComboRowPrivate *priv = hdy_combo_row_get_instance_private (self);
 
   /* Selection is in front of insertion/removal point, nothing to do */
-  if (priv->selected_index > 0 && priv->selected_index < index)
+  if (priv->selected_index > 0 && priv->selected_index < index) {
+    update (self);
     return;
+  }
 
   if (priv->selected_index < index + removed) {
     /* The item selected item was removed (or none is selected) */
@@ -251,6 +255,8 @@ bound_model_changed (GListModel *list,
     new_idx = 0;
 
   hdy_combo_row_set_selected_index (self, new_idx);
+
+  update (self);
 }
 
 static void
@@ -452,7 +458,7 @@ hdy_combo_row_init (HdyComboRow *self)
 
   priv->selected_index = -1;
 
-  g_signal_connect_object (priv->list, "row-activated", G_CALLBACK (gtk_widget_hide),
+  g_signal_connect_object (priv->list, "row-activated", G_CALLBACK (gtk_popover_popdown),
                            priv->popover, G_CONNECT_SWAPPED);
   g_signal_connect_object (priv->list, "row-activated", G_CALLBACK (row_activated_cb),
                            self, G_CONNECT_SWAPPED);
