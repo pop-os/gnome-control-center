@@ -1,3 +1,31 @@
+gnome-control-center (1:40.0-1ubuntu1) UNRELEASED; urgency=medium
+
+  * Merge with debian
+  * debian/patches: Refresh and rebase
+  * debian/patches: Use debian-gnome standard unnumered names.
+    Having numbered patches makes it only harder to maintain and rebase, so
+    let's just follow the gnome-team rules and use proper names for them as
+    gbp pq generates.
+    If you don't use it, well do :).
+  * debian/patches: Cherry-pick upstream proposed patches to handle cases
+    that we were handlig by reverting 3.38 changes.
+  * d/p/Provide-an-api-for-the-installation-of-language-pack.patch: Drop.
+    This was needed to handle language pack installation, but it's something
+    that is obsolete now.
+  * d/p/Adapts-the-region-capplet-and-the-language-chooser-in-the.patch:
+    - Looks like it needed to be ordered to be rebased proplerly, so adapt it
+      to new code hiding the "more" button from ui file.
+    - Fix locales updates.
+    Ensure that when user language changes we set back the region to the
+    default per the chosen language
+  * debian/patches: Move patches into the debian namespace.
+    They're all only needed in debian, so let's use a proper namespace.
+  * debian/patches: Move the ubuntu-only patches into the ubuntu namespace.
+    We can organize patches better this way avoiding comments that gbp pq
+    would delete.
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Fri, 11 Jun 2021 03:34:29 +0200
+
 gnome-control-center (1:40.0-1) experimental; urgency=medium
 
   [ Marco Trevisan (Treviño) ]
