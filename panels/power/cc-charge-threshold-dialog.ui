@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <!-- interface-requires gtk+ 3.0 -->
+  <template class="CcChargeThresholdDialog" parent="GtkDialog">
+    <property name="modal">True</property>
+    <child internal-child="vbox">
+      <object class="GtkBox">
+        <property name="visible">True</property>
+        <property name="margin">15</property>
+        <property name="spacing">15</property>
+        <child>
+          <object class="GtkLabel">
+            <property name="visible">True</property>
+            <property name="halign">start</property>
+            <property name="xalign">0</property>
+            <property name="wrap">True</property>
+            <property name="width-chars">70</property>
+            <property name="max-width-chars">70</property>
+            <property name="label">Increase the lifespan of your battery by setting a maximum charge value below 100%.</property>
+          </object>
+        </child>
+        <child>
+          <object class="GtkFrame">
+            <property name="visible">True</property>
+            <child>
+              <object class="GtkListBox" id="listbox">
+                <property name="visible">True</property>
+                <property name="selection-mode">GTK_SELECTION_BROWSE</property>
+                <signal name="row-activated" handler="row_activated_cb" object="CcChargeThresholdDialog" swapped="yes" />
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkLabel" id="custom_label">
+            <property name="visible" bind-source="hidden_radio" bind-property="active" bind-flags="sync-create" />
+            <property name="xalign">0</property>
+            <property name="halign">start</property>
+            <property name="wrap">True</property>
+            <property name="width-chars">70</property>
+            <property name="max-width-chars">70</property>
+            <attributes>
+              <attribute name="weight" value="PANGO_WEIGHT_BOLD"/>
+            </attributes>
+          </object>
+        </child>
+        <child>
+          <!-- Hack to show no radio button selected when profile is undefined -->
+          <object class="GtkRadioButton" id="hidden_radio">
+            <property name="visible">False</property>
+            <signal name="toggled" handler="radio_toggled_cb" object="CcChargeThresholdDialog" swapped="yes" />
+          </object>
+        </child>
+      </object>
+    </child>
+    <child internal-child="headerbar">
+      <object class="GtkHeaderBar">
+        <property name="title">Battery Charge Thresholds</property>
+        <property name="can_focus">False</property>
+        <property name="show_close_button">True</property>
+      </object>
+    </child>
+  </template>
+</interface>

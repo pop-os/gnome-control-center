@@ -18,7 +18,10 @@ i18n.merge_file(
 )
 
 sources = files(
+  'cc-battery-row.c',
   'cc-brightness-scale.c',
+  'cc-charge-threshold-dialog.c',
+  'cc-charge-threshold-row.c',
   'cc-power-panel.c'
 )
 
@@ -26,7 +29,12 @@ sources += gnome.mkenums_simple(
   'cc-brightness-scale-types',
   sources: ['cc-brightness-scale.h'])
 
-resource_data = files('cc-power-panel.ui')
+resource_data = files(
+  'cc-battery-row.ui',
+  'cc-charge-threshold-dialog.ui',
+  'cc-charge-threshold-row.ui',
+  'cc-power-panel.ui'
+)
 
 sources += gnome.compile_resources(
   'cc-' + cappletname + '-resources',
@@ -34,6 +42,16 @@ sources += gnome.compile_resources(
   c_name: 'cc_' + cappletname,
   dependencies: resource_data,
   export: true
+)
+
+power_namespace = 'com.system76.PowerDaemon'
+
+sources += gnome.gdbus_codegen(
+  'cc-system76-power-generated',
+  'data/' + power_namespace + '.xml',
+  interface_prefix: 'com.system76',
+  namespace: 'S76',
+  object_manager: true,
 )
 
 deps = common_deps + [
