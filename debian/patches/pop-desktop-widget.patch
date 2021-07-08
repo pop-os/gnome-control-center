@@ -1,7 +1,7 @@
-diff --git a/panels/background/cc-background-panel.c b/panels/background/cc-background-panel.c
-index 29dedf165..c5e9de0fc 100644
---- a/panels/background/cc-background-panel.c
-+++ b/panels/background/cc-background-panel.c
+Index: gnome-control-center/panels/background/cc-background-panel.c
+===================================================================
+--- gnome-control-center.orig/panels/background/cc-background-panel.c
++++ gnome-control-center/panels/background/cc-background-panel.c
 @@ -24,6 +24,7 @@
  #include <glib.h>
  #include <glib/gi18n-lib.h>
@@ -71,7 +71,7 @@ index 29dedf165..c5e9de0fc 100644
  static void
  update_preview (CcBackgroundPanel *panel)
  {
-@@ -241,6 +285,7 @@ cc_background_panel_dispose (GObject *object)
+@@ -241,6 +285,7 @@ cc_background_panel_dispose (GObject *ob
    g_clear_object (&panel->settings);
    g_clear_object (&panel->lock_settings);
    g_clear_object (&panel->thumb_factory);
@@ -79,7 +79,7 @@ index 29dedf165..c5e9de0fc 100644
  
    G_OBJECT_CLASS (cc_background_panel_parent_class)->dispose (object);
  }
-@@ -266,6 +311,7 @@ cc_background_panel_class_init (CcBackgroundPanelClass *klass)
+@@ -266,6 +311,7 @@ cc_background_panel_class_init (CcBackgr
    g_type_ensure (CC_TYPE_BACKGROUND_PREVIEW);
  
    panel_class->get_help_uri = cc_background_panel_get_help_uri;
@@ -87,7 +87,7 @@ index 29dedf165..c5e9de0fc 100644
  
    object_class->constructed = cc_background_panel_constructed;
    object_class->dispose = cc_background_panel_dispose;
-@@ -276,9 +322,14 @@ cc_background_panel_class_init (CcBackgroundPanelClass *klass)
+@@ -276,9 +322,14 @@ cc_background_panel_class_init (CcBackgr
    gtk_widget_class_bind_template_child (widget_class, CcBackgroundPanel, add_picture_button);
    gtk_widget_class_bind_template_child (widget_class, CcBackgroundPanel, background_chooser);
    gtk_widget_class_bind_template_child (widget_class, CcBackgroundPanel, desktop_preview);
@@ -102,7 +102,7 @@ index 29dedf165..c5e9de0fc 100644
  }
  
  static void
-@@ -301,10 +352,13 @@ cc_background_panel_init (CcBackgroundPanel *panel)
+@@ -301,10 +352,24 @@ cc_background_panel_init (CcBackgroundPa
  
    panel->settings = g_settings_new (WP_PATH_ID);
    g_settings_delay (panel->settings);
@@ -114,13 +114,24 @@ index 29dedf165..c5e9de0fc 100644
 +  panel->pop = pop_desktop_widget_new (panel->stack);
 +  gtk_container_foreach (GTK_CONTAINER (panel->stack), for_each_stack_cb, panel);
 +
++  GtkWidget *active_page = gtk_stack_get_visible_child(GTK_STACK (panel->stack));
++
++  g_autoptr (GList) children = gtk_container_get_children (panel->stack_sidebar);
++  for (GList *element = children; element; element = element->next) {
++    GtkWidget *stack_child = g_object_get_data (G_OBJECT (element->data), "stack-child");
++    if (stack_child && stack_child == active_page) {
++      gtk_list_box_select_row (GTK_LIST_BOX (panel->stack_sidebar), GTK_WIDGET (element->data));
++      break;
++    }
++  }
++
    /* Load the background */
    reload_current_bg (panel);
    update_preview (panel);
-diff --git a/panels/background/cc-background-panel.ui b/panels/background/cc-background-panel.ui
-index 7b5c3d385..c53f38948 100644
---- a/panels/background/cc-background-panel.ui
-+++ b/panels/background/cc-background-panel.ui
+Index: gnome-control-center/panels/background/cc-background-panel.ui
+===================================================================
+--- gnome-control-center.orig/panels/background/cc-background-panel.ui
++++ gnome-control-center/panels/background/cc-background-panel.ui
 @@ -1,49 +1,65 @@
  <?xml version="1.0" encoding="UTF-8"?>
  <interface>
@@ -213,10 +224,10 @@ index 7b5c3d385..c53f38948 100644
          </child>
        </object>
      </child>
-diff --git a/panels/background/gnome-background-panel.desktop.in.in b/panels/background/gnome-background-panel.desktop.in.in
-index 76534b028..0a074c1d3 100644
---- a/panels/background/gnome-background-panel.desktop.in.in
-+++ b/panels/background/gnome-background-panel.desktop.in.in
+Index: gnome-control-center/panels/background/gnome-background-panel.desktop.in.in
+===================================================================
+--- gnome-control-center.orig/panels/background/gnome-background-panel.desktop.in.in
++++ gnome-control-center/panels/background/gnome-background-panel.desktop.in.in
 @@ -1,6 +1,6 @@
  [Desktop Entry]
 -Name=Background
@@ -233,10 +244,10 @@ index 76534b028..0a074c1d3 100644
 -Keywords=Wallpaper;Screen;Desktop;
 +Keywords=Wallpaper;Screen;Desktop;Dark;Light;Theme;Night;Dock;Panel;Windows;Workspaces;
 +X-GNOME-ControlCenter-HasSidebar=true
-diff --git a/panels/background/meson.build b/panels/background/meson.build
-index e9fa398d4..0136a3bd7 100644
---- a/panels/background/meson.build
-+++ b/panels/background/meson.build
+Index: gnome-control-center/panels/background/meson.build
+===================================================================
+--- gnome-control-center.orig/panels/background/meson.build
++++ gnome-control-center/panels/background/meson.build
 @@ -94,7 +94,8 @@ deps = common_deps + [
    goa_dep,
    libxml_dep,
