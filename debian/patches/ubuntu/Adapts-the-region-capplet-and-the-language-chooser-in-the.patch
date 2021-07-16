@@ -40,9 +40,9 @@ Subject: Adapts the region capplet and the language chooser in the user
  panels/common/cc-common-language.c   | 137 +++++++++++++++++++++++++++++------
  panels/common/cc-common-language.h   |   4 +
  panels/common/cc-language-chooser.ui |   2 +-
- panels/region/cc-region-panel.c      | 120 ++++++++++++++++++++++--------
+ panels/region/cc-region-panel.c      | 123 ++++++++++++++++++++++---------
  panels/user-accounts/cc-user-panel.c |  12 ++-
- 5 files changed, 217 insertions(+), 58 deletions(-)
+ 5 files changed, 217 insertions(+), 61 deletions(-)
 
 diff --git a/panels/common/cc-common-language.c b/panels/common/cc-common-language.c
 index 9357c3e..c923d82 100644
@@ -294,7 +294,17 @@ index 01f5600..8107126 100644
          if (self->login) {
                  set_system_language (self, language);
          } else {
-@@ -348,6 +349,39 @@ set_system_region (CcRegionPanel *self,
+@@ -327,9 +328,6 @@ language_response (CcRegionPanel     *self,
+         if (response_id == GTK_RESPONSE_OK) {
+                 language = cc_language_chooser_get_language (chooser);
+                 update_language (self, language);
+-
+-                /* Keep format strings consistent with the user's language */
+-                update_region (self, NULL);
+         }
+ 
+         gtk_widget_destroy (GTK_WIDGET (chooser));
+@@ -348,6 +346,39 @@ set_system_region (CcRegionPanel *self,
          set_localed_locale (self);
  }
  
@@ -334,7 +344,7 @@ index 01f5600..8107126 100644
  static void
  update_region (CcRegionPanel *self,
                 const gchar   *region)
-@@ -357,6 +391,7 @@ update_region (CcRegionPanel *self,
+@@ -357,6 +388,7 @@ update_region (CcRegionPanel *self,
          } else {
                  if (g_strcmp0 (region, self->region) == 0)
                          return;
@@ -342,7 +352,7 @@ index 01f5600..8107126 100644
                  if (region == NULL || region[0] == '\0')
                          g_settings_reset (self->locale_settings, KEY_REGION);
                  else
-@@ -510,7 +545,7 @@ static void
+@@ -510,7 +542,7 @@ static void
  update_region_from_setting (CcRegionPanel *self)
  {
          g_free (self->region);
@@ -351,7 +361,7 @@ index 01f5600..8107126 100644
          update_region_label (self);
  }
  
-@@ -536,15 +571,19 @@ static void
+@@ -536,15 +568,19 @@ static void
  update_language_from_user (CcRegionPanel *self)
  {
          const gchar *language = NULL;
@@ -375,7 +385,7 @@ index 01f5600..8107126 100644
          update_language_label (self);
  }
  
-@@ -597,6 +636,16 @@ show_language_support (CcRegionPanel *self)
+@@ -597,6 +633,16 @@ show_language_support (CcRegionPanel *self)
                  g_warning ("Failed to launch language-selector: %s", error->message);
  }
  
@@ -392,7 +402,7 @@ index 01f5600..8107126 100644
  static void
  on_localed_properties_changed (CcRegionPanel  *self,
                                 GVariant       *changed_properties,
-@@ -609,28 +658,38 @@ on_localed_properties_changed (CcRegionPanel  *self,
+@@ -609,28 +655,38 @@ on_localed_properties_changed (CcRegionPanel  *self,
                  g_autofree const gchar **strv = NULL;
                  gsize len;
                  gint i;
@@ -440,7 +450,7 @@ index 01f5600..8107126 100644
                  g_free (self->system_region);
                  self->system_region = g_strdup (time);
  
-@@ -643,27 +702,26 @@ set_localed_locale (CcRegionPanel *self)
+@@ -643,27 +699,26 @@ set_localed_locale (CcRegionPanel *self)
  {
          g_autoptr(GVariantBuilder) b = NULL;
          g_autofree gchar *lang_value = NULL;
