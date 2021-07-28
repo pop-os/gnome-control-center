@@ -9,6 +9,7 @@ Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
 XSBC-Original-Maintainer: Debian GNOME Maintainers <pkg-gnome-maintainers@lists.alioth.debian.org>
 Uploaders: Iain Lane <laney@debian.org>, Jeremy Bicha <jbicha@debian.org>, Laurent Bigonville <bigon@debian.org>, Sebastien Bacher <seb128@debian.org>
 Build-Depends: debhelper-compat (= 12),
+               dh-migrations,
                libaccountsservice-dev (>= 0.6.39),
                desktop-file-utils,
                gnome-pkg-tools (>= 0.10),
@@ -21,7 +22,8 @@ Build-Depends: debhelper-compat (= 12),
                libcolord-dev (>= 0.1.29),
                libcolord-gtk-dev (>= 0.1.24),
                libcups2-dev,
-               libgdk-pixbuf-2.0-dev (>= 2.23.0) | libgdk-pixbuf2.0-dev (>= 2.23.0),
+               libfirmware-manager-dev,
+               libgdk-pixbuf2.0-dev (>= 2.23.0),
                libgirepository1.0-dev,
                libglib2.0-dev (>= 2.56.0),
                libgnome-desktop-3-dev (>= 3.32.2-2ubuntu2),
@@ -41,11 +43,14 @@ Build-Depends: debhelper-compat (= 12),
                libnma-dev (>= 1.8.0) [linux-any],
                libmm-glib-dev [linux-any],
                libpolkit-gobject-1-dev (>= 0.103),
-               libpulse-dev (>= 13.0~),
+               libpop-desktop-widget-dev,
+               libpop-upgrade-gtk-dev,
+               libpulse-dev,
                libpwquality-dev,
                libsecret-1-dev,
                libsmbclient-dev (>= 2:3.6.12-1~),
                libsnapd-glib-dev (>= 1.57),
+               libs76-hidpi-widget-dev,
                libsoup2.4-dev,
                libudisks2-dev,
                libupower-glib-dev (>= 0.99.8),
@@ -56,6 +61,7 @@ Build-Depends: debhelper-compat (= 12),
                libxft-dev (>= 2.1.2),
                libxklavier-dev (>= 5.1),
                libxml2-dev,
+               libxml2-utils,
                locales,
                meson (>= 0.51.0),
                policykit-1,
@@ -72,7 +78,7 @@ Vcs-Git: https://salsa.debian.org/gnome-team/gnome-control-center.git -b ubuntu/
 Vcs-Browser: https://salsa.debian.org/gnome-team/gnome-control-center/tree/ubuntu/master
 
 Package: gnome-control-center
-Architecture: any
+Architecture: amd64
 Depends: ${misc:Depends},
          ${shlibs:Depends},
          accountsservice,
@@ -86,6 +92,8 @@ Depends: ${misc:Depends},
          gnome-settings-daemon (>= 3.37),
          gsettings-desktop-schemas (>= 3.37.1),
          language-selector-gnome (>= 0.179~),
+         libpop-desktop-widget,
+         libpop-upgrade-gtk,
          system-config-printer (>= 1.4),
          whoopsie-preferences,
 Recommends: cups-pk-helper,
@@ -109,7 +117,7 @@ Suggests: gnome-software | gnome-packagekit,
           libcanberra-gtk-module,
           libcanberra-gtk3-module,
           x11-xserver-utils
-Breaks: gnome-shell (<< 3.37.92)
+Provides: firmware-manager-virtual
 Description: utilities to configure the GNOME desktop
  This package contains configuration applets for the GNOME desktop,
  allowing to set accessibility configuration, desktop fonts, keyboard
