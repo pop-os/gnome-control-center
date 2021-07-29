@@ -1,5 +1,7 @@
-/*
+/* cc-input-list-box.c
+ *
  * Copyright (C) 2010 Intel, Inc
+ * Copyright (C) 2020 System76, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,19 +16,24 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
- * Author: Thomas Wood <thomas.wood@intel.com>
+ * Author: Sergey Udaltsov   <svu@gnome.org>
+ *         Ian Douglas Scott <idscott@system76.com>
  *
+ * SPDX-License-Identifier: GPL-2.0-or-later
  */
-
 
 #pragma once
 
-#include <shell/cc-panel.h>
-#include <gtk/gtk.h>
-
 G_BEGIN_DECLS
 
-#define CC_TYPE_KEYBOARD_PANEL (cc_keyboard_panel_get_type ())
-G_DECLARE_FINAL_TYPE (CcKeyboardPanel, cc_keyboard_panel, CC, KEYBOARD_PANEL, CcPanel)
+#include <gtk/gtk.h>
+
+#define CC_TYPE_INPUT_LIST_BOX (cc_input_list_box_get_type ())
+G_DECLARE_FINAL_TYPE (CcInputListBox, cc_input_list_box, CC, INPUT_LIST_BOX, GtkListBox)
+
+void cc_input_list_box_set_login (CcInputListBox *self, gboolean);
+void cc_input_list_box_set_login_auto_apply (CcInputListBox*, gboolean);
+void cc_input_list_box_set_localed (CcInputListBox*, GDBusProxy*);
+void cc_input_list_box_set_permission (CcInputListBox*, GPermission*);
 
 G_END_DECLS
