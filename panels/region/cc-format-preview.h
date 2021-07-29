@@ -1,5 +1,7 @@
-/*
- * Copyright (C) 2013 Red Hat, Inc
+/* cc-format-preview.c
+ *
+ * Copyright (C) 2013 Red Hat, Inc.
+ * Copyright (C) 2020 System76, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -13,14 +15,21 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, see <http://www.gnu.org/licenses/>.
+ *
+ * Written by:
+ *     Matthias Clasen
+ *     Ian Douglas Scott <idscott@system76.com>
+ *
+ * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
 #pragma once
 
-#include <ibus.h>
+#include <gtk/gtk.h>
 
 G_BEGIN_DECLS
 
-gchar *engine_get_display_name (IBusEngineDesc *engine_desc);
+#define CC_TYPE_FORMAT_PREVIEW (cc_format_preview_get_type())
+G_DECLARE_FINAL_TYPE (CcFormatPreview, cc_format_preview, CC, FORMAT_PREVIEW, GtkBox)
 
 G_END_DECLS
