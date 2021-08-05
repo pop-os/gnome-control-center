@@ -1,6 +1,7 @@
+From 64b836a1c832af2b242677d7869173d35550f465 Mon Sep 17 00:00:00 2001
 From: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
-Date: Wed, 15 Jan 2020 04:56:17 +0100
-Subject: Allow tweaking some settings for Ubuntu Dock
+Date: Wed, 15 Jan 2020 16:56:17 +1300
+Subject: [PATCH] Allow tweaking some settings for Ubuntu Dock
 
 Expose some of the settings that most users will find useful for our
 Ubuntu Dock installation. Those are located in its own panel for now:
@@ -10,20 +11,19 @@ Ubuntu Dock installation. Those are located in its own panel for now:
 Origin: ubuntu
 Forwarded: not-needed
 ---
- panels/meson.build                             |   1 +
- panels/ubuntu/cc-ubuntu-panel.c                | 712 +++++++++++++++++++++++++
- panels/ubuntu/cc-ubuntu-panel.h                |  35 ++
- panels/ubuntu/cc-ubuntu-panel.ui               | 393 ++++++++++++++
- panels/ubuntu/gnome-ubuntu-panel.desktop.in.in |  16 +
- panels/ubuntu/meson.build                      |  43 ++
- panels/ubuntu/theme-dark.svg                   | 174 ++++++
- panels/ubuntu/theme-light.svg                  | 171 ++++++
- panels/ubuntu/theme-standard.svg               | 171 ++++++
- panels/ubuntu/ubuntu.gresource.xml             |   9 +
- po/POTFILES.in                                 |   3 +
- shell/cc-panel-list.c                          |   1 +
- shell/cc-panel-loader.c                        |   3 +
- 13 files changed, 1732 insertions(+)
+ panels/meson.build                            |   1 +
+ panels/ubuntu/cc-ubuntu-panel.c               | 723 ++++++++++++++++++
+ panels/ubuntu/cc-ubuntu-panel.h               |  35 +
+ panels/ubuntu/cc-ubuntu-panel.ui              | 368 +++++++++
+ .../ubuntu/gnome-ubuntu-panel.desktop.in.in   |  16 +
+ panels/ubuntu/meson.build                     |  42 +
+ panels/ubuntu/theme-dark.svg                  | 381 +++++++++
+ panels/ubuntu/theme-light.svg                 | 380 +++++++++
+ panels/ubuntu/ubuntu.gresource.xml            |   8 +
+ po/POTFILES.in                                |   3 +
+ shell/cc-panel-list.c                         |   1 +
+ shell/cc-panel-loader.c                       |   3 +
+ 12 files changed, 1961 insertions(+)
  create mode 100644 panels/ubuntu/cc-ubuntu-panel.c
  create mode 100644 panels/ubuntu/cc-ubuntu-panel.h
  create mode 100644 panels/ubuntu/cc-ubuntu-panel.ui
@@ -31,11 +31,10 @@ Forwarded: not-needed
  create mode 100644 panels/ubuntu/meson.build
  create mode 100644 panels/ubuntu/theme-dark.svg
  create mode 100644 panels/ubuntu/theme-light.svg
- create mode 100644 panels/ubuntu/theme-standard.svg
  create mode 100644 panels/ubuntu/ubuntu.gresource.xml
 
 diff --git a/panels/meson.build b/panels/meson.build
-index 2f4fdc5..81ae0b1 100644
+index 2f4fdc5e3..81ae0b1a7 100644
 --- a/panels/meson.build
 +++ b/panels/meson.build
 @@ -24,6 +24,7 @@ panels = [
@@ -48,10 +47,10 @@ index 2f4fdc5..81ae0b1 100644
    'user-accounts'
 diff --git a/panels/ubuntu/cc-ubuntu-panel.c b/panels/ubuntu/cc-ubuntu-panel.c
 new file mode 100644
-index 0000000..bee641f
+index 000000000..13d732e6f
 --- /dev/null
 +++ b/panels/ubuntu/cc-ubuntu-panel.c
-@@ -0,0 +1,712 @@
+@@ -0,0 +1,723 @@
 +/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 +/*
 + * Copyright (C) 2017-2020 Canonical Ltd
@@ -102,6 +101,9 @@ index 0000000..bee641f
 +#define CURSOR_THEME_KEY "cursor-theme"
 +#define ICON_THEME_KEY "icon-theme"
 +
++#define GEDIT_PREFRENCES_SCHEMA "org.gnome.gedit.preferences.editor"
++#define GEDIT_THEME_KEY "scheme"
++
 +struct _CcUbuntuPanel {
 +  CcPanel                 parent_instance;
 +
@@ -116,10 +118,10 @@ index 0000000..bee641f
 +  GtkFlowBox             *theme_box;
 +  GtkFlowBoxChild        *theme_dark;
 +  GtkFlowBoxChild        *theme_light;
-+  GtkFlowBoxChild        *theme_standard;
 +
 +  GSettings              *dock_settings;
 +  GSettings              *interface_settings;
++  GSettings              *gedit_settings;
 +  CcDisplayConfigManager *display_config_manager;
 +  GDBusProxy             *shell_proxy;
 +};
@@ -138,6 +140,7 @@ index 0000000..bee641f
 +
 +  g_clear_object (&self->dock_settings);
 +  g_clear_object (&self->interface_settings);
++  g_clear_object (&self->gedit_settings);
 +  g_clear_object (&self->display_config_manager);
 +  g_clear_object (&self->shell_proxy);
 +
@@ -435,22 +438,29 @@ index 0000000..bee641f
 +on_theme_box_selected_children_changed (CcUbuntuPanel *self)
 +{
 +  const gchar *gtk_theme = NULL;
++  const gchar *gedit_theme = NULL;
 +  g_autoptr(GList) selected = NULL;
 +
 +  selected = gtk_flow_box_get_selected_children (self->theme_box);
 +  if (selected != NULL)
 +    {
 +      GtkFlowBoxChild *selected_item = GTK_FLOW_BOX_CHILD (g_list_nth_data (selected, 0));
-+      if (selected_item == self->theme_standard)
++      if (selected_item == self->theme_light)
++      {
 +        gtk_theme = "Yaru";
-+      else if (selected_item == self->theme_light)
-+        gtk_theme = "Yaru-light";
++        gedit_theme = "Yaru";
++      }
 +      else if (selected_item == self->theme_dark)
++      {
 +        gtk_theme = "Yaru-dark";
++        gedit_theme = "Yaru-dark";
++      }
 +    }
 +
 +  if (gtk_theme != NULL)
 +    g_settings_set_string (self->interface_settings, GTK_THEME_KEY, gtk_theme);
++  if (gedit_theme != NULL)
++    g_settings_set_string (self->gedit_settings, GEDIT_THEME_KEY, gedit_theme);
 +}
 +
 +static void
@@ -468,8 +478,6 @@ index 0000000..bee641f
 +  if (g_str_equal (cursor_theme, "Yaru") && g_str_equal (icon_theme, "Yaru"))
 +    {
 +      if (g_strcmp0 (gtk_theme, "Yaru") == 0)
-+        theme_item = self->theme_standard;
-+      else if (g_strcmp0 (gtk_theme, "Yaru-light") == 0)
 +        theme_item = self->theme_light;
 +      else if (g_strcmp0 (gtk_theme, "Yaru-dark") == 0)
 +        theme_item = self->theme_dark;
@@ -613,7 +621,6 @@ index 0000000..bee641f
 +  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, theme_box);
 +  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, theme_dark);
 +  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, theme_light);
-+  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, theme_standard);
 +
 +  gtk_widget_class_bind_template_callback (widget_class, on_dock_placement_combo_changed);
 +  gtk_widget_class_bind_template_callback (widget_class, on_icon_size_adjustment_value_changed);
@@ -696,6 +703,9 @@ index 0000000..bee641f
 +                           G_CALLBACK (on_interface_settings_changed), self, G_CONNECT_SWAPPED);
 +  g_signal_connect_object (self->interface_settings, "changed::" ICON_THEME_KEY,
 +                           G_CALLBACK (on_interface_settings_changed), self, G_CONNECT_SWAPPED);
++  self->gedit_settings = g_settings_new (GEDIT_PREFRENCES_SCHEMA);
++  g_signal_connect_object (self->gedit_settings, "changed::" GEDIT_THEME_KEY,
++                           G_CALLBACK (on_interface_settings_changed), self, G_CONNECT_SWAPPED);
 +
 +  /* Only load if we have ubuntu dock or dash to dock installed */
 +  schema = g_settings_schema_source_lookup (g_settings_schema_source_get_default (), UBUNTU_DOCK_SCHEMA, TRUE);
@@ -766,7 +776,7 @@ index 0000000..bee641f
 +}
 diff --git a/panels/ubuntu/cc-ubuntu-panel.h b/panels/ubuntu/cc-ubuntu-panel.h
 new file mode 100644
-index 0000000..b13f611
+index 000000000..b13f6114c
 --- /dev/null
 +++ b/panels/ubuntu/cc-ubuntu-panel.h
 @@ -0,0 +1,35 @@
@@ -807,10 +817,10 @@ index 0000000..b13f611
 +#endif /* _CC_EDIT_DIALOG_H_ */
 diff --git a/panels/ubuntu/cc-ubuntu-panel.ui b/panels/ubuntu/cc-ubuntu-panel.ui
 new file mode 100644
-index 0000000..239535c
+index 000000000..d45237c9a
 --- /dev/null
 +++ b/panels/ubuntu/cc-ubuntu-panel.ui
-@@ -0,0 +1,393 @@
+@@ -0,0 +1,368 @@
 +<?xml version="1.0" encoding="UTF-8"?>
 +<!-- Generated with glade 3.20.0 -->
 +<interface>
@@ -884,7 +894,7 @@ index 0000000..239535c
 +                          <object class="GtkFlowBox" id="theme_box">
 +                            <property name="visible">True</property>
 +                            <property name="homogeneous">True</property>
-+                            <property name="max-children-per-line">3</property>
++                            <property name="max-children-per-line">2</property>
 +                            <signal name="selected-children-changed" handler="on_theme_box_selected_children_changed" object="CcUbuntuPanel" swapped="yes"/>
 +                            <child>
 +                              <object class="GtkFlowBoxChild" id="theme_light">
@@ -905,31 +915,6 @@ index 0000000..239535c
 +                                      <object class="GtkLabel">
 +                                        <property name="visible">True</property>
 +                                        <property name="label" translatable="yes" context="Yaru theme in use">Light</property>
-+                                      </object>
-+                                    </child>
-+                                  </object>
-+                                </child>
-+                              </object>
-+                            </child>
-+                            <child>
-+                              <object class="GtkFlowBoxChild" id="theme_standard">
-+                                <property name="visible">True</property>
-+                                <child>
-+                                  <object class="GtkBox">
-+                                    <property name="visible">True</property>
-+                                    <property name="orientation">vertical</property>
-+                                    <property name="spacing">6</property>
-+                                    <property name="margin">10</property>
-+                                    <child>
-+                                      <object class="GtkImage">
-+                                        <property name="visible">True</property>
-+                                        <property name="resource">/org/gnome/control-center/ubuntu/theme-standard.svg</property>
-+                                      </object>
-+                                    </child>
-+                                    <child>
-+                                      <object class="GtkLabel">
-+                                        <property name="visible">True</property>
-+                                        <property name="label" translatable="yes" context="Yaru theme in use">Standard</property>
 +                                      </object>
 +                                    </child>
 +                                  </object>
@@ -1206,7 +1191,7 @@ index 0000000..239535c
 +</interface>
 diff --git a/panels/ubuntu/gnome-ubuntu-panel.desktop.in.in b/panels/ubuntu/gnome-ubuntu-panel.desktop.in.in
 new file mode 100644
-index 0000000..78571f1
+index 000000000..78571f158
 --- /dev/null
 +++ b/panels/ubuntu/gnome-ubuntu-panel.desktop.in.in
 @@ -0,0 +1,16 @@
@@ -1228,10 +1213,10 @@ index 0000000..78571f1
 +Keywords=Dock;Launcher;Theme;
 diff --git a/panels/ubuntu/meson.build b/panels/ubuntu/meson.build
 new file mode 100644
-index 0000000..b57e85b
+index 000000000..234bb10d6
 --- /dev/null
 +++ b/panels/ubuntu/meson.build
-@@ -0,0 +1,43 @@
+@@ -0,0 +1,42 @@
 +panels_list += cappletname
 +desktop = 'gnome-@0@-panel.desktop'.format(cappletname)
 +
@@ -1255,8 +1240,7 @@ index 0000000..b57e85b
 +
 +resource_data = files('cc-ubuntu-panel.ui',
 +                      'theme-dark.svg',
-+                      'theme-light.svg',
-+                      'theme-standard.svg')
++                      'theme-light.svg')
 +
 +sources += gnome.compile_resources(
 +  'cc-' + cappletname + '-resources',
@@ -1277,555 +1261,793 @@ index 0000000..b57e85b
 +)
 diff --git a/panels/ubuntu/theme-dark.svg b/panels/ubuntu/theme-dark.svg
 new file mode 100644
-index 0000000..545154e
+index 000000000..65b478c40
 --- /dev/null
 +++ b/panels/ubuntu/theme-dark.svg
-@@ -0,0 +1,174 @@
+@@ -0,0 +1,381 @@
 +<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-+<!-- Created with Inkscape (http://www.inkscape.org/) -->
-+
 +<svg
-+   xmlns:dc="http://purl.org/dc/elements/1.1/"
-+   xmlns:cc="http://creativecommons.org/ns#"
-+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
-+   xmlns:svg="http://www.w3.org/2000/svg"
-+   xmlns="http://www.w3.org/2000/svg"
++   viewBox="0 0 270 200"
 +   version="1.1"
-+   width="100%"
-+   height="100%"
-+   viewBox="0 0 130 90"
-+   id="svg3136">
-+  <title
-+     id="title3147">Artboard 1</title>
-+  <metadata
-+     id="metadata3187">
-+    <rdf:RDF>
-+      <cc:Work
-+         rdf:about="">
-+        <dc:format>image/svg+xml</dc:format>
-+        <dc:type
-+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-+        <dc:title>Artboard 1</dc:title>
-+      </cc:Work>
-+    </rdf:RDF>
-+  </metadata>
++   id="svg75"
++   sodipodi:docname="theme-dark.svg"
++   width="270"
++   height="200"
++   inkscape:version="1.1 (c68e22c387, 2021-05-23)"
++   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
++   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
++   xmlns:xlink="http://www.w3.org/1999/xlink"
++   xmlns="http://www.w3.org/2000/svg"
++   xmlns:svg="http://www.w3.org/2000/svg">
++  <sodipodi:namedview
++     id="namedview77"
++     pagecolor="#ffffff"
++     bordercolor="#666666"
++     borderopacity="1.0"
++     inkscape:pageshadow="2"
++     inkscape:pageopacity="0.0"
++     inkscape:pagecheckerboard="0"
++     showgrid="false"
++     width="270px"
++     inkscape:zoom="1.229349"
++     inkscape:cx="160.65413"
++     inkscape:cy="107.78062"
++     inkscape:window-width="1366"
++     inkscape:window-height="704"
++     inkscape:window-x="0"
++     inkscape:window-y="27"
++     inkscape:window-maximized="1"
++     inkscape:current-layer="svg75" />
 +  <defs
-+     id="defs3138">
++     id="defs30">
 +    <style
-+       id="style3140" />
++       id="style2">.cls-1{fill:url(#linear-gradient);}.cls-2{fill:#222;}.cls-20,.cls-3{fill:#272727;}.cls-4{fill:#343434;}.cls-5{fill:#e95420;}.cls-6{fill:#2c2c2c;}.cls-7{fill:#373737;}.cls-8{fill:#151515;}.cls-21,.cls-9{fill:#3d3d3d;}.cls-10{fill:url(#linear-gradient-2);}.cls-11{fill:url(#linear-gradient-3);}.cls-12{fill:url(#linear-gradient-4);}.cls-13{fill:#737373;}.cls-14{fill:url(#linear-gradient-5);}.cls-15{fill:url(#linear-gradient-6);}.cls-16{fill:url(#linear-gradient-7);}.cls-17{fill:url(#linear-gradient-8);}.cls-18{fill:url(#linear-gradient-9);}.cls-19{fill:url(#linear-gradient-10);}.cls-20{stroke:#4b4b4b;stroke-width:2px;}.cls-20,.cls-21{stroke-miterlimit:10;}.cls-21{stroke:#e95420;stroke-width:0.8px;}</style>
 +    <linearGradient
-+       x1="65"
-+       y1="90"
-+       x2="65"
 +       id="linear-gradient"
++       x1="497.14001"
++       y1="613.5"
++       x2="497.14001"
++       y2="713.96002"
++       gradientTransform="matrix(6.09,0,0,-6.09,-2632.72,4349.65)"
 +       gradientUnits="userSpaceOnUse">
 +      <stop
-+         id="stop3143"
-+         style="stop-color:#7a0839;stop-opacity:1"
-+         offset="0" />
++         offset="0"
++         stop-color="#350753"
++         id="stop4" />
 +      <stop
-+         id="stop3145"
-+         style="stop-color:#510045;stop-opacity:1"
-+         offset="1" />
++         offset="1"
++         stop-color="#720b53"
++         id="stop6" />
 +    </linearGradient>
++    <linearGradient
++       id="linear-gradient-2"
++       x1="216.64"
++       y1="166.28999"
++       x2="289.81"
++       y2="166.28999"
++       gradientUnits="userSpaceOnUse">
++      <stop
++         offset="0"
++         stop-color="#772953"
++         id="stop9" />
++      <stop
++         offset="1"
++         stop-color="#510045"
++         id="stop11" />
++    </linearGradient>
++    <linearGradient
++       id="linear-gradient-3"
++       x1="226.89999"
++       y1="147.75"
++       x2="298.70001"
++       y2="189.2"
++       gradientUnits="userSpaceOnUse">
++      <stop
++         offset="0.25"
++         stop-color="#982963"
++         id="stop14" />
++      <stop
++         offset="0.91"
++         stop-color="#e98120"
++         id="stop16" />
++    </linearGradient>
++    <linearGradient
++       id="linear-gradient-4"
++       x1="392.56"
++       y1="164.23"
++       x2="319.39999"
++       y2="164.23"
++       gradientUnits="userSpaceOnUse">
++      <stop
++         offset="0.03"
++         stop-color="#e95420"
++         id="stop19" />
++      <stop
++         offset="0.51"
++         stop-color="#772953"
++         id="stop21" />
++    </linearGradient>
++    <linearGradient
++       id="linear-gradient-5"
++       x1="495.31"
++       y1="164.23"
++       x2="422.14999"
++       y2="164.23"
++       xlink:href="#linear-gradient-4" />
++    <linearGradient
++       id="linear-gradient-6"
++       x1="598.06"
++       y1="164.23"
++       x2="524.90002"
++       y2="164.23"
++       xlink:href="#linear-gradient-4" />
++    <linearGradient
++       id="linear-gradient-7"
++       x1="289.81"
++       y1="267.57001"
++       x2="216.64"
++       y2="267.57001"
++       xlink:href="#linear-gradient-4" />
++    <linearGradient
++       id="linear-gradient-8"
++       x1="392.56"
++       y1="267.57001"
++       x2="319.39999"
++       y2="267.57001"
++       xlink:href="#linear-gradient-4" />
++    <linearGradient
++       id="linear-gradient-9"
++       x1="495.31"
++       y1="267.57001"
++       x2="422.14999"
++       y2="267.57001"
++       xlink:href="#linear-gradient-4" />
++    <linearGradient
++       id="linear-gradient-10"
++       x1="598.06"
++       y1="267.57001"
++       x2="524.90002"
++       y2="267.57001"
++       xlink:href="#linear-gradient-4" />
++    <linearGradient
++       inkscape:collect="always"
++       xlink:href="#linear-gradient-4"
++       id="linearGradient79"
++       gradientUnits="userSpaceOnUse"
++       x1="392.56"
++       y1="164.23"
++       x2="319.39999"
++       y2="164.23" />
 +  </defs>
 +  <g
-+     id="Shell">
++     id="Bgrd"
++     transform="scale(0.34090909,0.32679739)">
 +    <g
 +       id="Wallpaper">
 +      <rect
-+         width="130"
-+         height="90"
++         id="rect3045"
++         class="cls-1"
++         width="792"
++         height="612"
++         style="fill:url(#linear-gradient)"
 +         x="0"
-+         y="0"
-+         id="rect3151"
-+         style="fill:url(#linear-gradient)" />
-+    </g>
-+    <g
-+       id="Shell-2">
-+      <rect
-+         width="130"
-+         height="13"
-+         x="0"
-+         y="0"
-+         id="rect3154"
-+         style="opacity:0.5" />
-+      <rect
-+         width="25"
-+         height="77"
-+         x="0"
-+         y="13"
-+         id="rect3156"
-+         style="opacity:0.4" />
-+      <g
-+         id="g3158"
-+         style="opacity:0.3">
-+        <rect
-+           width="14.44"
-+           height="14.44"
-+           rx="3"
-+           x="5.2800002"
-+           y="17.99"
-+           id="rect3160"
-+           style="fill:#ffffff" />
-+        <rect
-+           width="14.44"
-+           height="14.44"
-+           rx="3"
-+           x="5.2800002"
-+           y="37.75"
-+           id="rect3162"
-+           style="fill:#ffffff" />
-+        <rect
-+           width="14.44"
-+           height="14.44"
-+           rx="3"
-+           x="5.2800002"
-+           y="57.509998"
-+           id="rect3164"
-+           style="fill:#ffffff" />
-+      </g>
++         y="0" />
 +    </g>
 +  </g>
 +  <g
-+     id="Dark_Theme">
++     id="Artwork"
++     transform="matrix(0.31297816,0,0,0.31297816,11.043435,4.1316606)">
++    <path
++       id="rect3061"
++       class="cls-2"
++       d="m 24.48,18.75 h 743.15 a 10,10 0 0 1 10,10 V 96.5 H 14.48 V 28.75 a 10,10 0 0 1 10,-10 z" />
 +    <rect
-+       width="93.059998"
-+       height="21.91"
-+       x="37"
-+       y="23.940001"
-+       id="rect3167"
-+       style="fill:#2b2929" />
++       id="rect3063"
++       class="cls-3"
++       x="14.48"
++       y="96.5"
++       width="161.73"
++       height="497.37" />
 +    <rect
-+       width="63"
-+       height="44.150002"
-+       x="37"
-+       y="45.849998"
-+       id="rect3169"
-+       style="fill:#353535" />
++       id="rect3065"
++       class="cls-4"
++       x="14.48"
++       y="216.35001"
++       width="161.73"
++       height="51.209999" />
 +    <rect
-+       width="63"
-+       height="11.94"
-+       x="37"
-+       y="62"
-+       id="rect3171"
-+       style="fill:#e95420" />
++       id="rect3065-2"
++       data-name="rect3065"
++       class="cls-5"
++       x="14.48"
++       y="216.35001"
++       width="6.5900002"
++       height="51.209999" />
 +    <rect
-+       width="1.17"
-+       height="44.150002"
-+       x="100"
-+       y="45.849998"
-+       transform="matrix(-1,0,0,-1,201.16,135.85)"
-+       id="rect3173"
-+       style="fill:#2b2929" />
-+    <rect
-+       width="28.76"
-+       height="44.150002"
-+       x="101.17"
-+       y="45.849998"
-+       id="rect3175"
-+       style="fill:#3d3d3d" />
-+    <rect
-+       width="46.880001"
-+       height="11.99"
-+       x="71.150002"
-+       y="28.92"
-+       id="rect3177"
-+       style="fill:#3d3d3d" />
-+    <rect
-+       width="35.189999"
-+       height="1.0599999"
-+       x="76.980003"
-+       y="39.849998"
-+       id="rect3179"
-+       style="fill:#e95420" />
-+    <rect
-+       width="12"
-+       height="11.99"
-+       x="41.150002"
-+       y="28.92"
++       id="rect3069"
++       class="cls-6"
++       x="185.75999"
++       y="96.5"
++       width="590.78998"
++       height="497.37" />
++    <path
++       id="rect3071"
++       class="cls-6"
++       d="m 225.35,38 h 196.81 a 1.69,1.69 0 0 1 1.78,1.59 v 33.26 a 1.69,1.69 0 0 1 -1.78,1.59 H 225.35 a 1.68,1.68 0 0 1 -1.77,-1.59 V 39.61 A 1.68,1.68 0 0 1 225.35,38 Z" />
++    <path
++       id="rect3071-2"
++       data-name="rect3071"
++       class="cls-7"
++       d="m 430.81,38 h 37.84 a 1.68,1.68 0 0 1 1.77,1.59 v 33.26 a 1.68,1.68 0 0 1 -1.77,1.59 H 430.81 A 1.68,1.68 0 0 1 429,72.85 V 39.61 A 1.68,1.68 0 0 1 430.81,38 Z" />
++    <path
++       id="rect3071-3"
++       data-name="rect3071"
++       class="cls-7"
++       d="m 525.05,38 h 39.35 a 1.73,1.73 0 0 1 1.84,1.59 v 33.26 a 1.73,1.73 0 0 1 -1.84,1.59 h -39.35 a 1.73,1.73 0 0 1 -1.84,-1.59 V 39.61 A 1.73,1.73 0 0 1 525.05,38 Z" />
++    <path
++       id="rect3071-4"
++       data-name="rect3071"
++       class="cls-7"
++       d="m 571.54,38 h 39.35 a 1.73,1.73 0 0 1 1.85,1.59 v 33.26 a 1.73,1.73 0 0 1 -1.85,1.59 H 571.54 A 1.73,1.73 0 0 1 569.7,72.85 V 39.61 A 1.73,1.73 0 0 1 571.54,38 Z" />
++    <path
++       id="rect3071-5"
++       data-name="rect3071"
++       class="cls-8"
++       d="m 637.24,38 h 39.35 a 1.73,1.73 0 0 1 1.84,1.59 v 33.26 a 1.73,1.73 0 0 1 -1.84,1.59 H 637.24 A 1.73,1.73 0 0 1 635.4,72.85 V 39.61 A 1.73,1.73 0 0 1 637.24,38 Z" />
++    <path
 +       id="rect3288"
-+       style="fill:#3d3d3d;fill-opacity:1" />
-+    <rect
-+       width="12"
-+       height="11.99"
-+       x="56.149998"
-+       y="28.92"
++       class="cls-7"
++       d="m 36,38 h 37.69 a 1.83,1.83 0 0 1 2,1.59 v 33.26 a 1.83,1.83 0 0 1 -2,1.59 H 36 A 1.83,1.83 0 0 1 34,72.85 V 39.61 A 1.83,1.83 0 0 1 36,38 Z" />
++    <path
++       id="rect3288-2"
++       data-name="rect3288"
++       class="cls-7"
++       d="m 83.44,38 h 37.67 a 1.83,1.83 0 0 1 2,1.59 v 33.26 a 1.83,1.83 0 0 1 -2,1.59 H 83.44 a 1.83,1.83 0 0 1 -2,-1.59 V 39.61 a 1.83,1.83 0 0 1 2,-1.61 z" />
++    <path
 +       id="rect3290"
-+       style="fill:#3d3d3d;fill-opacity:1" />
++       class="cls-9"
++       d="m 138.71,38 h 79.72 a 1.68,1.68 0 0 1 1.77,1.59 v 33.26 a 1.68,1.68 0 0 1 -1.77,1.59 h -79.72 a 1.69,1.69 0 0 1 -1.78,-1.59 V 39.61 A 1.69,1.69 0 0 1 138.71,38 Z" />
++    <rect
++       id="rect39"
++       class="cls-2"
++       x="14.48"
++       y="583.71997"
++       width="762.60999"
++       height="10.14" />
++    <rect
++       id="rect39-2"
++       data-name="rect39"
++       class="cls-2"
++       x="176.21001"
++       y="96.5"
++       width="9.5600004"
++       height="492.16" />
++    <rect
++       id="rect39-3"
++       data-name="rect39"
++       class="cls-2"
++       x="767.94"
++       y="96.5"
++       width="9.5600004"
++       height="497.37" />
++    <circle
++       class="cls-5"
++       cx="743.63"
++       cy="54.419998"
++       r="12.5"
++       id="circle51" />
++    <path
++       id="rect3071-6"
++       data-name="rect3071"
++       class="cls-10"
++       d="m 219.78,134.73 h 66.9 a 3,3 0 0 1 3.13,2.75 v 57.62 a 3,3 0 0 1 -3.13,2.76 h -66.9 a 3,3 0 0 1 -3.14,-2.76 v -57.62 a 3,3 0 0 1 3.14,-2.75 z"
++       style="fill:url(#linear-gradient-2)" />
++    <path
++       id="rect3071-7"
++       data-name="rect3071"
++       class="cls-11"
++       d="m 230.88,134.73 h 56.29 a 2.69,2.69 0 0 1 2.64,2.75 v 57.62 a 2.7,2.7 0 0 1 -2.64,2.76 h -56.29 a 2.7,2.7 0 0 1 -2.64,-2.76 v -57.62 a 2.69,2.69 0 0 1 2.64,-2.75 z"
++       style="fill:url(#linear-gradient-3)" />
++    <path
++       id="rect3071-8"
++       data-name="rect3071"
++       class="cls-12"
++       d="m 322.53,130.6 h 22.92 l 7.15,4.13 h 36.83 a 3,3 0 0 1 3.13,2.75 v 57.62 a 3,3 0 0 1 -3.13,2.76 h -66.9 a 3,3 0 0 1 -3.13,-2.76 v -61.75 a 3,3 0 0 1 3.13,-2.75 z"
++       style="fill:url(#linearGradient79)" />
++    <path
++       id="rect3071-9"
++       data-name="rect3071"
++       class="cls-13"
++       d="m 322.53,146.06 h 30.07 l 8.69,-6.08 h 28.14 c 1.73,0 3.13,1 3.13,2.26 v 53.36 c 0,1.25 -1.4,2.26 -3.13,2.26 h -66.9 c -1.73,0 -3.13,-1 -3.13,-2.26 v -47.29 c 0,-1.24 1.4,-2.25 3.13,-2.25 z" />
++    <path
++       id="rect3071-10"
++       data-name="rect3071"
++       class="cls-14"
++       d="m 425.28,130.6 h 22.92 l 7.15,4.13 h 36.83 a 3,3 0 0 1 3.13,2.75 v 57.62 a 3,3 0 0 1 -3.13,2.76 h -66.9 a 3,3 0 0 1 -3.13,-2.76 v -61.75 a 3,3 0 0 1 3.13,-2.75 z"
++       style="fill:url(#linear-gradient-5)" />
++    <path
++       id="rect3071-11"
++       data-name="rect3071"
++       class="cls-13"
++       d="m 425.28,146.06 h 30.07 L 464,140 h 28.14 c 1.73,0 3.13,1 3.13,2.26 v 53.34 c 0,1.25 -1.4,2.26 -3.13,2.26 h -66.9 c -1.73,0 -3.13,-1 -3.13,-2.26 v -47.29 c 0.04,-1.24 1.44,-2.25 3.17,-2.25 z" />
++    <path
++       id="rect3071-12"
++       data-name="rect3071"
++       class="cls-15"
++       d="m 528,130.6 h 23 l 7.15,4.13 h 36.83 a 3,3 0 0 1 3.13,2.75 v 57.62 a 3,3 0 0 1 -3.13,2.76 H 528 a 3,3 0 0 1 -3.13,-2.76 V 133.35 A 3,3 0 0 1 528,130.6 Z"
++       style="fill:url(#linear-gradient-6)" />
++    <path
++       id="rect3071-13"
++       data-name="rect3071"
++       class="cls-13"
++       d="m 528,146.06 h 30.1 l 8.69,-6.08 h 28.14 c 1.73,0 3.13,1 3.13,2.26 v 53.36 c 0,1.25 -1.4,2.26 -3.13,2.26 H 528 c -1.73,0 -3.13,-1 -3.13,-2.26 v -47.29 c 0.03,-1.24 1.43,-2.25 3.13,-2.25 z" />
++    <path
++       id="rect3071-14"
++       data-name="rect3071"
++       class="cls-16"
++       d="m 219.78,233.94 h 22.92 l 7.15,4.13 h 36.83 a 3,3 0 0 1 3.13,2.76 v 57.62 a 3,3 0 0 1 -3.13,2.75 h -66.9 a 3,3 0 0 1 -3.14,-2.75 v -61.76 a 3,3 0 0 1 3.14,-2.75 z"
++       style="fill:url(#linear-gradient-7)" />
++    <path
++       id="rect3071-15"
++       data-name="rect3071"
++       class="cls-13"
++       d="m 219.78,249.4 h 30.07 l 8.69,-6.08 h 28.14 c 1.73,0 3.13,1 3.13,2.26 v 53.36 c 0,1.25 -1.4,2.26 -3.13,2.26 h -66.9 c -1.73,0 -3.14,-1 -3.14,-2.26 v -47.28 c 0,-1.25 1.41,-2.26 3.14,-2.26 z" />
++    <path
++       id="rect3071-16"
++       data-name="rect3071"
++       class="cls-17"
++       d="m 322.53,233.94 h 22.92 l 7.15,4.13 h 36.83 a 3,3 0 0 1 3.13,2.76 v 57.62 a 3,3 0 0 1 -3.13,2.75 h -66.9 a 3,3 0 0 1 -3.13,-2.75 v -61.76 a 3,3 0 0 1 3.13,-2.75 z"
++       style="fill:url(#linear-gradient-8)" />
++    <path
++       id="rect3071-17"
++       data-name="rect3071"
++       class="cls-13"
++       d="m 322.53,249.4 h 30.07 l 8.69,-6.08 h 28.14 c 1.73,0 3.13,1 3.13,2.26 v 53.36 c 0,1.25 -1.4,2.26 -3.13,2.26 h -66.9 c -1.73,0 -3.13,-1 -3.13,-2.26 v -47.28 c 0,-1.25 1.4,-2.26 3.13,-2.26 z" />
++    <path
++       id="rect3071-18"
++       data-name="rect3071"
++       class="cls-18"
++       d="m 425.28,233.94 h 22.92 l 7.15,4.13 h 36.83 a 3,3 0 0 1 3.13,2.76 v 57.62 a 3,3 0 0 1 -3.13,2.75 h -66.9 a 3,3 0 0 1 -3.13,-2.75 v -61.76 a 3,3 0 0 1 3.13,-2.75 z"
++       style="fill:url(#linear-gradient-9)" />
++    <path
++       id="rect3071-19"
++       data-name="rect3071"
++       class="cls-13"
++       d="m 425.28,249.4 h 30.07 l 8.69,-6.08 h 28.14 c 1.73,0 3.13,1 3.13,2.26 v 53.36 c 0,1.25 -1.4,2.26 -3.13,2.26 h -66.9 c -1.73,0 -3.13,-1 -3.13,-2.26 v -47.28 c 0,-1.25 1.4,-2.26 3.13,-2.26 z" />
++    <path
++       id="rect3071-20"
++       data-name="rect3071"
++       class="cls-19"
++       d="m 528,233.94 h 23 l 7.15,4.13 h 36.83 a 3,3 0 0 1 3.13,2.76 v 57.62 a 3,3 0 0 1 -3.13,2.75 H 528 a 3,3 0 0 1 -3.13,-2.75 v -61.76 a 3,3 0 0 1 3.13,-2.75 z"
++       style="fill:url(#linear-gradient-10)" />
++    <path
++       id="rect3071-21"
++       data-name="rect3071"
++       class="cls-13"
++       d="m 528,249.4 h 30.1 l 8.69,-6.08 h 28.14 c 1.73,0 3.13,1 3.13,2.26 v 53.36 c 0,1.25 -1.4,2.26 -3.13,2.26 H 528 c -1.73,0 -3.13,-1 -3.13,-2.26 v -47.28 c 0.03,-1.25 1.43,-2.26 3.13,-2.26 z" />
++    <path
++       class="cls-20"
++       d="m 748.35,115.48 h -74 L 656.91,98 639.49,115.49 h -74 a 4,4 0 0 0 -4,4 V 413.7 a 4,4 0 0 0 4,4 h 182.86 a 4,4 0 0 0 4,-4 V 119.49 a 4,4 0 0 0 -4,-4.01 z"
++       id="path69" />
++    <path
++       id="rect3071-22"
++       data-name="rect3071"
++       class="cls-21"
++       d="m 576.11,136.29 h 48.27 c 1.24,0 2.26,0.72 2.26,1.6 v 33.57 c 0,0.88 -1,1.6 -2.26,1.6 h -48.27 c -1.24,0 -2.26,-0.72 -2.26,-1.6 v -33.57 c 0,-0.89 1.02,-1.6 2.26,-1.6 z" />
++    <path
++       id="rect3071-23"
++       data-name="rect3071"
++       class="cls-9"
++       d="m 633.14,136.29 h 48.26 c 1.25,0 2.26,0.72 2.26,1.6 v 33.57 c 0,0.88 -1,1.6 -2.26,1.6 h -48.26 c -1.25,0 -2.26,-0.72 -2.26,-1.6 v -33.57 c 0,-0.89 1.01,-1.6 2.26,-1.6 z" />
++    <path
++       id="rect3071-24"
++       data-name="rect3071"
++       class="cls-9"
++       d="m 690.17,136.29 h 48.26 c 1.25,0 2.26,0.72 2.26,1.6 v 33.57 c 0,0.88 -1,1.6 -2.26,1.6 h -48.26 c -1.25,0 -2.26,-0.72 -2.26,-1.6 v -33.57 c 0,-0.89 1.01,-1.6 2.26,-1.6 z" />
 +  </g>
 +</svg>
 diff --git a/panels/ubuntu/theme-light.svg b/panels/ubuntu/theme-light.svg
 new file mode 100644
-index 0000000..1bd8929
+index 000000000..70f1125e7
 --- /dev/null
 +++ b/panels/ubuntu/theme-light.svg
-@@ -0,0 +1,171 @@
+@@ -0,0 +1,380 @@
 +<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-+<!-- Created with Inkscape (http://www.inkscape.org/) -->
-+
 +<svg
-+   xmlns:dc="http://purl.org/dc/elements/1.1/"
-+   xmlns:cc="http://creativecommons.org/ns#"
-+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
-+   xmlns:svg="http://www.w3.org/2000/svg"
-+   xmlns="http://www.w3.org/2000/svg"
++   viewBox="0 0 270 200"
 +   version="1.1"
-+   width="100%"
-+   height="100%"
-+   viewBox="0 0 130 90"
-+   id="svg3030">
-+  <title
-+     id="title3041">Artboard 1</title>
-+  <metadata
-+     id="metadata3081">
-+    <rdf:RDF>
-+      <cc:Work
-+         rdf:about="">
-+        <dc:format>image/svg+xml</dc:format>
-+        <dc:type
-+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-+        <dc:title>Artboard 1</dc:title>
-+      </cc:Work>
-+    </rdf:RDF>
-+  </metadata>
++   id="svg75"
++   sodipodi:docname="theme-light.svg"
++   width="270"
++   height="200"
++   inkscape:version="1.1 (c68e22c387, 2021-05-23)"
++   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
++   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
++   xmlns:xlink="http://www.w3.org/1999/xlink"
++   xmlns="http://www.w3.org/2000/svg"
++   xmlns:svg="http://www.w3.org/2000/svg">
++  <sodipodi:namedview
++     id="namedview77"
++     pagecolor="#ffffff"
++     bordercolor="#666666"
++     borderopacity="1.0"
++     inkscape:pageshadow="2"
++     inkscape:pageopacity="0.0"
++     inkscape:pagecheckerboard="0"
++     showgrid="false"
++     inkscape:zoom="1.7385621"
++     inkscape:cx="60.394737"
++     inkscape:cy="94.618421"
++     inkscape:window-width="1366"
++     inkscape:window-height="704"
++     inkscape:window-x="0"
++     inkscape:window-y="27"
++     inkscape:window-maximized="1"
++     inkscape:current-layer="svg75" />
 +  <defs
-+     id="defs3032">
++     id="defs30">
 +    <style
-+       id="style3034" />
++       id="style2">.cls-1{fill:url(#linear-gradient);}.cls-2{fill:#dcdcdc;}.cls-3{fill:#fafafa;}.cls-4{fill:#ddd;}.cls-5{fill:#e95420;}.cls-21,.cls-6{fill:#fff;}.cls-7{fill:#f5f5f5;}.cls-8{fill:#cacaca;}.cls-9{fill:#fcfcfc;}.cls-10{fill:url(#linear-gradient-2);}.cls-11{fill:url(#linear-gradient-3);}.cls-12{fill:url(#linear-gradient-4);}.cls-13{fill:#737373;}.cls-14{fill:url(#linear-gradient-5);}.cls-15{fill:url(#linear-gradient-6);}.cls-16{fill:url(#linear-gradient-7);}.cls-17{fill:url(#linear-gradient-8);}.cls-18{fill:url(#linear-gradient-9);}.cls-19{fill:url(#linear-gradient-10);}.cls-20{fill:#ebebeb;stroke:#cacaca;}.cls-20,.cls-21{stroke-miterlimit:10;}.cls-21{stroke:#e95420;}</style>
 +    <linearGradient
-+       x1="65"
-+       y1="90"
-+       x2="65"
 +       id="linear-gradient"
++       x1="-941.78003"
++       y1="613.5"
++       x2="-941.78003"
++       y2="713.96002"
++       gradientTransform="matrix(6.09,0,0,-6.09,6133.58,4349.65)"
 +       gradientUnits="userSpaceOnUse">
 +      <stop
-+         id="stop3037"
-+         style="stop-color:#7a0839;stop-opacity:1"
-+         offset="0" />
++         offset="0"
++         stop-color="#350753"
++         id="stop4" />
 +      <stop
-+         id="stop3039"
-+         style="stop-color:#510045;stop-opacity:1"
-+         offset="1" />
++         offset="1"
++         stop-color="#720b53"
++         id="stop6" />
 +    </linearGradient>
++    <linearGradient
++       id="linear-gradient-2"
++       x1="216.64"
++       y1="166.28999"
++       x2="289.81"
++       y2="166.28999"
++       gradientUnits="userSpaceOnUse">
++      <stop
++         offset="0"
++         stop-color="#772953"
++         id="stop9" />
++      <stop
++         offset="1"
++         stop-color="#510045"
++         id="stop11" />
++    </linearGradient>
++    <linearGradient
++       id="linear-gradient-3"
++       x1="226.89999"
++       y1="147.75"
++       x2="298.70001"
++       y2="189.2"
++       gradientUnits="userSpaceOnUse">
++      <stop
++         offset="0.25"
++         stop-color="#982963"
++         id="stop14" />
++      <stop
++         offset="0.91"
++         stop-color="#e98120"
++         id="stop16" />
++    </linearGradient>
++    <linearGradient
++       id="linear-gradient-4"
++       x1="392.56"
++       y1="164.23"
++       x2="319.39999"
++       y2="164.23"
++       gradientUnits="userSpaceOnUse">
++      <stop
++         offset="0.03"
++         stop-color="#e95420"
++         id="stop19" />
++      <stop
++         offset="0.51"
++         stop-color="#772953"
++         id="stop21" />
++    </linearGradient>
++    <linearGradient
++       id="linear-gradient-5"
++       x1="495.31"
++       y1="164.23"
++       x2="422.14999"
++       y2="164.23"
++       xlink:href="#linear-gradient-4" />
++    <linearGradient
++       id="linear-gradient-6"
++       x1="598.06"
++       y1="164.23"
++       x2="524.90002"
++       y2="164.23"
++       xlink:href="#linear-gradient-4" />
++    <linearGradient
++       id="linear-gradient-7"
++       x1="289.81"
++       y1="267.57001"
++       x2="216.64"
++       y2="267.57001"
++       xlink:href="#linear-gradient-4" />
++    <linearGradient
++       id="linear-gradient-8"
++       x1="392.56"
++       y1="267.57001"
++       x2="319.39999"
++       y2="267.57001"
++       xlink:href="#linear-gradient-4" />
++    <linearGradient
++       id="linear-gradient-9"
++       x1="495.31"
++       y1="267.57001"
++       x2="422.14999"
++       y2="267.57001"
++       xlink:href="#linear-gradient-4" />
++    <linearGradient
++       id="linear-gradient-10"
++       x1="598.06"
++       y1="267.57001"
++       x2="524.90002"
++       y2="267.57001"
++       xlink:href="#linear-gradient-4" />
++    <linearGradient
++       inkscape:collect="always"
++       xlink:href="#linear-gradient-4"
++       id="linearGradient477"
++       gradientUnits="userSpaceOnUse"
++       x1="392.56"
++       y1="164.23"
++       x2="319.39999"
++       y2="164.23" />
 +  </defs>
 +  <g
-+     id="Shell">
++     id="Bgrd"
++     transform="scale(0.34090909,0.32679739)">
 +    <g
 +       id="Wallpaper">
 +      <rect
-+         width="130"
-+         height="90"
-+         x="0"
-+         y="0"
 +         id="rect3045"
-+         style="fill:url(#linear-gradient)" />
-+    </g>
-+    <g
-+       id="Shell-2">
-+      <rect
-+         width="130"
-+         height="13"
++         class="cls-1"
++         width="792"
++         height="612"
++         style="fill:url(#linear-gradient)"
 +         x="0"
-+         y="0"
-+         id="rect3048"
-+         style="opacity:0.5" />
-+      <rect
-+         width="25"
-+         height="77"
-+         x="0"
-+         y="13"
-+         id="rect3050"
-+         style="opacity:0.4" />
-+      <g
-+         id="g3052"
-+         style="opacity:0.3">
-+        <rect
-+           width="14.44"
-+           height="14.44"
-+           rx="3"
-+           x="5.2800002"
-+           y="17.99"
-+           id="rect3054"
-+           style="fill:#ffffff" />
-+        <rect
-+           width="14.44"
-+           height="14.44"
-+           rx="3"
-+           x="5.2800002"
-+           y="37.75"
-+           id="rect3056"
-+           style="fill:#ffffff" />
-+        <rect
-+           width="14.44"
-+           height="14.44"
-+           rx="3"
-+           x="5.2800002"
-+           y="57.509998"
-+           id="rect3058"
-+           style="fill:#ffffff" />
-+      </g>
++         y="0" />
 +    </g>
 +  </g>
-+  <rect
-+     width="93.059998"
-+     height="21.91"
-+     x="37"
-+     y="23.940001"
-+     id="rect3061"
-+     style="fill:#e5e9ec" />
-+  <rect
-+     width="63"
-+     height="44.150002"
-+     x="37"
-+     y="45.849998"
-+     id="rect3063"
-+     style="fill:#f8f9fa" />
-+  <rect
-+     width="63"
-+     height="11.94"
-+     x="37"
-+     y="62"
-+     id="rect3065"
-+     style="fill:#e95420" />
-+  <rect
-+     width="1.17"
-+     height="44.150002"
-+     x="-101.16"
-+     y="-90"
-+     transform="scale(-1,-1)"
-+     id="rect3067"
-+     style="fill:#e3e3e3" />
-+  <rect
-+     width="28.76"
-+     height="44.150002"
-+     x="101.17"
-+     y="45.849998"
-+     id="rect3069"
-+     style="fill:#ffffff" />
-+  <rect
-+     width="46.880001"
-+     height="11.99"
-+     x="71.150002"
-+     y="28.92"
-+     id="rect3071"
-+     style="fill:#c8c9ca" />
-+  <rect
-+     width="35.189999"
-+     height="1.0599999"
-+     x="76.980003"
-+     y="39.849998"
-+     id="rect3073"
-+     style="fill:#e95420" />
-+  <rect
-+     width="12"
-+     height="11.99"
-+     x="41.150002"
-+     y="28.92"
-+     id="rect3288"
-+     style="fill:#c8c9ca;fill-opacity:1" />
-+  <rect
-+     width="12"
-+     height="11.99"
-+     x="56.150002"
-+     y="28.92"
-+     id="rect3290"
-+     style="fill:#c8c9ca;fill-opacity:1" />
-+</svg>
-diff --git a/panels/ubuntu/theme-standard.svg b/panels/ubuntu/theme-standard.svg
-new file mode 100644
-index 0000000..862fd44
---- /dev/null
-+++ b/panels/ubuntu/theme-standard.svg
-@@ -0,0 +1,171 @@
-+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-+<!-- Created with Inkscape (http://www.inkscape.org/) -->
-+
-+<svg
-+   xmlns:dc="http://purl.org/dc/elements/1.1/"
-+   xmlns:cc="http://creativecommons.org/ns#"
-+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
-+   xmlns:svg="http://www.w3.org/2000/svg"
-+   xmlns="http://www.w3.org/2000/svg"
-+   version="1.1"
-+   width="100%"
-+   height="100%"
-+   viewBox="0 0 130 90"
-+   id="svg2">
-+  <title
-+     id="title13">Artboard 1</title>
-+  <metadata
-+     id="metadata53">
-+    <rdf:RDF>
-+      <cc:Work
-+         rdf:about="">
-+        <dc:format>image/svg+xml</dc:format>
-+        <dc:type
-+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-+        <dc:title>Artboard 1</dc:title>
-+      </cc:Work>
-+    </rdf:RDF>
-+  </metadata>
-+  <defs
-+     id="defs4">
-+    <style
-+       id="style6" />
-+    <linearGradient
-+       x1="65"
-+       y1="90"
-+       x2="65"
-+       id="linear-gradient"
-+       gradientUnits="userSpaceOnUse">
-+      <stop
-+         id="stop9"
-+         style="stop-color:#7a0839;stop-opacity:1"
-+         offset="0" />
-+      <stop
-+         id="stop11"
-+         style="stop-color:#510045;stop-opacity:1"
-+         offset="1" />
-+    </linearGradient>
-+  </defs>
 +  <g
-+     id="Shell">
-+    <g
-+       id="Wallpaper">
-+      <rect
-+         width="130"
-+         height="90"
-+         x="0"
-+         y="0"
-+         id="rect17"
-+         style="fill:url(#linear-gradient)" />
-+    </g>
-+    <g
-+       id="Shell-2">
-+      <rect
-+         width="130"
-+         height="13"
-+         x="0"
-+         y="0"
-+         id="rect20"
-+         style="opacity:0.5" />
-+      <rect
-+         width="25"
-+         height="77"
-+         x="0"
-+         y="13"
-+         id="rect22"
-+         style="opacity:0.4" />
-+      <g
-+         id="g24"
-+         style="opacity:0.3">
-+        <rect
-+           width="14.44"
-+           height="14.44"
-+           rx="3"
-+           x="5.2800002"
-+           y="17.99"
-+           id="rect26"
-+           style="fill:#ffffff" />
-+        <rect
-+           width="14.44"
-+           height="14.44"
-+           rx="3"
-+           x="5.2800002"
-+           y="37.75"
-+           id="rect28"
-+           style="fill:#ffffff" />
-+        <rect
-+           width="14.44"
-+           height="14.44"
-+           rx="3"
-+           x="5.2800002"
-+           y="57.509998"
-+           id="rect30"
-+           style="fill:#ffffff" />
-+      </g>
-+    </g>
++     id="Artwork"
++     transform="matrix(0.31297816,0,0,0.31297816,11.043435,4.1316606)">
++    <path
++       id="rect3061"
++       class="cls-2"
++       d="m 24.48,18.75 h 743.15 a 10,10 0 0 1 10,10 V 96.5 H 14.48 V 28.75 a 10,10 0 0 1 10,-10 z" />
++    <rect
++       id="rect3063"
++       class="cls-3"
++       x="14.48"
++       y="96.5"
++       width="161.73"
++       height="497.37" />
++    <rect
++       id="rect3065"
++       class="cls-4"
++       x="14.48"
++       y="216.35001"
++       width="161.73"
++       height="51.209999" />
++    <rect
++       id="rect3065-2"
++       data-name="rect3065"
++       class="cls-5"
++       x="14.48"
++       y="216.35001"
++       width="6.5900002"
++       height="51.209999" />
++    <rect
++       id="rect3069"
++       class="cls-6"
++       x="185.75999"
++       y="96.5"
++       width="590.78998"
++       height="497.37" />
++    <path
++       id="rect3071"
++       class="cls-7"
++       d="m 225.35,38 h 196.81 a 1.69,1.69 0 0 1 1.78,1.59 v 33.26 a 1.69,1.69 0 0 1 -1.78,1.59 H 225.35 a 1.68,1.68 0 0 1 -1.77,-1.59 V 39.61 A 1.68,1.68 0 0 1 225.35,38 Z" />
++    <path
++       id="rect3071-2"
++       data-name="rect3071"
++       class="cls-6"
++       d="m 430.81,38 h 37.84 a 1.68,1.68 0 0 1 1.77,1.59 v 33.26 a 1.68,1.68 0 0 1 -1.77,1.59 H 430.81 A 1.68,1.68 0 0 1 429,72.85 V 39.61 A 1.68,1.68 0 0 1 430.81,38 Z" />
++    <path
++       id="rect3071-3"
++       data-name="rect3071"
++       class="cls-6"
++       d="m 525.05,38 h 39.35 a 1.73,1.73 0 0 1 1.84,1.59 v 33.26 a 1.73,1.73 0 0 1 -1.84,1.59 h -39.35 a 1.73,1.73 0 0 1 -1.84,-1.59 V 39.61 A 1.73,1.73 0 0 1 525.05,38 Z" />
++    <path
++       id="rect3071-4"
++       data-name="rect3071"
++       class="cls-6"
++       d="m 571.54,38 h 39.35 a 1.73,1.73 0 0 1 1.85,1.59 v 33.26 a 1.73,1.73 0 0 1 -1.85,1.59 H 571.54 A 1.73,1.73 0 0 1 569.7,72.85 V 39.61 A 1.73,1.73 0 0 1 571.54,38 Z" />
++    <path
++       id="rect3071-5"
++       data-name="rect3071"
++       class="cls-8"
++       d="m 637.24,38 h 39.35 a 1.73,1.73 0 0 1 1.84,1.59 v 33.26 a 1.73,1.73 0 0 1 -1.84,1.59 H 637.24 A 1.73,1.73 0 0 1 635.4,72.85 V 39.61 A 1.73,1.73 0 0 1 637.24,38 Z" />
++    <path
++       id="rect3288"
++       class="cls-9"
++       d="m 36,38 h 37.69 a 1.83,1.83 0 0 1 2,1.59 v 33.26 a 1.83,1.83 0 0 1 -2,1.59 H 36 A 1.83,1.83 0 0 1 34,72.85 V 39.61 A 1.83,1.83 0 0 1 36,38 Z" />
++    <path
++       id="rect3288-2"
++       data-name="rect3288"
++       class="cls-9"
++       d="m 83.44,38 h 37.67 a 1.83,1.83 0 0 1 2,1.59 v 33.26 a 1.83,1.83 0 0 1 -2,1.59 H 83.44 a 1.83,1.83 0 0 1 -2,-1.59 V 39.61 a 1.83,1.83 0 0 1 2,-1.61 z" />
++    <path
++       id="rect3290"
++       class="cls-6"
++       d="m 138.71,38 h 79.72 a 1.68,1.68 0 0 1 1.77,1.59 v 33.26 a 1.68,1.68 0 0 1 -1.77,1.59 h -79.72 a 1.69,1.69 0 0 1 -1.78,-1.59 V 39.61 A 1.69,1.69 0 0 1 138.71,38 Z" />
++    <rect
++       id="rect39"
++       class="cls-8"
++       x="14.48"
++       y="583.71997"
++       width="762.60999"
++       height="10.14" />
++    <rect
++       id="rect39-2"
++       data-name="rect39"
++       class="cls-8"
++       x="176.21001"
++       y="96.5"
++       width="9.5600004"
++       height="487.78" />
++    <rect
++       id="rect39-3"
++       data-name="rect39"
++       class="cls-8"
++       x="767.94"
++       y="96.5"
++       width="9.5600004"
++       height="497.37" />
++    <circle
++       class="cls-5"
++       cx="743.63"
++       cy="54.419998"
++       r="12.5"
++       id="circle51" />
++    <path
++       id="rect3071-6"
++       data-name="rect3071"
++       class="cls-10"
++       d="m 219.78,134.73 h 66.9 a 3,3 0 0 1 3.13,2.75 v 57.62 a 3,3 0 0 1 -3.13,2.76 h -66.9 a 3,3 0 0 1 -3.14,-2.76 v -57.62 a 3,3 0 0 1 3.14,-2.75 z"
++       style="fill:url(#linear-gradient-2)" />
++    <path
++       id="rect3071-7"
++       data-name="rect3071"
++       class="cls-11"
++       d="m 230.88,134.73 h 56.29 a 2.69,2.69 0 0 1 2.64,2.75 v 57.62 a 2.7,2.7 0 0 1 -2.64,2.76 h -56.29 a 2.7,2.7 0 0 1 -2.64,-2.76 v -57.62 a 2.69,2.69 0 0 1 2.64,-2.75 z"
++       style="fill:url(#linear-gradient-3)" />
++    <path
++       id="rect3071-8"
++       data-name="rect3071"
++       class="cls-12"
++       d="m 322.53,130.6 h 22.92 l 7.15,4.13 h 36.83 a 3,3 0 0 1 3.13,2.75 v 57.62 a 3,3 0 0 1 -3.13,2.76 h -66.9 a 3,3 0 0 1 -3.13,-2.76 v -61.75 a 3,3 0 0 1 3.13,-2.75 z"
++       style="fill:url(#linearGradient477)" />
++    <path
++       id="rect3071-9"
++       data-name="rect3071"
++       class="cls-13"
++       d="m 322.53,146.06 h 30.07 l 8.69,-6.08 h 28.14 c 1.73,0 3.13,1 3.13,2.26 v 53.36 c 0,1.25 -1.4,2.26 -3.13,2.26 h -66.9 c -1.73,0 -3.13,-1 -3.13,-2.26 v -47.29 c 0,-1.24 1.4,-2.25 3.13,-2.25 z" />
++    <path
++       id="rect3071-10"
++       data-name="rect3071"
++       class="cls-14"
++       d="m 425.28,130.6 h 22.92 l 7.15,4.13 h 36.83 a 3,3 0 0 1 3.13,2.75 v 57.62 a 3,3 0 0 1 -3.13,2.76 h -66.9 a 3,3 0 0 1 -3.13,-2.76 v -61.75 a 3,3 0 0 1 3.13,-2.75 z"
++       style="fill:url(#linear-gradient-5)" />
++    <path
++       id="rect3071-11"
++       data-name="rect3071"
++       class="cls-13"
++       d="m 425.28,146.06 h 30.07 L 464,140 h 28.14 c 1.73,0 3.13,1 3.13,2.26 v 53.34 c 0,1.25 -1.4,2.26 -3.13,2.26 h -66.9 c -1.73,0 -3.13,-1 -3.13,-2.26 v -47.29 c 0.04,-1.24 1.44,-2.25 3.17,-2.25 z" />
++    <path
++       id="rect3071-12"
++       data-name="rect3071"
++       class="cls-15"
++       d="m 528,130.6 h 23 l 7.15,4.13 h 36.83 a 3,3 0 0 1 3.13,2.75 v 57.62 a 3,3 0 0 1 -3.13,2.76 H 528 a 3,3 0 0 1 -3.13,-2.76 V 133.35 A 3,3 0 0 1 528,130.6 Z"
++       style="fill:url(#linear-gradient-6)" />
++    <path
++       id="rect3071-13"
++       data-name="rect3071"
++       class="cls-13"
++       d="m 528,146.06 h 30.1 l 8.69,-6.08 h 28.14 c 1.73,0 3.13,1 3.13,2.26 v 53.36 c 0,1.25 -1.4,2.26 -3.13,2.26 H 528 c -1.73,0 -3.13,-1 -3.13,-2.26 v -47.29 c 0.03,-1.24 1.43,-2.25 3.13,-2.25 z" />
++    <path
++       id="rect3071-14"
++       data-name="rect3071"
++       class="cls-16"
++       d="m 219.78,233.94 h 22.92 l 7.15,4.13 h 36.83 a 3,3 0 0 1 3.13,2.76 v 57.62 a 3,3 0 0 1 -3.13,2.75 h -66.9 a 3,3 0 0 1 -3.14,-2.75 v -61.76 a 3,3 0 0 1 3.14,-2.75 z"
++       style="fill:url(#linear-gradient-7)" />
++    <path
++       id="rect3071-15"
++       data-name="rect3071"
++       class="cls-13"
++       d="m 219.78,249.4 h 30.07 l 8.69,-6.08 h 28.14 c 1.73,0 3.13,1 3.13,2.26 v 53.36 c 0,1.25 -1.4,2.26 -3.13,2.26 h -66.9 c -1.73,0 -3.14,-1 -3.14,-2.26 v -47.28 c 0,-1.25 1.41,-2.26 3.14,-2.26 z" />
++    <path
++       id="rect3071-16"
++       data-name="rect3071"
++       class="cls-17"
++       d="m 322.53,233.94 h 22.92 l 7.15,4.13 h 36.83 a 3,3 0 0 1 3.13,2.76 v 57.62 a 3,3 0 0 1 -3.13,2.75 h -66.9 a 3,3 0 0 1 -3.13,-2.75 v -61.76 a 3,3 0 0 1 3.13,-2.75 z"
++       style="fill:url(#linear-gradient-8)" />
++    <path
++       id="rect3071-17"
++       data-name="rect3071"
++       class="cls-13"
++       d="m 322.53,249.4 h 30.07 l 8.69,-6.08 h 28.14 c 1.73,0 3.13,1 3.13,2.26 v 53.36 c 0,1.25 -1.4,2.26 -3.13,2.26 h -66.9 c -1.73,0 -3.13,-1 -3.13,-2.26 v -47.28 c 0,-1.25 1.4,-2.26 3.13,-2.26 z" />
++    <path
++       id="rect3071-18"
++       data-name="rect3071"
++       class="cls-18"
++       d="m 425.28,233.94 h 22.92 l 7.15,4.13 h 36.83 a 3,3 0 0 1 3.13,2.76 v 57.62 a 3,3 0 0 1 -3.13,2.75 h -66.9 a 3,3 0 0 1 -3.13,-2.75 v -61.76 a 3,3 0 0 1 3.13,-2.75 z"
++       style="fill:url(#linear-gradient-9)" />
++    <path
++       id="rect3071-19"
++       data-name="rect3071"
++       class="cls-13"
++       d="m 425.28,249.4 h 30.07 l 8.69,-6.08 h 28.14 c 1.73,0 3.13,1 3.13,2.26 v 53.36 c 0,1.25 -1.4,2.26 -3.13,2.26 h -66.9 c -1.73,0 -3.13,-1 -3.13,-2.26 v -47.28 c 0,-1.25 1.4,-2.26 3.13,-2.26 z" />
++    <path
++       id="rect3071-20"
++       data-name="rect3071"
++       class="cls-19"
++       d="m 528,233.94 h 23 l 7.15,4.13 h 36.83 a 3,3 0 0 1 3.13,2.76 v 57.62 a 3,3 0 0 1 -3.13,2.75 H 528 a 3,3 0 0 1 -3.13,-2.75 v -61.76 a 3,3 0 0 1 3.13,-2.75 z"
++       style="fill:url(#linear-gradient-10)" />
++    <path
++       id="rect3071-21"
++       data-name="rect3071"
++       class="cls-13"
++       d="m 528,249.4 h 30.1 l 8.69,-6.08 h 28.14 c 1.73,0 3.13,1 3.13,2.26 v 53.36 c 0,1.25 -1.4,2.26 -3.13,2.26 H 528 c -1.73,0 -3.13,-1 -3.13,-2.26 v -47.28 c 0.03,-1.25 1.43,-2.26 3.13,-2.26 z" />
++    <path
++       class="cls-20"
++       d="m 748.35,115.48 h -74 L 656.91,98 639.49,115.49 h -74 a 4,4 0 0 0 -4,4 V 413.7 a 4,4 0 0 0 4,4 h 182.86 a 4,4 0 0 0 4,-4 V 119.49 a 4,4 0 0 0 -4,-4.01 z"
++       id="path69" />
++    <path
++       id="rect3071-22"
++       data-name="rect3071"
++       class="cls-21"
++       d="m 576.11,136.29 h 48.27 c 1.24,0 2.26,0.72 2.26,1.6 v 33.57 c 0,0.88 -1,1.6 -2.26,1.6 h -48.27 c -1.24,0 -2.26,-0.72 -2.26,-1.6 v -33.57 c 0,-0.89 1.02,-1.6 2.26,-1.6 z" />
++    <path
++       id="rect3071-23"
++       data-name="rect3071"
++       class="cls-6"
++       d="m 633.14,136.29 h 48.26 c 1.25,0 2.26,0.72 2.26,1.6 v 33.57 c 0,0.88 -1,1.6 -2.26,1.6 h -48.26 c -1.25,0 -2.26,-0.72 -2.26,-1.6 v -33.57 c 0,-0.89 1.01,-1.6 2.26,-1.6 z" />
++    <path
++       id="rect3071-24"
++       data-name="rect3071"
++       class="cls-6"
++       d="m 690.17,136.29 h 48.26 c 1.25,0 2.26,0.72 2.26,1.6 v 33.57 c 0,0.88 -1,1.6 -2.26,1.6 h -48.26 c -1.25,0 -2.26,-0.72 -2.26,-1.6 v -33.57 c 0,-0.89 1.01,-1.6 2.26,-1.6 z" />
 +  </g>
-+  <rect
-+     width="93.059998"
-+     height="21.91"
-+     x="37"
-+     y="23.940001"
-+     id="rect33"
-+     style="fill:#2b2929" />
-+  <rect
-+     width="63"
-+     height="44.150002"
-+     x="37"
-+     y="45.849998"
-+     id="rect35"
-+     style="fill:#f8f9fa" />
-+  <rect
-+     width="63"
-+     height="11.94"
-+     x="37"
-+     y="62"
-+     id="rect37"
-+     style="fill:#e95420" />
-+  <rect
-+     width="1.17"
-+     height="44.150002"
-+     x="-101.16"
-+     y="-90"
-+     transform="scale(-1,-1)"
-+     id="rect39"
-+     style="fill:#e3e3e3" />
-+  <rect
-+     width="28.76"
-+     height="44.150002"
-+     x="101.17"
-+     y="45.849998"
-+     id="rect41"
-+     style="fill:#ffffff" />
-+  <rect
-+     width="46.880001"
-+     height="11.99"
-+     x="71.150002"
-+     y="28.92"
-+     id="rect43"
-+     style="fill:#3d3d3d" />
-+  <rect
-+     width="35.189999"
-+     height="1.0599999"
-+     x="76.980003"
-+     y="39.849998"
-+     id="rect45"
-+     style="fill:#e95420" />
-+  <rect
-+     width="12"
-+     height="11.99"
-+     x="41.150002"
-+     y="28.92"
-+     id="rect3288"
-+     style="fill:#3d3d3d;fill-opacity:1" />
-+  <rect
-+     width="12"
-+     height="11.99"
-+     x="56.149998"
-+     y="28.92"
-+     id="rect3290"
-+     style="fill:#3d3d3d;fill-opacity:1" />
 +</svg>
 diff --git a/panels/ubuntu/ubuntu.gresource.xml b/panels/ubuntu/ubuntu.gresource.xml
 new file mode 100644
-index 0000000..7117d12
+index 000000000..77d4e6145
 --- /dev/null
 +++ b/panels/ubuntu/ubuntu.gresource.xml
-@@ -0,0 +1,9 @@
+@@ -0,0 +1,8 @@
 +<?xml version="1.0" encoding="UTF-8"?>
 +<gresources>
 +  <gresource prefix="/org/gnome/control-center/ubuntu">
 +    <file preprocess="xml-stripblanks">cc-ubuntu-panel.ui</file>
 +    <file>theme-dark.svg</file>
 +    <file>theme-light.svg</file>
-+    <file>theme-standard.svg</file>
 +  </gresource>
 +</gresources>
 diff --git a/po/POTFILES.in b/po/POTFILES.in
-index 5f7e8d4..5c60ac7 100644
+index 5f7e8d49a..5c60ac711 100644
 --- a/po/POTFILES.in
 +++ b/po/POTFILES.in
 @@ -218,6 +218,9 @@ panels/thunderbolt/cc-bolt-device-entry.c
@@ -1839,7 +2061,7 @@ index 5f7e8d4..5c60ac7 100644
  panels/universal-access/cc-cursor-size-dialog.ui
  panels/universal-access/cc-pointing-dialog.ui
 diff --git a/shell/cc-panel-list.c b/shell/cc-panel-list.c
-index e23da0b..3a4dfc0 100644
+index e23da0b87..3a4dfc032 100644
 --- a/shell/cc-panel-list.c
 +++ b/shell/cc-panel-list.c
 @@ -384,6 +384,7 @@ static const gchar * const panel_order[] = {
@@ -1851,7 +2073,7 @@ index e23da0b..3a4dfc0 100644
    "search",
    "applications",
 diff --git a/shell/cc-panel-loader.c b/shell/cc-panel-loader.c
-index f203843..bcf8767 100644
+index f20384394..bcf87674e 100644
 --- a/shell/cc-panel-loader.c
 +++ b/shell/cc-panel-loader.c
 @@ -60,6 +60,7 @@ extern GType cc_sound_panel_get_type (void);
@@ -1878,3 +2100,6 @@ index f203843..bcf8767 100644
  #ifdef BUILD_THUNDERBOLT
    PANEL_TYPE("thunderbolt",      cc_bolt_panel_get_type,                 NULL),
  #endif
+-- 
+2.30.2
+
