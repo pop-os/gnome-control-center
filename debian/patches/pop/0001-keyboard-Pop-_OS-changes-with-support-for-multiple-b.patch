@@ -1,0 +1,832 @@
+From b8947f9f389eb1b39c0d440889cc347afbae541c Mon Sep 17 00:00:00 2001
+From: Ian Douglas Scott <idscott@system76.com>
+Date: Fri, 6 Aug 2021 08:59:20 -0700
+Subject: [PATCH] keyboard: Pop!_OS changes with support for multiple bindings
+
+This is a cleaned up version of the Pop!_OS changes, based on the
+version of the keyboard panel re-design that was merged upstream for
+Gnome Control Center 40.0.
+
+Updating this on the Gnome 40.0 version, and minimizing the diff should
+make it easier in the future to update for future Gnome releases, and
+easier to maintain the for existing Pop!_OS versions. It should also
+gain some minor improvements to the Keyboard Panel code from upstream.
+
+The previous Pop!_OS version listed accelerators for a shortcut with a
+`GtkBox`. This instead uses a single multi-line label to have a smaller
+diff from upstream and simpler code with much the same appearance.
+
+`CcKeyboardShortcutRow` was made a subclass of `HdyActionRow` upon
+request from upstream. The Pop!_OS version here now makes the
+accelerators bold, instead of the description, when a shortcut is
+non-default, matching upstream and avoiding too complicated a diff.
+---
+ .../keyboard/cc-keyboard-shortcut-dialog.ui   |   6 +-
+ panels/keyboard/cc-keyboard-shortcut-editor.c | 115 ++++------
+ .../keyboard/cc-keyboard-shortcut-editor.ui   |  57 ++---
+ panels/keyboard/cc-keyboard-shortcut-row.c    | 205 ++++++++++++++----
+ panels/keyboard/cc-keyboard-shortcut-row.ui   |  67 ++++--
+ 5 files changed, 280 insertions(+), 170 deletions(-)
+
+diff --git a/panels/keyboard/cc-keyboard-shortcut-dialog.ui b/panels/keyboard/cc-keyboard-shortcut-dialog.ui
+index 269e97ece..08556bf97 100644
+--- a/panels/keyboard/cc-keyboard-shortcut-dialog.ui
++++ b/panels/keyboard/cc-keyboard-shortcut-dialog.ui
+@@ -2,6 +2,8 @@
+ <interface>
+   <!-- interface-requires gtk+ 3.0 -->
+   <template class="CcKeyboardShortcutDialog" parent="GtkDialog">
++    <property name="default-height">640</property>
++    <property name="default-width">480</property>
+     <property name="modal">True</property>
+     <signal name="key-press-event" handler="key_press_cb" object="CcKeyboardShortcutDialog" swapped="yes" />
+     <child internal-child="vbox">
+@@ -28,7 +30,7 @@
+                 <property name="hscrollbar_policy">never</property>
+                 <property name="propagate_natural_width">True</property>
+                 <property name="propagate_natural_height">True</property>
+-                <property name="max_content_height">450</property>
++                <property name="max_content_height">350</property>
+                 <child>
+                   <object class="GtkBox">
+                     <property name="visible">True</property>
+@@ -58,7 +60,7 @@
+                 <property name="hscrollbar_policy">never</property>
+                 <property name="propagate_natural_width">True</property>
+                 <property name="propagate_natural_height">True</property>
+-                <property name="max_content_height">450</property>
++                <property name="max_content_height">350</property>
+                 <child>
+                   <object class="GtkBox">
+                     <property name="visible">True</property>
+diff --git a/panels/keyboard/cc-keyboard-shortcut-editor.c b/panels/keyboard/cc-keyboard-shortcut-editor.c
+index 6b42763e3..eb777fb16 100644
+--- a/panels/keyboard/cc-keyboard-shortcut-editor.c
++++ b/panels/keyboard/cc-keyboard-shortcut-editor.c
+@@ -29,32 +29,30 @@ struct _CcKeyboardShortcutEditor
+   GtkDialog           parent;
+ 
+   GtkButton          *add_button;
+-  GtkButton          *cancel_button;
+   GtkButton          *change_custom_shortcut_button;
+   GtkEntry           *command_entry;
+   GtkGrid            *custom_grid;
+   GtkShortcutLabel   *custom_shortcut_accel_label;
++  GtkLabel           *custom_shortcut_set_label;
+   GtkStack           *custom_shortcut_stack;
+   GtkBox             *edit_box;
+   GtkHeaderBar       *headerbar;
+   GtkEntry           *name_entry;
+   GtkLabel           *new_shortcut_conflict_label;
+-  GtkButton          *remove_button;
+   GtkButton          *replace_button;
+-  GtkButton          *reset_button;
+   GtkButton          *reset_custom_button;
+   GtkButton          *set_button;
+   GtkShortcutLabel   *shortcut_accel_label;
+   GtkLabel           *shortcut_conflict_label;
+   GtkBox             *standard_box;
+   GtkStack           *stack;
+-  GtkLabel           *top_info_label;
++  GtkLabel           *edit_shortcut_name_label;
++  GtkLabel           *standard_shortcut_name_label;
+ 
+   CcShortcutEditorMode mode;
+ 
+   CcKeyboardManager  *manager;
+   CcKeyboardItem     *item;
+-  GBinding           *reset_item_binding;
+ 
+   CcKeyboardItem     *collision_item;
+ 
+@@ -69,6 +67,7 @@ struct _CcKeyboardShortcutEditor
+ 
+ static void          command_entry_changed_cb                    (CcKeyboardShortcutEditor *self);
+ static void          name_entry_changed_cb                       (CcKeyboardShortcutEditor *self);
++static gboolean      grab_idle                                   (gpointer data);
+ static void          set_button_clicked_cb                       (CcKeyboardShortcutEditor *self);
+ 
+ G_DEFINE_TYPE (CcKeyboardShortcutEditor, cc_keyboard_shortcut_editor, GTK_TYPE_DIALOG)
+@@ -134,8 +133,6 @@ set_shortcut_editor_page (CcKeyboardShortcutEditor *self,
+     default:
+       g_assert_not_reached ();
+     }
+-
+-    gtk_widget_set_visible (GTK_WIDGET (self->top_info_label), page != PAGE_CUSTOM);
+ }
+ 
+ static void
+@@ -144,14 +141,7 @@ apply_custom_item_fields (CcKeyboardShortcutEditor *self,
+ {
+   /* Only setup the binding when it was actually edited */
+   if (self->edited)
+-    {
+-      CcKeyCombo *combo = self->custom_combo;
+-
+-      cc_keyboard_item_disable (item);
+-
+-      if (combo->keycode != 0 || combo->keyval != 0 || combo->mask != 0)
+-        cc_keyboard_item_add_key_combo (item, combo);
+-    }
++    cc_keyboard_item_add_key_combo (item, self->custom_combo);
+ 
+   /* Set the keyboard shortcut name and command for custom entries */
+   if (cc_keyboard_item_get_item_type (item) == CC_KEYBOARD_ITEM_TYPE_GSETTINGS_PATH)
+@@ -227,6 +217,8 @@ grab_seat (CcKeyboardShortcutEditor *self)
+   self->grab_pointer = gdk_seat_get_keyboard (seat);
+   if (!self->grab_pointer)
+     self->grab_pointer = gdk_seat_get_pointer (seat);
++
++  gtk_grab_add (GTK_WIDGET (self));
+ }
+ 
+ static void
+@@ -250,7 +242,7 @@ update_shortcut (CcKeyboardShortcutEditor *self)
+ 
+   /* Eventually disable the conflict shortcut */
+   if (self->collision_item)
+-    cc_keyboard_item_disable (self->collision_item);
++    cc_keyboard_item_remove_key_combo (self->collision_item, self->custom_combo);
+ 
+   /* Cleanup whatever was set before */
+   clear_custom_entries (self);
+@@ -274,11 +266,8 @@ set_header_mode (CcKeyboardShortcutEditor *self,
+   gtk_header_bar_set_show_close_button (self->headerbar, mode == HEADER_MODE_CUSTOM_EDIT);
+ 
+   gtk_widget_set_visible (GTK_WIDGET (self->add_button), mode == HEADER_MODE_ADD);
+-  gtk_widget_set_visible (GTK_WIDGET (self->cancel_button), mode != HEADER_MODE_NONE &&
+-                                               mode != HEADER_MODE_CUSTOM_EDIT);
+   gtk_widget_set_visible (GTK_WIDGET (self->replace_button), mode == HEADER_MODE_REPLACE);
+   gtk_widget_set_visible (GTK_WIDGET (self->set_button), mode == HEADER_MODE_SET);
+-  gtk_widget_set_visible (GTK_WIDGET (self->remove_button), mode == HEADER_MODE_CUSTOM_EDIT);
+ 
+   /* By setting the default response, the action button gets the 'suggested-action' applied */
+   switch (mode)
+@@ -434,7 +423,7 @@ add_button_clicked_cb (CcKeyboardShortcutEditor *self)
+ 
+   /* Eventually disable the conflict shortcut */
+   if (self->collision_item)
+-    cc_keyboard_item_disable (self->collision_item);
++    cc_keyboard_item_remove_key_combo (self->collision_item, self->custom_combo);
+ 
+   /* Cleanup everything once we're done */
+   clear_custom_entries (self);
+@@ -455,7 +444,7 @@ static void
+ change_custom_shortcut_button_clicked_cb (CcKeyboardShortcutEditor *self)
+ {
+   grab_seat (self);
+-  set_shortcut_editor_page (self, PAGE_EDIT);
++  gtk_stack_set_visible_child (self->custom_shortcut_stack, GTK_WIDGET (self->custom_shortcut_set_label));
+   set_header_mode (self, HEADER_MODE_NONE);
+ }
+ 
+@@ -471,14 +460,6 @@ name_entry_changed_cb (CcKeyboardShortcutEditor *self)
+   setup_custom_shortcut (self);
+ }
+ 
+-static void
+-remove_button_clicked_cb (CcKeyboardShortcutEditor *self)
+-{
+-  gtk_widget_hide (GTK_WIDGET (self));
+-
+-  cc_keyboard_manager_remove_custom_shortcut (self->manager, self->item);
+-}
+-
+ static void
+ replace_button_clicked_cb (CcKeyboardShortcutEditor *self)
+ {
+@@ -495,23 +476,16 @@ reset_custom_clicked_cb (CcKeyboardShortcutEditor *self)
+     cc_keyboard_manager_reset_shortcut (self->manager, self->item);
+ 
+   gtk_stack_set_visible_child (self->custom_shortcut_stack, GTK_WIDGET (self->change_custom_shortcut_button));
++  gtk_label_set_label (self->new_shortcut_conflict_label, "");
+   gtk_widget_hide (GTK_WIDGET (self->reset_custom_button));
+ }
+ 
+ static void
+ reset_item_clicked_cb (CcKeyboardShortcutEditor *self)
+ {
+-  CcKeyCombo combo;
+-  gchar *accel;
+-
+-  /* Reset first, then update the shortcut */
+-  cc_keyboard_manager_reset_shortcut (self->manager, self->item);
+-
+-  combo = cc_keyboard_item_get_primary_combo (self->item);
+-  accel = gtk_accelerator_name (combo.keyval, combo.mask);
+-  gtk_shortcut_label_set_accelerator (GTK_SHORTCUT_LABEL (self->shortcut_accel_label), accel);
+-
+-  g_free (accel);
++  cc_keyboard_shortcut_editor_set_item (self, self->item);
++  set_shortcut_editor_page (self, PAGE_EDIT);
++  self->grab_idle_id = g_timeout_add (100, grab_idle, self);
+ }
+ 
+ static void
+@@ -525,54 +499,56 @@ static void
+ setup_keyboard_item (CcKeyboardShortcutEditor *self,
+                      CcKeyboardItem           *item)
+ {
+-  CcKeyCombo combo;
++  GList* key_combos;
++  CcKeyCombo *combo;
+   gboolean is_custom;
+   g_autofree gchar *accel = NULL;
+   g_autofree gchar *description_text = NULL;
+-  g_autofree gchar *text = NULL;
+ 
+-  if (!item) {
+-    gtk_label_set_text (self->top_info_label, _("Enter the new shortcut"));
++  if (!item)
+     return;
+-  }
+ 
+-  combo = cc_keyboard_item_get_primary_combo (item);
+   is_custom = cc_keyboard_item_get_item_type (item) == CC_KEYBOARD_ITEM_TYPE_GSETTINGS_PATH;
+-  accel = gtk_accelerator_name (combo.keyval, combo.mask);
+ 
+-  /* To avoid accidentally thinking we unset the current keybinding, set the values
+-   * of the keyboard item that is being edited */
++  self->custom_combo->keycode = 0;
++  self->custom_combo->keyval = 0;
++  self->custom_combo->mask = 0;
++
++  if (is_custom)
++    {
++      key_combos = cc_keyboard_item_get_key_combos (item);
++      if (key_combos != NULL && key_combos->data != NULL)
++        {
++          combo = key_combos->data;
++          self->custom_combo->keycode = combo->keycode;
++          self->custom_combo->keyval = combo->keyval;
++          self->custom_combo->mask = combo->mask;
++        }
++    }
++
++  accel = gtk_accelerator_name (self->custom_combo->keyval, self->custom_combo->mask);
++
+   self->custom_is_modifier = FALSE;
+-  *self->custom_combo = combo;
+ 
+   /* Headerbar */
+   gtk_header_bar_set_title (self->headerbar,
+-                            is_custom ? _("Set Custom Shortcut") : _("Set Shortcut"));
++                            is_custom ? _("Set Custom Shortcut") : _("Add a Shortcut"));
+ 
+   set_header_mode (self, is_custom ? HEADER_MODE_CUSTOM_EDIT : HEADER_MODE_NONE);
+ 
+   gtk_widget_hide (GTK_WIDGET (self->add_button));
+-  gtk_widget_hide (GTK_WIDGET (self->cancel_button));
+   gtk_widget_hide (GTK_WIDGET (self->replace_button));
+ 
+   /* Setup the top label */
+   description_text = g_strdup_printf ("<b>%s</b>", cc_keyboard_item_get_description (item));
+-  /* TRANSLATORS: %s is replaced with a description of the keyboard shortcut */
+-  text = g_strdup_printf (_("Enter new shortcut to change %s."), description_text);
+ 
+-  gtk_label_set_markup (self->top_info_label, text);
++  gtk_label_set_markup (self->edit_shortcut_name_label, description_text);
++  gtk_label_set_markup (self->standard_shortcut_name_label, description_text);
+ 
+   /* Accelerator labels */
+   gtk_shortcut_label_set_accelerator (self->shortcut_accel_label, accel);
+   gtk_shortcut_label_set_accelerator (self->custom_shortcut_accel_label, accel);
+ 
+-  g_clear_pointer (&self->reset_item_binding, g_binding_unbind);
+-  self->reset_item_binding = g_object_bind_property (item,
+-                                                     "is-value-default",
+-                                                     self->reset_button,
+-                                                     "visible",
+-                                                     G_BINDING_DEFAULT | G_BINDING_INVERT_BOOLEAN | G_BINDING_SYNC_CREATE);
+-
+   /* Setup the custom entries */
+   if (is_custom)
+     {
+@@ -681,6 +657,9 @@ cc_keyboard_shortcut_editor_key_press_event (GtkWidget   *widget,
+    * perform to decide if we're editing a shortcut. */
+   editing = get_shortcut_editor_page (self) == PAGE_EDIT;
+ 
++  if (get_shortcut_editor_page (self) == PAGE_CUSTOM)
++    editing = gtk_stack_get_visible_child (self->custom_shortcut_stack) == GTK_WIDGET (self->custom_shortcut_set_label);
++
+   if (!editing)
+     return GTK_WIDGET_CLASS (cc_keyboard_shortcut_editor_parent_class)->key_press_event (widget, event);
+ 
+@@ -855,33 +834,31 @@ cc_keyboard_shortcut_editor_class_init (CcKeyboardShortcutEditorClass *klass)
+   gtk_widget_class_set_template_from_resource (widget_class, "/org/gnome/control-center/keyboard/cc-keyboard-shortcut-editor.ui");
+ 
+   gtk_widget_class_bind_template_child (widget_class, CcKeyboardShortcutEditor, add_button);
+-  gtk_widget_class_bind_template_child (widget_class, CcKeyboardShortcutEditor, cancel_button);
+   gtk_widget_class_bind_template_child (widget_class, CcKeyboardShortcutEditor, change_custom_shortcut_button);
+   gtk_widget_class_bind_template_child (widget_class, CcKeyboardShortcutEditor, command_entry);
+   gtk_widget_class_bind_template_child (widget_class, CcKeyboardShortcutEditor, custom_grid);
+   gtk_widget_class_bind_template_child (widget_class, CcKeyboardShortcutEditor, custom_shortcut_accel_label);
++  gtk_widget_class_bind_template_child (widget_class, CcKeyboardShortcutEditor, custom_shortcut_set_label);
+   gtk_widget_class_bind_template_child (widget_class, CcKeyboardShortcutEditor, custom_shortcut_stack);
+   gtk_widget_class_bind_template_child (widget_class, CcKeyboardShortcutEditor, edit_box);
+   gtk_widget_class_bind_template_child (widget_class, CcKeyboardShortcutEditor, headerbar);
+   gtk_widget_class_bind_template_child (widget_class, CcKeyboardShortcutEditor, name_entry);
+   gtk_widget_class_bind_template_child (widget_class, CcKeyboardShortcutEditor, new_shortcut_conflict_label);
+-  gtk_widget_class_bind_template_child (widget_class, CcKeyboardShortcutEditor, remove_button);
+   gtk_widget_class_bind_template_child (widget_class, CcKeyboardShortcutEditor, replace_button);
+-  gtk_widget_class_bind_template_child (widget_class, CcKeyboardShortcutEditor, reset_button);
+   gtk_widget_class_bind_template_child (widget_class, CcKeyboardShortcutEditor, reset_custom_button);
+   gtk_widget_class_bind_template_child (widget_class, CcKeyboardShortcutEditor, set_button);
+   gtk_widget_class_bind_template_child (widget_class, CcKeyboardShortcutEditor, shortcut_accel_label);
+   gtk_widget_class_bind_template_child (widget_class, CcKeyboardShortcutEditor, shortcut_conflict_label);
+   gtk_widget_class_bind_template_child (widget_class, CcKeyboardShortcutEditor, standard_box);
+   gtk_widget_class_bind_template_child (widget_class, CcKeyboardShortcutEditor, stack);
+-  gtk_widget_class_bind_template_child (widget_class, CcKeyboardShortcutEditor, top_info_label);
++  gtk_widget_class_bind_template_child (widget_class, CcKeyboardShortcutEditor, edit_shortcut_name_label);
++  gtk_widget_class_bind_template_child (widget_class, CcKeyboardShortcutEditor, standard_shortcut_name_label);
+ 
+   gtk_widget_class_bind_template_callback (widget_class, add_button_clicked_cb);
+   gtk_widget_class_bind_template_callback (widget_class, cancel_button_clicked_cb);
+   gtk_widget_class_bind_template_callback (widget_class, change_custom_shortcut_button_clicked_cb);
+   gtk_widget_class_bind_template_callback (widget_class, command_entry_changed_cb);
+   gtk_widget_class_bind_template_callback (widget_class, name_entry_changed_cb);
+-  gtk_widget_class_bind_template_callback (widget_class, remove_button_clicked_cb);
+   gtk_widget_class_bind_template_callback (widget_class, replace_button_clicked_cb);
+   gtk_widget_class_bind_template_callback (widget_class, reset_custom_clicked_cb);
+   gtk_widget_class_bind_template_callback (widget_class, reset_item_clicked_cb);
+@@ -946,11 +923,11 @@ cc_keyboard_shortcut_editor_set_item (CcKeyboardShortcutEditor *self,
+ {
+   g_return_if_fail (CC_IS_KEYBOARD_SHORTCUT_EDITOR (self));
+ 
+-  setup_keyboard_item (self, item);
+-
+   if (!g_set_object (&self->item, item))
+     return;
+ 
++  setup_keyboard_item (self, item);
++
+   g_object_notify_by_pspec (G_OBJECT (self), properties[PROP_KEYBOARD_ITEM]);
+ }
+ 
+diff --git a/panels/keyboard/cc-keyboard-shortcut-editor.ui b/panels/keyboard/cc-keyboard-shortcut-editor.ui
+index e9047090f..714b2f7c4 100644
+--- a/panels/keyboard/cc-keyboard-shortcut-editor.ui
++++ b/panels/keyboard/cc-keyboard-shortcut-editor.ui
+@@ -17,19 +17,6 @@
+         <property name="orientation">vertical</property>
+         <property name="spacing">18</property>
+         <property name="border_width">12</property>
+-        <child>
+-          <object class="GtkLabel" id="top_info_label">
+-            <property name="visible">True</property>
+-            <property name="can_focus">False</property>
+-            <property name="wrap">True</property>
+-            <property name="wrap_mode">word-char</property>
+-            <property name="width_chars">15</property>
+-            <property name="max_width_chars">20</property>
+-          </object>
+-          <packing>
+-            <property name="position">0</property>
+-          </packing>
+-        </child>
+         <child>
+           <object class="GtkStack" id="stack">
+             <property name="visible">True</property>
+@@ -41,26 +28,19 @@
+                 <property name="visible">True</property>
+                 <property name="can_focus">False</property>
+                 <property name="orientation">vertical</property>
+-                <property name="spacing">18</property>
++                <property name="spacing">12</property>
+                 <property name="expand">True</property>
+                 <property name="halign">center</property>
+                 <property name="valign">center</property>
+                 <child>
+-                  <object class="GtkImage">
++                  <object class="GtkLabel">
+                     <property name="visible">True</property>
+-                    <property name="can_focus">False</property>
+-                    <property name="resource">/org/gnome/control-center/keyboard/enter-keyboard-shortcut.svg</property>
++                    <property name="label" translatable="yes">Press the key combination to set the shortcut for</property>
+                   </object>
+                 </child>
+                 <child>
+-                  <object class="GtkLabel">
++                  <object class="GtkLabel" id="edit_shortcut_name_label">
+                     <property name="visible">True</property>
+-                    <property name="can_focus">False</property>
+-                    <property name="wrap">True</property>
+-                    <property name="label" translatable="yes">Press Esc to cancel or Backspace to disable the keyboard shortcut.</property>
+-                    <style>
+-                      <class name="dim-label" />
+-                    </style>
+                   </object>
+                 </child>
+               </object>
+@@ -71,7 +51,13 @@
+                 <property name="can_focus">False</property>
+                 <property name="hexpand">True</property>
+                 <property name="orientation">vertical</property>
+-                <property name="spacing">18</property>
++                <property name="spacing">12</property>
++                <property name="valign">center</property>
++                <child>
++                  <object class="GtkLabel" id="standard_shortcut_name_label">
++                    <property name="visible">True</property>
++                  </object>
++                </child>
+                 <child>
+                   <object class="GtkBox">
+                     <property name="visible">True</property>
+@@ -248,6 +234,15 @@
+                         <property name="disabled-text" translatable="yes">None</property>
+                       </object>
+                     </child>
++                    <child>
++                      <object class="GtkLabel" id="custom_shortcut_set_label">
++                        <property name="visible">True</property>
++                        <property name="label" translatable="yes">Press the key combination to set a shortcut...</property>
++                        <style>
++                          <class name="dim-label" />
++                        </style>
++                      </object>
++                    </child>
+                   </object>
+                   <packing>
+                     <property name="left_attach">1</property>
+@@ -279,18 +274,6 @@
+             <signal name="clicked" handler="cancel_button_clicked_cb" object="CcKeyboardShortcutEditor" swapped="no" />
+           </object>
+         </child>
+-        <child>
+-          <object class="GtkButton" id="remove_button">
+-            <property name="visible">True</property>
+-            <property name="can_focus">False</property>
+-            <property name="label" translatable="yes">Remove</property>
+-            <property name="valign">end</property>
+-            <signal name="clicked" handler="remove_button_clicked_cb" object="CcKeyboardShortcutEditor" swapped="yes" />
+-            <style>
+-              <class name="destructive-action" />
+-            </style>
+-          </object>
+-        </child>
+         <child>
+           <object class="GtkButton" id="add_button">
+             <property name="label" translatable="yes">Add</property>
+diff --git a/panels/keyboard/cc-keyboard-shortcut-row.c b/panels/keyboard/cc-keyboard-shortcut-row.c
+index 0bf336947..dfb98a2e6 100644
+--- a/panels/keyboard/cc-keyboard-shortcut-row.c
++++ b/panels/keyboard/cc-keyboard-shortcut-row.c
+@@ -27,21 +27,22 @@ struct _CcKeyboardShortcutRow
+   HdyActionRow              parent_instance;
+ 
+   GtkLabel                 *accelerator_label;
+-  GtkButton                *reset_button;
+-  GtkRevealer              *reset_revealer;
++  GtkButton                *add_shortcut_button;
++  GtkLabel                 *add_shortcut_button_label;
++  GtkBox                   *edit_keybinding_box;
++  GtkButton                *reset_shortcut_button;
++  GtkLabel                 *reset_shortcut_button_label;
+ 
+   CcKeyboardItem           *item;
+   CcKeyboardManager        *manager;
+   CcKeyboardShortcutEditor *shortcut_editor;
++  gboolean is_custom_shortcut;
+ };
+ 
+ G_DEFINE_TYPE (CcKeyboardShortcutRow, cc_keyboard_shortcut_row, HDY_TYPE_ACTION_ROW)
+ 
+-static void
+-reset_shortcut_cb (CcKeyboardShortcutRow *self)
+-{
+-  cc_keyboard_manager_reset_shortcut (self->manager, self->item);
+-}
++static void add_shortcut_cb (GtkWidget*, gpointer);
++static void reset_shortcut_cb (GtkWidget*, gpointer);
+ 
+ static void
+ cc_keyboard_shortcut_row_class_init (CcKeyboardShortcutRowClass *klass)
+@@ -51,9 +52,13 @@ cc_keyboard_shortcut_row_class_init (CcKeyboardShortcutRowClass *klass)
+   gtk_widget_class_set_template_from_resource (widget_class, "/org/gnome/control-center/keyboard/cc-keyboard-shortcut-row.ui");
+ 
+   gtk_widget_class_bind_template_child (widget_class, CcKeyboardShortcutRow, accelerator_label);
+-  gtk_widget_class_bind_template_child (widget_class, CcKeyboardShortcutRow, reset_button);
+-  gtk_widget_class_bind_template_child (widget_class, CcKeyboardShortcutRow, reset_revealer);
++  gtk_widget_class_bind_template_child (widget_class, CcKeyboardShortcutRow, add_shortcut_button);
++  gtk_widget_class_bind_template_child (widget_class, CcKeyboardShortcutRow, add_shortcut_button_label);
++  gtk_widget_class_bind_template_child (widget_class, CcKeyboardShortcutRow, edit_keybinding_box);
++  gtk_widget_class_bind_template_child (widget_class, CcKeyboardShortcutRow, reset_shortcut_button);
++  gtk_widget_class_bind_template_child (widget_class, CcKeyboardShortcutRow, reset_shortcut_button_label);
+ 
++  gtk_widget_class_bind_template_callback (widget_class, add_shortcut_cb);
+   gtk_widget_class_bind_template_callback (widget_class, reset_shortcut_cb);
+ }
+ 
+@@ -64,42 +69,154 @@ cc_keyboard_shortcut_row_init (CcKeyboardShortcutRow *self)
+ }
+ 
+ static void
+-shortcut_modified_changed_cb (CcKeyboardShortcutRow *self)
++add_shortcut_cb (GtkWidget      *button,
++                 gpointer        data)
+ {
+-  gtk_revealer_set_reveal_child (self->reset_revealer,
+-		                !cc_keyboard_item_is_value_default (self->item));
++  CcKeyboardShortcutRow *self;
++  GtkPopover *popover;
++  GtkWidget *relative_to;
++
++  popover = GTK_POPOVER (gtk_widget_get_ancestor (button, GTK_TYPE_POPOVER));
++  relative_to = gtk_popover_get_relative_to (popover);
++  self = CC_KEYBOARD_SHORTCUT_ROW (gtk_widget_get_ancestor (relative_to, CC_TYPE_KEYBOARD_SHORTCUT_ROW));
++
++  gtk_popover_popdown (popover);
++
++  cc_keyboard_shortcut_editor_set_mode (self->shortcut_editor, CC_SHORTCUT_EDITOR_EDIT);
++  cc_keyboard_shortcut_editor_set_item (self->shortcut_editor, self->item);
++  gtk_widget_show (GTK_WIDGET (self->shortcut_editor));
+ }
+ 
+-static gboolean
+-transform_binding_to_accel (GBinding     *binding,
+-                            const GValue *from_value,
+-                            GValue       *to_value,
+-                            gpointer      user_data)
++static void
++remove_shortcut_cb (GtkWidget        *button,
++                    CcKeyCombo       *combo)
+ {
+-  CcKeyboardItem *item;
+-  CcKeyCombo combo;
+-  gchar *accelerator;
++  CcKeyboardShortcutRow *self;
++  GtkPopover *popover;
++  GtkWidget *relative_to;
+ 
+-  item = CC_KEYBOARD_ITEM (g_binding_get_source (binding));
+-  combo = cc_keyboard_item_get_primary_combo (item);
++  popover = GTK_POPOVER (gtk_widget_get_ancestor (button, GTK_TYPE_POPOVER));
++  relative_to = gtk_popover_get_relative_to (popover);
++  self = CC_KEYBOARD_SHORTCUT_ROW (gtk_widget_get_ancestor (relative_to, CC_TYPE_KEYBOARD_SHORTCUT_ROW));
+ 
+-  /* Embolden the label when the shortcut is modified */
+-  if (!cc_keyboard_item_is_value_default (item))
+-    {
+-      g_autofree gchar *tmp = NULL;
++  gtk_popover_popdown (popover);
+ 
+-      tmp = convert_keysym_state_to_string (&combo);
++  cc_keyboard_item_remove_key_combo (self->item, combo);
++}
+ 
+-      accelerator = g_strdup_printf ("<b>%s</b>", tmp);
+-    }
++static void
++reset_shortcut_cb (GtkWidget      *button,
++                   gpointer        data)
++{
++  CcKeyboardShortcutRow *self;
++  GtkPopover *popover;
++  GtkWidget *relative_to;
++
++  popover = GTK_POPOVER (gtk_widget_get_ancestor(button, GTK_TYPE_POPOVER));
++  relative_to = gtk_popover_get_relative_to (popover);
++  self = CC_KEYBOARD_SHORTCUT_ROW (gtk_widget_get_ancestor (relative_to, CC_TYPE_KEYBOARD_SHORTCUT_ROW));
++
++  gtk_popover_popdown (popover);
++
++  if (self->is_custom_shortcut)
++    cc_keyboard_manager_remove_custom_shortcut (self->manager, self->item);
+   else
+-    {
+-      accelerator = convert_keysym_state_to_string (&combo);
+-    }
++    cc_keyboard_manager_reset_shortcut (self->manager, self->item);
++}
+ 
+-  g_value_take_string (to_value, accelerator);
++static void
++update_bindings (CcKeyboardShortcutRow *self)
++{
++  GList *key_combos;
++  g_autoptr(GList) shortcut_box_children = NULL, menu_children = NULL;
++  CcKeyCombo *combo;
++  GtkWidget *shortcut_label, *label, *button, *box;
++  PangoAttrList *attrs;
++  PangoWeight weight;
++  gboolean is_default, has_one_binding;
++
++  is_default = cc_keyboard_item_is_value_default (self->item);
++
++  // Set weight to bold if value differs from default
++  weight = is_default ? PANGO_WEIGHT_NORMAL : PANGO_WEIGHT_BOLD;
++  attrs = pango_attr_list_new ();
++  pango_attr_list_insert (attrs, pango_attr_weight_new (weight));
++  gtk_label_set_attributes (self->accelerator_label, attrs);
++  pango_attr_list_unref (attrs);
++
++  // Reset button only visible if shortcut changed from default
++  gtk_widget_set_visible (GTK_WIDGET (self->reset_shortcut_button), !is_default || self->is_custom_shortcut);
++
++  // Clear contents of menu, except add shortcut and reset
++  menu_children = gtk_container_get_children (GTK_CONTAINER (self->edit_keybinding_box));
++  for (GList *l = menu_children; l != NULL; l = l->next) {
++    if (l->data != self->add_shortcut_button && l->data != self->reset_shortcut_button)
++      gtk_widget_destroy (GTK_WIDGET (l->data));
++  }
++
++  key_combos = cc_keyboard_item_get_key_combos (self->item);
++
++  if (!cc_keyboard_item_can_set_multiple (self->item))
++    gtk_label_set_text (self->add_shortcut_button_label, _("Modify shortcut"));
++  else if (key_combos == NULL)
++    gtk_label_set_text (self->add_shortcut_button_label, _("Add shortcut"));
++  else
++    gtk_label_set_text (self->add_shortcut_button_label, _("Add another shortcut"));
+ 
+-  return TRUE;
++  if (key_combos == NULL)
++    gtk_label_set_text (self->accelerator_label, "Disabled");
++  else
++    gtk_label_set_text (self->accelerator_label, "");
++
++  has_one_binding = (key_combos != NULL && key_combos->next == NULL);
++
++  // Iterate over combos that are set
++  for (GList *l = key_combos; l != NULL; l = l->next) {
++    combo = l->data;
++
++    g_autofree gchar *accel = convert_keysym_state_to_string (combo);
++
++    // Append to acecelerator label
++    if (*gtk_label_get_text(self->accelerator_label) == '\0')
++      gtk_label_set_text (self->accelerator_label, accel);
++    else
++      {
++        g_autofree gchar *accel_text = g_strdup_printf ("%s\n%s", gtk_label_get_text(self->accelerator_label), accel);
++        gtk_label_set_text (self->accelerator_label, accel_text);
++      }
++
++    if (has_one_binding && self->is_custom_shortcut)
++      break;
++
++    // Add option to remove the shortcut to menu
++    button = g_object_new (GTK_TYPE_BUTTON,
++                           "visible", 1,
++                           "relief", GTK_RELIEF_NONE,
++                           "hexpand", 1,
++                           NULL);
++    g_signal_connect (button, "clicked", G_CALLBACK (remove_shortcut_cb), combo);
++    gtk_container_add (GTK_CONTAINER (self->edit_keybinding_box), button);
++    box = g_object_new (GTK_TYPE_BOX,
++                        "visible", 1,
++                        "spacing", 4,
++                        "halign", GTK_ALIGN_START,
++                        NULL);
++    gtk_container_add (GTK_CONTAINER (button), box);
++    label = g_object_new (GTK_TYPE_LABEL,
++                          "visible", 1,
++                          "label", _("Remove"),
++                          NULL);
++    gtk_container_add (GTK_CONTAINER (box), label);
++    if (!has_one_binding)
++      {
++        shortcut_label = g_object_new (GTK_TYPE_LABEL,
++                                       "visible", 1,
++                                       "label", accel,
++                                       NULL);
++        gtk_style_context_add_class (gtk_widget_get_style_context (shortcut_label), "dim-label");
++        gtk_container_add (GTK_CONTAINER (box), shortcut_label);
++      }
++  }
+ }
+ 
+ CcKeyboardShortcutRow *
+@@ -114,26 +231,20 @@ cc_keyboard_shortcut_row_new (CcKeyboardItem *item,
+   self->item = item;
+   self->manager = manager;
+   self->shortcut_editor = shortcut_editor;
++  self->is_custom_shortcut = cc_keyboard_item_get_item_type (item) == CC_KEYBOARD_ITEM_TYPE_GSETTINGS_PATH;
+ 
+   hdy_preferences_row_set_title (HDY_PREFERENCES_ROW (self), cc_keyboard_item_get_description (item));
++  if (!self->is_custom_shortcut)
++    gtk_label_set_text (self->reset_shortcut_button_label, _("Reset to default"));
++  else
++    gtk_label_set_text (self->reset_shortcut_button_label, _("Remove"));
+ 
+-  g_object_bind_property_full (item,
+-                               "key-combos",
+-                               self->accelerator_label,
+-                               "label",
+-			       G_BINDING_SYNC_CREATE,
+-                               transform_binding_to_accel,
+-                               NULL, NULL, NULL);
+-
+-  gtk_revealer_set_reveal_child (self->reset_revealer,
+-		                !cc_keyboard_item_is_value_default (item));
+   g_signal_connect_object (item,
+                            "notify::key-combos",
+-                           G_CALLBACK (shortcut_modified_changed_cb),
++                           G_CALLBACK (update_bindings),
+                            self, G_CONNECT_SWAPPED);
+ 
+-  gtk_size_group_add_widget(size_group,
+-		            GTK_WIDGET (self->accelerator_label));
++  update_bindings(self);
+ 
+   return self;
+ }
+diff --git a/panels/keyboard/cc-keyboard-shortcut-row.ui b/panels/keyboard/cc-keyboard-shortcut-row.ui
+index f2b1d0398..dd7213f29 100644
+--- a/panels/keyboard/cc-keyboard-shortcut-row.ui
++++ b/panels/keyboard/cc-keyboard-shortcut-row.ui
+@@ -9,6 +9,7 @@
+       <object class="GtkLabel" id="accelerator_label">
+         <property name="visible">True</property>
+         <property name="xalign">1.0</property>
++        <property name="justify">right</property>
+         <property name="use-markup">True</property>
+         <style>
+           <class name="dim-label" />
+@@ -16,31 +17,67 @@
+       </object>
+     </child>
+     <child>
+-      <object class="GtkRevealer" id = "reset_revealer">
++      <object class="GtkMenuButton">
+         <property name="visible">True</property>
+-        <property name="transition-type">slide-right</property>
++        <property name="can-focus">True</property>
++        <property name="popover">edit_keybinding_menu</property>
++        <property name="valign">center</property>
++        <style>
++          <class name="flat"/>
++        </style>
++        <child>
++          <object class="GtkImage">
++            <property name="visible">True</property>
++            <property name="icon-name">view-more-symbolic</property>
++          </object>
++        </child>
++      </object>
++      <packing>
++        <property name="pack_type">end</property>
++      </packing>
++    </child>
++  </template>
++
++  <object class="GtkPopoverMenu" id="edit_keybinding_menu">
++    <child>
++      <object class="GtkBox" id="edit_keybinding_box">
++        <property name="visible">True</property>
++        <property name="can-focus">False</property>
++        <property name="margin">12</property>
++        <property name="spacing">6</property>
++        <property name="orientation">vertical</property>
+         <child>
+-          <object class="GtkButton" id="reset_button">
++          <object class="GtkButton" id="add_shortcut_button">
+             <property name="visible">True</property>
+-            <property name="valign">center</property>
+             <property name="relief">none</property>
+-            <property name="tooltip-text" translatable="yes">Reset the shortcut to its default value</property>
+-            <signal name="clicked" handler="reset_shortcut_cb" swapped="true"/>
++            <property name="hexpand">True</property>
++            <signal name="clicked" handler="add_shortcut_cb"/>
+             <child>
+-              <object class="GtkImage">
++              <object class="GtkLabel" id="add_shortcut_button_label">
+                 <property name="visible">True</property>
+-                <property name="icon-name">edit-clear-symbolic</property>
+-                <property name="icon-size">1</property>
+-                <style>
+-                  <class name="flat" />
+-                  <class name="circular" />
+-                  <class name="reset-shortcut-button" />
+-                </style>
++                <property name="halign">start</property>
+               </object>
+             </child>
+           </object>
+         </child>
++        <child>
++          <object class="GtkButton" id="reset_shortcut_button">
++            <property name="visible">True</property>
++            <property name="relief">none</property>
++            <property name="hexpand">True</property>
++            <signal name="clicked" handler="reset_shortcut_cb"/>
++            <child>
++              <object class="GtkLabel" id="reset_shortcut_button_label">
++                <property name="visible">True</property>
++                <property name="halign">start</property>
++              </object>
++            </child>
++          </object>
++          <packing>
++            <property name="pack_type">end</property>
++          </packing>
++        </child>
+       </object>
+     </child>
+-  </template>
++  </object>
+ </interface>
+-- 
+2.30.2
+

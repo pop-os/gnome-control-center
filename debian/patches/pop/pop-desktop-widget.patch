@@ -1,0 +1,249 @@
+diff --git a/panels/background/cc-background-panel.c b/panels/background/cc-background-panel.c
+index 29dedf165..c5e9de0fc 100644
+--- a/panels/background/cc-background-panel.c
++++ b/panels/background/cc-background-panel.c
+@@ -24,6 +24,7 @@
+ #include <glib.h>
+ #include <glib/gi18n-lib.h>
+ #include <glib/gstdio.h>
++#include "pop_desktop_widget.h"
+ 
+ #include <gdesktop-enums.h>
+ 
+@@ -51,6 +52,8 @@ struct _CcBackgroundPanel
+ 
+   GDBusConnection *connection;
+ 
++  PopDesktopWidget *pop;
++
+   GSettings *settings;
+   GSettings *lock_settings;
+ 
+@@ -61,10 +64,51 @@ struct _CcBackgroundPanel
+   CcBackgroundChooser *background_chooser;
+   GtkButton *add_picture_button;
+   CcBackgroundPreview *desktop_preview;
++
++  GtkStack *stack;
++  GtkListBox *stack_sidebar;
++  GtkWidget *background_container;
+ };
+ 
+ CC_PANEL_REGISTER (CcBackgroundPanel, cc_background_panel)
+ 
++static void visible_child_changed (CcBackgroundPanel *self, GParamSpec *pspec, GtkStack *stack) {
++  gboolean visible = gtk_stack_get_visible_child (stack) == self->background_container;
++  gtk_widget_set_visible (GTK_WIDGET (self->add_picture_button), visible);
++}
++
++static void sidebar_row_selected_cb (CcBackgroundPanel *self, GtkListBoxRow *row, GtkListBox *box) {
++  GtkWidget *widget = g_object_get_data (G_OBJECT (row), "stack-child");
++  gtk_stack_set_visible_child (self->stack, widget);
++}
++
++static void for_each_stack_cb (GtkWidget *widget, gpointer user_data) {
++  CcBackgroundPanel *panel = CC_BACKGROUND_PANEL (user_data);
++  gchar *title;
++
++  gtk_container_child_get (GTK_CONTAINER (panel->stack), widget, "title", &title, NULL);
++
++  if (!title)
++    return;
++
++  GtkWidget *label = g_object_new (GTK_TYPE_LABEL,
++                                   "label", title,
++                                   "visible", TRUE,
++                                   "margin", 12,
++                                   "halign", GTK_ALIGN_START,
++                                   NULL);
++  GtkWidget *row = g_object_new (GTK_TYPE_LIST_BOX_ROW, "visible", TRUE, NULL);
++  gtk_container_add (GTK_CONTAINER (row), label);
++  g_object_set_data (G_OBJECT (row), "stack-child", widget);
++  gtk_container_add (GTK_CONTAINER (panel->stack_sidebar), row);
++}
++
++static GtkWidget *cc_background_panel_get_sidebar_widget (CcPanel *panel) {
++  CcBackgroundPanel *self = CC_BACKGROUND_PANEL (panel);
++
++  return GTK_WIDGET (self->stack_sidebar);
++}
++
+ static void
+ update_preview (CcBackgroundPanel *panel)
+ {
+@@ -241,6 +285,7 @@ cc_background_panel_dispose (GObject *object)
+   g_clear_object (&panel->settings);
+   g_clear_object (&panel->lock_settings);
+   g_clear_object (&panel->thumb_factory);
++  g_clear_pointer (&panel->pop, pop_desktop_widget_free);
+ 
+   G_OBJECT_CLASS (cc_background_panel_parent_class)->dispose (object);
+ }
+@@ -266,6 +311,7 @@ cc_background_panel_class_init (CcBackgroundPanelClass *klass)
+   g_type_ensure (CC_TYPE_BACKGROUND_PREVIEW);
+ 
+   panel_class->get_help_uri = cc_background_panel_get_help_uri;
++  panel_class->get_sidebar_widget = cc_background_panel_get_sidebar_widget;
+ 
+   object_class->constructed = cc_background_panel_constructed;
+   object_class->dispose = cc_background_panel_dispose;
+@@ -276,9 +322,14 @@ cc_background_panel_class_init (CcBackgroundPanelClass *klass)
+   gtk_widget_class_bind_template_child (widget_class, CcBackgroundPanel, add_picture_button);
+   gtk_widget_class_bind_template_child (widget_class, CcBackgroundPanel, background_chooser);
+   gtk_widget_class_bind_template_child (widget_class, CcBackgroundPanel, desktop_preview);
++  gtk_widget_class_bind_template_child (widget_class, CcBackgroundPanel, stack);
++  gtk_widget_class_bind_template_child (widget_class, CcBackgroundPanel, stack_sidebar);
++  gtk_widget_class_bind_template_child (widget_class, CcBackgroundPanel, background_container);
+ 
+   gtk_widget_class_bind_template_callback (widget_class, on_chooser_background_chosen_cb);
+   gtk_widget_class_bind_template_callback (widget_class, on_add_picture_button_clicked_cb);
++  gtk_widget_class_bind_template_callback (widget_class, sidebar_row_selected_cb);
++  gtk_widget_class_bind_template_callback (widget_class, visible_child_changed);
+ }
+ 
+ static void
+@@ -301,10 +352,13 @@ cc_background_panel_init (CcBackgroundPanel *panel)
+ 
+   panel->settings = g_settings_new (WP_PATH_ID);
+   g_settings_delay (panel->settings);
+- 
++
+   panel->lock_settings = g_settings_new (WP_LOCK_PATH_ID);
+   g_settings_delay (panel->lock_settings);
+ 
++  panel->pop = pop_desktop_widget_new (panel->stack);
++  gtk_container_foreach (GTK_CONTAINER (panel->stack), for_each_stack_cb, panel);
++
+   /* Load the background */
+   reload_current_bg (panel);
+   update_preview (panel);
+diff --git a/panels/background/cc-background-panel.ui b/panels/background/cc-background-panel.ui
+index 7b5c3d385..c53f38948 100644
+--- a/panels/background/cc-background-panel.ui
++++ b/panels/background/cc-background-panel.ui
+@@ -1,49 +1,65 @@
+ <?xml version="1.0" encoding="UTF-8"?>
+ <interface>
+   <!-- interface-requires gtk+ 3.0 -->
++  <object class="GtkListBox" id="stack_sidebar">
++    <property name="visible">True</property>
++    <signal name="row-selected" handler="sidebar_row_selected_cb" object="CcBackgroundPanel" swapped="yes" />
++  </object>
++
+   <template class="CcBackgroundPanel" parent="CcPanel">
+     <property name="visible">True</property>
+     <property name="can_focus">False</property>
+     <child>
+-      <object class="GtkBox">
++      <object class="GtkStack" id="stack">
+         <property name="visible">True</property>
+-        <property name="can_focus">False</property>
+-        <property name="orientation">vertical</property>
++        <property name="transition-type">crossfade</property>
++        <signal name="notify::visible-child" handler="visible_child_changed" object="CcBackgroundPanel" swapped="yes" />
+ 
++        <!-- Background page -->
+         <child>
+-          <object class="HdyClamp">
+-            <property name="visible">1</property>
+-            <property name="maximum_size">300</property>
+-            <property name="tightening_threshold">200</property>
++          <object class="GtkBox" id="background_container">
++            <property name="visible">True</property>
++            <property name="can_focus">False</property>
++            <property name="orientation">vertical</property>
++
+             <child>
+-              <object class="GtkBox">
+-                <property name="visible">True</property>
+-                <property name="can_focus">False</property>
+-                <property name="spacing">24</property>
+-                <property name="margin-start">12</property>
+-                <property name="margin-end">12</property>
+-                <property name="margin-top">18</property>
+-                <property name="margin-bottom">18</property>
+-                <property name="hexpand">True</property>
++              <object class="HdyClamp">
++                <property name="visible">1</property>
+                 <child>
+-                  <object class="CcBackgroundPreview" id="desktop_preview">
++                  <object class="GtkBox">
+                     <property name="visible">True</property>
+                     <property name="can_focus">False</property>
+-                    <property name="valign">center</property>
++                    <property name="spacing">24</property>
++                    <property name="margin-start">12</property>
++                    <property name="margin-end">12</property>
++                    <property name="margin-top">18</property>
++                    <property name="margin-bottom">18</property>
++                    <property name="hexpand">True</property>
++                    <child>
++                      <object class="CcBackgroundPreview" id="desktop_preview">
++                        <property name="visible">True</property>
++                        <property name="can_focus">False</property>
++                        <property name="valign">center</property>
++                      </object>
++                    </child>
+                   </object>
+                 </child>
+               </object>
+             </child>
+-          </object>
+-        </child>
+ 
+-        <child>
+-          <object class="CcBackgroundChooser" id="background_chooser">
+-            <property name="visible">True</property>
+-            <property name="can_focus">False</property>
+-            <property name="expand">True</property>
+-            <signal name="background-chosen" handler="on_chooser_background_chosen_cb" object="CcBackgroundPanel" swapped="yes" />
++            <child>
++              <object class="CcBackgroundChooser" id="background_chooser">
++                <property name="visible">True</property>
++                <property name="can_focus">False</property>
++                <property name="expand">True</property>
++                <signal name="background-chosen" handler="on_chooser_background_chosen_cb" object="CcBackgroundPanel" swapped="yes" />
++              </object>
++            </child>
+           </object>
++          <packing>
++            <property name="name">background</property>
++            <property name="title" translatable="yes" comments="Change the background in Pop!_OS">Background</property>
++          </packing>
+         </child>
+       </object>
+     </child>
+diff --git a/panels/background/gnome-background-panel.desktop.in.in b/panels/background/gnome-background-panel.desktop.in.in
+index 76534b028..0a074c1d3 100644
+--- a/panels/background/gnome-background-panel.desktop.in.in
++++ b/panels/background/gnome-background-panel.desktop.in.in
+@@ -1,6 +1,6 @@
+ [Desktop Entry]
+-Name=Background
+-Comment=Change your background image to a wallpaper or photo
++Name=Desktop
++Comment=Customize desktop features. Change your background image. Toggle dark and light mode.
+ Exec=gnome-control-center background
+ # Translators: Do NOT translate or transliterate this text (this is an icon file name)!
+ Icon=preferences-desktop-wallpaper
+@@ -11,4 +11,5 @@ StartupNotify=true
+ Categories=GNOME;GTK;Settings;DesktopSettings;X-GNOME-Settings-Panel;X-GNOME-PersonalizationSettings;
+ OnlyShowIn=GNOME;
+ # Translators: Search terms to find the Background panel. Do NOT translate or localize the semicolons! The list MUST also end with a semicolon!
+-Keywords=Wallpaper;Screen;Desktop;
++Keywords=Wallpaper;Screen;Desktop;Dark;Light;Theme;Night;Dock;Panel;Windows;Workspaces;
++X-GNOME-ControlCenter-HasSidebar=true
+diff --git a/panels/background/meson.build b/panels/background/meson.build
+index e9fa398d4..0136a3bd7 100644
+--- a/panels/background/meson.build
++++ b/panels/background/meson.build
+@@ -94,7 +94,8 @@ deps = common_deps + [
+   goa_dep,
+   libxml_dep,
+   dependency('cairo-gobject'),
+-  dependency('grilo-0.3', version: '>= 0.3.0')
++  dependency('grilo-0.3', version: '>= 0.3.0'),
++  dependency('pop_desktop_widget')
+ ]
+ 
+ cflags += [
