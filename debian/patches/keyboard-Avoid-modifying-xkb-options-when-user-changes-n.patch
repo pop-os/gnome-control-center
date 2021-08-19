@@ -1,0 +1,61 @@
+From: Ian Douglas Scott <idscott@system76.com>
+Date: Mon, 16 Aug 2021 13:56:05 -0700
+Subject: keyboard: Avoid modifying `xkb-options` when user changes nothing
+
+Avoids clobbering certain custom settings that can't be set in UI.
+
+Origin: https://gitlab.gnome.org/GNOME/gnome-control-center/-/merge_requests/910
+Bug-Ubuntu: https://launchpad.net/bugs/1934761
+---
+ panels/keyboard/cc-xkb-modifier-dialog.c | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
+
+diff --git a/panels/keyboard/cc-xkb-modifier-dialog.c b/panels/keyboard/cc-xkb-modifier-dialog.c
+index dc5a91e44..16b89a435 100644
+--- a/panels/keyboard/cc-xkb-modifier-dialog.c
++++ b/panels/keyboard/cc-xkb-modifier-dialog.c
+@@ -38,6 +38,7 @@ struct _CcXkbModifierDialog
+   GSettings      *input_source_settings;
+   const CcXkbModifier *modifier;
+   GSList         *radio_group;
++  gboolean        updating_active_radio;
+ };
+ 
+ G_DEFINE_TYPE (CcXkbModifierDialog, cc_xkb_modifier_dialog, GTK_TYPE_DIALOG)
+@@ -87,6 +88,9 @@ update_active_radio (CcXkbModifierDialog *self)
+   guint i;
+   gboolean have_nodefault_option = FALSE;
+ 
++  // Block `on_active_radio_changed_cb` from running
++  self->updating_active_radio = TRUE;
++
+   options = g_settings_get_strv (self->input_source_settings, "xkb-options");
+ 
+   for (i = 0; options != NULL && options[i] != NULL; i++)
+@@ -106,6 +110,7 @@ update_active_radio (CcXkbModifierDialog *self)
+ 
+       gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (radio), TRUE);
+       gtk_switch_set_active (self->default_switch, FALSE);
++      self->updating_active_radio = FALSE;
+       return;
+     }
+ 
+@@ -119,6 +124,8 @@ update_active_radio (CcXkbModifierDialog *self)
+     {
+       gtk_switch_set_active (self->default_switch, TRUE);
+     }
++
++  self->updating_active_radio = FALSE;
+ }
+ 
+ static void
+@@ -183,6 +190,9 @@ on_active_radio_changed_cb (CcXkbModifierDialog *self,
+   if (gtk_switch_get_state (self->default_switch))
+     return;
+ 
++  if (self->updating_active_radio)
++    return;
++
+   xkb_option = (gchar *)g_object_get_data (G_OBJECT (radio), "xkb-option");
+   set_xkb_option (self, xkb_option);
+ }
