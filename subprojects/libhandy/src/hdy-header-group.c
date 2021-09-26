@@ -679,11 +679,11 @@ _gtk_builder_error_unhandled_tag (GtkBuilder           *builder,
 /* This has been copied and modified from gtksizegroup.c. */
 static void
 header_group_start_element (GMarkupParseContext  *context,
-                          const gchar          *element_name,
-                          const gchar         **names,
-                          const gchar         **values,
-                          gpointer              user_data,
-                          GError              **error)
+                            const gchar          *element_name,
+                            const gchar         **names,
+                            const gchar         **values,
+                            gpointer              user_data,
+                            GError              **error)
 {
   GSListSubParserData *data = (GSListSubParserData*)user_data;
 
@@ -730,7 +730,11 @@ header_group_start_element (GMarkupParseContext  *context,
 /* This has been copied and modified from gtksizegroup.c. */
 static const GMarkupParser header_group_parser =
   {
-    header_group_start_element
+    header_group_start_element,
+    NULL,
+    NULL,
+    NULL,
+    NULL
   };
 
 /* This has been copied and modified from gtksizegroup.c. */

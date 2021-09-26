@@ -181,6 +181,7 @@ update (HdyComboRow *self)
   g_autofree gchar *name = NULL;
   GtkWidget *widget;
   guint n_items = priv->bound_model ? g_list_model_get_n_items (priv->bound_model) : 0;
+  gint i;
 
   gtk_widget_set_visible (GTK_WIDGET (priv->current), !priv->use_subtitle);
   gtk_container_foreach (GTK_CONTAINER (priv->current), (GtkCallback) gtk_widget_destroy, NULL);
@@ -197,18 +198,12 @@ update (HdyComboRow *self)
 
   g_assert (priv->selected_index >= 0 && priv->selected_index <= n_items);
 
-  {
-    g_autoptr (GList) rows = gtk_container_get_children (GTK_CONTAINER (priv->list));
-    GList *l;
-    int i = 0;
+  for (i = 0; i < n_items; i++) {
+    GtkListBoxRow *row = gtk_list_box_get_row_at_index (GTK_LIST_BOX (priv->list), i);
+    GtkWidget *box = gtk_bin_get_child (GTK_BIN (row));
 
-    for (l = rows; l; l = l->next) {
-      GtkWidget *row = GTK_WIDGET (l->data);
-      GtkWidget *box = gtk_bin_get_child (GTK_BIN (row));
-
-      gtk_widget_set_opacity (GTK_WIDGET (g_object_get_data (G_OBJECT (box), "checkmark")),
-                              (priv->selected_index == i++) ? 1 : 0);
-    }
+    gtk_widget_set_opacity (GTK_WIDGET (g_object_get_data (G_OBJECT (box), "checkmark")),
+                            (priv->selected_index == i) ? 1 : 0);
   }
 
   item = g_list_model_get_item (priv->bound_model, priv->selected_index);
@@ -563,7 +558,7 @@ hdy_combo_row_bind_model (HdyComboRow                *self,
   priv->create_widget_func_data = user_data;
   priv->create_widget_func_data_free_func = user_data_free_func;
 
-  g_signal_connect (priv->bound_model, "items-changed", G_CALLBACK (bound_model_changed), self);
+  g_signal_connect_after (priv->bound_model, "items-changed", G_CALLBACK (bound_model_changed), self);
 
   if (g_list_model_get_n_items (priv->bound_model) > 0)
     priv->selected_index = 0;

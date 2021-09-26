@@ -418,7 +418,7 @@ static void
 set_position (HdyCarouselBox *self,
               gdouble         position)
 {
-  gdouble lower, upper;
+  gdouble lower = 0, upper = 0;
 
   hdy_carousel_box_get_range (self, &lower, &upper);
 
@@ -744,7 +744,7 @@ update_windows (HdyCarouselBox *self)
   if (self->orientation == GTK_ORIENTATION_VERTICAL)
     offset = (self->distance * self->position) - (alloc.height - self->child_height) / 2.0;
   else if (is_rtl)
-    offset = -(self->distance * self->position) + (alloc.width - self->child_width) / 2.0;
+    offset = -(self->distance * self->position) - (alloc.width - self->child_width) / 2.0;
   else
     offset = (self->distance * self->position) - (alloc.width - self->child_width) / 2.0;
 
@@ -821,6 +821,7 @@ hdy_carousel_box_size_allocate (GtkWidget     *widget,
 {
   HdyCarouselBox *self = HDY_CAROUSEL_BOX (widget);
   gint size, width, height;
+  gboolean should_invalidate = FALSE;
   GList *children;
 
   gtk_widget_set_allocation (widget, allocation);
@@ -865,10 +866,13 @@ hdy_carousel_box_size_allocate (GtkWidget     *widget,
   }
 
   if (width != self->child_width || height != self->child_height)
-    invalidate_drawing_cache (self);
+    should_invalidate = TRUE;
 
   self->child_width = width;
   self->child_height = height;
+
+  if (should_invalidate)
+    invalidate_drawing_cache (self);
 
   for (children = self->children; children; children = children->next) {
     HdyCarouselBoxChildInfo *child_info = children->data;
@@ -1736,6 +1740,9 @@ hdy_carousel_box_get_page_at_position (HdyCarouselBox *self,
   HdyCarouselBoxChildInfo *child;
 
   g_return_val_if_fail (HDY_IS_CAROUSEL_BOX (self), NULL);
+
+  lower = 0;
+  upper = 0;
 
   hdy_carousel_box_get_range (self, &lower, &upper);
 

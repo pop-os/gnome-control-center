@@ -8,8 +8,10 @@ glade_catalogdir   = gladeui_dep.get_pkgconfig_variable('catalogdir',
                                                         define_variable: ['datadir', get_option('datadir')])
 
 libglade_hdy_sources = [
+  'glade-hdy-bin.c',
   'glade-hdy-carousel.c',
   'glade-hdy-expander-row.c',
+  'glade-hdy-flap.c',
   'glade-hdy-header-bar.c',
   'glade-hdy-header-group.c',
   'glade-hdy-leaflet.c',
@@ -17,13 +19,13 @@ libglade_hdy_sources = [
   'glade-hdy-preferences-window.c',
   'glade-hdy-search-bar.c',
   'glade-hdy-swipe-group.c',
-  'glade-hdy-window.c',
   'glade-hdy-utils.c',
 ]
 
 libglade_hdy_deps = [
   libhandy_dep,
   gladeui_dep,
+  cc.find_library('m', required: false),
 ]
 
 libglade_hdy_args = []

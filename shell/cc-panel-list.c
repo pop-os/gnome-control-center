@@ -381,11 +381,13 @@ static const gchar * const panel_order[] = {
   /* Main page */
   "wifi",
   "network",
+  "wwan",
   "mobile-broadband",
   "bluetooth",
   "background",
   "notifications",
   "search",
+  "multitasking",
   "applications",
   "privacy",
   "online-accounts",
@@ -1068,19 +1070,18 @@ void
 cc_panel_list_add_sidebar_widget (CcPanelList *self,
                                   GtkWidget   *widget)
 {
+  GtkWidget *previous;
+
   g_return_if_fail (CC_IS_PANEL_LIST (self));
+
+  previous = get_widget_from_view (self, CC_PANEL_LIST_WIDGET);
+  if (previous)
+    gtk_container_remove (GTK_CONTAINER (self), previous);
 
   if (widget)
     {
       gtk_stack_add_named (GTK_STACK (self), widget, "custom-widget");
       switch_to_view (self, CC_PANEL_LIST_WIDGET);
-    }
-  else
-    {
-      widget = get_widget_from_view (self, CC_PANEL_LIST_WIDGET);
-
-      if (widget)
-        gtk_container_remove (GTK_CONTAINER (self), widget);
     }
 }
 

@@ -14,10 +14,12 @@
 #include <math.h>
 
 #include "hdy-avatar.h"
+#include "hdy-avatar-icon-private.h"
 #include "hdy-cairo-private.h"
 #include "hdy-css-private.h"
 
 #define NUMBER_OF_COLORS 14
+#define LOAD_BUFFER_SIZE 65536
 /**
  * SECTION:hdy-avatar
  * @short_description: A widget displaying an image, with a generated fallback.
@@ -30,34 +32,8 @@
  * The color is picked based on the hash of the #HdyAvatar:text.
  * If #HdyAvatar:show-initials is set to %FALSE, `avatar-default-symbolic` is
  * shown in place of the initials.
- * Use hdy_avatar_set_image_load_func () to set a custom image.
- * Create a #HdyAvatarImageLoadFunc similar to this example:
- *
- * |[<!-- language="C" -->
- * static GdkPixbuf *
- * image_load_func (gint size, gpointer user_data)
- * {
- *   g_autoptr (GError) error = NULL;
- *   g_autoptr (GdkPixbuf) pixbuf = NULL;
- *   g_autofree gchar *file = gtk_file_chooser_get_filename ("avatar.png");
- *   gint width, height;
- *
- *   gdk_pixbuf_get_file_info (file, &width, &height);
- *
- *   pixbuf = gdk_pixbuf_new_from_file_at_scale (file,
- *                                              (width <= height) ? size : -1,
- *                                              (width >= height) ? size : -1,
- *                                              TRUE,
- *                                              error);
- *   if (error != NULL) {
- *    g_critical ("Failed to create pixbuf from file: %s", error->message);
- *
- *    return NULL;
- *   }
- *
- *   return pixbuf;
- * }
- * ]|
+ * Use hdy_avatar_set_loadable_icon() or #HdyAvatar:loadable-icon to set a
+ * custom image.
  *
  * # CSS nodes
  *
@@ -75,12 +51,13 @@ struct _HdyAvatar
   gboolean show_initials;
   guint color_class;
   gint size;
-  cairo_surface_t *round_image;
-  gint round_image_size;
+  GdkPixbuf *round_image;
 
-  HdyAvatarImageLoadFunc load_image_func;
-  gpointer load_image_func_target;
-  GDestroyNotify load_image_func_target_destroy_notify;
+  HdyAvatarIcon *load_func_icon;
+  GLoadableIcon *icon;
+  GCancellable *cancellable;
+  guint currently_loading_size;
+  gboolean loading_error;
 };
 
 G_DEFINE_TYPE (HdyAvatar, hdy_avatar, GTK_TYPE_DRAWING_AREA);
@@ -91,13 +68,47 @@ enum {
   PROP_TEXT,
   PROP_SHOW_INITIALS,
   PROP_SIZE,
+  PROP_LOADABLE_ICON,
   PROP_LAST_PROP,
 };
 static GParamSpec *props[PROP_LAST_PROP];
 
-static cairo_surface_t *
-round_image (GdkPixbuf *pixbuf,
-             gdouble    size)
+typedef struct {
+  gint size;
+  gint scale_factor;
+} SizeData;
+
+static void
+size_data_free (SizeData *data)
+{
+  g_slice_free (SizeData, data);
+}
+
+static void
+load_icon_async (HdyAvatar           *self,
+                 gint                 size,
+                 GCancellable        *cancellable,
+                 GAsyncReadyCallback  callback,
+                 gpointer             user_data);
+
+static inline GLoadableIcon *
+get_icon (HdyAvatar *self)
+{
+  if (self->icon)
+    return self->icon;
+
+  return G_LOADABLE_ICON (self->load_func_icon);
+}
+
+static inline gboolean
+is_scaled (GdkPixbuf *pixbuf)
+{
+  return (pixbuf && g_object_get_data (G_OBJECT (pixbuf), "scaled") != NULL);
+}
+
+static GdkPixbuf *
+make_round_image (GdkPixbuf *pixbuf,
+                  gdouble    size)
 {
   g_autoptr (cairo_surface_t) surface = cairo_image_surface_create (CAIRO_FORMAT_ARGB32, size, size);
   g_autoptr (cairo_t) cr = cairo_create (surface);
@@ -112,7 +123,7 @@ round_image (GdkPixbuf *pixbuf,
   gdk_cairo_set_source_pixbuf (cr, pixbuf, (size - width) / 2, (size - height) / 2);
   cairo_paint (cr);
 
-  return g_steal_pointer (&surface);
+  return gdk_pixbuf_get_from_surface (surface, 0, 0, size, size);
 }
 
 static gchar *
@@ -143,36 +154,303 @@ extract_initials_from_text (const gchar *text)
   return g_string_free (initials, FALSE);
 }
 
-static void
-update_custom_image (HdyAvatar *self)
+static GdkPixbuf *
+update_custom_image (GdkPixbuf *pixbuf_from_icon,
+                     GdkPixbuf *round_image,
+                     gint       new_size)
 {
-  g_autoptr (GdkPixbuf) pixbuf = NULL;
-  gint scale_factor;
-  gint new_size;
-  GtkStyleContext *context = gtk_widget_get_style_context (GTK_WIDGET (self));
+  if (round_image &&
+      gdk_pixbuf_get_width (round_image) == new_size &&
+      !is_scaled (round_image))
+    return g_object_ref (round_image);
 
-  scale_factor = gtk_widget_get_scale_factor (GTK_WIDGET (self));
-  new_size = MIN (gtk_widget_get_allocated_width (GTK_WIDGET (self)),
-                  gtk_widget_get_allocated_height (GTK_WIDGET (self))) * scale_factor;
-
-  if (self->round_image_size != new_size && self->round_image != NULL) {
-    g_clear_pointer (&self->round_image, cairo_surface_destroy);
-    self->round_image_size = -1;
+  if (pixbuf_from_icon) {
+    gint pixbuf_from_icon_size = MIN (gdk_pixbuf_get_width (pixbuf_from_icon),
+                                      gdk_pixbuf_get_height (pixbuf_from_icon));
+    if (pixbuf_from_icon_size == new_size)
+      return make_round_image (pixbuf_from_icon, new_size);
   }
 
-  if (self->load_image_func != NULL && self->round_image == NULL) {
-    pixbuf = self->load_image_func (new_size, self->load_image_func_target);
-    if (pixbuf != NULL) {
-      self->round_image = round_image (pixbuf, (gdouble) new_size);
-      cairo_surface_set_device_scale (self->round_image, scale_factor, scale_factor);
-      self->round_image_size = new_size;
+  if (round_image) {
+    /* Use a scaled image till we get the new image from async loading */
+    GdkPixbuf *pixbuf = gdk_pixbuf_scale_simple (round_image,
+                                                 new_size,
+                                                 new_size,
+                                                 GDK_INTERP_BILINEAR);
+    g_object_set_data (G_OBJECT (pixbuf), "scaled", GINT_TO_POINTER (TRUE));
+
+    return pixbuf;
+  }
+
+  return NULL;
+}
+
+static void
+size_prepared_cb (GdkPixbufLoader *loader,
+                  gint             width,
+                  gint             height,
+                  gpointer         user_data)
+{
+  gint size = GPOINTER_TO_INT (user_data);
+  gdouble ratio = (gdouble) width / (gdouble) height;
+
+  if (width < height) {
+    width = size;
+    height = size / ratio;
+  } else {
+    width = size * ratio;
+    height = size;
+  }
+
+  gdk_pixbuf_loader_set_size (loader, width, height);
+}
+
+/* This function is copied from the gdk-pixbuf project,
+ * from the file gdk-pixbuf/gdk-pixbuf/gdk-pixbuf-io.c.
+ * It was modified to fit libhandy's code style.
+ */
+static void
+load_from_stream_async_cb (GObject      *stream,
+                           GAsyncResult *res,
+                           gpointer      data)
+{
+  g_autoptr (GTask) task = data;
+  GdkPixbufLoader *loader = g_task_get_task_data (task);
+  g_autoptr (GBytes) bytes = NULL;
+  GError *error = NULL;
+
+  bytes = g_input_stream_read_bytes_finish (G_INPUT_STREAM (stream), res, &error);
+  if (bytes == NULL) {
+    gdk_pixbuf_loader_close (loader, NULL);
+    g_task_return_error (task, error);
+
+    return;
+  }
+
+  if (g_bytes_get_size (bytes) == 0) {
+    if (!gdk_pixbuf_loader_close (loader, &error)) {
+      g_task_return_error (task, error);
+
+      return;
+    }
+
+    g_task_return_pointer (task,
+                           g_object_ref (gdk_pixbuf_loader_get_pixbuf (loader)),
+                           g_object_unref);
+
+    return;
+  }
+
+  if (!gdk_pixbuf_loader_write (loader,
+                                g_bytes_get_data (bytes, NULL),
+                                g_bytes_get_size (bytes),
+                                &error)) {
+    gdk_pixbuf_loader_close (loader, NULL);
+    g_task_return_error (task, error);
+
+    return;
+  }
+
+  g_input_stream_read_bytes_async (G_INPUT_STREAM (stream),
+                                   LOAD_BUFFER_SIZE,
+                                   G_PRIORITY_DEFAULT,
+                                   g_task_get_cancellable (task),
+                                   load_from_stream_async_cb,
+                                   g_object_ref (task));
+}
+
+static void
+icon_load_async_cb (GLoadableIcon *icon,
+                    GAsyncResult  *res,
+                    GTask         *task)
+{
+  GdkPixbufLoader *loader = g_task_get_task_data (task);
+  g_autoptr (GInputStream) stream = NULL;
+  g_autoptr (GError) error = NULL;
+
+  stream = g_loadable_icon_load_finish (icon, res, NULL, &error);
+  if (stream == NULL) {
+    gdk_pixbuf_loader_close (loader, NULL);
+    g_task_return_error (task, g_steal_pointer (&error));
+    g_object_unref (task);
+
+    return;
+  }
+
+  g_input_stream_read_bytes_async (stream,
+                                   LOAD_BUFFER_SIZE,
+                                   G_PRIORITY_DEFAULT,
+                                   g_task_get_cancellable (task),
+                                   load_from_stream_async_cb,
+                                   task);
+}
+
+static GdkPixbuf *
+load_from_gicon_async_finish (GAsyncResult  *async_result,
+                              GError       **error)
+{
+  GTask *task = G_TASK (async_result);
+
+  return g_task_propagate_pointer (task, error);
+}
+
+static void
+load_from_gicon_async_for_display_cb (HdyAvatar    *self,
+                                      GAsyncResult *res,
+                                      gpointer     *user_data)
+{
+  g_autoptr (GError) error = NULL;
+  g_autoptr (GdkPixbuf) pixbuf = NULL;
+
+  pixbuf = load_from_gicon_async_finish (res, &error);
+
+  if (error != NULL) {
+    if (g_error_matches (error, HDY_AVATAR_ICON_ERROR, HDY_AVATAR_ICON_ERROR_EMPTY)) {
+      self->loading_error = TRUE;
+    } else if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED)) {
+      g_warning ("Failed to load icon: %s", error->message);
+      self->loading_error = TRUE;
     }
   }
 
-  if (self->round_image)
-    gtk_style_context_add_class (context, "image");
-  else
-    gtk_style_context_remove_class (context, "image");
+  self->currently_loading_size = -1;
+
+  if (pixbuf) {
+    g_autoptr (GdkPixbuf) custom_image = NULL;
+    GtkStyleContext *context = gtk_widget_get_style_context (GTK_WIDGET (self));
+    gint width = gtk_widget_get_allocated_width (GTK_WIDGET (self));
+    gint height = gtk_widget_get_allocated_height (GTK_WIDGET (self));
+    gint scale_factor = gtk_widget_get_scale_factor (GTK_WIDGET (self));
+    gint new_size = MIN (width, height) * scale_factor;
+
+    if (get_icon (self)) {
+      custom_image = update_custom_image (pixbuf,
+                                          NULL,
+                                          new_size);
+
+      if (!self->round_image && custom_image)
+        gtk_style_context_add_class (context, "image");
+    }
+
+    g_set_object (&self->round_image, custom_image);
+    gtk_widget_queue_draw (GTK_WIDGET (self));
+  }
+}
+
+static void
+load_from_gicon_async_for_export_cb (HdyAvatar    *self,
+                                     GAsyncResult *res,
+                                     gpointer     *user_data)
+{
+  GTask *task = G_TASK (user_data);
+  g_autoptr (GError) error = NULL;
+  g_autoptr (GdkPixbuf) pixbuf = NULL;
+
+  pixbuf = load_from_gicon_async_finish (res, &error);
+
+  if (!g_error_matches (error, HDY_AVATAR_ICON_ERROR, HDY_AVATAR_ICON_ERROR_EMPTY) &&
+      !g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED)) {
+    g_warning ("Failed to load icon: %s", error->message);
+  }
+
+  g_task_return_pointer (task,
+                         g_steal_pointer (&pixbuf),
+                         g_object_unref);
+  g_object_unref (task);
+}
+
+static void
+load_icon_async (HdyAvatar           *self,
+                 gint                 size,
+                 GCancellable        *cancellable,
+                 GAsyncReadyCallback  callback,
+                 gpointer             user_data)
+{
+  GTask *task = g_task_new (self, cancellable, callback, user_data);
+  GdkPixbufLoader *loader = gdk_pixbuf_loader_new ();
+
+  g_signal_connect (loader, "size-prepared",
+                    G_CALLBACK (size_prepared_cb),
+                    GINT_TO_POINTER (size));
+
+  g_task_set_task_data (task, loader, g_object_unref);
+
+  g_loadable_icon_load_async (get_icon (self),
+                              size,
+                              cancellable,
+                              (GAsyncReadyCallback) icon_load_async_cb,
+                              task);
+}
+
+/* This function is copied from the gdk-pixbuf project,
+ * from the file gdk-pixbuf/gdk-pixbuf/gdk-pixbuf-io.c.
+ * It was modified to fit libhandy's code style.
+ */
+static GdkPixbuf *
+load_from_stream (GdkPixbufLoader  *loader,
+                  GInputStream     *stream,
+                  GCancellable     *cancellable,
+                  GError          **error)
+{
+  GdkPixbuf *pixbuf;
+  guchar buffer[LOAD_BUFFER_SIZE];
+
+  while (TRUE) {
+    gssize n_read = g_input_stream_read (stream, buffer, sizeof (buffer),
+                                         cancellable, error);
+
+    if (n_read < 0) {
+      gdk_pixbuf_loader_close (loader, NULL);
+
+      return NULL;
+    }
+
+    if (n_read == 0)
+      break;
+
+    if (!gdk_pixbuf_loader_write (loader, buffer, n_read, error)) {
+      gdk_pixbuf_loader_close (loader, NULL);
+
+      return NULL;
+    }
+  }
+
+  if (!gdk_pixbuf_loader_close (loader, error))
+    return NULL;
+
+  pixbuf = gdk_pixbuf_loader_get_pixbuf (loader);
+  if (pixbuf == NULL)
+    return NULL;
+
+  return g_object_ref (pixbuf);
+}
+
+static GdkPixbuf *
+load_icon_sync (GLoadableIcon *icon,
+                gint           size)
+{
+  g_autoptr (GError) error = NULL;
+  g_autoptr (GInputStream) stream = g_loadable_icon_load (icon, size, NULL, NULL, &error);
+  g_autoptr (GdkPixbufLoader) loader = gdk_pixbuf_loader_new ();
+  g_autoptr (GdkPixbuf) pixbuf = NULL;
+
+  if (error) {
+    g_warning ("Failed to load icon: %s", error->message);
+    return NULL;
+  }
+
+  g_signal_connect (loader, "size-prepared",
+                    G_CALLBACK (size_prepared_cb),
+                    GINT_TO_POINTER (size));
+
+  pixbuf = load_from_stream (loader, stream, NULL, &error);
+
+  if (error) {
+    g_warning ("Failed to load pixbuf from GLoadableIcon: %s", error->message);
+    return NULL;
+  }
+
+  return g_steal_pointer (&pixbuf);
 }
 
 static void
@@ -291,6 +569,10 @@ hdy_avatar_get_property (GObject    *object,
     g_value_set_int (value, hdy_avatar_get_size (self));
     break;
 
+  case PROP_LOADABLE_ICON:
+    g_value_set_object (value, hdy_avatar_get_loadable_icon (self));
+    break;
+
   default:
     G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
     break;
@@ -322,10 +604,26 @@ hdy_avatar_set_property (GObject      *object,
     hdy_avatar_set_size (self, g_value_get_int (value));
     break;
 
+  case PROP_LOADABLE_ICON:
+    hdy_avatar_set_loadable_icon (self, g_value_get_object (value));
+    break;
+
   default:
     G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
     break;
   }
+}
+
+static void
+hdy_avatar_dispose (GObject *object)
+{
+  HdyAvatar *self = HDY_AVATAR (object);
+
+  g_cancellable_cancel (self->cancellable);
+  g_clear_object (&self->icon);
+  g_clear_object (&self->load_func_icon);
+
+  G_OBJECT_CLASS (hdy_avatar_parent_class)->dispose (object);
 }
 
 static void
@@ -335,13 +633,85 @@ hdy_avatar_finalize (GObject *object)
 
   g_clear_pointer (&self->icon_name, g_free);
   g_clear_pointer (&self->text, g_free);
-  g_clear_pointer (&self->round_image, cairo_surface_destroy);
+  g_clear_object (&self->round_image);
   g_clear_object (&self->layout);
-
-  if (self->load_image_func_target_destroy_notify != NULL)
-    self->load_image_func_target_destroy_notify (self->load_image_func_target);
+  g_clear_object (&self->cancellable);
 
   G_OBJECT_CLASS (hdy_avatar_parent_class)->finalize (object);
+}
+
+static void
+draw_for_size (HdyAvatar *self,
+               cairo_t   *cr,
+               GdkPixbuf *custom_image,
+               gint       width,
+               gint       height,
+               gint       scale_factor)
+{
+  GtkStyleContext *context = gtk_widget_get_style_context (GTK_WIDGET (self));
+  gint size = MIN (width, height);
+  gdouble x = (gdouble)(width - size) / 2.0;
+  gdouble y = (gdouble)(height - size) / 2.0;
+  const gchar *icon_name;
+  GdkRGBA color;
+  g_autoptr (GtkIconInfo) icon = NULL;
+  g_autoptr (GdkPixbuf) pixbuf = NULL;
+  g_autoptr (GError) error = NULL;
+  g_autoptr (cairo_surface_t) surface = NULL;
+
+  set_class_contrasted (self, size);
+
+  if (custom_image) {
+    surface = gdk_cairo_surface_create_from_pixbuf (custom_image, scale_factor,
+                                                    gtk_widget_get_window (GTK_WIDGET (self)));
+    gtk_render_icon_surface (context, cr, surface, x, y);
+    gtk_render_background (context, cr, x, y, size, size);
+    gtk_render_frame (context, cr, x, y, size, size);
+    return;
+  }
+
+  gtk_render_background (context, cr, x, y, size, size);
+  gtk_render_frame (context, cr, x, y, size, size);
+
+  ensure_pango_layout (self);
+
+  if (self->show_initials && self->layout != NULL) {
+    set_font_size (self, size);
+    pango_layout_get_pixel_size (self->layout, &width, &height);
+
+    gtk_render_layout (context, cr,
+                       ((gdouble) (size - width) / 2.0) + x,
+                       ((gdouble) (size - height) / 2.0) + y,
+                       self->layout);
+    return;
+  }
+
+  icon_name = self->icon_name && *self->icon_name != '\0' ?
+    self->icon_name : "avatar-default-symbolic";
+  icon = gtk_icon_theme_lookup_icon_for_scale (gtk_icon_theme_get_default (),
+                                     icon_name,
+                                     size / 2, scale_factor,
+                                     GTK_ICON_LOOKUP_FORCE_SYMBOLIC);
+  if (icon == NULL) {
+    g_critical ("Failed to load icon `%s'", icon_name);
+    return;
+  }
+
+  gtk_style_context_get_color (context, gtk_style_context_get_state (context), &color);
+  pixbuf = gtk_icon_info_load_symbolic (icon, &color, NULL, NULL, NULL, NULL, &error);
+  if (error != NULL) {
+    g_critical ("Failed to load icon `%s': %s", icon_name, error->message);
+    return;
+  }
+
+  surface = gdk_cairo_surface_create_from_pixbuf (pixbuf, scale_factor,
+                                                  gtk_widget_get_window (GTK_WIDGET (self)));
+
+  width = cairo_image_surface_get_width (surface);
+  height = cairo_image_surface_get_height (surface);
+  gtk_render_icon_surface (context, cr, surface,
+                           (((gdouble) size - ((gdouble) width / (gdouble) scale_factor)) / 2.0) + x,
+                           (((gdouble) size - ((gdouble) height / (gdouble) scale_factor)) / 2.0) + y);
 }
 
 static gboolean
@@ -349,80 +719,44 @@ hdy_avatar_draw (GtkWidget *widget,
                  cairo_t   *cr)
 {
   HdyAvatar *self = HDY_AVATAR (widget);
+  GdkPixbuf *custom_image = NULL;
   GtkStyleContext *context = gtk_widget_get_style_context (widget);
   gint width = gtk_widget_get_allocated_width (widget);
   gint height = gtk_widget_get_allocated_height (widget);
-  gint size = MIN (width, height);
-  gdouble x = (gdouble)(width - size) / 2.0;
-  gdouble y = (gdouble)(height - size) / 2.0;
-  const gchar *icon_name;
-  gint scale;
-  GdkRGBA color;
-  g_autoptr (GtkIconInfo) icon = NULL;
-  g_autoptr (GdkPixbuf) pixbuf = NULL;
-  g_autoptr (GError) error = NULL;
-  g_autoptr (cairo_surface_t) surface = NULL;
+  gint scale_factor = gtk_widget_get_scale_factor (widget);
+  gint new_size = MIN (width, height) * scale_factor;
 
-  set_class_contrasted (HDY_AVATAR (widget), size);
+  if (get_icon (self)) {
+    custom_image = update_custom_image (NULL, self->round_image, new_size);
 
-  update_custom_image (self);
+    if ((!custom_image &&
+        !self->loading_error) ||
+        (self->currently_loading_size != new_size &&
+        is_scaled (custom_image))) {
+      self->currently_loading_size = new_size;
+      g_cancellable_cancel (self->cancellable);
+      g_set_object (&self->cancellable, g_cancellable_new ());
+      load_icon_async (self,
+                       new_size,
+                       self->cancellable,
+                       (GAsyncReadyCallback) load_from_gicon_async_for_display_cb,
+                       NULL);
+    }
 
-  if (self->round_image) {
-    cairo_set_source_surface (cr, self->round_image, x, y);
-    cairo_paint (cr);
-
-    gtk_render_background (context, cr, x, y, size, size);
-    gtk_render_frame (context, cr, x, y, size, size);
-
-    return FALSE;
+    /* We don't want to draw a broken custom image, because it may be scaled
+       and we prefer to use the generated one in this case */
+    if (self->loading_error)
+      g_clear_object (&custom_image);
   }
 
-  gtk_render_background (context, cr, x, y, size, size);
-  gtk_render_frame (context, cr, x, y, size, size);
+  if (self->round_image && !custom_image)
+    gtk_style_context_remove_class (context, "image");
 
-  ensure_pango_layout (HDY_AVATAR (widget));
+  if (!self->round_image && custom_image)
+    gtk_style_context_add_class (context, "image");
 
-  if (self->show_initials && self->layout != NULL) {
-    set_font_size (HDY_AVATAR (widget), size);
-    pango_layout_get_pixel_size (self->layout, &width, &height);
-
-    gtk_render_layout (context, cr,
-                       ((gdouble) (size - width) / 2.0) + x,
-                       ((gdouble) (size - height) / 2.0) + y,
-                       self->layout);
-
-    return FALSE;
-  }
-
-  icon_name = self->icon_name && *self->icon_name != '\0' ?
-    self->icon_name : "avatar-default-symbolic";
-  scale = gtk_widget_get_scale_factor (widget);
-  icon = gtk_icon_theme_lookup_icon_for_scale (gtk_icon_theme_get_default (),
-                                     icon_name,
-                                     size / 2, scale,
-                                     GTK_ICON_LOOKUP_FORCE_SYMBOLIC);
-  if (icon == NULL) {
-    g_critical ("Failed to load icon `%s'", icon_name);
-
-    return FALSE;
-  }
-
-  gtk_style_context_get_color (context, gtk_style_context_get_state (context), &color);
-  pixbuf = gtk_icon_info_load_symbolic (icon, &color, NULL, NULL, NULL, NULL, &error);
-  if (error != NULL) {
-    g_critical ("Failed to load icon `%s': %s", icon_name, error->message);
-
-    return FALSE;
-  }
-
-  surface = gdk_cairo_surface_create_from_pixbuf (pixbuf, scale,
-                                                  gtk_widget_get_window (widget));
-
-  width = cairo_image_surface_get_width (surface);
-  height = cairo_image_surface_get_height (surface);
-  gtk_render_icon_surface (context, cr, surface,
-                           (((gdouble) size - ((gdouble) width / (gdouble) scale)) / 2.0) + x,
-                           (((gdouble) size - ((gdouble) height / (gdouble) scale)) / 2.0) + y);
+  g_set_object (&self->round_image, custom_image);
+  draw_for_size (self, cr, self->round_image, width, height, scale_factor);
 
   return FALSE;
 }
@@ -519,8 +853,8 @@ hdy_avatar_class_init (HdyAvatarClass *klass)
   GObjectClass *object_class = G_OBJECT_CLASS (klass);
   GtkWidgetClass *widget_class = GTK_WIDGET_CLASS (klass);
 
+  object_class->dispose = hdy_avatar_dispose;
   object_class->finalize = hdy_avatar_finalize;
-
   object_class->set_property = hdy_avatar_set_property;
   object_class->get_property = hdy_avatar_get_property;
 
@@ -587,6 +921,20 @@ hdy_avatar_class_init (HdyAvatarClass *klass)
                           "Whether to show the initials",
                           FALSE,
                           G_PARAM_READWRITE | G_PARAM_EXPLICIT_NOTIFY);
+
+  /**
+   * HdyAvatar:loadable-icon:
+   *
+   * A #GLoadableIcon used to load the avatar.
+   *
+   * Since: 1.2
+   */
+  props[PROP_LOADABLE_ICON] =
+    g_param_spec_object ("loadable-icon",
+                         "Loadable Icon",
+                         "The loadable icon used to load the avatar",
+                         G_TYPE_LOADABLE_ICON,
+                         G_PARAM_READWRITE | G_PARAM_EXPLICIT_NOTIFY);
 
   g_object_class_install_properties (object_class, PROP_LAST_PROP, props);
 
@@ -768,6 +1116,8 @@ hdy_avatar_set_show_initials (HdyAvatar *self,
  *
  * A callback which is called when the custom image need to be reloaded for some
  * reason (e.g. scale-factor changes).
+ *
+ * Deprecated: 1.2: use hdy_avatar_set_loadable_icon() instead.
  */
 void
 hdy_avatar_set_image_load_func (HdyAvatar              *self,
@@ -775,19 +1125,40 @@ hdy_avatar_set_image_load_func (HdyAvatar              *self,
                                 gpointer                user_data,
                                 GDestroyNotify          destroy)
 {
+  g_autoptr (HdyAvatarIcon) icon = NULL;
+
   g_return_if_fail (HDY_IS_AVATAR (self));
   g_return_if_fail (user_data != NULL || (user_data == NULL && destroy == NULL));
 
-  if (self->load_image_func_target_destroy_notify != NULL)
-    self->load_image_func_target_destroy_notify (self->load_image_func_target);
+  if (load_image != NULL)
+    icon = hdy_avatar_icon_new (load_image, user_data, destroy);
 
-  self->load_image_func = load_image;
-  self->load_image_func_target = user_data;
-  self->load_image_func_target_destroy_notify = destroy;
+  if (self->load_func_icon && !self->icon) {
+    g_cancellable_cancel (self->cancellable);
+    g_clear_object (&self->cancellable);
+    self->currently_loading_size = -1;
+    self->loading_error = FALSE;
+  }
 
-  g_clear_pointer (&self->round_image, cairo_surface_destroy);
-  self->round_image_size = -1;
-  gtk_widget_queue_draw (GTK_WIDGET (self));
+  g_set_object (&self->load_func_icon, icon);
+
+  /* Don't update the custom avatar when we have a user set GLoadableIcon */
+  if (self->icon)
+    return;
+
+  if (self->load_func_icon) {
+    gint scale_factor = gtk_widget_get_scale_factor (GTK_WIDGET (self));
+
+    self->cancellable = g_cancellable_new ();
+    self->currently_loading_size = self->size * scale_factor;
+    load_icon_async (self,
+                     self->currently_loading_size,
+                     self->cancellable,
+                     (GAsyncReadyCallback) load_from_gicon_async_for_display_cb,
+                     NULL);
+  } else {
+    gtk_widget_queue_draw (GTK_WIDGET (self));
+  }
 }
 
 /**
@@ -827,4 +1198,233 @@ hdy_avatar_set_size (HdyAvatar *self,
 
   gtk_widget_queue_resize (GTK_WIDGET (self));
   g_object_notify_by_pspec (G_OBJECT (self), props[PROP_SIZE]);
+}
+
+/**
+ * hdy_avatar_draw_to_pixbuf:
+ * @self: a #HdyAvatar
+ * @size: The size of the pixbuf
+ * @scale_factor: The scale factor
+ *
+ * Renders @self into a pixbuf at @size and @scale_factor. This can be used to export the fallback avatar.
+ *
+ * Returns: (transfer full): the pixbuf.
+ *
+ * Since: 1.2
+ */
+GdkPixbuf *
+hdy_avatar_draw_to_pixbuf (HdyAvatar *self,
+                           gint       size,
+                           gint       scale_factor)
+{
+  g_autoptr (cairo_surface_t) surface = NULL;
+  g_autoptr (cairo_t) cr = NULL;
+  g_autoptr (GdkPixbuf) custom_image = NULL;
+  g_autoptr (GdkPixbuf) pixbuf_from_icon = NULL;
+  gint scaled_size = size * scale_factor;
+  GtkStyleContext *context;
+  GtkAllocation bounds;
+
+  g_return_val_if_fail (HDY_IS_AVATAR (self), NULL);
+  g_return_val_if_fail (size > 0, NULL);
+  g_return_val_if_fail (scale_factor > 0, NULL);
+
+  context = gtk_widget_get_style_context (GTK_WIDGET (self));
+  gtk_render_background_get_clip (context, 0, 0, size, size, &bounds);
+
+  surface = cairo_image_surface_create (CAIRO_FORMAT_ARGB32,
+                                        bounds.width * scale_factor,
+                                        bounds.height * scale_factor);
+  cairo_surface_set_device_scale (surface, scale_factor, scale_factor);
+  cr = cairo_create (surface);
+
+  cairo_translate (cr, -bounds.x, -bounds.y);
+
+  if (get_icon (self)) {
+    /* Only used the cached round_image if it fits the size and it isn't scaled*/
+    if (!self->round_image ||
+        is_scaled (self->round_image) ||
+        gdk_pixbuf_get_width (self->round_image) != scaled_size) {
+      pixbuf_from_icon = load_icon_sync (get_icon (self), scaled_size);
+      custom_image = update_custom_image (pixbuf_from_icon, NULL, scaled_size);
+    } else {
+      custom_image = update_custom_image (NULL, self->round_image, scaled_size);
+    }
+  }
+
+  draw_for_size (self, cr, custom_image, size, size, scale_factor);
+
+  return gdk_pixbuf_get_from_surface (surface, 0, 0,
+                                      bounds.width * scale_factor,
+                                      bounds.height * scale_factor);
+}
+
+/**
+ * hdy_avatar_draw_to_pixbuf_async:
+ * @self: a #HdyAvatar
+ * @size: The size of the pixbuf
+ * @scale_factor: The scale factor
+ * @cancellable: (nullable): optional #GCancellable object, %NULL to ignore
+ * @callback: (scope async): a #GAsyncReadyCallback to call when the avatar is generated
+ * @user_data: (closure): the data to pass to callback function
+
+ * Renders asynchronously @self into a pixbuf at @size and @scale_factor.
+ * This can be used to export the fallback avatar.
+ *
+ * Since: 1.2
+ */
+void
+hdy_avatar_draw_to_pixbuf_async (HdyAvatar           *self,
+                                 gint                 size,
+                                 gint                 scale_factor,
+                                 GCancellable        *cancellable,
+                                 GAsyncReadyCallback  callback,
+                                 gpointer             user_data)
+{
+  g_autoptr (GTask) task = NULL;
+  gint scaled_size = size * scale_factor;
+  SizeData *data;
+
+  g_return_if_fail (HDY_IS_AVATAR (self));
+  g_return_if_fail (size > 0);
+  g_return_if_fail (scale_factor > 0);
+
+  data = g_slice_new (SizeData);
+  data->size = size;
+  data->scale_factor = scale_factor;
+
+  task = g_task_new (self, cancellable, callback, user_data);
+  g_task_set_source_tag (task, hdy_avatar_draw_to_pixbuf_async);
+  g_task_set_task_data (task, data, (GDestroyNotify) size_data_free);
+
+  if (get_icon (self) &&
+      (!self->round_image ||
+       gdk_pixbuf_get_width (self->round_image) != scaled_size ||
+       is_scaled (self->round_image)))
+    load_icon_async (self,
+                     scaled_size,
+                     cancellable,
+                     (GAsyncReadyCallback) load_from_gicon_async_for_export_cb,
+                     g_steal_pointer (&task));
+  else
+    g_task_return_pointer (task, NULL, NULL);
+}
+
+/**
+ * hdy_avatar_draw_to_pixbuf_finish:
+ * @self: a #HdyAvatar
+ * @async_result: a #GAsyncResult
+ *
+ * Finishes an asynchronous draw of an avatar to a pixbuf.
+ *
+ * Returns: (transfer full): a #GdkPixbuf
+ *
+ * Since: 1.2
+ */
+GdkPixbuf *
+hdy_avatar_draw_to_pixbuf_finish (HdyAvatar    *self,
+                                  GAsyncResult *async_result)
+{
+  GTask *task;
+  g_autoptr (GdkPixbuf) pixbuf_from_icon = NULL;
+  g_autoptr (GdkPixbuf) custom_image = NULL;
+  g_autoptr (cairo_surface_t) surface = NULL;
+  g_autoptr (cairo_t) cr = NULL;
+  SizeData *data;
+  GtkStyleContext *context;
+  GtkAllocation bounds;
+
+  g_return_val_if_fail (G_IS_TASK (async_result), NULL);
+
+  task = G_TASK (async_result);
+
+  g_warn_if_fail (g_task_get_source_tag (task) == hdy_avatar_draw_to_pixbuf_async);
+
+  data = g_task_get_task_data (task);
+
+  context = gtk_widget_get_style_context (GTK_WIDGET (self));
+  gtk_render_background_get_clip (context, 0, 0, data->size, data->size, &bounds);
+
+  surface = cairo_image_surface_create (CAIRO_FORMAT_ARGB32,
+                                        bounds.width * data->scale_factor,
+                                        bounds.height * data->scale_factor);
+  cairo_surface_set_device_scale (surface, data->scale_factor, data->scale_factor);
+  cr = cairo_create (surface);
+
+  cairo_translate (cr, -bounds.x, -bounds.y);
+
+  pixbuf_from_icon = g_task_propagate_pointer (task, NULL);
+  custom_image = update_custom_image (pixbuf_from_icon,
+                                      NULL,
+                                      data->size * data->scale_factor);
+  draw_for_size (self, cr, custom_image, data->size, data->size, data->scale_factor);
+
+  return gdk_pixbuf_get_from_surface (surface, 0, 0,
+                                      bounds.width * data->scale_factor,
+                                      bounds.height * data->scale_factor);
+}
+
+/**
+ * hdy_avatar_get_loadable_icon:
+ * @self: a #HdyAvatar
+ *
+ * Gets the #GLoadableIcon set via hdy_avatar_set_loadable_icon().
+ *
+ * Returns: (nullable) (transfer none): the #GLoadableIcon
+ *
+ * Since: 1.2
+ */
+GLoadableIcon *
+hdy_avatar_get_loadable_icon (HdyAvatar *self)
+{
+  g_return_val_if_fail (HDY_IS_AVATAR (self), NULL);
+
+  return self->icon;
+}
+
+/**
+ * hdy_avatar_set_loadable_icon:
+ * @self: a #HdyAvatar
+ * @icon: (nullable): a #GLoadableIcon
+ *
+ * Sets the #GLoadableIcon to use as an avatar.
+ * The previous avatar is displayed till the new avatar is loaded,
+ * to immediately remove the custom avatar set the loadable-icon to %NULL.
+ *
+ * The #GLoadableIcon set via this function is prefered over a set #HdyAvatarImageLoadFunc.
+ *
+ * Since: 1.2
+ */
+void
+hdy_avatar_set_loadable_icon (HdyAvatar     *self,
+                              GLoadableIcon *icon)
+{
+  g_return_if_fail (HDY_IS_AVATAR (self));
+  g_return_if_fail (icon == NULL || G_IS_LOADABLE_ICON (icon));
+
+  if (icon == self->icon)
+    return;
+
+  if (self->icon) {
+    g_cancellable_cancel (self->cancellable);
+    g_clear_object (&self->cancellable);
+    self->currently_loading_size = -1;
+    self->loading_error = FALSE;
+  }
+
+  g_set_object (&self->icon, icon);
+
+  if (self->icon) {
+    gint scale_factor = gtk_widget_get_scale_factor (GTK_WIDGET (self));
+    self->currently_loading_size = self->size * scale_factor;
+    load_icon_async (self,
+                     self->currently_loading_size,
+                     self->cancellable,
+                     (GAsyncReadyCallback) load_from_gicon_async_for_display_cb,
+                     NULL);
+  } else {
+    gtk_widget_queue_draw (GTK_WIDGET (self));
+  }
+
+  g_object_notify_by_pspec (G_OBJECT (self), props[PROP_LOADABLE_ICON]);
 }
