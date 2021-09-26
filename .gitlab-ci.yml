@@ -47,8 +47,8 @@ stages:
     # stable branch.
     # Could probably also switch away from rawhide,
     # to stable fedora branch as well.
-    FDO_DISTRIBUTION_TAG: '2021-07-22.0-gnome-40'
-    FDO_DISTRIBUTION_VERSION: '34'
+    FDO_DISTRIBUTION_TAG: '2021-07-22.0-main'
+    FDO_DISTRIBUTION_VERSION: rawhide
 
 #############################################
 #          Create CI Docker Images          #
@@ -139,6 +139,7 @@ build:
   stage: build
 
   script:
+    - dnf -y install gcr-devel
     - *environment_information
     - *build_procedure
 
@@ -171,6 +172,7 @@ test:
     - build
 
   script:
+    - dnf -y install gcr-devel
     - *environment_information
     - *run_tests
 
@@ -199,6 +201,7 @@ coverage:
     - master@GNOME/gnome-control-center
 
   script:
+    - dnf -y install gcr-devel
     - *environment_information
     - *build_procedure
     - *run_tests
@@ -314,6 +317,7 @@ flatpak:
   stage: manual
   when: manual
   script:
+    - dnf -y install gcr-devel
     - *environment_information
     - *build_procedure
     - *run_tests

@@ -331,7 +331,12 @@ reload_users (CcUserPanel *self, ActUser *selected_user)
         g_object_set (settings, "gtk-enable-animations", animations, NULL);
 #ifdef HAVE_MALCONTENT
         /* Parental Controls row not to be shown for single user setups. */
-        gtk_widget_set_visible (GTK_WIDGET (self->parental_controls_row), users_count > 1);
+        if (selected_user != NULL) {
+                gtk_widget_set_visible (GTK_WIDGET (self->parental_controls_row),
+                                        act_user_get_account_type (selected_user) != ACT_USER_ACCOUNT_TYPE_ADMINISTRATOR);
+        } else {
+                gtk_widget_set_visible (GTK_WIDGET (self->parental_controls_row), users_count > 1);
+        }
 #endif
 }
 
@@ -921,12 +926,7 @@ show_user (ActUser *user, CcUserPanel *self)
 #ifdef HAVE_MALCONTENT
         /* Parental Controls: Unavailable if user is admin */
         if (act_user_get_account_type (user) == ACT_USER_ACCOUNT_TYPE_ADMINISTRATOR) {
-                GtkStyleContext *context = gtk_widget_get_style_context (GTK_WIDGET (self->parental_controls_button_label));
-
-                gtk_widget_hide (GTK_WIDGET (self->parental_control_go_next));
-                /* TRANSLATORS: Status of Parental Controls setup */
-                gtk_label_set_text (self->parental_controls_button_label, _("Unavailable"));
-                gtk_style_context_add_class (context, "dim-label");
+                gtk_widget_hide (GTK_WIDGET (self->parental_controls_row));
         } else {
                 GtkStyleContext *context = gtk_widget_get_style_context (GTK_WIDGET (self->parental_controls_button_label));
 
@@ -939,6 +939,7 @@ show_user (ActUser *user, CcUserPanel *self)
 
                 gtk_style_context_remove_class (context, "dim-label");
                 gtk_widget_show (GTK_WIDGET (self->parental_control_go_next));
+                gtk_widget_show (GTK_WIDGET (self->parental_controls_row));
         }
 #endif
 
@@ -1213,7 +1214,11 @@ spawn_malcontent_control (CcUserPanel *self)
 #endif  /* HAVE_MALCONTENT_0_10 */
                         NULL
                 };
-                g_spawn_async (NULL, (char **)argv, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL, NULL, NULL);
+                g_autoptr(GError) error = NULL;
+                if (!g_spawn_async (NULL, (char **)argv, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL, NULL, &error))
+                        g_debug ("Couldn't launch malcontent-control: %s", error->message);
+        } else {
+                g_debug ("Not launching malcontent because selected user is an admin");
         }
 }
 #endif
@@ -1437,10 +1442,6 @@ on_permission_changed (CcUserPanel *self)
 
                 gtk_widget_set_sensitive (GTK_WIDGET (self->last_login_row), TRUE);
                 remove_unlock_tooltip (GTK_WIDGET (self->last_login_row));
-#ifdef HAVE_MALCONTENT
-                gtk_widget_set_sensitive (GTK_WIDGET (self->parental_controls_row), TRUE);
-                remove_unlock_tooltip (GTK_WIDGET (self->parental_controls_row));
-#endif
         }
         else {
                 gtk_stack_set_visible_child (self->user_icon_stack, GTK_WIDGET (self->user_icon_image));
@@ -1456,10 +1457,6 @@ on_permission_changed (CcUserPanel *self)
 
                 gtk_widget_set_sensitive (GTK_WIDGET (self->last_login_row), FALSE);
                 add_unlock_tooltip (GTK_WIDGET (self->last_login_row));
-#ifdef HAVE_MALCONTENT
-                gtk_widget_set_sensitive (GTK_WIDGET (self->parental_controls_row), FALSE);
-                add_unlock_tooltip (GTK_WIDGET (self->parental_controls_row));
-#endif
         }
 }
 
@@ -1498,13 +1495,6 @@ setup_main_window (CcUserPanel *self)
                 users_loaded (self);
         else
                 g_signal_connect_object (self->um, "notify::is-loaded", G_CALLBACK (users_loaded), self, G_CONNECT_SWAPPED);
-
-        gtk_list_box_set_header_func (self->account_settings_listbox,
-                                      cc_list_box_update_header_func,
-                                      NULL, NULL);
-        gtk_list_box_set_header_func (self->authentication_and_login_listbox,
-                                      cc_list_box_update_header_func,
-                                      NULL, NULL);
 }
 
 static GSettings *

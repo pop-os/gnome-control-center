@@ -1,6 +1,8 @@
 #include "hdy-demo-window.h"
 
 #include <glib/gi18n.h>
+#include "hdy-flap-demo-window.h"
+#include "hdy-tab-view-demo-window.h"
 #include "hdy-view-switcher-demo-window.h"
 
 struct _HdyDemoWindow
@@ -311,43 +313,59 @@ avatar_file_remove_cb (HdyDemoWindow *self)
   file = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (self->avatar_filechooser));
   if (file)
     gtk_file_chooser_unselect_filename (GTK_FILE_CHOOSER (self->avatar_filechooser), file);
-  hdy_avatar_set_image_load_func (self->avatar, NULL, NULL, NULL);
-}
 
-static GdkPixbuf *
-avatar_load_file (gint size, HdyDemoWindow *self)
-{
-  g_autoptr (GError) error = NULL;
-  g_autoptr (GdkPixbuf) pixbuf = NULL;
-  g_autofree gchar *file = NULL;
-  gint width, height;
-
-  g_assert (HDY_IS_DEMO_WINDOW (self));
-
-  file = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (self->avatar_filechooser));
-
-  gdk_pixbuf_get_file_info (file, &width, &height);
-
-  pixbuf = gdk_pixbuf_new_from_file_at_scale (file,
-                                            (width <= height) ? size : -1,
-                                            (width >= height) ? size : -1,
-                                            TRUE,
-                                            &error);
-  if (error != NULL) {
-    g_critical ("Failed to create pixbuf from file: %s", error->message);
-
-    return NULL;
-  }
-
-  return g_steal_pointer (&pixbuf);
+  hdy_avatar_set_loadable_icon (self->avatar, NULL);
 }
 
 static void
 avatar_file_set_cb (HdyDemoWindow *self)
 {
+  g_autoptr (GFile) file = NULL;
+  g_autoptr (GIcon) icon = NULL;
+
   g_assert (HDY_IS_DEMO_WINDOW (self));
 
-  hdy_avatar_set_image_load_func (self->avatar, (HdyAvatarImageLoadFunc) avatar_load_file, self, NULL);
+  file = gtk_file_chooser_get_file (GTK_FILE_CHOOSER (self->avatar_filechooser));
+  icon = g_file_icon_new (file);
+  hdy_avatar_set_loadable_icon (self->avatar, G_LOADABLE_ICON (icon));
+}
+
+static void
+file_chooser_response_cb (HdyDemoWindow  *self,
+                          gint            response_id,
+                          GtkFileChooser *chooser)
+{
+  if (response_id == GTK_RESPONSE_ACCEPT) {
+    g_autofree gchar *filename = gtk_file_chooser_get_filename (chooser);
+    g_autoptr (GdkPixbuf) pixbuf =
+      hdy_avatar_draw_to_pixbuf (self->avatar,
+                                 hdy_avatar_get_size (self->avatar),
+                                 gtk_widget_get_scale_factor (GTK_WIDGET (self)));
+
+    if (pixbuf != NULL)
+      gdk_pixbuf_save (pixbuf, filename, "png", NULL, NULL);
+  }
+
+  g_object_unref (chooser);
+}
+
+static void
+avatar_save_to_file_cb (HdyDemoWindow *self)
+{
+  GtkFileChooserNative *chooser = NULL;
+
+  g_assert (HDY_IS_DEMO_WINDOW (self));
+
+  chooser = gtk_file_chooser_native_new (_("Save Avatar"),
+                                         GTK_WINDOW (self),
+                                         GTK_FILE_CHOOSER_ACTION_SAVE,
+                                         _("_Save"),
+                                         _("_Cancel"));
+
+  gtk_file_chooser_set_do_overwrite_confirmation (GTK_FILE_CHOOSER (chooser), TRUE);
+  g_signal_connect_swapped (chooser, "response", G_CALLBACK (file_chooser_response_cb), self);
+
+  gtk_native_dialog_show (GTK_NATIVE_DIALOG (chooser));
 }
 
 static gchar *
@@ -426,6 +444,27 @@ avatar_update_contacts (HdyDemoWindow *self)
 }
 
 static void
+flap_demo_clicked_cb (GtkButton     *btn,
+                      HdyDemoWindow *self)
+{
+  HdyFlapDemoWindow *window = hdy_flap_demo_window_new ();
+
+  gtk_window_set_transient_for (GTK_WINDOW (window), GTK_WINDOW (self));
+  gtk_widget_show (GTK_WIDGET (window));
+}
+
+static void
+tab_view_demo_clicked_cb (GtkButton     *btn,
+                          HdyDemoWindow *self)
+{
+  HdyTabViewDemoWindow *window = hdy_tab_view_demo_window_new ();
+
+  hdy_tab_view_demo_window_prepopulate (window);
+
+  gtk_window_present (GTK_WINDOW (window));
+}
+
+static void
 hdy_demo_window_constructed (GObject *object)
 {
   HdyDemoWindow *self = HDY_DEMO_WINDOW (object);
@@ -487,6 +526,9 @@ hdy_demo_window_class_init (HdyDemoWindowClass *klass)
   gtk_widget_class_bind_template_callback (widget_class, carousel_return_clicked_cb);
   gtk_widget_class_bind_template_callback (widget_class, avatar_file_remove_cb);
   gtk_widget_class_bind_template_callback (widget_class, avatar_file_set_cb);
+  gtk_widget_class_bind_template_callback (widget_class, avatar_save_to_file_cb);
+  gtk_widget_class_bind_template_callback (widget_class, flap_demo_clicked_cb);
+  gtk_widget_class_bind_template_callback (widget_class, tab_view_demo_clicked_cb);
 }
 
 static void

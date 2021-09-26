@@ -43,13 +43,10 @@ struct _CcKeyboardPanel
 
   GtkRadioButton      *per_window_source;
   GtkRadioButton      *same_source;
-  GtkLabel            *value_input_switch;
   GSettings           *keybindings_settings;
 
-  /* "Type Special Characters" section */
-  CcXkbModifierDialog *alt_chars_dialog;
-  CcXkbModifierDialog *compose_dialog;
   GSettings           *input_source_settings;
+  GtkLabel            *input_switch_description;
   GtkListBox          *special_chars_list;
   GtkListBoxRow       *alt_chars_row;
   GtkListBoxRow       *compose_row;
@@ -66,11 +63,11 @@ enum {
   PROP_PARAMETERS
 };
 
-static const XkbModifier LV3_MODIFIER = {
+static const CcXkbModifier LV3_MODIFIER = {
   "lv3:",
   N_("Alternate Characters Key"),
   N_("The alternate characters key can be used to enter additional characters. These are sometimes printed as a third-option on your keyboard."),
-  (XkbOption[]){
+  (CcXkbOption[]){
     { NC_("keyboard key", "Left Alt"),    "lv3:lalt_switch" },
     { NC_("keyboard key", "Right Alt"),   "lv3:ralt_switch" },
     { NC_("keyboard key", "Left Super"),  "lv3:lwin_switch" },
@@ -82,13 +79,13 @@ static const XkbModifier LV3_MODIFIER = {
   "lv3:ralt_switch",
 };
 
-static const XkbModifier COMPOSE_MODIFIER = {
+static const CcXkbModifier COMPOSE_MODIFIER = {
   "compose:",
   N_("Compose Key"),
   N_("The compose key allows a wide variety of characters to be entered. To use it, press compose then a sequence of characters. "
      " For example, compose key followed by <b>C</b> and <b>o</b> will enter <b>©</b>, "
      "<b>a</b> followed by <b>'</b> will enter <b>á</b>."),
-  (XkbOption[]){
+  (CcXkbOption[]){
     { NC_("keyboard key", "Left Alt"),     "compose:lalt" },
     { NC_("keyboard key", "Right Alt"),    "compose:ralt" },
     { NC_("keyboard key", "Left Super"),   "compose:lwin" },
@@ -116,16 +113,19 @@ special_chars_activated (GtkWidget       *button,
                          GtkListBoxRow   *row,
                          CcKeyboardPanel *self)
 {
+  const CcXkbModifier *modifier;
   GtkWindow *window, *dialog;
 
   window = GTK_WINDOW (cc_shell_get_toplevel (cc_panel_get_shell (CC_PANEL (self))));
 
   if (row == self->alt_chars_row)
-    dialog = GTK_WINDOW (self->alt_chars_dialog);
+    modifier = &LV3_MODIFIER;
   else if (row == self->compose_row)
-    dialog = GTK_WINDOW (self->compose_dialog);
+    modifier = &COMPOSE_MODIFIER;
   else
     return;
+
+  dialog = GTK_WINDOW (cc_xkb_modifier_dialog_new (self->input_source_settings, modifier));
 
   gtk_window_set_transient_for (dialog, window);
   gtk_widget_show (GTK_WIDGET (dialog));
@@ -201,6 +201,7 @@ cc_keyboard_panel_class_init (CcKeyboardPanelClass *klass)
   gtk_widget_class_set_template_from_resource (widget_class, "/org/gnome/control-center/keyboard/cc-keyboard-panel.ui");
 
   gtk_widget_class_bind_template_child (widget_class, CcKeyboardPanel, input_source_list);
+  gtk_widget_class_bind_template_child (widget_class, CcKeyboardPanel, input_switch_description);
   gtk_widget_class_bind_template_child (widget_class, CcKeyboardPanel, per_window_source);
   gtk_widget_class_bind_template_child (widget_class, CcKeyboardPanel, same_source);
   gtk_widget_class_bind_template_child (widget_class, CcKeyboardPanel, special_chars_list);
@@ -208,7 +209,6 @@ cc_keyboard_panel_class_init (CcKeyboardPanelClass *klass)
   gtk_widget_class_bind_template_child (widget_class, CcKeyboardPanel, compose_row);
   gtk_widget_class_bind_template_child (widget_class, CcKeyboardPanel, value_alternate_chars);
   gtk_widget_class_bind_template_child (widget_class, CcKeyboardPanel, value_compose);
-  gtk_widget_class_bind_template_child (widget_class, CcKeyboardPanel, value_input_switch);
   gtk_widget_class_bind_template_child (widget_class, CcKeyboardPanel, common_shortcuts_row);
 
   gtk_widget_class_bind_template_callback (widget_class, special_chars_activated);
@@ -221,13 +221,19 @@ translate_switch_input_source (GValue *value,
                                gpointer user_data)
 {
   g_autofree const gchar **strv = NULL;
+  g_autofree gchar *accel_text = NULL;
   g_autofree gchar *label = NULL;
   CcKeyCombo combo = { 0 };
 
   strv = g_variant_get_strv (variant, NULL);
 
   gtk_accelerator_parse (strv[0] ? strv[0] : "", &combo.keyval, &combo.mask);
-  label = convert_keysym_state_to_string (&combo);
+  accel_text = convert_keysym_state_to_string (&combo);
+
+  label = g_strdup_printf (_("Input sources can be switched using the %s "
+                             "keyboard shortcut.\nThis can be changed in "
+                             "the keyboard shortcut settings."),
+                           accel_text);
 
   g_value_set_string (value, label);
 
@@ -251,9 +257,6 @@ cc_keyboard_panel_init (CcKeyboardPanel *self)
                                              GTK_STYLE_PROVIDER_PRIORITY_APPLICATION + 1);
   g_object_unref (provider);
 
-  gtk_list_box_set_header_func (self->input_source_list, cc_list_box_update_header_func, NULL, NULL);
-  gtk_list_box_set_header_func (self->special_chars_list, cc_list_box_update_header_func, NULL, NULL);
-
   self->input_source_settings = g_settings_new ("org.gnome.desktop.input-sources");
 
   /* "Input Source Switching" section */
@@ -265,10 +268,10 @@ cc_keyboard_panel_init (CcKeyboardPanel *self)
                    G_SETTINGS_BIND_DEFAULT | G_SETTINGS_BIND_INVERT_BOOLEAN);
   self->keybindings_settings = g_settings_new ("org.gnome.desktop.wm.keybindings");
   g_settings_bind_with_mapping (self->keybindings_settings, "switch-input-source",
-		                self->value_input_switch, "label",
-				G_SETTINGS_BIND_GET,
-				translate_switch_input_source,
-				NULL, NULL, NULL);
+                                self->input_switch_description, "label",
+                                G_SETTINGS_BIND_GET,
+                                translate_switch_input_source,
+                                NULL, NULL, NULL);
 
   /* "Type Special Characters" section */
   g_settings_bind_with_mapping (self->input_source_settings,
@@ -289,7 +292,4 @@ cc_keyboard_panel_init (CcKeyboardPanel *self)
                                 NULL,
                                 (gpointer)&COMPOSE_MODIFIER,
                                 NULL);
-
-  self->alt_chars_dialog = cc_xkb_modifier_dialog_new (self->input_source_settings, &LV3_MODIFIER);
-  self->compose_dialog = cc_xkb_modifier_dialog_new (self->input_source_settings, &COMPOSE_MODIFIER);
 }

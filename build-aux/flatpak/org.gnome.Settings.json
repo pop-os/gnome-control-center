@@ -306,13 +306,12 @@
         },
         {
             "name" : "upower",
-            "buildsystem" : "autotools",
+            "buildsystem" : "meson",
             "config-opts" : [
-            	"--prefix=/app",
-            	"--with-systemdsystemunitdir=/app/lib/systemd/system",
-            	"--disable-gtk-doc",
-            	"--disable-man-pages",
-            	"--disable-tests"
+                "-Dsystemdsystemunitdir=/app/lib/systemd/system",
+                "-Dgtk-doc=false",
+                "-Dman=false",
+                "-Dintrospection=disabled"
             ],
             "sources" : [
                 {
@@ -376,6 +375,7 @@
             "sources" : [
                 {
                     "type" : "git",
+                    "branch": "main",
                     "url" : "https://gitlab.freedesktop.org/NetworkManager/NetworkManager.git"
                 }
             ]
@@ -486,23 +486,6 @@
             ]
         },
         {
-            "name" : "grilo",
-            "buildsystem" : "meson",
-            "config-opts" : [
-                "-Denable-grl-pls=false",
-                "-Denable-gtk-doc=false",
-                "-Denable-introspection=false",
-                "-Denable-test-ui=false",
-                "-Denable-vala=false"
-            ],
-            "sources" : [
-                {
-                    "type" : "git",
-                    "url" : "https://gitlab.gnome.org/GNOME/grilo.git"
-                }
-            ]
-        },
-        {
             "name" : "openldap",
             "buildsystem" : "autotools",
             "config-opts" : [
@@ -553,6 +536,28 @@
             ]
         },
         {
+            "name": "yapp-driver",
+            "buildsystem": "simple",
+            "build-commands": [
+                "perl Makefile.PL",
+                "make install -j1"
+            ],
+            "build-options" : {
+                "env" :  {
+                    "PERL5LIB": "/app/lib/perl5/",
+                    "PERL_MM_OPT": "INSTALL_BASE=/app"
+                }
+            },
+            "cleanup": [ "*" ],
+            "sources": [
+                {
+                    "type": "archive",
+                    "url": "https://cpan.metacpan.org/authors/id/W/WB/WBRASWELL/Parse-Yapp-1.21.tar.gz",
+                    "sha256": "3810e998308fba2e0f4f26043035032b027ce51ce5c8a52a8b8e340ca65f13e5"
+                }
+            ]
+        },
+        {
             "name" : "samba",
             "buildsystem" : "autotools",
             "config-opts" : [
@@ -560,11 +565,17 @@
                 "--without-ad-dc",
                 "--without-pam"
             ],
+            "build-options" : {
+                "env" :  {
+                    "PERL5LIB": "/app/lib/perl5/",
+                    "PERL_MM_OPT": "INSTALL_BASE=/app"
+                }
+            },
             "sources" : [
                 {
                     "type" : "archive",
-                    "url" : "https://download.samba.org/pub/samba/stable/samba-4.11.0.tar.gz",
-                    "sha256" : "6adf1c74afff1f3f7e14060cc5a36111a6721d644ea51ed1b22da46051e48e9c"
+                    "url" : "https://download.samba.org/pub/samba/stable/samba-4.14.5.tar.gz",
+                    "sha256" : "bb6ef5d2f16b85288d823578abc453d9a80514c42e5a2ea2c4e3c60dc42335c3"
                 }
             ]
         },
@@ -578,6 +589,55 @@
                 {
                     "type" : "git",
                     "url" : "https://gitlab.gnome.org/GNOME/libgtop.git"
+                }
+            ]
+        },
+        {
+            "name": "cogl",
+            "config-opts": [
+                "--disable-cogl-gst",
+                "--enable-xlib-egl-platform",
+                "--enable-wayland-egl-platform"
+            ],
+            "sources": [
+                {
+                    "type": "git",
+                    "url": "https://gitlab.gnome.org/GNOME/cogl.git",
+                    "branch": "cogl-1.22"
+                }
+            ]
+        },
+        {
+            "name": "clutter",
+            "config-opts": [
+                "--enable-egl-backend",
+                "--enable-wayland-backend"
+            ],
+            "sources": [
+                {
+                    "type": "archive",
+                    "url": "https://download.gnome.org/sources/clutter/1.26/clutter-1.26.4.tar.xz",
+                    "sha256": "8b48fac159843f556d0a6be3dbfc6b083fc6d9c58a20a49a6b4919ab4263c4e6"
+                }
+            ]
+        },
+        {
+            "name": "clutter-gtk",
+            "sources": [
+                {
+                    "type": "archive",
+                    "url": "https://download.gnome.org/sources/clutter-gtk/1.8/clutter-gtk-1.8.4.tar.xz",
+                    "sha256": "521493ec038973c77edcb8bc5eac23eed41645117894aaee7300b2487cb42b06"
+                }
+            ]
+        },
+        {
+            "name": "clutter-gst",
+            "sources": [
+                {
+                    "type": "git",
+                    "url": "https://gitlab.gnome.org/GNOME/clutter-gst.git",
+                    "branch": "clutter-gst-3.0"
                 }
             ]
         },
@@ -597,182 +657,12 @@
             ]
         },
         {
-            "name" : "libhandy",
-            "buildsystem" : "meson",
-            "config-opts" : [
-                "-Dexamples=false",
-                "-Dglade_catalog=disabled",
-                "-Dintrospection=disabled",
-                "-Dtests=false",
-                "-Dvapi=false"
-            ],
-            "sources" : [
-                {
-                    "type" : "git",
-                    "url" : "https://gitlab.gnome.org/GNOME/libhandy.git"
-                }
-            ]
-        },
-        {
             "name" : "gsound",
-            "buildsystem" : "autotools",
+            "buildsystem" : "meson",
             "sources" : [
                 {
                     "type" : "git",
                     "url" : "https://gitlab.gnome.org/GNOME/gsound.git"
-                }
-            ]
-        },
-        {
-            "name" : "libkmod",
-            "buildsystem" : "autotools",
-            "sources" : [
-            	{
-                    "type" : "archive",
-                    "url" : "https://mirrors.edge.kernel.org/pub/linux/utils/kernel/kmod/kmod-25.tar.xz",
-                    "sha256" : "7165e6496656159dcb909a91ed708a0fe273a4b128b4b1dc997ccb5189eef1cd"
-            	}
-            ]
-        },
-        {
-            "name" : "lvm2",
-            "buildsystem" : "autotools",
-            "config-opts" : [
-                "--prefix=/app",
-                "--enable-cmdlib",
-                "--enable-dmeventd",
-                "--enable-pkgconfig",
-                "--with-usrlibdir=/app/lib",
-                "--with-usrbindir=/app/bin",
-                "--with-staticdir=/app/bin"
-            ],
-            "sources" : [
-                {
-                    "type" : "archive",
-                    "url" : "https://www.sourceware.org/pub/lvm2/LVM2.2.02.177.tgz",
-                    "sha256" : "4025a23ec9b15c2cb7486d151c29dc953b75efc4d452cfe9dbbc7c0fac8e80f2"
-                }
-            ],
-            "post-install" : [
-                "chmod 755 /app/sbin/dm*",
-                "chmod 755 /app/sbin/lvm*",
-                "chmod 755 /app/lib/libdevmapper-event-lvm2.so.2.02",
-                "chmod 755 /app/lib/libdevmapper-event-lvm2mirror.so",
-                "chmod 755 /app/lib/libdevmapper-event-lvm2raid.so",
-                "chmod 755 /app/lib/libdevmapper-event-lvm2snapshot.so",
-                "chmod 755 /app/lib/libdevmapper-event-lvm2thin.so",
-                "chmod 755 /app/lib/libdevmapper-event.so.1.02",
-                "chmod 755 /app/lib/libdevmapper.so.1.02",
-                "chmod 755 /app/lib/liblvm2cmd.so.2.02"
-            ]
-        },
-        {
-            "name" : "parted",
-            "buildsystem" : "autotools",
-            "sources" : [
-                {
-                    "type" : "archive",
-                    "url" : "http://ftp.gnu.org/gnu/parted/parted-3.2.tar.xz",
-                    "sha256" : "858b589c22297cacdf437f3baff6f04b333087521ab274f7ab677cb8c6bb78e4"
-                },
-                {
-                    "type" : "patch",
-                    "path" : "libparted-include.patch"
-                }
-            ]
-        },
-        {
-            "name" : "mpfr",
-            "buildsystem" : "autotools",
-            "sources" : [
-                {
-                    "type" : "archive",
-                    "url" : "https://www.mpfr.org/mpfr-4.0.2/mpfr-4.0.2.tar.xz",
-                    "sha256" : "1d3be708604eae0e42d578ba93b390c2a145f17743a744d8f3f8c2ad5855a38a"
-                }
-            ]
-        },
-        {
-            "name" : "bytesize",
-            "buildsystem" : "autotools",
-            "config-opts" : [
-                "--with-gtk-doc=no"
-            ],
-            "sources" : [
-                {
-                    "type" : "git",
-                    "url" : "https://github.com/storaged-project/libbytesize.git"
-                }
-            ]
-        },
-        {
-            "name" : "cryptsetup",
-            "buildsystem" : "autotools",
-            "sources" : [
-                {
-                    "type" : "archive",
-                    "url" : "https://www.kernel.org/pub/linux/utils/cryptsetup/v1.7/cryptsetup-1.7.5.tar.xz",
-                    "sha256" : "2b30cd1d0dd606a53ac77b406e1d37798d4b0762fa89de6ea546201906a251bd"
-                }
-            ]
-        },
-        {
-            "name" : "swig",
-            "buildsystem" : "autotools",
-            "sources" : [
-                {
-                    "type" : "git",
-                    "url" : "https://github.com/swig/swig.git"
-                }
-            ]
-        },
-        {
-            "name" : "volume-key",
-            "buildsystem" : "simple",
-            "build-commands" : [
-                "autoreconf -i",
-                "./configure --prefix=/app",
-                "make install"
-            ],
-            "sources" : [
-                {
-                    "type" : "archive",
-                    "url" : "https://github.com/felixonmars/volume_key/archive/volume_key-0.3.11.tar.gz",
-                    "sha256" : "92250506756eca19a0b6f50c16d3502eb5566ea4725645d7c5d87eb5cc8f3fd8"
-                }
-            ]
-        },
-        {
-            "name" : "libblockdev",
-            "buildsystem" : "autotools",
-            "config-opts" : [
-                "--disable-tests",
-                "--with-btrfs=no",
-                "--with-dm=no",
-                "--with-gtk-doc=no",
-                "--with-kbd=no",
-                "--with-lvm=no",
-                "--with-lvm-dbus=no",
-                "--with-mpath=no",
-                "--with-nvdimm=no",
-                "--with-tools=no",
-                "--with-vdo=no"
-            ],
-            "sources" : [
-                {
-                    "type" : "git",
-                    "url" : "https://github.com/storaged-project/libblockdev.git"
-                }
-            ]
-        },
-        {
-            "name" : "atasmart",
-            "buildsystem" : "autotools",
-            "sources" : [
-                {
-                    "type" : "archive",
-                    "url" : "http://0pointer.de/public/libatasmart-0.19.tar.xz",
-                    "sha256" : "61f0ea345f63d28ab2ff0dc352c22271661b66bf09642db3a4049ac9dbdb0f8d"
                 }
             ]
         },
@@ -782,6 +672,7 @@
             "config-opts" : [
                 "--disable-introspection",
                 "--disable-lvm2",
+                "--enable-daemon=no",
                 "--with-systemdsystemunitdir=/app/lib/systemd/system",
                 "--with-tmpfilesdir=/app/lib/tmpfiles.d"
             ],

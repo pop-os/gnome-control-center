@@ -18,11 +18,25 @@ show_preferences (GSimpleAction *action,
 }
 
 static void
+setup_accels (GtkApplication *app)
+{
+  const char *const new_tab_accels[] = { "<Primary>T", NULL };
+  const char *const new_window_accels[] = { "<Primary>N", NULL };
+  const char *const tab_close_accels[] = { "<Primary>W", NULL };
+
+  gtk_application_set_accels_for_action (app, "win.tab-new", new_tab_accels);
+  gtk_application_set_accels_for_action (app, "win.window-new", new_window_accels);
+  gtk_application_set_accels_for_action (app, "tab.close", tab_close_accels);
+}
+
+static void
 startup (GtkApplication *app)
 {
   GtkCssProvider *css_provider = gtk_css_provider_new ();
 
   hdy_init ();
+
+  setup_accels (app);
 
   gtk_css_provider_load_from_resource (css_provider, "/sm/puri/Handy/Demo/ui/style.css");
   gtk_style_context_add_provider_for_screen (gdk_screen_get_default (),

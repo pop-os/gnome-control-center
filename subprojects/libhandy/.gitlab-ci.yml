@@ -27,7 +27,7 @@ api-visibility:
   stage: build
   before_script: []
   script:
-    - lint/api-visibility.sh
+    - ./.gitlab-ci/api-visibility.sh
 
 build-debian-gcc:
   image: debian:buster
@@ -118,6 +118,22 @@ lintian-debian-buster-package:
   dependencies:
     - package-debian-buster
   extends: .l5-lintian-debian-package
+
+abi-check:
+  # See https://sourceware.org/bugzilla/show_bug.cgi?id=27267
+  image: fedora:33
+  stage: build
+  variables:
+    DEPS: libabigail git
+    LAST_ABI_BREAK: "b90b5120c5e9e3f5a3b0d228bd7ddb24f053289a"
+  before_script:
+    - dnf -y update
+    - dnf -y install @development-tools redhat-rpm-config dnf-plugins-core $DEPS
+    - dnf -y builddep data/packaging/rpm/libhandy.spec
+    # See https://sourceware.org/bugzilla/show_bug.cgi?id=27269
+    - rpm -Uvh --oldpackage https://kojipkgs.fedoraproject.org//packages/libabigail/1.7/2.fc33/x86_64/libabigail-1.7-2.fc33.x86_64.rpm
+  script:
+    - ./.gitlab-ci/check-abi ${LAST_ABI_BREAK} $(git rev-parse HEAD)
 
 build-flatpak:
   extends: '.flatpak'

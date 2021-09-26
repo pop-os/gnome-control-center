@@ -11,12 +11,12 @@
     </glade-widget-class>
     <glade-widget-class name="HdyAvatar" generic-name="avatar" title="Avatar" since="1.0"/>
     <glade-widget-class name="HdyApplicationWindow" generic-name="applicationwindow" title="Application Window" since="1.0" use-placeholders="False">
-      <post-create-function>glade_hdy_window_post_create</post-create-function>
-      <add-child-verify-function>glade_hdy_window_add_verify</add-child-verify-function>
-      <add-child-function>glade_hdy_window_add_child</add-child-function>
-      <remove-child-function>glade_hdy_window_remove_child</remove-child-function>
-      <replace-child-function>glade_hdy_window_replace_child</replace-child-function>
-      <get-children-function>glade_hdy_window_get_children</get-children-function>
+      <post-create-function>glade_hdy_bin_post_create</post-create-function>
+      <add-child-verify-function>glade_hdy_bin_add_verify</add-child-verify-function>
+      <add-child-function>glade_hdy_bin_add_child</add-child-function>
+      <remove-child-function>glade_hdy_bin_remove_child</remove-child-function>
+      <replace-child-function>glade_hdy_bin_replace_child</replace-child-function>
+      <get-children-function>glade_hdy_bin_get_children</get-children-function>
       <properties>
         <property id="show-menubar" disabled="True" />
         <property id="use-csd" disabled="True" />
@@ -141,6 +141,40 @@
       <properties>
         <property id="expanded" save="True" ignore="True"/>
         <property id="enable-expansion" save="True" ignore="True"/>
+        <property id="title" translatable="True"/>
+        <property id="subtitle" translatable="True"/>
+      </properties>
+    </glade-widget-class>
+    <glade-widget-class name="HdyFlap" generic-name="flap" title="Flap" since="1.2" use-placeholders="False">
+      <post-create-function>glade_hdy_flap_post_create</post-create-function>
+      <add-child-function>glade_hdy_flap_add_child</add-child-function>
+      <remove-child-function>glade_hdy_flap_remove_child</remove-child-function>
+      <replace-child-function>glade_hdy_flap_replace_child</replace-child-function>
+      <special-child-type>type</special-child-type>
+      <properties>
+        <property id="content" disabled="True"/>
+        <property id="flap" disabled="True"/>
+        <property id="separator" disabled="True"/>
+        <property id="fold-policy">
+          <displayable-values>
+            <!-- HdyFlapFoldPolicy enumeration value -->
+            <value id="HDY_FLAP_FOLD_POLICY_NEVER" name="Never"/>
+            <!-- HdyFlapFoldPolicy enumeration value -->
+            <value id="HDY_FLAP_FOLD_POLICY_ALWAYS" name="Always"/>
+            <!-- HdyFlapFoldPolicy enumeration value -->
+            <value id="HDY_FLAP_FOLD_POLICY_AUTO" name="Auto"/>
+          </displayable-values>
+        </property>
+        <property id="transition-type">
+          <displayable-values>
+            <!-- HdyFlapTransitionType enumeration value -->
+            <value id="HDY_FLAP_TRANSITION_TYPE_OVER" name="Over"/>
+            <!-- HdyFlapTransitionType enumeration value -->
+            <value id="HDY_FLAP_TRANSITION_TYPE_UNDER" name="Under"/>
+            <!-- HdyFlapTransitionType enumeration value -->
+            <value id="HDY_FLAP_TRANSITION_TYPE_SLIDE" name="Slide"/>
+          </displayable-values>
+        </property>
       </properties>
     </glade-widget-class>
     <glade-widget-class name="HdyHeaderBar" generic-name="headerbar" title="Header Bar" since="0.0.10">
@@ -298,7 +332,11 @@
         <action id="add_group" name="Add Group" stock="list-add" important="True"/>
       </actions>
     </glade-widget-class>
-    <glade-widget-class name="HdyPreferencesRow" generic-name="preferencesrow" title="Preferences Row" since="0.0.10"/>
+    <glade-widget-class name="HdyPreferencesRow" generic-name="preferencesrow" title="Preferences Row" since="0.0.10">
+      <properties>
+        <property id="title" translatable="True"/>
+      </properties>
+    </glade-widget-class>
     <glade-widget-class name="HdyPreferencesWindow" generic-name="preferenceswindow" title="Preferences Window" since="0.0.10" use-placeholders="False">
       <post-create-function>glade_hdy_preferences_window_post_create</post-create-function>
       <add-child-verify-function>glade_hdy_preferences_window_add_verify</add-child-verify-function>
@@ -338,6 +376,19 @@
       </properties>
     </glade-widget-class>
     <glade-widget-class name="HdySqueezer" generic-name="squeezer" title="Squeezer" since="0.0.10"/>
+    <glade-widget-class name="HdyStatusPage" generic-name="statuspage" title="Status Page" since="1.2" use-placeholders="False">
+      <post-create-function>glade_hdy_bin_post_create</post-create-function>
+      <add-child-verify-function>glade_hdy_bin_add_verify</add-child-verify-function>
+      <add-child-function>glade_hdy_bin_add_child</add-child-function>
+      <remove-child-function>glade_hdy_bin_remove_child</remove-child-function>
+      <replace-child-function>glade_hdy_bin_replace_child</replace-child-function>
+      <get-children-function>glade_hdy_bin_get_children</get-children-function>
+      <properties>
+        <property id="title" translatable="True" />
+        <property id="description" translatable="True" />
+        <property id="icon-name" themed-icon="True" />
+      </properties>
+    </glade-widget-class>
     <glade-widget-class name="HdySwipeGroup" generic-name="swipegroup" title="Swipe Group" toplevel="True">
       <read-widget-function>glade_hdy_swipe_group_read_widget</read-widget-function>
       <write-widget-function>glade_hdy_swipe_group_write_widget</write-widget-function>
@@ -372,12 +423,12 @@
       </properties>
     </glade-widget-class>
     <glade-widget-class name="HdyWindow" generic-name="window" title="Window" since="1.0" use-placeholders="False">
-      <post-create-function>glade_hdy_window_post_create</post-create-function>
-      <add-child-verify-function>glade_hdy_window_add_verify</add-child-verify-function>
-      <add-child-function>glade_hdy_window_add_child</add-child-function>
-      <remove-child-function>glade_hdy_window_remove_child</remove-child-function>
-      <replace-child-function>glade_hdy_window_replace_child</replace-child-function>
-      <get-children-function>glade_hdy_window_get_children</get-children-function>
+      <post-create-function>glade_hdy_bin_post_create</post-create-function>
+      <add-child-verify-function>glade_hdy_bin_add_verify</add-child-verify-function>
+      <add-child-function>glade_hdy_bin_add_child</add-child-function>
+      <remove-child-function>glade_hdy_bin_remove_child</remove-child-function>
+      <replace-child-function>glade_hdy_bin_replace_child</replace-child-function>
+      <get-children-function>glade_hdy_bin_get_children</get-children-function>
       <properties>
         <property id="use-csd" disabled="True" />
       </properties>
@@ -401,6 +452,7 @@
     <glade-widget-class-ref name="HdyComboRow"/>
     <glade-widget-class-ref name="HdyDeck"/>
     <glade-widget-class-ref name="HdyExpanderRow"/>
+    <glade-widget-class-ref name="HdyFlap"/>
     <glade-widget-class-ref name="HdyHeaderBar"/>
     <glade-widget-class-ref name="HdyHeaderGroup"/>
     <glade-widget-class-ref name="HdyKeypad"/>
@@ -411,6 +463,7 @@
     <glade-widget-class-ref name="HdyPreferencesWindow"/>
     <glade-widget-class-ref name="HdySearchBar"/>
     <glade-widget-class-ref name="HdySqueezer"/>
+    <glade-widget-class-ref name="HdyStatusPage"/>
     <glade-widget-class-ref name="HdySwipeGroup"/>
     <glade-widget-class-ref name="HdyTitleBar"/>
     <glade-widget-class-ref name="HdyViewSwitcher"/>

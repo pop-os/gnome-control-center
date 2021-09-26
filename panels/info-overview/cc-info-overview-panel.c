@@ -23,7 +23,6 @@
 #include <config.h>
 
 #include "cc-hostname-entry.h"
-#include "cc-os-release.h"
 
 #include "cc-info-overview-resources.h"
 #include "info-cleanup.h"
@@ -418,20 +417,17 @@ get_graphics_hardware_string (void)
 static char *
 get_os_name (void)
 {
-  g_autoptr(GHashTable) os_info = NULL;
-  const gchar *name, *version_id, *pretty_name, *build_id;
-  gchar *result = NULL;
+  g_autofree gchar *name = NULL;
+  g_autofree gchar *version_id = NULL;
+  g_autofree gchar *pretty_name = NULL;
+  g_autofree gchar *build_id = NULL;
   g_autofree gchar *name_version = NULL;
+  gchar *result = NULL;
 
-  os_info = cc_os_release_get_values ();
-
-  if (!os_info)
-    return g_strdup (_("Unknown"));
-
-  name = g_hash_table_lookup (os_info, "NAME");
-  version_id = g_hash_table_lookup (os_info, "VERSION_ID");
-  pretty_name = g_hash_table_lookup (os_info, "PRETTY_NAME");
-  build_id = g_hash_table_lookup (os_info, "BUILD_ID");
+  name = g_get_os_info (G_OS_INFO_KEY_NAME);
+  version_id = g_get_os_info (G_OS_INFO_KEY_VERSION_ID);
+  pretty_name = g_get_os_info (G_OS_INFO_KEY_PRETTY_NAME);
+  build_id = g_get_os_info ("BUILD_ID");
 
   if (pretty_name)
     name_version = g_strdup (pretty_name);
@@ -771,6 +767,28 @@ info_overview_panel_setup_overview (CcInfoOverviewPanel *self)
 }
 
 static gboolean
+does_gnome_software_allow_updates (void)
+{
+  const gchar *schema_id  = "org.gnome.software";
+  GSettingsSchemaSource *source;
+  g_autoptr(GSettingsSchema) schema = NULL;
+  g_autoptr(GSettings) settings = NULL;
+
+  source = g_settings_schema_source_get_default ();
+
+  if (source == NULL)
+    return FALSE;
+
+  schema = g_settings_schema_source_lookup (source, schema_id, FALSE);
+
+  if (schema == NULL)
+    return FALSE;
+
+  settings = g_settings_new (schema_id);
+  return g_settings_get_boolean (settings, "allow-updates");
+}
+
+static gboolean
 does_gnome_software_exist (void)
 {
   g_autofree gchar *path = g_find_program_in_path ("gnome-software");
@@ -862,19 +880,46 @@ cc_info_panel_row_activated_cb (CcInfoOverviewPanel *self,
     open_software_update (self);
 }
 
+static gboolean
+use_dark_theme (CcInfoOverviewPanel *panel)
+{
+  GdkScreen *screen;
+  GtkSettings *settings;
+  g_autofree char *theme_name = NULL;
+
+  theme_name = g_strdup (g_getenv ("GTK_THEME"));
+  if (theme_name != NULL)
+    return g_str_has_suffix (theme_name, "dark") ? TRUE : FALSE;
+
+  screen = gtk_widget_get_screen (GTK_WIDGET (panel));
+  settings = gtk_settings_get_for_screen (screen);
+
+  g_object_get (settings, "gtk-theme-name", &theme_name, NULL);
+  return (theme_name != NULL && g_str_has_suffix (theme_name, "dark")) ? TRUE : FALSE;
+}
+
 static void
 setup_os_logo (CcInfoOverviewPanel *panel)
 {
   g_autofree char *logo_name = g_get_os_info ("LOGO");
-  if (logo_name != NULL)
-    {
-      gtk_image_set_from_icon_name (panel->os_logo, logo_name, GTK_ICON_SIZE_INVALID);
-      gtk_image_set_pixel_size (panel->os_logo, 256);
-    }
-  else
-    {
-      gtk_image_set_from_resource (panel->os_logo, "/org/gnome/control-center/info-overview/GnomeLogoVerticalMedium.svg");
-    }
+  g_autoptr(GPtrArray) array = NULL;
+  g_autoptr(GIcon) icon = NULL;
+  gboolean dark;
+
+  dark = use_dark_theme (panel);
+  if (logo_name == NULL)
+    logo_name = g_strdup ("gnome-logo");
+
+  array = g_ptr_array_new_with_free_func (g_free);
+  if (dark)
+    g_ptr_array_add (array, (gpointer) g_strdup_printf ("%s-text-dark", logo_name));
+  g_ptr_array_add (array, (gpointer) g_strdup_printf ("%s-text", logo_name));
+  if (dark)
+    g_ptr_array_add (array, (gpointer) g_strdup_printf ("%s-dark", logo_name));
+  g_ptr_array_add (array, (gpointer) g_strdup_printf ("%s", logo_name));
+
+  icon = g_themed_icon_new_from_names ((char **) array->pdata, array->len);
+  gtk_image_set_from_gicon (panel->os_logo, icon, GTK_ICON_SIZE_INVALID);
 }
 
 static void
@@ -915,12 +960,10 @@ static void
 cc_info_overview_panel_init (CcInfoOverviewPanel *self)
 {
   gtk_widget_init_template (GTK_WIDGET (self));
-  gtk_list_box_set_header_func (self->hardware_box, cc_list_box_update_header_func, NULL, NULL);
-  gtk_list_box_set_header_func (self->os_box, cc_list_box_update_header_func, NULL, NULL);
 
   g_resources_register (cc_info_overview_get_resource ());
 
-  if (!does_gnome_software_exist () && !does_gpk_update_viewer_exist ())
+  if ((!does_gnome_software_exist () || !does_gnome_software_allow_updates ()) && !does_gpk_update_viewer_exist ())
     gtk_widget_hide (GTK_WIDGET (self->software_updates_row));
 
   info_overview_panel_setup_overview (self);
