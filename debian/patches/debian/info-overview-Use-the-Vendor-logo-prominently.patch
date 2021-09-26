@@ -17,16 +17,16 @@ Bug-Ubuntu: https://bugs.launchpad.net/ubuntu/+source/base-files/+bug/1931582
  1 file changed, 2 insertions(+), 1 deletion(-)
 
 diff --git a/panels/info-overview/cc-info-overview-panel.c b/panels/info-overview/cc-info-overview-panel.c
-index a2cb707..b629500 100644
+index 6e832eb..03f8193 100644
 --- a/panels/info-overview/cc-info-overview-panel.c
 +++ b/panels/info-overview/cc-info-overview-panel.c
-@@ -873,7 +873,8 @@ setup_os_logo (CcInfoOverviewPanel *panel)
-     }
-   else
-     {
--      gtk_image_set_from_resource (panel->os_logo, "/org/gnome/control-center/info-overview/GnomeLogoVerticalMedium.svg");
-+      gtk_image_set_from_file (panel->os_logo, "/usr/share/icons/vendor/scalable/emblems/emblem-vendor.svg");
-+      gtk_image_set_pixel_size (panel->os_logo, 128);
-     }
+@@ -919,7 +919,8 @@ setup_os_logo (CcInfoOverviewPanel *panel)
+   g_ptr_array_add (array, (gpointer) g_strdup_printf ("%s", logo_name));
+ 
+   icon = g_themed_icon_new_from_names ((char **) array->pdata, array->len);
+-  gtk_image_set_from_gicon (panel->os_logo, icon, GTK_ICON_SIZE_INVALID);
++  gtk_image_set_from_file (panel->os_logo, "/usr/share/icons/vendor/scalable/emblems/emblem-vendor.svg");
++  gtk_image_set_pixel_size (panel->os_logo, 128);
  }
  
+ static void
