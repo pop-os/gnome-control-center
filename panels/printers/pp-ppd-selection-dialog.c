@@ -30,9 +30,6 @@
 #include <glib/gstdio.h>
 #include <gtk/gtk.h>
 
-#include <cups/cups.h>
-#include <cups/ppd.h>
-
 #include "pp-ppd-selection-dialog.h"
 
 enum

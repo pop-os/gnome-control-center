@@ -14,10 +14,10 @@ Bug: https://bugzilla.gnome.org/show_bug.cgi?id=692532
  panels/printers/printers.ui         | 43 +++++++++++++++++++++++++++++++++++++
  2 files changed, 71 insertions(+)
 
-diff --git a/panels/printers/cc-printers-panel.c b/panels/printers/cc-printers-panel.c
-index 4c7d3f7..3b01d66 100644
---- a/panels/printers/cc-printers-panel.c
-+++ b/panels/printers/cc-printers-panel.c
+Index: gnome-control-center/panels/printers/cc-printers-panel.c
+===================================================================
+--- gnome-control-center.orig/panels/printers/cc-printers-panel.c
++++ gnome-control-center/panels/printers/cc-printers-panel.c
 @@ -25,6 +25,7 @@
  #include "pp-printer.h"
  
@@ -26,11 +26,10 @@ index 4c7d3f7..3b01d66 100644
  #include <glib/gi18n-lib.h>
  #include <glib/gstdio.h>
  #include <polkit/polkit.h>
-@@ -961,6 +962,25 @@ printer_add_cb (CcPrintersPanel *self)
-                            G_CONNECT_SWAPPED);
+@@ -978,6 +979,25 @@ printer_add_cb (CcPrintersPanel *self)
  }
  
-+static void
+ static void
 +show_system_config_printer (void)
 +{
 +  g_autoptr(GAppInfo) app_info = NULL;
@@ -49,10 +48,11 @@ index 4c7d3f7..3b01d66 100644
 +    g_warning ("Failed to launch system-config-printer: %s", error->message);
 +}
 +
- static void
++static void
  update_sensitivity (gpointer user_data)
  {
-@@ -1213,6 +1233,14 @@ cc_printers_panel_init (CcPrintersPanel *self)
+   CcPrintersPanel         *self = (CcPrintersPanel*) user_data;
+@@ -1229,6 +1249,14 @@ cc_printers_panel_init (CcPrintersPanel
    self->notification = (GtkRevealer*)
      gtk_builder_get_object (self->builder, "notification");
  
@@ -67,10 +67,10 @@ index 4c7d3f7..3b01d66 100644
    widget = (GtkWidget*)
      gtk_builder_get_object (self->builder, "notification-undo-button");
    g_signal_connect_object (widget, "clicked", G_CALLBACK (on_printer_deletion_undone), self, G_CONNECT_SWAPPED);
-diff --git a/panels/printers/printers.ui b/panels/printers/printers.ui
-index 843e7ed..5988ba8 100644
---- a/panels/printers/printers.ui
-+++ b/panels/printers/printers.ui
+Index: gnome-control-center/panels/printers/printers.ui
+===================================================================
+--- gnome-control-center.orig/panels/printers/printers.ui
++++ gnome-control-center/panels/printers/printers.ui
 @@ -135,6 +135,7 @@
              <child>
                <object class="GtkBox">

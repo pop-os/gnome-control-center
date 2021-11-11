@@ -518,7 +518,13 @@ location_changed_cb (CcDateTimePanel *self,
 
   self->current_location = location;
 
-  timezone = g_time_zone_new (location->zone);
+  timezone = g_time_zone_new_identifier (location->zone);
+  if (!timezone)
+    {
+      g_warning ("Could not find timezone \"%s\", using UTC instead", location->zone);
+      timezone = g_time_zone_new_utc ();
+    }
+
   old_date = self->date;
   self->date = g_date_time_to_timezone (old_date, timezone);
   cc_time_editor_set_time (CC_TIME_EDITOR (self->time_editor),
@@ -626,11 +632,29 @@ on_clock_changed (CcDateTimePanel *panel,
   update_timezone (panel);
 }
 
-static void
-change_ntp (CcDateTimePanel *self,
-            GParamSpec      *pspec)
+static gboolean
+change_ntp (CcDateTimePanel *self)
 {
   queue_set_ntp (self);
+
+  /* The new state will be visible once we see the reply. */
+  return TRUE;
+}
+
+static void
+on_ntp_changed (CcDateTimePanel *self)
+{
+  gboolean ntp_on;
+
+  g_object_get (self->dtm, "ntp", &ntp_on, NULL);
+
+  g_signal_handlers_block_by_func (self->network_time_switch, change_ntp, self);
+
+  g_object_set (self->network_time_switch,
+                "state", ntp_on,
+                NULL);
+
+  g_signal_handlers_unblock_by_func (self->network_time_switch, change_ntp, self);
 }
 
 static gboolean
@@ -851,7 +875,6 @@ static void
 setup_listbox (CcDateTimePanel *self,
                GtkWidget       *listbox)
 {
-  gtk_list_box_set_header_func (GTK_LIST_BOX (listbox), cc_list_box_update_header_func, NULL, NULL);
   self->listboxes = g_list_append (self->listboxes, listbox);
   self->listboxes_reverse = g_list_prepend (self->listboxes_reverse, listbox);
 }
@@ -1105,11 +1128,11 @@ cc_date_time_panel_init (CcDateTimePanel *self)
   bind_switch_to_row (self,
                       self->network_time_switch,
                       self->datetime_button);
-  g_object_bind_property (self->dtm, "ntp",
-                          self->network_time_switch, "active",
-                          G_BINDING_SYNC_CREATE);
-  g_signal_connect_object (self->network_time_switch, "notify::active",
+  g_signal_connect_object (self->dtm, "notify::ntp",
+                           G_CALLBACK (on_ntp_changed), self, G_CONNECT_SWAPPED);
+  g_signal_connect_object (self->network_time_switch, "state-set",
                            G_CALLBACK (change_ntp), self, G_CONNECT_SWAPPED);
+  on_ntp_changed (self);
 
   gtk_widget_set_visible (self->auto_datetime_row, is_ntp_available (self));
 

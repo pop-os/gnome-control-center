@@ -9,6 +9,7 @@
 
 #include "hdy-preferences-group-private.h"
 
+#include "hdy-css-private.h"
 #include "hdy-preferences-row.h"
 
 /**
@@ -32,7 +33,7 @@
 
 typedef struct
 {
-  GtkBox *box;
+  GtkWidget *box;
   GtkLabel *description;
   GtkListBox *listbox;
   GtkBox *listbox_box;
@@ -55,10 +56,6 @@ update_title_visibility (HdyPreferencesGroup *self)
 {
   HdyPreferencesGroupPrivate *priv = hdy_preferences_group_get_instance_private (self);
 
-  /* Show the listbox only if it has children to avoid having showing the
-   * listbox as an empty frame, parasiting the look of non-GtkListBoxRow
-   * children.
-   */
   gtk_widget_set_visible (GTK_WIDGET (priv->title),
                           gtk_label_get_text (priv->title) != NULL &&
                           g_strcmp0 (gtk_label_get_text (priv->title), "") != 0);
@@ -80,13 +77,29 @@ update_listbox_visibility (HdyPreferencesGroup *self)
   HdyPreferencesGroupPrivate *priv = hdy_preferences_group_get_instance_private (self);
   g_autoptr(GList) children = NULL;
 
-  /* We must wait until listob has been built and added. */
+  /* We must wait until the listbox has been built and added. */
   if (priv->listbox == NULL)
     return;
 
   children = gtk_container_get_children (GTK_CONTAINER (priv->listbox));
 
   gtk_widget_set_visible (GTK_WIDGET (priv->listbox), children != NULL);
+}
+
+static gboolean
+listbox_keynav_failed_cb (HdyPreferencesGroup *self,
+                          GtkDirectionType     direction)
+{
+  GtkWidget *toplevel = gtk_widget_get_toplevel (GTK_WIDGET (self));
+
+  if (!toplevel)
+    return FALSE;
+
+  if (direction != GTK_DIR_UP && direction != GTK_DIR_DOWN)
+    return FALSE;
+
+  return gtk_widget_child_focus (toplevel, direction == GTK_DIR_UP ?
+                                 GTK_DIR_TAB_BACKWARD : GTK_DIR_TAB_FORWARD);
 }
 
 typedef struct {
@@ -173,21 +186,22 @@ hdy_preferences_group_set_property (GObject      *object,
 }
 
 static void
-hdy_preferences_group_dispose (GObject *object)
+hdy_preferences_group_destroy (GtkWidget *widget)
 {
-  HdyPreferencesGroup *self = HDY_PREFERENCES_GROUP (object);
+  HdyPreferencesGroup *self = HDY_PREFERENCES_GROUP (widget);
   HdyPreferencesGroupPrivate *priv = hdy_preferences_group_get_instance_private (self);
 
   /*
    * Since we overload forall(), the inherited destroy() won't work as normal.
-   * Remove internal widgets ourself.
+   * Remove internal widgets ourselves.
    */
-  g_clear_pointer ((GtkWidget **) &priv->description, gtk_widget_destroy);
-  g_clear_pointer ((GtkWidget **) &priv->listbox, gtk_widget_destroy);
-  g_clear_pointer ((GtkWidget **) &priv->listbox_box, gtk_widget_destroy);
-  g_clear_pointer ((GtkWidget **) &priv->title, gtk_widget_destroy);
+  g_clear_pointer ((GtkWidget **) &priv->box, gtk_widget_destroy);
+  priv->description = NULL;
+  priv->listbox = NULL;
+  priv->listbox_box = NULL;
+  priv->title = NULL;
 
-  G_OBJECT_CLASS (hdy_preferences_group_parent_class)->dispose (object);
+  GTK_WIDGET_CLASS (hdy_preferences_group_parent_class)->destroy (widget);
 }
 
 static void
@@ -216,7 +230,7 @@ hdy_preferences_group_remove (GtkContainer *container,
   HdyPreferencesGroup *self = HDY_PREFERENCES_GROUP (container);
   HdyPreferencesGroupPrivate *priv = hdy_preferences_group_get_instance_private (self);
 
-  if (child == GTK_WIDGET (priv->box))
+  if (child == priv->box)
     GTK_CONTAINER_CLASS (hdy_preferences_group_parent_class)->remove (container, child);
   else if (HDY_IS_PREFERENCES_ROW (child))
     gtk_container_remove (GTK_CONTAINER (priv->listbox), child);
@@ -233,7 +247,15 @@ hdy_preferences_group_class_init (HdyPreferencesGroupClass *klass)
 
   object_class->get_property = hdy_preferences_group_get_property;
   object_class->set_property = hdy_preferences_group_set_property;
-  object_class->dispose = hdy_preferences_group_dispose;
+
+  widget_class->destroy = hdy_preferences_group_destroy;
+
+  widget_class->size_allocate = hdy_css_size_allocate_bin;
+  widget_class->get_preferred_height = hdy_css_get_preferred_height;
+  widget_class->get_preferred_height_for_width = hdy_css_get_preferred_height_for_width;
+  widget_class->get_preferred_width = hdy_css_get_preferred_width;
+  widget_class->get_preferred_width_for_height = hdy_css_get_preferred_width_for_height;
+  widget_class->draw = hdy_css_draw_bin;
 
   container_class->add = hdy_preferences_group_add;
   container_class->remove = hdy_preferences_group_remove;
@@ -278,6 +300,7 @@ hdy_preferences_group_class_init (HdyPreferencesGroupClass *klass)
   gtk_widget_class_bind_template_child_private (widget_class, HdyPreferencesGroup, listbox_box);
   gtk_widget_class_bind_template_child_private (widget_class, HdyPreferencesGroup, title);
   gtk_widget_class_bind_template_callback (widget_class, update_listbox_visibility);
+  gtk_widget_class_bind_template_callback (widget_class, listbox_keynav_failed_cb);
 }
 
 static void

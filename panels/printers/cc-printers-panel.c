@@ -40,6 +40,7 @@
 #include "pp-cups.h"
 #include "pp-printer-entry.h"
 #include "pp-job.h"
+#include "pp-new-printer.h"
 
 #include "cc-permission-infobar.h"
 #include "cc-util.h"
@@ -296,7 +297,6 @@ cc_printers_panel_dispose (GObject *object)
     }
 
   g_clear_object (&self->cups);
-  g_clear_object (&self->pp_new_printer_dialog);
   g_clear_pointer (&self->new_printer_name, g_free);
   g_clear_pointer (&self->renamed_printer_name, g_free);
   g_clear_pointer (&self->old_printer_name, g_free);
@@ -900,42 +900,65 @@ actualize_printers_list (CcPrintersPanel *self)
 }
 
 static void
-new_printer_dialog_pre_response_cb (CcPrintersPanel *self,
-                                    const gchar     *device_name,
-                                    const gchar     *device_location,
-                                    const gchar     *device_make_and_model,
-                                    gboolean         is_network_device)
+printer_add_async_cb (GObject      *source_object,
+                      GAsyncResult *res,
+                      gpointer      user_data)
 {
-  self->new_printer_name = g_strdup (device_name);
+  CcPrintersPanel  *self = (CcPrintersPanel*) user_data;
+  gboolean          success;
+  g_autoptr(GError) error = NULL;
+
+  success = pp_new_printer_add_finish (PP_NEW_PRINTER (source_object), res, &error);
+
+  if (!success)
+    {
+      if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED))
+        {
+          g_warning ("%s", error->message);
+
+          GtkWidget *message_dialog;
+
+          message_dialog = gtk_message_dialog_new (NULL,
+                                                   0,
+                                                   GTK_MESSAGE_ERROR,
+                                                   GTK_BUTTONS_CLOSE,
+          /* Translators: Addition of the new printer failed. */
+                                                   _("Failed to add new printer."));
+          g_signal_connect (message_dialog,
+                            "response",
+                            G_CALLBACK (gtk_widget_destroy),
+                            NULL);
+          gtk_widget_show (message_dialog);
+        }
+    }
 
   actualize_printers_list (self);
 }
 
 static void
-new_printer_dialog_response_cb (CcPrintersPanel *self,
-                                gint             response_id)
+new_printer_dialog_response_cb (GtkDialog *_dialog,
+                                gint       response_id,
+                                gpointer   user_data)
 {
-  if (self->pp_new_printer_dialog)
-    g_clear_object (&self->pp_new_printer_dialog);
+  CcPrintersPanel         *self = (CcPrintersPanel*) user_data;
+  PpNewPrinterDialog      *pp_new_printer_dialog =  PP_NEW_PRINTER_DIALOG (_dialog);
+  g_autoptr(PpNewPrinter)  new_printer = NULL;
 
-  if (response_id == GTK_RESPONSE_REJECT)
+  if (response_id == GTK_RESPONSE_OK)
     {
-      GtkWidget *message_dialog;
+      new_printer = pp_new_printer_dialog_get_new_printer (pp_new_printer_dialog);
+      g_object_get(G_OBJECT (new_printer), "name", &self->new_printer_name, NULL);
 
-      message_dialog = gtk_message_dialog_new (NULL,
-                                               0,
-                                               GTK_MESSAGE_ERROR,
-                                               GTK_BUTTONS_CLOSE,
-      /* Translators: Addition of the new printer failed. */
-                                               _("Failed to add new printer."));
-      g_signal_connect (message_dialog,
-                        "response",
-                        G_CALLBACK (gtk_widget_destroy),
-                        NULL);
-      gtk_widget_show (message_dialog);
+      actualize_printers_list (self);
+
+      pp_new_printer_add_async (new_printer,
+                                cc_panel_get_cancellable (CC_PANEL (self)),
+                                printer_add_async_cb,
+                                self);
     }
 
-  actualize_printers_list (self);
+  gtk_widget_destroy (GTK_WIDGET (pp_new_printer_dialog));
+  self->pp_new_printer_dialog = NULL;
 }
 
 static void
@@ -944,21 +967,14 @@ printer_add_cb (CcPrintersPanel *self)
   GtkWidget *toplevel;
 
   toplevel = gtk_widget_get_toplevel (GTK_WIDGET (self));
-  self->pp_new_printer_dialog = PP_NEW_PRINTER_DIALOG (
-    pp_new_printer_dialog_new (GTK_WINDOW (toplevel),
-                               self->all_ppds_list));
+  self->pp_new_printer_dialog = pp_new_printer_dialog_new (self->all_ppds_list,
+                                                           new_printer_dialog_response_cb,
+                                                           self);
 
-  g_signal_connect_object (self->pp_new_printer_dialog,
-                           "pre-response",
-                           G_CALLBACK (new_printer_dialog_pre_response_cb),
-                           self,
-                           G_CONNECT_SWAPPED);
+  gtk_window_set_transient_for (GTK_WINDOW (self->pp_new_printer_dialog),
+                                            GTK_WINDOW (toplevel));
 
-  g_signal_connect_object (self->pp_new_printer_dialog,
-                           "response",
-                           G_CALLBACK (new_printer_dialog_response_cb),
-                           self,
-                           G_CONNECT_SWAPPED);
+  gtk_widget_show (GTK_WIDGET (self->pp_new_printer_dialog));
 }
 
 static void
@@ -995,7 +1011,7 @@ update_sensitivity (gpointer user_data)
   gtk_widget_set_visible (widget, !no_cups);
 
   widget = (GtkWidget*) gtk_builder_get_object (self->builder, "printer-add-button");
-  gtk_widget_set_visible (widget, local_server && self->is_authorized && !no_cups && !self->new_printer_name);
+  gtk_widget_set_sensitive (widget, local_server && self->is_authorized && !no_cups && !self->new_printer_name);
 
   widget = (GtkWidget*) gtk_builder_get_object (self->builder, "printer-add-button2");
   gtk_widget_set_sensitive (widget, local_server && self->is_authorized && !no_cups && !self->new_printer_name);
@@ -1273,6 +1289,8 @@ cc_printers_panel_init (CcPrintersPanel *self)
 
       cc_permission_infobar_set_permission (self->permission_infobar,
                                             self->permission);
+      cc_permission_infobar_set_title (self->permission_infobar,
+				       _("Unlock to Add Printers and Change Settings"));
 
       on_permission_changed (self);
     }

@@ -32,7 +32,10 @@ G_DECLARE_FINAL_TYPE (HdyAvatar, hdy_avatar, HDY, AVATAR, GtkDrawingArea)
  *
  * Returns: (nullable) (transfer full): the #GdkPixbuf to use as a custom avatar
  * or %NULL to fallback to the generated avatar.
+ *
+ * Deprecated: 1.2: use hdy_avatar_set_loadable_icon() instead.
  */
+HDY_DEPRECATED_TYPE_IN_1_2_FOR (hdy_avatar_set_loadable_icon)
 typedef GdkPixbuf *(*HdyAvatarImageLoadFunc) (gint     size,
                                               gpointer user_data);
 
@@ -56,15 +59,38 @@ gboolean     hdy_avatar_get_show_initials   (HdyAvatar              *self);
 HDY_AVAILABLE_IN_ALL
 void         hdy_avatar_set_show_initials   (HdyAvatar              *self,
                                              gboolean                show_initials);
-HDY_AVAILABLE_IN_ALL
+
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
+HDY_DEPRECATED_IN_1_2_FOR (hdy_avatar_set_loadable_icon)
 void         hdy_avatar_set_image_load_func (HdyAvatar              *self,
                                              HdyAvatarImageLoadFunc  load_image,
                                              gpointer                user_data,
                                              GDestroyNotify          destroy);
+G_GNUC_END_IGNORE_DEPRECATIONS
+
 HDY_AVAILABLE_IN_ALL
 gint         hdy_avatar_get_size            (HdyAvatar              *self);
 HDY_AVAILABLE_IN_ALL
 void         hdy_avatar_set_size            (HdyAvatar              *self,
                                              gint                    size);
+HDY_AVAILABLE_IN_ALL
+GdkPixbuf   *hdy_avatar_draw_to_pixbuf      (HdyAvatar              *self,
+                                             gint                    size,
+                                             gint                    scale_factor);
+HDY_AVAILABLE_IN_1_2
+void hdy_avatar_draw_to_pixbuf_async        (HdyAvatar              *self,
+                                             gint                    size,
+                                             gint                    scale_factor,
+                                             GCancellable           *cancellable,
+                                             GAsyncReadyCallback     callback,
+                                             gpointer                user_data);
+HDY_AVAILABLE_IN_1_2
+GdkPixbuf *hdy_avatar_draw_to_pixbuf_finish (HdyAvatar              *self,
+                                             GAsyncResult           *async_result);
+HDY_AVAILABLE_IN_1_2
+GLoadableIcon *hdy_avatar_get_loadable_icon (HdyAvatar              *self);
+HDY_AVAILABLE_IN_1_2
+void           hdy_avatar_set_loadable_icon (HdyAvatar              *self,
+                                             GLoadableIcon          *icon);
 
 G_END_DECLS

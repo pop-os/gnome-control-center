@@ -9,11 +9,13 @@ libhandy_resources = gnome.compile_resources(
 
 hdy_public_enum_headers = [
   'hdy-deck.h',
+  'hdy-flap.h',
   'hdy-header-bar.h',
   'hdy-header-group.h',
   'hdy-leaflet.h',
   'hdy-navigation-direction.h',
   'hdy-squeezer.h',
+  'hdy-tab-bar.h',
   'hdy-view-switcher.h',
 ]
 
@@ -74,9 +76,9 @@ src_headers = [
   'hdy-clamp.h',
   'hdy-combo-row.h',
   'hdy-deck.h',
-  'hdy-deprecation-macros.h',
   'hdy-enum-value-object.h',
   'hdy-expander-row.h',
+  'hdy-flap.h',
   'hdy-header-bar.h',
   'hdy-header-group.h',
   'hdy-keypad.h',
@@ -89,9 +91,12 @@ src_headers = [
   'hdy-preferences-window.h',
   'hdy-search-bar.h',
   'hdy-squeezer.h',
+  'hdy-status-page.h',
   'hdy-swipe-group.h',
   'hdy-swipe-tracker.h',
   'hdy-swipeable.h',
+  'hdy-tab-bar.h',
+  'hdy-tab-view.h',
   'hdy-title-bar.h',
   'hdy-types.h',
   'hdy-value-object.h',
@@ -119,6 +124,8 @@ src_sources = [
   'hdy-animation.c',
   'hdy-application-window.c',
   'hdy-avatar.c',
+  'hdy-avatar-icon.c',
+  'hdy-bidi.c',
   'hdy-carousel.c',
   'hdy-carousel-box.c',
   'hdy-carousel-indicator-dots.c',
@@ -129,6 +136,8 @@ src_sources = [
   'hdy-deck.c',
   'hdy-enum-value-object.c',
   'hdy-expander-row.c',
+  'hdy-fading-label.c',
+  'hdy-flap.c',
   'hdy-header-bar.c',
   'hdy-header-group.c',
   'hdy-keypad-button.c',
@@ -145,9 +154,14 @@ src_sources = [
   'hdy-shadow-helper.c',
   'hdy-squeezer.c',
   'hdy-stackable-box.c',
+  'hdy-status-page.c',
   'hdy-swipe-group.c',
   'hdy-swipe-tracker.c',
   'hdy-swipeable.c',
+  'hdy-tab.c',
+  'hdy-tab-bar.c',
+  'hdy-tab-box.c',
+  'hdy-tab-view.c',
   'hdy-title-bar.c',
   'hdy-value-object.c',
   'hdy-view-switcher.c',
@@ -176,13 +190,22 @@ libhandy_sources = [
 
 glib_min_version = '>= 2.44'
 
+gio_dep = dependency('gio-2.0', version: glib_min_version)
+gtk_dep = dependency('gtk+-3.0', version: '>= 3.24.1')
+
 libhandy_deps = [
   dependency('glib-2.0', version: glib_min_version),
-  dependency('gio-2.0', version: glib_min_version),
   dependency('gmodule-2.0', version: glib_min_version),
-  dependency('gtk+-3.0', version: '>= 3.24.1'),
+  dependency('fribidi'),
+  gio_dep,
+  gtk_dep,
   cc.find_library('m', required: false),
   cc.find_library('rt', required: false),
+]
+
+libhandy_public_deps = [
+  gio_dep,
+  gtk_dep,
 ]
 
 libhandy_c_args = [
@@ -242,7 +265,7 @@ libhandy = shared_library(
 
 libhandy_dep = declare_dependency(
               sources: libhandy_generated_headers,
-         dependencies: libhandy_deps,
+         dependencies: libhandy_public_deps,
             link_with: libhandy,
   include_directories: include_directories('.'),
 )

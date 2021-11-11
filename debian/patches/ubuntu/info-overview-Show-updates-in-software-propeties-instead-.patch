@@ -7,25 +7,25 @@ Subject: info-overview: Show updates in software propeties instead of GNOME
  panels/info-overview/cc-info-overview-panel.c | 16 +++++++++++-----
  1 file changed, 11 insertions(+), 5 deletions(-)
 
-diff --git a/panels/info-overview/cc-info-overview-panel.c b/panels/info-overview/cc-info-overview-panel.c
-index 982d17b..2c31713 100644
---- a/panels/info-overview/cc-info-overview-panel.c
-+++ b/panels/info-overview/cc-info-overview-panel.c
-@@ -774,6 +774,13 @@ info_overview_panel_setup_overview (CcInfoOverviewPanel *self)
-   cc_list_row_set_secondary_markup (self->graphics_row, graphics_hardware_string);
+Index: gnome-control-center/panels/info-overview/cc-info-overview-panel.c
+===================================================================
+--- gnome-control-center.orig/panels/info-overview/cc-info-overview-panel.c
++++ gnome-control-center/panels/info-overview/cc-info-overview-panel.c
+@@ -789,6 +789,13 @@ does_gnome_software_allow_updates (void)
  }
  
-+static gboolean
+ static gboolean
 +does_software_properties_exist (void)
 +{
 +  g_autofree gchar *path = g_find_program_in_path ("software-properties-gtk");
 +  return path != NULL;
 +}
 +
- static gboolean
++static gboolean
  does_gnome_software_exist (void)
  {
-@@ -795,11 +802,10 @@ open_software_update (CcInfoOverviewPanel *self)
+   g_autofree gchar *path = g_find_program_in_path ("gnome-software");
+@@ -809,11 +816,10 @@ open_software_update (CcInfoOverviewPane
    gboolean ret;
    char *argv[3];
  
@@ -40,12 +40,12 @@ index 982d17b..2c31713 100644
      }
    else
      {
-@@ -925,7 +931,7 @@ cc_info_overview_panel_init (CcInfoOverviewPanel *self)
+@@ -964,7 +970,7 @@ cc_info_overview_panel_init (CcInfoOverv
  
    g_resources_register (cc_info_overview_get_resource ());
  
--  if (!does_gnome_software_exist () && !does_gpk_update_viewer_exist ())
-+  if (!does_software_properties_exist () && !does_gnome_software_exist () && !does_gpk_update_viewer_exist ())
+-  if ((!does_gnome_software_exist () || !does_gnome_software_allow_updates ()) && !does_gpk_update_viewer_exist ())
++  if (!does_software_properties_exist () && (!does_gnome_software_exist () || !does_gnome_software_allow_updates ()) && !does_gpk_update_viewer_exist ())
      gtk_widget_hide (GTK_WIDGET (self->software_updates_row));
  
    info_overview_panel_setup_overview (self);

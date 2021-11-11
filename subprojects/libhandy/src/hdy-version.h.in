@@ -81,29 +81,57 @@
           HDY_MICRO_VERSION >= (micro)))
 
 /**
- * HDY_VERSION_1_1:
+ * HDY_VERSION_1_2:
  *
- * A macro that evaluates to the 1.1 version of Handy, in a format
+ * A macro that evaluates to the 1.2 version of Handy, in a format
  * that can be used by the C pre-processor.
  *
- * Since: 1.1
+ * Since: 1.2
  */
-#define HDY_VERSION_1_1 (HDY_ENCODE_VERSION (1, 1, 0))
+#define HDY_VERSION_1_2 (HDY_ENCODE_VERSION (1, 2, 0))
 
 #ifndef _HDY_EXTERN
 #define _HDY_EXTERN extern
 #endif
 
+#if defined(HDY_DISABLE_DEPRECATION_WARNINGS) || defined(HANDY_COMPILATION)
+#  define _HDY_DEPRECATED             _HDY_EXTERN
+#  define _HDY_DEPRECATED_FOR(f)      _HDY_EXTERN
+#  define _HDY_DEPRECATED_TYPE
+#  define _HDY_DEPRECATED_TYPE_FOR(f)
+#else
+#  define _HDY_DEPRECATED             G_DEPRECATED        _HDY_EXTERN
+#  define _HDY_DEPRECATED_FOR(f)      G_DEPRECATED_FOR(f) _HDY_EXTERN
+#  define _HDY_DEPRECATED_TYPE        G_DEPRECATED
+#  define _HDY_DEPRECATED_TYPE_FOR(f) G_DEPRECATED_FOR(f)
+#endif
+
 #ifndef HDY_VERSION_MAX_ALLOWED
-# define HDY_VERSION_MAX_ALLOWED HDY_VERSION_1_1
+# define HDY_VERSION_MAX_ALLOWED HDY_VERSION_1_2
+#endif
+
+#ifndef HDY_VERSION_MIN_REQUIRED
+# define HDY_VERSION_MIN_REQUIRED HDY_VERSION_1_2
 #endif
 
 #define HDY_UNAVAILABLE(major, minor) G_UNAVAILABLE(major, minor) _HDY_EXTERN
 
 #define HDY_AVAILABLE_IN_ALL _HDY_EXTERN
 
-#if HDY_VERSION_MAX_ALLOWED < HDY_VERSION_1_1
-# define HDY_AVAILABLE_IN_1_1 HDY_UNAVAILABLE(1, 1)
+#if HDY_VERSION_MAX_ALLOWED < HDY_VERSION_1_2
+# define HDY_AVAILABLE_IN_1_2 HDY_UNAVAILABLE(1, 2)
 #else
-# define HDY_AVAILABLE_IN_1_1 _HDY_EXTERN
+# define HDY_AVAILABLE_IN_1_2 _HDY_EXTERN
+#endif
+
+#if HDY_VERSION_MIN_REQUIRED >= HDY_VERSION_1_2
+# define HDY_DEPRECATED_IN_1_2             _HDY_DEPRECATED
+# define HDY_DEPRECATED_IN_1_2_FOR(f)      _HDY_DEPRECATED_FOR(f)
+# define HDY_DEPRECATED_TYPE_IN_1_2        _HDY_DEPRECATED_TYPE
+# define HDY_DEPRECATED_TYPE_IN_1_2_FOR(f) _HDY_DEPRECATED_TYPE_FOR(f)
+#else
+# define HDY_DEPRECATED_IN_1_2             _HDY_EXTERN
+# define HDY_DEPRECATED_IN_1_2_FOR(f)      _HDY_EXTERN
+# define HDY_DEPRECATED_TYPE_IN_1_2
+# define HDY_DEPRECATED_TYPE_IN_1_2_FOR(f)
 #endif

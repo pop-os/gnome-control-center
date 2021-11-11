@@ -11,6 +11,7 @@
 #include <math.h>
 
 #include "hdy-animation-private.h"
+#include "hdy-css-private.h"
 
 /**
  * SECTION:hdy-clamp
@@ -203,7 +204,7 @@ hdy_clamp_measure (GtkWidget      *widget,
   HdyClamp *self = HDY_CLAMP (widget);
   GtkBin *bin = GTK_BIN (widget);
   GtkWidget *child;
-  gint child_size;
+  gint child_size = 0;
 
   if (minimum)
     *minimum = 0;
@@ -215,38 +216,38 @@ hdy_clamp_measure (GtkWidget      *widget,
     *natural_baseline = -1;
 
   child = gtk_bin_get_child (bin);
-  if (!(child && gtk_widget_get_visible (child)))
-    return;
+
+  for_size = hdy_css_adjust_for_size (widget, orientation, for_size);
 
   if (orientation == GTK_ORIENTATION_HORIZONTAL) {
     if (self->orientation == orientation) {
-      gtk_widget_get_preferred_width (child, minimum, natural);
+      if (child && gtk_widget_get_visible (child))
+        gtk_widget_get_preferred_width (child, minimum, natural);
+    } else {
+      child_size = get_child_size (HDY_CLAMP (widget), for_size, NULL, NULL, NULL, NULL);
 
-      return;
+      gtk_widget_get_preferred_width_for_height (child,
+                                                 child_size,
+                                                 minimum,
+                                                 natural);
     }
-
-    child_size = get_child_size (HDY_CLAMP (widget), for_size, NULL, NULL, NULL, NULL);
-
-    gtk_widget_get_preferred_width_for_height (child,
-                                               child_size,
-                                               minimum,
-                                               natural);
   } else {
     if (self->orientation == orientation) {
-      gtk_widget_get_preferred_height (child, minimum, natural);
+      if (child && gtk_widget_get_visible (child))
+        gtk_widget_get_preferred_height (child, minimum, natural);
+    } else {
+      child_size = get_child_size (HDY_CLAMP (widget), for_size, NULL, NULL, NULL, NULL);
 
-      return;
+      gtk_widget_get_preferred_height_and_baseline_for_width (child,
+                                                              child_size,
+                                                              minimum,
+                                                              natural,
+                                                              minimum_baseline,
+                                                              natural_baseline);
     }
-
-    child_size = get_child_size (HDY_CLAMP (widget), for_size, NULL, NULL, NULL, NULL);
-
-    gtk_widget_get_preferred_height_and_baseline_for_width (child,
-                                                            child_size,
-                                                            minimum,
-                                                            natural,
-                                                            minimum_baseline,
-                                                            natural_baseline);
   }
+
+  hdy_css_measure (widget, orientation, minimum, natural);
 }
 
 static GtkSizeRequestMode
@@ -315,13 +316,14 @@ hdy_clamp_size_allocate (GtkWidget     *widget,
 {
   HdyClamp *self = HDY_CLAMP (widget);
   GtkBin *bin = GTK_BIN (widget);
-  GtkAllocation child_allocation;
+  GtkAllocation child_allocation, base_child_allocation;
   gint baseline;
   GtkWidget *child;
   GtkStyleContext *context = gtk_widget_get_style_context (widget);
   gint child_maximum = 0, lower_threshold = 0;
   gint child_clamped_size;
 
+  hdy_css_size_allocate_self (widget, allocation);
   gtk_widget_set_allocation (widget, allocation);
 
   child = gtk_bin_get_child (bin);
@@ -333,15 +335,17 @@ hdy_clamp_size_allocate (GtkWidget     *widget,
     return;
   }
 
+  child_allocation = *allocation;
+  hdy_css_size_allocate_children (widget, &child_allocation);
+  base_child_allocation = child_allocation;
+
   if (self->orientation == GTK_ORIENTATION_HORIZONTAL) {
-    child_allocation.width = get_child_size (self, allocation->width, NULL, &child_maximum, &lower_threshold, NULL);
-    child_allocation.height = allocation->height;
+    child_allocation.width = get_child_size (self, child_allocation.width, NULL, &child_maximum, &lower_threshold, NULL);
 
     child_clamped_size = child_allocation.width;
   }
   else {
-    child_allocation.width = allocation->width;
-    child_allocation.height = get_child_size (self, allocation->height, NULL, &child_maximum, &lower_threshold, NULL);
+    child_allocation.height = get_child_size (self, child_allocation.height, NULL, &child_maximum, &lower_threshold, NULL);
 
     child_clamped_size = child_allocation.height;
   }
@@ -360,21 +364,11 @@ hdy_clamp_size_allocate (GtkWidget     *widget,
     gtk_style_context_remove_class (context, "large");
   }
 
-  if (!gtk_widget_get_has_window (widget)) {
-    /* This always center the child on the side of the orientation. */
-
-    if (self->orientation == GTK_ORIENTATION_HORIZONTAL) {
-      child_allocation.x = allocation->x + (allocation->width - child_allocation.width) / 2;
-      child_allocation.y = allocation->y;
-    } else {
-      child_allocation.x = allocation->x;
-      child_allocation.y = allocation->y + (allocation->height - child_allocation.height) / 2;
-    }
-  }
-  else {
-    child_allocation.x = 0;
-    child_allocation.y = 0;
-  }
+  /* This always center the child on the side of the orientation. */
+  if (self->orientation == GTK_ORIENTATION_HORIZONTAL)
+    child_allocation.x += (base_child_allocation.width - child_allocation.width) / 2;
+  else
+    child_allocation.y += (base_child_allocation.height - child_allocation.height) / 2;
 
   baseline = gtk_widget_get_allocated_baseline (widget);
   gtk_widget_size_allocate_with_baseline (child, &child_allocation, baseline);
@@ -397,6 +391,7 @@ hdy_clamp_class_init (HdyClampClass *klass)
   widget_class->get_preferred_height_for_width = hdy_clamp_get_preferred_height_for_width;
   widget_class->get_preferred_height_and_baseline_for_width = hdy_clamp_get_preferred_height_and_baseline_for_width;
   widget_class->size_allocate = hdy_clamp_size_allocate;
+  widget_class->draw = hdy_css_draw_bin;
 
   gtk_container_class_handle_border_width (container_class);
 
