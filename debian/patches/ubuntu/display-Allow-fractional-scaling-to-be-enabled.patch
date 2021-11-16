@@ -11,10 +11,10 @@ Subject: display: Allow fractional scaling to be enabled
  5 files changed, 352 insertions(+), 1 deletion(-)
 
 diff --git a/panels/display/cc-display-config-dbus.c b/panels/display/cc-display-config-dbus.c
-index 221c29b..6aa6c27 100644
+index 4bcbf86..8d00e58 100644
 --- a/panels/display/cc-display-config-dbus.c
 +++ b/panels/display/cc-display-config-dbus.c
-@@ -890,6 +890,8 @@ struct _CcDisplayConfigDBus
+@@ -892,6 +892,8 @@ struct _CcDisplayConfigDBus
    gboolean supports_changing_layout_mode;
    gboolean global_scale_required;
    CcDisplayLayoutMode layout_mode;
@@ -23,7 +23,7 @@ index 221c29b..6aa6c27 100644
  
    GList *monitors;
    CcDisplayMonitorDBus *primary;
-@@ -1058,6 +1060,9 @@ cc_display_config_dbus_equal (CcDisplayConfig *pself,
+@@ -1060,6 +1062,9 @@ cc_display_config_dbus_equal (CcDisplayConfig *pself,
    g_return_val_if_fail (pself, FALSE);
    g_return_val_if_fail (pother, FALSE);
  
@@ -33,7 +33,7 @@ index 221c29b..6aa6c27 100644
    cc_display_config_dbus_ensure_non_offset_coords (self);
    cc_display_config_dbus_ensure_non_offset_coords (other);
  
-@@ -1207,6 +1212,29 @@ cc_display_config_dbus_is_layout_logical (CcDisplayConfig *pself)
+@@ -1209,6 +1214,29 @@ cc_display_config_dbus_is_layout_logical (CcDisplayConfig *pself)
           self->layout_mode == CC_DISPLAY_LAYOUT_MODE_GLOBAL_UI_LOGICAL;
  }
  
@@ -63,7 +63,7 @@ index 221c29b..6aa6c27 100644
  static gboolean
  cc_display_config_dbus_layout_use_ui_scale (CcDisplayConfig *pself)
  {
-@@ -1214,6 +1242,20 @@ cc_display_config_dbus_layout_use_ui_scale (CcDisplayConfig *pself)
+@@ -1216,6 +1244,20 @@ cc_display_config_dbus_layout_use_ui_scale (CcDisplayConfig *pself)
    return self->layout_mode == CC_DISPLAY_LAYOUT_MODE_GLOBAL_UI_LOGICAL;
  }
  
@@ -82,9 +82,9 @@ index 221c29b..6aa6c27 100644
 +}
 +
  static gboolean
- is_scaled_mode_allowed (CcDisplayConfigDBus *self,
-                         CcDisplayMode       *pmode,
-@@ -1513,6 +1555,14 @@ cc_display_config_dbus_constructed (GObject *object)
+ is_scale_allowed_by_active_monitors (CcDisplayConfigDBus *self,
+                                      CcDisplayMode       *mode,
+@@ -1599,6 +1641,14 @@ cc_display_config_dbus_constructed (GObject *object)
          {
            g_variant_get (v, "b", &self->global_scale_required);
          }
@@ -99,7 +99,7 @@ index 221c29b..6aa6c27 100644
        else if (g_str_equal (s, "layout-mode"))
          {
            guint32 u = 0;
-@@ -1598,6 +1648,7 @@ cc_display_config_dbus_finalize (GObject *object)
+@@ -1685,6 +1735,7 @@ cc_display_config_dbus_finalize (GObject *object)
    g_clear_pointer (&self->monitors, g_list_free);
    g_clear_pointer (&self->logical_monitors, g_hash_table_destroy);
    g_clear_pointer (&self->clone_modes, g_list_free);
@@ -107,7 +107,7 @@ index 221c29b..6aa6c27 100644
  
    G_OBJECT_CLASS (cc_display_config_dbus_parent_class)->finalize (object);
  }
-@@ -1622,11 +1673,14 @@ cc_display_config_dbus_class_init (CcDisplayConfigDBusClass *klass)
+@@ -1709,11 +1760,14 @@ cc_display_config_dbus_class_init (CcDisplayConfigDBusClass *klass)
    parent_class->set_cloning = cc_display_config_dbus_set_cloning;
    parent_class->get_cloning_modes = cc_display_config_dbus_get_cloning_modes;
    parent_class->is_layout_logical = cc_display_config_dbus_is_layout_logical;
@@ -123,7 +123,7 @@ index 221c29b..6aa6c27 100644
    pspec = g_param_spec_variant ("state",
                                  "GVariant",
 diff --git a/panels/display/cc-display-config.c b/panels/display/cc-display-config.c
-index 6ec274f..8f09233 100644
+index 680b817..86a80b3 100644
 --- a/panels/display/cc-display-config.c
 +++ b/panels/display/cc-display-config.c
 @@ -17,6 +17,11 @@
@@ -455,7 +455,7 @@ index 6ec274f..8f09233 100644
 +  return priv->fractional_scaling;
 +}
 diff --git a/panels/display/cc-display-config.h b/panels/display/cc-display-config.h
-index 48e2bc5..8b0e64f 100644
+index a5da791..96f2293 100644
 --- a/panels/display/cc-display-config.h
 +++ b/panels/display/cc-display-config.h
 @@ -154,6 +154,8 @@ struct _CcDisplayConfigClass
@@ -500,19 +500,19 @@ index 48e2bc5..8b0e64f 100644
  const char*       cc_display_monitor_get_display_name       (CcDisplayMonitor   *monitor);
  gboolean          cc_display_monitor_is_active              (CcDisplayMonitor   *monitor);
 diff --git a/panels/display/cc-display-settings.c b/panels/display/cc-display-settings.c
-index 383936e..2e7d6f9 100644
+index a4f914e..891f741 100644
 --- a/panels/display/cc-display-settings.c
 +++ b/panels/display/cc-display-settings.c
-@@ -48,6 +48,8 @@ struct _CcDisplaySettings
-   GtkWidget        *resolution_row;
+@@ -52,6 +52,8 @@ struct _CcDisplaySettings
    GtkWidget        *scale_bbox;
-   GtkWidget        *scale_row;
+   GtkWidget        *scale_buttons_row;
+   GtkWidget        *scale_combo_row;
 +  GtkWidget        *scale_fractional_row;
 +  GtkWidget        *scale_fractional_switch;
    GtkWidget        *underscanning_row;
    GtkWidget        *underscanning_switch;
  };
-@@ -70,7 +72,6 @@ static void on_scale_btn_active_changed_cb (GtkWidget         *widget,
+@@ -74,7 +76,6 @@ static void on_scale_btn_active_changed_cb (GtkWidget         *widget,
                                              GParamSpec        *pspec,
                                              CcDisplaySettings *self);
  
@@ -520,17 +520,17 @@ index 383936e..2e7d6f9 100644
  static gboolean
  should_show_rotation (CcDisplaySettings *self)
  {
-@@ -242,6 +243,7 @@ cc_display_settings_rebuild_ui (CcDisplaySettings *self)
-       gtk_widget_set_visible (self->refresh_rate_row, FALSE);
+@@ -247,6 +248,7 @@ cc_display_settings_rebuild_ui (CcDisplaySettings *self)
        gtk_widget_set_visible (self->resolution_row, FALSE);
-       gtk_widget_set_visible (self->scale_row, FALSE);
+       gtk_widget_set_visible (self->scale_combo_row, FALSE);
+       gtk_widget_set_visible (self->scale_buttons_row, FALSE);
 +      gtk_widget_set_visible (self->scale_fractional_row, FALSE);
        gtk_widget_set_visible (self->underscanning_row, FALSE);
  
        return G_SOURCE_REMOVE;
-@@ -429,6 +431,10 @@ cc_display_settings_rebuild_ui (CcDisplaySettings *self)
- 
-   gtk_widget_set_visible (self->scale_row, buttons > 1);
+@@ -445,6 +447,10 @@ cc_display_settings_rebuild_ui (CcDisplaySettings *self)
+   else
+     gtk_widget_set_visible (self->scale_buttons_row, scales->len > 1);
  
 +  gtk_widget_set_visible (self->scale_fractional_row, TRUE);
 +  gtk_switch_set_active (GTK_SWITCH (self->scale_fractional_switch),
@@ -539,16 +539,16 @@ index 383936e..2e7d6f9 100644
    gtk_widget_set_visible (self->underscanning_row,
                            cc_display_monitor_supports_underscanning (self->selected_output) &&
                            !cc_display_config_is_cloning (self->config));
-@@ -671,6 +677,8 @@ cc_display_settings_class_init (CcDisplaySettingsClass *klass)
-   gtk_widget_class_bind_template_child (widget_class, CcDisplaySettings, resolution_row);
+@@ -711,6 +717,8 @@ cc_display_settings_class_init (CcDisplaySettingsClass *klass)
    gtk_widget_class_bind_template_child (widget_class, CcDisplaySettings, scale_bbox);
-   gtk_widget_class_bind_template_child (widget_class, CcDisplaySettings, scale_row);
+   gtk_widget_class_bind_template_child (widget_class, CcDisplaySettings, scale_buttons_row);
+   gtk_widget_class_bind_template_child (widget_class, CcDisplaySettings, scale_combo_row);
 +  gtk_widget_class_bind_template_child (widget_class, CcDisplaySettings, scale_fractional_row);
 +  gtk_widget_class_bind_template_child (widget_class, CcDisplaySettings, scale_fractional_switch);
    gtk_widget_class_bind_template_child (widget_class, CcDisplaySettings, underscanning_row);
    gtk_widget_class_bind_template_child (widget_class, CcDisplaySettings, underscanning_switch);
  
-@@ -680,11 +688,29 @@ cc_display_settings_class_init (CcDisplaySettingsClass *klass)
+@@ -721,11 +729,29 @@ cc_display_settings_class_init (CcDisplaySettingsClass *klass)
    gtk_widget_class_bind_template_callback (widget_class, on_underscanning_switch_active_changed_cb);
  }
  
@@ -579,11 +579,11 @@ index 383936e..2e7d6f9 100644
                                  cc_list_box_update_header_func,
                                  NULL, NULL);
 diff --git a/panels/display/cc-display-settings.ui b/panels/display/cc-display-settings.ui
-index 7715ba3..83c79d1 100644
+index 647e683..444d4e1 100644
 --- a/panels/display/cc-display-settings.ui
 +++ b/panels/display/cc-display-settings.ui
-@@ -68,5 +68,21 @@
-         </child>
+@@ -77,5 +77,21 @@
+         <signal name="notify::selected-index" handler="on_scale_selection_changed_cb" swapped="no"/>
        </object>
      </child>
 +    <child>
