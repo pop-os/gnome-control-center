@@ -8,10 +8,10 @@ Workaround for https://launchpad.net/bugs/1631750
  panels/region/cc-region-panel.ui | 26 ++++++++++++++++++++++++++
  2 files changed, 49 insertions(+)
 
-Index: gnome-control-center/panels/region/cc-region-panel.c
-===================================================================
---- gnome-control-center.orig/panels/region/cc-region-panel.c
-+++ gnome-control-center/panels/region/cc-region-panel.c
+diff --git a/panels/region/cc-region-panel.c b/panels/region/cc-region-panel.c
+index 375c340..4c2100f 100644
+--- a/panels/region/cc-region-panel.c
++++ b/panels/region/cc-region-panel.c
 @@ -58,6 +58,7 @@ struct _CcRegionPanel {
          GtkListBox      *language_list;
          GtkListBoxRow   *language_row;
@@ -20,7 +20,7 @@ Index: gnome-control-center/panels/region/cc-region-panel.c
          GtkToggleButton *login_language_button;
          GtkButton       *restart_button;
          GtkRevealer     *restart_revealer;
-@@ -564,6 +565,26 @@ setup_language_section (CcRegionPanel *s
+@@ -564,6 +565,26 @@ setup_language_section (CcRegionPanel *self)
          update_region_from_setting (self);
  }
  
@@ -47,7 +47,7 @@ Index: gnome-control-center/panels/region/cc-region-panel.c
  static void
  on_localed_properties_changed (CcRegionPanel  *self,
                                 GVariant       *changed_properties,
-@@ -775,12 +796,14 @@ cc_region_panel_class_init (CcRegionPane
+@@ -775,12 +796,14 @@ cc_region_panel_class_init (CcRegionPanelClass * klass)
          gtk_widget_class_bind_template_child (widget_class, CcRegionPanel, language_list);
          gtk_widget_class_bind_template_child (widget_class, CcRegionPanel, language_row);
          gtk_widget_class_bind_template_child (widget_class, CcRegionPanel, language_section_frame);
@@ -62,10 +62,10 @@ Index: gnome-control-center/panels/region/cc-region-panel.c
  }
  
  static void
-Index: gnome-control-center/panels/region/cc-region-panel.ui
-===================================================================
---- gnome-control-center.orig/panels/region/cc-region-panel.ui
-+++ gnome-control-center/panels/region/cc-region-panel.ui
+diff --git a/panels/region/cc-region-panel.ui b/panels/region/cc-region-panel.ui
+index fc698f0..fedac75 100644
+--- a/panels/region/cc-region-panel.ui
++++ b/panels/region/cc-region-panel.ui
 @@ -279,6 +279,32 @@
                     </style>
                    </object>

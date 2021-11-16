@@ -1,4 +1,3 @@
-From 64b836a1c832af2b242677d7869173d35550f465 Mon Sep 17 00:00:00 2001
 From: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
 Date: Wed, 15 Jan 2020 16:56:17 +1300
 Subject: [PATCH] Allow tweaking some settings for Ubuntu Dock
@@ -11,18 +10,18 @@ Ubuntu Dock installation. Those are located in its own panel for now:
 Origin: ubuntu
 Forwarded: not-needed
 ---
- panels/meson.build                            |   1 +
- panels/ubuntu/cc-ubuntu-panel.c               | 723 ++++++++++++++++++
- panels/ubuntu/cc-ubuntu-panel.h               |  35 +
- panels/ubuntu/cc-ubuntu-panel.ui              | 368 +++++++++
- .../ubuntu/gnome-ubuntu-panel.desktop.in.in   |  16 +
- panels/ubuntu/meson.build                     |  42 +
- panels/ubuntu/theme-dark.svg                  | 381 +++++++++
- panels/ubuntu/theme-light.svg                 | 380 +++++++++
- panels/ubuntu/ubuntu.gresource.xml            |   8 +
- po/POTFILES.in                                |   3 +
- shell/cc-panel-list.c                         |   1 +
- shell/cc-panel-loader.c                       |   3 +
+ panels/meson.build                             |   1 +
+ panels/ubuntu/cc-ubuntu-panel.c                | 723 +++++++++++++++++++++++++
+ panels/ubuntu/cc-ubuntu-panel.h                |  35 ++
+ panels/ubuntu/cc-ubuntu-panel.ui               | 368 +++++++++++++
+ panels/ubuntu/gnome-ubuntu-panel.desktop.in.in |  16 +
+ panels/ubuntu/meson.build                      |  42 ++
+ panels/ubuntu/theme-dark.svg                   | 381 +++++++++++++
+ panels/ubuntu/theme-light.svg                  | 380 +++++++++++++
+ panels/ubuntu/ubuntu.gresource.xml             |   8 +
+ po/POTFILES.in                                 |   3 +
+ shell/cc-panel-list.c                          |   1 +
+ shell/cc-panel-loader.c                        |   3 +
  12 files changed, 1961 insertions(+)
  create mode 100644 panels/ubuntu/cc-ubuntu-panel.c
  create mode 100644 panels/ubuntu/cc-ubuntu-panel.h
@@ -33,10 +32,10 @@ Forwarded: not-needed
  create mode 100644 panels/ubuntu/theme-light.svg
  create mode 100644 panels/ubuntu/ubuntu.gresource.xml
 
-Index: gnome-control-center/panels/meson.build
-===================================================================
---- gnome-control-center.orig/panels/meson.build
-+++ gnome-control-center/panels/meson.build
+diff --git a/panels/meson.build b/panels/meson.build
+index f603db9..c21910a 100644
+--- a/panels/meson.build
++++ b/panels/meson.build
 @@ -25,6 +25,7 @@ panels = [
    'search',
    'sharing',
@@ -45,10 +44,11 @@ Index: gnome-control-center/panels/meson.build
    'universal-access',
    'usage',
    'user-accounts',
-Index: gnome-control-center/panels/ubuntu/cc-ubuntu-panel.c
-===================================================================
+diff --git a/panels/ubuntu/cc-ubuntu-panel.c b/panels/ubuntu/cc-ubuntu-panel.c
+new file mode 100644
+index 0000000..13d732e
 --- /dev/null
-+++ gnome-control-center/panels/ubuntu/cc-ubuntu-panel.c
++++ b/panels/ubuntu/cc-ubuntu-panel.c
 @@ -0,0 +1,723 @@
 +/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 +/*
@@ -773,10 +773,11 @@ Index: gnome-control-center/panels/ubuntu/cc-ubuntu-panel.c
 +                                         CC_PANEL_HIDDEN);
 +  }
 +}
-Index: gnome-control-center/panels/ubuntu/cc-ubuntu-panel.h
-===================================================================
+diff --git a/panels/ubuntu/cc-ubuntu-panel.h b/panels/ubuntu/cc-ubuntu-panel.h
+new file mode 100644
+index 0000000..b13f611
 --- /dev/null
-+++ gnome-control-center/panels/ubuntu/cc-ubuntu-panel.h
++++ b/panels/ubuntu/cc-ubuntu-panel.h
 @@ -0,0 +1,35 @@
 +/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 +/*
@@ -813,10 +814,11 @@ Index: gnome-control-center/panels/ubuntu/cc-ubuntu-panel.h
 +G_END_DECLS
 +
 +#endif /* _CC_EDIT_DIALOG_H_ */
-Index: gnome-control-center/panels/ubuntu/cc-ubuntu-panel.ui
-===================================================================
+diff --git a/panels/ubuntu/cc-ubuntu-panel.ui b/panels/ubuntu/cc-ubuntu-panel.ui
+new file mode 100644
+index 0000000..d45237c
 --- /dev/null
-+++ gnome-control-center/panels/ubuntu/cc-ubuntu-panel.ui
++++ b/panels/ubuntu/cc-ubuntu-panel.ui
 @@ -0,0 +1,368 @@
 +<?xml version="1.0" encoding="UTF-8"?>
 +<!-- Generated with glade 3.20.0 -->
@@ -1186,10 +1188,11 @@ Index: gnome-control-center/panels/ubuntu/cc-ubuntu-panel.ui
 +    </columns>
 +  </object>
 +</interface>
-Index: gnome-control-center/panels/ubuntu/gnome-ubuntu-panel.desktop.in.in
-===================================================================
+diff --git a/panels/ubuntu/gnome-ubuntu-panel.desktop.in.in b/panels/ubuntu/gnome-ubuntu-panel.desktop.in.in
+new file mode 100644
+index 0000000..78571f1
 --- /dev/null
-+++ gnome-control-center/panels/ubuntu/gnome-ubuntu-panel.desktop.in.in
++++ b/panels/ubuntu/gnome-ubuntu-panel.desktop.in.in
 @@ -0,0 +1,16 @@
 +[Desktop Entry]
 +Name=Appearance
@@ -1207,10 +1210,11 @@ Index: gnome-control-center/panels/ubuntu/gnome-ubuntu-panel.desktop.in.in
 +X-GNOME-Bugzilla-Version=@VERSION@
 +# Translators: those are keywords for the ubuntu control-center panel
 +Keywords=Dock;Launcher;Theme;
-Index: gnome-control-center/panels/ubuntu/meson.build
-===================================================================
+diff --git a/panels/ubuntu/meson.build b/panels/ubuntu/meson.build
+new file mode 100644
+index 0000000..234bb10
 --- /dev/null
-+++ gnome-control-center/panels/ubuntu/meson.build
++++ b/panels/ubuntu/meson.build
 @@ -0,0 +1,42 @@
 +panels_list += cappletname
 +desktop = 'gnome-@0@-panel.desktop'.format(cappletname)
@@ -1254,10 +1258,11 @@ Index: gnome-control-center/panels/ubuntu/meson.build
 +  dependencies: common_deps,
 +  c_args: cflags
 +)
-Index: gnome-control-center/panels/ubuntu/theme-dark.svg
-===================================================================
+diff --git a/panels/ubuntu/theme-dark.svg b/panels/ubuntu/theme-dark.svg
+new file mode 100644
+index 0000000..65b478c
 --- /dev/null
-+++ gnome-control-center/panels/ubuntu/theme-dark.svg
++++ b/panels/ubuntu/theme-dark.svg
 @@ -0,0 +1,381 @@
 +<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 +<svg
@@ -1640,10 +1645,11 @@ Index: gnome-control-center/panels/ubuntu/theme-dark.svg
 +       d="m 690.17,136.29 h 48.26 c 1.25,0 2.26,0.72 2.26,1.6 v 33.57 c 0,0.88 -1,1.6 -2.26,1.6 h -48.26 c -1.25,0 -2.26,-0.72 -2.26,-1.6 v -33.57 c 0,-0.89 1.01,-1.6 2.26,-1.6 z" />
 +  </g>
 +</svg>
-Index: gnome-control-center/panels/ubuntu/theme-light.svg
-===================================================================
+diff --git a/panels/ubuntu/theme-light.svg b/panels/ubuntu/theme-light.svg
+new file mode 100644
+index 0000000..70f1125
 --- /dev/null
-+++ gnome-control-center/panels/ubuntu/theme-light.svg
++++ b/panels/ubuntu/theme-light.svg
 @@ -0,0 +1,380 @@
 +<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 +<svg
@@ -2025,10 +2031,11 @@ Index: gnome-control-center/panels/ubuntu/theme-light.svg
 +       d="m 690.17,136.29 h 48.26 c 1.25,0 2.26,0.72 2.26,1.6 v 33.57 c 0,0.88 -1,1.6 -2.26,1.6 h -48.26 c -1.25,0 -2.26,-0.72 -2.26,-1.6 v -33.57 c 0,-0.89 1.01,-1.6 2.26,-1.6 z" />
 +  </g>
 +</svg>
-Index: gnome-control-center/panels/ubuntu/ubuntu.gresource.xml
-===================================================================
+diff --git a/panels/ubuntu/ubuntu.gresource.xml b/panels/ubuntu/ubuntu.gresource.xml
+new file mode 100644
+index 0000000..77d4e61
 --- /dev/null
-+++ gnome-control-center/panels/ubuntu/ubuntu.gresource.xml
++++ b/panels/ubuntu/ubuntu.gresource.xml
 @@ -0,0 +1,8 @@
 +<?xml version="1.0" encoding="UTF-8"?>
 +<gresources>
@@ -2038,11 +2045,11 @@ Index: gnome-control-center/panels/ubuntu/ubuntu.gresource.xml
 +    <file>theme-light.svg</file>
 +  </gresource>
 +</gresources>
-Index: gnome-control-center/po/POTFILES.in
-===================================================================
---- gnome-control-center.orig/po/POTFILES.in
-+++ gnome-control-center/po/POTFILES.in
-@@ -220,6 +220,9 @@ panels/thunderbolt/cc-bolt-device-entry.
+diff --git a/po/POTFILES.in b/po/POTFILES.in
+index b9d65b7..0a0575c 100644
+--- a/po/POTFILES.in
++++ b/po/POTFILES.in
+@@ -220,6 +220,9 @@ panels/thunderbolt/cc-bolt-device-entry.c
  panels/thunderbolt/cc-bolt-panel.c
  panels/thunderbolt/cc-bolt-panel.ui
  panels/thunderbolt/gnome-thunderbolt-panel.desktop.in.in
@@ -2052,11 +2059,11 @@ Index: gnome-control-center/po/POTFILES.in
  panels/universal-access/cc-cursor-blinking-dialog.ui
  panels/universal-access/cc-cursor-size-dialog.ui
  panels/universal-access/cc-pointing-dialog.ui
-Index: gnome-control-center/shell/cc-panel-list.c
-===================================================================
---- gnome-control-center.orig/shell/cc-panel-list.c
-+++ gnome-control-center/shell/cc-panel-list.c
-@@ -385,6 +385,7 @@ static const gchar * const panel_order[]
+diff --git a/shell/cc-panel-list.c b/shell/cc-panel-list.c
+index c5532ba..a9e8639 100644
+--- a/shell/cc-panel-list.c
++++ b/shell/cc-panel-list.c
+@@ -385,6 +385,7 @@ static const gchar * const panel_order[] = {
    "mobile-broadband",
    "bluetooth",
    "background",
@@ -2064,11 +2071,11 @@ Index: gnome-control-center/shell/cc-panel-list.c
    "notifications",
    "search",
    "multitasking",
-Index: gnome-control-center/shell/cc-panel-loader.c
-===================================================================
---- gnome-control-center.orig/shell/cc-panel-loader.c
-+++ gnome-control-center/shell/cc-panel-loader.c
-@@ -61,6 +61,7 @@ extern GType cc_sound_panel_get_type (vo
+diff --git a/shell/cc-panel-loader.c b/shell/cc-panel-loader.c
+index 67f3f1b..b571ceb 100644
+--- a/shell/cc-panel-loader.c
++++ b/shell/cc-panel-loader.c
+@@ -61,6 +61,7 @@ extern GType cc_sound_panel_get_type (void);
  extern GType cc_bolt_panel_get_type (void);
  #endif /* BUILD_THUNDERBOLT */
  extern GType cc_ua_panel_get_type (void);
@@ -2076,7 +2083,7 @@ Index: gnome-control-center/shell/cc-panel-loader.c
  extern GType cc_user_panel_get_type (void);
  #ifdef BUILD_WACOM
  extern GType cc_wacom_panel_get_type (void);
-@@ -86,6 +87,7 @@ extern void cc_wacom_panel_static_init_f
+@@ -86,6 +87,7 @@ extern void cc_wacom_panel_static_init_func (void);
  #ifdef BUILD_WWAN
  extern void cc_wwan_panel_static_init_func (void);
  #endif /* BUILD_WWAN */
@@ -2084,7 +2091,7 @@ Index: gnome-control-center/shell/cc-panel-loader.c
  
  #define PANEL_TYPE(name, get_type, init_func) { name, get_type, init_func }
  
-@@ -128,6 +130,7 @@ static CcPanelLoaderVtable default_panel
+@@ -128,6 +130,7 @@ static CcPanelLoaderVtable default_panels[] =
    PANEL_TYPE("search",           cc_search_panel_get_type,               NULL),
    PANEL_TYPE("sharing",          cc_sharing_panel_get_type,              NULL),
    PANEL_TYPE("sound",            cc_sound_panel_get_type,                NULL),

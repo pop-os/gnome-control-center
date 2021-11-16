@@ -44,11 +44,11 @@ Subject: Adapts the region capplet and the language chooser in the user
  panels/user-accounts/cc-user-panel.c |  12 ++-
  5 files changed, 217 insertions(+), 61 deletions(-)
 
-Index: gnome-control-center/panels/common/cc-common-language.c
-===================================================================
---- gnome-control-center.orig/panels/common/cc-common-language.c
-+++ gnome-control-center/panels/common/cc-common-language.c
-@@ -161,6 +161,55 @@ cc_common_language_get_current_language
+diff --git a/panels/common/cc-common-language.c b/panels/common/cc-common-language.c
+index 9357c3e..c923d82 100644
+--- a/panels/common/cc-common-language.c
++++ b/panels/common/cc-common-language.c
+@@ -161,6 +161,55 @@ cc_common_language_get_current_language (void)
          return language;
  }
  
@@ -173,7 +173,7 @@ Index: gnome-control-center/panels/common/cc-common-language.c
          insert_language (ht, "en_US.UTF-8");
          insert_language (ht, "en_GB.UTF-8");
          insert_language (ht, "de_DE.UTF-8");
-@@ -234,10 +315,30 @@ cc_common_language_get_initial_languages
+@@ -234,10 +315,30 @@ cc_common_language_get_initial_languages (void)
          insert_language (ht, "ja_JP.UTF-8");
          insert_language (ht, "ru_RU.UTF-8");
          insert_language (ht, "ar_EG.UTF-8");
@@ -205,7 +205,7 @@ Index: gnome-control-center/panels/common/cc-common-language.c
  static void
  foreach_user_lang_cb (gpointer key,
                        gpointer value,
-@@ -263,28 +364,18 @@ cc_common_language_add_user_languages (G
+@@ -263,28 +364,18 @@ cc_common_language_add_user_languages (GtkTreeModel *model)
          GtkListStore *store = GTK_LIST_STORE (model);
          GHashTable *user_langs;
          const char *display;
@@ -238,7 +238,7 @@ Index: gnome-control-center/panels/common/cc-common-language.c
                  display = g_hash_table_lookup (user_langs, name);
          }
  
-@@ -296,8 +387,8 @@ cc_common_language_add_user_languages (G
+@@ -296,8 +387,8 @@ cc_common_language_add_user_languages (GtkTreeModel *model)
          g_hash_table_foreach (user_langs, (GHFunc) foreach_user_lang_cb, store);
  
          /* And now the "Other…" selection */
@@ -249,11 +249,11 @@ Index: gnome-control-center/panels/common/cc-common-language.c
  
          g_hash_table_destroy (user_langs);
  }
-Index: gnome-control-center/panels/common/cc-common-language.h
-===================================================================
---- gnome-control-center.orig/panels/common/cc-common-language.h
-+++ gnome-control-center/panels/common/cc-common-language.h
-@@ -43,6 +43,8 @@ guint    cc_common_language_add_availabl
+diff --git a/panels/common/cc-common-language.h b/panels/common/cc-common-language.h
+index 1f578b7..2e5a446 100644
+--- a/panels/common/cc-common-language.h
++++ b/panels/common/cc-common-language.h
+@@ -43,6 +43,8 @@ guint    cc_common_language_add_available_languages (GtkListStore     *store,
                                                       GHashTable       *user_langs);
  gboolean cc_common_language_has_font                (const gchar  *locale);
  gchar   *cc_common_language_get_current_language    (void);
@@ -262,17 +262,17 @@ Index: gnome-control-center/panels/common/cc-common-language.h
  
  GHashTable *cc_common_language_get_initial_languages   (void);
  GHashTable *cc_common_language_get_user_languages      (void);
-@@ -55,4 +57,6 @@ void     cc_common_language_select_curre
+@@ -55,4 +57,6 @@ void     cc_common_language_select_current_language (GtkTreeView  *treeview);
  
  void     cc_common_language_add_user_languages (GtkTreeModel *model);
  
 +void    cc_common_language_get_locale (const gchar *language, gchar **locale);
 +
  G_END_DECLS
-Index: gnome-control-center/panels/common/cc-language-chooser.ui
-===================================================================
---- gnome-control-center.orig/panels/common/cc-language-chooser.ui
-+++ gnome-control-center/panels/common/cc-language-chooser.ui
+diff --git a/panels/common/cc-language-chooser.ui b/panels/common/cc-language-chooser.ui
+index 8f6fd53..c59fbd7 100644
+--- a/panels/common/cc-language-chooser.ui
++++ b/panels/common/cc-language-chooser.ui
 @@ -74,7 +74,7 @@
                  <!-- "More" row -->
                  <child>
@@ -282,10 +282,10 @@ Index: gnome-control-center/panels/common/cc-language-chooser.ui
                      <child>
                        <object class="GtkBox">
                          <property name="visible">True</property>
-Index: gnome-control-center/panels/region/cc-region-panel.c
-===================================================================
---- gnome-control-center.orig/panels/region/cc-region-panel.c
-+++ gnome-control-center/panels/region/cc-region-panel.c
+diff --git a/panels/region/cc-region-panel.c b/panels/region/cc-region-panel.c
+index 4c2100f..165423e 100644
+--- a/panels/region/cc-region-panel.c
++++ b/panels/region/cc-region-panel.c
 @@ -293,6 +293,7 @@ static void
  update_language (CcRegionPanel *self,
                   const gchar   *language)
@@ -294,7 +294,7 @@ Index: gnome-control-center/panels/region/cc-region-panel.c
          if (self->login) {
                  set_system_language (self, language);
          } else {
-@@ -315,9 +316,6 @@ language_response (CcRegionPanel     *se
+@@ -315,9 +316,6 @@ language_response (CcRegionPanel     *self,
          if (response_id == GTK_RESPONSE_OK) {
                  language = cc_language_chooser_get_language (chooser);
                  update_language (self, language);
@@ -304,10 +304,11 @@ Index: gnome-control-center/panels/region/cc-region-panel.c
          }
  
          gtk_widget_destroy (GTK_WIDGET (chooser));
-@@ -337,6 +335,39 @@ set_system_region (CcRegionPanel *self,
+@@ -336,6 +334,39 @@ set_system_region (CcRegionPanel *self,
+         set_localed_locale (self);
  }
  
- static void
++static void
 +set_formats_locale (const gchar *formats_locale)
 +{
 +        g_autoptr(GDBusProxy) proxy = NULL;
@@ -340,10 +341,9 @@ Index: gnome-control-center/panels/region/cc-region-panel.c
 +                g_warning ("Couldn't set FormatsLocale: %s", error->message);
 +}
 +
-+static void
+ static void
  update_region (CcRegionPanel *self,
                 const gchar   *region)
- {
 @@ -345,6 +376,7 @@ update_region (CcRegionPanel *self,
          } else {
                  if (g_strcmp0 (region, self->region) == 0)
@@ -385,7 +385,7 @@ Index: gnome-control-center/panels/region/cc-region-panel.c
          update_language_label (self);
  }
  
-@@ -585,6 +621,16 @@ show_language_support (CcRegionPanel *se
+@@ -585,6 +621,16 @@ show_language_support (CcRegionPanel *self)
                  g_warning ("Failed to launch language-selector: %s", error->message);
  }
  
@@ -402,7 +402,7 @@ Index: gnome-control-center/panels/region/cc-region-panel.c
  static void
  on_localed_properties_changed (CcRegionPanel  *self,
                                 GVariant       *changed_properties,
-@@ -597,28 +643,38 @@ on_localed_properties_changed (CcRegionP
+@@ -597,28 +643,38 @@ on_localed_properties_changed (CcRegionPanel  *self,
                  g_autofree const gchar **strv = NULL;
                  gsize len;
                  gint i;
@@ -494,11 +494,11 @@ Index: gnome-control-center/panels/region/cc-region-panel.c
          }
          g_dbus_proxy_call (self->localed,
                             "SetLocale",
-Index: gnome-control-center/panels/user-accounts/cc-user-panel.c
-===================================================================
---- gnome-control-center.orig/panels/user-accounts/cc-user-panel.c
-+++ gnome-control-center/panels/user-accounts/cc-user-panel.c
-@@ -889,6 +889,7 @@ show_user (ActUser *user, CcUserPanel *s
+diff --git a/panels/user-accounts/cc-user-panel.c b/panels/user-accounts/cc-user-panel.c
+index aa273fc..44212cb 100644
+--- a/panels/user-accounts/cc-user-panel.c
++++ b/panels/user-accounts/cc-user-panel.c
+@@ -889,6 +889,7 @@ show_user (ActUser *user, CcUserPanel *self)
          gtk_widget_set_sensitive (GTK_WIDGET (self->autologin_switch), get_autologin_possible (user));
  
          lang = g_strdup (act_user_get_language (user));
