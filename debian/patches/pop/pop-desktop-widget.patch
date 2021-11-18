@@ -1,5 +1,5 @@
 diff --git a/panels/background/cc-background-panel.c b/panels/background/cc-background-panel.c
-index 29dedf165..c5e9de0fc 100644
+index 29dedf165..377410965 100644
 --- a/panels/background/cc-background-panel.c
 +++ b/panels/background/cc-background-panel.c
 @@ -24,6 +24,7 @@
@@ -19,7 +19,7 @@ index 29dedf165..c5e9de0fc 100644
    GSettings *settings;
    GSettings *lock_settings;
  
-@@ -61,10 +64,51 @@ struct _CcBackgroundPanel
+@@ -61,10 +64,52 @@ struct _CcBackgroundPanel
    CcBackgroundChooser *background_chooser;
    GtkButton *add_picture_button;
    CcBackgroundPreview *desktop_preview;
@@ -36,9 +36,10 @@ index 29dedf165..c5e9de0fc 100644
 +  gtk_widget_set_visible (GTK_WIDGET (self->add_picture_button), visible);
 +}
 +
-+static void sidebar_row_selected_cb (CcBackgroundPanel *self, GtkListBoxRow *row, GtkListBox *box) {
++static void sidebar_row_activated_cb (CcBackgroundPanel *self, GtkListBoxRow *row, GtkListBox *box) {
 +  GtkWidget *widget = g_object_get_data (G_OBJECT (row), "stack-child");
 +  gtk_stack_set_visible_child (self->stack, widget);
++  g_signal_emit_by_name (self, "sidebar-activated");
 +}
 +
 +static void for_each_stack_cb (GtkWidget *widget, gpointer user_data) {
@@ -71,7 +72,7 @@ index 29dedf165..c5e9de0fc 100644
  static void
  update_preview (CcBackgroundPanel *panel)
  {
-@@ -241,6 +285,7 @@ cc_background_panel_dispose (GObject *object)
+@@ -241,6 +286,7 @@ cc_background_panel_dispose (GObject *object)
    g_clear_object (&panel->settings);
    g_clear_object (&panel->lock_settings);
    g_clear_object (&panel->thumb_factory);
@@ -79,7 +80,7 @@ index 29dedf165..c5e9de0fc 100644
  
    G_OBJECT_CLASS (cc_background_panel_parent_class)->dispose (object);
  }
-@@ -266,6 +311,7 @@ cc_background_panel_class_init (CcBackgroundPanelClass *klass)
+@@ -266,6 +312,7 @@ cc_background_panel_class_init (CcBackgroundPanelClass *klass)
    g_type_ensure (CC_TYPE_BACKGROUND_PREVIEW);
  
    panel_class->get_help_uri = cc_background_panel_get_help_uri;
@@ -87,7 +88,7 @@ index 29dedf165..c5e9de0fc 100644
  
    object_class->constructed = cc_background_panel_constructed;
    object_class->dispose = cc_background_panel_dispose;
-@@ -276,9 +322,14 @@ cc_background_panel_class_init (CcBackgroundPanelClass *klass)
+@@ -276,9 +323,14 @@ cc_background_panel_class_init (CcBackgroundPanelClass *klass)
    gtk_widget_class_bind_template_child (widget_class, CcBackgroundPanel, add_picture_button);
    gtk_widget_class_bind_template_child (widget_class, CcBackgroundPanel, background_chooser);
    gtk_widget_class_bind_template_child (widget_class, CcBackgroundPanel, desktop_preview);
@@ -97,12 +98,12 @@ index 29dedf165..c5e9de0fc 100644
  
    gtk_widget_class_bind_template_callback (widget_class, on_chooser_background_chosen_cb);
    gtk_widget_class_bind_template_callback (widget_class, on_add_picture_button_clicked_cb);
-+  gtk_widget_class_bind_template_callback (widget_class, sidebar_row_selected_cb);
++  gtk_widget_class_bind_template_callback (widget_class, sidebar_row_activated_cb);
 +  gtk_widget_class_bind_template_callback (widget_class, visible_child_changed);
  }
  
  static void
-@@ -301,10 +352,13 @@ cc_background_panel_init (CcBackgroundPanel *panel)
+@@ -301,10 +353,13 @@ cc_background_panel_init (CcBackgroundPanel *panel)
  
    panel->settings = g_settings_new (WP_PATH_ID);
    g_settings_delay (panel->settings);
@@ -118,7 +119,7 @@ index 29dedf165..c5e9de0fc 100644
    reload_current_bg (panel);
    update_preview (panel);
 diff --git a/panels/background/cc-background-panel.ui b/panels/background/cc-background-panel.ui
-index 7b5c3d385..c53f38948 100644
+index 7b5c3d385..4edf29144 100644
 --- a/panels/background/cc-background-panel.ui
 +++ b/panels/background/cc-background-panel.ui
 @@ -1,49 +1,65 @@
@@ -127,7 +128,7 @@ index 7b5c3d385..c53f38948 100644
    <!-- interface-requires gtk+ 3.0 -->
 +  <object class="GtkListBox" id="stack_sidebar">
 +    <property name="visible">True</property>
-+    <signal name="row-selected" handler="sidebar_row_selected_cb" object="CcBackgroundPanel" swapped="yes" />
++    <signal name="row-activated" handler="sidebar_row_activated_cb" object="CcBackgroundPanel" swapped="yes" />
 +  </object>
 +
    <template class="CcBackgroundPanel" parent="CcPanel">
