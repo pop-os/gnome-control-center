@@ -3,15 +3,15 @@ Date: Sun, 15 Mar 2020 09:07:51 +0100
 Subject: display: Allow fractional scaling to be enabled
 
 ---
- panels/display/cc-display-config-dbus.c |  54 +++++++
+ panels/display/cc-display-config-dbus.c |  60 ++++++++
  panels/display/cc-display-config.c      | 244 ++++++++++++++++++++++++++++++++
  panels/display/cc-display-config.h      |  11 ++
  panels/display/cc-display-settings.c    |  28 +++-
  panels/display/cc-display-settings.ui   |  16 +++
- 5 files changed, 352 insertions(+), 1 deletion(-)
+ 5 files changed, 358 insertions(+), 1 deletion(-)
 
 diff --git a/panels/display/cc-display-config-dbus.c b/panels/display/cc-display-config-dbus.c
-index 4bcbf86..8d00e58 100644
+index 4bcbf86..6134d2e 100644
 --- a/panels/display/cc-display-config-dbus.c
 +++ b/panels/display/cc-display-config-dbus.c
 @@ -892,6 +892,8 @@ struct _CcDisplayConfigDBus
@@ -84,7 +84,19 @@ index 4bcbf86..8d00e58 100644
  static gboolean
  is_scale_allowed_by_active_monitors (CcDisplayConfigDBus *self,
                                       CcDisplayMode       *mode,
-@@ -1599,6 +1641,14 @@ cc_display_config_dbus_constructed (GObject *object)
+@@ -1383,6 +1425,11 @@ cc_display_config_dbus_init (CcDisplayConfigDBus *self)
+   self->global_scale_required = FALSE;
+   self->layout_mode = CC_DISPLAY_LAYOUT_MODE_LOGICAL;
+   self->logical_monitors = g_hash_table_new (NULL, NULL);
++
++  if (g_getenv ("WAYLAND_DISPLAY"))
++    self->renderer = g_strdup ("native");
++  else if (g_getenv ("DISPLAY"))
++    self->renderer = g_strdup ("xrandr");
+ }
+ 
+ static void
+@@ -1599,6 +1646,15 @@ cc_display_config_dbus_constructed (GObject *object)
          {
            g_variant_get (v, "b", &self->global_scale_required);
          }
@@ -94,12 +106,13 @@ index 4bcbf86..8d00e58 100644
 +        }
 +      else if (g_str_equal (s, "renderer"))
 +        {
++          g_clear_pointer (&self->renderer, g_free);
 +          g_variant_get (v, "s", &self->renderer);
 +        }
        else if (g_str_equal (s, "layout-mode"))
          {
            guint32 u = 0;
-@@ -1685,6 +1735,7 @@ cc_display_config_dbus_finalize (GObject *object)
+@@ -1685,6 +1741,7 @@ cc_display_config_dbus_finalize (GObject *object)
    g_clear_pointer (&self->monitors, g_list_free);
    g_clear_pointer (&self->logical_monitors, g_hash_table_destroy);
    g_clear_pointer (&self->clone_modes, g_list_free);
@@ -107,7 +120,7 @@ index 4bcbf86..8d00e58 100644
  
    G_OBJECT_CLASS (cc_display_config_dbus_parent_class)->finalize (object);
  }
-@@ -1709,11 +1760,14 @@ cc_display_config_dbus_class_init (CcDisplayConfigDBusClass *klass)
+@@ -1709,11 +1766,14 @@ cc_display_config_dbus_class_init (CcDisplayConfigDBusClass *klass)
    parent_class->set_cloning = cc_display_config_dbus_set_cloning;
    parent_class->get_cloning_modes = cc_display_config_dbus_get_cloning_modes;
    parent_class->is_layout_logical = cc_display_config_dbus_is_layout_logical;
