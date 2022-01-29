@@ -1,0 +1,185 @@
+From: =?utf-8?b?Ik1hcmNvIFRyZXZpc2FuIChUcmV2acOxbyki?= <mail@3v1n0.net>
+Date: Sat, 29 Jan 2022 20:36:34 +0100
+Subject: multitasking-panel: Sync workspace and monitor isolation dock
+ settings
+
+When using ubuntu-dock the multitasking panel setting doesn't fully
+apply, because even though the user selects to isolate workspaces, the
+dock may still continue to show icons from all the workspaces.
+
+As per this, ensure that the settings are applied also to the dock, plus
+include dock-specifc settings to control multi-monitor behavior.
+
+Forwarded: not-need
+---
+ panels/multitasking/cc-multitasking-panel.c  | 59 ++++++++++++++++++++++++++++
+ panels/multitasking/cc-multitasking-panel.ui | 51 ++++++++++++++++++++++++
+ 2 files changed, 110 insertions(+)
+
+diff --git a/panels/multitasking/cc-multitasking-panel.c b/panels/multitasking/cc-multitasking-panel.c
+index 1523e35..92bc36c 100644
+--- a/panels/multitasking/cc-multitasking-panel.c
++++ b/panels/multitasking/cc-multitasking-panel.c
+@@ -32,6 +32,7 @@ struct _CcMultitaskingPanel
+   GSettings       *interface_settings;
+   GSettings       *mutter_settings;
+   GSettings       *shell_settings;
++  GSettings       *dock_settings;
+   GSettings       *wm_settings;
+ 
+   GtkSwitch       *active_screen_edges_switch;
+@@ -42,10 +43,32 @@ struct _CcMultitaskingPanel
+   GtkSpinButton   *number_of_workspaces_spin;
+   GtkToggleButton *workspaces_primary_display_radio;
+   GtkToggleButton *workspaces_span_displays_radio;
++
++  GtkListBox      *monitor_isolation_box;
++  GtkToggleButton *dock_monitors_isolation_radio;
++  GtkToggleButton *dock_each_monitor_radio;
+ };
+ 
+ CC_PANEL_REGISTER (CcMultitaskingPanel, cc_multitasking_panel)
+ 
++static void
++keep_dock_settings_in_sync (CcMultitaskingPanel *self)
++{
++  gboolean switcher_isolate_workspaces;
++  gboolean dock_isolate_workspaces;
++
++  switcher_isolate_workspaces = g_settings_get_boolean (self->shell_settings,
++    "current-workspace-only");
++  dock_isolate_workspaces = g_settings_get_boolean (self->dock_settings,
++    "isolate-workspaces");
++
++  if (switcher_isolate_workspaces != dock_isolate_workspaces)
++    {
++      g_settings_set_boolean (self->dock_settings, "isolate-workspaces",
++                              switcher_isolate_workspaces);
++    }
++}
++
+ /* GObject overrides */
+ 
+ static void
+@@ -56,6 +79,7 @@ cc_multitasking_panel_finalize (GObject *object)
+   g_clear_object (&self->interface_settings);
+   g_clear_object (&self->mutter_settings);
+   g_clear_object (&self->shell_settings);
++  g_clear_object (&self->dock_settings);
+   g_clear_object (&self->wm_settings);
+ 
+   G_OBJECT_CLASS (cc_multitasking_panel_parent_class)->finalize (object);
+@@ -81,11 +105,18 @@ cc_multitasking_panel_class_init (CcMultitaskingPanelClass *klass)
+   gtk_widget_class_bind_template_child (widget_class, CcMultitaskingPanel, number_of_workspaces_spin);
+   gtk_widget_class_bind_template_child (widget_class, CcMultitaskingPanel, workspaces_primary_display_radio);
+   gtk_widget_class_bind_template_child (widget_class, CcMultitaskingPanel, workspaces_span_displays_radio);
++
++  gtk_widget_class_bind_template_child (widget_class, CcMultitaskingPanel, monitor_isolation_box);
++  gtk_widget_class_bind_template_child (widget_class, CcMultitaskingPanel, dock_monitors_isolation_radio);
++  gtk_widget_class_bind_template_child (widget_class, CcMultitaskingPanel, dock_each_monitor_radio);
+ }
+ 
+ static void
+ cc_multitasking_panel_init (CcMultitaskingPanel *self)
+ {
++  GSettingsSchemaSource *schema_source = g_settings_schema_source_get_default ();
++  g_autoptr(GSettingsSchema) schema = NULL;
++
+   g_resources_register (cc_multitasking_get_resource ());
+ 
+   gtk_widget_init_template (GTK_WIDGET (self));
+@@ -143,4 +174,32 @@ cc_multitasking_panel_init (CcMultitaskingPanel *self)
+                    self->current_workspace_radio,
+                    "active",
+                    G_SETTINGS_BIND_DEFAULT);
++
++  schema = g_settings_schema_source_lookup (schema_source,
++                                            "org.gnome.shell.extensions.dash-to-dock",
++                                            TRUE);
++  if (schema)
++    {
++      self->dock_settings = g_settings_new_full (schema, NULL, NULL);
++
++      g_signal_connect_object (self->shell_settings, "changed::current-workspace-only",
++                               G_CALLBACK (keep_dock_settings_in_sync), self,
++                               G_CONNECT_SWAPPED);
++      g_signal_connect_object (self->dock_settings, "changed::isolate-workspaces",
++                               G_CALLBACK (keep_dock_settings_in_sync), self,
++                               G_CONNECT_SWAPPED);
++
++      keep_dock_settings_in_sync (self);
++
++      gtk_widget_show (GTK_WIDGET (self->monitor_isolation_box));
++
++      if (g_settings_get_boolean (self->dock_settings, "isolate-monitors"))
++        gtk_toggle_button_set_active (self->dock_each_monitor_radio, TRUE);
++
++      g_settings_bind (self->dock_settings,
++                       "isolate-monitors",
++                       self->dock_each_monitor_radio,
++                       "active",
++                       G_SETTINGS_BIND_DEFAULT);
++    }
+ }
+diff --git a/panels/multitasking/cc-multitasking-panel.ui b/panels/multitasking/cc-multitasking-panel.ui
+index 5b57250..de396bf 100644
+--- a/panels/multitasking/cc-multitasking-panel.ui
++++ b/panels/multitasking/cc-multitasking-panel.ui
+@@ -338,6 +338,57 @@
+                   </object>
+                 </child>
+ 
++                <child>
++                  <object class="GtkListBox" id="monitor_isolation_box">
++                    <property name="visible">False</property>
++                    <property name="can-focus">true</property>
++                    <property name="selection-mode">none</property>
++                    <property name="margin-bottom">18</property>
++
++                    <style>
++                      <class name="content"/>
++                    </style>
++
++                    <!-- All Monitors -->
++                    <child>
++                      <object class="CcMultitaskingRow">
++                        <property name="visible">True</property>
++                        <property name="can_focus">True</property>
++                        <property name="activatable-widget">dock_monitors_isolation_radio</property>
++                        <property name="title" translatable="yes">Include applications from all _monitors</property>
++                        <property name="use_underline">True</property>
++                        <child type="prefix">
++                          <object class="GtkRadioButton" id="dock_monitors_isolation_radio">
++                            <property name="visible">True</property>
++                            <property name="can_focus">True</property>
++                            <property name="valign">center</property>
++                          </object>
++                        </child>
++                      </object>
++                    </child>
++
++                    <!-- Monitor isolation -->
++                    <child>
++                      <object class="CcMultitaskingRow">
++                        <property name="visible">True</property>
++                        <property name="can_focus">True</property>
++                        <property name="activatable-widget">dock_each_monitor_radio</property>
++                        <property name="title" translatable="yes">Include applications from _each monitor only</property>
++                        <property name="use_underline">True</property>
++                        <child type="prefix">
++                          <object class="GtkRadioButton" id="dock_each_monitor_radio">
++                            <property name="visible">True</property>
++                            <property name="can_focus">True</property>
++                            <property name="valign">center</property>
++                            <property name="group">dock_monitors_isolation_radio</property>
++                          </object>
++                        </child>
++                      </object>
++                    </child>
++
++                  </object>
++                </child>
++
+               </object>
+             </child>
+ 
