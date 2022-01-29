@@ -11,18 +11,18 @@ Origin: ubuntu
 Forwarded: not-needed
 ---
  panels/meson.build                             |   1 +
- panels/ubuntu/cc-ubuntu-panel.c                | 723 +++++++++++++++++++++++++
+ panels/ubuntu/cc-ubuntu-panel.c                | 733 +++++++++++++++++++++++++
  panels/ubuntu/cc-ubuntu-panel.h                |  35 ++
- panels/ubuntu/cc-ubuntu-panel.ui               | 368 +++++++++++++
+ panels/ubuntu/cc-ubuntu-panel.ui               | 369 +++++++++++++
  panels/ubuntu/gnome-ubuntu-panel.desktop.in.in |  16 +
- panels/ubuntu/meson.build                      |  42 ++
+ panels/ubuntu/meson.build                      |  41 ++
  panels/ubuntu/theme-dark.svg                   | 381 +++++++++++++
  panels/ubuntu/theme-light.svg                  | 380 +++++++++++++
  panels/ubuntu/ubuntu.gresource.xml             |   8 +
  po/POTFILES.in                                 |   3 +
  shell/cc-panel-list.c                          |   1 +
  shell/cc-panel-loader.c                        |   3 +
- 12 files changed, 1961 insertions(+)
+ 12 files changed, 1971 insertions(+)
  create mode 100644 panels/ubuntu/cc-ubuntu-panel.c
  create mode 100644 panels/ubuntu/cc-ubuntu-panel.h
  create mode 100644 panels/ubuntu/cc-ubuntu-panel.ui
@@ -46,10 +46,10 @@ index f603db9..c21910a 100644
    'user-accounts',
 diff --git a/panels/ubuntu/cc-ubuntu-panel.c b/panels/ubuntu/cc-ubuntu-panel.c
 new file mode 100644
-index 0000000..13d732e
+index 0000000..a601ed7
 --- /dev/null
 +++ b/panels/ubuntu/cc-ubuntu-panel.c
-@@ -0,0 +1,723 @@
+@@ -0,0 +1,733 @@
 +/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 +/*
 + * Copyright (C) 2017-2020 Canonical Ltd
@@ -458,7 +458,7 @@ index 0000000..13d732e
 +
 +  if (gtk_theme != NULL)
 +    g_settings_set_string (self->interface_settings, GTK_THEME_KEY, gtk_theme);
-+  if (gedit_theme != NULL)
++  if (self->gedit_settings && gedit_theme != NULL)
 +    g_settings_set_string (self->gedit_settings, GEDIT_THEME_KEY, gedit_theme);
 +}
 +
@@ -687,6 +687,7 @@ index 0000000..13d732e
 +static void
 +cc_ubuntu_panel_init (CcUbuntuPanel *self)
 +{
++  GSettingsSchemaSource *schema_source = g_settings_schema_source_get_default ();
 +  g_autoptr(GSettingsSchema) schema = NULL;
 +
 +  g_resources_register (cc_ubuntu_get_resource ());
@@ -702,12 +703,21 @@ index 0000000..13d732e
 +                           G_CALLBACK (on_interface_settings_changed), self, G_CONNECT_SWAPPED);
 +  g_signal_connect_object (self->interface_settings, "changed::" ICON_THEME_KEY,
 +                           G_CALLBACK (on_interface_settings_changed), self, G_CONNECT_SWAPPED);
-+  self->gedit_settings = g_settings_new (GEDIT_PREFRENCES_SCHEMA);
-+  g_signal_connect_object (self->gedit_settings, "changed::" GEDIT_THEME_KEY,
-+                           G_CALLBACK (on_interface_settings_changed), self, G_CONNECT_SWAPPED);
++
++  schema = g_settings_schema_source_lookup (schema_source, GEDIT_PREFRENCES_SCHEMA, TRUE);
++  if (schema)
++    {
++      self->gedit_settings = g_settings_new (GEDIT_PREFRENCES_SCHEMA);
++      g_signal_connect_object (self->gedit_settings, "changed::" GEDIT_THEME_KEY,
++                               G_CALLBACK (on_interface_settings_changed), self, G_CONNECT_SWAPPED);
++    }
++  else
++    {
++      g_warning ("No gedit is installed here. Colors won't be updated. Please fix your installation.");
++    }
 +
 +  /* Only load if we have ubuntu dock or dash to dock installed */
-+  schema = g_settings_schema_source_lookup (g_settings_schema_source_get_default (), UBUNTU_DOCK_SCHEMA, TRUE);
++  schema = g_settings_schema_source_lookup (schema_source, UBUNTU_DOCK_SCHEMA, TRUE);
 +  if (!schema)
 +    {
 +      g_warning ("No Ubuntu Dock is installed here. Panel disabled. Please fix your installation.");
@@ -816,10 +826,10 @@ index 0000000..b13f611
 +#endif /* _CC_EDIT_DIALOG_H_ */
 diff --git a/panels/ubuntu/cc-ubuntu-panel.ui b/panels/ubuntu/cc-ubuntu-panel.ui
 new file mode 100644
-index 0000000..d45237c
+index 0000000..fdeff16
 --- /dev/null
 +++ b/panels/ubuntu/cc-ubuntu-panel.ui
-@@ -0,0 +1,368 @@
+@@ -0,0 +1,369 @@
 +<?xml version="1.0" encoding="UTF-8"?>
 +<!-- Generated with glade 3.20.0 -->
 +<interface>
@@ -1185,6 +1195,7 @@ index 0000000..d45237c
 +      <!-- column-name label -->
 +      <column type="gchararray"/>
 +      <column type="gint"/>
++      <column type="gchararray"/>
 +    </columns>
 +  </object>
 +</interface>
@@ -1212,7 +1223,7 @@ index 0000000..78571f1
 +Keywords=Dock;Launcher;Theme;
 diff --git a/panels/ubuntu/meson.build b/panels/ubuntu/meson.build
 new file mode 100644
-index 0000000..234bb10
+index 0000000..5f55706
 --- /dev/null
 +++ b/panels/ubuntu/meson.build
 @@ -0,0 +1,41 @@
