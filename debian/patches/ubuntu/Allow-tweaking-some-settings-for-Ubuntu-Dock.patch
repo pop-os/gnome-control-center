@@ -11,18 +11,18 @@ Origin: ubuntu
 Forwarded: not-needed
 ---
  panels/meson.build                             |   1 +
- panels/ubuntu/cc-ubuntu-panel.c                | 733 +++++++++++++++++++++++++
+ panels/ubuntu/cc-ubuntu-panel.c                | 806 +++++++++++++++++++++++++
  panels/ubuntu/cc-ubuntu-panel.h                |  35 ++
- panels/ubuntu/cc-ubuntu-panel.ui               | 369 +++++++++++++
+ panels/ubuntu/cc-ubuntu-panel.ui               | 369 +++++++++++
  panels/ubuntu/gnome-ubuntu-panel.desktop.in.in |  16 +
  panels/ubuntu/meson.build                      |  41 ++
- panels/ubuntu/theme-dark.svg                   | 381 +++++++++++++
- panels/ubuntu/theme-light.svg                  | 380 +++++++++++++
+ panels/ubuntu/theme-dark.svg                   | 381 ++++++++++++
+ panels/ubuntu/theme-light.svg                  | 380 ++++++++++++
  panels/ubuntu/ubuntu.gresource.xml             |   8 +
  po/POTFILES.in                                 |   3 +
  shell/cc-panel-list.c                          |   1 +
  shell/cc-panel-loader.c                        |   3 +
- 12 files changed, 1971 insertions(+)
+ 12 files changed, 2044 insertions(+)
  create mode 100644 panels/ubuntu/cc-ubuntu-panel.c
  create mode 100644 panels/ubuntu/cc-ubuntu-panel.h
  create mode 100644 panels/ubuntu/cc-ubuntu-panel.ui
@@ -46,10 +46,10 @@ index f603db9..c21910a 100644
    'user-accounts',
 diff --git a/panels/ubuntu/cc-ubuntu-panel.c b/panels/ubuntu/cc-ubuntu-panel.c
 new file mode 100644
-index 0000000..a601ed7
+index 0000000..f3e5f81
 --- /dev/null
 +++ b/panels/ubuntu/cc-ubuntu-panel.c
-@@ -0,0 +1,733 @@
+@@ -0,0 +1,806 @@
 +/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 +/*
 + * Copyright (C) 2017-2020 Canonical Ltd
@@ -93,7 +93,15 @@ index 0000000..a601ed7
 +
 +#define UBUNTU_DOCK_SCHEMA "org.gnome.shell.extensions.dash-to-dock"
 +#define UBUNTU_DOCK_ALL_MONITORS_KEY "multi-monitor"
-+#define UBUNTU_DOCK_ON_MONITOR_KEY "preferred-monitor"
++#define UBUNTU_DOCK_PREFERRED_MONITOR_KEY "preferred-monitor"
++#define UBUNTU_DOCK_PREFERRED_CONNECTOR_KEY "preferred-monitor-by-connector"
++
++/*
++ * This allows to migrate settings from 'preferred-monitor' to
++ * 'preferred-monitor-by-connector', and can be removed after 22.04
++ * simplifying all the logic, by relying on connector names only.
++ */
++#define UBUNTU_DOCK_MONITOR_INDEX_USE_CONNECTOR -2
 +
 +#define INTERFACE_SCHEMA "org.gnome.desktop.interface"
 +#define GTK_THEME_KEY "gtk-theme"
@@ -265,22 +273,14 @@ index 0000000..a601ed7
 +                    gint            *n_monitors,
 +                    gint            *primary_index)
 +{
-+  g_autoptr(CcDisplayConfig) current = NULL;
 +  CcDisplayMonitor *primary_monitor;
 +  GList *config_monitors = NULL;
 +  GList *valid_monitors, *l;
 +  gint n_valid_monitors;
 +
-+  if (config)
-+    {
-+      config_monitors = cc_display_config_get_monitors (config);
-+    }
-+  else if (self->display_config_manager)
-+    {
-+      current = cc_display_config_manager_get_current (self->display_config_manager);
-+      config_monitors = cc_display_config_get_monitors (current);
-+    }
++  g_return_val_if_fail (CC_IS_DISPLAY_CONFIG (config), NULL);
 +
++  config_monitors = cc_display_config_get_monitors (config);
 +  primary_monitor = NULL;
 +  valid_monitors = NULL;
 +  n_valid_monitors = 0;
@@ -312,6 +312,27 @@ index 0000000..a601ed7
 +}
 +
 +static int
++ui_sort_monitor (gconstpointer a, gconstpointer b)
++{
++  CcDisplayMonitor *monitor_a = (CcDisplayMonitor *) a;
++  CcDisplayMonitor *monitor_b = (CcDisplayMonitor *) b;
++
++  return cc_display_monitor_get_ui_number (monitor_a) -
++         cc_display_monitor_get_ui_number (monitor_b);
++}
++
++static GList *
++get_valid_monitors_sorted (CcUbuntuPanel   *self,
++                           CcDisplayConfig *config,
++                           gint            *n_monitors,
++                           gint            *primary_index)
++{
++  GList *monitors = get_valid_monitors (self, config, n_monitors, primary_index);
++
++  return g_list_sort (monitors, ui_sort_monitor);
++}
++
++static int
 +cc_monitor_id_to_dock (gint index,
 +                       gint primary_monitor,
 +                       gint n_monitors)
@@ -334,12 +355,15 @@ index 0000000..a601ed7
 +on_screen_changed (CcUbuntuPanel *self)
 +{
 +  g_autoptr(CcDisplayConfig) current = NULL;
-+  g_autoptr(GList) valid_outputs = NULL;
++  g_autoptr(GList) valid_monitors = NULL;
++  g_autofree char *primary_monitor_label = NULL;
++  const char *primary_monitor_name = NULL;
 +  GtkTreeIter ubuntu_dock_placement_iter;
-+  GList *outputs, *l;
++  GList *l;
 +  gint n_monitors;
 +  gint primary_monitor;
 +  gboolean is_rtl;
++  gint index;
 +
 +  if (self->display_config_manager == NULL)
 +    return;
@@ -350,59 +374,72 @@ index 0000000..a601ed7
 +
 +  gtk_list_store_clear (self->dock_placement_liststore);
 +
-+  outputs = cc_display_config_get_ui_sorted_monitors (current);
-+  valid_outputs = get_valid_monitors (self, current, &n_monitors, &primary_monitor);
++  valid_monitors = get_valid_monitors_sorted (self, current, &n_monitors, &primary_monitor);
 +  is_rtl = gtk_widget_get_state_flags (GTK_WIDGET (self->dock_placement_combo)) & GTK_STATE_FLAG_DIR_RTL;
 +
-+  for (l = outputs; l != NULL && valid_outputs != NULL; l = l->next)
++  for (l = valid_monitors, index = 0; l != NULL; l = l->next, index++)
 +    {
 +      g_autofree char *monitor_label = NULL;
-+      CcDisplayMonitor *output = l->data;
-+      int monitor_id;
++      CcDisplayMonitor *monitor = l->data;
++      const gchar *monitor_name;
 +
-+      if (!cc_display_monitor_is_active (output))
-+        continue;
++      monitor_name = cc_display_monitor_get_display_name (monitor);
++      monitor_label = g_strdup (monitor_name);
 +
-+      const gchar *monitor_name = cc_display_monitor_get_display_name (output);
-+      if (cc_display_monitor_is_primary (output))
-+        {
-+          if (!is_rtl)
-+            monitor_label = g_strdup_printf ("%s (%s)", monitor_name, _("Primary Display"));
-+          else
-+            monitor_label = g_strdup_printf ("(%s) %s", _("Primary Display"), monitor_name);
-+        }
-+      else
-+        {
-+          monitor_label = g_strdup (monitor_name);
-+        }
++      if (cc_display_monitor_is_primary (monitor))
++        primary_monitor_name = monitor_name;
 +
 +      if (n_monitors > 1)
 +        {
-+          int monitor_number = cc_display_monitor_get_ui_number (output);
++          int monitor_number = cc_display_monitor_get_ui_number (monitor);
 +          g_autofree char *old_label = g_steal_pointer (&monitor_label);
 +
 +          if (!is_rtl)
-+            monitor_label = g_strdup_printf ("%d. %s", monitor_number,  old_label);
++            monitor_label = g_strdup_printf ("%d. %s", monitor_number, old_label);
 +          else
 +            monitor_label = g_strdup_printf ("%s .%d", old_label, monitor_number);
 +        }
 +
-+      monitor_id = cc_monitor_id_to_dock (g_list_index (valid_outputs, output),
-+                                          primary_monitor, n_monitors);
-+
 +      gtk_list_store_append (self->dock_placement_liststore, &ubuntu_dock_placement_iter);
 +      gtk_list_store_set (self->dock_placement_liststore, &ubuntu_dock_placement_iter,
 +                          0, monitor_label,
-+                          1, monitor_id,
++                          1, cc_monitor_id_to_dock (index, primary_monitor, n_monitors),
++                          2, cc_display_monitor_get_connector_name(monitor),
 +                          -1);
 +    }
 +
-+  gtk_widget_set_visible (GTK_WIDGET (self->dock_monitor_row), valid_outputs != NULL);
++  gtk_widget_set_visible (GTK_WIDGET (self->dock_monitor_row), valid_monitors != NULL);
++
++  if (primary_monitor_name)
++    {
++      if (!is_rtl)
++        {
++          primary_monitor_label =
++            g_strdup_printf ("%s (%s)", _("Primary Display"), primary_monitor_name);
++        }
++      else
++        {
++          primary_monitor_label =
++            g_strdup_printf ("(%s) %s", primary_monitor_name, _("Primary Display"));
++        }
++    }
++  else
++    {
++      primary_monitor_label = g_strdup (_("Primary Display"));
++    }
++
++  gtk_list_store_prepend (self->dock_placement_liststore, &ubuntu_dock_placement_iter);
++  gtk_list_store_set (self->dock_placement_liststore, &ubuntu_dock_placement_iter,
++                      0, primary_monitor_label,
++                      1, -1,
++                      2, "primary",
++                      -1);
 +
 +  gtk_list_store_prepend (self->dock_placement_liststore, &ubuntu_dock_placement_iter);
 +  gtk_list_store_set (self->dock_placement_liststore, &ubuntu_dock_placement_iter,
 +                      0, _("All displays"),
-+                      1, -1,
++                      1, G_MININT,
++                      2, NULL,
 +                      -1);
 +
 +  update_dock_placement_combo_selection (self);
@@ -513,21 +550,24 @@ index 0000000..a601ed7
 +on_dock_placement_combo_changed (CcUbuntuPanel *self)
 +{
 +  gint active;
-+  gint monitor_id;
 +  gboolean ubuntu_dock_on_all_monitors;
-+  gint ubuntu_dock_current_index;
++  g_autofree char *ubuntu_dock_current_connector = NULL;
 +
 +  active = gtk_combo_box_get_active (self->dock_placement_combo);
 +  if (active < 0)
 +    return;
 +
-+  ubuntu_dock_on_all_monitors = g_settings_get_boolean (self->dock_settings, UBUNTU_DOCK_ALL_MONITORS_KEY);
-+  ubuntu_dock_current_index = g_settings_get_int (self->dock_settings, UBUNTU_DOCK_ON_MONITOR_KEY);
++  ubuntu_dock_on_all_monitors =
++    g_settings_get_boolean (self->dock_settings, UBUNTU_DOCK_ALL_MONITORS_KEY);
++  ubuntu_dock_current_connector =
++    g_settings_get_string (self->dock_settings, UBUNTU_DOCK_PREFERRED_CONNECTOR_KEY);
 +  if (active == 0)
 +    {
 +      if (!ubuntu_dock_on_all_monitors)
 +        {
-+          g_settings_set_boolean (self->dock_settings, UBUNTU_DOCK_ALL_MONITORS_KEY, TRUE);
++          g_settings_set_boolean (self->dock_settings,
++                                  UBUNTU_DOCK_ALL_MONITORS_KEY,
++                                  TRUE);
 +          g_settings_apply (self->dock_settings);
 +        }
 +    }
@@ -536,6 +576,7 @@ index 0000000..a601ed7
 +      GtkTreeIter placement_iter;
 +      g_autoptr(GSettings) delayed_settings = g_settings_new (UBUNTU_DOCK_SCHEMA);
 +      g_settings_delay (delayed_settings);
++      g_autofree char *connector_name = NULL;
 +
 +      if (ubuntu_dock_on_all_monitors)
 +        g_settings_set_boolean (delayed_settings, UBUNTU_DOCK_ALL_MONITORS_KEY, FALSE);
@@ -544,10 +585,16 @@ index 0000000..a601ed7
 +                                     &placement_iter, NULL, active);
 +      gtk_tree_model_get (GTK_TREE_MODEL (self->dock_placement_liststore),
 +                          &placement_iter,
-+                          1, &monitor_id, -1);
++                          2, &connector_name,
++                          -1);
 +
-+      if (ubuntu_dock_current_index != monitor_id)
-+        g_settings_set_int (delayed_settings, UBUNTU_DOCK_ON_MONITOR_KEY, monitor_id);
++      if (g_strcmp0 (ubuntu_dock_current_connector, connector_name) != 0)
++        {
++          g_settings_set_int (delayed_settings, UBUNTU_DOCK_PREFERRED_MONITOR_KEY,
++                                                UBUNTU_DOCK_MONITOR_INDEX_USE_CONNECTOR);
++          g_settings_set_string (delayed_settings, UBUNTU_DOCK_PREFERRED_CONNECTOR_KEY,
++                                 connector_name);
++        }
 +
 +      g_settings_apply (delayed_settings);
 +    }
@@ -557,15 +604,39 @@ index 0000000..a601ed7
 +get_dock_monitor (CcUbuntuPanel *self)
 +{
 +  g_autoptr(GList) monitors = NULL;
++  g_autoptr(CcDisplayConfig) config = NULL;
 +  int index;
 +  int n_monitors;
 +  int primary_monitor;
 +
-+  monitors = get_valid_monitors (self, NULL, &n_monitors, &primary_monitor);
-+  index = g_settings_get_int (self->dock_settings, UBUNTU_DOCK_ON_MONITOR_KEY);
++  config = cc_display_config_manager_get_current (self->display_config_manager);
++  if (!config)
++    return -1;
++
++  monitors = get_valid_monitors_sorted (self, config, &n_monitors, &primary_monitor);
++  index = g_settings_get_int (self->dock_settings, UBUNTU_DOCK_PREFERRED_MONITOR_KEY);
++
++  if (index == UBUNTU_DOCK_MONITOR_INDEX_USE_CONNECTOR)
++    {
++      g_autofree char *connector = NULL;
++      GList *l;
++      int i;
++
++      connector = g_settings_get_string (self->dock_settings,
++                                         UBUNTU_DOCK_PREFERRED_CONNECTOR_KEY);
++
++      for (l = monitors, i = 0; l; l = l->next, i++)
++        {
++          CcDisplayMonitor *monitor = l->data;
++          const char *monitor_connector = cc_display_monitor_get_connector_name (monitor);
++
++          if (g_strcmp0 (monitor_connector, connector) == 0)
++            index = cc_monitor_id_to_dock (i, primary_monitor, n_monitors);
++        }
++    }
 +
 +  if (index < 0 || index >= n_monitors)
-+    return primary_monitor;
++    return -1;
 +
 +  return index;
 +}
@@ -575,7 +646,7 @@ index 0000000..a601ed7
 +{
 +  int selection = 0;
 +
-+  if (g_settings_get_boolean (self->dock_settings, UBUNTU_DOCK_ALL_MONITORS_KEY) == FALSE)
++  if (!g_settings_get_boolean (self->dock_settings, UBUNTU_DOCK_ALL_MONITORS_KEY))
 +    {
 +      GtkTreeIter placement_iter;
 +      int dock_monitor;
@@ -728,7 +799,9 @@ index 0000000..a601ed7
 +                           G_CALLBACK (icon_size_widget_refresh), self, G_CONNECT_SWAPPED);
 +  g_signal_connect_object (self->dock_settings, "changed::" UBUNTU_DOCK_ALL_MONITORS_KEY,
 +                           G_CALLBACK (update_dock_placement_combo_selection), self, G_CONNECT_SWAPPED);
-+  g_signal_connect_object (self->dock_settings, "changed::" UBUNTU_DOCK_ON_MONITOR_KEY,
++  g_signal_connect_object (self->dock_settings, "changed::" UBUNTU_DOCK_PREFERRED_MONITOR_KEY,
++                           G_CALLBACK (update_dock_placement_combo_selection), self, G_CONNECT_SWAPPED);
++  g_signal_connect_object (self->dock_settings, "changed::" UBUNTU_DOCK_PREFERRED_CONNECTOR_KEY,
 +                           G_CALLBACK (update_dock_placement_combo_selection), self, G_CONNECT_SWAPPED);
 +  g_settings_bind_with_mapping (self->dock_settings, "dock-position",
 +                                self->dock_position_combo, "active-id",
