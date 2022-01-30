@@ -10,19 +10,19 @@ Ubuntu Dock installation. Those are located in its own panel for now:
 Origin: ubuntu
 Forwarded: not-needed
 ---
- panels/meson.build                             |   1 +
- panels/ubuntu/cc-ubuntu-panel.c                | 818 +++++++++++++++++++++++++
- panels/ubuntu/cc-ubuntu-panel.h                |  35 ++
- panels/ubuntu/cc-ubuntu-panel.ui               | 268 ++++++++
- panels/ubuntu/gnome-ubuntu-panel.desktop.in.in |  16 +
- panels/ubuntu/meson.build                      |  41 ++
- panels/ubuntu/theme-dark.svg                   | 381 ++++++++++++
- panels/ubuntu/theme-light.svg                  | 380 ++++++++++++
- panels/ubuntu/ubuntu.gresource.xml             |   8 +
- po/POTFILES.in                                 |   3 +
- shell/cc-panel-list.c                          |   1 +
- shell/cc-panel-loader.c                        |   3 +
- 12 files changed, 1955 insertions(+)
+ panels/meson.build                             |    1 +
+ panels/ubuntu/cc-ubuntu-panel.c                | 1020 ++++++++++++++++++++++++
+ panels/ubuntu/cc-ubuntu-panel.h                |   35 +
+ panels/ubuntu/cc-ubuntu-panel.ui               |  228 ++++++
+ panels/ubuntu/gnome-ubuntu-panel.desktop.in.in |   16 +
+ panels/ubuntu/meson.build                      |   41 +
+ panels/ubuntu/theme-dark.svg                   |  381 +++++++++
+ panels/ubuntu/theme-light.svg                  |  380 +++++++++
+ panels/ubuntu/ubuntu.gresource.xml             |    8 +
+ po/POTFILES.in                                 |    3 +
+ shell/cc-panel-list.c                          |    1 +
+ shell/cc-panel-loader.c                        |    3 +
+ 12 files changed, 2117 insertions(+)
  create mode 100644 panels/ubuntu/cc-ubuntu-panel.c
  create mode 100644 panels/ubuntu/cc-ubuntu-panel.h
  create mode 100644 panels/ubuntu/cc-ubuntu-panel.ui
@@ -46,10 +46,10 @@ index f603db9..c21910a 100644
    'user-accounts',
 diff --git a/panels/ubuntu/cc-ubuntu-panel.c b/panels/ubuntu/cc-ubuntu-panel.c
 new file mode 100644
-index 0000000..1504174
+index 0000000..8de4584
 --- /dev/null
 +++ b/panels/ubuntu/cc-ubuntu-panel.c
-@@ -0,0 +1,818 @@
+@@ -0,0 +1,1020 @@
 +/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 +/*
 + * Copyright (C) 2017-2020 Canonical Ltd
@@ -115,12 +115,11 @@ index 0000000..1504174
 +struct _CcUbuntuPanel {
 +  CcPanel                 parent_instance;
 +
++  HdyPreferencesGroup    *dock_preferences_group;
 +  GtkSwitch              *dock_autohide_switch;
-+  GtkListBox             *dock_listbox;
-+  GtkListBoxRow          *dock_monitor_row;
-+  GtkComboBox            *dock_placement_combo;
-+  GtkListStore           *dock_placement_liststore;
-+  GtkComboBoxText        *dock_position_combo;
++  HdyComboRow            *dock_monitor_row;
++  GListStore             *dock_monitors_liststore;
++  HdyComboRow            *dock_position_row;
 +  GtkAdjustment          *icon_size_adjustment;
 +  GtkScale               *icon_size_scale;
 +  GtkFlowBox             *theme_box;
@@ -131,13 +130,16 @@ index 0000000..1504174
 +  GSettings              *interface_settings;
 +  GSettings              *gedit_settings;
 +  CcDisplayConfigManager *display_config_manager;
++  CcDisplayConfig        *display_current_config;
 +  GDBusProxy             *shell_proxy;
++
++  gboolean                updating;
 +};
 +
 +CC_PANEL_REGISTER (CcUbuntuPanel, cc_ubuntu_panel);
 +
 +static void monitor_labeler_hide (CcUbuntuPanel *self);
-+static void update_dock_placement_combo_selection (CcUbuntuPanel *self);
++static void update_dock_monitor_combo_row_selection (CcUbuntuPanel *self);
 +
 +static void
 +cc_ubuntu_panel_dispose (GObject *object)
@@ -146,9 +148,19 @@ index 0000000..1504174
 +
 +  monitor_labeler_hide (self);
 +
++  /* Upstream code is wrong at handling configuration finalization if happens
++   * earlier than one of its child nodes, so we need to remove the entries
++   * not to make this happen implicitly too late, causing a crash.
++   * This can be removed when the follow MR is merged:
++   * https://gitlab.gnome.org/GNOME/gnome-control-center/-/merge_requests/1175
++   */
++  g_list_store_remove_all (self->dock_monitors_liststore);
++
 +  g_clear_object (&self->dock_settings);
++  g_clear_object (&self->dock_monitors_liststore);
 +  g_clear_object (&self->interface_settings);
 +  g_clear_object (&self->gedit_settings);
++  g_clear_object (&self->display_current_config);
 +  g_clear_object (&self->display_config_manager);
 +  g_clear_object (&self->shell_proxy);
 +
@@ -170,7 +182,6 @@ index 0000000..1504174
 +static void
 +monitor_labeler_show (CcUbuntuPanel *self)
 +{
-+  g_autoptr(CcDisplayConfig) current_config = NULL;
 +  GList *outputs, *l;
 +  GVariantBuilder builder;
 +  gint number = 0;
@@ -179,16 +190,11 @@ index 0000000..1504174
 +  if (!self->shell_proxy || !self->display_config_manager)
 +    return;
 +
-+  current_config = cc_display_config_manager_get_current (self->display_config_manager);
-+
-+  if (!current_config)
-+    return;
-+
-+  outputs = cc_display_config_get_ui_sorted_monitors (current_config);
++  outputs = cc_display_config_get_ui_sorted_monitors (self->display_current_config);
 +  if (!outputs)
 +    return;
 +
-+  if (cc_display_config_is_cloning (current_config))
++  if (cc_display_config_is_cloning (self->display_current_config))
 +    return monitor_labeler_hide (self);
 +
 +  g_variant_builder_init (&builder, G_VARIANT_TYPE_TUPLE);
@@ -270,7 +276,6 @@ index 0000000..1504174
 +
 +static GList *
 +get_valid_monitors (CcUbuntuPanel   *self,
-+                    CcDisplayConfig *config,
 +                    gint            *n_monitors,
 +                    gint            *primary_index)
 +{
@@ -279,9 +284,7 @@ index 0000000..1504174
 +  GList *valid_monitors, *l;
 +  gint n_valid_monitors;
 +
-+  g_return_val_if_fail (CC_IS_DISPLAY_CONFIG (config), NULL);
-+
-+  config_monitors = cc_display_config_get_monitors (config);
++  config_monitors = cc_display_config_get_monitors (self->display_current_config);
 +  primary_monitor = NULL;
 +  valid_monitors = NULL;
 +  n_valid_monitors = 0;
@@ -324,47 +327,129 @@ index 0000000..1504174
 +
 +static GList *
 +get_valid_monitors_sorted (CcUbuntuPanel   *self,
-+                           CcDisplayConfig *config,
 +                           gint            *n_monitors,
 +                           gint            *primary_index)
 +{
-+  GList *monitors = get_valid_monitors (self, config, n_monitors, primary_index);
++  GList *monitors = get_valid_monitors (self, n_monitors, primary_index);
 +
 +  return g_list_sort (monitors, ui_sort_monitor);
 +}
 +
 +static int
-+cc_monitor_id_to_dock (gint index,
-+                       gint primary_monitor,
-+                       gint n_monitors)
++dock_monitor_to_id (gint index,
++                    gint primary_monitor,
++                    gint n_monitors)
 +{
 +  if (index < 0)
 +    return -1;
 +
 +  /* The The dock uses the Gdk index for monitors, where the primary monitor
 +   * always has index 0, so let's follow what dash-to-dock does in docking.js
-+   * (as part of _createDocks), but using inverted math */
-+  index -= primary_monitor;
++   * (as part of _createDocks) */
++  return (primary_monitor + index) % n_monitors;
++}
 +
-+  if (index < 0)
-+    index += n_monitors;
++typedef enum
++{
++  GSD_UBUNTU_DOCK_MONITOR_ALL,
++  GSD_UBUNTU_DOCK_MONITOR_PRIMARY,
++} GsdUbuntuDockMonitor;
 +
-+  return index;
++static char *
++get_dock_monitor_value_object_name (HdyValueObject *object,
++                                    CcUbuntuPanel  *self)
++{
++  const GValue *value = hdy_value_object_get_value (object);
++
++  if (G_VALUE_TYPE (value) == G_TYPE_STRING)
++    return g_value_dup_string (value);
++
++  if (G_VALUE_TYPE (value) == CC_TYPE_DISPLAY_MONITOR)
++    {
++      CcDisplayMonitor *monitor = g_value_get_object (value);
++      int monitor_number = cc_display_monitor_get_ui_number (monitor);
++      const char *monitor_name = cc_display_monitor_get_display_name (monitor);
++
++      if (gtk_widget_get_state_flags (GTK_WIDGET (self)) & GTK_STATE_FLAG_DIR_LTR)
++        return g_strdup_printf ("%d. %s", monitor_number, monitor_name);
++      else
++        return g_strdup_printf ("%s .%d", monitor_name, monitor_number);
++    }
++
++  g_return_val_if_reached (NULL);
++}
++
++static void
++populate_dock_monitor_combo_row (CcUbuntuPanel *self)
++{
++  g_autoptr(CcDisplayMonitor) primary_monitor = NULL;
++  g_autoptr(GList) valid_monitors = NULL;
++  g_autoptr(HdyValueObject) primary_value_object = NULL;
++  g_autoptr(HdyValueObject) all_displays_value_object = NULL;
++  GList *l;
++  gint index;
++
++  if (self->display_config_manager == NULL)
++    return;
++
++  g_list_store_remove_all (self->dock_monitors_liststore);
++
++  valid_monitors = get_valid_monitors_sorted (self, NULL, NULL);
++  gtk_widget_set_visible (GTK_WIDGET (self->dock_monitor_row), valid_monitors != NULL);
++
++  if (!valid_monitors)
++    return;
++
++  all_displays_value_object = hdy_value_object_new_string (_("All displays"));
++  g_list_store_insert (self->dock_monitors_liststore,
++                       GSD_UBUNTU_DOCK_MONITOR_ALL,
++                       all_displays_value_object);
++
++  for (l = valid_monitors, index = 0; l != NULL; l = l->next, index++)
++    {
++      g_auto(GValue) value = G_VALUE_INIT;
++      g_autoptr(HdyValueObject) monitor_value_object = NULL;
++      CcDisplayMonitor *monitor = l->data;
++
++      if (cc_display_monitor_is_primary (monitor))
++        g_set_object (&primary_monitor, monitor);
++
++      g_value_init (&value, CC_TYPE_DISPLAY_MONITOR);
++      g_value_set_object (&value, monitor);
++      monitor_value_object = hdy_value_object_new (&value);
++
++      g_list_store_append (self->dock_monitors_liststore, monitor_value_object);
++    }
++
++  if (primary_monitor)
++    {
++      int ui_number = cc_display_monitor_get_ui_number (primary_monitor);
++
++      if (gtk_widget_get_state_flags (GTK_WIDGET (self)) & GTK_STATE_FLAG_DIR_LTR)
++        {
++          primary_value_object = hdy_value_object_new_take_string(
++            g_strdup_printf ("%s (%d)", _("Primary Display"), ui_number));
++        }
++      else
++        {
++          primary_value_object = hdy_value_object_new_take_string(
++            g_strdup_printf ("(%d) %s", ui_number, _("Primary Display")));
++        }
++    }
++  else
++    {
++      primary_value_object = hdy_value_object_new_string (_("Primary Display"));
++    }
++
++  g_list_store_insert (self->dock_monitors_liststore,
++                       GSD_UBUNTU_DOCK_MONITOR_PRIMARY,
++                       primary_value_object);
 +}
 +
 +static void
 +on_screen_changed (CcUbuntuPanel *self)
 +{
 +  g_autoptr(CcDisplayConfig) current = NULL;
-+  g_autoptr(GList) valid_monitors = NULL;
-+  g_autofree char *primary_monitor_label = NULL;
-+  const char *primary_monitor_name = NULL;
-+  GtkTreeIter ubuntu_dock_placement_iter;
-+  GList *l;
-+  gint n_monitors;
-+  gint primary_monitor;
-+  gboolean is_rtl;
-+  gint index;
 +
 +  if (self->display_config_manager == NULL)
 +    return;
@@ -373,78 +458,16 @@ index 0000000..1504174
 +  if (current == NULL)
 +    return;
 +
-+  gtk_list_store_clear (self->dock_placement_liststore);
++  self->updating = TRUE;
 +
-+  valid_monitors = get_valid_monitors_sorted (self, current, &n_monitors, &primary_monitor);
-+  is_rtl = gtk_widget_get_state_flags (GTK_WIDGET (self->dock_placement_combo)) & GTK_STATE_FLAG_DIR_RTL;
++  g_set_object (&self->display_current_config, current);
 +
-+  for (l = valid_monitors, index = 0; l != NULL; l = l->next, index++)
-+    {
-+      g_autofree char *monitor_label = NULL;
-+      CcDisplayMonitor *monitor = l->data;
-+      const gchar *monitor_name;
-+
-+      monitor_name = cc_display_monitor_get_display_name (monitor);
-+      monitor_label = g_strdup (monitor_name);
-+
-+      if (cc_display_monitor_is_primary (monitor))
-+        primary_monitor_name = monitor_name;
-+
-+      if (n_monitors > 1)
-+        {
-+          int monitor_number = cc_display_monitor_get_ui_number (monitor);
-+          g_autofree char *old_label = g_steal_pointer (&monitor_label);
-+
-+          if (!is_rtl)
-+            monitor_label = g_strdup_printf ("%d. %s", monitor_number, old_label);
-+          else
-+            monitor_label = g_strdup_printf ("%s .%d", old_label, monitor_number);
-+        }
-+
-+      gtk_list_store_append (self->dock_placement_liststore, &ubuntu_dock_placement_iter);
-+      gtk_list_store_set (self->dock_placement_liststore, &ubuntu_dock_placement_iter,
-+                          0, monitor_label,
-+                          1, cc_monitor_id_to_dock (index, primary_monitor, n_monitors),
-+                          2, cc_display_monitor_get_connector_name(monitor),
-+                          -1);
-+    }
-+
-+  gtk_widget_set_visible (GTK_WIDGET (self->dock_monitor_row), valid_monitors != NULL);
-+
-+  if (primary_monitor_name)
-+    {
-+      if (!is_rtl)
-+        {
-+          primary_monitor_label =
-+            g_strdup_printf ("%s (%s)", _("Primary Display"), primary_monitor_name);
-+        }
-+      else
-+        {
-+          primary_monitor_label =
-+            g_strdup_printf ("(%s) %s", primary_monitor_name, _("Primary Display"));
-+        }
-+    }
-+  else
-+    {
-+      primary_monitor_label = g_strdup (_("Primary Display"));
-+    }
-+
-+  gtk_list_store_prepend (self->dock_placement_liststore, &ubuntu_dock_placement_iter);
-+  gtk_list_store_set (self->dock_placement_liststore, &ubuntu_dock_placement_iter,
-+                      0, primary_monitor_label,
-+                      1, -1,
-+                      2, "primary",
-+                      -1);
-+
-+  gtk_list_store_prepend (self->dock_placement_liststore, &ubuntu_dock_placement_iter);
-+  gtk_list_store_set (self->dock_placement_liststore, &ubuntu_dock_placement_iter,
-+                      0, _("All displays"),
-+                      1, G_MININT,
-+                      2, NULL,
-+                      -1);
-+
-+  update_dock_placement_combo_selection (self);
++  populate_dock_monitor_combo_row (self);
 +  ensure_monitor_labels (self);
++
++  self->updating = FALSE;
++
++  update_dock_monitor_combo_row_selection (self);
 +}
 +
 +static void
@@ -548,27 +571,24 @@ index 0000000..1504174
 +}
 +
 +static void
-+on_dock_monitor_row_activated (CcUbuntuPanel *self)
++on_dock_monitor_row_changed (CcUbuntuPanel *self)
 +{
-+  gtk_combo_box_popup (self->dock_placement_combo);
-+}
-+
-+static void
-+on_dock_placement_combo_changed (CcUbuntuPanel *self)
-+{
-+  gint active;
 +  gboolean ubuntu_dock_on_all_monitors;
 +  g_autofree char *ubuntu_dock_current_connector = NULL;
++  int selected;
 +
-+  active = gtk_combo_box_get_active (self->dock_placement_combo);
-+  if (active < 0)
++  if (self->updating)
++    return;
++
++  selected = hdy_combo_row_get_selected_index (self->dock_monitor_row);
++  if (selected < 0)
 +    return;
 +
 +  ubuntu_dock_on_all_monitors =
 +    g_settings_get_boolean (self->dock_settings, UBUNTU_DOCK_ALL_MONITORS_KEY);
 +  ubuntu_dock_current_connector =
 +    g_settings_get_string (self->dock_settings, UBUNTU_DOCK_PREFERRED_CONNECTOR_KEY);
-+  if (active == 0)
++  if (selected == GSD_UBUNTU_DOCK_MONITOR_ALL)
 +    {
 +      if (!ubuntu_dock_on_all_monitors)
 +        {
@@ -580,7 +600,6 @@ index 0000000..1504174
 +    }
 +  else
 +    {
-+      GtkTreeIter placement_iter;
 +      g_autoptr(GSettings) delayed_settings = g_settings_new (UBUNTU_DOCK_SCHEMA);
 +      g_settings_delay (delayed_settings);
 +      g_autofree char *connector_name = NULL;
@@ -588,12 +607,21 @@ index 0000000..1504174
 +      if (ubuntu_dock_on_all_monitors)
 +        g_settings_set_boolean (delayed_settings, UBUNTU_DOCK_ALL_MONITORS_KEY, FALSE);
 +
-+      gtk_tree_model_iter_nth_child (GTK_TREE_MODEL (self->dock_placement_liststore),
-+                                     &placement_iter, NULL, active);
-+      gtk_tree_model_get (GTK_TREE_MODEL (self->dock_placement_liststore),
-+                          &placement_iter,
-+                          2, &connector_name,
-+                          -1);
++      if (selected == GSD_UBUNTU_DOCK_MONITOR_PRIMARY)
++        {
++          connector_name = g_strdup ("primary");
++        }
++      else
++        {
++          g_autoptr(HdyValueObject) value_object = NULL;
++          CcDisplayMonitor *monitor;
++
++          value_object = g_list_model_get_item (G_LIST_MODEL (self->dock_monitors_liststore),
++                                                selected);
++
++          monitor = g_value_get_object (hdy_value_object_get_value (value_object));
++          connector_name = g_strdup (cc_display_monitor_get_connector_name (monitor));
++        }
 +
 +      if (g_strcmp0 (ubuntu_dock_current_connector, connector_name) != 0)
 +        {
@@ -607,20 +635,15 @@ index 0000000..1504174
 +    }
 +}
 +
-+static int
++static CcDisplayMonitor *
 +get_dock_monitor (CcUbuntuPanel *self)
 +{
 +  g_autoptr(GList) monitors = NULL;
-+  g_autoptr(CcDisplayConfig) config = NULL;
 +  int index;
 +  int n_monitors;
 +  int primary_monitor;
 +
-+  config = cc_display_config_manager_get_current (self->display_config_manager);
-+  if (!config)
-+    return -1;
-+
-+  monitors = get_valid_monitors_sorted (self, config, &n_monitors, &primary_monitor);
++  monitors = get_valid_monitors_sorted (self, &n_monitors, &primary_monitor);
 +  index = g_settings_get_int (self->dock_settings, UBUNTU_DOCK_PREFERRED_MONITOR_KEY);
 +
 +  if (index == UBUNTU_DOCK_MONITOR_INDEX_USE_CONNECTOR)
@@ -636,51 +659,80 @@ index 0000000..1504174
 +        {
 +          CcDisplayMonitor *monitor = l->data;
 +          const char *monitor_connector = cc_display_monitor_get_connector_name (monitor);
-+
 +          if (g_strcmp0 (monitor_connector, connector) == 0)
-+            index = cc_monitor_id_to_dock (i, primary_monitor, n_monitors);
++            return g_object_ref (monitor);
 +        }
 +    }
 +
 +  if (index < 0 || index >= n_monitors)
-+    return -1;
++    return NULL;
 +
-+  return index;
++  index = dock_monitor_to_id (index, primary_monitor, n_monitors);
++
++  return g_object_ref (g_list_nth_data (monitors, index));
++}
++
++static gboolean
++dock_placement_row_compare (gconstpointer a, gconstpointer b)
++{
++  const GValue *row_value_a;
++  const GValue *row_value_b;
++
++  row_value_a = hdy_value_object_get_value (HDY_VALUE_OBJECT ((gpointer) a));
++  row_value_b = hdy_value_object_get_value (HDY_VALUE_OBJECT ((gpointer) b));
++
++  if (row_value_a == NULL || row_value_b == NULL)
++    return row_value_a == row_value_b;
++
++  if (G_VALUE_TYPE (row_value_a) != G_VALUE_TYPE (row_value_b))
++    return FALSE;
++
++  if (G_VALUE_TYPE (row_value_a) == CC_TYPE_DISPLAY_MONITOR)
++    {
++      return cc_display_monitor_get_ui_number (g_value_get_object (row_value_a)) ==
++             cc_display_monitor_get_ui_number (g_value_get_object (row_value_b));
++    }
++
++  if (G_VALUE_TYPE (row_value_a) == G_TYPE_STRING)
++    {
++      return g_strcmp0 (g_value_get_string (row_value_a),
++                        g_value_get_string (row_value_b)) == 0;
++    }
++
++  g_return_val_if_reached (FALSE);
 +}
 +
 +static void
-+update_dock_placement_combo_selection (CcUbuntuPanel *self)
++update_dock_monitor_combo_row_selection (CcUbuntuPanel *self)
 +{
-+  int selection = 0;
++  guint selection = GSD_UBUNTU_DOCK_MONITOR_PRIMARY;
 +
-+  if (!g_settings_get_boolean (self->dock_settings, UBUNTU_DOCK_ALL_MONITORS_KEY))
++  if (g_settings_get_boolean (self->dock_settings, UBUNTU_DOCK_ALL_MONITORS_KEY))
 +    {
-+      GtkTreeIter placement_iter;
-+      int dock_monitor;
-+      int monitor_id;
++      selection = GSD_UBUNTU_DOCK_MONITOR_ALL;
++    }
++  else
++    {
++      g_autoptr (CcDisplayMonitor) monitor = get_dock_monitor (self);
 +
-+      dock_monitor = get_dock_monitor (self);
-+      if (gtk_tree_model_get_iter_first (GTK_TREE_MODEL (self->dock_placement_liststore), &placement_iter))
++      if (monitor)
 +        {
-+          do
-+            {
-+              gtk_tree_model_get (GTK_TREE_MODEL (self->dock_placement_liststore), &placement_iter,
-+                                  1, &monitor_id, -1);
-+              if (monitor_id == dock_monitor)
-+                break;
++          g_autoptr(HdyValueObject) monitor_value_object = NULL;
++          g_auto(GValue) value = G_VALUE_INIT;
 +
-+              selection++;
-+            } while (gtk_tree_model_iter_next (GTK_TREE_MODEL (self->dock_placement_liststore),
-+                                               &placement_iter));
++          g_value_init (&value, CC_TYPE_DISPLAY_MONITOR);
++          g_value_set_object (&value, monitor);
++          monitor_value_object = hdy_value_object_new (&value);
++
++          if (!g_list_store_find_with_equal_func (self->dock_monitors_liststore,
++                                                  monitor_value_object,
++                                                  dock_placement_row_compare,
++                                                  &selection))
++            selection = GSD_UBUNTU_DOCK_MONITOR_PRIMARY;
 +        }
 +    }
-+  gtk_combo_box_set_active (GTK_COMBO_BOX (self->dock_placement_combo), selection);
-+}
 +
-+static void
-+on_dock_position_row_activated (CcUbuntuPanel *self)
-+{
-+  gtk_combo_box_popup (GTK_COMBO_BOX (self->dock_position_combo));
++  hdy_combo_row_set_selected_index (self->dock_monitor_row, selection);
 +}
 +
 +static void
@@ -693,20 +745,17 @@ index 0000000..1504174
 +
 +  gtk_widget_class_set_template_from_resource (widget_class, "/org/gnome/control-center/ubuntu/cc-ubuntu-panel.ui");
 +
++  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, dock_preferences_group);
 +  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, dock_autohide_switch);
 +  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, dock_monitor_row);
-+  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, dock_placement_combo);
-+  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, dock_placement_liststore);
-+  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, dock_position_combo);
++  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, dock_position_row);
 +  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, icon_size_adjustment);
 +  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, icon_size_scale);
 +  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, theme_box);
 +  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, theme_dark);
 +  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, theme_light);
 +
-+  gtk_widget_class_bind_template_callback (widget_class, on_dock_monitor_row_activated);
-+  gtk_widget_class_bind_template_callback (widget_class, on_dock_placement_combo_changed);
-+  gtk_widget_class_bind_template_callback (widget_class, on_dock_position_row_activated);
++  gtk_widget_class_bind_template_callback (widget_class, on_dock_monitor_row_changed);
 +  gtk_widget_class_bind_template_callback (widget_class, on_icon_size_adjustment_value_changed);
 +  gtk_widget_class_bind_template_callback (widget_class, on_icon_size_format_value);
 +  gtk_widget_class_bind_template_callback (widget_class, on_theme_box_selected_children_changed);
@@ -727,19 +776,106 @@ index 0000000..1504174
 +                           G_CONNECT_SWAPPED);
 +}
 +
-+static const char *
-+get_dock_position_for_direction (CcUbuntuPanel *self,
-+                                 const char    *position)
++typedef enum
++{
++  GSD_UBUNTU_DOCK_POSITION_TOP,
++  GSD_UBUNTU_DOCK_POSITION_RIGHT,
++  GSD_UBUNTU_DOCK_POSITION_BOTTOM,
++  GSD_UBUNTU_DOCK_POSITION_LEFT,
++
++  GSD_UBUNTU_DOCK_POSITION_FIRST = GSD_UBUNTU_DOCK_POSITION_RIGHT,
++} GsdUbuntuDockPosition;
++
++static GsdUbuntuDockPosition
++get_dock_position_for_direction (CcUbuntuPanel         *self,
++                                 GsdUbuntuDockPosition  position)
 +{
 +  if (gtk_widget_get_state_flags (GTK_WIDGET (self)) & GTK_STATE_FLAG_DIR_RTL)
 +    {
-+      if (g_str_equal (position, "LEFT"))
-+        position = "RIGHT";
-+      else if (g_str_equal (position, "RIGHT"))
-+        position = "LEFT";
++      switch (position)
++        {
++          case GSD_UBUNTU_DOCK_POSITION_RIGHT:
++            position = GSD_UBUNTU_DOCK_POSITION_LEFT;
++            break;
++          case GSD_UBUNTU_DOCK_POSITION_LEFT:
++            position = GSD_UBUNTU_DOCK_POSITION_LEFT;
++            break;
++          default:
++            break;
++        }
 +    }
 +
 +  return position;
++}
++
++static const char *
++get_dock_position_string (GsdUbuntuDockPosition  position)
++{
++  switch (position)
++    {
++      case GSD_UBUNTU_DOCK_POSITION_TOP:
++        return "TOP";
++      case GSD_UBUNTU_DOCK_POSITION_RIGHT:
++        return "RIGHT";
++      case GSD_UBUNTU_DOCK_POSITION_BOTTOM:
++        return "BOTTOM";
++      case GSD_UBUNTU_DOCK_POSITION_LEFT:
++        return "LEFT";
++      default:
++        g_return_val_if_reached ("LEFT");
++    }
++}
++
++static GsdUbuntuDockPosition
++get_dock_position_from_string (const char *position)
++{
++  if (g_str_equal (position, "TOP"))
++    return GSD_UBUNTU_DOCK_POSITION_TOP;
++
++  if (g_str_equal (position, "RIGHT"))
++    return GSD_UBUNTU_DOCK_POSITION_RIGHT;
++
++  if (g_str_equal (position, "BOTTOM"))
++    return GSD_UBUNTU_DOCK_POSITION_BOTTOM;
++
++  if (g_str_equal (position, "LEFT"))
++    return GSD_UBUNTU_DOCK_POSITION_LEFT;
++
++  g_return_val_if_reached (GSD_UBUNTU_DOCK_POSITION_LEFT);
++}
++
++static GsdUbuntuDockPosition
++get_dock_position_row_position (CcUbuntuPanel *self,
++                                int            index)
++{
++  GListModel *model = hdy_combo_row_get_model (self->dock_position_row);
++  HdyValueObject *value_object = g_list_model_get_item (model, index);
++
++  return GPOINTER_TO_INT (g_object_get_data (G_OBJECT (value_object), "position"));
++}
++
++static int
++get_dock_position_row_index (CcUbuntuPanel         *self,
++                             GsdUbuntuDockPosition  position)
++{
++  GListModel *model = hdy_combo_row_get_model (self->dock_position_row);
++  guint n_items;
++  guint i;
++
++  n_items = g_list_model_get_n_items (model);
++
++  for (i = 0; i < n_items; i++)
++    {
++      HdyValueObject *value_object = g_list_model_get_item (model, i);
++      GsdUbuntuDockPosition item_position;
++
++      item_position = GPOINTER_TO_INT (g_object_get_data (G_OBJECT (value_object), "position"));
++
++      if (item_position == position)
++        return i;
++    }
++
++  g_return_val_if_reached (0);
 +}
 +
 +static gboolean
@@ -748,12 +884,23 @@ index 0000000..1504174
 +                           gpointer  user_data)
 +{
 +  CcUbuntuPanel *self = user_data;
-+  const char *position;
++  GsdUbuntuDockPosition position;
 +
-+  position = g_variant_get_string (variant, NULL);
-+  g_value_set_string (value, get_dock_position_for_direction (self, position));
++  position = get_dock_position_from_string (g_variant_get_string (variant, NULL));
++  position = get_dock_position_for_direction (self, position);
 +
-+  return TRUE;
++  if (G_VALUE_TYPE (value) == G_TYPE_INT)
++    {
++      g_value_set_int (value, get_dock_position_row_index (self, position));
++      return TRUE;
++    }
++  else if (G_VALUE_TYPE (value) == G_TYPE_STRING)
++    {
++      g_value_set_string (value, get_dock_position_string (position));
++      return TRUE;
++    }
++
++  return FALSE;
 +}
 +
 +static GVariant *
@@ -762,11 +909,53 @@ index 0000000..1504174
 +                           gpointer            user_data)
 +{
 +  CcUbuntuPanel *self = user_data;
-+  const char *position;
++  GsdUbuntuDockPosition position;
 +
-+  position = g_value_get_string (value);
++  position = get_dock_position_row_position (self, g_value_get_int (value));
++  position = get_dock_position_for_direction (self, position);
 +
-+  return g_variant_new_string (get_dock_position_for_direction (self, position));
++  return g_variant_new_string (get_dock_position_string (position));
++}
++
++static void
++populate_dock_position_row (HdyComboRow *combo_row)
++{
++  g_autoptr (GListStore) list_store = NULL;
++  struct {
++    char *name;
++    GsdUbuntuDockPosition position;
++  } positions[] = {
++    {
++      NC_("Position on screen for the Ubuntu dock", "Left"),
++          GSD_UBUNTU_DOCK_POSITION_LEFT,
++    },
++    {
++      NC_("Position on screen for the Ubuntu dock", "Bottom"),
++          GSD_UBUNTU_DOCK_POSITION_BOTTOM,
++    },
++    {
++      NC_("Position on screen for the Ubuntu dock", "Right"),
++          GSD_UBUNTU_DOCK_POSITION_RIGHT,
++    },
++  };
++  guint i;
++
++  list_store = g_list_store_new (HDY_TYPE_VALUE_OBJECT);
++  for (i = 0; i < G_N_ELEMENTS (positions); i++)
++    {
++      g_autoptr (HdyValueObject) value_object = NULL;
++
++      value_object = hdy_value_object_new_string (_(positions[i].name));
++      g_object_set_data (G_OBJECT (value_object),
++                         "position",
++                         GUINT_TO_POINTER (positions[i].position));
++      g_list_store_append (list_store, value_object);
++    }
++
++  hdy_combo_row_bind_name_model (combo_row,
++                                 G_LIST_MODEL (list_store),
++                                 (HdyComboRowGetNameFunc) hdy_value_object_dup_string,
++                                 NULL, NULL);
 +}
 +
 +static void
@@ -804,19 +993,32 @@ index 0000000..1504174
 +  if (!schema)
 +    {
 +      g_warning ("No Ubuntu Dock is installed here. Panel disabled. Please fix your installation.");
++      gtk_widget_hide (GTK_WIDGET (self->dock_preferences_group));
 +      return;
 +    }
++
 +  self->dock_settings = g_settings_new_full (schema, NULL, NULL);
++  self->dock_monitors_liststore = g_list_store_new (HDY_TYPE_VALUE_OBJECT);
++
++  self->updating = TRUE;
++  hdy_combo_row_bind_name_model (self->dock_monitor_row,
++                                 G_LIST_MODEL (self->dock_monitors_liststore),
++                                 (HdyComboRowGetNameFunc) get_dock_monitor_value_object_name,
++                                 self, NULL);
++  self->updating = FALSE;
++
++  populate_dock_position_row (self->dock_position_row);
++
 +  g_signal_connect_object (self->dock_settings, "changed::" ICONSIZE_KEY,
 +                           G_CALLBACK (icon_size_widget_refresh), self, G_CONNECT_SWAPPED);
 +  g_signal_connect_object (self->dock_settings, "changed::" UBUNTU_DOCK_ALL_MONITORS_KEY,
-+                           G_CALLBACK (update_dock_placement_combo_selection), self, G_CONNECT_SWAPPED);
++                           G_CALLBACK (update_dock_monitor_combo_row_selection), self, G_CONNECT_SWAPPED);
 +  g_signal_connect_object (self->dock_settings, "changed::" UBUNTU_DOCK_PREFERRED_MONITOR_KEY,
-+                           G_CALLBACK (update_dock_placement_combo_selection), self, G_CONNECT_SWAPPED);
++                           G_CALLBACK (update_dock_monitor_combo_row_selection), self, G_CONNECT_SWAPPED);
 +  g_signal_connect_object (self->dock_settings, "changed::" UBUNTU_DOCK_PREFERRED_CONNECTOR_KEY,
-+                           G_CALLBACK (update_dock_placement_combo_selection), self, G_CONNECT_SWAPPED);
++                           G_CALLBACK (update_dock_monitor_combo_row_selection), self, G_CONNECT_SWAPPED);
 +  g_settings_bind_with_mapping (self->dock_settings, "dock-position",
-+                                self->dock_position_combo, "active-id",
++                                self->dock_position_row, "selected-index",
 +                                G_SETTINGS_BIND_DEFAULT,
 +                                dock_position_get_mapping,
 +                                dock_position_set_mapping,
@@ -911,10 +1113,10 @@ index 0000000..b13f611
 +#endif /* _CC_EDIT_DIALOG_H_ */
 diff --git a/panels/ubuntu/cc-ubuntu-panel.ui b/panels/ubuntu/cc-ubuntu-panel.ui
 new file mode 100644
-index 0000000..2c4be3c
+index 0000000..3feb65e
 --- /dev/null
 +++ b/panels/ubuntu/cc-ubuntu-panel.ui
-@@ -0,0 +1,268 @@
+@@ -0,0 +1,228 @@
 +<?xml version="1.0" encoding="UTF-8"?>
 +<!-- Generated with glade 3.20.0 -->
 +<interface>
@@ -1102,55 +1304,23 @@ index 0000000..2c4be3c
 +                          </object>
 +                        </child>
 +                        <child>
-+                          <object class="HdyActionRow" id="dock_monitor_row">
++                          <object class="HdyComboRow" id="dock_monitor_row">
 +                            <property name="visible">True</property>
 +                            <property name="use_underline">True</property>
 +                            <property name="can_focus">True</property>
++                            <property name="width_request">100</property>
 +                            <property name="title" translatable="yes">Show on</property>
-+                            <property name="activatable">True</property>
-+                            <signal name="activated" handler="on_dock_monitor_row_activated" object="CcUbuntuPanel" swapped="yes"/>
-+                            <child>
-+                              <object class="GtkComboBox" id="dock_placement_combo">
-+                                <property name="visible">True</property>
-+                                <property name="model">dock_placement_liststore</property>
-+                                <property name="margin_top">6</property>
-+                                <property name="margin_bottom">6</property>
-+                                <property name="valign">center</property>
-+                                <signal name="changed" handler="on_dock_placement_combo_changed" object="CcUbuntuPanel" swapped="yes"/>
-+                                <child>
-+                                  <object class="GtkCellRendererText"/>
-+                                  <attributes>
-+                                    <attribute name="text">0</attribute>
-+                                  </attributes>
-+                                </child>
-+                              </object>
-+                              <packing>
-+                                <property name="expand">False</property>
-+                                <property name="fill">True</property>
-+                                <property name="position">1</property>
-+                              </packing>
-+                            </child>
++                            <signal name="notify::selected-index" handler="on_dock_monitor_row_changed" swapped="yes"/>
 +                          </object>
 +                        </child>
 +                        <child>
-+                          <object class="HdyActionRow">
++                          <object class="HdyComboRow" id="dock_position_row">
 +                            <property name="visible">True</property>
 +                            <property name="use_underline">True</property>
 +                            <property name="can_focus">True</property>
++                            <property name="can_focus">True</property>
++                            <property name="width_request">100</property>
 +                            <property name="title" translatable="yes">Position on screen</property>
-+                            <property name="activatable">True</property>
-+                            <signal name="activated" handler="on_dock_position_row_activated" object="CcUbuntuPanel" swapped="yes"/>
-+                            <child>
-+                              <object class="GtkComboBoxText" id="dock_position_combo">
-+                                <property name="visible">True</property>
-+                                <property name="valign">center</property>
-+                                <items>
-+                                  <item id="LEFT" translatable="yes" context="Position on screen for the Ubuntu dock">Left</item>
-+                                  <item id="BOTTOM" translatable="yes" context="Position on screen for the Ubuntu dock">Bottom</item>
-+                                  <item id="RIGHT" translatable="yes" context="Position on screen for the Ubuntu dock">Right</item>
-+                                </items>
-+                              </object>
-+                            </child>
 +                          </object>
 +                        </child>
 +                      </object>
@@ -1173,14 +1343,6 @@ index 0000000..2c4be3c
 +    <property name="step_increment">1</property>
 +    <property name="page_increment">4</property>
 +    <signal name="value-changed" handler="on_icon_size_adjustment_value_changed" object="CcUbuntuPanel" swapped="yes"/>
-+  </object>
-+  <object class="GtkListStore" id="dock_placement_liststore">
-+    <columns>
-+      <!-- column-name label -->
-+      <column type="gchararray"/>
-+      <column type="gint"/>
-+      <column type="gchararray"/>
-+    </columns>
 +  </object>
 +</interface>
 diff --git a/panels/ubuntu/gnome-ubuntu-panel.desktop.in.in b/panels/ubuntu/gnome-ubuntu-panel.desktop.in.in
