@@ -23,7 +23,7 @@ Forwarded: not-needed
  panels/ubuntu/cc-ubuntu-dock-dialog.c          |  112 +++
  panels/ubuntu/cc-ubuntu-dock-dialog.h          |   31 +
  panels/ubuntu/cc-ubuntu-dock-dialog.ui         |  138 ++++
- panels/ubuntu/cc-ubuntu-panel.c                | 1046 ++++++++++++++++++++++++
+ panels/ubuntu/cc-ubuntu-panel.c                | 1047 ++++++++++++++++++++++++
  panels/ubuntu/cc-ubuntu-panel.h                |   35 +
  panels/ubuntu/cc-ubuntu-panel.ui               |  222 +++++
  panels/ubuntu/gnome-ubuntu-panel.desktop.in.in |   16 +
@@ -32,7 +32,7 @@ Forwarded: not-needed
  po/POTFILES.in                                 |    5 +
  shell/cc-panel-list.c                          |    1 +
  shell/cc-panel-loader.c                        |    3 +
- 16 files changed, 1736 insertions(+)
+ 16 files changed, 1737 insertions(+)
  create mode 100644 panels/ubuntu/appearance.css
  create mode 100644 panels/ubuntu/assets/theme-dark.svg
  create mode 100644 panels/ubuntu/assets/theme-light.svg
@@ -445,10 +445,10 @@ index 0000000..aa71eda
 +</interface>
 diff --git a/panels/ubuntu/cc-ubuntu-panel.c b/panels/ubuntu/cc-ubuntu-panel.c
 new file mode 100644
-index 0000000..06d14df
+index 0000000..304e280
 --- /dev/null
 +++ b/panels/ubuntu/cc-ubuntu-panel.c
-@@ -0,0 +1,1046 @@
+@@ -0,0 +1,1047 @@
 +/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 +/*
 + * Copyright (C) 2017-2020 Canonical Ltd
@@ -554,7 +554,8 @@ index 0000000..06d14df
 +   * This can be removed when the follow MR is merged:
 +   * https://gitlab.gnome.org/GNOME/gnome-control-center/-/merge_requests/1175
 +   */
-+  g_list_store_remove_all (self->dock_monitors_liststore);
++  if (self->dock_monitors_liststore)
++    g_list_store_remove_all (self->dock_monitors_liststore);
 +
 +  g_clear_object (&self->dock_settings);
 +  g_clear_object (&self->dock_monitors_liststore);
