@@ -1,3 +1,51 @@
+gnome-control-center (1:41.1-1ubuntu3) UNRELEASED; urgency=medium
+
+  [ Marco Trevisan (Treviño) ]
+  * debian/patches: Refresh
+  * d/p/u/display-Allow-fractional-scaling-to-be-enabled.patch:
+    Ensure renderer is initialized.
+    It may not be the case when running with non-patched mutter, so not a
+    bug, but this helps in development scenarios.
+  * d/p/u/Allow-tweaking-some-settings-for-Ubuntu-Dock.patch:
+    - Do not crash if gedit is not installed
+  * ubuntu-panel: Save dock monitor by connector and support primary monitor
+    Dash to dock used to use the shell's monitor ID to pick the monitor in
+    which should be used, however this is not something that worked well
+    in case one switches configuration or uses a laptop in different
+    scenarios as the dock may be moved to the wrong display.
+    As per this:
+     - Add a "Primary monitor" item, to bind the dock position to the
+       primary monitor (whatever it is)
+     - Store the selected monitor by its connector
+     - Add backward compatibility support for the old 'preferred-monitor'
+       key, and migrate to it.
+    Related to: https://github.com/micheleg/dash-to-dock/pull/1630
+  * multitasking-panel: Sync workspace and monitor isolation dock settings.
+    When using ubuntu-dock the multitasking panel setting doesn't fully
+    apply, because even though the user selects to isolate workspaces, the
+    dock may still continue to show icons from all the workspaces.
+    As per this, ensure that the settings are applied also to the dock, plus
+    include dock-specifc settings to control multi-monitor behavior.
+  * ubuntu-panel: Use libhandy widgets for the dock section.
+    This will help with Gtk and libadwaita porting in future, so let's just
+    such widgets that are also more integrated with the current g-c-c design
+  * ubuntu-panel: Use more modern libadwaita widgets for dock settings.
+    This should make gtk4 porting even easier, plus we can be more consitent
+    with the majority of other g-c-c panels.
+  * ubuntu-panel: Add dock specific dialog to control.
+    Add a dock settings dialog to control some more specific settings.
+    So far we only support toggling the visualization of device and trash
+    icons, but this could be extended more in future. (LP: #1846205)
+
+  [ Muqtxdir ]
+  * ubuntu-panel: Improve appearance-page to use more consistent look
+    - Make use of HdyPrefrencesPage for Appearance-panel.
+    - Make use of HdyPrefrencesGroup for Window colors.
+    - Make use of custom css style classes from appearance.css
+    - Update the light/dark variant preview images (LP: #1943849)
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Mon, 31 Jan 2022 03:22:51 +0100
+
 gnome-control-center (1:41.1-1ubuntu2) jammy; urgency=medium
 
   * Fix FTBFS with recent meson version.
