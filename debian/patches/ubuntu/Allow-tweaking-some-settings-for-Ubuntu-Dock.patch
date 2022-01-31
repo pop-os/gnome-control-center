@@ -11,18 +11,24 @@ Origin: ubuntu
 Forwarded: not-needed
 ---
  panels/meson.build                             |    1 +
- panels/ubuntu/cc-ubuntu-panel.c                | 1020 ++++++++++++++++++++++++
+ panels/ubuntu/cc-ubuntu-dock-dialog.c          |  112 +++
+ panels/ubuntu/cc-ubuntu-dock-dialog.h          |   31 +
+ panels/ubuntu/cc-ubuntu-dock-dialog.ui         |  138 ++++
+ panels/ubuntu/cc-ubuntu-panel.c                | 1032 ++++++++++++++++++++++++
  panels/ubuntu/cc-ubuntu-panel.h                |   35 +
- panels/ubuntu/cc-ubuntu-panel.ui               |  228 ++++++
+ panels/ubuntu/cc-ubuntu-panel.ui               |  246 ++++++
  panels/ubuntu/gnome-ubuntu-panel.desktop.in.in |   16 +
- panels/ubuntu/meson.build                      |   41 +
+ panels/ubuntu/meson.build                      |   45 ++
  panels/ubuntu/theme-dark.svg                   |  381 +++++++++
  panels/ubuntu/theme-light.svg                  |  380 +++++++++
- panels/ubuntu/ubuntu.gresource.xml             |    8 +
- po/POTFILES.in                                 |    3 +
+ panels/ubuntu/ubuntu.gresource.xml             |    9 +
+ po/POTFILES.in                                 |    5 +
  shell/cc-panel-list.c                          |    1 +
  shell/cc-panel-loader.c                        |    3 +
- 12 files changed, 2117 insertions(+)
+ 15 files changed, 2435 insertions(+)
+ create mode 100644 panels/ubuntu/cc-ubuntu-dock-dialog.c
+ create mode 100644 panels/ubuntu/cc-ubuntu-dock-dialog.h
+ create mode 100644 panels/ubuntu/cc-ubuntu-dock-dialog.ui
  create mode 100644 panels/ubuntu/cc-ubuntu-panel.c
  create mode 100644 panels/ubuntu/cc-ubuntu-panel.h
  create mode 100644 panels/ubuntu/cc-ubuntu-panel.ui
@@ -44,12 +50,311 @@ index f603db9..c21910a 100644
    'universal-access',
    'usage',
    'user-accounts',
+diff --git a/panels/ubuntu/cc-ubuntu-dock-dialog.c b/panels/ubuntu/cc-ubuntu-dock-dialog.c
+new file mode 100644
+index 0000000..70f357b
+--- /dev/null
++++ b/panels/ubuntu/cc-ubuntu-dock-dialog.c
+@@ -0,0 +1,112 @@
++/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
++/*
++ * Copyright (C) 2022 Marco Trevisan <marco.trevisan@canonical.com>
++ *
++ * This library is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU Lesser General Public
++ * License as published by the Free Software Foundation; either
++ * version 2 of the License, or (at your option) any later version.
++ *
++ * This library is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++ * Lesser General Public License for more details.
++ *
++ * You should have received a copy of the GNU Lesser General
++ * Public License along with this library; if not, see <http://www.gnu.org/licenses/>.
++ *
++ */
++
++#include "config.h"
++
++#include <string.h>
++#include <glib/gi18n-lib.h>
++#include <glib.h>
++
++#include "cc-ubuntu-dock-dialog.h"
++
++struct _CcUbuntuDockDialog {
++  GtkDialog       parent;
++
++  GSettings      *settings;
++
++  GtkSwitch      *volumes_switch;
++  GtkCheckButton *unmounted_check;
++  GtkListBoxRow  *unmounted_row;
++  GtkCheckButton *network_volumes_check;
++  GtkListBoxRow  *network_volumes_row;
++  GtkSwitch      *trash_switch;
++};
++
++G_DEFINE_TYPE (CcUbuntuDockDialog, cc_ubuntu_dock_dialog, GTK_TYPE_DIALOG)
++
++static void
++cc_ubuntu_dock_dialog_dispose (GObject *object)
++{
++  CcUbuntuDockDialog *dialog = CC_UBUNTU_DOCK_DIALOG (object);
++
++  g_clear_object (&dialog->settings);
++
++  G_OBJECT_CLASS (cc_ubuntu_dock_dialog_parent_class)->dispose (object);
++}
++
++static void
++cc_ubuntu_dock_dialog_class_init (CcUbuntuDockDialogClass *klass)
++{
++  GtkWidgetClass *widget_class = GTK_WIDGET_CLASS (klass);
++  GObjectClass *object_class = G_OBJECT_CLASS (klass);
++
++  object_class->dispose = cc_ubuntu_dock_dialog_dispose;
++
++  gtk_widget_class_set_template_from_resource (widget_class, "/org/gnome/control-center/ubuntu/cc-ubuntu-dock-dialog.ui");
++
++  gtk_widget_class_bind_template_child (widget_class, CcUbuntuDockDialog, volumes_switch);
++  gtk_widget_class_bind_template_child (widget_class, CcUbuntuDockDialog, unmounted_row);
++  gtk_widget_class_bind_template_child (widget_class, CcUbuntuDockDialog, unmounted_check);
++  gtk_widget_class_bind_template_child (widget_class, CcUbuntuDockDialog, network_volumes_row);
++  gtk_widget_class_bind_template_child (widget_class, CcUbuntuDockDialog, network_volumes_check);
++  gtk_widget_class_bind_template_child (widget_class, CcUbuntuDockDialog, trash_switch);
++}
++
++void
++cc_ubuntu_dock_dialog_init (CcUbuntuDockDialog *dialog)
++{
++  gtk_widget_init_template (GTK_WIDGET (dialog));
++}
++
++CcUbuntuDockDialog *
++cc_ubuntu_dock_dialog_new (GSettings *settings)
++{
++  CcUbuntuDockDialog *dialog;
++
++  dialog = g_object_new (CC_TYPE_UBUNTU_DOCK_DIALOG,
++                         "use-header-bar", TRUE,
++                         NULL);
++
++  gtk_window_set_title (GTK_WINDOW (dialog), _("Dock"));
++  dialog->settings = g_object_ref (settings);
++
++  g_settings_bind (dialog->settings, "show-mounts",
++                   dialog->volumes_switch, "active",
++                   G_SETTINGS_BIND_DEFAULT);
++
++  g_settings_bind (dialog->settings, "show-mounts-only-mounted",
++                   dialog->unmounted_check, "active",
++                   G_SETTINGS_BIND_INVERT_BOOLEAN);
++  g_object_bind_property (dialog->volumes_switch, "active",
++                          dialog->unmounted_row, "sensitive",
++                          G_BINDING_DEFAULT);
++
++  g_settings_bind (dialog->settings, "show-mounts-network",
++                   dialog->network_volumes_check, "active",
++                   G_SETTINGS_BIND_DEFAULT);
++  g_object_bind_property (dialog->volumes_switch, "active",
++                          dialog->network_volumes_row, "sensitive",
++                          G_BINDING_DEFAULT);
++
++  g_settings_bind (dialog->settings, "show-trash",
++                   dialog->trash_switch, "active",
++                   G_SETTINGS_BIND_DEFAULT);
++
++  return dialog;
++}
+diff --git a/panels/ubuntu/cc-ubuntu-dock-dialog.h b/panels/ubuntu/cc-ubuntu-dock-dialog.h
+new file mode 100644
+index 0000000..cd84651
+--- /dev/null
++++ b/panels/ubuntu/cc-ubuntu-dock-dialog.h
+@@ -0,0 +1,31 @@
++/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
++/*
++ * Copyright (C) 2022 Marco Trevisan <marco.trevisan@canonical.com>
++ *
++ * This library is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU Lesser General Public
++ * License as published by the Free Software Foundation; either
++ * version 2 of the License, or (at your option) any later version.
++ *
++ * This library is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++ * Lesser General Public License for more details.
++ *
++ * You should have received a copy of the GNU Lesser General
++ * Public License along with this library; if not, see <http://www.gnu.org/licenses/>.
++ *
++ */
++
++#pragma once
++
++#include <gtk/gtk.h>
++
++G_BEGIN_DECLS
++
++#define CC_TYPE_UBUNTU_DOCK_DIALOG (cc_ubuntu_dock_dialog_get_type ())
++G_DECLARE_FINAL_TYPE (CcUbuntuDockDialog, cc_ubuntu_dock_dialog, CC, UBUNTU_DOCK_DIALOG, GtkDialog)
++
++CcUbuntuDockDialog *cc_ubuntu_dock_dialog_new (GSettings *settings);
++
++G_END_DECLS
+diff --git a/panels/ubuntu/cc-ubuntu-dock-dialog.ui b/panels/ubuntu/cc-ubuntu-dock-dialog.ui
+new file mode 100644
+index 0000000..aa71eda
+--- /dev/null
++++ b/panels/ubuntu/cc-ubuntu-dock-dialog.ui
+@@ -0,0 +1,138 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<interface>
++  <template class="CcUbuntuDockDialog" parent="GtkDialog">
++    <property name="width_request">360</property>
++    <property name="can_focus">False</property>
++    <property name="modal">True</property>
++    <property name="type_hint">dialog</property>
++    <signal name="response" handler="gtk_widget_destroy" swapped="no"/>
++    <child internal-child="vbox">
++      <object class="GtkBox">
++        <property name="can_focus">False</property>
++        <property name="orientation">vertical</property>
++        <property name="spacing">2</property>
++        <property name="border_width">0</property>
++        <child internal-child="action_area">
++          <object class="GtkButtonBox">
++            <property name="can_focus">False</property>
++            <property name="layout_style">end</property>
++            <child>
++              <placeholder/>
++            </child>
++            <child>
++              <placeholder/>
++            </child>
++          </object>
++          <packing>
++            <property name="expand">False</property>
++            <property name="fill">False</property>
++            <property name="position">0</property>
++          </packing>
++        </child>
++        <child>
++          <object class="GtkListBox">
++            <property name="visible">True</property>
++            <property name="can_focus">False</property>
++            <property name="selection_mode">none</property>
++            <property name="activate_on_single_click">True</property>
++
++            <child>
++              <object class="HdyActionRow">
++                <property name="visible">True</property>
++                <property name="use_underline">True</property>
++                <property name="can_focus">True</property>
++                <property name="title" translatable="yes">Show _Volumes and _Devices</property>
++                <property name="activatable">True</property>
++                <property name="activatable_widget">volumes_switch</property>
++                <child>
++                  <object class="GtkSwitch" id="volumes_switch">
++                    <property name="visible">True</property>
++                    <property name="can_focus">True</property>
++                    <property name="valign">center</property>
++                  </object>
++                  <packing>
++                    <property name="expand">False</property>
++                    <property name="fill">True</property>
++                    <property name="position">1</property>
++                  </packing>
++                </child>
++              </object>
++            </child>
++
++            <child>
++              <object class="HdyActionRow" id="unmounted_row">
++                <property name="visible">True</property>
++                <property name="use_underline">True</property>
++                <property name="can_focus">True</property>
++                <property name="title" translatable="yes" context="ubuntu-dock">Include _Unmounted Volumes</property>
++                <property name="activatable">True</property>
++                <property name="activatable_widget">unmounted_check</property>
++                <child type="prefix">
++                  <object class="GtkCheckButton" id="unmounted_check">
++                    <property name="visible">True</property>
++                    <property name="can_focus">True</property>
++                    <property name="valign">center</property>
++                    <property name="margin_left">12</property>
++                  </object>
++                  <packing>
++                    <property name="expand">False</property>
++                    <property name="fill">True</property>
++                    <property name="position">1</property>
++                  </packing>
++                </child>
++              </object>
++            </child>
++
++            <child>
++              <object class="HdyActionRow" id="network_volumes_row">
++                <property name="visible">True</property>
++                <property name="use_underline">True</property>
++                <property name="can_focus">True</property>
++                <property name="title" translatable="yes" context="ubuntu-dock">Include _Network Volumes</property>
++                <property name="activatable">True</property>
++                <property name="activatable_widget">network_volumes_check</property>
++                <child type="prefix">
++                  <object class="GtkCheckButton" id="network_volumes_check">
++                    <property name="visible">True</property>
++                    <property name="can_focus">True</property>
++                    <property name="valign">center</property>
++                    <property name="margin_left">12</property>
++                  </object>
++                  <packing>
++                    <property name="expand">False</property>
++                    <property name="fill">True</property>
++                    <property name="position">1</property>
++                  </packing>
++                </child>
++              </object>
++            </child>
++
++            <child>
++              <object class="HdyActionRow">
++                <property name="visible">True</property>
++                <property name="use_underline">True</property>
++                <property name="can_focus">True</property>
++                <property name="title" translatable="yes">Show _Trash</property>
++                <property name="activatable">True</property>
++                <property name="activatable_widget">trash_switch</property>
++                <child>
++                  <object class="GtkSwitch" id="trash_switch">
++                    <property name="visible">True</property>
++                    <property name="can_focus">True</property>
++                    <property name="valign">center</property>
++                  </object>
++                  <packing>
++                    <property name="expand">False</property>
++                    <property name="fill">True</property>
++                    <property name="position">1</property>
++                  </packing>
++                </child>
++              </object>
++            </child>
++
++          </object>
++        </child>
++      </object>
++    </child>
++  </template>
++</interface>
 diff --git a/panels/ubuntu/cc-ubuntu-panel.c b/panels/ubuntu/cc-ubuntu-panel.c
 new file mode 100644
-index 0000000..8de4584
+index 0000000..eb3bb21
 --- /dev/null
 +++ b/panels/ubuntu/cc-ubuntu-panel.c
-@@ -0,0 +1,1020 @@
+@@ -0,0 +1,1032 @@
 +/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 +/*
 + * Copyright (C) 2017-2020 Canonical Ltd
@@ -80,6 +385,7 @@ index 0000000..8de4584
 +
 +#include "list-box-helper.h"
 +#include "cc-ubuntu-panel.h"
++#include "cc-ubuntu-dock-dialog.h"
 +#include "cc-ubuntu-resources.h"
 +#include "shell/cc-application.h"
 +#include "shell/cc-object-storage.h"
@@ -635,6 +941,16 @@ index 0000000..8de4584
 +    }
 +}
 +
++static void
++on_dock_behavior_row_activated (CcUbuntuPanel *self)
++{
++  CcUbuntuDockDialog *dialog;
++
++  dialog = cc_ubuntu_dock_dialog_new (self->dock_settings);
++  gtk_window_set_transient_for (GTK_WINDOW (dialog), GTK_WINDOW (gtk_widget_get_toplevel (GTK_WIDGET (self))));
++  gtk_widget_show (GTK_WIDGET (dialog));
++}
++
 +static CcDisplayMonitor *
 +get_dock_monitor (CcUbuntuPanel *self)
 +{
@@ -756,6 +1072,7 @@ index 0000000..8de4584
 +  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, theme_light);
 +
 +  gtk_widget_class_bind_template_callback (widget_class, on_dock_monitor_row_changed);
++  gtk_widget_class_bind_template_callback (widget_class, on_dock_behavior_row_activated);
 +  gtk_widget_class_bind_template_callback (widget_class, on_icon_size_adjustment_value_changed);
 +  gtk_widget_class_bind_template_callback (widget_class, on_icon_size_format_value);
 +  gtk_widget_class_bind_template_callback (widget_class, on_theme_box_selected_children_changed);
@@ -1113,10 +1430,10 @@ index 0000000..b13f611
 +#endif /* _CC_EDIT_DIALOG_H_ */
 diff --git a/panels/ubuntu/cc-ubuntu-panel.ui b/panels/ubuntu/cc-ubuntu-panel.ui
 new file mode 100644
-index 0000000..3feb65e
+index 0000000..ac45e95
 --- /dev/null
 +++ b/panels/ubuntu/cc-ubuntu-panel.ui
-@@ -0,0 +1,228 @@
+@@ -0,0 +1,246 @@
 +<?xml version="1.0" encoding="UTF-8"?>
 +<!-- Generated with glade 3.20.0 -->
 +<interface>
@@ -1323,6 +1640,24 @@ index 0000000..3feb65e
 +                            <property name="title" translatable="yes">Position on screen</property>
 +                          </object>
 +                        </child>
++                        <child>
++                          <object class="HdyActionRow" id="dock_behavior_row">
++                            <property name="visible">True</property>
++                            <property name="can_focus">True</property>
++                            <property name="title" translatable="yes">Configure dock behavior</property>
++                            <property name="activatable">True</property>
++                            <signal name="activated" handler="on_dock_behavior_row_activated" object="CcUbuntuPanel" swapped="yes"/>
++                            <child>
++                              <object class="GtkImage">
++                                <property name="visible">True</property>
++                                <property name="icon_name">go-next-symbolic</property>
++                                <style>
++                                  <class name="dim-label"/>
++                                </style>
++                              </object>
++                            </child>
++                          </object>
++                        </child>
 +                      </object>
 +                    </child>
 +                  </object>
@@ -1347,7 +1682,7 @@ index 0000000..3feb65e
 +</interface>
 diff --git a/panels/ubuntu/gnome-ubuntu-panel.desktop.in.in b/panels/ubuntu/gnome-ubuntu-panel.desktop.in.in
 new file mode 100644
-index 0000000..78571f1
+index 0000000..5063546
 --- /dev/null
 +++ b/panels/ubuntu/gnome-ubuntu-panel.desktop.in.in
 @@ -0,0 +1,16 @@
@@ -1366,13 +1701,13 @@ index 0000000..78571f1
 +X-GNOME-Bugzilla-Product=gnome-control-center
 +X-GNOME-Bugzilla-Version=@VERSION@
 +# Translators: those are keywords for the ubuntu control-center panel
-+Keywords=Dock;Launcher;Theme;
++Keywords=Dock;Launcher;Theme;Ubuntu;Dark;icons;
 diff --git a/panels/ubuntu/meson.build b/panels/ubuntu/meson.build
 new file mode 100644
-index 0000000..5f55706
+index 0000000..728a50f
 --- /dev/null
 +++ b/panels/ubuntu/meson.build
-@@ -0,0 +1,41 @@
+@@ -0,0 +1,45 @@
 +panels_list += cappletname
 +desktop = 'gnome-@0@-panel.desktop'.format(cappletname)
 +
@@ -1391,9 +1726,13 @@ index 0000000..5f55706
 +  install_dir: control_center_desktopdir
 +)
 +
-+sources = files('cc-ubuntu-panel.c')
++sources = files(
++  'cc-ubuntu-panel.c',
++  'cc-ubuntu-dock-dialog.c',
++)
 +
 +resource_data = files('cc-ubuntu-panel.ui',
++                      'cc-ubuntu-dock-dialog.ui',
 +                      'theme-dark.svg',
 +                      'theme-light.svg')
 +
@@ -2189,28 +2528,31 @@ index 0000000..70f1125
 +</svg>
 diff --git a/panels/ubuntu/ubuntu.gresource.xml b/panels/ubuntu/ubuntu.gresource.xml
 new file mode 100644
-index 0000000..77d4e61
+index 0000000..fcbde0a
 --- /dev/null
 +++ b/panels/ubuntu/ubuntu.gresource.xml
-@@ -0,0 +1,8 @@
+@@ -0,0 +1,9 @@
 +<?xml version="1.0" encoding="UTF-8"?>
 +<gresources>
 +  <gresource prefix="/org/gnome/control-center/ubuntu">
 +    <file preprocess="xml-stripblanks">cc-ubuntu-panel.ui</file>
++    <file preprocess="xml-stripblanks">cc-ubuntu-dock-dialog.ui</file>
 +    <file>theme-dark.svg</file>
 +    <file>theme-light.svg</file>
 +  </gresource>
 +</gresources>
 diff --git a/po/POTFILES.in b/po/POTFILES.in
-index b9d65b7..0a0575c 100644
+index b9d65b7..90d125d 100644
 --- a/po/POTFILES.in
 +++ b/po/POTFILES.in
-@@ -220,6 +220,9 @@ panels/thunderbolt/cc-bolt-device-entry.c
+@@ -220,6 +220,11 @@ panels/thunderbolt/cc-bolt-device-entry.c
  panels/thunderbolt/cc-bolt-panel.c
  panels/thunderbolt/cc-bolt-panel.ui
  panels/thunderbolt/gnome-thunderbolt-panel.desktop.in.in
 +panels/ubuntu/cc-ubuntu-panel.c
 +panels/ubuntu/cc-ubuntu-panel.ui
++panels/ubuntu/cc-ubuntu-dock-dialog.c
++panels/ubuntu/cc-ubuntu-dock-dialog.ui
 +panels/ubuntu/gnome-ubuntu-panel.desktop.in.in
  panels/universal-access/cc-cursor-blinking-dialog.ui
  panels/universal-access/cc-cursor-size-dialog.ui
