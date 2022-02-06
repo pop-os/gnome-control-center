@@ -17,23 +17,39 @@ Origin: ubuntu
 Forwarded: not-needed
 ---
  panels/meson.build                             |    1 +
- panels/ubuntu/appearance.css                   |   11 +
- panels/ubuntu/assets/theme-dark.svg            |   29 +
- panels/ubuntu/assets/theme-light.svg           |   28 +
- panels/ubuntu/cc-ubuntu-dock-dialog.c          |  106 +++
+ panels/ubuntu/appearance.css                   |   24 +
+ panels/ubuntu/assets/colors/aqua.svg           |    5 +
+ panels/ubuntu/assets/colors/blue.svg           |    5 +
+ panels/ubuntu/assets/colors/green.svg          |    5 +
+ panels/ubuntu/assets/colors/orange.svg         |    5 +
+ panels/ubuntu/assets/colors/pink.svg           |    5 +
+ panels/ubuntu/assets/colors/purple.svg         |    5 +
+ panels/ubuntu/assets/colors/red.svg            |    5 +
+ panels/ubuntu/assets/colors/yellow.svg         |    5 +
+ panels/ubuntu/assets/theme-dark.svg            |   54 ++
+ panels/ubuntu/assets/theme-light.svg           |   56 ++
+ panels/ubuntu/cc-ubuntu-dock-dialog.c          |  106 ++
  panels/ubuntu/cc-ubuntu-dock-dialog.h          |   31 +
  panels/ubuntu/cc-ubuntu-dock-dialog.ui         |  120 +++
- panels/ubuntu/cc-ubuntu-panel.c                | 1052 ++++++++++++++++++++++++
+ panels/ubuntu/cc-ubuntu-panel.c                | 1237 ++++++++++++++++++++++++
  panels/ubuntu/cc-ubuntu-panel.h                |   35 +
- panels/ubuntu/cc-ubuntu-panel.ui               |  245 ++++++
+ panels/ubuntu/cc-ubuntu-panel.ui               |  510 ++++++++++
  panels/ubuntu/gnome-ubuntu-panel.desktop.in.in |   16 +
- panels/ubuntu/meson.build                      |   48 ++
- panels/ubuntu/ubuntu.gresource.xml             |   10 +
+ panels/ubuntu/meson.build                      |   56 ++
+ panels/ubuntu/ubuntu.gresource.xml             |   18 +
  po/POTFILES.in                                 |    5 +
  shell/cc-panel-list.c                          |    1 +
  shell/cc-panel-loader.c                        |    3 +
- 16 files changed, 1741 insertions(+)
+ 24 files changed, 2313 insertions(+)
  create mode 100644 panels/ubuntu/appearance.css
+ create mode 100644 panels/ubuntu/assets/colors/aqua.svg
+ create mode 100644 panels/ubuntu/assets/colors/blue.svg
+ create mode 100644 panels/ubuntu/assets/colors/green.svg
+ create mode 100644 panels/ubuntu/assets/colors/orange.svg
+ create mode 100644 panels/ubuntu/assets/colors/pink.svg
+ create mode 100644 panels/ubuntu/assets/colors/purple.svg
+ create mode 100644 panels/ubuntu/assets/colors/red.svg
+ create mode 100644 panels/ubuntu/assets/colors/yellow.svg
  create mode 100644 panels/ubuntu/assets/theme-dark.svg
  create mode 100644 panels/ubuntu/assets/theme-light.svg
  create mode 100644 panels/ubuntu/cc-ubuntu-dock-dialog.c
@@ -60,12 +76,12 @@ index f603db9..c21910a 100644
    'user-accounts',
 diff --git a/panels/ubuntu/appearance.css b/panels/ubuntu/appearance.css
 new file mode 100644
-index 0000000..8d4df27
+index 0000000..cb85554
 --- /dev/null
 +++ b/panels/ubuntu/appearance.css
-@@ -0,0 +1,11 @@
+@@ -0,0 +1,24 @@
 +flowboxchild.appearance-preview {
-+  border-radius: 8px;
++  border-radius: 9px;
 +}
 +
 +box.appearance-preview {
@@ -73,18 +89,119 @@ index 0000000..8d4df27
 +}
 +
 +image.appearance-thumbnail {
-+  border-radius: 4px;
++  border-radius: 6px;
++  background: shade(@theme_selected_bg_color, 1.1);
 +}
++
++flowboxchild.colors {
++  border-radius: 9999px;
++}
++
++box.colors {
++  border-radius: 9999px;
++}
++
++image.colors-thumbnail {
++  border-radius: 9999px;
++}
+diff --git a/panels/ubuntu/assets/colors/aqua.svg b/panels/ubuntu/assets/colors/aqua.svg
+new file mode 100644
+index 0000000..cd02cc4
+--- /dev/null
++++ b/panels/ubuntu/assets/colors/aqua.svg
+@@ -0,0 +1,5 @@
++<svg version="1.1" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
++ <g transform="translate(-401 -339)">
++  <circle cx="417" cy="355" r="13.35" fill="#41c6c8" stroke-width="2.9706"/>
++ </g>
++</svg>
+diff --git a/panels/ubuntu/assets/colors/blue.svg b/panels/ubuntu/assets/colors/blue.svg
+new file mode 100644
+index 0000000..8f31c43
+--- /dev/null
++++ b/panels/ubuntu/assets/colors/blue.svg
+@@ -0,0 +1,5 @@
++<svg version="1.1" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
++ <g transform="translate(-401 -339)">
++  <circle cx="417" cy="355" r="13.35" fill="#208fe9" stroke-width="2.9706"/>
++ </g>
++</svg>
+diff --git a/panels/ubuntu/assets/colors/green.svg b/panels/ubuntu/assets/colors/green.svg
+new file mode 100644
+index 0000000..8961fe3
+--- /dev/null
++++ b/panels/ubuntu/assets/colors/green.svg
+@@ -0,0 +1,5 @@
++<svg version="1.1" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
++ <g transform="translate(-401 -339)">
++  <circle cx="417" cy="355" r="13.35" fill="#3eb34f" stroke-width="2.9706"/>
++ </g>
++</svg>
+diff --git a/panels/ubuntu/assets/colors/orange.svg b/panels/ubuntu/assets/colors/orange.svg
+new file mode 100644
+index 0000000..e486e84
+--- /dev/null
++++ b/panels/ubuntu/assets/colors/orange.svg
+@@ -0,0 +1,5 @@
++<svg version="1.1" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
++ <g transform="translate(-401 -339)">
++  <circle cx="417" cy="355" r="13.35" fill="#f37e40" stroke-width="2.9706"/>
++ </g>
++</svg>
+diff --git a/panels/ubuntu/assets/colors/pink.svg b/panels/ubuntu/assets/colors/pink.svg
+new file mode 100644
+index 0000000..2066c43
+--- /dev/null
++++ b/panels/ubuntu/assets/colors/pink.svg
+@@ -0,0 +1,5 @@
++<svg version="1.1" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
++ <g transform="translate(-401 -339)">
++  <circle cx="417" cy="355" r="13.35" fill="#e920a3" stroke-width="2.9706"/>
++ </g>
++</svg>
+diff --git a/panels/ubuntu/assets/colors/purple.svg b/panels/ubuntu/assets/colors/purple.svg
+new file mode 100644
+index 0000000..430e060
+--- /dev/null
++++ b/panels/ubuntu/assets/colors/purple.svg
+@@ -0,0 +1,5 @@
++<svg version="1.1" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
++ <g transform="translate(-401 -339)">
++  <circle cx="417" cy="355" r="13.35" fill="#6a39cb" stroke-width="2.9706"/>
++ </g>
++</svg>
+diff --git a/panels/ubuntu/assets/colors/red.svg b/panels/ubuntu/assets/colors/red.svg
+new file mode 100644
+index 0000000..616ae47
+--- /dev/null
++++ b/panels/ubuntu/assets/colors/red.svg
+@@ -0,0 +1,5 @@
++<svg version="1.1" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
++ <g transform="translate(-401 -339)">
++  <circle cx="417" cy="355" r="13.35" fill="#e92020" stroke-width="2.9706"/>
++ </g>
++</svg>
+diff --git a/panels/ubuntu/assets/colors/yellow.svg b/panels/ubuntu/assets/colors/yellow.svg
+new file mode 100644
+index 0000000..01bb083
+--- /dev/null
++++ b/panels/ubuntu/assets/colors/yellow.svg
+@@ -0,0 +1,5 @@
++<svg version="1.1" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
++ <g transform="translate(-401 -339)">
++  <circle cx="417" cy="355" r="13.35" fill="#e9ba20" stroke-width="2.9706"/>
++ </g>
++</svg>
 diff --git a/panels/ubuntu/assets/theme-dark.svg b/panels/ubuntu/assets/theme-dark.svg
 new file mode 100644
-index 0000000..10d0705
+index 0000000..246de5f
 --- /dev/null
 +++ b/panels/ubuntu/assets/theme-dark.svg
-@@ -0,0 +1,29 @@
-+<svg version="1.1" viewBox="0 0 270 200" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+@@ -0,0 +1,54 @@
++<svg version="1.1" viewBox="0 0 250 150" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
 + <defs>
 +  <style>.cls-1{fill:url(#j);}.cls-2{fill:#222;}.cls-20,.cls-3{fill:#272727;}.cls-4{fill:#343434;}.cls-5{fill:#e95420;}.cls-6{fill:#2c2c2c;}.cls-7{fill:#373737;}.cls-8{fill:#151515;}.cls-21,.cls-9{fill:#3d3d3d;}.cls-10{fill:url(#h);}.cls-11{fill:url(#g);}.cls-12{fill:url(#a);}.cls-13{fill:#737373;}.cls-14{fill:url(#f);}.cls-15{fill:url(#e);}.cls-16{fill:url(#d);}.cls-17{fill:url(#c);}.cls-18{fill:url(#b);}.cls-19{fill:url(#i);}.cls-20{stroke:#4b4b4b;stroke-width:2px;}.cls-20,.cls-21{stroke-miterlimit:10;}.cls-21{stroke:#e95420;stroke-width:0.8px;}</style>
-+  <linearGradient id="j" x1="497.14" x2="497.14" y1="613.5" y2="713.96" gradientTransform="matrix(6.09 0 0 -6.09 -2632.7 4349.6)" gradientUnits="userSpaceOnUse">
++  <linearGradient id="j" x1="497.14" x2="497.14" y1="613.5" y2="713.96" gradientTransform="matrix(6.09,0,0,-6.09,-2632.7,4349.6)" gradientUnits="userSpaceOnUse">
 +   <stop stop-color="#350753" offset="0"/>
 +   <stop stop-color="#720b53" offset="1"/>
 +  </linearGradient>
@@ -106,20 +223,45 @@ index 0000000..10d0705
 +  <linearGradient id="c" x1="392.56" x2="319.4" y1="267.57" y2="267.57" xlink:href="#a"/>
 +  <linearGradient id="b" x1="495.31" x2="422.15" y1="267.57" y2="267.57" xlink:href="#a"/>
 +  <linearGradient id="i" x1="598.06" x2="524.9" y1="267.57" y2="267.57" xlink:href="#a"/>
++  <filter id="m" x="-.042353" y="-.055385" width="1.0847" height="1.1108" color-interpolation-filters="sRGB">
++   <feGaussianBlur stdDeviation="1.5"/>
++  </filter>
++  <filter id="l" x="-.042353" y="-.055385" width="1.0847" height="1.1108" color-interpolation-filters="sRGB">
++   <feGaussianBlur stdDeviation="1.5"/>
++  </filter>
++  <linearGradient id="k" x1="80" x2="80" y2="130" gradientTransform="scale(1.4706 1.1538)" gradientUnits="userSpaceOnUse">
++   <stop stop-color="#fff" offset="0"/>
++   <stop stop-color="#fff" stop-opacity=".25" offset="1"/>
++  </linearGradient>
 + </defs>
-+ <g transform="scale(.34091 .3268)"></g>
-+ <image x="14.727" y="10" width="240.55" height="180" preserveAspectRatio="none" xlink:href="data:image/png;base64,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 dts2169f140bN4Y+V9x2YLySjr9uN/gO2g7ib7xIvgH4rLzMNbrq3ZY0Gz/ZbtkuSLA7j5m2oX0P 2AwnpukBQ5qUy+X9JBZRM5sEiVOQRE1KNR/dTUr8DWJShq8gGsk3AEmhpFJS3zOc1BPQ5mr4YZvh pPkPAgxjUi6XT8rwFRKcdE1K/CW5zzDtIP6SxZhvAB4TSkqblityWWu1t9Oy4KGRnB/8GU7op4Yz KUnAuIavJLUOg9nvP2/ib/JR+QbQIlz1jjfDSaNSHCSkh3OGk+Y/Eqh/D2JSqteTkoyQ+KTrIMdf mkk5uqPyDaBJ8/CMYFnjec+qd0vK2ZREH4IZTuiPBhNnxpCk16V1rkmakQLRDnL8DbMureMdNlS+ AYQ0j/WOO8NJ+GZLL3ltrR5Lpikpb06IuyW0URXupn39jdq2G8sMJ43vF/0bdxLw93//9wN9GE7r +l/96lexZ6eYlLHAGH+i/Gd/9md65ZVX+mrP9evXde3atfq2z549069//euRtbEX4i8ekm8AkuQn kcEbZ/MQktBGiprhxLQcp33MtA3te3BnOGksY8BJktJKAu7cuTPQEIFB2zEpQ1vQXVpJ+d27d3Xi xAmtr69rdXW1vjw8W07Yt99+W1/2yiuv6Pjx4/r++++Hbscw6xAPyTeAkAFnOPGT6aZq+GGc4SSo tgtJSbMy9/XXXyfajnEPH+g1rSF6SzP+Hj9+rBcvXqhQKOibb76pT1vZab8gXo0x+su//Eu9fPlS jx49GrrtxN/oMeYbgKelKhx6qL9orfZGV49bb6bsNjzjYM1wYuo/RyrfSZiUy+WTUgWclHYcFmnH n+u6+vbbbzU7O6uzZ8/GPtfZs2c1Pz+v27dvNyXsSSP+kkPlG4CkcJW5/xlOmhNmtVSHFVoWnbw2 Va5jVMej2t12Hr9dwbI0Zjipj/emHxraOC6Xv/HGG03bDHoT3rfffttx+27VwCSHtgzyiYhoGNdw jZWVFT1//lzXrl3T8vKyqtVq1+NlMhldu3ZNL1++1PLy8lDtIP7SQ/INIMSqkeg2nsetejdtUt/u EM1w0vbHC5I2yqToxo0bymQysffr5Pbt2x2Tj3HfVIrhjDopr9Vqun37tn7+85/r7Nmzun//ftd9 zpw5o6NHj+rjjz+uJ+qTclUInZF8A/DU30NDY71DiWzPqneoynxYZzhp+oMFA0u6Q4+bPPzqV7/q q/Ld6ViDVP1GlcQw7rZ/44q/wNLSkq5evarr16/r0aNHKpfLkfvmcjm98cYbevHihR48eDDQueKs GwbxF40x3wAa6pVi27Ks+wwn4X2D54d1hpMs1qIQAAAgAElEQVSm4TeIJZysJp08dFsedYOY67py XbfpeeuXtTbyK1jXr0lLmA6bccRfr3Vff/21isWirly50nG/119/XTMzM/r66697xh2znkwWkm8A dYPOcBKuegeJeu/hGY3KdVPxOrxdeNuWZR33bWpv46bLVGY4oS8aWFQy3Lp+kHWDtiWtdowqKQr+ IEA8acdfr+M9efJEKysrunr1qqanp9v2KxaLunbtmlZXV/X48eORtWPQdcRfdww7ASApSLxNc/4Y Ue3tWfWWdFhnOGn+HpCUtJKibh+y08+5+vmQnWHP1c86DGZcv4tbt27p5MmTeuedd/S73/2uad2N GzfkOI5u3brVc2jHpCTlaCD5BtBiuBlOoodidEho68lr4+xxxn+3Vb0nZoaTcDswakknAd0+ZGfQ 80xKUoTkjXoox8bGhu7du6crV67owYMHWllZkSSdOHFC586d0/379/Xy5cuJqtgjHpJvAJLUGNcd VeHuVvVW6zI/UT2EM5wYhf5AQSLSTBAG+ZCdSRlL23qjKDe6JWPcVeNvvvlGZ86c0dtvv621tTVJ 0jvvvKNyuaxvvvkmtXb0Qvz1hzHfAJoMO8NJcybenBB3S2ijKtxN+/obtW03STOchCr9GN6kVO32 05hyY4yyWepqSZiE+KtUKvryyy81Nzena9eu6cqVK5qfn9dXX32lUqnUdxsGbUevdeFtiL/e+AkB 8Jjm533PcNK0+HDOcGLqy6h8D2scVbs4H7Lzhz/8YeB2BBXBfvbpZ12Q+FBxHN4kDeV49OiRlpeX dfXqVUnSkydPtLS0NBF/HITXEX/xkXwDkBROWsPJQTjp7l31rifbHYdnNCrXLbl+SzW7ZV9/Wcd9 m9rbuOlyHDOcRC1Df8Y1lCPqQ3ZaBR/hnXQ7SHwmx6QNJbLW6osvvtDx48dljNEXX3yR+B9xxF+6 SL4B+KyCDLe12tur6h1Ofo1fNT+UM5yEk3ekKomkqPVDdqKMYmaJQZH4TI5RJ+U7Ozv68ssvlclk tLW1NdJzxUX8DY7kG0BIzLHeLTOcNLaTuiW+TZXrGNXxsLaq9wTOcELVe3hpXUo3JvpDdoKKYtLn GsVwk2B9a+JDEjS4SRvKEfbgwYPUq/LE32iklnwvLi6mdSpg7NbX18fdhP4ZKxnTljB3HtcdseDQ z3DCXN/DSOtyea1WUz6fT7Qd3eRyOVWr1UTPFfzxQOKTnHEM1+hn3aBzx4+qjcTf4JjtBECLAWY4 iUg0WyvBUQltVIW7aV9/o7btJnSGE/qd0Ui6Q9/Y2NDi4mLk+O6kE5VMJqPjx49rc3OzLXlKOvEJ 4xMGkzOOoURJrhvFuYi/4TDsBIAkhaq4gfDNlk0bti0LkuCmfXtUuA/mDCdUvZM2imTk7t27+vDD D/UXf/EXWl9fV7lcVq1WG3hoSCvHcZTJZJTP57WwsKC5uTl9+umnsfcfNPGh6pi8Sbv5chLORfwN j+QbQItw0t276t1ezbYRy1qS39CypgURyzru29Texk2XkzDDCX1QMkaV+CwtLUmSXn/9db322mvK 5XIDf6x8J67rqlKpaGNjQ59++qkePHgw9DFJfNKVZuI9aWO5O+1D/CWD5BtAs6gKsNqXtVa5Oybr h2iGk6DN1lpq3yM0aEcf3m9paak+V/IoE6Koavowx40zqwSX+0crifgLu379um7cuJHoub799tum OenjHpP4SwfJNwCfDeWqEWO9u81w0jTsJLyspXIdVR1u2S6sreo96TOc+K9dikB9ierM07o03y1R 6Dat4KDrBk18HMfpmPi0LiP56c8440+Snj17pm+//Tb2PnHa9uzZs773Jf7SQ/INQJLkGlcy/g1o UVVvRVfCFVl9PsQznBirGp3PUPbDeNk0hw/0k/hgeGnH39ramtbW1hJpB/G3PzDbCQBJjSr2YDOc NKrC3rjr4JjxKtxSe+Lctt0+mOEkSOirNcs9l32yritpNMlDkvsMs98gBkl8WiuPVCJ7I/6iEX+j QfINQJJUk6tkZjhRe/J6WGY48R/Lrhv9FwY6cv3kp5Nx3FiWVjs6rRu04litVJoSHqqTvRF/7Yi/ 0SH5BiBjjGpyGxXtHlXvqGp203M1qsJNxevwvuF9WpZ13Lf+Kkh0g0p7S4V7TDOcBO3eqlDp6Vel Wp2IhKObSUl8ujHGqFypkPD0ifhrRvyNFsk3AElS2a30rHq3VrlN6Hlj6En0WO+DPsNJ+OtFuSqX /Lsv1Wol0eOlmRQNatDEp1cbK+Uyl/r7RPw1EH+jR/INQJK0ZXc1+AwnCm3XUrluSWgVWtZWCW/d N3xM/3zBskmb4ST8vTzZ7X4JG+1Ke3uRy/dz9XCQ4QPDJD7Buu3trY7bIBrx5yH+0kHyDUDGGL1w t9ur3oquhLfNcBIantFeDe891vsgzHAS/l7ubVbb/6pAR8YYbW9tRy7vtk+/6yZ9+EASiY8kbbzc GLhthxHx5yH+0kPyDUCStO5uyfVvuux7hpP6dv7yGBVuqT1xbttuH81wEmxXs1ZfrlejfsToYnNz Q26tFmvbNC/bp5UUDTrGtvVc1nX19NlTEp8+EX/EX5pIvgHIGKPndksb1Z3Qwvaqd5AEN1W9Q+Ou mxPwwzXDSbDd8lZF37yo0fn0aWNzS6XdRvzt1+rhIOuM6f7Jgf0MH9je2tT6+jrx1yfij/hLE8k3 AElS1bH6rrwi19Yiq95R1eyoqnD4MXhuWhdELAu2a9u3/so2zjOBM5xIUrnm6n+/t6uNKh1PvyrV qh49eiTrumNPRuKsS+p4xhjlcrlEzuXWqrp7547KlWo9YSIJiof4I/7SRPINQJL3RnrfPtWdnUcq uRU1VbQldZvhJFz1NmquBB+GGU6srLYrVf2/97f1fzzoPGUZOjPG6NHKY60+eii3Ej1bwn69pN9p nziJT5xzWWtVLZf04Pu7unv/BzkOXXu/iL/Bz0X89Y+PlwcgyX+TzTr6srqsF9s7upBb1HyuqEIm q6xxFMwuYqwk4yWczUl3cCC1JbThDdoq4aFlbUM+jDQRM5yEkmxZK1dW1rqquK62K1Utb1f0X5ZL +r+XqiorQ/I9INda/eH7e9ra3tbpEyeUny4qk8vLyWQU/BbCgp/zfrz5LXbi4yeBje/dSvKW12o1 1col7Wxt6IcHS/r+xyXVXFeO41B1HADxF3E84m8kSL4B1AUJ+I/uCz2svtCRypSOmoJmnILmnJzy TlZ5OTKOlJGpV6RNKAHfrZa0tDXVlCiblkpy2/L6UA8/KW4a5908fryxjZoS56HO0ZKcBzdaBq9r 1pVrraquq52aq82qqye7VT3ZdXV3s6Z721YbVSPHIfEelrVWPy6vaHl1VbMz05qfmVWxOKWpqYLy uZyymYxkjBxj/KSos8jfhDHRy0e1rtMujqNyp8Ss5WYG63rxV3Nd1apVlUpl7e7uanN7Wy83N/X8 5aYq1aocx6knPhgM8Uf8pYHkG0ATY4wymYysY/XClvTc7nmXYGuSqSl0OdaE/m05xsbt1NobT/sl 5IEZP4W31uv0jJExjjIZOpykGGNUrbl6/tLr2OvLlehvcmSMvCpquL02/NraoH7Y9BheLnX/Xq21 TeNqM34iGKcai+6IP3+fLucg/oZD8g0gUutlQz6xrJlD5zJykeNUx9COQZjWx+B7Cf5o67Cdt0nr /RYdzhH6+ZD0JI/463EO4m9gJN8AYuFNFYiv9f9LPaGJ8f8o6VkucPgQf5ON5BsAgBEjOcE4EX+T hflgAAAAgJSQfAMAAAApIfkGAAAAUkLyDQAAAKSE5BsAAABICck3AAAAkBKSbwAAACAlJN8AAABA Ski+AQAAgJSQfAMAAAApIfkGAAAAUkLyDQAAAKSE5BsAAABISTatEz179iytUwEAAAATico3AAAA kBKSbwAAACAlJN8AAABASki+AQAAgJSQfAMAAAApIfkGAAAAUkLyDQAAAKSE5BsAAABICck3AAAA kBKSbwAAACAlJN8AAABASki+AQAAgJSQfAMAAAApIfkGAAAAUkLyDQAAAKSE5BsAAABICck3AAAA kBKSbwAAACAlJN8AAABASki+AQAAgJSQfAMAAAApIfkGAAAAUkLyDQAAAKSE5BsAAABICck3AAAA kBKSbwAAACAlJN8AAABASki+AQAAgJSQfAMAAAApIfkGAAAAUkLyDQAAAKSE5BsAAABICck3AAAA kJLsuBsAYDIdyxZ1Oj+nxfy05jN5zWRymspklHUcGTnKOJLjODLGkTFGxhjJf6w/d4wcIzmOlPEf HUfevv7rmqRf/XBHX609Gfe3jAlC/GGciD+MEsk3gCZHMgV9OHNGp0xRqlRld6oytiapopqsXFmZ vo5o5RgrR1aOkTLGfx0sc6S/OX1Sxhh9ufp4NN8U9g3iD+NE/CENJN8A6o5kpvSL4kXltqsquTty JBnjdTbGWG+cmt/zmNg9kJFr/f2slQl3XUaSa1VaWdUvz56WjNGXT1YS+36wvxB/GCfiD2lhzDcA j5VuZk/J2arIrbmy1siVZK2R9R+bX/dzcOPv73VErjWNLxnVXGlraVm/PHZa7548PYrvDpOO+MM4 EX9IEck3AEnSEaeghXJO1nbrcAbvgGyPDsh1jbaXlvXXCyfpgA4h4g/jRPwhTQw7ASBJWjRFmZr8 EY3166SSNXKNlRN6bY33KOP1PnGvwNrwJVj/WHX+Zdndh4/1t2dOybU21TGQtkdPauJfZ8YAiD/i b5yIP+IvTSTfACRJR2yhuT+w8gc2WhlrZIMOyVi5MnLqG/sdUMz3Ziuv6uPtZIPdJX80pCur7Ycr +rszp/UPr1+VYxrjLY2RP/5SMl4tqcOX2/zceo+ObP158OUtc71zWH+ZdevHkHXlWlfVWk1la7Vd cfW8WtPyntW97apuvazo4Z5V964LvRB/xN84EX/EX5pIvgFIkopu1uterGRNUOWRpJbKj4xk/Q7I hCtEcTsgryNrdED+YeuzCHj/biytaOvhcmhmAL8T8mcJ8J6r8bxtvdq2NbJNxwueh49VXx/aJmus 8kaaNdJxx+qCkT4oOjJzGZVOZ/XtnqN/fFTVFxu1fu7EQgjxR/yNE/FH/KUpE7HMtDzv9OW0fGVC j01fs7Oz/+3U1FRxRN8DMHF2d3c1Ozs77mbEZq3VZbugKeUkBe+fwX/10IOpP6kvN1GvezLNj6b5 PdvKtL+HB1Uf/0l9tfHnDzBe+0yXbb2KUfh7anR3QUWp6TtofS2reqdsXalWVbZa1imnrF8sZrSt rL7dcumA+kT8EX/jRPwRf4GdnZ3d7e3t/03eFOxuxGPwZTt8xULlG4AkKWcy9bcO61dx6u8k/vhG 13ofDtG4AhuMf/Re15fHOmNzBcj4p7HWmwvXDcpQ9Td8Kxkra71qjjWSY711wXMrK2u8S6vWeJdw HWu9ypX1X/vbuvIrO7L1y7GOaaxvqwjJO4bjNKoMVt6HZ8i1ylb29J9O5LS0l9XvN7gI2y/ij/gb J+KP+EsTyTcASVLGv4Pf+L1IowPyexW/A7LBjUbBjUih1wp1RIN0QMG4RtfaRmfmbSFrrKw/NtFb bYM1cuR3LPI6reAybL3jkVVNqncgweVX43dG9cu1NvTc37/eAZlQB2SCD8vwHjPG64yytYr+4wlH n214syIgPuKP+Bsn4o/4SxPJNwBJkvFnHg13QEFHEu6AWjsc10hOY7DkUB2QCSo+QUuMK6uqHOvW OyBTr+SEKzp+h+K31PgVH5lQB6Lgsqvf8dQ7Ke+51xk1Oh8TVIYcb5+M8cdRKuh0/C9HyvrPc450 JVvR+am87u8l+Ms5BIg/4m+ciD/iL00k3wAkeR1O89VT/w7/iApQcwckvwNqrgDVn/Y4b/gCpetX erzLrTVZ48r9yU2Vzp9raWt4X1t/0XTPffA69Ogt9pcFl2zr1aXwPt7l3WCdsa6M68q4NWVrZeVr ZU2XtzRX2tTi9pqO7z7VjLsnK6O8I705bXV/L17XCw/xJ+JvjIg/EX8pIvkG4PHKJ/UOo70CFH5j 98Y6Wvmf1OV3SMYGMwD4h2vdrwPvbdp7s3eNlWxNclyZn7yjR7PT2l5aat+ny009g6yLv4+RMVNS bkqZqZPKLFzVjK3o0ot7emvtlmbdml4vuLLW6XpMtCD+Yu5D/I0E8RdzH+IvCSTfAJoF5Z9QFaVR EbJNG3rVHdt4HWzjdzomtDzOia1/I7k1NTkfvqdHM1Pa3t5u2zLpjqebqH2CD6So1Wqq1WoqS/p8 /orWi8f0H5b+Va9kazKGDxAeCPHXcx/ib4SIv577EH/D46cDQJJauhX/kqSs6jMrWetfmPWW1ddZ v9PwH7035ubXQafS/asmmaqUqSn3R+9rebaorYiOp5txdkq1Wk0/ZBf05eINzTneB1sgPuKvP8Rf soi//hB/w6HyDUBSo6vxij5WMq4/XWvjk9MkKZj+qn5pNqjwBBUg43de4eqRtR2mfg1v58pkrPI/ e1fLM0Vtbm22bT3oZcy0OiVrrb6bO6/T2buNyQoQC/HX37ooxN/giL/+1kUh/uIj+QYgSXLdmqzj eHfEm8bHDxvjfZ5AUPUx/l3vXr/R0skEz5uWeY/BWMrg/dzaxmVZ74mr3M8+0MpsdMfTzSg6l0HX 7ZicXkwvSuZZx23QjvhLZh3xNxjiL5l1xF88JN8AJEmurcm1XrXHMTU5eSMdm5aOzUqzRdliXsrn ZLMZKePIZDIyjvHeiDt8BZ/UZkzQqZnmL3k9UvB6eXVV21tbke1L8+adYTolK+n51IKsfdroadET 8RfvXMTfaBB/8c5F/CWD5BuAJK/zsbJSRnIvn1DlzDFVso6q1apc15W1FalUkd2zPTuC0d5tP/p1 wx5vszDb97EPO+KvN+JvdIi/3oi/5JB8A5AkWVVkM1L13Yvam59SrVqWqv0fZ1xv+EmsS+p425kp KeYcB/AQf8TfOBF/xF+amO0EgCTJqip78bi2Z3OqVgfodTQ5VZhR7NePcibHzUZ9Iv6SQ/z1j/hL DvHXG5VvAJIkmzMqn5r3bgTaB9WbNM/V77qqk+u4PaIRf8TfOBF/xF+aSL4BSJLs0YLcXKbrxcL9 MJYxzXN1Wuc6mfgNgyTiL8l1xF//iL/k1hF/vTHsBIBnbrrr6qQ7g1Gca1Iu37rGYchjv4i/xPYj /gZA/CW2H/HXG5VvAJIkO5PvuO4gV29GcS7vw93offpB/CV3LuKvf8Rfcuci/noj+QYgSbJT+b7f LtPslOLsY4zR9PS0ZmdnVSgUtLGxoZcvXw7UjkH2SeNmpoPqIMRfkuvSOh48xF88xF8ySL4BeHLR bweTVqHJZrMqFAoqFouanZ3V3Nxc/WtmZkaZTEbGeB9asbOzo3/+53+Wte333o+0E6ET6t8+ib99 0Q7ir3/EX3LtIP56IvkG4Mm03yQzzqpJLpfTzMyMjhw5orm5uXqiPT09rVwup2w227MNxWJx6HYk sQ4xTFj8HYZ2IOQAxV8ul9Pi4qLm5+clSRsbG3r27JkqlUqq7UBnJN8AJEnWMU2XXceVjORyOb37 7rs6ffq0isXi0DcEeWMQbdvyXu1Iah3imZT4G/U64m8yHZT4e+2113Tz5k3Nzs7W11trtb29ra++ +koPHz5MpR3ojuQbgMeJN/nRqN+gz5w5o0uXLg31hh5OvJNAx5OCCYm/uDodL5vN6ty5czp79qyO HDkiyas8Pnz4UEtLSwN9gAvxl4IDEH+vv/663n//fa2vr+vLL7/U2tqaJGlxcVHXrl3Tz372MxWL RX333XdDnyvOOnRG8g3AE3oPHWf1plAoJJJ4J7kuyX3QwYTEX5x1nZZPT0/rpz/9qY4dO9a0zeLi oo4dO6YzZ87o97//vXZ2dvpqR7/twwD2efwdPXpU77zzjh49eqSPP/646Y+8lZUVra2t6YMPPtCN Gzf07Nkzra+vx27HIG1Hd8zzDUBSo+/p9oafxqV0J2YFatTtiLMuyX0Ou0mJvzjromSzWf30pz/V 4uJi5L7GGC0uLuqDDz5QNpttW5dUOwbd57Db7/F35coVua6rzz77LPLqSq1W0+eff65qtarLly+P rB2D7nPYkHwD8HTpXEZzuv47sk6stSqXy/Ubi9bW1mJf3p+Uy8iH3oTE36Drzp07p2PHjvU878LC gs6dOzeydmBA+zz+Tp48qdXVVe3t7XXct1Qq6cmTJzpx4kSsoXnE3+gw7ARAT+N+g7bWynVd1Wo1 lctl7ezsaGtrSxsbG9ra2tL29rbK5bKq1Wo96X7vvfd05cqVru2YhIoVepuUqxbd1p09ezbW+Ywx Onv2rO7fvz+SdhB/ydsP8VcoFCKHM7Xut7OzE2toH/E3WiTfALpKa7xsq0qlosePH2t9fV0bGxva 3d3V3t5eZGUn6pilUinWefptIx1PusYVf/2eK7i5Mo4jR47IGBM5/3yccw2yDoPZL/FXLpcjp1Zt 3a9YLKpcLg91rkHWoRnJN4DEJdHB/OY3v6nfrd/tmJ2Wd0pseu03KDqeyTGKBCfpcyVtUtqB8cTf kydPdPr0aU1NTdULFK3HKxQK9eEpvd4fB20H4mHMN4COxnnz0fPnz2Ptl8S5hl1HxzMa++nmt42N jZ7bBDY3NxOtehN/ozHJ8ZfJZPTaa6/plVdekSTdvXtXmUxGN2/ejPwAMsdx9M4776hQKOj7779P tI3EX/+ofAOINO6E13XdrvuN6vLtIOuQvHHHX691rcsfPnzYNsVgJ48ePUq0jUjepMaf4zg6e/as rl69qoWFBT18+FBra2t6/vy5bt26pXfffVfFYlG3b9/W06dPJTXm+T5x4oRu3bqlZ8+eJdpG9I/k G0CbSXkTnpThA5Py8zgsJuXn3c+5Hjx4oDNnzmhxcbHrdi9fvtQPP/zQ17km5edxWEzKzzt8rnw+ X0+6Z2dn9eLFC/37v/+7lpaW6tt89913KpVKevvtt/Unf/In9asrxhjt7u7qk08+0Y8//tjzXEmt Q2ck3wCaTMpwjUm5IY2OJ12TFH/9rKtWq/r973+vDz74QAsLC5HbvHjxQp988klfn3JJ/KVr1PE3 Nzen48ePa2pqSqVSSU+fPtXW1lbbe12wz9TUlC5evKhLly5pampK6+vr+uKLL7S6uqpardZ2rqWl JT158kTHjx+v39i7sbGhp0+f9rzRcpjvC/0h+QYgqfcb6aRURvo9V5DEk5RPtkmJv3w+r0qlMtDx dnZ29Nvf/lbnz59v+nj5zc1NPXr0SD/88ENk4k38jd+o4y+fz+u9997TuXPnlMlk6utrtZoePnyo zz//vOlGyWKxqCtXrujChQvK5/NaWVnRd99913QTeqdzlctlLS8va3l5eej2D7IP8dcbyTeAuoM6 XGNSKuXobtzxVygU9Md//Mf63e9+p93d3b7bInnJ1L1793Tv3r36jXndZpYg/ibHqOIvn8/rz//8 zzUzM6Pbt2/rxx9/1M7OjorFos6fP68rV67o6NGj+pd/+Rfl83ldvnxZFy5ckLVWy8vLun37tl6+ fNmziDBMG/tdl+Q+hxHJN4CeJqUyws2Xh1Na8Xf58mUdPXpU169f16effhp7v07Lh5nukvibHMPG 37vvvqvZ2Vn99re/1ePHj+vrNjc3devWLa2uruqjjz7SL37xCxUKBVlr9cMPP+ju3btNs+ikMXxq 2HWIh+QbQFeTcrlyUs7Vz7pBK1VoSCsmZmZmdOnSJRnjfQLlgwcP6rNFJH2utNYRf8MbNv7m5uZ0 /vx53b59uynxDltdXdWdO3d048YN3b9/X998803bp1USfwcL83wD6Gg/J8qjeNOnGpSutOLPGKM3 33xT2axXj3IcR2+99VZ9bG7r8ebm5pTP5wc61zCIv3QlEX/Hjx9XJpOJnOEm7MGDB7LWan19va/E m/jbn0i+AUSalMuVaQ9fSaqNSX+C3GGTZvwtLi7q1VdfbVp/9OhRXbhwoW2fbDar999/X5cvXx7J H4zE32RI6nc7NTUlSdrd3e26X5BwB9sn3Y4464i/9JB8A+jLfk/KBz1XmhV2dJb0791xHF2/fr1p Bopg+2vXrqlYLDYtv3z5shYWFvT6669rZmYm0TZ224f4mwz9/m5LpZIktcVR637B+mD7pNsRZ123 fYi/ZJF8A2iT9BvqQU3K46AC1L804+/VV1/t+ME4hUJB169fr79eWFjQ1atXZYxRNpvVm2++2XZs 4m//S/J38fTpU9VqNZ0/f77ruc6dOydjjObn51UsFhOtQg+7bhjEXzSSbwBNb5Bpjr3e70k5VZ9k jCv+stmsrl+/Lsdp7wqD5Ofs2bM6fvy4stmsbt682VQhP336tI4fP97x+MO2fZh1iG+U8be1taWH Dx/qypUrOnHiROQ+x48f19WrV7W7u6sLFy7or/7qr3Tz5k3Nzs723Y4k2z7MOnTHbCcAJPUe75dW Mpx0O4wZzTzLvdaFP9oZvY0j/i5duhSZ4ISP5ziObty4oWfPnmlhYaFpO8dx9Oabb+o3v/mNXNed qKSI+OvPqOLPWqvPPvtMR48e1UcffaQ7d+7oxx9/1O7urorFos6dO6dr166pVCrp17/+taampnTl yhVdvnxZly5d0sOHD3X79u36lIP7pShB/HVH8g2gp0mpjEQd79ixYzp9+rQKhYL29va0tramZ8+e Dd2OSfmeMZrfRbFY7HnTZGBhYaEt8Q4cPXpU58+f7zqbBfG3vw37uwgS6/fee0/Xr1/Xm2++Wd/G WquVlRV99tln2t3d1e7urj7++GN98803unr1qs6dO6dz585peXlZ3333Xdt727BtHOb7SupchxHJ N4CBjfsN+urVq3rrrbfqU8RJkuu6evz4cawbl9LslJC8YeLvypUrbTNLdNqv17GuXbum5eVllcvl xNo4yD7EX7r6+V3s7e3p3/7t3zQ/P5gEZDQAACAASURBVK/jx49rampKe3t7evr0qTY2Ntoqxdvb 2/rss890+/ZtXbp0SRcvXtSrr76qtbU13blzR2tra3JdN/Jc2WxWi4uLmp+fl+R9mM/Tp09VrVZj tz+J7xmdkXwD6GpSqiat6+bn5/X222+3zVLhOI5effXVkX26YJx9gsuudEbDG0X8HTlyROfOnUvs XMViUVevXtWtW7f6ascg6+LsQ/wlJ8n4s9bq5cuXevnyZez9dnZ2dOvWLd29e1fnzp3TlStX9Kd/ +qd69uyZvvvuOy0vLze917322mt6++23NTs7Wz+etVbb29u6deuWHj582PP7Iv5Gj+QbQEejfIMO DxcplUpaXV3t65LqmTNnIm+UC+/TKQEfZVJkjGmqxGNwo4q/N998U7lcbujjhZ0/f14PHjxo+jjw Xu1Icl14G+IvGZNy1cIYo1KppO+++0737t3TuXPndPnyZf3RH/2RlpaW9Lvf/U6SdOnSJb333nta X1/XV199Vf+E1sXFRV29elUffvihisWi7t69m3gbw9sQf73xEwIQaZQJwrVr13Tjxo36m7QxpuNw kU7HC1d2OokaBtDNsN9z0PFQ8RneqOLvxIkTOnnyZF/7xDlXLpfTG2+8oY8//njgqh/xNznGddWi 17parab79+9raWlJr776av09LrgSuLy8rE8++aRpiMnKyopWV1f1k5/8RG+++abW19e1vr4+VDui 1hF/8THVIIA2oxw2Mj8/3zZOW2oMF7lw4UKs48VJrMNjKXsdk45ncowq/oIP1Ol2xSSuqHOdOnVK J06cGKiNxN/kSGPY3LDtqNVqWlpa0pMnTyR5H/7kuq4+//zztrHdwfZffvmlqtWqXn/99cTaTvwN huQbQCLivnmfPXu2Kflp3a/bcJHwNq1jHVtZa/Xo0aPYbRwEHc/kiBN/Z8+ebZu1JMmkKJh6sFNy T/wdXONOyk+ePKm1tTXt7e113C8Y3vfKK68kEivE3+BIvgE0GXVHMTMz0/SmHSVOVXt1dVX379+P TMCttXrx4oV+/PHHju3o1sa464L1rR0PndDgRhV/+Xxe165dG/nvaX5+PvLTDIm//WGSxnn3o1Ao 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 j5RvAOkAAAAASUVORK5CYII= "/>
++ <rect width="250" height="150" rx="5" ry="5" fill="url(#k)" opacity=".55" stroke-width="9.2724"/>
++ <g transform="matrix(1.1742 0 0 1.1742 22.26 7.4853)">
++  <g transform="translate(75,-45)">
++   <rect x="-15" y="55" width="85" height="65" ry="5" filter="url(#l)" opacity=".55"/>
++   <g>
++    <rect x="-15" y="55" width="85" height="65" ry="5" fill="#404040"/>
++    <path d="m-10 55c-2.77 0-5 2.23-5 5v10h85v-10c0-2.77-2.23-5-5-5z" fill="#404040"/>
++    <rect x="-15" y="69" width="85" height="1" ry="0" fill="#5d5d5d"/>
++   </g>
++  </g>
++  <g transform="translate(45,-15)">
++   <rect x="-15" y="55" width="85" height="65" ry="5" filter="url(#m)" opacity=".55"/>
++   <rect x="-15" y="55" width="85" height="65" ry="5" fill="#242424"/>
++   <path d="m-10 55c-2.77 0-5 2.23-5 5v10h85v-10c0-2.77-2.23-5-5-5z" fill="#303030" fill-opacity=".93726"/>
++   <rect x="-15" y="69" width="85" height="1" ry="0" fill="#4d4d4d"/>
++  </g>
++ </g>
 +</svg>
 diff --git a/panels/ubuntu/assets/theme-light.svg b/panels/ubuntu/assets/theme-light.svg
 new file mode 100644
-index 0000000..7509894
+index 0000000..60678ac
 --- /dev/null
 +++ b/panels/ubuntu/assets/theme-light.svg
-@@ -0,0 +1,28 @@
-+<svg version="1.1" viewBox="0 0 270 200" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+@@ -0,0 +1,56 @@
++<svg version="1.1" viewBox="0 0 250 150" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
 + <defs>
 +  <style>.cls-1{fill:url(#j);}.cls-2{fill:#222;}.cls-20,.cls-3{fill:#272727;}.cls-4{fill:#343434;}.cls-5{fill:#e95420;}.cls-6{fill:#2c2c2c;}.cls-7{fill:#373737;}.cls-8{fill:#151515;}.cls-21,.cls-9{fill:#3d3d3d;}.cls-10{fill:url(#h);}.cls-11{fill:url(#g);}.cls-12{fill:url(#a);}.cls-13{fill:#737373;}.cls-14{fill:url(#f);}.cls-15{fill:url(#e);}.cls-16{fill:url(#d);}.cls-17{fill:url(#c);}.cls-18{fill:url(#b);}.cls-19{fill:url(#i);}.cls-20{stroke:#4b4b4b;stroke-width:2px;}.cls-20,.cls-21{stroke-miterlimit:10;}.cls-21{stroke:#e95420;stroke-width:0.8px;}</style>
-+  <linearGradient id="j" x1="497.14" x2="497.14" y1="613.5" y2="713.96" gradientTransform="matrix(6.09 0 0 -6.09 -2632.7 4349.6)" gradientUnits="userSpaceOnUse">
++  <linearGradient id="j" x1="497.14" x2="497.14" y1="613.5" y2="713.96" gradientTransform="matrix(6.09,0,0,-6.09,-2632.7,4349.6)" gradientUnits="userSpaceOnUse">
 +   <stop stop-color="#350753" offset="0"/>
 +   <stop stop-color="#720b53" offset="1"/>
 +  </linearGradient>
@@ -141,8 +283,36 @@ index 0000000..7509894
 +  <linearGradient id="c" x1="392.56" x2="319.4" y1="267.57" y2="267.57" xlink:href="#a"/>
 +  <linearGradient id="b" x1="495.31" x2="422.15" y1="267.57" y2="267.57" xlink:href="#a"/>
 +  <linearGradient id="i" x1="598.06" x2="524.9" y1="267.57" y2="267.57" xlink:href="#a"/>
++  <filter id="m" x="-.042353" y="-.055385" width="1.0847" height="1.1108" color-interpolation-filters="sRGB">
++   <feGaussianBlur stdDeviation="1.5"/>
++  </filter>
++  <filter id="l" x="-.042353" y="-.055385" width="1.0847" height="1.1108" color-interpolation-filters="sRGB">
++   <feGaussianBlur stdDeviation="1.5"/>
++  </filter>
++  <linearGradient id="k" x1="80" x2="80" y2="130" gradientTransform="scale(1.4706 1.1538)" gradientUnits="userSpaceOnUse">
++   <stop stop-color="#fff" offset="0"/>
++   <stop stop-color="#fff" stop-opacity=".25" offset="1"/>
++  </linearGradient>
 + </defs>
-+ <image x="14.727" y="10" width="240.55" height="180" preserveAspectRatio="none" xlink:href="data:image/png;base64,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 W2/p0KFDKhaLfX8gyDT0wtDwjKZRqb9Br6P+RtNOqb8jR47o/PnzmpycrK631urZs2f67LPPdOfO nVSuA+0RvgH4HEfy3I6bDfoF+ujRozp16lRfL+jh4J0EGp4UjEj9xdXqeNlsVsePH9exY8e0Z88e SX7P4507dzQ/P69yufuvTaT+UrAD6u/ll1/W22+/rdXVVX366adaXl6WJO3fv19nzpzRN77xDRWL RV29erXvc8VZh9YI3wB8odfQYfbeFAqFRIJ3kuuS3ActjEj9xVnXavn4+Li+/vWva9++fXXb7N+/ X/v27dPRo0f14Ycf6vnz511dR7fXhx5s8/rbu3ev3nzzTd29e1fvv/9+3R95i4uLWl5e1jvvvKNz 585pZWVFq6ursa+jl2tHe8zzDUBSre1p94KfxlvpjtP7y9KovKVPo9S9Uam/OOuiZLNZff3rX9f+ /fsj9zXGaP/+/XrnnXeUzWab1iV1Hb3us9tt9/qbm5uT53n6+OOPI99dcV1Xn3zyicrlsl555ZWB XUev++w2hG8AvjaNy2BO131D1oq1VqVSqfrBouXl5dhv74/K28i73ojUX6/rjh8/rn379nU878zM jI4fPz6w60CPtnn9vfDCC1paWtLGxkbLfTc3N3X//n0dPHgw1tA86m9wGHYCoKNhv0Bba+V5nlzX ValU0vPnz/X06VM9fvxYT58+1bNnz1QqlVQul6uh+8KFC5qbm2t7HaPQY4XORuVdi3brjh07Fut8 xhgdO3ZMN27cGMh1UH/J2w71VygUIoczNe73/PnzWEP7qL/BInwDaCut8bKNtra2dO/ePa2ururx 48daX1/XxsZGZM9O1DE3Nzdjnafba6ThSdew6q/bcwUfroxjz549Mqb1XMjU3+jYLvVXKpUip1Zt 3K9YLKpUKvV1rl7WoR7hG0DikmhgfvKTn1Q/rd/umK2Wd/qSh6QbChqe0TGIgJP0uZI2KteB4dTf /fv3dejQIY2NjVU7KBqPVygUqsNTkv4SHOqvO4z5BtDSMD989PDhw1j7JXGuftfR8AzGdvrw2+PH jztuE3jy5Emivd7U32CMcv1lMhkdOXJEBw4ckCRdu3ZNmUxG58+fj/wCMsdx9Oabb6pQKOirr75K 9Bqpv+7R8w0g0rADr+d5bfcb1Nu3vaxD8oZdf53WNS6/c+dO0xSDrdy9ezfRa0TyRrX+HMfRsWPH dPr0ac3MzOjOnTtaXl7Ww4cPdfHiRb311lsqFou6cuWKHjx4IKk2z/fBgwd18eJFraysJHqN6B7h G0CTUXkRHpXhA6Py89gtRuXn3c25bt++raNHj2r//v1tt1tbW9PNmze7Oteo/Dx2i1H5eYfPlc/n q6F7cnJSjx490t/93d9pfn6+us3Vq1e1ubmpN954Q9/+9rer764YY7S+vq4PPvhAt27d6niupNah NcI3gDqjMlxjVD6QRsOTrlGqv27Wlctlffjhh3rnnXc0MzMTuc2jR4/0wQcfdPUtl9RfugZdf1NT U5qdndXY2Jg2Nzf14MEDPX36tOm1LthnbGxML730kk6dOqWxsTGtrq7qF7/4hZaWluS6zd/IOT8/ r/v372t2drb6wd7Hjx/rwYMHHT9o2c+/C90hfAOQ1PmFdFR6Rro9VxDiCeWjbVTqL5/Pa2trq6fj PX/+XD/96U914sSJuq+Xf/Lkie7evaubN29GBm/qb/gGXX/5fF4XLlzQ8ePHlclkqutd19WdO3f0 ySef1H1Qslgsam5uTidPnlQ+n9fi4qKuXr1a9yH0VucqlUpaWFjQwsJC39ffyz7UX2eEbwBVO3W4 xqj0lKO9YddfoVDQ3/t7f08///nPtb6+3vW1SH6Yun79uq5fv179YF67mSWov9ExqPrL5/P61V/9 VU1MTOjKlSu6deuWnj9/rmKxqBMnTmhubk579+7V3/zN3yifz+uVV17RyZMnZa3VwsKCrly5orW1 tY6dCP1cY7frktxnNyJ8A+hoVHpGttOHL5Oeyms3S6v+XnnlFe3du1dnz57VRx99FHu/Vsv7me6S +hsd/dbfW2+9pcnJSf30pz/VvXv3quuePHmiixcvamlpSe+9956+853vqFAoyFqrmzdv6tq1a3Wz 6KQxfKrfdQHqrz3CN4C2RuXtylE5V9x11tqee6pQk1ZNTExM6NSpUzLG/wbK27dvV2eLSPpcaayj /pLRb/1NTU3pxIkTunLlSl3wDltaWtKXX36pc+fO6caNG7p8+XLTt1VSfzsL83wDaGk7B+VBvOh3 ex1BA4TepFV/xhi99tprymb9/ijHcfT6669Xx+Y2Hm9qakr5fL6nc/WD+ktXEvU3OzurTCYTOcNN 2O3bt2Wt1erqalfBm/rbngjfACIN6+3KQR+v3X7BGN0kjud5Hg1PH9Ksv/379+vw4cN16/fu3auT J0827ZPNZvX222/rlVdeGcgfjNTfaEjqdzs2NiZJWl9fb7tfELiD7ZO+jjjrqL/0EL4BdGW7h/Je z9VtD3u48aERSk7Sv3fHcXT27Nm6GbqgODQAACAASURBVCiC7c+cOaNisVi3/JVXXtHMzIxefvll TUxMJHqN7fah/kZDt7/bzc1NSWqqo8b9gvXB9klfR5x17fah/pJF+AbQJOm3MndqKG8naHxoeLqX Zv0dPny45RfjFAoFnT17tvp8ZmZGp0+fljFG2WxWr732WtOxqb/tL8nfxYMHD+S6rk6cONH2XMeP H5cxRtPT0yoWi4n2Qve7rhfUX3uEbwB1L5Bpjr3e7qG83bqg4aHx6WxY9ZfNZnX27Fk5TnNTGISf Y8eOaXZ2VtlsVufPn6/rIT906JBmZ2dbHr/fa+9nHfUX3yDr7+nTp7pz547m5uZ08ODByH1mZ2d1 +vRpra+v6+TJk/qN3/gNnT9/XpOTk11fR5LX3s866q89ZjsBIKnzeL+0wnDS12HMYOZZ7rSOMY/d GUb9nTp1KjLghI/nOI7OnTunlZUVzczM1G3nOI5ee+01/eQnP5HneSMViqi/7gyq/qy1+vjjj7V3 71699957+vLLL3Xr1i2tr6+rWCzq+PHjOnPmjDY3N/XjH/9YY2Njmpub0yuvvKJTp07pzp07unLl SnXKwe3SKUH9tUf4BtDRqLyVGXW8ffv26dChQyoUCtrY2NDy8rJWVlb6vo5+/830/CRnEPVXLBY7 fmgyMDMz0xS8A3v37tWJEyfazmZB/W1v/f4ugmB94cIFnT17Vq+99lp1G2utFhcX9fHHH2t9fV3r 6+t6//33dfnyZZ0+fVrHjx/X8ePHtbCwoKtXrza9tvV7jf38u9qto/7aI3wD6NmwQ/np06f1+uuv V6eIk/yxhvfu3Yv1waVBNkqe51UfM9/tYPRTf3Nzc00zS7Tar9Oxzpw5o4WFBZVKpcSusZd9qL90 dfO73djY0M9+9jNNT09rdnZWY2Nj2tjY0IMHD/T48eNqSA32e/bsmT7++GNduXJFp06d0ksvvaTD hw9reXlZX375pZaXl6u/48ZzZbNZ7d+/X9PT05L8L/N58OCByuVy7Ovv999M/bVH+AbQ1ii9lRk2 PT2tN954o2mWCsdxdPjw4YF9u2CcfYKhLvT69G8Q9bdnzx4dP348sXMVi0WdPn1aFy9e7Oo6elkX Zx/qLzlJ1p+1Vmtra1pbW4u93/Pnz3Xx4kVdu3ZNx48f19zcnH7pl35JKysrunr1qhYWFup+z0eO HNEbb7yhycnJul7oZ8+e6eLFi7pz507Hfxf1N3iEbwAtDfIFOjxcZHNzU0tLS129pXr06NHID8qF 92n14j/IUGSMPxMGjU//BlV/r732mnK5XN/HCztx4oRu375d93Xgna4jyXXhbai/ZIzSUI7NzU1d vXpV169f1/Hjx/XKK6/oW9/6lubn5/Xzn/9cknTq1ClduHBBq6ur+uyzz6rf0Lp//36dPn1a7777 rorFoq5du5b4NYa3of46I3wDiDTIgHDmzBmdO3euOlwk+IBO1HCRVscL9+y0EjUMoJ1+/81Bw9Mu +COeQdXfwYMH9cILL3S1T5xz5XI5vfrqq3r//fd7fpud+hsdw3rXotM613V148YNzc/P6/Dhw9XX uOCdwIWFBX3wwQd1Q0wWFxe1tLSkr33ta3rttde0urqq1dXVvq4jah31Fx9TDQK7XNSL5CCHjUxP TzeN05Zqw0VOnjwZ63hxgnV4LGWnYybZ8ARogDpLs/6CL9Rp945JXFHnevHFF3Xw4MGerpH6G460 X/+60W4f13U1Pz+v+/fvS/K//MnzPH3yySdNY7uD7T/99FOVy2W9/PLLiV079dcbwjeARMR98T52 7Fhd+GncL06viTGmaaxjI2ut7t69G/saexGn4aEBSkec+jt27FjTrCVJhqJg6sFW4Z7627mGHcpf eOEFLS8va2Njo+V+wfC+AwcOJFKL1F/vCN8A6gy6oZiYmKh70Y4Sp1d7aWlJN27ciHxxt9bq0aNH unXrVsvraHeNcdcF6xsbHj5w1LtB1V8+n9eZM2eafk9Jm56ejvw2Q+pvexilcd7dKBQKev78ecfj PX/+XIVCIbHroP56w5hvAFVpvF0ejOlut1/UcJGoY3788cd6+PChXnrpJe3Zs0eStL6+Xp0Td2tr q6drjLuuVcMj0fPTi0HW36lTpzQ+Ph5rv3bi7Dc3N6fFxcVqLyT1tz0MY7hQUutKpZKKxWLHfYrF Yl3nBvU3HIRvAB0l2UO4sLCg06dPt1wfNVyk1XV4nqfr16/rxo0bPY01TLrhCaPnJzn91t/4+Hjs L9RJ4jqCbyn87LPPej4e9Tc6BvEOSS/narduaWlJL774YnX2qCiFQkEHDx7U8vJyxw8FU3+DxbAT AG0l3UOzvLys69evt3xhfvToUeS3BXZqAFt9o9og3ipu1fD08gcA2kui/l599dW6D/gmXRNR2x47 dkzT09PU3zaXds92r8e7du2aMpmMzp8/X/fdB8F+juPojTfeUD6f11dffdXXuai//tHzDaClQTUu wXCRU6dONQ0X+fLLL6vDRQZ5Hb02gHEaHomenyQk8budmZnR0aNHq8sGHbwDuVxOZ8+erc7BnMQx qb90pfm60+/xHj16pEuXLun8+fMqFou6cuVK9XsT9u3bp9OnT+vgwYO6dOmSVldXqb8hI3wD6Fq/ 42WD4SLXr1+vvqBLyfaWDKrhbPdWaxQaoOR18/N/+PCh/sN/+A8jM2a33+NSf8PX7+vfoFy7dk2b m5t6/fXX9d5779V9Zf36+ro+/PBD3b59u+drpP6SQ/gGIGP8OZA9z6tb1stxul03zK+B72ad4zgt G56oZfT8xDfo+us0JWW7/ZJeR/2NnmG+/iW9bn5+XktLS9q/f3/1XcUnT57owYMHKpVK1N+IIHwD kFT/AjoqgXcYb99G6bbhCffmIx7qj/obpp1Uf6VSSYuLi1pcXEzkXNRf8vjAJQAZY5SpfDHIoN5q T2qffvbrRbcNj6S6DzxJvPXaCfXXGvU3eNRfa9TfYBC+AVTH8nXaJul17fYZhTG6vTQ8ktS4hl6g 9qg/6m+YqD/qL22EbwAyxihfKIzEC347o9LwtGOMUSabbfkV42hG/TWj/tJD/TWj/gaLnw4AGWM0 Ph797Wj9HDPpdUnrteHpdI35XE6O4zD2MSbqrx71ly7qrx71N3iEb2CXC14g905Pt1zfbt9ezpfW ul7evu2n4QnWFYtjND4xUX/1qL90UX/1qL90EL4ByBijA7MHIpe326fbdaP+9m0SDY8kTU1OKVt5 65UGqDPqz0f9DQf156P+0kP4BiBjjE6cOC7F/FR6mm+bptUo9TrGselc1mr2wGxd44P2qD/qb5io P+ovbYRvAJKkky+d0kRxrPp8u/be9LLOmPbf3NbN27eOkY4cOULPT5eoP+pvmKg/6i9NhG8AMsZo 78yMLly4IOt5Q28M4qxL6njGGOVyuUTO5bllHT18WPv2zyqXyymTydDwxED9UX/DRP1Rf2kjfAOQ 5L/t+A9+67d18shh2fJW5BcjbNe3VFvtE6fhiXMua63KpU1NFvL65nvfVrFY5G3XLlF/vZ+L+usf 9df7uai/7hG+AUjyX2Qnp6b0R3/yj/Tet76lopHczXV55S3JepK1sg238L7tjtvN8kGti9o2VsNj bcO/3fPvPU/lUkmlZ0/lPn+ik8eO6nd+9x/qwMGDKhQKND5dov5aHI/6SwX11+J41N9ARP1UTMPj 8M0J3TKhW1ZSrnKfrzwO318olUp/Pph/AjB6bt68qbm5uWFfRk+stSqXy3q4uqKrX17Rra+ua3l5 SY8ePdTG+rpKm5vaKpdlPU9W7b86OPJl15jo5YNa12qXNg2DkalevDFGjjGSMXIyGeWyWeVyeU1M TGhqelovHj6so8dPavbAAU1MTKhQKCiXy9H49Ij6o/6Gifrb3fVnjPnHkj6WVJK01XBfrjwuS3JD Ny90sw23QF2hEL6BAdjO4TtgrZXn+b0cruvKdV15rlttcBp7f/o5T+KslVfpsfEq/w7P82Q9T16l 1ya8PureWtvUuAYfHnIcR5lMptrI5HK56uNsNqtMJrMtG55RQv1Rf8NE/e3O+ksrfGcH+Y8AsH0Z Y5TJZCSpet/OQBqRPjS+RRx1C28XPG5cFl4u1d7aDRqh4BY0OHzCPxnUH/U3TNQf9TdIhG8AHcV5 IY37wZy0BNfTrpGJurbGdY3Pw41PqxuSRf01H5f6Sw/113xc6q8/hG8AqRnGC7MxRtbapnMn0RCG GyKMPuoPw0T9IUD4BrDjtZpmC0gD9Ydhov5GD1MNAgAAACkhfAMAAAApIXwDAAAAKSF8AwAAACkh fAMAAAApIXwDAAAAKSF8AwAAACkhfAMAAAApIXwDAAAAKSF8AwAAACkhfAMAAAApIXwDAAAAKSF8 AwAAACkhfAMAAAApIXwDAAAAKSF8AwAAACkhfAMAAAApIXwDAAAAKSF8AwAAACkhfAMAAAApIXwD AAAAKSF8AwAAACkhfAMAAAApIXwDAAAAKSF8AwAAACkhfAMAAAApIXwDAAAAKSF8AwAAACkhfAMA AAApIXwDAAAAKSF8AwAAACkhfAMAAAApIXwDAAAAKSF8AwAAACkhfAMAAAApIXwDAAAAKSF8AwAA ACkhfAMAAAApIXwDAAAAKSF8AwAAACkhfAMAAAApIXwDAAAAKSF8AwAAACkhfAMAAAApIXwDAAAA KckO+wIA7CzW2q73McYM4EqwG1F/AEYd4RtAE8/ztHrzru5+ekUrN+/o8cJ9rT9cU3l9Xe7Wlqwn ybqVba2MMX6AqdxXHztGjpEcR8pU7h1HyjiqLs8WCnrzD/9Ahy6cJwRBEvUHYGcjfAOoszq/qL/+ Vz/QnQ8vaePJU9lyWcZaSZ6MbOXWDSvHWDmycoyUMZXnwTJH2ny0pq//kz8hAMGvv7/4ge58RP0B 2JkY8w2g6sGtBf3ln/6ZLv3Hv9Xa0qq21ktyy65c15PnWVlPsta/xWfkWSNPRp6V/9iGlnnSytXr ev9ffl/3fvFZT8MGsDM8uLWg//1P/0yX/h/qD8DORfgGIEnyXE//6c9/oKVr8/JcT9YaeZL+//bu 7jeOK0/v+HOq2aT4ImsskbQtyxIl2TukXrx2HMRjzG7mKi/YWWAy0sUscru+yS4wQZC/IgkCIxts kL3LTZBczHgyNwHmIllggQDrTMarGWtEamR5ZXtHlkhRL9Y72VUnF1XVrK6uqq7qrqoukt8P0O7q Pl11ivLP5qPTp05Za2SD597XRY5ugv2TA5DrSXeufaaff/Cf9NXHlwhA+5Dnevpff/ZfdXus9ffn 1B+AyhG+AUiS1j/7Up/+n0vByGJa4Bk+ANkBAcjzjO785rr+33/8C3318SV5nidr7cAgFH5mHA+U Z/1v/07Xxl5/n1F/ACpH+AYgSbrx8RU9e/w0mFWrnecw8ERe9zwX6MNGpwAoYQTSSneuXtf//eDP devSr7ohw/O81EdZQSarjzz9YDQ3Pr6iZ4+oP+oP2Pu44BKArLW6ufq3kpVseL2ZlWSMJCtjjaz/ hmSsPBk53Q/7v/jzXqdm5YcefycbSU9GRpInq7vXb+iv/80Hmp1/UY6RjLFygj5M99lmPLzebes/ O7Ld7fDhv+f5fdjgPet1j+EY+atmtFpypqY0MXNQrW+8qInF1zTx6ilNnDyriZdPyGm1gj8HLtgr ylqrr66Mv/78f1J/AKpF+AYga602v7jlxxsr2SD0+MHEyDNWjsKgYyQbBCATvA4+m+/3vh+kdgJQ cNjuKhb+P+9//lt9/cXfRVamCEJQsEqFv62d7b529X3WyPYcL9yOHssxyZ9xjL88Xcfxj91yHJmJ lpyZg2qdPq/ZP/xjTS2/IzkOAagga63ufnm7EfXnUX8AKkb4BiDP8/R484HCYBKMNwat/tCgZyXH +MEnHJH0JDmREUpJyvdrvz8AmaAPhWewc8jgM1aODaYOGL9fL0hcjlU3oFmroN32fdYxO9MYgpQn yZ9/Z2VlTWRUNPYZhZMcvOBPxuvIcbdlnz+T9/Ff6sHqzzXzR/9ac//ojwhABXmep4eb90X9jVh/ P/hXmvvH/5z6AxqO8A1A1lo9ffg48trPM93sYYOv+60/+rYzA8DIhl/dR9/P1WtvADJBN9b6azF7 4TBoGDqslYw/v9UJgopj/TbbDTtW1vhf7VsTBB5r/WAUCUCOtf62gtHGYDpAd4TRJoxIyj+G4/hh qRWcWStMbU8e6sl/+3dqvXxcM7/7e7LWEoBystbq2dfF6097vv52Rs9z1d9///dqvXxCM2/9PvUH NBjhG4AkqfNsK8guforZCUDh1/omCB+mOyLnh4qd14oEoWECUDiv1rO2ZzqAlSdrrGwwN9ZvtmGL HAXBRn5oCqcBdIOPrFypG2DCr/+7c2rDr/ZtZDvYvxvATSQAmfBmLf5zy/hhyDx9rMf/4z9r6sy7 arXbJf8b2tu2nxevv6TXZdefLaP+rJVr6qq/v9DU2W9Rf0CDEb4ByFqrzrZ/u+5oAAqDTDQAxQN3 +LV6GQHIhCOO4ZkYT1YdOdbrBiATCTQ7I4pBoAnO1AQjjjKRAKOdC+UcY2W6Icnf9sPQTvgx4cik 4+/TCkciFYae4OFIE8F225HcTz/R8y9+o5nTZ0v8N7S3WWvV2er422pW/Rl1pDLqz9ZUf9epP6Dp CN8A/KXOXC/27X2wwkTCCGRvAArnuPaOQHY3B/Ud2Q7n3Ppf97uyxpP3zu/q+YnjPfuYnn1t94WN Hi18HXn23w7eC6cMdEfXo/uES7j5bxrryXiejOdqwt3SpLulma1HOvj8oY483tD80zua9Z7Jymhq 66meX/1Y06fO+OfKV/+5UH8arv6ebOjIkzuao/6AXYPwDUCSZF278+2+kkYgo8HCn2trFdwsIAhE xoYrUASjgfH9UvjxwAYXq1nJupLjybzzpn47N6PHX37Zv09GqBimLf8+RsYckNoH1Drwklov/o5m 7bZO3f9M5zYuS66ryc/XmHNbgLV2rPUXHHTv1N+NVeoPaDDCNwBJ4Uicdi5ei4zi7YxIRoNMOLpo d16HnwlCj4m8n+MM5K9f4ckaV84/eFu/nT2gx48f932y7OCTJWmf8M/KdV25rqstSZcOvaG704f1 D7/8K03d/kKe58pxuI9ZXtRf/n2S6u9vXnhdm9OH9Z0v/0oH1r+k/oAG479MAJIUizXBV+KyUhBI ZHfuPehfXma779vIsx8Mel+HoSb74UqmI7Vctd/7e7o5N61HCcEnyzhDkeu6ujHxon515Ky27m3I um7hY+5nzaq/d3Zd/Xmep88nXtSv5s/p+V3qD2gyRr4BSAqjTjBKaIOLzYIRyPBufZIULr/WnRoQ jjCGI5AmCE/R0UtrU26AEv2cJ9Oymnz3Ld2cndbDRw/7Pj3s1+h1hSJrra4dPKE3v/6VPNcrtO9+ 16z6m9LDR48Sz7Os0etR25JYa3Vt7jj1BzQc4RuAJMnzXMn6gceYndtfG+NJ2hl1NMGqC35uiYWc cLvnveCytGAub5gnrN2ZFhDcNUTtd/++vppLDt5Zqgg3w7Y9MW19ZWb0Rs9YLgZpVv0VC95Nqr/H pq1bDvUHNBnhG4AkybOuZDvBjT1cOZNGOjwjHZ6T5qZlpyelybbsREtqOTKtloxj/CCQ8rAywaYT PJveR7AeXPj65vq6Hpc44jisUUKRlXTbmZXnMfJYhGtdmXj9vTgjHaH+irZRf0CzEb4BSPLDt9G2 1JK81xe1feywticcdTodeZ4na7el59uyzwavolDtag/Vt416vHutA91tVp3Ix9qORP1lyl1/DvUH NBnhG4AkyWpbanXUeeuknh06ILezJXWKH2dcgaOMtrKO98iZkrUEnyI8deS0Ouq8taRnh6apvxHa HrWoP6DJCN8AghUhOtLJeT2Za8t2Oo0JKmXuM8p+RWy12sy4LcBaK9mO7Kl5PZ2blEf9jWTLmdxZ uhFA4xC+AUiSbNto++VDA0fLdnMoqqtt2/C/1qLspF9/HvU3ctuWafGXP6DB+A0BQJJkvzElt93K vCHJbphLW2dfaW2e08p/YvBRf6W1eU5LOe8sBGAMuMkOAN/BmczmssNIFX01ZfqAZxzCT0H2henM duov/36ecUQBAs3FyDcASZKdnUxt28ujh1X05U+3JfwUYWeov7L6Yro30GyMfAOQJNkD6eEnzW5c CSJvW13HQ4D6yyXX8ShDoNEY+Qbgayf/76DqgHrx4kW1WoPnSK+ururXv/51z3unTp3S+fPn1W63 +z6/vb2tK1eu6Pr16yOfY2HGsNpEUWOqv1H7auZ5kL6BJiN8A/AlBOA6Ru0cx9Hdu3e1vr6eut+Z M2cS9z137pwePnyojY2NvraFhQWdP39en332WV8QbsooJnbYifHUX5VtTT8PAONB+AYgSbKOkSIL lNUVAowxWl9f1yeffJLavry8nNg2OTmpjY0NXb58ua/tzJkzWlxcDObAVvtzEXxK4DhSxf+eyj7e bp6+AmB8mPMNwOfk+99BUwLCXu1r38r550j9VdsXgOox8g3AF/kd3oQLEaNTTeL7N2X0kOBTHhv5 s6yi/lZWVnTnzp3uFKX5+Xm99NJLQx2v6D5hv8YYHTlyRIuLi1pdXa2sPwDNRvgGIGknezfl6/Kz Z8/muhCz6vMgFNWj6vo7d+6c1tbWuuH7pZde0ptvvjncyRY8jytXrujOnTuSpMXFxe65hNOhqD9g fyF8A/AZU+sv7UGB48c//nH3MxcvXkwdBV9ZWUmcE573Z2nKNIZ9r4b6m5mZ0ZEjR2SM0cyMf1Op H/3oR/I8L3Yq5c3lvnDhQrff8BzCz1trqT9gHyJ8AxhoHKPG1truyGDWCKEJQhsXv+1dZf27OHny pE6ePNnT5nleT/iOX6AbP15WW5qlpSUtLS2NdO5ltAFoBsI3gEx1rvZQVNpoeFnHLbMNw2lK/e2G CyypP2B3IHwDKF0VAacJfdV5PAwv7RuS1dXV7rKUKysrOn/+/MD9hukr3ha9QdTKyorOnj1buJ9R zgNAsxC+AaQa53SNlZWVXTOyTfCpRtn1Z63tTjEp68ZLefaJT6Gi/oD9jfANIFFVo4B5DVrtpO7p AwScelXxLcjS0pLm5+clSbOzs7n2KyPwnjhxIrHfIsek/oC9g/ANoE8TQsCHH37Y7evChQuV90co b46q/rxnZ2f7wu+wF1Fmie8X7bfOb5MANBPhG0CPOldgGDRFIL7aSZ79sox7NB+DVVl/GxsbWl9f lyQtLCxocXGxlvOI39wnq9+yzgNAcxG+AUga/It8HMsNlnG8cGSzyeeIeupvfX1dn3zyiSR/WlNa CC671jc2NnouuIz3S/0B+wvhG0BXnSGgzoDQlL84IFvV9Zd0k506VHGTnUH7pE2lATB+hG8AA40j lC8vL3e3HceRMeXfAbHKUE74KU9Z9XcycpOdYfoadr720lJ9N9kB0HyEbwCZxjVdY9BqJ2X2VUVb OGedoDSaOkNoU74Fof6AvY3wDSBVXSNzSaPa0dVOLl68WOh4VSn6MxOARlN2/V25cqVn7vW5c+d0 8eLFkVY7GXQexpjSbrJT5GcOa4/6A5qH8A0gUd2jxnHR4DBMOCp7+kCWpP08z2PqyQiqqLGkm+xc vXo189/TqCPeKysrmSv3jNpX2n7RPgE0C+EbQCFNmafalIso09qi4ZvRx/KM8u92aan/JjuXL18e KhDnPY/l5eWem+wMc6En9QfsLYRvAH3qDMpl79eUvxyE4YfgU1xV9VfHTXaS9knqt4y+slB/QHMR vgH0hI86p3Jkta2srHTb45+Lvr5z547W19f7PhO/mUnd02iic26Rra76q+MmO0niN9lZWFgopa+s tmj4BtAshG8AkpIveoy3D9M27PHSVjuJ77e+vt69mC0+13ZxcTFzZDPPeQzbxpzvYuqov/X1dV2+ fFmSdObMmbHcZGd5ebknfFdVfwRvoLkI3wAGGsdUjuhqJxcuXEg8nuu6arfbiW3tdluu6w59HqP+ zIx8l6es+hv1JjvDnsf09HTqTXbK7itsY+QbaC7CN4ChVTmVI88KEZubm1pcXJTjOH1TFxYWFrS5 uVnpShZZbeGqGhIXvFWlaI2dHPEmO8Pus7RU/CY7w/QVbYv/90P9Ac3hjPsEADRbEy56THv/5s2b OnjwoF544YWe9+fm5vTCCy/o5s2bpZ9jnn342r88VYThYfYr+5qGYc8jzz6DRtUBjBcj3wBS1THP O5zrO8zxbt++Ldd19dprr+nBgwfd948dO9Ztz3seo7ZFPzMxMUH4LkHZ9Re92c3y8rLOnTtXWV9R a2trPf1m3WSH+gP2PsI3gETjmOcdtby8LMfJ/nLu8ePHWl9f18mTJ3X16lVtb29rYmJCp0+f1vr6 uh4+fFioz1F/5jD4MPI4uqpWoInfZKeqvtKmgGSh/oD9gfAN7HNJv6SrDiN5pK12Ej/etWvXdPTo UZ0+fVpra2s6deqUpqam9OmnnxY6jzKDT4gANFhd9SdJJ06c6F74GK67nRVUyzqP48eP911wWXZf 8fpj5BtoLsI3gFKUPRr+k5/8pLsdrnaSdLzNzU3dvn1bp0+f1s2bN/X6669rY2Oju67yqOeRJU/w JgDVI0/95bnZTVl9RZXVb1pf1B+wuxC+AfSoY553nra8ocFaq7W1NX3nO9/Ru+++q5mZGf3iF7/o 27+q0dSk4MMFl8Orsv6ifykLb7KzvLxcWq2kqeomO2E79QfsLoRvAF11rvZQtC06yhd3584d3bp1 S0ePHtWtW7e6dzGs+hzTgo/EyOMwqq6/jY2NvpvsRC+6HPUc02xsbOjKlSuSdm6yEwbkquovRP0B zUP4BjBQ2dM14lZWVvTNb34zta/wwsus81hdXdX8/LxWV1dz91t28Ili5LE8ZdTfhx9+2PN6dXVV V69eHbn/om1ra2u6evVqJcE7vHTxJAAADTZJREFUivoDmovwDSBT1SPba2trub5aT5rDHW2/d++e Ll26pM3Nzdznkef8ktrSgg8XW5avrPpLWt0keiOkrGNmBeVh2gbVBvUH7G2EbwCp6phSEq5/XMbx vvjii1LOMWufPMFHYuSxDHVNaaq7r0FtWftQf8Duxx0uARQ27DSAqqev5O1rlLasr/qTEIDyKfJn Sv0N/qYoRP0BzUP4BiBjTN8NbUYZmUtry9qv7Layj+c4TmrwSZtaQPDJJ6luqL9eReovrD3qD2gm pp0AkNT7C7wpgaMp0weKBu+sEIhk1F+59QeguRj5BiBjjFo5VhSpMxRVsd8wigYfSX135mQEMhv1 l26Y+nNif/mj/oBmIXwD6M4lHfSZstuy9mnC9IFhgo8kxVsYicxG/ZVbf2VMIQNQHcI3ABljNDk1 1YjAkaUpwSeLMUatiYm+AIR0xhhNUX89qD9g7+K/TgAyxmhmZrr0Y5bdVrZhg8+gc5xst+U4DnO/ czLGaJr66xq9/iaoP6DBCN/APhf+gv7GoUOp7Vn7DtNfXW3DTB8YJfiEbdPTBwg/Oe3U3zdS27P2 Haa/utrGVX8z09PUH9BghG8AMsZoYX4h8f2sfYq2NX36QBnBR5IOzh3UxASjj3kZY7SwMJ/4ftY+ Rdv2S/3NUX9AoxG+AcgYoxMnjks5V0Wo82v7ukLRsHNs+/qyVvML8z3hB9mMMTp+nPorrf7mj1B/ QIMRvgFIkpZOntLs9IHu6906ejhMmzHZdw4sMn3AMdKrr77KyGNBJ0+e0lxk3jf119teqP6OHaP+ gAYjfAPw59y++KLefvttWc8bexjJ01bW8YwxarfbpfTluR0dO3pUh4/Mq91uq9VqEXxy6NbfW29J 1N/Qffn19wr1BzQc4RuAJP9r73/6B9/V0qtHZTvbiTfm2K1f6aftkyf45OnLWqvO1nPNTU3qW9/+ PU1PT/O1f0GO4+if/MF3deLVV6i/gn311t/vU39AwxG+AUjyf8nPHTyoP/4Xf6Jvv/eepo3kPn8q r7MtWU+yVjb2iO6bddwi71fVlvTZXMHH2tjP7vnPnqfO1pa2Hj+S++Shll47pj/8/kUtLC5qamqK 8FPQTv39qb793reoPxWvv+/+swvUH7ALJP1XaWLb0YcTebQijwlJ7eB5MtiOPr+9tbX1H6r5EYDm uXHjht54441xn8ZQrLXqdDq6d3dT135zVZ9f/0wbG+u6f/+enj19qq3nz7Xd6ch6nqyyb12d+Gvf mOT3q2pL2yUjmBiZ7skbY+QYIxkjp9VSe2JC7fakZmdndfDQIb189KiOHV/S/MKCZmdnNTU1pXa7 TfgZUn/9XdfGxkZv/bmurOtSf9QfUCpjzL+U9DeStiRtx547wXZHkht5eJGHjT1CPf+jyr6fL4B9 JxyRW1h8SUfmF/Tue9+W67pyXVdeJPDERx+HVcYxEg4qLxgx9KyV53nyPE/W8+QFo4bR9qRna21f uAsvXnMcR61Wqxty2u12d3tiYkKtVovgMyTqj/oD9jrCN4BExhi1Wi1J6j5nqSTEjCA+RSHpEf1c uB1/L/q+tDO1IAxB4SMMPKwwUQ7qj/oD9irCN4CB8vwiz3thWF3C88kKOUnnFm+Lv46Gn7QHykX9 9R+X+gN2L8I3gNqMIxgYY2St7eu7jCAWDUJoPuoPQBMQvgHseWnLvAF1oP4ARLHUIAAAAFATwjcA AABQE8I3AAAAUBPCNwAAAFATwjcAAABQE8I3AAAAUBPCNwAAAFATwjcAAABQE8I3AAAAUBPCNwAA AFATwjcAAABQE8I3AAAAUBPCNwAAAFATwjcAAABQE8I3AAAAUBPCNwAAAFATwjcAAABQE8I3AAAA UBPCNwAAAFATwjcAAABQE8I3AAAAUBPCNwAAAFATwjcAAABQE8I3AAAAUBPCNwAAAFCTibo6+uqr r+rqCgAAAGik2sL3K6+8UldXwNjduHFj3KcAAAAaiGknAAAAQE0I3wAAAEBNCN8AAABATQjfAAAA QE0I3wAAAEBNCN8AAABATQjfAAAAQE0I3wAAAEBNCN8AAABATQjfAAAAQE0I3wAAAEBNCN8AAABA TQjfAAAAQE0I3wAAAEBNCN8AAABATQjfAAAAQE0I3wAAAEBNCN8AAABATQjfAAAAQE0I3wAAAEBN CN8AAABATQjfAAAAQE0I3wAAAEBNCN8AAABATQjfAAAAQE0I3wAAAEBNCN8AAABATQjfAAAAQE0I 3wAAAEBNCN8AAABATQjfAAAAQE0I3wAAAEBNCN8AAABATQjfAAAAQE0I3wAAAEBNCN8AAABATQjf AAAAQE0I3wAAAEBNCN8AAABATQjfAAAAQE2qDN+2wmMDAAAAVaksx1YRvgndAAAA2AtKz7Vlhm9C NwAAAPai0nIuc74BAACAmowSvhnpBgAAwH40dA4eJnzblO2szxDUAQAA0GTxzJo35xZS9bQTQjcA AAB2k0rza9HwXeRkCN4AAADYjSrLvMOOfKdNK0maYsK0EwAAADTdoBybd1pKpqqWGrQJ7wEAAABN l5Rja19qMG+HNuMBAAAANNWoOTbX5/KE76wrPQdNN8l9IgAAAMCYpeXXQbk3vn+qMqadJM3/ZuQb AAAAu0meHDtypk0K38Mk+aS/DVhJXuQZAAAAaKpobo0H70GDybnz87A32Un620Da3xQ8Sa6krSH6 AgAAACplrd2Un1fjwTtP3i2krHW+BwXwLdd17xU9OQAAAKBqW1tbV+QPFA8K3klKXed70MGy5sZ4 kcfD+/fvXy1yYgAAAEAdPvroo/8t6aF68+uw1zJmto867ST+Ommutyfp3k9/+tNfDtEXAAAAUKXO +++/f0PSPfUG77QAroTXuY262kn8BLyUx9c//OEP//rJkyerI/YHAAAAlOaXv/zln127du25pK+V nmXzTD/JpchNdvJcXJk07cSV5G5tbd34wQ9+8F86nc7mKCcMAAAAlOHBgwf/85133rks6XMFmVX5 pp0MPQo+7LSTeEdJU02iD1fSs5/97Gc//973vvdvHz16xAg4AAAAxqVz6dKlD44cOfKh67o3JD1T b/COj3onhXEpZ+COMjneN5Hn6MOJPVrBYyLyHN1uB8/Tk5OTSx988MG73//+9988fPjw7ziOc1jS ZNGTB5rqxo0beuONN8Z9GgAAIGCtvfv8+fMrH3300V++//77n3/66afP5I94P5XUkbQdPLvBc3Q7 PiqeNjou9QbyvnCeJ3yHr5MeSeF7UAgPH4ckHZZ0UNJU8F54rKS+lPAMAACA/SseeLOmQnckPZe/ qsldSQ+0E7IHhe6k8J1nJZS+8D2R8YPEA258Z5Pyw4Vh2Y09S73HvB/88GFYdyLPRskhPH4MQjgA AMD+kzS6nDUl2o08Rx9pAXtQ0E7qL+scu9LCdx5hQI8H73gAl3pDctoKKU7w+byj3/FtAAAA7A95 wnfStYjxEJ4UvpOCd2krngwTvsPOjJKDdDyAR0N4VPgDtbQTvuPBO9xWwnN8GwAAAPtDWvgOn6Nh OSmAp42EF73YsnAIzxu+o6PcJvKe1Dv6HZ6g1B+M4yftRD4fv3gzbY55iNANAACAeAjPM/qdNg0l HsyTppxI/aG70Gh4VvhOmvcdb48/e5H2tDnj0fCdFbzjo96EbwAAAEQlhe9wO2v0OymEJ831zrq4 Mu959Sgy7SQ6+i31j4AnTUGJ72/lTzMJw3c8dA8a9U5ahQUAAAD7S9qqIlmj34NGwfME7qywn8uo F1xGhaPYXuwzSY+00D1ohRPCNwAAALLCd/icFr6zRsLjc70HzfsurGj4zpr7Hd1Omved9IdQdMSb 8A0AAICi4TtPCM8TuIee6x0aFL6z5n0nTT8JA7W0s+JJ2BZeYBn9XPiZIiPeBG4AAACEsgJxWvhO C+JJodtTfx9ZgTszjA+71GDSut3he9FAHX0dDeDhcoROZDspeGeFbkI4AADA/pU2+h1uZ42CpwXs oqG78PSTvAE26XNJo9Px7aRH1ig3o94AAAAoKu/od/x11vSSpH2Sjp92HolGueAy2kl8FZSkvxWY SFtW+FbCc3wbAAAAiMoTwKPbg4J2VvAeWpFAm/bZtMCcNaI9augmiAMAAGDQ6HPeEJ72Ous5z7n0 KRpi8wbw+HuDpqgMOkbe8wAAAMD+kScIZ4XoPO8l7Zv3PPoME2LzBOJBYXzQZ/L2AwAAgP2tSACP bmeNaGe9l7f/RMMG2bzBOG8gz9rO2zcAAAD2n7zL/uUN40nHLCV4S6MF2SIBuciSgQRvAAAAFFFk 3e1BSxQOe9xcRg2zg/bPE6y5oBIAAABVyLscYNH1u4de9aSskJvnOMPO4SaIAwAAIK9hg3OeQF3r UoNlHmuUm/sAAAAAWfKG5CJheuTgLVUXbquaSw4AAAAUMUpoLiVwR9UVdAnUAAAAaLrSw3bcOEIx QRwAAABNUXngjhp3EB53/wAAANh/ag3cAAAAAAAAAAAAAAAAAAAAAIDd4f8DjNoRHLRotf8AAAAA SUVORK5CYII= "/>
++ <rect width="250" height="150" rx="5" ry="5" fill="url(#k)" opacity=".55" stroke-width="9.2724"/>
++ <g transform="matrix(1.1742 0 0 1.1742 22.26 7.4853)">
++  <g transform="translate(75,-45)">
++   <rect x="-15" y="55" width="85" height="65" ry="5" filter="url(#l)" opacity=".55"/>
++   <g>
++    <rect x="-15" y="55" width="85" height="65" ry="5" fill="#4d4d4d"/>
++    <path d="m-10 55c-2.77 0-5 2.23-5 5v10h85v-10c0-2.77-2.23-5-5-5z" fill="#4d4d4d"/>
++    <rect x="-15" y="69" width="85" height="1" ry="0" fill="#666"/>
++   </g>
++  </g>
++  <g transform="translate(45,-15)">
++   <rect x="-15" y="55" width="85" height="65" ry="5" filter="url(#m)" opacity=".55"/>
++   <g>
++    <rect x="-15" y="55" width="85" height="65" ry="5" fill="#fafafa"/>
++    <path d="m-10 55c-2.77 0-5 2.23-5 5v10h85v-10c0-2.77-2.23-5-5-5z" fill="#dedede"/>
++    <rect x="-15" y="69" width="85" height="1" ry="0" fill="#b3b3b3"/>
++   </g>
++  </g>
++ </g>
 +</svg>
 diff --git a/panels/ubuntu/cc-ubuntu-dock-dialog.c b/panels/ubuntu/cc-ubuntu-dock-dialog.c
 new file mode 100644
@@ -421,10 +591,10 @@ index 0000000..512f606
 +</interface>
 diff --git a/panels/ubuntu/cc-ubuntu-panel.c b/panels/ubuntu/cc-ubuntu-panel.c
 new file mode 100644
-index 0000000..022f8c9
+index 0000000..f2ed62c
 --- /dev/null
 +++ b/panels/ubuntu/cc-ubuntu-panel.c
-@@ -0,0 +1,1052 @@
+@@ -0,0 +1,1237 @@
 +/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 +/*
 + * Copyright (C) 2017-2020 Canonical Ltd
@@ -502,7 +672,16 @@ index 0000000..022f8c9
 +  GtkFlowBox             *theme_box;
 +  GtkFlowBoxChild        *theme_dark;
 +  GtkFlowBoxChild        *theme_light;
-+
++  GtkFlowBox             *color_box;
++  GtkFlowBoxChild        *aqua;
++  GtkFlowBoxChild        *blue;
++  GtkFlowBoxChild        *green;
++  GtkFlowBoxChild        *orange;
++  GtkFlowBoxChild        *pink;
++  GtkFlowBoxChild        *purple;
++  GtkFlowBoxChild        *red;
++  GtkFlowBoxChild        *yellow;
++  
 +  GSettings              *dock_settings;
 +  GSettings              *interface_settings;
 +  GSettings              *gedit_settings;
@@ -876,22 +1055,104 @@ index 0000000..022f8c9
 +on_theme_box_selected_children_changed (CcUbuntuPanel *self)
 +{
 +  const gchar *gtk_theme = NULL;
++  const gchar *icon_theme = NULL;
 +  const gchar *gedit_theme = NULL;
 +  g_autoptr(GList) selected = NULL;
++  g_autoptr(GList) selected_color = NULL;
 +
 +  selected = gtk_flow_box_get_selected_children (self->theme_box);
-+  if (selected != NULL)
++  selected_color = gtk_flow_box_get_selected_children (self->color_box);
++  if (selected && selected_color != NULL)
 +    {
 +      GtkFlowBoxChild *selected_item = GTK_FLOW_BOX_CHILD (g_list_nth_data (selected, 0));
++      GtkFlowBoxChild *selected_color_item = GTK_FLOW_BOX_CHILD (g_list_nth_data (selected_color, 0));
 +      if (selected_item == self->theme_light)
 +      {
-+        gtk_theme = "Yaru";
 +        gedit_theme = "Yaru";
++        if (selected_color_item == self->orange)
++        {
++          gtk_theme = "Yaru";
++          icon_theme = "Yaru";
++        }
++        else if (selected_color_item == self->aqua)
++        {
++          gtk_theme = "Yaru-aqua";
++          icon_theme = "Yaru-aqua";
++        }
++        else if (selected_color_item == self->blue)
++        {
++          gtk_theme = "Yaru-blue";
++          icon_theme = "Yaru-blue";
++        }
++        else if (selected_color_item == self->green)
++        {
++          gtk_theme = "Yaru-green";
++          icon_theme = "Yaru-green";
++        }
++        else if (selected_color_item == self->pink)
++        {
++          gtk_theme = "Yaru-pink";
++          icon_theme = "Yaru-pink";
++        }
++        else if (selected_color_item == self->purple)
++        {
++          gtk_theme = "Yaru-purple";
++          icon_theme = "Yaru-purple";
++        }
++        else if (selected_color_item == self->red)
++        {
++          gtk_theme = "Yaru-red";
++          icon_theme = "Yaru-red";
++        }
++        else if (selected_color_item == self->yellow)
++        {
++          gtk_theme = "Yaru-yellow";
++          icon_theme = "Yaru-yellow";
++        }
 +      }
 +      else if (selected_item == self->theme_dark)
 +      {
-+        gtk_theme = "Yaru-dark";
 +        gedit_theme = "Yaru-dark";
++        if (selected_color_item == self->orange)
++        {
++          gtk_theme = "Yaru-dark";
++          icon_theme = "Yaru";
++        }
++        else if (selected_color_item == self->aqua)
++        {
++          gtk_theme = "Yaru-aqua-dark";
++          icon_theme = "Yaru-aqua";
++        }
++        else if (selected_color_item == self->blue)
++        {
++          gtk_theme = "Yaru-blue-dark";
++          icon_theme = "Yaru-blue";
++        }
++        else if (selected_color_item == self->green)
++        {
++          gtk_theme = "Yaru-green-dark";
++          icon_theme = "Yaru-green";
++        }
++        else if (selected_color_item == self->pink)
++        {
++          gtk_theme = "Yaru-pink-dark";
++          icon_theme = "Yaru-pink";
++        }
++        else if (selected_color_item == self->purple)
++        {
++          gtk_theme = "Yaru-purple-dark";
++          icon_theme = "Yaru-purple";
++        }
++        else if (selected_color_item == self->red)
++        {
++          gtk_theme = "Yaru-red-dark";
++          icon_theme = "Yaru-red";
++        }
++        else if (selected_color_item == self->yellow)
++        {
++          gtk_theme = "Yaru-yellow-dark";
++          icon_theme = "Yaru-yellow";
++        }
 +      }
 +    }
 +
@@ -899,6 +1160,8 @@ index 0000000..022f8c9
 +    g_settings_set_string (self->interface_settings, GTK_THEME_KEY, gtk_theme);
 +  if (self->gedit_settings && gedit_theme != NULL)
 +    g_settings_set_string (self->gedit_settings, GEDIT_THEME_KEY, gedit_theme);
++  if (icon_theme != NULL)
++    g_settings_set_string (self->interface_settings, ICON_THEME_KEY, icon_theme);
 +}
 +
 +static void
@@ -908,23 +1171,106 @@ index 0000000..022f8c9
 +  g_autofree gchar *cursor_theme = NULL;
 +  g_autofree gchar *icon_theme = NULL;
 +  GtkFlowBoxChild *theme_item = NULL;
++  GtkFlowBoxChild *color_item = NULL;
 +
 +  gtk_theme = g_settings_get_string (self->interface_settings, GTK_THEME_KEY);
 +  cursor_theme = g_settings_get_string (self->interface_settings, CURSOR_THEME_KEY);
 +  icon_theme = g_settings_get_string (self->interface_settings, ICON_THEME_KEY);
-+
-+  if (g_str_equal (cursor_theme, "Yaru") && g_str_equal (icon_theme, "Yaru"))
-+    {
-+      if (g_strcmp0 (gtk_theme, "Yaru") == 0)
++  
++  if (g_str_equal (cursor_theme, "Yaru"))
++  {
++    if (g_strcmp0 (gtk_theme, "Yaru") == 0)
++      {
 +        theme_item = self->theme_light;
-+      else if (g_strcmp0 (gtk_theme, "Yaru-dark") == 0)
++        color_item = self->orange;
++      }
++    else if (g_strcmp0 (gtk_theme, "Yaru-aqua") == 0)
++      {
++        theme_item = self->theme_light;
++        color_item = self->aqua;
++      }
++    else if (g_strcmp0 (gtk_theme, "Yaru-blue") == 0)
++      {
++        theme_item = self->theme_light;
++        color_item = self->blue;
++      }
++    else if (g_strcmp0 (gtk_theme, "Yaru-green") == 0)
++      {
++        theme_item = self->theme_light;
++        color_item = self->green;
++      }
++    else if (g_strcmp0 (gtk_theme, "Yaru-pink") == 0)
++      {
++        theme_item = self->theme_light;
++        color_item = self->pink;
++      }
++    else if (g_strcmp0 (gtk_theme, "Yaru-purple") == 0)
++      {
++        theme_item = self->theme_light;
++        color_item = self->purple;
++      }
++    else if (g_strcmp0 (gtk_theme, "Yaru-red") == 0)
++      {
++        theme_item = self->theme_light;
++        color_item = self->red;
++      }
++    else if (g_strcmp0 (gtk_theme, "Yaru-yellow") == 0)
++      {
++        theme_item = self->theme_light;
++        color_item = self->yellow;
++      }
++    else if (g_strcmp0 (gtk_theme, "Yaru-dark") == 0)
++      {
 +        theme_item = self->theme_dark;
-+    }
++        color_item = self->orange;
++      }
++    else if (g_strcmp0 (gtk_theme, "Yaru-aqua-dark") == 0)
++      {
++        theme_item = self->theme_dark;
++        color_item = self->aqua;
++      }
++    else if (g_strcmp0 (gtk_theme, "Yaru-blue-dark") == 0)
++      {
++        theme_item = self->theme_dark;
++        color_item = self->blue;
++      }
++    else if (g_strcmp0 (gtk_theme, "Yaru-green-dark") == 0)
++      {
++        theme_item = self->theme_dark;
++        color_item = self->green;
++      }
++    else if (g_strcmp0 (gtk_theme, "Yaru-pink-dark") == 0)
++      {
++        theme_item = self->theme_dark;
++        color_item = self->pink;
++      }
++    else if (g_strcmp0 (gtk_theme, "Yaru-purple-dark") == 0)
++      {
++        theme_item = self->theme_dark;
++        color_item = self->purple;
++      }
++    else if (g_strcmp0 (gtk_theme, "Yaru-red-dark") == 0)
++      {
++        theme_item = self->theme_dark;
++        color_item = self->red;
++      }
++    else if (g_strcmp0 (gtk_theme, "Yaru-yellow-dark") == 0)
++      {
++        theme_item = self->theme_dark;
++        color_item = self->yellow;
++      }
++  }
 +
-+  if (theme_item != NULL)
++  if (theme_item && color_item != NULL)
++  {
 +    gtk_flow_box_select_child (self->theme_box, theme_item);
++    gtk_flow_box_select_child (self->color_box, color_item);
++  }
 +  else
++  {
 +    gtk_flow_box_unselect_all (self->theme_box);
++    gtk_flow_box_unselect_all (self->color_box);
++  }
 +}
 +
 +static void
@@ -1156,6 +1502,15 @@ index 0000000..022f8c9
 +  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, theme_box);
 +  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, theme_dark);
 +  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, theme_light);
++  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, color_box);
++  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, aqua);
++  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, blue);
++  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, green);
++  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, orange);
++  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, pink);
++  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, purple);
++  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, red);
++  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, yellow);
 +
 +  gtk_widget_class_bind_template_callback (widget_class, on_dock_monitor_row_changed);
 +  gtk_widget_class_bind_template_callback (widget_class, on_dock_behavior_row_activated);
@@ -1520,10 +1875,11 @@ index 0000000..b13f611
 +#endif /* _CC_EDIT_DIALOG_H_ */
 diff --git a/panels/ubuntu/cc-ubuntu-panel.ui b/panels/ubuntu/cc-ubuntu-panel.ui
 new file mode 100644
-index 0000000..1496e48
+index 0000000..6658bac
 --- /dev/null
 +++ b/panels/ubuntu/cc-ubuntu-panel.ui
-@@ -0,0 +1,245 @@
+@@ -0,0 +1,510 @@
++<?xml version="1.0" encoding="UTF-8"?>
 +<interface>
 +  <requires lib="gtk+" version="3.20"/>
 +  <requires lib="libhandy" version="0.0"/>
@@ -1532,116 +1888,380 @@ index 0000000..1496e48
 +    <child>
 +      <object class="HdyPreferencesPage">
 +        <property name="visible">1</property>
-+            <!-- Window colors -->
++            <!-- Style -->
 +        <child>
 +          <object class="HdyPreferencesGroup">
-+            <property name="visible">True</property>
-+            <property name="title" translatable="yes">Window colors</property>
++            <property name="visible">1</property>
++            <property name="title" translatable="yes">Style</property>
 +            <child>
-+              <object class="GtkFLowBox" id="theme_box">
++              <object class="HdyPreferencesRow">
 +                <property name="visible">1</property>
-+                <property name="homogeneous">True</property>
-+                <property name="max-children-per-line">2</property>
-+                <property name="min-children-per-line">2</property>
-+                <property name="halign">start</property>
-+                <property name="column-spacing">18</property>
-+                <signal name="selected-children-changed" handler="on_theme_box_selected_children_changed" object="CcUbuntuPanel" swapped="yes"/>
++                <property name="activatable">False</property>
 +                <child>
-+                  <object class="GtkFlowBoxChild" id="theme_light">
++                  <object class="HdyClamp">
 +                    <property name="visible">1</property>
++                    <property name="maximum_size">400</property>
++                    <property name="tightening_threshold">300</property>
 +                    <child>
 +                      <object class="GtkBox">
 +                        <property name="visible">1</property>
 +                        <property name="orientation">vertical</property>
-+                        <property name="margin">2</property>
 +                        <child>
-+                          <object class="GtkBox">
++                          <object class="GtkFLowBox" id="theme_box">
 +                            <property name="visible">1</property>
-+                            <property name="orientation">vertical</property>
-+                            <property name="margin">6</property>
++                            <property name="max-children-per-line">2</property>
++                            <property name="min-children-per-line">2</property>
++                            <property name="column-spacing">24</property>
++                            <property name="margin">12</property>
++                            <signal name="selected-children-changed" handler="on_theme_box_selected_children_changed" object="CcUbuntuPanel" swapped="yes"/>
 +                            <child>
-+                              <object class="GtkImage">
++                              <object class="GtkFlowBoxChild" id="theme_light">
 +                                <property name="visible">1</property>
-+                                <property name="resource">/org/gnome/control-center/ubuntu/assets/theme-light.svg</property>
++                                <child>
++                                  <object class="GtkBox">
++                                    <property name="visible">1</property>
++                                    <property name="orientation">vertical</property>
++                                    <property name="margin">1</property>
++                                    <child>
++                                      <object class="GtkImage">
++                                        <property name="margin">4</property>
++                                        <property name="visible">1</property>
++                                        <property name="resource">/org/gnome/control-center/ubuntu/assets/theme-light.svg</property>
++                                        <style>
++                                          <class name="appearance-thumbnail" />
++                                        </style>
++                                      </object>
++                                    </child>
++                                    <style>
++                                      <class name="view"/>
++                                      <class name="appearance-preview" />
++                                    </style>
++                                  </object>
++                                </child>
 +                                <style>
-+                                  <class name="icon-dropshadow"/>
-+                                  <class name="background"/>
-+                                  <class name="frame"/>
-+                                  <class name="appearance-thumbnail" />
++                                  <class name="appearance-preview" />
 +                                </style>
 +                              </object>
 +                            </child>
 +                            <child>
-+                              <object class="GtkLabel">
-+                               <property name="visible">1</property>
-+                               <property name="margin">10</property>
-+                               <property name="label" translatable="yes" context="Yaru theme in use">Light</property>
++                              <object class="GtkFlowBoxChild" id="theme_dark">
++                                <property name="visible">1</property>
++                                <child>
++                                  <object class="GtkBox">
++                                    <property name="visible">1</property>
++                                    <property name="orientation">vertical</property>
++                                    <property name="margin">1</property>
++                                    <child>
++                                      <object class="GtkImage">
++                                        <property name="margin">4</property>
++                                        <property name="visible">1</property>
++                                        <property name="resource">/org/gnome/control-center/ubuntu/assets/theme-dark.svg</property>
++                                        <style>
++                                          <class name="appearance-thumbnail" />
++                                        </style>
++                                      </object>
++                                    </child>
++                                    <style>
++                                      <class name="view"/>
++                                      <class name="appearance-preview" />
++                                    </style>
++                                  </object>
++                                </child>
++                                <style>
++                                  <class name="appearance-preview" />
++                                </style>
 +                              </object>
 +                            </child>
 +                          </object>
 +                        </child>
-+                        <style>
-+                          <class name="view"/>
-+                          <class name="frame"/>
-+                          <class name="appearance-preview" />
-+                        </style>
-+                      </object>
-+                    </child>
-+                    <style>
-+                      <class name="appearance-preview" />
-+                    </style>
-+                  </object>
-+                </child>
-+                <child>
-+                  <object class="GtkFlowBoxChild" id="theme_dark">
-+                    <property name="visible">1</property>
-+                    <child>
-+                      <object class="GtkBox">
-+                        <property name="visible">1</property>
-+                        <property name="orientation">vertical</property>
-+                        <property name="margin">2</property>
 +                        <child>
-+                          <object class="GtkBox">
++                          <object class="GtkGrid">
 +                            <property name="visible">1</property>
-+                            <property name="orientation">vertical</property>
-+                            <property name="margin">6</property>
 +                            <child>
-+                              <object class="GtkImage">
++                              <object class="GtkLabel">
 +                                <property name="visible">1</property>
-+                                <property name="resource">/org/gnome/control-center/ubuntu/assets/theme-dark.svg</property>
-+                                <style>
-+                                  <class name="icon-dropshadow"/>
-+                                  <class name="background"/>
-+                                  <class name="frame"/>
-+                                  <class name="appearance-thumbnail" />
-+                                </style>
++                                <property name="halign">center</property>
++                                <property name="valign">center</property>
++                                <property name="margin_start">128</property>
++                                <property name="margin_end">128</property>
++                                <property name="margin_bottom">10</property>
++                                <property name="label" translatable="yes" context="Yaru theme in use">Light</property>
 +                              </object>
 +                            </child>
 +                            <child>
 +                              <object class="GtkLabel">
 +                                <property name="visible">1</property>
-+                                <property name="margin">10</property>
++                                <property name="halign">center</property>
++                                <property name="valign">center</property>
++                                <property name="margin_start">128</property>
++                                <property name="margin_end">128</property>
++                                <property name="margin_bottom">10</property>
 +                                <property name="label" translatable="yes" context="Yaru theme in use">Dark</property>
 +                              </object>
 +                            </child>
 +                          </object>
 +                        </child>
-+                        <style>
-+                          <class name="view"/>
-+                          <class name="frame"/>
-+                          <class name="appearance-preview" />
-+                        </style>
 +                      </object>
 +                    </child>
++                  </object>
++                </child>
++              </object>
++            </child>
++            <child>
++              <object class="HdyActionRow">
++                <property name="title">Color</property>
++                <property name="visible">1</property>
++                <property name="activatable">False</property>
++                <child>
++                  <object class="GtkFLowBox" id="color_box">
++                    <property name="visible">1</property>
++                    <property name="max-children-per-line">8</property>
++                    <property name="min-children-per-line">8</property>
++                    <property name="column-spacing">12</property>
++                    <property name="row-spacing">12</property>
++                    <property name="margin">6</property>
++                    <signal name="selected-children-changed" handler="on_theme_box_selected_children_changed" object="CcUbuntuPanel" swapped="yes"/>
 +                    <style>
-+                      <class name="appearance-preview" />
++                     <class name="colors" />
 +                    </style>
++                    <child>
++                      <object class="GtkFlowBoxChild" id="orange">
++                        <property name="tooltip_text" translatable="yes">Default</property>
++                        <property name="visible">1</property>
++                        <property name="valign">center</property>
++                        <style>
++                          <class name="colors" />
++                        </style>
++                        <child>
++                          <object class="GtkBox">
++                            <property name="visible">1</property>
++                            <property name="orientation">vertical</property>
++                            <style>
++                              <class name="colors" />
++                              <class name="view" />
++                            </style>
++                            <child>
++                              <object class="GtkImage">
++                                <property name="visible">1</property>
++                                <property name="resource">/org/gnome/control-center/ubuntu/assets/colors/orange.svg</property>
++                                <style>
++                                  <class name="colors-thumbnail" />
++                                </style>
++                              </object>
++                            </child>
++                          </object>
++                        </child>
++                      </object>
++                    </child>
++                    <child>
++                      <object class="GtkFlowBoxChild" id="aqua">
++                        <property name="tooltip_text" translatable="yes">Aqua</property>
++                        <property name="visible">1</property>
++                        <property name="valign">center</property>
++                        <style>
++                          <class name="colors" />
++                        </style>
++                        <child>
++                          <object class="GtkBox">
++                            <property name="visible">1</property>
++                            <property name="orientation">vertical</property>
++                            <style>
++                              <class name="colors" />
++                              <class name="view" />
++                            </style>
++                            <child>
++                              <object class="GtkImage">
++                                <property name="visible">1</property>
++                                <property name="resource">/org/gnome/control-center/ubuntu/assets/colors/aqua.svg</property>
++                                <style>
++                                  <class name="colors-thumbnail" />
++                                </style>
++                              </object>
++                            </child>
++                          </object>
++                        </child>
++                      </object>
++                    </child>
++                    <child>
++                      <object class="GtkFlowBoxChild" id="blue">
++                        <property name="tooltip_text" translatable="yes">Blue</property>
++                        <property name="visible">1</property>
++                        <property name="valign">center</property>
++                        <style>
++                          <class name="colors" />
++                        </style>
++                        <child>
++                          <object class="GtkBox">
++                            <property name="visible">1</property>
++                            <property name="orientation">vertical</property>
++                            <style>
++                              <class name="colors" />
++                              <class name="view" />
++                            </style>
++                            <child>
++                              <object class="GtkImage">
++                                <property name="visible">1</property>
++                                <property name="resource">/org/gnome/control-center/ubuntu/assets/colors/blue.svg</property>
++                                <style>
++                                  <class name="colors-thumbnail" />
++                                </style>
++                              </object>
++                            </child>
++                          </object>
++                        </child>
++                      </object>
++                    </child>
++                    <child>
++                      <object class="GtkFlowBoxChild" id="green">
++                        <property name="tooltip_text" translatable="yes">Green</property>
++                        <property name="visible">1</property>
++                        <property name="valign">center</property>
++                        <style>
++                          <class name="colors" />
++                        </style>
++                        <child>
++                          <object class="GtkBox">
++                            <property name="visible">1</property>
++                            <property name="orientation">vertical</property>
++                            <style>
++                              <class name="colors" />
++                              <class name="view" />
++                            </style>
++                            <child>
++                              <object class="GtkImage">
++                                <property name="visible">1</property>
++                                <property name="resource">/org/gnome/control-center/ubuntu/assets/colors/green.svg</property>
++                                <style>
++                                  <class name="colors-thumbnail" />
++                                </style>
++                              </object>
++                            </child>
++                          </object>
++                        </child>
++                      </object>
++                    </child>
++                    <child>
++                      <object class="GtkFlowBoxChild" id="pink">
++                        <property name="tooltip_text" translatable="yes">Pink</property>
++                        <property name="visible">1</property>
++                        <property name="valign">center</property>
++                        <style>
++                          <class name="colors" />
++                        </style>
++                        <child>
++                          <object class="GtkBox">
++                            <property name="visible">1</property>
++                            <property name="orientation">vertical</property>
++                            <style>
++                              <class name="colors" />
++                              <class name="view" />
++                            </style>
++                            <child>
++                              <object class="GtkImage">
++                                <property name="visible">1</property>
++                                <property name="resource">/org/gnome/control-center/ubuntu/assets/colors/pink.svg</property>
++                                <style>
++                                  <class name="colors-thumbnail" />
++                                </style>
++                              </object>
++                            </child>
++                          </object>
++                        </child>
++                      </object>
++                    </child>
++                    <child>
++                      <object class="GtkFlowBoxChild" id="purple">
++                        <property name="tooltip_text" translatable="yes">Purple</property>
++                        <property name="visible">1</property>
++                        <property name="valign">center</property>
++                        <style>
++                          <class name="colors" />
++                        </style>
++                        <child>
++                          <object class="GtkBox">
++                            <property name="visible">1</property>
++                            <property name="orientation">vertical</property>
++                            <style>
++                              <class name="colors" />
++                              <class name="view" />
++                            </style>
++                            <child>
++                              <object class="GtkImage">
++                                <property name="visible">1</property>
++                                <property name="resource">/org/gnome/control-center/ubuntu/assets/colors/purple.svg</property>
++                                <style>
++                                  <class name="colors-thumbnail" />
++                                </style>
++                              </object>
++                            </child>
++                          </object>
++                        </child>
++                      </object>
++                    </child>
++                    <child>
++                      <object class="GtkFlowBoxChild" id="red">
++                        <property name="tooltip_text" translatable="yes">Red</property>
++                        <property name="visible">1</property>
++                        <property name="valign">center</property>
++                        <style>
++                          <class name="colors" />
++                        </style>
++                        <child>
++                          <object class="GtkBox">
++                            <property name="visible">1</property>
++                            <property name="orientation">vertical</property>
++                            <style>
++                              <class name="colors" />
++                              <class name="view" />
++                            </style>
++                            <child>
++                              <object class="GtkImage">
++                                <property name="visible">1</property>
++                                <property name="resource">/org/gnome/control-center/ubuntu/assets/colors/red.svg</property>
++                                <style>
++                                  <class name="colors-thumbnail" />
++                                </style>
++                              </object>
++                            </child>
++                          </object>
++                        </child>
++                      </object>
++                    </child>
++                    <child>
++                      <object class="GtkFlowBoxChild" id="yellow">
++                        <property name="tooltip_text" translatable="yes">Yellow</property>
++                        <property name="visible">1</property>
++                        <property name="valign">center</property>
++                        <style>
++                          <class name="colors" />
++                        </style>
++                        <child>
++                          <object class="GtkBox">
++                            <property name="visible">1</property>
++                            <property name="orientation">vertical</property>
++                            <style>
++                              <class name="colors" />
++                              <class name="view" />
++                            </style>
++                            <child>
++                              <object class="GtkImage">
++                                <property name="visible">1</property>
++                                <property name="resource">/org/gnome/control-center/ubuntu/assets/colors/yellow.svg</property>
++                                <style>
++                                  <class name="colors-thumbnail" />
++                                </style>
++                              </object>
++                            </child>
++                          </object>
++                        </child>
++                      </object>
++                    </child>
 +                  </object>
 +                </child>
 +              </object>
 +            </child>
 +          </object>
-+        </child>
++        </child>               
 +
 +        <!-- Dock settings -->
 +        <child>
@@ -1793,10 +2413,10 @@ index 0000000..5063546
 +Keywords=Dock;Launcher;Theme;Ubuntu;Dark;icons;
 diff --git a/panels/ubuntu/meson.build b/panels/ubuntu/meson.build
 new file mode 100644
-index 0000000..f308ce0
+index 0000000..db16a68
 --- /dev/null
 +++ b/panels/ubuntu/meson.build
-@@ -0,0 +1,48 @@
+@@ -0,0 +1,56 @@
 +panels_list += cappletname
 +desktop = 'gnome-@0@-panel.desktop'.format(cappletname)
 +
@@ -1824,6 +2444,14 @@ index 0000000..f308ce0
 +  'appearance.css',
 +  'assets/theme-dark.svg',
 +  'assets/theme-light.svg',
++  'assets/colors/orange.svg',
++  'assets/colors/aqua.svg',
++  'assets/colors/blue.svg',
++  'assets/colors/green.svg',
++  'assets/colors/purple.svg',
++  'assets/colors/pink.svg',
++  'assets/colors/red.svg',
++  'assets/colors/yellow.svg',
 +  'cc-ubuntu-panel.ui',
 +  'cc-ubuntu-dock-dialog.ui',
 +)
@@ -1847,10 +2475,10 @@ index 0000000..f308ce0
 +)
 diff --git a/panels/ubuntu/ubuntu.gresource.xml b/panels/ubuntu/ubuntu.gresource.xml
 new file mode 100644
-index 0000000..6e4040f
+index 0000000..2d7a4ac
 --- /dev/null
 +++ b/panels/ubuntu/ubuntu.gresource.xml
-@@ -0,0 +1,10 @@
+@@ -0,0 +1,18 @@
 +<?xml version="1.0" encoding="UTF-8"?>
 +<gresources>
 +  <gresource prefix="/org/gnome/control-center/ubuntu">
@@ -1859,6 +2487,14 @@ index 0000000..6e4040f
 +    <file>appearance.css</file>
 +    <file>assets/theme-dark.svg</file>
 +    <file>assets/theme-light.svg</file>
++    <file>assets/colors/orange.svg</file>
++    <file>assets/colors/aqua.svg</file>
++    <file>assets/colors/blue.svg</file>
++    <file>assets/colors/green.svg</file>
++    <file>assets/colors/purple.svg</file>
++    <file>assets/colors/pink.svg</file>
++    <file>assets/colors/red.svg</file>
++    <file>assets/colors/yellow.svg</file>
 +  </gresource>
 +</gresources>
 diff --git a/po/POTFILES.in b/po/POTFILES.in
