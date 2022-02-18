@@ -10,11 +10,11 @@ Subject: display: Allow fractional scaling to be enabled
  panels/display/cc-display-settings.ui   |  16 +++
  5 files changed, 358 insertions(+), 1 deletion(-)
 
-diff --git a/panels/display/cc-display-config-dbus.c b/panels/display/cc-display-config-dbus.c
-index 4bcbf86..6134d2e 100644
---- a/panels/display/cc-display-config-dbus.c
-+++ b/panels/display/cc-display-config-dbus.c
-@@ -892,6 +892,8 @@ struct _CcDisplayConfigDBus
+Index: gnome-control-center-41.2-2ubuntu1/panels/display/cc-display-config-dbus.c
+===================================================================
+--- gnome-control-center-41.2-2ubuntu1.orig/panels/display/cc-display-config-dbus.c
++++ gnome-control-center-41.2-2ubuntu1/panels/display/cc-display-config-dbus.c
+@@ -894,6 +894,8 @@
    gboolean supports_changing_layout_mode;
    gboolean global_scale_required;
    CcDisplayLayoutMode layout_mode;
@@ -23,7 +23,7 @@ index 4bcbf86..6134d2e 100644
  
    GList *monitors;
    CcDisplayMonitorDBus *primary;
-@@ -1060,6 +1062,9 @@ cc_display_config_dbus_equal (CcDisplayConfig *pself,
+@@ -1062,6 +1064,9 @@
    g_return_val_if_fail (pself, FALSE);
    g_return_val_if_fail (pother, FALSE);
  
@@ -33,7 +33,7 @@ index 4bcbf86..6134d2e 100644
    cc_display_config_dbus_ensure_non_offset_coords (self);
    cc_display_config_dbus_ensure_non_offset_coords (other);
  
-@@ -1209,6 +1214,29 @@ cc_display_config_dbus_is_layout_logical (CcDisplayConfig *pself)
+@@ -1211,6 +1216,29 @@
           self->layout_mode == CC_DISPLAY_LAYOUT_MODE_GLOBAL_UI_LOGICAL;
  }
  
@@ -63,7 +63,7 @@ index 4bcbf86..6134d2e 100644
  static gboolean
  cc_display_config_dbus_layout_use_ui_scale (CcDisplayConfig *pself)
  {
-@@ -1216,6 +1244,20 @@ cc_display_config_dbus_layout_use_ui_scale (CcDisplayConfig *pself)
+@@ -1218,6 +1246,20 @@
    return self->layout_mode == CC_DISPLAY_LAYOUT_MODE_GLOBAL_UI_LOGICAL;
  }
  
@@ -84,7 +84,7 @@ index 4bcbf86..6134d2e 100644
  static gboolean
  is_scale_allowed_by_active_monitors (CcDisplayConfigDBus *self,
                                       CcDisplayMode       *mode,
-@@ -1383,6 +1425,11 @@ cc_display_config_dbus_init (CcDisplayConfigDBus *self)
+@@ -1385,6 +1427,11 @@
    self->global_scale_required = FALSE;
    self->layout_mode = CC_DISPLAY_LAYOUT_MODE_LOGICAL;
    self->logical_monitors = g_hash_table_new (NULL, NULL);
@@ -96,7 +96,7 @@ index 4bcbf86..6134d2e 100644
  }
  
  static void
-@@ -1599,6 +1646,15 @@ cc_display_config_dbus_constructed (GObject *object)
+@@ -1601,6 +1648,15 @@
          {
            g_variant_get (v, "b", &self->global_scale_required);
          }
@@ -112,7 +112,7 @@ index 4bcbf86..6134d2e 100644
        else if (g_str_equal (s, "layout-mode"))
          {
            guint32 u = 0;
-@@ -1685,6 +1741,7 @@ cc_display_config_dbus_finalize (GObject *object)
+@@ -1687,6 +1743,7 @@
    g_clear_pointer (&self->monitors, g_list_free);
    g_clear_pointer (&self->logical_monitors, g_hash_table_destroy);
    g_clear_pointer (&self->clone_modes, g_list_free);
@@ -120,7 +120,7 @@ index 4bcbf86..6134d2e 100644
  
    G_OBJECT_CLASS (cc_display_config_dbus_parent_class)->finalize (object);
  }
-@@ -1709,11 +1766,14 @@ cc_display_config_dbus_class_init (CcDisplayConfigDBusClass *klass)
+@@ -1711,11 +1768,14 @@
    parent_class->set_cloning = cc_display_config_dbus_set_cloning;
    parent_class->get_cloning_modes = cc_display_config_dbus_get_cloning_modes;
    parent_class->is_layout_logical = cc_display_config_dbus_is_layout_logical;
@@ -135,10 +135,10 @@ index 4bcbf86..6134d2e 100644
  
    pspec = g_param_spec_variant ("state",
                                  "GVariant",
-diff --git a/panels/display/cc-display-config.c b/panels/display/cc-display-config.c
-index 680b817..86a80b3 100644
---- a/panels/display/cc-display-config.c
-+++ b/panels/display/cc-display-config.c
+Index: gnome-control-center-41.2-2ubuntu1/panels/display/cc-display-config.c
+===================================================================
+--- gnome-control-center-41.2-2ubuntu1.orig/panels/display/cc-display-config.c
++++ gnome-control-center-41.2-2ubuntu1/panels/display/cc-display-config.c
 @@ -17,6 +17,11 @@
   *
   */
@@ -151,7 +151,7 @@ index 680b817..86a80b3 100644
  #include <gio/gio.h>
  #include <math.h>
  #include "cc-display-config.h"
-@@ -419,6 +424,10 @@ cc_display_monitor_set_ui_info (CcDisplayMonitor *self, gint ui_number, gchar *u
+@@ -419,6 +424,10 @@
  
  struct _CcDisplayConfigPrivate {
    GList *ui_sorted_monitors;
@@ -162,7 +162,7 @@ index 680b817..86a80b3 100644
  };
  typedef struct _CcDisplayConfigPrivate CcDisplayConfigPrivate;
  
-@@ -426,6 +435,68 @@ G_DEFINE_TYPE_WITH_PRIVATE (CcDisplayConfig,
+@@ -426,6 +435,68 @@
                              cc_display_config,
                              G_TYPE_OBJECT)
  
@@ -231,7 +231,7 @@ index 680b817..86a80b3 100644
  static void
  cc_display_config_init (CcDisplayConfig *self)
  {
-@@ -463,6 +534,10 @@ cc_display_config_constructed (GObject *object)
+@@ -463,6 +534,10 @@
  
        ui_number += 1;
      }
@@ -242,7 +242,7 @@ index 680b817..86a80b3 100644
  }
  
  static void
-@@ -472,6 +547,7 @@ cc_display_config_finalize (GObject *object)
+@@ -472,6 +547,7 @@
    CcDisplayConfigPrivate *priv = cc_display_config_get_instance_private (self);
  
    g_list_free (priv->ui_sorted_monitors);
@@ -250,7 +250,7 @@ index 680b817..86a80b3 100644
  
    G_OBJECT_CLASS (cc_display_config_parent_class)->finalize (object);
  }
-@@ -562,9 +638,16 @@ gboolean
+@@ -562,9 +638,16 @@
  cc_display_config_equal (CcDisplayConfig *self,
                           CcDisplayConfig *other)
  {
@@ -267,7 +267,7 @@ index 680b817..86a80b3 100644
    return CC_DISPLAY_CONFIG_GET_CLASS (self)->equal (self, other);
  }
  
-@@ -572,6 +655,8 @@ gboolean
+@@ -572,6 +655,8 @@
  cc_display_config_apply (CcDisplayConfig *self,
                           GError **error)
  {
@@ -276,7 +276,7 @@ index 680b817..86a80b3 100644
    if (!CC_IS_DISPLAY_CONFIG (self))
      {
        g_warning ("Cannot apply invalid configuration");
-@@ -582,6 +667,12 @@ cc_display_config_apply (CcDisplayConfig *self,
+@@ -582,6 +667,12 @@
        return FALSE;
      }
  
@@ -289,11 +289,10 @@ index 680b817..86a80b3 100644
    return CC_DISPLAY_CONFIG_GET_CLASS (self)->apply (self, error);
  }
  
-@@ -614,6 +705,14 @@ cc_display_config_is_layout_logical (CcDisplayConfig *self)
-   return CC_DISPLAY_CONFIG_GET_CLASS (self)->is_layout_logical (self);
+@@ -615,6 +706,14 @@
  }
  
-+void
+ void
 +cc_display_config_set_layout_logical (CcDisplayConfig *self,
 +                                      gboolean         logical)
 +{
@@ -301,10 +300,11 @@ index 680b817..86a80b3 100644
 +  return CC_DISPLAY_CONFIG_GET_CLASS (self)->set_layout_logical (self, logical);
 +}
 +
- void
++void
  cc_display_config_set_minimum_size (CcDisplayConfig *self,
                                      int              width,
-@@ -623,13 +722,37 @@ cc_display_config_set_minimum_size (CcDisplayConfig *self,
+                                     int              height)
+@@ -623,13 +722,37 @@
    CC_DISPLAY_CONFIG_GET_CLASS (self)->set_minimum_size (self, width, height);
  }
  
@@ -342,7 +342,7 @@ index 680b817..86a80b3 100644
    return CC_DISPLAY_CONFIG_GET_CLASS (self)->is_scaled_mode_valid (self, mode, scale);
  }
  
-@@ -664,3 +787,124 @@ cc_display_config_get_maximum_scaling (CcDisplayConfig *self)
+@@ -664,3 +787,124 @@
  
    return max_scale;
  }
@@ -467,11 +467,11 @@ index 680b817..86a80b3 100644
 +
 +  return priv->fractional_scaling;
 +}
-diff --git a/panels/display/cc-display-config.h b/panels/display/cc-display-config.h
-index a5da791..96f2293 100644
---- a/panels/display/cc-display-config.h
-+++ b/panels/display/cc-display-config.h
-@@ -154,6 +154,8 @@ struct _CcDisplayConfigClass
+Index: gnome-control-center-41.2-2ubuntu1/panels/display/cc-display-config.h
+===================================================================
+--- gnome-control-center-41.2-2ubuntu1.orig/panels/display/cc-display-config.h
++++ gnome-control-center-41.2-2ubuntu1/panels/display/cc-display-config.h
+@@ -154,6 +154,8 @@
                                   gboolean          clone);
    GList*   (*get_cloning_modes) (CcDisplayConfig  *self);
    gboolean (*is_layout_logical) (CcDisplayConfig  *self);
@@ -480,7 +480,7 @@ index a5da791..96f2293 100644
    void     (*set_minimum_size)  (CcDisplayConfig  *self,
                                   int               width,
                                   int               height);
-@@ -162,6 +164,8 @@ struct _CcDisplayConfigClass
+@@ -162,6 +164,8 @@
                                      double            scale);
    gboolean (* get_panel_orientation_managed) (CcDisplayConfig    *self);
    gboolean (*layout_use_ui_scale) (CcDisplayConfig  *self);
@@ -489,7 +489,7 @@ index a5da791..96f2293 100644
  };
  
  
-@@ -182,6 +186,8 @@ void              cc_display_config_set_mode_on_all_outputs (CcDisplayConfig *co
+@@ -182,6 +186,8 @@
                                                               CcDisplayMode   *mode);
  
  gboolean          cc_display_config_is_layout_logical       (CcDisplayConfig    *self);
@@ -498,7 +498,7 @@ index a5da791..96f2293 100644
  void              cc_display_config_set_minimum_size        (CcDisplayConfig    *self,
                                                               int                 width,
                                                               int                 height);
-@@ -191,8 +197,13 @@ gboolean          cc_display_config_is_scaled_mode_valid    (CcDisplayConfig
+@@ -191,8 +197,13 @@
  gboolean          cc_display_config_get_panel_orientation_managed
                                                              (CcDisplayConfig    *self);
  gboolean          cc_display_config_layout_use_ui_scale     (CcDisplayConfig    *self);
@@ -512,11 +512,11 @@ index a5da791..96f2293 100644
  
  const char*       cc_display_monitor_get_display_name       (CcDisplayMonitor   *monitor);
  gboolean          cc_display_monitor_is_active              (CcDisplayMonitor   *monitor);
-diff --git a/panels/display/cc-display-settings.c b/panels/display/cc-display-settings.c
-index a4f914e..891f741 100644
---- a/panels/display/cc-display-settings.c
-+++ b/panels/display/cc-display-settings.c
-@@ -52,6 +52,8 @@ struct _CcDisplaySettings
+Index: gnome-control-center-41.2-2ubuntu1/panels/display/cc-display-settings.c
+===================================================================
+--- gnome-control-center-41.2-2ubuntu1.orig/panels/display/cc-display-settings.c
++++ gnome-control-center-41.2-2ubuntu1/panels/display/cc-display-settings.c
+@@ -52,6 +52,8 @@
    GtkWidget        *scale_bbox;
    GtkWidget        *scale_buttons_row;
    GtkWidget        *scale_combo_row;
@@ -525,7 +525,7 @@ index a4f914e..891f741 100644
    GtkWidget        *underscanning_row;
    GtkWidget        *underscanning_switch;
  };
-@@ -74,7 +76,6 @@ static void on_scale_btn_active_changed_cb (GtkWidget         *widget,
+@@ -74,7 +76,6 @@
                                              GParamSpec        *pspec,
                                              CcDisplaySettings *self);
  
@@ -533,7 +533,7 @@ index a4f914e..891f741 100644
  static gboolean
  should_show_rotation (CcDisplaySettings *self)
  {
-@@ -247,6 +248,7 @@ cc_display_settings_rebuild_ui (CcDisplaySettings *self)
+@@ -247,6 +248,7 @@
        gtk_widget_set_visible (self->resolution_row, FALSE);
        gtk_widget_set_visible (self->scale_combo_row, FALSE);
        gtk_widget_set_visible (self->scale_buttons_row, FALSE);
@@ -541,7 +541,7 @@ index a4f914e..891f741 100644
        gtk_widget_set_visible (self->underscanning_row, FALSE);
  
        return G_SOURCE_REMOVE;
-@@ -445,6 +447,10 @@ cc_display_settings_rebuild_ui (CcDisplaySettings *self)
+@@ -445,6 +447,10 @@
    else
      gtk_widget_set_visible (self->scale_buttons_row, scales->len > 1);
  
@@ -552,7 +552,7 @@ index a4f914e..891f741 100644
    gtk_widget_set_visible (self->underscanning_row,
                            cc_display_monitor_supports_underscanning (self->selected_output) &&
                            !cc_display_config_is_cloning (self->config));
-@@ -711,6 +717,8 @@ cc_display_settings_class_init (CcDisplaySettingsClass *klass)
+@@ -711,6 +717,8 @@
    gtk_widget_class_bind_template_child (widget_class, CcDisplaySettings, scale_bbox);
    gtk_widget_class_bind_template_child (widget_class, CcDisplaySettings, scale_buttons_row);
    gtk_widget_class_bind_template_child (widget_class, CcDisplaySettings, scale_combo_row);
@@ -561,11 +561,10 @@ index a4f914e..891f741 100644
    gtk_widget_class_bind_template_child (widget_class, CcDisplaySettings, underscanning_row);
    gtk_widget_class_bind_template_child (widget_class, CcDisplaySettings, underscanning_switch);
  
-@@ -721,11 +729,29 @@ cc_display_settings_class_init (CcDisplaySettingsClass *klass)
-   gtk_widget_class_bind_template_callback (widget_class, on_underscanning_switch_active_changed_cb);
+@@ -722,10 +730,28 @@
  }
  
-+static void
+ static void
 +on_scale_fractional_toggled (CcDisplaySettings *self)
 +{
 +  gboolean active;
@@ -578,7 +577,7 @@ index a4f914e..891f741 100644
 +  g_signal_emit_by_name (G_OBJECT (self), "updated", self->selected_output);
 +}
 +
- static void
++static void
  cc_display_settings_init (CcDisplaySettings *self)
  {
    gtk_widget_init_template (GTK_WIDGET (self));
@@ -591,10 +590,10 @@ index a4f914e..891f741 100644
    gtk_list_box_set_header_func (GTK_LIST_BOX (self),
                                  cc_list_box_update_header_func,
                                  NULL, NULL);
-diff --git a/panels/display/cc-display-settings.ui b/panels/display/cc-display-settings.ui
-index 647e683..444d4e1 100644
---- a/panels/display/cc-display-settings.ui
-+++ b/panels/display/cc-display-settings.ui
+Index: gnome-control-center-41.2-2ubuntu1/panels/display/cc-display-settings.ui
+===================================================================
+--- gnome-control-center-41.2-2ubuntu1.orig/panels/display/cc-display-settings.ui
++++ gnome-control-center-41.2-2ubuntu1/panels/display/cc-display-settings.ui
 @@ -77,5 +77,21 @@
          <signal name="notify::selected-index" handler="on_scale_selection_changed_cb" swapped="no"/>
        </object>

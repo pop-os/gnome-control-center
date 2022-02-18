@@ -1,3 +1,134 @@
+gnome-control-center (1:41.4-1ubuntu2) jammy; urgency=low
+
+  * Merge from Debian unstable. Remaining changes:
+  * d/p/u/display-Allow-fractional-scaling-to-be-enabled.patch:
+    Ensure renderer is initialized.
+    It may not be the case when running with non-patched mutter, so not a
+    bug, but this helps in development scenarios.
+  * d/p/u/Allow-tweaking-some-settings-for-Ubuntu-Dock.patch:
+    - Do not crash if gedit is not installed
+  * ubuntu-panel: Save dock monitor by connector and support primary monitor
+    Dash to dock used to use the shell's monitor ID to pick the monitor in
+    which should be used, however this is not something that worked well
+    in case one switches configuration or uses a laptop in different
+    scenarios as the dock may be moved to the wrong display.
+    As per this:
+     - Add a "Primary monitor" item, to bind the dock position to the
+       primary monitor (whatever it is)
+     - Store the selected monitor by its connector
+     - Add backward compatibility support for the old 'preferred-monitor'
+       key, and migrate to it.
+    Related to: https://github.com/micheleg/dash-to-dock/pull/1630
+  * multitasking-panel: Sync workspace and monitor isolation dock settings.
+    When using ubuntu-dock the multitasking panel setting doesn't fully
+    apply, because even though the user selects to isolate workspaces, the
+    dock may still continue to show icons from all the workspaces.
+    As per this, ensure that the settings are applied also to the dock, plus
+    include dock-specifc settings to control multi-monitor behavior.
+  * ubuntu-panel: Use libhandy widgets for the dock section.
+    This will help with Gtk and libadwaita porting in future, so let's just
+    such widgets that are also more integrated with the current g-c-c design
+    - ubuntu-panel: Use more modern libadwaita widgets for dock settings.
+      This should make gtk4 porting even easier, plus we can be more consitent
+      with the majority of other g-c-c panels.
+    - ubuntu-panel: Add dock specific dialog to control.
+        Add a dock settings dialog to control some more specific settings.
+        So far we only support toggling the visualization of device and trash
+        icons, but this could be extended more in future. (LP: #1846205)
+    - ubuntu-panel: Improve appearance-page to use more consistent look
+      - Make use of HdyPrefrencesPage for Appearance-panel.
+      - Make use of HdyPrefrencesGroup for Window colors.
+      - Make use of custom css style classes from appearance.css
+      - Update the light/dark variant preview images (LP: #1943849)
+
+ -- Gianfranco Costamagna <locutusofborg@debian.org>  Thu, 17 Feb 2022 20:50:39 +0100
+
+gnome-control-center (1:41.4-1) unstable; urgency=medium
+
+  * Team upload
+  * New upstream release
+    - Only show network configuration button for active/connecting
+      connections
+    - Fix error cancelling PPD dialog
+    - Translation updates
+    - Other changes were already included in 1:41.2-2
+  * Drop patches that came from upstream
+  * d/copyright: Update
+    - Document that some files are now GPL-3+ (Closes: #1005755)
+  * Mark a Debian-specific patch as deliberately not forwarded
+  * Standards-Version: 4.6.0 (no changes required)
+  * Silence some Lintian tags
+
+ -- Simon McVittie <smcv@debian.org>  Wed, 16 Feb 2022 10:54:42 +0000
+
+gnome-control-center (1:41.2-2ubuntu1) jammy; urgency=low
+
+  * Merge from Debian unstable. Remaining changes:
+  * debian/patches: Refresh
+  * d/p/u/display-Allow-fractional-scaling-to-be-enabled.patch:
+    Ensure renderer is initialized.
+    It may not be the case when running with non-patched mutter, so not a
+    bug, but this helps in development scenarios.
+  * d/p/u/Allow-tweaking-some-settings-for-Ubuntu-Dock.patch:
+    - Do not crash if gedit is not installed
+  * ubuntu-panel: Save dock monitor by connector and support primary monitor
+    Dash to dock used to use the shell's monitor ID to pick the monitor in
+    which should be used, however this is not something that worked well
+    in case one switches configuration or uses a laptop in different
+    scenarios as the dock may be moved to the wrong display.
+    As per this:
+     - Add a "Primary monitor" item, to bind the dock position to the
+       primary monitor (whatever it is)
+     - Store the selected monitor by its connector
+     - Add backward compatibility support for the old 'preferred-monitor'
+       key, and migrate to it.
+    Related to: https://github.com/micheleg/dash-to-dock/pull/1630
+  * multitasking-panel: Sync workspace and monitor isolation dock settings.
+    When using ubuntu-dock the multitasking panel setting doesn't fully
+    apply, because even though the user selects to isolate workspaces, the
+    dock may still continue to show icons from all the workspaces.
+    As per this, ensure that the settings are applied also to the dock, plus
+    include dock-specifc settings to control multi-monitor behavior.
+  * ubuntu-panel: Use libhandy widgets for the dock section.
+    This will help with Gtk and libadwaita porting in future, so let's just
+    such widgets that are also more integrated with the current g-c-c design
+    - ubuntu-panel: Use more modern libadwaita widgets for dock settings.
+      This should make gtk4 porting even easier, plus we can be more consitent
+      with the majority of other g-c-c panels.
+    - ubuntu-panel: Add dock specific dialog to control.
+        Add a dock settings dialog to control some more specific settings.
+        So far we only support toggling the visualization of device and trash
+        icons, but this could be extended more in future. (LP: #1846205)
+    - ubuntu-panel: Improve appearance-page to use more consistent look
+      - Make use of HdyPrefrencesPage for Appearance-panel.
+      - Make use of HdyPrefrencesGroup for Window colors.
+      - Make use of custom css style classes from appearance.css
+      - Update the light/dark variant preview images (LP: #1943849)
+
+ -- Gianfranco Costamagna <locutusofborg@debian.org>  Sun, 06 Feb 2022 22:57:51 +0100
+
+gnome-control-center (1:41.2-2) unstable; urgency=medium
+
+  * Team upload
+  * d/patches: Update to gnome-41 branch commit 41.2-19-g600b0a014
+    - Fix build with recent meson versions (Closes: #1004761)
+    - Do not invert order of video modes, which can result in a lower
+      than intended refresh rate being selected for a non-preferred mode
+    - Adjust icon for default applications panel
+    - Ensure sound recording level indicator is cleared when microphone
+      is unplugged
+    - Translation updates
+
+ -- Simon McVittie <smcv@debian.org>  Tue, 01 Feb 2022 22:56:12 +0000
+
+gnome-control-center (1:41.2-1) unstable; urgency=medium
+
+  * New upstream release
+  * Bump debhelper-compat to 13
+  * debian/rules: Drop unneeded -Wl,--as-needed
+
+ -- Jeremy Bicha <jbicha@debian.org>  Sun, 05 Dec 2021 09:54:38 -0500
+
 gnome-control-center (1:41.1-1ubuntu3) jammy; urgency=medium
 
   [ Marco Trevisan (Treviño) ]
@@ -657,6 +788,36 @@ gnome-control-center (1:3.35.2-0ubuntu1) focal; urgency=medium
     - Build with -Dprivileged_group=sudo
 
  -- Robert Ancell <robert.ancell@canonical.com>  Fri, 31 Jan 2020 15:33:30 +1300
+
+gnome-control-center (1:3.34.4-1) unstable; urgency=medium
+
+  * Team upload
+  * New upstream release
+  * Bump Standards-Version to 4.5.0
+  * Wrap long lines in changelog entries: 1:2.4.0-7, 1:2.4.0-2,
+    1:2.2.2-2, 1:2.2.0-1, 1.0.51-1
+  * Set field Upstream-Name in debian/copyright
+  * Set upstream metadata fields: Bug-Database, Bug-Submit, Repository,
+    Repository-Browse
+  * Move to debhelper-compat 12
+
+ -- Simon McVittie <smcv@debian.org>  Sat, 29 Feb 2020 23:04:24 +0000
+
+gnome-control-center (1:3.34.2-1) unstable; urgency=medium
+
+  * Team upload
+
+  [ Will Thompson ]
+  * control: make -dev depend on -data, for the ITS files needed to tell
+    xgettext how to extract strings from keybinding and sound XML files
+
+  [ Simon McVittie ]
+  * d/watch: Only watch for stable-branch versions
+  * d/gbp.conf: Use upstream/3.34.x branch now that 3.35.x releases exist
+  * New upstream release
+    - Fix crash when selecting display on secondary GPU (Closes: #945375)
+
+ -- Simon McVittie <smcv@debian.org>  Tue, 10 Dec 2019 12:24:48 +0000
 
 gnome-control-center (1:3.34.1-1ubuntu2) eoan; urgency=medium
 
@@ -1513,6 +1674,62 @@ gnome-control-center (1:3.29.92-1) experimental; urgency=medium
     - Wi-Fi, Fix a potential crash (lp: #1718727)
 
  -- Sebastien Bacher <seb128@ubuntu.com>  Tue, 28 Aug 2018 10:38:40 +0200
+
+gnome-control-center (1:3.29.90-1) experimental; urgency=medium
+
+  * Team upload
+
+  [ Arnaud Rebillout ]
+  * Bump requirement for libgtk-3, libupower-glib and cheese (per meson.build)
+
+  [ Iain Lane ]
+  * debian/gbp.conf:
+    + Upstream's tags are normal now - remove the commented out
+      upstream-vcs-tag.
+    + Use patch-numbers = False
+  * debian/*: Update for experimental / 3.29 series
+  * New upstream release 3.29.4
+    + Use symbolic icons in Shell search
+    + Introduce Dynamic Panel
+    + Display:
+      - Improve display arrangement widget
+      - Fix a few crashers
+    + Sharing:
+      - Expose Remote Desktop work on Wayland
+    + User Accounts:
+      - Use term "Confirm" instead of "Verify"
+      - Use the same phrase when passwords do not match
+    + Wacom:
+      - Hide when no Wacom devices are connected
+      - Remove deprecated APIs
+    + Wi-Fi:
+      - Hide when no Wi-Fi adapters are available
+    + Power:
+      - Fix showing approximate percentages
+    + Thunderbolt:
+      - Introduce new Thunderbolt panel
+    + User Accounts:
+      - Fix hint for wrong enterprise user/password
+    + Improve logging engine
+    + Add an object caching mechanism
+    + Vastly improve CI
+    + Organize tests
+    + Add Network tests
+  * d/p/Show-scrollbar-on-first-Language-window-if-needed.patch: Drop, applied
+    upstream.
+  * d/p/Expose-touchpad-settings-if-synaptics-is-in-use.patch: Refresh.
+  * debian/control*:
+    + Bump libnm* deps, and add libsecret-1-dev per meson.build.
+    + Add test deps (xvfb, python3-dbusmock, at-spi2-core)
+  * debian/gnome-control-center.docs: Remove AUTHORS, README → README.md
+  * debian/control*: Require gnome-settings-daemon 3.29
+
+  [ Simon McVittie ]
+  * Bump Standards-Version to 4.1.5 (no changes required)
+  * Set Rules-Requires-Root to no
+  * d/copyright: Update and convert to machine-readable format
+
+ -- Simon McVittie <smcv@debian.org>  Sun, 05 Aug 2018 18:18:52 +0100
 
 gnome-control-center (1:3.29.90-1~ubuntu2) cosmic; urgency=medium
 
@@ -4090,7 +4307,8 @@ control-center (1:2.4.0-8) unstable; urgency=low
 
 control-center (1:2.4.0-7) unstable; urgency=low
 
-  * debian/control capplets package need to depends on capplets-data (Closes: #237311)
+  * debian/control capplets package need to depends on capplets-data
+    (Closes: #237311)
 
  -- Christian Marillat <marillat@debian.org>  Thu, 11 Mar 2004 09:07:06 +0100
 
@@ -4131,7 +4349,8 @@ control-center (1:2.4.0-2) unstable; urgency=low
   * Suggest xbase-clients for xrdb
   * Rebuild to remove liblinc dependency in the -dev package (Closes: #216722)
   * Don't package .la files for modules (Closes: #182873)
-  * Run libtoolize, I don't know but something is broken in the original tarball.
+  * Run libtoolize, I don't know but something is broken in the original
+    tarball.
 
  -- Christian Marillat <marillat@debian.org>  Tue, 21 Oct 2003 21:56:55 +0200
 
@@ -4155,7 +4374,8 @@ control-center (1:2.2.2-2) unstable; urgency=low
   * debian/rules fix DEB_BUILD_OPTIONS=noopt (Closes: #199189)
   * Don't need to depends on xbase-clients
   * Suggests esound-clients (Closes: #205700)
-  * Create /usr/share/themes/metacity-1 directory to remove warning (Closes: #211182)
+  * Create /usr/share/themes/metacity-1 directory to remove warning
+    (Closes: #211182)
   * Add hack to remove libtool rpath
   * Add libxrender-dev in Builde-Depends
 
@@ -4208,7 +4428,8 @@ control-center (1:2.2.0-1) unstable; urgency=low
   * Add a default theme. Thanks to Johannes Rohr
   * Drag and drop for theme work (Closes: #166980)
   * Themes aren't sorted case-sensitively (Closes: #166981)
-  * Should fix key gnome binding properties and metacity key bindings (Closes: #172380)
+  * Should fix key gnome binding properties and metacity key bindings
+    (Closes: #172380)
 
  -- Christian Marillat <marillat@debian.org>  Thu, 23 Jan 2003 16:32:09 +0100
 
@@ -4685,7 +4906,8 @@ control-center (1.0.51-1) unstable; urgency=low
   * We've updated... (closes: bug#44136)
   * Correct xworm definition for screensaver (closes: bug#51514)
   * The libc/libglib issues are resolved now (closes: bug#37535)
-  * control-center is much more stable, and should work with window-maker (closes: bug#38706)
+  * control-center is much more stable, and should work with window-maker
+    (closes: bug#38706)
   * gnomecc seems to respect current bg color better (closes: bug#38917)
   * Couldn't reproduce this error with current versions (closes: bug#38995)
   * Invoking individual capplets seems to work now (closes: bug#39135)
