@@ -23,16 +23,16 @@ Forwarded: not-needed
  panels/ubuntu/cc-ubuntu-dock-dialog.c          |  106 +++
  panels/ubuntu/cc-ubuntu-dock-dialog.h          |   31 +
  panels/ubuntu/cc-ubuntu-dock-dialog.ui         |  120 +++
- panels/ubuntu/cc-ubuntu-panel.c                | 1047 ++++++++++++++++++++++++
+ panels/ubuntu/cc-ubuntu-panel.c                | 1052 ++++++++++++++++++++++++
  panels/ubuntu/cc-ubuntu-panel.h                |   35 +
- panels/ubuntu/cc-ubuntu-panel.ui               |  222 +++++
+ panels/ubuntu/cc-ubuntu-panel.ui               |  245 ++++++
  panels/ubuntu/gnome-ubuntu-panel.desktop.in.in |   16 +
  panels/ubuntu/meson.build                      |   48 ++
  panels/ubuntu/ubuntu.gresource.xml             |   10 +
  po/POTFILES.in                                 |    5 +
  shell/cc-panel-list.c                          |    1 +
  shell/cc-panel-loader.c                        |    3 +
- 16 files changed, 1713 insertions(+)
+ 16 files changed, 1741 insertions(+)
  create mode 100644 panels/ubuntu/appearance.css
  create mode 100644 panels/ubuntu/assets/theme-dark.svg
  create mode 100644 panels/ubuntu/assets/theme-light.svg
@@ -421,10 +421,10 @@ index 0000000..512f606
 +</interface>
 diff --git a/panels/ubuntu/cc-ubuntu-panel.c b/panels/ubuntu/cc-ubuntu-panel.c
 new file mode 100644
-index 0000000..304e280
+index 0000000..022f8c9
 --- /dev/null
 +++ b/panels/ubuntu/cc-ubuntu-panel.c
-@@ -0,0 +1,1047 @@
+@@ -0,0 +1,1052 @@
 +/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 +/*
 + * Copyright (C) 2017-2020 Canonical Ltd
@@ -493,6 +493,7 @@ index 0000000..304e280
 +
 +  HdyPreferencesGroup    *dock_preferences_group;
 +  GtkSwitch              *dock_autohide_switch;
++  GtkSwitch              *dock_extendheight_switch;
 +  HdyComboRow            *dock_monitor_row;
 +  GListStore             *dock_monitors_liststore;
 +  HdyComboRow            *dock_position_row;
@@ -1147,6 +1148,7 @@ index 0000000..304e280
 +
 +  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, dock_preferences_group);
 +  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, dock_autohide_switch);
++  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, dock_extendheight_switch);
 +  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, dock_monitor_row);
 +  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, dock_position_row);
 +  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, icon_size_adjustment);
@@ -1427,6 +1429,9 @@ index 0000000..304e280
 +  g_settings_bind (self->dock_settings, "dock-fixed",
 +                   self->dock_autohide_switch, "active",
 +                   G_SETTINGS_BIND_INVERT_BOOLEAN);
++  g_settings_bind (self->dock_settings, "extend-height",
++                   self->dock_extendheight_switch, "active",
++                   G_SETTINGS_BIND_DEFAULT);
 +
 +  /* Icon size change - we halve the sizes so we can only get even values */
 +  gtk_adjustment_set_value (self->icon_size_adjustment, DEFAULT_ICONSIZE / 2);
@@ -1515,10 +1520,10 @@ index 0000000..b13f611
 +#endif /* _CC_EDIT_DIALOG_H_ */
 diff --git a/panels/ubuntu/cc-ubuntu-panel.ui b/panels/ubuntu/cc-ubuntu-panel.ui
 new file mode 100644
-index 0000000..8734545
+index 0000000..1496e48
 --- /dev/null
 +++ b/panels/ubuntu/cc-ubuntu-panel.ui
-@@ -0,0 +1,222 @@
+@@ -0,0 +1,245 @@
 +<interface>
 +  <requires lib="gtk+" version="3.20"/>
 +  <requires lib="libhandy" version="0.0"/>
@@ -1656,6 +1661,29 @@ index 0000000..8734545
 +                <property name="activatable_widget">dock_autohide_switch</property>
 +                <child>
 +                  <object class="GtkSwitch" id="dock_autohide_switch">
++                    <property name="visible">True</property>
++                    <property name="can_focus">True</property>
++                    <property name="valign">center</property>
++                  </object>
++                  <packing>
++                    <property name="expand">False</property>
++                    <property name="fill">True</property>
++                    <property name="position">1</property>
++                  </packing>
++                </child>
++              </object>
++            </child>
++            <child>
++              <object class="HdyActionRow">
++                <property name="visible">True</property>
++                <property name="use_underline">True</property>
++                <property name="can_focus">True</property>
++                <property name="title" translatable="yes">Panel mode</property>
++                <property name="subtitle" translatable="yes">The dock extends to the screen edge.</property>
++                <property name="activatable">True</property>
++                <property name="activatable_widget">dock_extendheight_switch</property>
++                <child>
++                  <object class="GtkSwitch" id="dock_extendheight_switch">
 +                    <property name="visible">True</property>
 +                    <property name="can_focus">True</property>
 +                    <property name="valign">center</property>
