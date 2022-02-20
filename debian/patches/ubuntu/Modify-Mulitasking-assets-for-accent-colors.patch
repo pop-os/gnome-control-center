@@ -1,0 +1,376 @@
+From: Muqtxdir <muqtadir5555@gmail.com>
+Date: Mon, 21 Feb 2022 00:08:05 +0530
+Subject: Modify Mulitasking assets for accent-colors
+
+- Modified multitaksing-assets to use @theme_selected_bg_color.
+- added load_custom_css from ubuntu-panel to cc-multitasking-panel.c.
+- added style multitasking-assets to ubuntu/appearance.css and cc-multitasking-panel.ui.
+---
+ panels/multitasking/assets/active-screen-edges.svg |   8 +-
+ panels/multitasking/assets/hot-corner.svg          |  16 ++-
+ .../assets/workspaces-primary-display.svg          | 102 +-----------------
+ .../assets/workspaces-span-displays.svg            | 115 +--------------------
+ panels/multitasking/cc-multitasking-panel.c        |  14 +++
+ panels/multitasking/cc-multitasking-panel.ui       |  13 ++-
+ panels/ubuntu/appearance.css                       |   3 +
+ 7 files changed, 59 insertions(+), 212 deletions(-)
+
+diff --git a/panels/multitasking/assets/active-screen-edges.svg b/panels/multitasking/assets/active-screen-edges.svg
+index f225548..2dbd161 100644
+--- a/panels/multitasking/assets/active-screen-edges.svg
++++ b/panels/multitasking/assets/active-screen-edges.svg
+@@ -1 +1,7 @@
+-<svg width="160" height="94" viewBox="0 0 42.333 24.871" xmlns="http://www.w3.org/2000/svg"><path style="display:inline;vector-effect:none;fill:#fff;fill-opacity:1;stroke:#3584e4;stroke-width:.529167;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none" d="M.265.265h41.804v24.342H.265z"/><path style="display:inline;opacity:.287;vector-effect:none;fill:#3584e4;fill-opacity:1;stroke:#3584e4;stroke-width:.79375;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none;marker-start:none;marker-mid:none;marker-end:none;paint-order:normal" d="M.514 1.37H21v23.199H.514z"/><g transform="matrix(.26458 0 0 .26458 -400.052 1156.76)" style="display:inline"><rect ry="3" rx="3" y="-4353.007" x="1520.006" height="58" width="76" style="opacity:1;vector-effect:none;fill:#fff;fill-opacity:1;stroke:#3584e4;stroke-width:2;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none"/><path overflow="visible" font-weight="400" style="color:#bebebe;font-weight:400;line-height:normal;font-family:'Andale Mono';-inkscape-font-specification:'Andale Mono';text-indent:0;text-align:start;text-decoration:none;text-decoration-line:none;text-transform:none;overflow:visible;fill:#3584e4;fill-opacity:1;marker:none" d="M1583-4348.006h1.031c.255.011.51.13.688.313l2.281 2.28 2.312-2.28c.266-.232.447-.307.688-.314h1v1c0 .286-.034.55-.25.75l-2.281 2.282 2.25 2.25c.188.188.281.454.281.72v1h-1c-.265 0-.53-.094-.719-.282l-2.281-2.28-2.281 2.28a1.015 1.015 0 0 1-.719.281h-1v-1c0-.265.093-.53.281-.719l2.281-2.25-2.28-2.28a.909.909 0 0 1-.282-.75z"/><g style="display:inline;fill:#fff;fill-opacity:1;stroke:#3584e4;stroke-opacity:1"><path d="M26.605 2.318v16.44l3.712-3.624 2.122 4.331c.52 1.172 3.22.23 2.452-1.337l-2.099-4.496h4.685z" style="color:#000;display:block;overflow:visible;visibility:visible;fill:#fff;fill-opacity:1;fill-rule:nonzero;stroke:#3584e4;stroke-width:.612915;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none;enable-background:accumulate" transform="matrix(1.6306 0 0 1.63249 1484.124 -4348.541)"/><path style="color:#000;display:block;overflow:visible;visibility:visible;fill:#fff;fill-opacity:1;fill-rule:nonzero;stroke:#3584e4;stroke-width:.612915;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none;enable-background:accumulate" d="M26.605 2.318v16.44l3.712-3.624 2.122 4.331c.52 1.172 3.22.23 2.452-1.337l-2.099-4.496h4.685z" transform="matrix(1.6306 0 0 1.63249 1484.124 -4348.541)"/></g></g><path d="M0 0v2.648h.528c0-.397.395-.794.793-.794h39.675c.444 0 .807.424.807.794l.51-.002.02-2.646z" style="color:#000;font-style:normal;font-variant:normal;font-weight:400;font-stretch:normal;font-size:medium;line-height:normal;font-family:sans-serif;font-variant-ligatures:normal;font-variant-position:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-alternates:normal;font-feature-settings:normal;text-indent:0;text-align:start;text-decoration:none;text-decoration-line:none;text-decoration-style:solid;text-decoration-color:#000;letter-spacing:normal;word-spacing:normal;text-transform:none;writing-mode:lr-tb;direction:ltr;text-orientation:mixed;dominant-baseline:auto;baseline-shift:baseline;text-anchor:start;white-space:normal;shape-padding:0;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000;solid-opacity:1;vector-effect:none;fill:#3584e4;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:.529167;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate"/></svg>
+\ No newline at end of file
++<svg width="160" height="94" version="1.1" viewBox="0 0 42.333 24.871" xmlns="http://www.w3.org/2000/svg">
++ <path transform="matrix(.26459 0 0 .26459 -.00030851 0)" d="m76 6v12.213h-58.014c-0.33793 0-0.66055 0.056719-0.97461 0.13672 0.19847-0.03066 0.39686-0.0625 0.60352-0.0625h70c2.1987 0 4 1.8013 4 4v51.998c0 2.1987-1.8013 4-4 4h-11.615v13.715h82.002v-86h-82.002zm-58.385 14.287c-1.1253 0-2 0.87472-2 2v51.998c0 1.1253 0.87472 2 2 2h70c1.1253 0 2-0.87472 2-2v-51.998c0-1.1253-0.87472-2-2-2h-70zm61.799 2.7129 2.9844 2.9863 2.9863-2.9863 1.4141 1.4141-2.9863 2.9863 2.9863 2.9863-1.4141 1.4141-2.9863-2.9863-2.9844 2.9863-1.416-1.4141 2.9863-2.9863-2.9863-2.9863 1.416-1.4141zm-57.814 3.2949 19.4 20.211h-8.0312l3.0918 6.6211v0.007813c0.36854 0.75869 0.33195 1.5328 0.015625 2.1328-0.31742 0.6021-0.8696 1.03-1.4766 1.2988-0.60696 0.2688-1.2806 0.3859-1.9121 0.28125-0.6315-0.10465-1.2482-0.46771-1.5352-1.1152l-3.1445-6.4355-6.4082 6.2656v-28.027-1.2402z" fill="#fff" opacity=".8" stroke-width="15.039"/>
++ <g transform="matrix(.26458 0 0 .26458 -376.07 1155.1)">
++  <g fill="#fff"></g>
++ </g>
++ <path d="m0.52886 1.5875v22.754h19.579v-3.6479h-15.349c-0.2952 0-0.56249-0.12349-0.75501-0.32039h-0.03514v-0.04238c-0.16472-0.18675-0.26822-0.42874-0.26822-0.69558v-13.758c0-0.58175 0.47661-1.0584 1.0584-1.0584h15.349v-3.2314h-19.579z" fill="#fff" opacity=".4" stroke-width=".26459"/>
++</svg>
+diff --git a/panels/multitasking/assets/hot-corner.svg b/panels/multitasking/assets/hot-corner.svg
+index 9be578b..07d3c18 100644
+--- a/panels/multitasking/assets/hot-corner.svg
++++ b/panels/multitasking/assets/hot-corner.svg
+@@ -1 +1,15 @@
+-<svg width="160" height="94" viewBox="0 0 42.333 24.871" xmlns="http://www.w3.org/2000/svg"><defs><clipPath id="a" clipPathUnits="userSpaceOnUse"><path style="opacity:1;vector-effect:none;fill:#3584e4;fill-opacity:1;stroke:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none;marker-start:none;marker-mid:none;marker-end:none;paint-order:normal" d="M316-4731.007h162v95H316z"/></clipPath></defs><g style="display:inline"><path style="opacity:1;vector-effect:none;fill:#fff;fill-opacity:1;stroke:#3584e4;stroke-width:2;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none" d="M1501.006-3631.007h158v92h-158z" transform="matrix(.26458 0 0 .26458 -396.877 960.969)"/><path d="M1500.006-3632.008V-3622H1502c0-1.503 1.496-3 2.998-3h149.951c1.68 0 3.051 1.603 3.051 3l1.926-.01.08-9.999z" style="color:#000;font-style:normal;font-variant:normal;font-weight:400;font-stretch:normal;font-size:medium;line-height:normal;font-family:sans-serif;font-variant-ligatures:normal;font-variant-position:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-alternates:normal;font-feature-settings:normal;text-indent:0;text-align:start;text-decoration:none;text-decoration-line:none;text-decoration-style:solid;text-decoration-color:#000;letter-spacing:normal;word-spacing:normal;text-transform:none;writing-mode:lr-tb;direction:ltr;text-orientation:mixed;dominant-baseline:auto;baseline-shift:baseline;text-anchor:start;white-space:normal;shape-padding:0;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;opacity:1;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000;solid-opacity:1;vector-effect:none;fill:#3584e4;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:2;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate" transform="matrix(.26458 0 0 .26458 -396.877 960.969)"/></g><g clip-path="url(#a)" transform="matrix(.26458 0 0 .26458 -83.608 1251.746)" style="display:inline"><circle style="opacity:.249;vector-effect:none;fill:none;fill-opacity:1;stroke:#3584e4;stroke-width:3;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none;marker-start:none;marker-mid:none;marker-end:none;paint-order:normal" cx="316" cy="-4731.007" r="78.261"/><circle r="47.992" cy="-4731.007" cx="316" style="opacity:.474;vector-effect:none;fill:none;fill-opacity:1;stroke:#3584e4;stroke-width:3;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none;marker-start:none;marker-mid:none;marker-end:none;paint-order:normal"/><circle style="opacity:.705;vector-effect:none;fill:none;fill-opacity:1;stroke:#3584e4;stroke-width:3;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none;marker-start:none;marker-mid:none;marker-end:none;paint-order:normal" cx="316" cy="-4731.007" r="26.859"/><circle r="16.568" cy="-4731.007" cx="316" style="opacity:1;vector-effect:none;fill:none;fill-opacity:1;stroke:#3584e4;stroke-width:3;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none;marker-start:none;marker-mid:none;marker-end:none;paint-order:normal"/></g><g style="display:inline"><path style="color:#000;display:inline;overflow:visible;visibility:visible;fill:#fff;stroke:#3584e4;stroke-width:.612915;stroke-linecap:square;stroke-linejoin:round;stroke-miterlimit:4;stroke-dashoffset:.95;stroke-opacity:1;marker:none;enable-background:accumulate" d="m275.62 271.75-3.13-3.214 4.95-4.95-18.385-1.414 1.414 18.385 4.95-4.95 7.671 7.672" transform="matrix(.42866 0 0 .42916 -106.135 -107.6)"/><g style="display:inline"><path style="color:#000;display:block;overflow:visible;visibility:visible;fill:#fff;fill-opacity:1;fill-rule:nonzero;stroke:#3584e4;stroke-width:.612915;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:1.22583,.612915;stroke-dashoffset:0;stroke-opacity:1;marker:none;enable-background:accumulate" d="M29.691 6.634v16.44l3.712-3.624 2.122 4.331c.52 1.171 3.22.23 2.452-1.337l-2.099-4.497h4.685z" transform="matrix(.42866 0 0 .42916 1.739 7.533)"/></g></g></svg>
+\ No newline at end of file
++<svg width="160" height="94" version="1.1" viewBox="0 0 42.333 24.871" xmlns="http://www.w3.org/2000/svg">
++ <defs>
++  <clipPath>
++   <path d="m316-4731h162v95h-162z" fill="#3584e4" style="paint-order:normal"/>
++  </clipPath>
++ </defs>
++ <g fill="#fff">
++  <path transform="matrix(.26459 0 0 .26459 -.00030851 0)" d="m2 6v1.5996 2.8008 0.93555c1.6459-1.4603 2.9554-3.2831 3.8359-5.3359h-2.2363-1.5996zm7.0273 0c-1.3094 3.7379-3.7871 6.9323-7.0273 9.0957v0.50391 2.8008 4.9707c7.2686-3.118 12.773-9.5328 14.65-17.371h-6.6504-0.97266zm10.678 0c-1.0076 4.6969-3.1607 8.9727-6.1816 12.494l20.445 1.5742c2.0793-4.3566 3.4918-9.0907 4.1289-14.068h-18.393zm21.418 0c-0.60581 5.0407-1.9614 9.8531-3.9668 14.312l2.7031 0.20898-8.0195 8.0293 5.0703 5.2129-4.0996 18.699-12.428-12.443-8.0195 8.0293-0.21484-2.791c-3.2173 1.4386-6.6126 2.5503-10.148 3.2773v27.611c17.161-2.2327 32.521-10.14 44.18-21.758v-0.039063h0.041015c0.14988-0.14958 0.30643-0.29256 0.45508-0.44336v0.44336h0.50195v1.9844h-0.50195v0.99024h0.50195v1.9922h-0.99805v-0.77539c-11.925 11.045-27.225 18.501-44.18 20.627v5.4336 2.8008 4.5977h8 148v-86h-86.48c-1.164 15.732-6.8992 30.187-15.879 42.062l0.40039 0.41797-0.7168 0.68555-1.373-1.4316 0.35938-0.34375-0.6875-0.71484-0.35742 0.34375-1.3809-1.4336 0.71484-0.68555 0.95117 0.98633c8.4305-11.299 13.824-24.991 14.967-39.887h-27.396zm-30.787 15.67c-2.4558 2.0861-5.2691 3.7645-8.3359 4.9238v5.0059 2.8008 11.072c3.4639-0.75827 6.7782-1.9114 9.9043-3.3945l-1.5684-20.408zm36.701 17.428 0.75195 0.7832-0.61328 0.58984v0.96094h-0.99609v-1.9863h0.49414l0.36328-0.34766zm1.4395 1.498 1.3789 1.4336-0.72266 0.68555-1.373-1.4316 0.7168-0.6875zm-2.2969 1.8242h0.99609v1.9922h-0.99609v-1.9922zm4.3633 0.32422 1.373 1.4336-0.7168 0.69336-1.373-1.4395 0.7168-0.6875zm-4.3633 2.6582h0.99805v1.9863h-0.99805v-1.9863zm0 2.9824h0.99805v1.9863h-0.99805v-1.9863zm10.557 0.8125 1.373 1.4316-0.7168 0.69336-1.373-1.4395 0.7168-0.68555zm2.0605 2.1543 1.3789 1.4316-0.71484 0.6875-1.3809-1.4316 0.7168-0.6875zm-12.617 0.015626h0.99805v1.9844h-0.99805v-1.9844zm14.684 2.1328 1.373 1.4316-0.7168 0.6875-1.373-1.4316 0.7168-0.6875zm2.0664 2.1484 1.373 1.4316-0.49414 0.48047v0.73047h-1.9863v-0.99609h1.3066l-0.92188-0.96094 0.72266-0.68555zm-7.0059 1.6465h1.9199v0.99609h-0.36133l0.029297 0.058593-0.90039 0.42188-0.6875-1.4766zm2.916 0h1.9863v0.99609h-1.9863v-0.99609zm-0.9082 1.9551 0.8418 1.8008-0.90039 0.42188-0.8418-1.8008 0.90039-0.42188zm-5.8008 0.83398 0.69336 0.70898-1.418 1.3887-0.69336-0.70898 1.418-1.3887zm-5.9512 0.22266h0.99805v1.9844h-0.99805v-1.9844zm7.2637 0.32422 0.87891 1.7871-0.89258 0.43555-0.87891-1.7793 0.89258-0.44336zm5.752 1.3223 0.83398 1.8008-0.90039 0.41992-0.83398-1.8008 0.90039-0.41992zm-9.1914 0.21289 0.69336 0.70898-1.4238 1.3945-0.69336-0.71484 1.4238-1.3887zm-3.8242 1.123h0.99805v1.6387l0.69336-0.67969 0.69336 0.7168-1.4238 1.3867-0.69336-0.70898 0.375-0.36914h-0.64258v-1.9844zm8.5781 0.021485 0.87109 1.7871-0.89258 0.43555-0.87109-1.7871 0.89258-0.43555zm5.6914 1.3438 0.11133 0.22852 0.11133 0.26563 0.087891 0.28906 0.052734 0.2793 0.013672 0.27344-0.021484 0.26562-0.052735 0.25781-0.080078 0.25195-0.089844 0.19922-0.90039-0.41406 0.066406-0.14648 0.044922-0.13281 0.021484-0.14062 0.015625-0.14844-0.007812-0.1543-0.029297-0.16211-0.052735-0.17774-0.08789-0.19922-0.10352-0.21484 0.90039-0.41992zm-4.3848 1.3359 0.50977 1.041 0.066406 0.125 0.066406 0.095703 0.082031 0.082031 0.087891 0.066407 0.050781 0.029297-0.50781 0.85547-0.10352-0.066406-0.19336-0.14648-0.17578-0.17774-0.14844-0.20703-0.11133-0.20703-0.51562-1.0547 0.89258-0.43555zm3.1074 1.123 0.61328 0.77539-0.037109 0.037109-0.20703 0.13281-0.21289 0.125-0.22266 0.10938-0.23633 0.089843-0.22852 0.080079-0.23633 0.060547-0.24414 0.042968-0.24219 0.029297-0.23633 0.007813-0.082032-0.007813 0.03711-0.98828h0.037109l0.16992-0.007813 0.16992-0.013671 0.17773-0.03711 0.16992-0.044922 0.16992-0.052734 0.16797-0.072266 0.16406-0.074218 0.1543-0.087891 0.14062-0.097656 0.013672-0.00586z" opacity=".8" stroke-width="15.884"/>
++  <g stroke-width=".99994">
++   <path transform="matrix(.26459 0 0 .26459 -.00030851 0)" d="m68.523 6c-1.1546 15.074-6.6622 28.918-15.266 40.293l2.0879 2.1738c9.1543-11.951 15.008-26.557 16.184-42.467h-3.0059zm-21.848 47.906c-11.716 11.886-27.274 19.976-44.676 22.24v3.0215c17.188-2.1548 32.682-9.7798 44.676-21.076v-4.1855z" opacity=".45" style="-inkscape-stroke:none"/>
++   <path transform="matrix(.26459 0 0 .26459 -.00030851 0)" d="m38.111 6c-0.6367 4.9798-2.0624 9.71-4.1426 14.068l3.1875 0.24414c2.0059-4.4604 3.371-9.2706 3.9766-14.312h-3.0215zm-26.207 36.078c-3.1261 1.4832-6.4404 2.6363-9.9043 3.3945v3.0625c3.5358-0.72704 6.9311-1.8387 10.148-3.2773l-0.24414-3.1797z" opacity=".35" style="-inkscape-stroke:none"/>
++   <path transform="matrix(.26459 0 0 .26459 -.00030851 0)" d="m16.656 6c-1.8771 7.839-7.3872 14.253-14.656 17.371v3.2227c3.0668-1.1593 5.8801-2.8377 8.3359-4.9238l-0.26367-3.4414 3.4512 0.26562c3.0228-3.5236 5.1964-7.7938 6.2031-12.494h-3.0703z" opacity=".25" style="-inkscape-stroke:none"/>
++  </g>
++ </g>
++</svg>
+diff --git a/panels/multitasking/assets/workspaces-primary-display.svg b/panels/multitasking/assets/workspaces-primary-display.svg
+index 1094cad..8ee8a39 100644
+--- a/panels/multitasking/assets/workspaces-primary-display.svg
++++ b/panels/multitasking/assets/workspaces-primary-display.svg
+@@ -1,99 +1,5 @@
+-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+-<svg
+-   width="326"
+-   height="94"
+-   viewBox="0 0 86.254506 24.871"
+-   version="1.1"
+-   id="svg29"
+-   sodipodi:docname="workspaces-primary-display.svg"
+-   inkscape:version="1.1 (c68e22c387, 2021-05-23)"
+-   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+-   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+-   xmlns="http://www.w3.org/2000/svg"
+-   xmlns:svg="http://www.w3.org/2000/svg">
+-  <sodipodi:namedview
+-     id="namedview31"
+-     pagecolor="#ffffff"
+-     bordercolor="#cccccc"
+-     borderopacity="1"
+-     inkscape:pageshadow="0"
+-     inkscape:pageopacity="1"
+-     inkscape:pagecheckerboard="0"
+-     showgrid="false"
+-     inkscape:zoom="1"
+-     inkscape:cx="164.5"
+-     inkscape:cy="69"
+-     inkscape:window-width="1920"
+-     inkscape:window-height="1131"
+-     inkscape:window-x="0"
+-     inkscape:window-y="0"
+-     inkscape:window-maximized="1"
+-     inkscape:current-layer="svg29"
+-     width="326px">
+-    <inkscape:grid
+-       type="xygrid"
+-       id="grid65" />
+-  </sodipodi:namedview>
+-  <defs
+-     id="defs5">
+-    <clipPath
+-       clipPathUnits="userSpaceOnUse"
+-       id="a">
+-      <path
+-         style="opacity:1;vector-effect:none;fill:#ed333b;fill-opacity:1;stroke:none;stroke-width:2;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none"
+-         d="m 1448,-3870.014 h 127 v 73 h -127 z"
+-         id="path2" />
+-    </clipPath>
+-  </defs>
+-  <path
+-     style="display:inline;opacity:0.287;vector-effect:none;fill:#3584e4;fill-opacity:1;stroke:#3584e4;stroke-width:0.79375;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none;marker-start:none;marker-mid:none;marker-end:none;paint-order:normal"
+-     d="M 0.39672673,0.3974596 H 41.936592 V 24.474709 H 0.39672673 Z"
+-     id="path100" />
+-  <path
+-     style="display:inline;vector-effect:none;fill:none;fill-opacity:1;stroke:#3584e4;stroke-width:0.529167;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none"
+-     d="M 0.26488277,0.265 H 42.068883 V 24.607 H 0.26488277 Z"
+-     id="path98" />
+-  <path
+-     d="M -1.1702128e-4,0 V 2.648 H 0.52788298 c 0,-0.397 0.395,-0.794 0.79300002,-0.794 h 39.675 c 0.444,0 0.807,0.424 0.807,0.794 l 0.51,-0.002 0.02,-2.646 z"
+-     style="color:#000000;font-style:normal;font-variant:normal;font-weight:400;font-stretch:normal;font-size:medium;line-height:normal;font-family:sans-serif;font-variant-ligatures:normal;font-variant-position:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-alternates:normal;font-feature-settings:normal;text-indent:0;text-align:start;text-decoration:none;text-decoration-line:none;text-decoration-style:solid;text-decoration-color:#000000;letter-spacing:normal;word-spacing:normal;text-transform:none;writing-mode:lr-tb;direction:ltr;text-orientation:mixed;dominant-baseline:auto;baseline-shift:baseline;text-anchor:start;white-space:normal;shape-padding:0;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;vector-effect:none;fill:#3584e4;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:0.529167;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate"
+-     id="path114" />
+-  <rect
+-     y="0.26458511"
+-     x="44.185596"
+-     height="24.341841"
+-     width="41.804455"
+-     style="vector-effect:none;fill:#ffffff;fill-opacity:1;stroke:#3584e4;stroke-width:0.529162;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none"
+-     id="rect67" />
+-  <path
+-     style="display:inline;opacity:0.287;vector-effect:none;fill:#3584e4;fill-opacity:1;stroke:#3584e4;stroke-width:0.79375;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none;marker-start:none;marker-mid:none;marker-end:none;paint-order:normal"
+-     d="M 44.31789,0.3974596 H 85.857756 V 24.474709 H 44.31789 Z"
+-     id="path3092" />
+-  <rect
+-     style="opacity:1;fill:#ffffff;fill-opacity:1;stroke:#ed333b;stroke-width:0;stroke-linecap:round;stroke-miterlimit:4;stroke-dasharray:none"
+-     id="rect3775"
+-     width="33.337723"
+-     height="19.579298"
+-     x="48.418961"
+-     y="2.6464353"
+-     rx="1.3229258"
+-     ry="1.3229257" />
+-  <rect
+-     style="opacity:1;fill:#ffffff;fill-opacity:1;stroke:#ed333b;stroke-width:0;stroke-linecap:round;stroke-miterlimit:4;stroke-dasharray:none"
+-     id="rect4017"
+-     width="26.458509"
+-     height="15.345935"
+-     x="7.9374046"
+-     y="4.7625322"
+-     rx="1.3229257"
+-     ry="1.3229256" />
+-  <path
+-     id="rect4019"
+-     style="opacity:1;fill:#ffffff;stroke:#ed333b;stroke-width:0;stroke-linecap:round"
+-     d="M 38.364689,4.7625322 H 41.80433 V 20.108467 h -3.439641 c -0.732901,0 -1.322926,-0.590025 -1.322926,-1.322925 V 6.0854578 c 0,-0.7329008 0.590025,-1.3229256 1.322926,-1.3229256 z"
+-     sodipodi:nodetypes="sccssss" />
+-  <path
+-     id="path4221"
+-     style="opacity:1;fill:#ffffff;stroke:#ed333b;stroke-width:0;stroke-linecap:round"
+-     d="M 3.96866,4.7625322 H 0.52901899 V 20.108467 H 3.96866 c 0.732901,0 1.3229261,-0.590025 1.3229261,-1.322925 V 6.0854578 C 5.2915861,5.352557 4.701561,4.7625322 3.96866,4.7625322 Z"
+-     sodipodi:nodetypes="sccssss" />
++<svg width="318" height="94" version="1.1" viewBox="0 0 84.138 24.871" xmlns="http://www.w3.org/2000/svg">
++ <g fill="#f37e40">
++  <path transform="matrix(.26459 0 0 .26459 0 -3.6827e-5)" d="m160 2v90h156v-90h-156zm-2.0996 4-155.9 0.0019531v12h12.9c2.7699 0 5 2.2282 5 4.998v48c0 2.7699-2.2301 5-5 5h-12.9v15.998h155.9v-85.998zm21.102 3.002h116c2.77 0 5 2.2302 5 5v63.998c0 2.77-2.2302 5-5 5h-116c-2.77 0-5-2.2302-5-5v-63.998c0-2.77 2.2302-5 5-5zm-144.1 9h90c2.7699 0 5 2.2282 5 4.998v48c0 2.7699-2.2301 5-5 5h-90c-2.7699 0-5-2.2301-5-5v-48c0-2.7699 2.2301-4.998 5-4.998zm110 0h13v58h-13c-2.7699 0-5-2.2301-5-5v-48c0-2.7699 2.2301-5 5-5z" fill="#fff" opacity=".8" style="paint-order:normal"/>
++ </g>
+ </svg>
+diff --git a/panels/multitasking/assets/workspaces-span-displays.svg b/panels/multitasking/assets/workspaces-span-displays.svg
+index 384c685..8e9eb01 100644
+--- a/panels/multitasking/assets/workspaces-span-displays.svg
++++ b/panels/multitasking/assets/workspaces-span-displays.svg
+@@ -1,112 +1,5 @@
+-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+-<svg
+-   width="326"
+-   height="94"
+-   viewBox="0 0 86.254506 24.871"
+-   version="1.1"
+-   id="svg29"
+-   sodipodi:docname="workspaces-span-displays.svg"
+-   inkscape:version="1.1 (c68e22c387, 2021-05-23)"
+-   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+-   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+-   xmlns="http://www.w3.org/2000/svg"
+-   xmlns:svg="http://www.w3.org/2000/svg">
+-  <sodipodi:namedview
+-     id="namedview31"
+-     pagecolor="#ffffff"
+-     bordercolor="#cccccc"
+-     borderopacity="1"
+-     inkscape:pageshadow="0"
+-     inkscape:pageopacity="1"
+-     inkscape:pagecheckerboard="0"
+-     showgrid="false"
+-     inkscape:zoom="1"
+-     inkscape:cx="166.5"
+-     inkscape:cy="34"
+-     inkscape:window-width="1920"
+-     inkscape:window-height="1131"
+-     inkscape:window-x="0"
+-     inkscape:window-y="0"
+-     inkscape:window-maximized="1"
+-     inkscape:current-layer="svg29">
+-    <inkscape:grid
+-       type="xygrid"
+-       id="grid65" />
+-  </sodipodi:namedview>
+-  <defs
+-     id="defs5">
+-    <clipPath
+-       clipPathUnits="userSpaceOnUse"
+-       id="a">
+-      <path
+-         style="opacity:1;vector-effect:none;fill:#ed333b;fill-opacity:1;stroke:none;stroke-width:2;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none"
+-         d="m 1448,-3870.014 h 127 v 73 h -127 z"
+-         id="path2" />
+-    </clipPath>
+-  </defs>
+-  <path
+-     style="display:inline;opacity:0.287;vector-effect:none;fill:#3584e4;fill-opacity:1;stroke:#3584e4;stroke-width:0.79375;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none;marker-start:none;marker-mid:none;marker-end:none;paint-order:normal"
+-     d="M 0.39672673,0.3974596 H 41.936592 V 24.474709 H 0.39672673 Z"
+-     id="path100" />
+-  <path
+-     style="display:inline;vector-effect:none;fill:none;fill-opacity:1;stroke:#3584e4;stroke-width:0.529167;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none"
+-     d="M 0.26488277,0.265 H 42.068883 V 24.607 H 0.26488277 Z"
+-     id="path98" />
+-  <path
+-     d="M -1.1702128e-4,0 V 2.648 H 0.52788298 c 0,-0.397 0.395,-0.794 0.79300002,-0.794 h 39.675 c 0.444,0 0.807,0.424 0.807,0.794 l 0.51,-0.002 0.02,-2.646 z"
+-     style="color:#000000;font-style:normal;font-variant:normal;font-weight:400;font-stretch:normal;font-size:medium;line-height:normal;font-family:sans-serif;font-variant-ligatures:normal;font-variant-position:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-alternates:normal;font-feature-settings:normal;text-indent:0;text-align:start;text-decoration:none;text-decoration-line:none;text-decoration-style:solid;text-decoration-color:#000000;letter-spacing:normal;word-spacing:normal;text-transform:none;writing-mode:lr-tb;direction:ltr;text-orientation:mixed;dominant-baseline:auto;baseline-shift:baseline;text-anchor:start;white-space:normal;shape-padding:0;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;vector-effect:none;fill:#3584e4;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:0.529167;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate"
+-     id="path114" />
+-  <rect
+-     y="0.26458511"
+-     x="44.185596"
+-     height="24.341841"
+-     width="41.804455"
+-     style="vector-effect:none;fill:#ffffff;fill-opacity:1;stroke:#3584e4;stroke-width:0.529162;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none"
+-     id="rect67" />
+-  <path
+-     style="display:inline;opacity:0.287;vector-effect:none;fill:#3584e4;fill-opacity:1;stroke:#3584e4;stroke-width:0.79375;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none;marker-start:none;marker-mid:none;marker-end:none;paint-order:normal"
+-     d="M 44.31789,0.3974596 H 85.857756 V 24.474709 H 44.31789 Z"
+-     id="path3092" />
+-  <rect
+-     style="opacity:1;fill:#ffffff;fill-opacity:1;stroke:#ed333b;stroke-width:0;stroke-linecap:round;stroke-miterlimit:4;stroke-dasharray:none"
+-     id="rect4017"
+-     width="26.458509"
+-     height="15.345935"
+-     x="7.9374046"
+-     y="4.7631168"
+-     rx="1.3229257"
+-     ry="1.3229256" />
+-  <path
+-     id="rect4019"
+-     style="opacity:1;fill:#ffffff;stroke:#ed333b;stroke-width:0;stroke-linecap:round"
+-     d="M 38.364689,4.7631171 H 41.80433 V 20.109052 h -3.439641 c -0.732901,0 -1.322926,-0.590025 -1.322926,-1.322925 V 6.0860427 c 0,-0.7329008 0.590025,-1.3229256 1.322926,-1.3229256 z"
+-     sodipodi:nodetypes="sccssss" />
+-  <path
+-     id="path4221"
+-     style="opacity:1;fill:#ffffff;stroke:#ed333b;stroke-width:0;stroke-linecap:round"
+-     d="M 3.96866,4.7631171 H 0.52901899 V 20.109052 H 3.96866 c 0.732901,0 1.3229261,-0.590025 1.3229261,-1.322925 V 6.0860427 c 0,-0.7329008 -0.5900251,-1.3229256 -1.3229261,-1.3229256 z"
+-     sodipodi:nodetypes="sccssss" />
+-  <g
+-     id="g4804"
+-     transform="translate(43.921149,-0.5285854)">
+-    <rect
+-       style="opacity:1;fill:#ffffff;fill-opacity:1;stroke:#ed333b;stroke-width:0;stroke-linecap:round;stroke-miterlimit:4;stroke-dasharray:none"
+-       id="rect4795"
+-       width="26.458509"
+-       height="15.345935"
+-       x="7.9374046"
+-       y="5.2917023"
+-       rx="1.3229257"
+-       ry="1.3229256" />
+-    <path
+-       id="path4797"
+-       style="opacity:1;fill:#ffffff;stroke:#ed333b;stroke-width:0;stroke-linecap:round"
+-       d="M 38.364689,5.2917024 H 41.80433 V 20.637637 h -3.439641 c -0.732901,0 -1.322926,-0.590025 -1.322926,-1.322925 V 6.614628 c 0,-0.7329008 0.590025,-1.3229256 1.322926,-1.3229256 z"
+-       sodipodi:nodetypes="sccssss" />
+-    <path
+-       id="path4799"
+-       style="opacity:1;fill:#ffffff;stroke:#ed333b;stroke-width:0;stroke-linecap:round"
+-       d="M 3.96866,5.2917024 H 0.52901899 V 20.637637 H 3.96866 c 0.732901,0 1.3229261,-0.590025 1.3229261,-1.322925 V 6.614628 c 0,-0.7329008 -0.5900251,-1.3229256 -1.3229261,-1.3229256 z"
+-       sodipodi:nodetypes="sccssss" />
+-  </g>
++<svg width="318" height="94" version="1.1" viewBox="0 0 84.138 24.871" xmlns="http://www.w3.org/2000/svg">
++ <g transform="translate(0 .00027851)" fill="#f37e40">
++  <path transform="matrix(.26459 0 0 .26459 0 -.00031534)" d="m157.9 6-155.9 0.0019531v12h12.9c2.7699 0 5 2.2282 5 4.998v48c0 2.7699-2.2301 5-5 5h-12.9v15.998h155.9v-85.998zm158 0-155.9 0.0019531v11.998h-2v58h2v-57.998h12.9c2.7699 0 5 2.2282 5 4.998v48c0 2.7699-2.2301 5-5 5h-12.9v15.998h155.9v-85.998zm-281 12.002h90c2.7699 0 5 2.2282 5 4.998v48c0 2.7699-2.2301 5-5 5h-90c-2.7699 0-5-2.2301-5-5v-48c0-2.7699 2.2301-4.998 5-4.998zm110 0h13v58h-13c-2.7699 0-5-2.2301-5-5v-48c0-2.7699 2.2301-5 5-5zm48.002 0h90c2.7699 0 5 2.2282 5 4.998v48c0 2.7699-2.2301 5-5 5h-90c-2.7699 0-5-2.2301-5-5v-48c0-2.7699 2.2301-4.998 5-4.998zm110 0h13v58h-13c-2.7699 0-5-2.2301-5-5v-48c0-2.7699 2.2301-5 5-5z" fill="#fff" opacity=".8"/>
++ </g>
+ </svg>
+diff --git a/panels/multitasking/cc-multitasking-panel.c b/panels/multitasking/cc-multitasking-panel.c
+index 92bc36c..4281a18 100644
+--- a/panels/multitasking/cc-multitasking-panel.c
++++ b/panels/multitasking/cc-multitasking-panel.c
+@@ -69,6 +69,19 @@ keep_dock_settings_in_sync (CcMultitaskingPanel *self)
+     }
+ }
+ 
++static void
++load_custom_css (CcMultitaskingPanelClass *self)
++{
++  g_autoptr(GtkCssProvider) provider = NULL;
++
++  /* use custom CSS */
++  provider = gtk_css_provider_new ();
++  gtk_css_provider_load_from_resource (provider, "/org/gnome/control-center/ubuntu/appearance.css");
++  gtk_style_context_add_provider_for_screen (gdk_screen_get_default (),
++                                             GTK_STYLE_PROVIDER (provider),
++                                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
++}
++
+ /* GObject overrides */
+ 
+ static void
+@@ -201,5 +214,6 @@ cc_multitasking_panel_init (CcMultitaskingPanel *self)
+                        self->dock_each_monitor_radio,
+                        "active",
+                        G_SETTINGS_BIND_DEFAULT);
++      load_custom_css (self);
+     }
+ }
+diff --git a/panels/multitasking/cc-multitasking-panel.ui b/panels/multitasking/cc-multitasking-panel.ui
+index de396bf..cebb5a6 100644
+--- a/panels/multitasking/cc-multitasking-panel.ui
++++ b/panels/multitasking/cc-multitasking-panel.ui
+@@ -1,4 +1,3 @@
+-<?xml version="1.0" encoding="UTF-8"?>
+ <interface>
+   <template class="CcMultitaskingPanel" parent="CcPanel">
+     <property name="visible">True</property>
+@@ -70,6 +69,9 @@
+                             <property name="halign">center</property>
+                             <property name="margin">18</property>
+                             <property name="resource">/org/gnome/control-center/multitasking/assets/hot-corner.svg</property>
++                            <style>
++                             <class name="multitasking-assets"/>
++                            </style>
+                           </object>
+                         </child>
+                       </object>
+@@ -98,6 +100,9 @@
+                             <property name="halign">center</property>
+                             <property name="margin">18</property>
+                             <property name="resource">/org/gnome/control-center/multitasking/assets/active-screen-edges.svg</property>
++                            <style>
++                             <class name="multitasking-assets"/>
++                            </style>
+                           </object>
+                         </child>
+                       </object>
+@@ -238,6 +243,9 @@
+                             <property name="halign">center</property>
+                             <property name="margin">18</property>
+                             <property name="resource">/org/gnome/control-center/multitasking/assets/workspaces-primary-display.svg</property>
++                            <style>
++                             <class name="multitasking-assets"/>
++                            </style>
+                           </object>
+                         </child>
+                       </object>
+@@ -266,6 +274,9 @@
+                             <property name="halign">center</property>
+                             <property name="margin">18</property>
+                             <property name="resource">/org/gnome/control-center/multitasking/assets/workspaces-span-displays.svg</property>
++                            <style>
++                             <class name="multitasking-assets"/>
++                            </style>
+                           </object>
+                         </child>
+                       </object>
+diff --git a/panels/ubuntu/appearance.css b/panels/ubuntu/appearance.css
+index cb85554..c4a484c 100644
+--- a/panels/ubuntu/appearance.css
++++ b/panels/ubuntu/appearance.css
+@@ -11,6 +11,9 @@ image.appearance-thumbnail {
+   background: shade(@theme_selected_bg_color, 1.1);
+ }
+ 
++image.multitasking-assets {
++  background: @theme_selected_bg_color;
++}
+ flowboxchild.colors {
+   border-radius: 9999px;
+ }
