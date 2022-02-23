@@ -20,9 +20,9 @@ Forwarded: not-needed
  panels/ubuntu/appearance.css                   |   11 +
  panels/ubuntu/assets/theme-dark.svg            |   29 +
  panels/ubuntu/assets/theme-light.svg           |   28 +
- panels/ubuntu/cc-ubuntu-dock-dialog.c          |  112 +++
+ panels/ubuntu/cc-ubuntu-dock-dialog.c          |  106 +++
  panels/ubuntu/cc-ubuntu-dock-dialog.h          |   31 +
- panels/ubuntu/cc-ubuntu-dock-dialog.ui         |  138 ++++
+ panels/ubuntu/cc-ubuntu-dock-dialog.ui         |  120 +++
  panels/ubuntu/cc-ubuntu-panel.c                | 1047 ++++++++++++++++++++++++
  panels/ubuntu/cc-ubuntu-panel.h                |   35 +
  panels/ubuntu/cc-ubuntu-panel.ui               |  222 +++++
@@ -32,7 +32,7 @@ Forwarded: not-needed
  po/POTFILES.in                                 |    5 +
  shell/cc-panel-list.c                          |    1 +
  shell/cc-panel-loader.c                        |    3 +
- 16 files changed, 1737 insertions(+)
+ 16 files changed, 1713 insertions(+)
  create mode 100644 panels/ubuntu/appearance.css
  create mode 100644 panels/ubuntu/assets/theme-dark.svg
  create mode 100644 panels/ubuntu/assets/theme-light.svg
@@ -146,10 +146,10 @@ index 0000000..7509894
 +</svg>
 diff --git a/panels/ubuntu/cc-ubuntu-dock-dialog.c b/panels/ubuntu/cc-ubuntu-dock-dialog.c
 new file mode 100644
-index 0000000..70f357b
+index 0000000..6f8abb7
 --- /dev/null
 +++ b/panels/ubuntu/cc-ubuntu-dock-dialog.c
-@@ -0,0 +1,112 @@
+@@ -0,0 +1,106 @@
 +/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 +/*
 + * Copyright (C) 2022 Marco Trevisan <marco.trevisan@canonical.com>
@@ -245,16 +245,10 @@ index 0000000..70f357b
 +  g_settings_bind (dialog->settings, "show-mounts-only-mounted",
 +                   dialog->unmounted_check, "active",
 +                   G_SETTINGS_BIND_INVERT_BOOLEAN);
-+  g_object_bind_property (dialog->volumes_switch, "active",
-+                          dialog->unmounted_row, "sensitive",
-+                          G_BINDING_DEFAULT);
 +
 +  g_settings_bind (dialog->settings, "show-mounts-network",
 +                   dialog->network_volumes_check, "active",
 +                   G_SETTINGS_BIND_DEFAULT);
-+  g_object_bind_property (dialog->volumes_switch, "active",
-+                          dialog->network_volumes_row, "sensitive",
-+                          G_BINDING_DEFAULT);
 +
 +  g_settings_bind (dialog->settings, "show-trash",
 +                   dialog->trash_switch, "active",
@@ -301,14 +295,14 @@ index 0000000..cd84651
 +G_END_DECLS
 diff --git a/panels/ubuntu/cc-ubuntu-dock-dialog.ui b/panels/ubuntu/cc-ubuntu-dock-dialog.ui
 new file mode 100644
-index 0000000..aa71eda
+index 0000000..512f606
 --- /dev/null
 +++ b/panels/ubuntu/cc-ubuntu-dock-dialog.ui
-@@ -0,0 +1,138 @@
+@@ -0,0 +1,120 @@
 +<?xml version="1.0" encoding="UTF-8"?>
 +<interface>
 +  <template class="CcUbuntuDockDialog" parent="GtkDialog">
-+    <property name="width_request">360</property>
++    <property name="width_request">386</property>
 +    <property name="can_focus">False</property>
 +    <property name="modal">True</property>
 +    <property name="type_hint">dialog</property>
@@ -319,30 +313,10 @@ index 0000000..aa71eda
 +        <property name="orientation">vertical</property>
 +        <property name="spacing">2</property>
 +        <property name="border_width">0</property>
-+        <child internal-child="action_area">
-+          <object class="GtkButtonBox">
-+            <property name="can_focus">False</property>
-+            <property name="layout_style">end</property>
-+            <child>
-+              <placeholder/>
-+            </child>
-+            <child>
-+              <placeholder/>
-+            </child>
-+          </object>
-+          <packing>
-+            <property name="expand">False</property>
-+            <property name="fill">False</property>
-+            <property name="position">0</property>
-+          </packing>
-+        </child>
 +        <child>
-+          <object class="GtkListBox">
-+            <property name="visible">True</property>
-+            <property name="can_focus">False</property>
-+            <property name="selection_mode">none</property>
-+            <property name="activate_on_single_click">True</property>
-+
++          <object class="HdyPreferencesGroup">
++            <property name="visible">1</property>
++            <property name="margin">12</property>
 +            <child>
 +              <object class="HdyActionRow">
 +                <property name="visible">True</property>
@@ -365,7 +339,6 @@ index 0000000..aa71eda
 +                </child>
 +              </object>
 +            </child>
-+
 +            <child>
 +              <object class="HdyActionRow" id="unmounted_row">
 +                <property name="visible">True</property>
@@ -374,12 +347,12 @@ index 0000000..aa71eda
 +                <property name="title" translatable="yes" context="ubuntu-dock">Include _Unmounted Volumes</property>
 +                <property name="activatable">True</property>
 +                <property name="activatable_widget">unmounted_check</property>
++                <property name="sensitive" bind-source="volumes_switch" bind-property="active" bind-flags="default|sync-create" />
 +                <child type="prefix">
 +                  <object class="GtkCheckButton" id="unmounted_check">
 +                    <property name="visible">True</property>
 +                    <property name="can_focus">True</property>
 +                    <property name="valign">center</property>
-+                    <property name="margin_left">12</property>
 +                  </object>
 +                  <packing>
 +                    <property name="expand">False</property>
@@ -389,7 +362,6 @@ index 0000000..aa71eda
 +                </child>
 +              </object>
 +            </child>
-+
 +            <child>
 +              <object class="HdyActionRow" id="network_volumes_row">
 +                <property name="visible">True</property>
@@ -398,12 +370,12 @@ index 0000000..aa71eda
 +                <property name="title" translatable="yes" context="ubuntu-dock">Include _Network Volumes</property>
 +                <property name="activatable">True</property>
 +                <property name="activatable_widget">network_volumes_check</property>
++                <property name="sensitive" bind-source="volumes_switch" bind-property="active" bind-flags="default|sync-create" />
 +                <child type="prefix">
 +                  <object class="GtkCheckButton" id="network_volumes_check">
 +                    <property name="visible">True</property>
 +                    <property name="can_focus">True</property>
 +                    <property name="valign">center</property>
-+                    <property name="margin_left">12</property>
 +                  </object>
 +                  <packing>
 +                    <property name="expand">False</property>
@@ -413,7 +385,12 @@ index 0000000..aa71eda
 +                </child>
 +              </object>
 +            </child>
-+
++          </object>
++        </child>
++        <child>
++          <object class="HdyPreferencesGroup">
++            <property name="visible">1</property>
++            <property name="margin">12</property>
 +            <child>
 +              <object class="HdyActionRow">
 +                <property name="visible">True</property>
@@ -436,7 +413,6 @@ index 0000000..aa71eda
 +                </child>
 +              </object>
 +            </child>
-+
 +          </object>
 +        </child>
 +      </object>
