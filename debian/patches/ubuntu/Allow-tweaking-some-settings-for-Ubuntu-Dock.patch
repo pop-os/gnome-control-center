@@ -26,21 +26,21 @@ Forwarded: not-needed
  panels/ubuntu/assets/colors/purple.svg         |    5 +
  panels/ubuntu/assets/colors/red.svg            |    5 +
  panels/ubuntu/assets/colors/yellow.svg         |    5 +
- panels/ubuntu/assets/theme-dark.svg            |   54 ++
- panels/ubuntu/assets/theme-light.svg           |   56 ++
+ panels/ubuntu/assets/theme-dark.svg            |   54 +
+ panels/ubuntu/assets/theme-light.svg           |   56 +
  panels/ubuntu/cc-ubuntu-dock-dialog.c          |  106 ++
  panels/ubuntu/cc-ubuntu-dock-dialog.h          |   31 +
  panels/ubuntu/cc-ubuntu-dock-dialog.ui         |  120 +++
- panels/ubuntu/cc-ubuntu-panel.c                | 1237 ++++++++++++++++++++++++
+ panels/ubuntu/cc-ubuntu-panel.c                | 1302 ++++++++++++++++++++++++
  panels/ubuntu/cc-ubuntu-panel.h                |   35 +
  panels/ubuntu/cc-ubuntu-panel.ui               |  510 ++++++++++
  panels/ubuntu/gnome-ubuntu-panel.desktop.in.in |   16 +
- panels/ubuntu/meson.build                      |   56 ++
+ panels/ubuntu/meson.build                      |   56 +
  panels/ubuntu/ubuntu.gresource.xml             |   18 +
  po/POTFILES.in                                 |    5 +
  shell/cc-panel-list.c                          |    1 +
  shell/cc-panel-loader.c                        |    3 +
- 24 files changed, 2313 insertions(+)
+ 24 files changed, 2378 insertions(+)
  create mode 100644 panels/ubuntu/appearance.css
  create mode 100644 panels/ubuntu/assets/colors/aqua.svg
  create mode 100644 panels/ubuntu/assets/colors/blue.svg
@@ -591,10 +591,10 @@ index 0000000..512f606
 +</interface>
 diff --git a/panels/ubuntu/cc-ubuntu-panel.c b/panels/ubuntu/cc-ubuntu-panel.c
 new file mode 100644
-index 0000000..f2ed62c
+index 0000000..6b7d6df
 --- /dev/null
 +++ b/panels/ubuntu/cc-ubuntu-panel.c
-@@ -0,0 +1,1237 @@
+@@ -0,0 +1,1302 @@
 +/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 +/*
 + * Copyright (C) 2017-2020 Canonical Ltd
@@ -658,6 +658,8 @@ index 0000000..f2ed62c
 +#define GEDIT_PREFRENCES_SCHEMA "org.gnome.gedit.preferences.editor"
 +#define GEDIT_THEME_KEY "scheme"
 +
++#define DEFAULT_ACCENT_COLOR "orange"
++
 +struct _CcUbuntuPanel {
 +  CcPanel                 parent_instance;
 +
@@ -672,16 +674,17 @@ index 0000000..f2ed62c
 +  GtkFlowBox             *theme_box;
 +  GtkFlowBoxChild        *theme_dark;
 +  GtkFlowBoxChild        *theme_light;
++  HdyActionRow           *color_row;
 +  GtkFlowBox             *color_box;
-+  GtkFlowBoxChild        *aqua;
-+  GtkFlowBoxChild        *blue;
-+  GtkFlowBoxChild        *green;
-+  GtkFlowBoxChild        *orange;
-+  GtkFlowBoxChild        *pink;
-+  GtkFlowBoxChild        *purple;
-+  GtkFlowBoxChild        *red;
-+  GtkFlowBoxChild        *yellow;
-+  
++  GtkFlowBoxChild        *accent_aqua;
++  GtkFlowBoxChild        *accent_blue;
++  GtkFlowBoxChild        *accent_green;
++  GtkFlowBoxChild        *accent_orange;
++  GtkFlowBoxChild        *accent_pink;
++  GtkFlowBoxChild        *accent_purple;
++  GtkFlowBoxChild        *accent_red;
++  GtkFlowBoxChild        *accent_yellow;
++
 +  GSettings              *dock_settings;
 +  GSettings              *interface_settings;
 +  GSettings              *gedit_settings;
@@ -744,7 +747,7 @@ index 0000000..f2ed62c
 +  gint number = 0;
 +  guint n_monitors = 0;
 +
-+  if (!self->shell_proxy || !self->display_config_manager)
++  if (!self->shell_proxy || !self->display_current_config)
 +    return;
 +
 +  outputs = cc_display_config_get_ui_sorted_monitors (self->display_current_config);
@@ -1054,114 +1057,54 @@ index 0000000..f2ed62c
 +static void
 +on_theme_box_selected_children_changed (CcUbuntuPanel *self)
 +{
-+  const gchar *gtk_theme = NULL;
-+  const gchar *icon_theme = NULL;
-+  const gchar *gedit_theme = NULL;
++  GtkFlowBoxChild *selected_item = NULL;
++  g_autoptr(GList) colors = NULL;
 +  g_autoptr(GList) selected = NULL;
-+  g_autoptr(GList) selected_color = NULL;
++  g_autoptr(GString) gtk_theme = NULL;
++  g_autoptr(GString) icon_theme = NULL;
++  g_autoptr(GString) gedit_theme = NULL;
++  GList *l;
 +
++  colors = gtk_container_get_children (GTK_CONTAINER (self->color_box));
 +  selected = gtk_flow_box_get_selected_children (self->theme_box);
-+  selected_color = gtk_flow_box_get_selected_children (self->color_box);
-+  if (selected && selected_color != NULL)
++
++  if (selected)
++    selected_item = GTK_FLOW_BOX_CHILD (g_list_nth_data (selected, 0));
++
++  gtk_theme = g_string_new ("Yaru");
++  icon_theme = g_string_new ("Yaru");
++  gedit_theme = g_string_new ("Yaru");
++
++  for (l = colors; l; l = l->next)
 +    {
-+      GtkFlowBoxChild *selected_item = GTK_FLOW_BOX_CHILD (g_list_nth_data (selected, 0));
-+      GtkFlowBoxChild *selected_color_item = GTK_FLOW_BOX_CHILD (g_list_nth_data (selected_color, 0));
-+      if (selected_item == self->theme_light)
-+      {
-+        gedit_theme = "Yaru";
-+        if (selected_color_item == self->orange)
++      GtkFlowBoxChild *accent_color = GTK_FLOW_BOX_CHILD (l->data);
++      const char *color = g_object_get_data (G_OBJECT (accent_color), "accent");
++
++      if (!gtk_widget_is_visible (GTK_WIDGET (accent_color)))
++        continue;
++
++      if (color && gtk_flow_box_child_is_selected (accent_color))
 +        {
-+          gtk_theme = "Yaru";
-+          icon_theme = "Yaru";
++          if (g_str_equal (color, DEFAULT_ACCENT_COLOR))
++            break;
++
++          g_string_append_printf (gtk_theme, "-%s", color);
++          break;
 +        }
-+        else if (selected_color_item == self->aqua)
-+        {
-+          gtk_theme = "Yaru-aqua";
-+          icon_theme = "Yaru-aqua";
-+        }
-+        else if (selected_color_item == self->blue)
-+        {
-+          gtk_theme = "Yaru-blue";
-+          icon_theme = "Yaru-blue";
-+        }
-+        else if (selected_color_item == self->green)
-+        {
-+          gtk_theme = "Yaru-green";
-+          icon_theme = "Yaru-green";
-+        }
-+        else if (selected_color_item == self->pink)
-+        {
-+          gtk_theme = "Yaru-pink";
-+          icon_theme = "Yaru-pink";
-+        }
-+        else if (selected_color_item == self->purple)
-+        {
-+          gtk_theme = "Yaru-purple";
-+          icon_theme = "Yaru-purple";
-+        }
-+        else if (selected_color_item == self->red)
-+        {
-+          gtk_theme = "Yaru-red";
-+          icon_theme = "Yaru-red";
-+        }
-+        else if (selected_color_item == self->yellow)
-+        {
-+          gtk_theme = "Yaru-yellow";
-+          icon_theme = "Yaru-yellow";
-+        }
-+      }
-+      else if (selected_item == self->theme_dark)
-+      {
-+        gedit_theme = "Yaru-dark";
-+        if (selected_color_item == self->orange)
-+        {
-+          gtk_theme = "Yaru-dark";
-+          icon_theme = "Yaru";
-+        }
-+        else if (selected_color_item == self->aqua)
-+        {
-+          gtk_theme = "Yaru-aqua-dark";
-+          icon_theme = "Yaru-aqua";
-+        }
-+        else if (selected_color_item == self->blue)
-+        {
-+          gtk_theme = "Yaru-blue-dark";
-+          icon_theme = "Yaru-blue";
-+        }
-+        else if (selected_color_item == self->green)
-+        {
-+          gtk_theme = "Yaru-green-dark";
-+          icon_theme = "Yaru-green";
-+        }
-+        else if (selected_color_item == self->pink)
-+        {
-+          gtk_theme = "Yaru-pink-dark";
-+          icon_theme = "Yaru-pink";
-+        }
-+        else if (selected_color_item == self->purple)
-+        {
-+          gtk_theme = "Yaru-purple-dark";
-+          icon_theme = "Yaru-purple";
-+        }
-+        else if (selected_color_item == self->red)
-+        {
-+          gtk_theme = "Yaru-red-dark";
-+          icon_theme = "Yaru-red";
-+        }
-+        else if (selected_color_item == self->yellow)
-+        {
-+          gtk_theme = "Yaru-yellow-dark";
-+          icon_theme = "Yaru-yellow";
-+        }
-+      }
 +    }
 +
-+  if (gtk_theme != NULL)
-+    g_settings_set_string (self->interface_settings, GTK_THEME_KEY, gtk_theme);
-+  if (self->gedit_settings && gedit_theme != NULL)
-+    g_settings_set_string (self->gedit_settings, GEDIT_THEME_KEY, gedit_theme);
-+  if (icon_theme != NULL)
-+    g_settings_set_string (self->interface_settings, ICON_THEME_KEY, icon_theme);
++  if (selected_item == self->theme_dark)
++    {
++      g_string_append (gtk_theme, "-dark");
++      g_string_append (gedit_theme, "-dark");
++    }
++
++  g_settings_set_string (self->interface_settings, GTK_THEME_KEY, gtk_theme->str);
++
++  if (self->gedit_settings)
++    g_settings_set_string (self->gedit_settings, GEDIT_THEME_KEY, gedit_theme->str);
++
++  g_settings_set_string (self->interface_settings, ICON_THEME_KEY, icon_theme->str);
 +}
 +
 +static void
@@ -1170,107 +1113,218 @@ index 0000000..f2ed62c
 +  g_autofree gchar *gtk_theme = NULL;
 +  g_autofree gchar *cursor_theme = NULL;
 +  g_autofree gchar *icon_theme = NULL;
-+  GtkFlowBoxChild *theme_item = NULL;
-+  GtkFlowBoxChild *color_item = NULL;
++  g_autoptr(GList) colors = NULL;
++  g_auto(GStrv) parts = NULL;
++  const char *accent_color = DEFAULT_ACCENT_COLOR;
++  gboolean is_dark = FALSE;
++  GList *l;
 +
 +  gtk_theme = g_settings_get_string (self->interface_settings, GTK_THEME_KEY);
 +  cursor_theme = g_settings_get_string (self->interface_settings, CURSOR_THEME_KEY);
 +  icon_theme = g_settings_get_string (self->interface_settings, ICON_THEME_KEY);
-+  
-+  if (g_str_equal (cursor_theme, "Yaru"))
-+  {
-+    if (g_strcmp0 (gtk_theme, "Yaru") == 0)
-+      {
-+        theme_item = self->theme_light;
-+        color_item = self->orange;
-+      }
-+    else if (g_strcmp0 (gtk_theme, "Yaru-aqua") == 0)
-+      {
-+        theme_item = self->theme_light;
-+        color_item = self->aqua;
-+      }
-+    else if (g_strcmp0 (gtk_theme, "Yaru-blue") == 0)
-+      {
-+        theme_item = self->theme_light;
-+        color_item = self->blue;
-+      }
-+    else if (g_strcmp0 (gtk_theme, "Yaru-green") == 0)
-+      {
-+        theme_item = self->theme_light;
-+        color_item = self->green;
-+      }
-+    else if (g_strcmp0 (gtk_theme, "Yaru-pink") == 0)
-+      {
-+        theme_item = self->theme_light;
-+        color_item = self->pink;
-+      }
-+    else if (g_strcmp0 (gtk_theme, "Yaru-purple") == 0)
-+      {
-+        theme_item = self->theme_light;
-+        color_item = self->purple;
-+      }
-+    else if (g_strcmp0 (gtk_theme, "Yaru-red") == 0)
-+      {
-+        theme_item = self->theme_light;
-+        color_item = self->red;
-+      }
-+    else if (g_strcmp0 (gtk_theme, "Yaru-yellow") == 0)
-+      {
-+        theme_item = self->theme_light;
-+        color_item = self->yellow;
-+      }
-+    else if (g_strcmp0 (gtk_theme, "Yaru-dark") == 0)
-+      {
-+        theme_item = self->theme_dark;
-+        color_item = self->orange;
-+      }
-+    else if (g_strcmp0 (gtk_theme, "Yaru-aqua-dark") == 0)
-+      {
-+        theme_item = self->theme_dark;
-+        color_item = self->aqua;
-+      }
-+    else if (g_strcmp0 (gtk_theme, "Yaru-blue-dark") == 0)
-+      {
-+        theme_item = self->theme_dark;
-+        color_item = self->blue;
-+      }
-+    else if (g_strcmp0 (gtk_theme, "Yaru-green-dark") == 0)
-+      {
-+        theme_item = self->theme_dark;
-+        color_item = self->green;
-+      }
-+    else if (g_strcmp0 (gtk_theme, "Yaru-pink-dark") == 0)
-+      {
-+        theme_item = self->theme_dark;
-+        color_item = self->pink;
-+      }
-+    else if (g_strcmp0 (gtk_theme, "Yaru-purple-dark") == 0)
-+      {
-+        theme_item = self->theme_dark;
-+        color_item = self->purple;
-+      }
-+    else if (g_strcmp0 (gtk_theme, "Yaru-red-dark") == 0)
-+      {
-+        theme_item = self->theme_dark;
-+        color_item = self->red;
-+      }
-+    else if (g_strcmp0 (gtk_theme, "Yaru-yellow-dark") == 0)
-+      {
-+        theme_item = self->theme_dark;
-+        color_item = self->yellow;
-+      }
++
++  if (!g_str_has_prefix (gtk_theme, "Yaru"))
++    {
++      g_warning ("No yaru theme selected!");
++
++      gtk_flow_box_unselect_all (self->theme_box);
++      gtk_flow_box_unselect_all (self->color_box);
++      return;
++    }
++
++  is_dark = g_str_has_suffix (gtk_theme, "-dark");
++  parts = g_strsplit (gtk_theme, "-", 3);
++
++  switch (g_strv_length (parts))
++    {
++      case 3:
++        g_return_if_fail (is_dark);
++        accent_color = parts[2];
++        break;
++      case 2:
++        if (!is_dark)
++          accent_color = parts[1];
++        break;
++    }
++
++  colors = gtk_container_get_children (GTK_CONTAINER (self->color_box));
++
++  for (l = colors; l; l = l->next)
++    {
++      GtkFlowBoxChild *item = GTK_FLOW_BOX_CHILD (l->data);
++      const char *color = g_object_get_data (G_OBJECT (item), "accent");
++
++      if (!gtk_widget_is_visible (GTK_WIDGET (item)))
++        continue;
++
++      if (g_strcmp0 (color, accent_color) == 0)
++        {
++          gtk_flow_box_select_child (self->color_box, item);
++          break;
++        }
++    }
++
++  if (is_dark)
++    gtk_flow_box_select_child (self->theme_box, self->theme_dark);
++  else
++    gtk_flow_box_select_child (self->theme_box, self->theme_light);
++}
++
++static gchar *
++get_theme_dir (void)
++{
++  const gchar *var;
++
++  var = g_getenv ("GTK_DATA_PREFIX");
++  if (var == NULL)
++    var = "/usr";
++
++  return g_build_filename (var, "share", "themes", NULL);
++}
++
++
++#if (GTK_MINOR_VERSION % 2)
++#define MINOR (GTK_MINOR_VERSION + 1)
++#else
++#define MINOR GTK_MINOR_VERSION
++#endif
++
++
++static gchar *
++find_theme_dir (const gchar *dir,
++                const gchar *subdir,
++                const gchar *name,
++                const gchar *variant)
++{
++  g_autofree gchar *file = NULL;
++  g_autofree gchar *base = NULL;
++  gchar *path;
++  gint i;
++
++  if (variant)
++    file = g_strconcat ("gtk-", variant, ".css", NULL);
++  else
++    file = g_strdup ("gtk.css");
++
++  if (subdir)
++    base = g_build_filename (dir, subdir, name, NULL);
++  else
++    base = g_build_filename (dir, name, NULL);
++
++  for (i = MINOR; i >= 0; i = i - 2) {
++    g_autofree gchar *subsubdir = NULL;
++
++    if (i < 14)
++      i = 0;
++
++    subsubdir = g_strdup_printf ("gtk-3.%d", i);
++    path = g_build_filename (base, subsubdir, file, NULL);
++
++    if (g_file_test (path, G_FILE_TEST_EXISTS))
++      break;
++
++    g_free (path);
++    path = NULL;
 +  }
 +
-+  if (theme_item && color_item != NULL)
-+  {
-+    gtk_flow_box_select_child (self->theme_box, theme_item);
-+    gtk_flow_box_select_child (self->color_box, color_item);
++  return path;
++}
++
++#undef MINOR
++
++static gchar *
++find_theme (const gchar *name,
++            const gchar *variant)
++{
++  g_autofree gchar *dir = NULL;
++  const gchar *const *dirs;
++  gchar *path;
++  gint i;
++
++  /* First look in the user's data directory */
++  path = find_theme_dir (g_get_user_data_dir (), "themes", name, variant);
++  if (path)
++    return path;
++
++  /* Next look in the user's home directory */
++  path = find_theme_dir (g_get_home_dir (), ".themes", name, variant);
++  if (path)
++    return path;
++
++  /* Look in system data directories */
++  dirs = g_get_system_data_dirs ();
++  for (i = 0; dirs[i]; i++) {
++    path = find_theme_dir (dirs[i], "themes", name, variant);
++    if (path)
++      return path;
 +  }
++
++  /* Finally, try in the default theme directory */
++  dir = get_theme_dir ();
++  path = find_theme_dir (dir, NULL, name, variant);
++
++  return path;
++}
++
++/* Courtesy of libhandy... */
++static gboolean
++check_theme_exists (const gchar *name,
++                    const gchar *variant)
++{
++  g_autofree gchar *resource_path = NULL;
++  g_autofree gchar *path = NULL;
++
++  /* try loading the resource for the theme. This is mostly meant for built-in
++   * themes.
++   */
++  if (variant)
++    resource_path = g_strdup_printf ("/org/gtk/libgtk/theme/%s/gtk-%s.css", name, variant);
 +  else
-+  {
-+    gtk_flow_box_unselect_all (self->theme_box);
-+    gtk_flow_box_unselect_all (self->color_box);
-+  }
++    resource_path = g_strdup_printf ("/org/gtk/libgtk/theme/%s/gtk.css", name);
++
++  if (g_resources_get_info (resource_path, 0, NULL, NULL, NULL))
++    return TRUE;
++
++  /* Next try looking for files in the various theme directories. */
++  path = find_theme (name, variant);
++
++  return path != NULL;
++}
++
++static void
++check_theme_accents_availability (CcUbuntuPanel *self)
++{
++  g_autoptr (GList) colors = NULL;
++  gint available_accents = 0;
++  GList *l;
++
++  if (!check_theme_exists ("Yaru", NULL))
++    g_critical ("No Yaru theme found");
++
++  if (!check_theme_exists ("Yaru", "dark"))
++    g_critical ("No Yaru-dark theme found");
++
++  colors = gtk_container_get_children (GTK_CONTAINER (self->color_box));
++
++  for (l = colors; l; l = l->next)
++    {
++      GtkFlowBoxChild *item = GTK_FLOW_BOX_CHILD (l->data);
++      const char *accent = g_object_get_data (G_OBJECT (item), "accent");
++      g_autofree char *theme_name = NULL;
++
++      if (g_strcmp0 (accent, DEFAULT_ACCENT_COLOR))
++        continue;
++
++      theme_name = g_strdup_printf("Yaru-%s", accent);
++
++      if (check_theme_exists (theme_name, NULL) && check_theme_exists (theme_name, "dark"))
++        available_accents++;
++      else
++        gtk_widget_hide (GTK_WIDGET (item));
++    }
++
++  if (!available_accents)
++    gtk_widget_hide (GTK_WIDGET (self->color_row));
 +}
 +
 +static void
@@ -1502,15 +1556,16 @@ index 0000000..f2ed62c
 +  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, theme_box);
 +  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, theme_dark);
 +  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, theme_light);
++  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, color_row);
 +  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, color_box);
-+  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, aqua);
-+  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, blue);
-+  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, green);
-+  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, orange);
-+  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, pink);
-+  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, purple);
-+  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, red);
-+  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, yellow);
++  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, accent_aqua);
++  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, accent_blue);
++  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, accent_green);
++  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, accent_orange);
++  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, accent_pink);
++  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, accent_purple);
++  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, accent_red);
++  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, accent_yellow);
 +
 +  gtk_widget_class_bind_template_callback (widget_class, on_dock_monitor_row_changed);
 +  gtk_widget_class_bind_template_callback (widget_class, on_dock_behavior_row_activated);
@@ -1794,6 +1849,16 @@ index 0000000..f2ed62c
 +  gtk_adjustment_set_upper (self->icon_size_adjustment, MAX_ICONSIZE / 2);
 +  gtk_scale_add_mark (self->icon_size_scale, DEFAULT_ICONSIZE / 2, GTK_POS_BOTTOM, NULL);
 +
++  g_object_set_data (G_OBJECT (self->accent_aqua), "accent", "aqua");
++  g_object_set_data (G_OBJECT (self->accent_blue), "accent", "blue");
++  g_object_set_data (G_OBJECT (self->accent_green), "accent", "green");
++  g_object_set_data (G_OBJECT (self->accent_orange), "accent", "orange");
++  g_object_set_data (G_OBJECT (self->accent_pink), "accent", "pink");
++  g_object_set_data (G_OBJECT (self->accent_purple), "accent", "purple");
++  g_object_set_data (G_OBJECT (self->accent_red), "accent", "red");
++  g_object_set_data (G_OBJECT (self->accent_yellow), "accent", "yellow");
++  check_theme_accents_availability (self);
++
 +  icon_size_widget_refresh (self);
 +  on_interface_settings_changed (self);
 +  load_custom_css (self);
@@ -1875,7 +1940,7 @@ index 0000000..b13f611
 +#endif /* _CC_EDIT_DIALOG_H_ */
 diff --git a/panels/ubuntu/cc-ubuntu-panel.ui b/panels/ubuntu/cc-ubuntu-panel.ui
 new file mode 100644
-index 0000000..6658bac
+index 0000000..e85bcd5
 --- /dev/null
 +++ b/panels/ubuntu/cc-ubuntu-panel.ui
 @@ -0,0 +1,510 @@
@@ -2008,7 +2073,7 @@ index 0000000..6658bac
 +              </object>
 +            </child>
 +            <child>
-+              <object class="HdyActionRow">
++              <object class="HdyActionRow" id="color_row">
 +                <property name="title">Color</property>
 +                <property name="visible">1</property>
 +                <property name="activatable">False</property>
@@ -2025,7 +2090,7 @@ index 0000000..6658bac
 +                     <class name="colors" />
 +                    </style>
 +                    <child>
-+                      <object class="GtkFlowBoxChild" id="orange">
++                      <object class="GtkFlowBoxChild" id="accent_orange">
 +                        <property name="tooltip_text" translatable="yes">Default</property>
 +                        <property name="visible">1</property>
 +                        <property name="valign">center</property>
@@ -2054,7 +2119,7 @@ index 0000000..6658bac
 +                      </object>
 +                    </child>
 +                    <child>
-+                      <object class="GtkFlowBoxChild" id="aqua">
++                      <object class="GtkFlowBoxChild" id="accent_aqua">
 +                        <property name="tooltip_text" translatable="yes">Aqua</property>
 +                        <property name="visible">1</property>
 +                        <property name="valign">center</property>
@@ -2083,7 +2148,7 @@ index 0000000..6658bac
 +                      </object>
 +                    </child>
 +                    <child>
-+                      <object class="GtkFlowBoxChild" id="blue">
++                      <object class="GtkFlowBoxChild" id="accent_blue">
 +                        <property name="tooltip_text" translatable="yes">Blue</property>
 +                        <property name="visible">1</property>
 +                        <property name="valign">center</property>
@@ -2112,7 +2177,7 @@ index 0000000..6658bac
 +                      </object>
 +                    </child>
 +                    <child>
-+                      <object class="GtkFlowBoxChild" id="green">
++                      <object class="GtkFlowBoxChild" id="accent_green">
 +                        <property name="tooltip_text" translatable="yes">Green</property>
 +                        <property name="visible">1</property>
 +                        <property name="valign">center</property>
@@ -2141,7 +2206,7 @@ index 0000000..6658bac
 +                      </object>
 +                    </child>
 +                    <child>
-+                      <object class="GtkFlowBoxChild" id="pink">
++                      <object class="GtkFlowBoxChild" id="accent_pink">
 +                        <property name="tooltip_text" translatable="yes">Pink</property>
 +                        <property name="visible">1</property>
 +                        <property name="valign">center</property>
@@ -2170,7 +2235,7 @@ index 0000000..6658bac
 +                      </object>
 +                    </child>
 +                    <child>
-+                      <object class="GtkFlowBoxChild" id="purple">
++                      <object class="GtkFlowBoxChild" id="accent_purple">
 +                        <property name="tooltip_text" translatable="yes">Purple</property>
 +                        <property name="visible">1</property>
 +                        <property name="valign">center</property>
@@ -2199,7 +2264,7 @@ index 0000000..6658bac
 +                      </object>
 +                    </child>
 +                    <child>
-+                      <object class="GtkFlowBoxChild" id="red">
++                      <object class="GtkFlowBoxChild" id="accent_red">
 +                        <property name="tooltip_text" translatable="yes">Red</property>
 +                        <property name="visible">1</property>
 +                        <property name="valign">center</property>
@@ -2228,7 +2293,7 @@ index 0000000..6658bac
 +                      </object>
 +                    </child>
 +                    <child>
-+                      <object class="GtkFlowBoxChild" id="yellow">
++                      <object class="GtkFlowBoxChild" id="accent_yellow">
 +                        <property name="tooltip_text" translatable="yes">Yellow</property>
 +                        <property name="visible">1</property>
 +                        <property name="valign">center</property>
