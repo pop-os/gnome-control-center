@@ -1,0 +1,29 @@
+From: Victor Toso <victortoso@redhat.com>
+Date: Tue, 12 Oct 2021 14:09:45 +0200
+Subject: keyboard-shortcut-editor: fix leak of accel string
+
+==31571== 120 bytes in 8 blocks are definitely lost in loss record 17,034 of 19,290
+==31571==    at 0x484086F: malloc (vg_replace_malloc.c:380)
+==31571==    by 0x4AF77A8: g_malloc (gmem.c:106)
+==31571==    by 0x4D9816A: gtk_accelerator_name (gtkaccelgroup.c:1577)
+==31571==    by 0x4A82D1: setup_custom_shortcut (cc-keyboard-shortcut-editor.c:364)
+==31571==    by 0x4A92DF: cc_keyboard_shortcut_editor_key_press_event (cc-keyboard-shortcut-editor.c:745)
+
+Origin: https://gitlab.gnome.org/GNOME/gnome-control-center/-/commit/8355404e
+---
+ panels/keyboard/cc-keyboard-shortcut-editor.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/panels/keyboard/cc-keyboard-shortcut-editor.c b/panels/keyboard/cc-keyboard-shortcut-editor.c
+index 6b42763..4e93a1c 100644
+--- a/panels/keyboard/cc-keyboard-shortcut-editor.c
++++ b/panels/keyboard/cc-keyboard-shortcut-editor.c
+@@ -308,7 +308,7 @@ setup_custom_shortcut (CcKeyboardShortcutEditor *self)
+   HeaderMode mode;
+   gboolean is_custom, is_accel_empty;
+   gboolean valid, accel_valid;
+-  gchar *accel;
++  g_autofree char *accel = NULL;
+ 
+   is_custom = is_custom_shortcut (self);
+   accel_valid = is_valid_binding (self->custom_combo) &&

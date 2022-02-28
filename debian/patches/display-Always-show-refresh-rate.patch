@@ -1,0 +1,47 @@
+From: Robert Mader <robert.mader@posteo.de>
+Date: Thu, 6 Jan 2022 22:00:52 +0100
+Subject: display: Always show refresh rate
+
+Refresh rates are an important information for users, even if they
+can't change them.
+This is especially true for cases where knowledge of the refresh
+rate may influence the decission about the resolution to use.
+Consider the example where a display may support `3840x2160@60Hz`
+and `2560x1440@144Hz`. When choosing `3840x2160` as resolution,
+the refresh rate will likely get hidden, making the user unaware
+of the fact that they will maybe not get what they want (potentially
+144Hz).
+
+So follow the example of e.g. the sound panel where input and output
+devices are listed in dropdowns, even if they are the only options
+selectable.
+
+Note: while this is a design change, for a big group of users this
+won't actually change the default experience as Mutter until recently
+had a bug to duplicate 60Hz modes in many cases. So most laptop users
+already saw the refresh rate panel in previous Gnome versions,
+dispite it having little use.
+
+See also:
+https://gitlab.gnome.org/GNOME/mutter/-/commit/fb9564b87b9fe8ebc5a19c20dbfe036995d0dbad
+
+Origin: https://gitlab.gnome.org/GNOME/gnome-control-center/-/commit/375bbc3
+---
+ panels/display/cc-display-settings.c | 4 +---
+ 1 file changed, 1 insertion(+), 3 deletions(-)
+
+diff --git a/panels/display/cc-display-settings.c b/panels/display/cc-display-settings.c
+index a4f914e..90420d2 100644
+--- a/panels/display/cc-display-settings.c
++++ b/panels/display/cc-display-settings.c
+@@ -336,9 +336,7 @@ cc_display_settings_rebuild_ui (CcDisplaySettings *self)
+             hdy_combo_row_set_selected_index (HDY_COMBO_ROW (self->refresh_rate_row), new);
+         }
+ 
+-      /* Show if we have more than one frequency to choose from. */
+-      gtk_widget_set_visible (self->refresh_rate_row,
+-                              g_list_model_get_n_items (G_LIST_MODEL (self->refresh_rate_list)) > 1);
++      gtk_widget_set_visible (self->refresh_rate_row, TRUE);
+     }
+   else
+     {

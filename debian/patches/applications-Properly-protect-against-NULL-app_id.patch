@@ -1,0 +1,25 @@
+From: Georges Basile Stavracas Neto <georges.stavracas@gmail.com>
+Date: Thu, 20 Jan 2022 18:55:03 -0300
+Subject: applications: Properly protect against NULL app_id
+
+The 'app_id' variable can be NULL, and g_str_has_prefix() does
+not particularly enjoy that.
+
+Origin: https://gitlab.gnome.org/GNOME/gnome-control-center/-/commit/00cb638
+---
+ panels/applications/cc-applications-panel.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/panels/applications/cc-applications-panel.c b/panels/applications/cc-applications-panel.c
+index ab6ac68..815a31e 100644
+--- a/panels/applications/cc-applications-panel.c
++++ b/panels/applications/cc-applications-panel.c
+@@ -813,7 +813,7 @@ add_static_permissions (CcApplicationsPanel *self,
+   gint added = 0;
+   g_autofree gchar *text = NULL;
+ 
+-  if (!g_str_has_prefix (app_id, PORTAL_SNAP_PREFIX))
++  if (app_id && !g_str_has_prefix (app_id, PORTAL_SNAP_PREFIX))
+     keyfile = get_flatpak_metadata (app_id);
+   if (keyfile == NULL)
+     return FALSE;

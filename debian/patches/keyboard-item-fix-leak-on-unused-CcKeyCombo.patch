@@ -1,0 +1,42 @@
+From: Victor Toso <victortoso@redhat.com>
+Date: Tue, 12 Oct 2021 14:02:06 +0200
+Subject: keyboard-item: fix leak on unused CcKeyCombo
+
+==31571== 288 bytes in 24 blocks are definitely lost in loss record 18,138 of 19,290
+==31571==    at 0x484086F: malloc (vg_replace_malloc.c:380)
+==31571==    by 0x4AF77A8: g_malloc (gmem.c:106)
+==31571==    by 0x4A4119: variant_get_key_combos (cc-keyboard-item.c:475)
+==31571==    by 0x4A41FD: settings_get_key_combos (cc-keyboard-item.c:498)
+==31571==    by 0x4A46BE: cc_keyboard_item_load_from_gsettings (cc-keyboard-item.c:574)
+==31571==    by 0x4A5BBB: append_section (cc-keyboard-manager.c:315)
+==31571==    by 0x4A605D: append_sections_from_file (cc-keyboard-manager.c:431)
+==31571==    by 0x4A6766: reload_sections (cc-keyboard-manager.c:568)
+==31571==    by 0x4A6D68: cc_keyboard_manager_load_shortcuts (cc-keyboard-manager.c:707)
+==31571==    by 0x4A2FA4: cc_keyboard_shortcut_dialog_init (cc-keyboard-shortcut-dialog.c:841)
+==31571==    by 0x4A7A288: g_type_create_instance (gtype.c:1929)
+==31571==    by 0x4A61CAC: g_object_new_internal (gobject.c:1945)
+
+Origin: https://gitlab.gnome.org/GNOME/gnome-control-center/-/commit/365fb19957
+---
+ panels/keyboard/cc-keyboard-item.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/panels/keyboard/cc-keyboard-item.c b/panels/keyboard/cc-keyboard-item.c
+index 2f7cdf7..1d17b10 100644
+--- a/panels/keyboard/cc-keyboard-item.c
++++ b/panels/keyboard/cc-keyboard-item.c
+@@ -472,12 +472,12 @@ variant_get_key_combos (GVariant *variant)
+ 
+   for (str = bindings; *str; str++)
+     {
+-      CcKeyCombo *combo = g_new (CcKeyCombo, 1);
++      g_autofree CcKeyCombo *combo = g_new (CcKeyCombo, 1);
+ 
+       binding_from_string (*str, combo);
+ 
+       if (combo->keyval != 0 || combo->keycode != 0 || combo->mask != 0)
+-        combos = g_list_prepend (combos, combo);
++        combos = g_list_prepend (combos, g_steal_pointer (&combo));
+     }
+ 
+   return g_list_reverse (combos);
