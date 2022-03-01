@@ -1,250 +1,1004 @@
-diff --git a/panels/background/cc-background-panel.c b/panels/background/cc-background-panel.c
-index 29dedf165..377410965 100644
---- a/panels/background/cc-background-panel.c
-+++ b/panels/background/cc-background-panel.c
-@@ -24,6 +24,7 @@
- #include <glib.h>
- #include <glib/gi18n-lib.h>
- #include <glib/gstdio.h>
-+#include "pop_desktop_widget.h"
- 
- #include <gdesktop-enums.h>
- 
-@@ -51,6 +52,8 @@ struct _CcBackgroundPanel
- 
-   GDBusConnection *connection;
- 
-+  PopDesktopWidget *pop;
-+
-   GSettings *settings;
-   GSettings *lock_settings;
- 
-@@ -61,10 +64,52 @@ struct _CcBackgroundPanel
-   CcBackgroundChooser *background_chooser;
-   GtkButton *add_picture_button;
-   CcBackgroundPreview *desktop_preview;
-+
-+  GtkStack *stack;
-+  GtkListBox *stack_sidebar;
-+  GtkWidget *background_container;
- };
- 
- CC_PANEL_REGISTER (CcBackgroundPanel, cc_background_panel)
- 
-+static void visible_child_changed (CcBackgroundPanel *self, GParamSpec *pspec, GtkStack *stack) {
-+  gboolean visible = gtk_stack_get_visible_child (stack) == self->background_container;
-+  gtk_widget_set_visible (GTK_WIDGET (self->add_picture_button), visible);
-+}
-+
-+static void sidebar_row_activated_cb (CcBackgroundPanel *self, GtkListBoxRow *row, GtkListBox *box) {
-+  GtkWidget *widget = g_object_get_data (G_OBJECT (row), "stack-child");
-+  gtk_stack_set_visible_child (self->stack, widget);
-+  g_signal_emit_by_name (self, "sidebar-activated");
-+}
-+
-+static void for_each_stack_cb (GtkWidget *widget, gpointer user_data) {
-+  CcBackgroundPanel *panel = CC_BACKGROUND_PANEL (user_data);
-+  gchar *title;
-+
-+  gtk_container_child_get (GTK_CONTAINER (panel->stack), widget, "title", &title, NULL);
-+
-+  if (!title)
-+    return;
-+
-+  GtkWidget *label = g_object_new (GTK_TYPE_LABEL,
-+                                   "label", title,
-+                                   "visible", TRUE,
-+                                   "margin", 12,
-+                                   "halign", GTK_ALIGN_START,
-+                                   NULL);
-+  GtkWidget *row = g_object_new (GTK_TYPE_LIST_BOX_ROW, "visible", TRUE, NULL);
-+  gtk_container_add (GTK_CONTAINER (row), label);
-+  g_object_set_data (G_OBJECT (row), "stack-child", widget);
-+  gtk_container_add (GTK_CONTAINER (panel->stack_sidebar), row);
-+}
-+
-+static GtkWidget *cc_background_panel_get_sidebar_widget (CcPanel *panel) {
-+  CcBackgroundPanel *self = CC_BACKGROUND_PANEL (panel);
-+
-+  return GTK_WIDGET (self->stack_sidebar);
-+}
-+
- static void
- update_preview (CcBackgroundPanel *panel)
- {
-@@ -241,6 +286,7 @@ cc_background_panel_dispose (GObject *object)
-   g_clear_object (&panel->settings);
-   g_clear_object (&panel->lock_settings);
-   g_clear_object (&panel->thumb_factory);
-+  g_clear_pointer (&panel->pop, pop_desktop_widget_free);
- 
-   G_OBJECT_CLASS (cc_background_panel_parent_class)->dispose (object);
- }
-@@ -266,6 +312,7 @@ cc_background_panel_class_init (CcBackgroundPanelClass *klass)
-   g_type_ensure (CC_TYPE_BACKGROUND_PREVIEW);
- 
-   panel_class->get_help_uri = cc_background_panel_get_help_uri;
-+  panel_class->get_sidebar_widget = cc_background_panel_get_sidebar_widget;
- 
-   object_class->constructed = cc_background_panel_constructed;
-   object_class->dispose = cc_background_panel_dispose;
-@@ -276,9 +323,14 @@ cc_background_panel_class_init (CcBackgroundPanelClass *klass)
-   gtk_widget_class_bind_template_child (widget_class, CcBackgroundPanel, add_picture_button);
-   gtk_widget_class_bind_template_child (widget_class, CcBackgroundPanel, background_chooser);
-   gtk_widget_class_bind_template_child (widget_class, CcBackgroundPanel, desktop_preview);
-+  gtk_widget_class_bind_template_child (widget_class, CcBackgroundPanel, stack);
-+  gtk_widget_class_bind_template_child (widget_class, CcBackgroundPanel, stack_sidebar);
-+  gtk_widget_class_bind_template_child (widget_class, CcBackgroundPanel, background_container);
- 
-   gtk_widget_class_bind_template_callback (widget_class, on_chooser_background_chosen_cb);
-   gtk_widget_class_bind_template_callback (widget_class, on_add_picture_button_clicked_cb);
-+  gtk_widget_class_bind_template_callback (widget_class, sidebar_row_activated_cb);
-+  gtk_widget_class_bind_template_callback (widget_class, visible_child_changed);
- }
- 
- static void
-@@ -301,10 +353,13 @@ cc_background_panel_init (CcBackgroundPanel *panel)
- 
-   panel->settings = g_settings_new (WP_PATH_ID);
-   g_settings_delay (panel->settings);
-- 
-+
-   panel->lock_settings = g_settings_new (WP_LOCK_PATH_ID);
-   g_settings_delay (panel->lock_settings);
- 
-+  panel->pop = pop_desktop_widget_new (panel->stack);
-+  gtk_container_foreach (GTK_CONTAINER (panel->stack), for_each_stack_cb, panel);
-+
-   /* Load the background */
-   reload_current_bg (panel);
-   update_preview (panel);
-diff --git a/panels/background/cc-background-panel.ui b/panels/background/cc-background-panel.ui
-index 7b5c3d385..4edf29144 100644
---- a/panels/background/cc-background-panel.ui
-+++ b/panels/background/cc-background-panel.ui
-@@ -1,49 +1,65 @@
- <?xml version="1.0" encoding="UTF-8"?>
- <interface>
-   <!-- interface-requires gtk+ 3.0 -->
-+  <object class="GtkListBox" id="stack_sidebar">
-+    <property name="visible">True</property>
-+    <signal name="row-activated" handler="sidebar_row_activated_cb" object="CcBackgroundPanel" swapped="yes" />
-+  </object>
-+
-   <template class="CcBackgroundPanel" parent="CcPanel">
-     <property name="visible">True</property>
-     <property name="can_focus">False</property>
-     <child>
--      <object class="GtkBox">
-+      <object class="GtkStack" id="stack">
-         <property name="visible">True</property>
--        <property name="can_focus">False</property>
--        <property name="orientation">vertical</property>
-+        <property name="transition-type">crossfade</property>
-+        <signal name="notify::visible-child" handler="visible_child_changed" object="CcBackgroundPanel" swapped="yes" />
- 
-+        <!-- Background page -->
-         <child>
--          <object class="HdyClamp">
--            <property name="visible">1</property>
--            <property name="maximum_size">300</property>
--            <property name="tightening_threshold">200</property>
-+          <object class="GtkBox" id="background_container">
-+            <property name="visible">True</property>
-+            <property name="can_focus">False</property>
-+            <property name="orientation">vertical</property>
-+
-             <child>
--              <object class="GtkBox">
--                <property name="visible">True</property>
--                <property name="can_focus">False</property>
--                <property name="spacing">24</property>
--                <property name="margin-start">12</property>
--                <property name="margin-end">12</property>
--                <property name="margin-top">18</property>
--                <property name="margin-bottom">18</property>
--                <property name="hexpand">True</property>
-+              <object class="HdyClamp">
-+                <property name="visible">1</property>
-                 <child>
--                  <object class="CcBackgroundPreview" id="desktop_preview">
-+                  <object class="GtkBox">
-                     <property name="visible">True</property>
-                     <property name="can_focus">False</property>
--                    <property name="valign">center</property>
-+                    <property name="spacing">24</property>
-+                    <property name="margin-start">12</property>
-+                    <property name="margin-end">12</property>
-+                    <property name="margin-top">18</property>
-+                    <property name="margin-bottom">18</property>
-+                    <property name="hexpand">True</property>
-+                    <child>
-+                      <object class="CcBackgroundPreview" id="desktop_preview">
-+                        <property name="visible">True</property>
-+                        <property name="can_focus">False</property>
-+                        <property name="valign">center</property>
-+                      </object>
-+                    </child>
-                   </object>
-                 </child>
-               </object>
-             </child>
--          </object>
--        </child>
- 
--        <child>
--          <object class="CcBackgroundChooser" id="background_chooser">
--            <property name="visible">True</property>
--            <property name="can_focus">False</property>
--            <property name="expand">True</property>
--            <signal name="background-chosen" handler="on_chooser_background_chosen_cb" object="CcBackgroundPanel" swapped="yes" />
-+            <child>
-+              <object class="CcBackgroundChooser" id="background_chooser">
-+                <property name="visible">True</property>
-+                <property name="can_focus">False</property>
-+                <property name="expand">True</property>
-+                <signal name="background-chosen" handler="on_chooser_background_chosen_cb" object="CcBackgroundPanel" swapped="yes" />
-+              </object>
-+            </child>
-           </object>
-+          <packing>
-+            <property name="name">background</property>
-+            <property name="title" translatable="yes" comments="Change the background in Pop!_OS">Background</property>
-+          </packing>
-         </child>
-       </object>
-     </child>
-diff --git a/panels/background/gnome-background-panel.desktop.in.in b/panels/background/gnome-background-panel.desktop.in.in
-index 76534b028..0a074c1d3 100644
 --- a/panels/background/gnome-background-panel.desktop.in.in
 +++ b/panels/background/gnome-background-panel.desktop.in.in
-@@ -1,6 +1,6 @@
- [Desktop Entry]
--Name=Background
--Comment=Change your background image to a wallpaper or photo
-+Name=Desktop
-+Comment=Customize desktop features. Change your background image. Toggle dark and light mode.
- Exec=gnome-control-center background
- # Translators: Do NOT translate or transliterate this text (this is an icon file name)!
- Icon=preferences-desktop-wallpaper
-@@ -11,4 +11,5 @@ StartupNotify=true
- Categories=GNOME;GTK;Settings;DesktopSettings;X-GNOME-Settings-Panel;X-GNOME-PersonalizationSettings;
+@@ -8,7 +8,7 @@
+ Type=Application
+ NoDisplay=true
+ StartupNotify=true
+-Categories=GNOME;GTK;Settings;DesktopSettings;X-GNOME-Settings-Panel;X-GNOME-PersonalizationSettings;
++Categories=GNOME;GTK;Settings;DesktopSettings;X-GNOME-Settings-Panel;X-POP-DesktopSettings;
  OnlyShowIn=GNOME;
  # Translators: Search terms to find the Background panel. Do NOT translate or localize the semicolons! The list MUST also end with a semicolon!
--Keywords=Wallpaper;Screen;Desktop;
-+Keywords=Wallpaper;Screen;Desktop;Dark;Light;Theme;Night;Dock;Panel;Windows;Workspaces;
-+X-GNOME-ControlCenter-HasSidebar=true
-diff --git a/panels/background/meson.build b/panels/background/meson.build
-index e9fa398d4..0136a3bd7 100644
---- a/panels/background/meson.build
-+++ b/panels/background/meson.build
-@@ -94,7 +94,8 @@ deps = common_deps + [
-   goa_dep,
-   libxml_dep,
-   dependency('cairo-gobject'),
--  dependency('grilo-0.3', version: '>= 0.3.0')
-+  dependency('grilo-0.3', version: '>= 0.3.0'),
-+  dependency('pop_desktop_widget')
- ]
+ Keywords=Wallpaper;Screen;Desktop;
+--- /dev/null
++++ b/panels/desktop-appearance/cc-desktop-appearance-panel.c
+@@ -0,0 +1,82 @@
++/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*-
++ *
++ * Copyright (C) 2022 System76, Inc
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, see <http://www.gnu.org/licenses/>.
++ *
++ * Author: Ian Douglas Scott <idscott@system76.com>
++ */
++
++#include "cc-desktop-appearance-panel.h"
++#include "cc-util.h"
++
++#include <handy.h>
++#include <pop_desktop_widget.h>
++
++struct _CcDesktopAppearancePanel
++{
++  CcPanel        parent_instance;
++
++  GtkWidget     *widget;
++};
++
++CC_PANEL_REGISTER (CcDesktopAppearancePanel, cc_desktop_appearance_panel)
++
++static void
++cc_desktop_panel_finalize (GObject *object)
++{
++  CcDesktopAppearancePanel *self = CC_DESKTOP_APPEARANCE_PANEL (object);
++
++  g_clear_object (&self->widget);
++
++  G_OBJECT_CLASS (cc_desktop_appearance_panel_parent_class)->finalize (object);
++}
++
++static void
++cc_desktop_appearance_panel_class_init (CcDesktopAppearancePanelClass *klass)
++{
++  GObjectClass *oclass = G_OBJECT_CLASS (klass);
++  oclass->finalize = cc_desktop_panel_finalize;
++}
++
++static void
++cc_desktop_appearance_panel_init (CcDesktopAppearancePanel *self)
++{
++  GtkWidget *scroll, *clamp, *box;
++
++  scroll = g_object_new (GTK_TYPE_SCROLLED_WINDOW,
++                         "visible", TRUE,
++                         "hscrollbar-policy", GTK_POLICY_NEVER,
++                         NULL);
++  gtk_container_add (GTK_CONTAINER (self), scroll);
++
++  clamp = g_object_new (HDY_TYPE_CLAMP,
++                        "visible", TRUE,
++                        NULL);
++  gtk_container_add (GTK_CONTAINER (scroll), clamp);
++
++  box = g_object_new (GTK_TYPE_BOX,
++                      "visible", TRUE,
++                      "can-focus", FALSE,
++                      "spacing", 24,
++                      "margin-start", 12,
++                      "margin-end", 12,
++                      "margin-top", 18,
++                      "margin-bottom", 18,
++                      "hexpand", TRUE,
++                      NULL);
++  gtk_container_add (GTK_CONTAINER (clamp), box);
++
++  gtk_container_add (GTK_CONTAINER (box), pop_desktop_widget_gcc_appearance_page());
++}
+--- /dev/null
++++ b/panels/desktop-appearance/cc-desktop-appearance-panel.h
+@@ -0,0 +1,30 @@
++/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*-
++ *
++ * Copyright (C) 2022 System76, Inc
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, see <http://www.gnu.org/licenses/>.
++ *
++ * Author: Ian Douglas Scott <idscott@system76.com>
++ */
++
++#pragma once
++
++#include <shell/cc-panel.h>
++
++G_BEGIN_DECLS
++
++#define CC_TYPE_DESKTOP_APPEARANCE_PANEL (cc_desktop_appearance_panel_get_type ())
++G_DECLARE_FINAL_TYPE (CcDesktopAppearancePanel, cc_desktop_appearance_panel, CC, DESKTOP_APPEARANCE_PANEL, CcPanel)
++
++G_END_DECLS
+--- /dev/null
++++ b/panels/desktop-appearance/gnome-desktop-appearance-panel.desktop.in.in
+@@ -0,0 +1,15 @@
++[Desktop Entry]
++Name=Appearance
++Comment=Set light or dark theme
++Exec=gnome-control-center desktop-appearance
++# FIXME
++# Translators: Do NOT translate or transliterate this text (this is an icon file name)!
++Icon=preferences-pop-desktop-appearance
++Terminal=false
++Type=Application
++NoDisplay=true
++StartupNotify=true
++Categories=GNOME;GTK;Settings;DesktopSettings;X-GNOME-Settings-Panel;X-POP-DesktopSettings;
++OnlyShowIn=GNOME;Unity;
++# Translators: Search terms to find the Privacy panel. Do NOT translate or localize the semicolons! The list MUST also end with a semicolon!
++Keywords=
+--- /dev/null
++++ b/panels/desktop-appearance/meson.build
+@@ -0,0 +1,30 @@
++panels_list += cappletname
++desktop = 'gnome-@0@-panel.desktop'.format(cappletname)
++
++desktop_in = configure_file(
++  input: desktop + '.in.in',
++  output: desktop + '.in',
++  configuration: desktop_conf
++)
++
++i18n.merge_file(
++  desktop,
++  type: 'desktop',
++  input: desktop_in,
++  output: desktop,
++  po_dir: po_dir,
++  install: true,
++  install_dir: control_center_desktopdir
++)
++
++sources = files('cc-desktop-appearance-panel.c')
++
++cflags += '-DGNOMELOCALEDIR="@0@"'.format(control_center_localedir)
++
++panels_libs += static_library(
++  cappletname,
++  sources: sources,
++  include_directories: [top_inc, common_inc],
++  dependencies: common_deps + [dependency('pop_desktop_widget')],
++  c_args: cflags
++)
+--- /dev/null
++++ b/panels/desktop-dock/cc-desktop-dock-panel.c
+@@ -0,0 +1,82 @@
++/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*-
++ *
++ * Copyright (C) 2022 System76, Inc
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, see <http://www.gnu.org/licenses/>.
++ *
++ * Author: Ian Douglas Scott <idscott@system76.com>
++ */
++
++#include "cc-desktop-dock-panel.h"
++#include "cc-util.h"
++
++#include <handy.h>
++#include <pop_desktop_widget.h>
++
++struct _CcDesktopDockPanel
++{
++  CcPanel        parent_instance;
++
++  GtkWidget     *widget;
++};
++
++CC_PANEL_REGISTER (CcDesktopDockPanel, cc_desktop_dock_panel)
++
++static void
++cc_desktop_panel_finalize (GObject *object)
++{
++  CcDesktopDockPanel *self = CC_DESKTOP_DOCK_PANEL (object);
++
++  g_clear_object (&self->widget);
++
++  G_OBJECT_CLASS (cc_desktop_dock_panel_parent_class)->finalize (object);
++}
++
++static void
++cc_desktop_dock_panel_class_init (CcDesktopDockPanelClass *klass)
++{
++  GObjectClass *oclass = G_OBJECT_CLASS (klass);
++  oclass->finalize = cc_desktop_panel_finalize;
++}
++
++static void
++cc_desktop_dock_panel_init (CcDesktopDockPanel *self)
++{
++  GtkWidget *scroll, *clamp, *box;
++
++  scroll = g_object_new (GTK_TYPE_SCROLLED_WINDOW,
++                         "visible", TRUE,
++                         "hscrollbar-policy", GTK_POLICY_NEVER,
++                         NULL);
++  gtk_container_add (GTK_CONTAINER (self), scroll);
++
++  clamp = g_object_new (HDY_TYPE_CLAMP,
++                        "visible", TRUE,
++                        NULL);
++  gtk_container_add (GTK_CONTAINER (scroll), clamp);
++
++  box = g_object_new (GTK_TYPE_BOX,
++                      "visible", TRUE,
++                      "can-focus", FALSE,
++                      "spacing", 24,
++                      "margin-start", 12,
++                      "margin-end", 12,
++                      "margin-top", 18,
++                      "margin-bottom", 18,
++                      "hexpand", TRUE,
++                      NULL);
++  gtk_container_add (GTK_CONTAINER (clamp), box);
++
++  gtk_container_add (GTK_CONTAINER (box), pop_desktop_widget_gcc_dock_page());
++}
+--- /dev/null
++++ b/panels/desktop-dock/cc-desktop-dock-panel.h
+@@ -0,0 +1,30 @@
++/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*-
++ *
++ * Copyright (C) 2022 System76, Inc
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, see <http://www.gnu.org/licenses/>.
++ *
++ * Author: Ian Douglas Scott <idscott@system76.com>
++ */
++
++#pragma once
++
++#include <shell/cc-panel.h>
++
++G_BEGIN_DECLS
++
++#define CC_TYPE_DESKTOP_DOCK_PANEL (cc_desktop_dock_panel_get_type ())
++G_DECLARE_FINAL_TYPE (CcDesktopDockPanel, cc_desktop_dock_panel, CC, DESKTOP_DOCK_PANEL, CcPanel)
++
++G_END_DECLS
+--- /dev/null
++++ b/panels/desktop-dock/gnome-desktop-dock-panel.desktop.in.in
+@@ -0,0 +1,15 @@
++[Desktop Entry]
++Name=Dock
++Comment=Customize dock settings
++Exec=gnome-control-center desktop-dock
++# FIXME
++# Translators: Do NOT translate or transliterate this text (this is an icon file name)!
++Icon=preferences-pop-desktop-dock
++Terminal=false
++Type=Application
++NoDisplay=true
++StartupNotify=true
++Categories=GNOME;GTK;Settings;DesktopSettings;X-GNOME-Settings-Panel;X-POP-DesktopSettings;
++OnlyShowIn=GNOME;Unity;
++# Translators: Search terms to find the Privacy panel. Do NOT translate or localize the semicolons! The list MUST also end with a semicolon!
++Keywords=
+--- /dev/null
++++ b/panels/desktop-dock/meson.build
+@@ -0,0 +1,30 @@
++panels_list += cappletname
++desktop = 'gnome-@0@-panel.desktop'.format(cappletname)
++
++desktop_in = configure_file(
++  input: desktop + '.in.in',
++  output: desktop + '.in',
++  configuration: desktop_conf
++)
++
++i18n.merge_file(
++  desktop,
++  type: 'desktop',
++  input: desktop_in,
++  output: desktop,
++  po_dir: po_dir,
++  install: true,
++  install_dir: control_center_desktopdir
++)
++
++sources = files('cc-desktop-dock-panel.c')
++
++cflags += '-DGNOMELOCALEDIR="@0@"'.format(control_center_localedir)
++
++panels_libs += static_library(
++  cappletname,
++  sources: sources,
++  include_directories: [top_inc, common_inc],
++  dependencies: common_deps + [dependency('pop_desktop_widget')],
++  c_args: cflags
++)
+--- /dev/null
++++ b/panels/desktop-main/cc-desktop-main-panel.c
+@@ -0,0 +1,82 @@
++/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*-
++ *
++ * Copyright (C) 2022 System76, Inc
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, see <http://www.gnu.org/licenses/>.
++ *
++ * Author: Ian Douglas Scott <idscott@system76.com>
++ */
++
++#include "cc-desktop-main-panel.h"
++#include "cc-util.h"
++
++#include <handy.h>
++#include <pop_desktop_widget.h>
++
++struct _CcDesktopMainPanel
++{
++  CcPanel        parent_instance;
++
++  GtkWidget     *widget;
++};
++
++CC_PANEL_REGISTER (CcDesktopMainPanel, cc_desktop_main_panel)
++
++static void
++cc_desktop_panel_finalize (GObject *object)
++{
++  CcDesktopMainPanel *self = CC_DESKTOP_MAIN_PANEL (object);
++
++  g_clear_object (&self->widget);
++
++  G_OBJECT_CLASS (cc_desktop_main_panel_parent_class)->finalize (object);
++}
++
++static void
++cc_desktop_main_panel_class_init (CcDesktopMainPanelClass *klass)
++{
++  GObjectClass *oclass = G_OBJECT_CLASS (klass);
++  oclass->finalize = cc_desktop_panel_finalize;
++}
++
++static void
++cc_desktop_main_panel_init (CcDesktopMainPanel *self)
++{
++  GtkWidget *scroll, *clamp, *box;
++
++  scroll = g_object_new (GTK_TYPE_SCROLLED_WINDOW,
++                         "visible", TRUE,
++                         "hscrollbar-policy", GTK_POLICY_NEVER,
++                         NULL);
++  gtk_container_add (GTK_CONTAINER (self), scroll);
++
++  clamp = g_object_new (HDY_TYPE_CLAMP,
++                        "visible", TRUE,
++                        NULL);
++  gtk_container_add (GTK_CONTAINER (scroll), clamp);
++
++  box = g_object_new (GTK_TYPE_BOX,
++                      "visible", TRUE,
++                      "can-focus", FALSE,
++                      "spacing", 24,
++                      "margin-start", 12,
++                      "margin-end", 12,
++                      "margin-top", 18,
++                      "margin-bottom", 18,
++                      "hexpand", TRUE,
++                      NULL);
++  gtk_container_add (GTK_CONTAINER (clamp), box);
++
++  gtk_container_add (GTK_CONTAINER (box), pop_desktop_widget_gcc_main_page());
++}
+--- /dev/null
++++ b/panels/desktop-main/cc-desktop-main-panel.h
+@@ -0,0 +1,30 @@
++/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*-
++ *
++ * Copyright (C) 2022 System76, Inc
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, see <http://www.gnu.org/licenses/>.
++ *
++ * Author: Ian Douglas Scott <idscott@system76.com>
++ */
++
++#pragma once
++
++#include <shell/cc-panel.h>
++
++G_BEGIN_DECLS
++
++#define CC_TYPE_DESKTOP_MAIN_PANEL (cc_desktop_main_panel_get_type ())
++G_DECLARE_FINAL_TYPE (CcDesktopMainPanel, cc_desktop_main_panel, CC, DESKTOP_MAIN_PANEL, CcPanel)
++
++G_END_DECLS
+--- /dev/null
++++ b/panels/desktop-main/gnome-desktop-main-panel.desktop.in.in
+@@ -0,0 +1,15 @@
++[Desktop Entry]
++Name=Desktop Options
++Comment=Customize COSMIC settings
++Exec=gnome-control-center desktop-main
++# FIXME
++# Translators: Do NOT translate or transliterate this text (this is an icon file name)!
++Icon=video-display
++Terminal=false
++Type=Application
++NoDisplay=true
++StartupNotify=true
++Categories=GNOME;GTK;Settings;DesktopSettings;X-GNOME-Settings-Panel;X-POP-DesktopSettings;
++OnlyShowIn=GNOME;Unity;
++# Translators: Search terms to find the Privacy panel. Do NOT translate or localize the semicolons! The list MUST also end with a semicolon!
++Keywords=
+--- /dev/null
++++ b/panels/desktop-main/meson.build
+@@ -0,0 +1,30 @@
++panels_list += cappletname
++desktop = 'gnome-@0@-panel.desktop'.format(cappletname)
++
++desktop_in = configure_file(
++  input: desktop + '.in.in',
++  output: desktop + '.in',
++  configuration: desktop_conf
++)
++
++i18n.merge_file(
++  desktop,
++  type: 'desktop',
++  input: desktop_in,
++  output: desktop,
++  po_dir: po_dir,
++  install: true,
++  install_dir: control_center_desktopdir
++)
++
++sources = files('cc-desktop-main-panel.c')
++
++cflags += '-DGNOMELOCALEDIR="@0@"'.format(control_center_localedir)
++
++panels_libs += static_library(
++  cappletname,
++  sources: sources,
++  include_directories: [top_inc, common_inc],
++  dependencies: common_deps + [dependency('pop_desktop_widget')],
++  c_args: cflags
++)
+--- /dev/null
++++ b/panels/desktop-workspaces/cc-desktop-workspaces-panel.c
+@@ -0,0 +1,82 @@
++/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*-
++ *
++ * Copyright (C) 2022 System76, Inc
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, see <http://www.gnu.org/licenses/>.
++ *
++ * Author: Ian Douglas Scott <idscott@system76.com>
++ */
++
++#include "cc-desktop-workspaces-panel.h"
++#include "cc-util.h"
++
++#include <handy.h>
++#include <pop_desktop_widget.h>
++
++struct _CcDesktopWorkspacesPanel
++{
++  CcPanel        parent_instance;
++
++  GtkWidget     *widget;
++};
++
++CC_PANEL_REGISTER (CcDesktopWorkspacesPanel, cc_desktop_workspaces_panel)
++
++static void
++cc_desktop_panel_finalize (GObject *object)
++{
++  CcDesktopWorkspacesPanel *self = CC_DESKTOP_WORKSPACES_PANEL (object);
++
++  g_clear_object (&self->widget);
++
++  G_OBJECT_CLASS (cc_desktop_workspaces_panel_parent_class)->finalize (object);
++}
++
++static void
++cc_desktop_workspaces_panel_class_init (CcDesktopWorkspacesPanelClass *klass)
++{
++  GObjectClass *oclass = G_OBJECT_CLASS (klass);
++  oclass->finalize = cc_desktop_panel_finalize;
++}
++
++static void
++cc_desktop_workspaces_panel_init (CcDesktopWorkspacesPanel *self)
++{
++  GtkWidget *scroll, *clamp, *box;
++
++  scroll = g_object_new (GTK_TYPE_SCROLLED_WINDOW,
++                         "visible", TRUE,
++                         "hscrollbar-policy", GTK_POLICY_NEVER,
++                         NULL);
++  gtk_container_add (GTK_CONTAINER (self), scroll);
++
++  clamp = g_object_new (HDY_TYPE_CLAMP,
++                        "visible", TRUE,
++                        NULL);
++  gtk_container_add (GTK_CONTAINER (scroll), clamp);
++
++  box = g_object_new (GTK_TYPE_BOX,
++                      "visible", TRUE,
++                      "can-focus", FALSE,
++                      "spacing", 24,
++                      "margin-start", 12,
++                      "margin-end", 12,
++                      "margin-top", 18,
++                      "margin-bottom", 18,
++                      "hexpand", TRUE,
++                      NULL);
++  gtk_container_add (GTK_CONTAINER (clamp), box);
++
++  gtk_container_add (GTK_CONTAINER (box), pop_desktop_widget_gcc_workspaces_page());
++}
+--- /dev/null
++++ b/panels/desktop-workspaces/cc-desktop-workspaces-panel.h
+@@ -0,0 +1,30 @@
++/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*-
++ *
++ * Copyright (C) 2022 System76, Inc
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, see <http://www.gnu.org/licenses/>.
++ *
++ * Author: Ian Douglas Scott <idscott@system76.com>
++ */
++
++#pragma once
++
++#include <shell/cc-panel.h>
++
++G_BEGIN_DECLS
++
++#define CC_TYPE_DESKTOP_WORKSPACES_PANEL (cc_desktop_workspaces_panel_get_type ())
++G_DECLARE_FINAL_TYPE (CcDesktopWorkspacesPanel, cc_desktop_workspaces_panel, CC, DESKTOP_WORKSPACES_PANEL, CcPanel)
++
++G_END_DECLS
+--- /dev/null
++++ b/panels/desktop-workspaces/gnome-desktop-workspaces-panel.desktop.in.in
+@@ -0,0 +1,15 @@
++[Desktop Entry]
++Name=Workspaces
++Comment=Customize workspaces settings
++Exec=gnome-control-center desktop-workspaces
++# FIXME
++# Translators: Do NOT translate or transliterate this text (this is an icon file name)!
++Icon=preferences-pop-desktop-workspaces
++Terminal=false
++Type=Application
++NoDisplay=true
++StartupNotify=true
++Categories=GNOME;GTK;Settings;DesktopSettings;X-GNOME-Settings-Panel;X-POP-DesktopSettings;
++OnlyShowIn=GNOME;Unity;
++# Translators: Search terms to find the Privacy panel. Do NOT translate or localize the semicolons! The list MUST also end with a semicolon!
++Keywords=
+--- /dev/null
++++ b/panels/desktop-workspaces/meson.build
+@@ -0,0 +1,30 @@
++panels_list += cappletname
++desktop = 'gnome-@0@-panel.desktop'.format(cappletname)
++
++desktop_in = configure_file(
++  input: desktop + '.in.in',
++  output: desktop + '.in',
++  configuration: desktop_conf
++)
++
++i18n.merge_file(
++  desktop,
++  type: 'desktop',
++  input: desktop_in,
++  output: desktop,
++  po_dir: po_dir,
++  install: true,
++  install_dir: control_center_desktopdir
++)
++
++sources = files('cc-desktop-workspaces-panel.c')
++
++cflags += '-DGNOMELOCALEDIR="@0@"'.format(control_center_localedir)
++
++panels_libs += static_library(
++  cappletname,
++  sources: sources,
++  include_directories: [top_inc, common_inc],
++  dependencies: common_deps + [dependency('pop_desktop_widget')],
++  c_args: cflags
++)
+--- a/shell/cc-panel-list.c
++++ b/shell/cc-panel-list.c
+@@ -43,6 +43,7 @@
+   GtkStack            parent;
  
- cflags += [
+   GtkWidget          *privacy_listbox;
++  GtkWidget          *desktop_listbox;
+   GtkWidget          *main_listbox;
+   GtkWidget          *search_listbox;
+ 
+@@ -52,6 +53,7 @@
+   gboolean            autoselect_panel : 1;
+ 
+   GtkListBoxRow      *privacy_row;
++  GtkListBoxRow      *desktop_row;
+ 
+   gchar              *current_panel_id;
+   gchar              *search_query;
+@@ -97,6 +99,9 @@
+     case CC_PANEL_LIST_PRIVACY:
+       return self->privacy_listbox;
+ 
++    case CC_PANEL_LIST_DESKTOP:
++      return self->desktop_listbox;
++
+     case CC_PANEL_LIST_SEARCH:
+       return self->search_listbox;
+ 
+@@ -119,6 +124,10 @@
+       return self->privacy_listbox;
+       break;
+ 
++    case CC_CATEGORY_DESKTOP:
++      return self->desktop_listbox;
++      break;
++
+     default:
+       return self->main_listbox;
+       break;
+@@ -157,6 +166,9 @@
+   if (listbox == self->privacy_listbox)
+     return CC_PANEL_LIST_PRIVACY;
+ 
++  if (listbox == self->desktop_listbox)
++    return CC_PANEL_LIST_DESKTOP;
++
+   return CC_PANEL_LIST_SEARCH;
+ }
+ 
+@@ -240,6 +252,8 @@
+ 
+   if (row == self->privacy_row)
+     return "privacy";
++  else if (row == self->desktop_row)
++    return "desktop";
+ 
+   row_data = g_object_get_data (G_OBJECT (row), "data");
+ 
+@@ -383,7 +397,7 @@
+   "network",
+   "mobile-broadband",
+   "bluetooth",
+-  "background",
++  "desktop",
+   "notifications",
+   "search",
+   "applications",
+@@ -391,6 +405,13 @@
+   "online-accounts",
+   "sharing",
+ 
++  /* Desktop page */
++  "desktop-main",
++  "background",
++  "desktop-appearance",
++  "desktop-dock",
++  "desktop-workspaces",
++
+   /* Privacy page */
+   "location",
+   "camera",
+@@ -509,7 +530,7 @@
+   if (!before)
+     return;
+ 
+-  if (row == self->privacy_row || before == self->privacy_row)
++  if (row == self->privacy_row || before == self->privacy_row || row == self->desktop_row || before == self->desktop_row)
+     return;
+ 
+   /*
+@@ -550,6 +571,11 @@
+       switch_to_view (self, CC_PANEL_LIST_PRIVACY);
+       goto out;
+     }
++  if (row == self->desktop_row)
++    {
++      switch_to_view (self, CC_PANEL_LIST_DESKTOP);
++      goto out;
++    }
+ 
+   /*
+    * When a panel is selected, the previous one should be
+@@ -562,6 +588,9 @@
+ 
+       if (listbox != self->privacy_listbox)
+         gtk_list_box_unselect_all (GTK_LIST_BOX (self->privacy_listbox));
++
++      if (listbox != self->desktop_listbox)
++        gtk_list_box_unselect_all (GTK_LIST_BOX (self->desktop_listbox));
+     }
+ 
+   /*
+@@ -609,6 +638,8 @@
+ 
+   if (data->category == CC_CATEGORY_PRIVACY)
+     real_listbox = self->privacy_listbox;
++  else if (data->category == CC_CATEGORY_DESKTOP)
++    real_listbox = self->desktop_listbox;
+   else
+     real_listbox = self->main_listbox;
+ 
+@@ -779,6 +810,8 @@
+ 
+   gtk_widget_class_bind_template_child (widget_class, CcPanelList, privacy_listbox);
+   gtk_widget_class_bind_template_child (widget_class, CcPanelList, privacy_row);
++  gtk_widget_class_bind_template_child (widget_class, CcPanelList, desktop_listbox);
++  gtk_widget_class_bind_template_child (widget_class, CcPanelList, desktop_row);
+   gtk_widget_class_bind_template_child (widget_class, CcPanelList, main_listbox);
+   gtk_widget_class_bind_template_child (widget_class, CcPanelList, search_listbox);
+ 
+@@ -805,6 +838,11 @@
+                               self,
+                               NULL);
+ 
++  gtk_list_box_set_sort_func (GTK_LIST_BOX (self->desktop_listbox),
++                              sort_function,
++                              self,
++                              NULL);
++
+   gtk_list_box_set_header_func (GTK_LIST_BOX (self->main_listbox),
+                                 header_func,
+                                 self,
+@@ -961,6 +999,8 @@
+   /* Only show the Devices/Details rows when there's at least one panel */
+   if (category == CC_CATEGORY_PRIVACY)
+     gtk_widget_show (GTK_WIDGET (self->privacy_row));
++  if (category == CC_CATEGORY_DESKTOP)
++    gtk_widget_show (GTK_WIDGET (self->desktop_row));
+ }
+ 
+ /**
+--- a/shell/cc-panel-list.h
++++ b/shell/cc-panel-list.h
+@@ -32,7 +32,8 @@
+   CC_PANEL_LIST_MAIN,
+   CC_PANEL_LIST_PRIVACY,
+   CC_PANEL_LIST_WIDGET,
+-  CC_PANEL_LIST_SEARCH
++  CC_PANEL_LIST_SEARCH,
++  CC_PANEL_LIST_DESKTOP
+ } CcPanelListView;
+ 
+ #define CC_TYPE_PANEL_LIST (cc_panel_list_get_type())
+--- a/shell/cc-panel-list.ui
++++ b/shell/cc-panel-list.ui
+@@ -70,6 +70,64 @@
+             </child>
+           </object>
+         </child>
++        <child>
++          <object class="GtkListBoxRow" id="desktop_row">
++            <property name="visible">False</property>
++            <property name="can_focus">True</property>
++            <child>
++              <object class="GtkBox">
++                <property name="visible">True</property>
++                <property name="can_focus">False</property>
++                <property name="border_width">12</property>
++                <property name="spacing">12</property>
++                <child>
++                  <object class="GtkImage">
++                    <property name="visible">True</property>
++                    <property name="can_focus">False</property>
++                    <property name="icon_name">preferences-desktop-wallpaper-symbolic</property>
++                    <style>
++                      <class name="sidebar-icon" />
++                    </style>
++                  </object>
++                  <packing>
++                    <property name="expand">False</property>
++                    <property name="fill">True</property>
++                    <property name="position">0</property>
++                  </packing>
++                </child>
++                <child>
++                  <object class="GtkLabel">
++                    <property name="visible">True</property>
++                    <property name="can_focus">False</property>
++                    <property name="hexpand">True</property>
++                    <property name="label" translatable="yes">Desktop</property>
++                    <property name="xalign">0</property>
++                  </object>
++                  <packing>
++                    <property name="expand">False</property>
++                    <property name="fill">True</property>
++                    <property name="position">1</property>
++                  </packing>
++                </child>
++                <child>
++                  <object class="GtkImage">
++                    <property name="visible">True</property>
++                    <property name="can_focus">False</property>
++                    <property name="icon_name">go-next-symbolic</property>
++                    <style>
++                      <class name="sidebar-icon" />
++                    </style>
++                  </object>
++                  <packing>
++                    <property name="expand">False</property>
++                    <property name="fill">True</property>
++                    <property name="position">2</property>
++                  </packing>
++                </child>
++              </object>
++            </child>
++          </object>
++        </child>
+       </object>
+       <packing>
+         <property name="name">main</property>
+@@ -86,6 +144,17 @@
+         <property name="position">1</property>
+       </packing>
+     </child>
++    <child>
++      <object class="GtkListBox" id="desktop_listbox">
++        <property name="visible">True</property>
++        <property name="can_focus">False</property>
++        <signal name="row-activated" handler="row_activated_cb" object="CcPanelList" swapped="no" />
++      </object>
++      <packing>
++        <property name="name">desktop</property>
++        <property name="position">1</property>
++      </packing>
++    </child>
+     <child>
+       <object class="GtkListBox" id="search_listbox">
+         <property name="visible">True</property>
+--- a/shell/cc-panel-loader.c
++++ b/shell/cc-panel-loader.c
+@@ -73,6 +73,10 @@
+ extern GType cc_microphone_panel_get_type (void);
+ extern GType cc_usage_panel_get_type (void);
+ extern GType cc_lock_panel_get_type (void);
++extern GType cc_desktop_main_panel_get_type (void);
++extern GType cc_desktop_appearance_panel_get_type (void);
++extern GType cc_desktop_dock_panel_get_type (void);
++extern GType cc_desktop_workspaces_panel_get_type (void);
+ 
+ /* Static init functions */
+ #ifdef BUILD_NETWORK
+@@ -133,6 +137,10 @@
+ #ifdef BUILD_WACOM
+   PANEL_TYPE("wacom",            cc_wacom_panel_get_type,                cc_wacom_panel_static_init_func),
+ #endif
++  PANEL_TYPE("desktop-main",     cc_desktop_main_panel_get_type,         NULL),
++  PANEL_TYPE("desktop-appearance", cc_desktop_appearance_panel_get_type, NULL),
++  PANEL_TYPE("desktop-dock",     cc_desktop_dock_panel_get_type,         NULL),
++  PANEL_TYPE("desktop-workspaces", cc_desktop_workspaces_panel_get_type, NULL),
+ };
+ 
+ /* Override for the panel vtable. When NULL, the default_panels will
+@@ -168,6 +176,8 @@
+     retval = CC_CATEGORY_DETAILS;
+   else if (g_strv_contains (const_strv (split), "X-GNOME-PrivacySettings"))
+     retval = CC_CATEGORY_PRIVACY;
++  else if (g_strv_contains (const_strv (split), "X-POP-DesktopSettings"))
++    retval = CC_CATEGORY_DESKTOP;
+   else if (g_strv_contains (const_strv (split), "HardwareSettings"))
+     retval = CC_CATEGORY_HARDWARE;
+ 
+--- a/shell/cc-shell-model.h
++++ b/shell/cc-shell-model.h
+@@ -37,6 +37,7 @@
+   CC_CATEGORY_ACCOUNT,
+   CC_CATEGORY_HARDWARE,
+   CC_CATEGORY_PRIVACY,
++  CC_CATEGORY_DESKTOP,
+   CC_CATEGORY_DEVICES,
+   CC_CATEGORY_DETAILS,
+   CC_CATEGORY_LAST
+--- a/shell/cc-window.c
++++ b/shell/cc-window.c
+@@ -279,6 +279,10 @@
+       title = g_strdup (_("Settings"));
+       break;
+ 
++    case CC_PANEL_LIST_DESKTOP:
++      title = g_strdup (_("Desktop"));
++      break;
++
+     case CC_PANEL_LIST_WIDGET:
+       find_iter_for_panel_id (self, self->current_panel_id, &iter);
+       gtk_tree_model_get (GTK_TREE_MODEL (self->store),
+--- a/panels/meson.build
++++ b/panels/meson.build
+@@ -3,6 +3,10 @@
+ panels = [
+   'applications',
+   'background',
++  'desktop-appearance',
++  'desktop-dock',
++  'desktop-main',
++  'desktop-workspaces',
+   'color',
+   'connectivity',
+   'datetime',
