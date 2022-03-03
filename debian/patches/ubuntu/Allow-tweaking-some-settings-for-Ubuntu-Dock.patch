@@ -33,14 +33,14 @@ Forwarded: not-needed
  panels/ubuntu/cc-ubuntu-dock-dialog.ui         |  120 +++
  panels/ubuntu/cc-ubuntu-panel.c                | 1302 ++++++++++++++++++++++++
  panels/ubuntu/cc-ubuntu-panel.h                |   35 +
- panels/ubuntu/cc-ubuntu-panel.ui               |  510 ++++++++++
+ panels/ubuntu/cc-ubuntu-panel.ui               |  512 ++++++++++
  panels/ubuntu/gnome-ubuntu-panel.desktop.in.in |   16 +
  panels/ubuntu/meson.build                      |   56 +
  panels/ubuntu/ubuntu.gresource.xml             |   18 +
  po/POTFILES.in                                 |    5 +
  shell/cc-panel-list.c                          |    1 +
  shell/cc-panel-loader.c                        |    3 +
- 24 files changed, 2378 insertions(+)
+ 24 files changed, 2380 insertions(+)
  create mode 100644 panels/ubuntu/appearance.css
  create mode 100644 panels/ubuntu/assets/colors/aqua.svg
  create mode 100644 panels/ubuntu/assets/colors/blue.svg
@@ -591,7 +591,7 @@ index 0000000..512f606
 +</interface>
 diff --git a/panels/ubuntu/cc-ubuntu-panel.c b/panels/ubuntu/cc-ubuntu-panel.c
 new file mode 100644
-index 0000000..6b7d6df
+index 0000000..d201742
 --- /dev/null
 +++ b/panels/ubuntu/cc-ubuntu-panel.c
 @@ -0,0 +1,1302 @@
@@ -1312,7 +1312,7 @@ index 0000000..6b7d6df
 +      const char *accent = g_object_get_data (G_OBJECT (item), "accent");
 +      g_autofree char *theme_name = NULL;
 +
-+      if (g_strcmp0 (accent, DEFAULT_ACCENT_COLOR))
++      if (g_strcmp0 (accent, DEFAULT_ACCENT_COLOR) == 0)
 +        continue;
 +
 +      theme_name = g_strdup_printf("Yaru-%s", accent);
@@ -1940,10 +1940,10 @@ index 0000000..b13f611
 +#endif /* _CC_EDIT_DIALOG_H_ */
 diff --git a/panels/ubuntu/cc-ubuntu-panel.ui b/panels/ubuntu/cc-ubuntu-panel.ui
 new file mode 100644
-index 0000000..e85bcd5
+index 0000000..599bac5
 --- /dev/null
 +++ b/panels/ubuntu/cc-ubuntu-panel.ui
-@@ -0,0 +1,510 @@
+@@ -0,0 +1,512 @@
 +<?xml version="1.0" encoding="UTF-8"?>
 +<interface>
 +  <requires lib="gtk+" version="3.20"/>
@@ -1962,6 +1962,7 @@ index 0000000..e85bcd5
 +              <object class="HdyPreferencesRow">
 +                <property name="visible">1</property>
 +                <property name="activatable">False</property>
++                <property name="selectable">False</property>
 +                <child>
 +                  <object class="HdyClamp">
 +                    <property name="visible">1</property>
@@ -2077,6 +2078,7 @@ index 0000000..e85bcd5
 +                <property name="title">Color</property>
 +                <property name="visible">1</property>
 +                <property name="activatable">False</property>
++                <property name="selectable">False</property>
 +                <child>
 +                  <object class="GtkFLowBox" id="color_box">
 +                    <property name="visible">1</property>
@@ -2326,7 +2328,7 @@ index 0000000..e85bcd5
 +              </object>
 +            </child>
 +          </object>
-+        </child>               
++        </child>
 +
 +        <!-- Dock settings -->
 +        <child>
