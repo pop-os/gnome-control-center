@@ -1,0 +1,161 @@
+--- /dev/null
++++ b/panels/analytics/cc-analytics-panel.c
+@@ -0,0 +1,45 @@
++// Copyright 2022 System76 <info@system76.com>
++// SPDX-License-Identifier: GPL-2.0
++
++#include <config.h>
++#include <gtk/gtk.h>
++#include <stdint.h>
++#include <pop_analytics_panel.h>
++#include "cc-analytics-panel.h"
++
++struct _CcSupportPanel {
++    CcPanel    parent_instance;
++};
++
++CC_PANEL_REGISTER (CcSupportPanel, cc_analytics_panel)
++
++static void cc_analytics_panel_dispose (GObject *object) {
++    G_OBJECT_CLASS (cc_analytics_panel_parent_class)->dispose (object);
++}
++
++static void cc_analytics_panel_finalize (GObject *object) {
++    G_OBJECT_CLASS (cc_analytics_panel_parent_class)->finalize (object);
++}
++
++static void cc_analytics_panel_class_init (CcSupportPanelClass *klass) {
++    GObjectClass *object_class = G_OBJECT_CLASS (klass);
++
++    object_class->dispose = cc_analytics_panel_dispose;
++    object_class->finalize = cc_analytics_panel_finalize;
++}
++
++static gboolean attach_panel (GtkContainer *self) {
++    GtkWindow *window = GTK_WINDOW (gtk_widget_get_toplevel (GTK_WIDGET (self)));
++
++    pop_analytics_panel_attach (self, window);
++    gtk_widget_show_all (GTK_WIDGET (self));
++
++    return FALSE;
++}
++
++static void cc_analytics_panel_init (CcSupportPanel *self) {
++    pop_analytics_panel_init ();
++
++    // Attach after idling so we'll have access to the window as a toplevel.
++    g_idle_add ((GSourceFunc) attach_panel, GTK_CONTAINER (self));
++}
+--- /dev/null
++++ b/panels/analytics/cc-analytics-panel.h
+@@ -0,0 +1,15 @@
++// Copyright 2022 System76 <info@system76.com>
++// SPDX-License-Identifier: GPL-2.0
++
++#pragma once
++
++#include <shell/cc-panel.h>
++
++extern gint POP_ANALYTICS_STATUS;
++
++G_BEGIN_DECLS
++
++#define CC_TYPE_ANALYTICS_PANEL (cc_analytics_panel_get_type())
++G_DECLARE_FINAL_TYPE(CcSupportPanel, cc_analytics_panel, CC, ANALYTICS_PANEL, CcPanel)
++
++G_END_DECLS
+--- /dev/null
++++ b/panels/analytics/gnome-analytics-panel.desktop.in.in
+@@ -0,0 +1,13 @@
++[Desktop Entry]
++Name=Analytics
++Comment=Analytics info
++Exec=gnome-control-center analytics
++Icon=help-about-symbolic
++Terminal=false
++Type=Application
++NoDisplay=true
++StartupNotify=true
++Categories=GNOME;GTK;Settings;X-GNOME-Settings-Panel;HardwareSettings;X-GNOME-DetailsSettings;
++Keywords=hp;analytics;
++# Notifications are emitted by gnome-settings-daemon
++X-GNOME-UsesNotifications=true
+--- /dev/null
++++ b/panels/analytics/meson.build
+@@ -0,0 +1,38 @@
++panels_list += cappletname
++desktop = 'gnome-@0@-panel.desktop'.format(cappletname)
++
++desktop_in = configure_file(
++          input : desktop + '.in.in',
++         output : desktop + '.in',
++  configuration : desktop_conf
++)
++
++i18n.merge_file(
++          type : 'desktop',
++         input : desktop_in,
++        output : desktop,
++        po_dir : po_dir,
++       install : true,
++   install_dir : control_center_desktopdir
++)
++
++sources = files('cc-analytics-panel.c')
++
++deps = common_deps + [
++  gnome_desktop_dep,
++  m_dep,
++  dependency('pop_analytics_panel')
++]
++
++cflags += [
++  '-DGNOMELOCALEDIR="@0@"'.format(control_center_localedir),
++  '-DBINDIR="@0@"'.format(control_center_bindir)
++]
++
++panels_libs += static_library(
++  cappletname,
++  sources: sources,
++  include_directories: [ top_inc, common_inc ],
++  dependencies: deps,
++  c_args: cflags
++)
+--- a/panels/meson.build
++++ b/panels/meson.build
+@@ -1,6 +1,7 @@
+ subdir('common')
+ 
+ panels = [
++  'analytics',
+   'applications',
+   'background',
+   'desktop-appearance',
+--- a/shell/cc-panel-list.c
++++ b/shell/cc-panel-list.c
+@@ -444,6 +444,7 @@
+   "info-overview",
+   "upgrade",
+   "support",
++  "analytics",
+ };
+ 
+ static guint
+--- a/shell/cc-panel-loader.c
++++ b/shell/cc-panel-loader.c
+@@ -59,6 +59,7 @@
+ extern GType cc_sharing_panel_get_type (void);
+ extern GType cc_sound_panel_get_type (void);
+ extern GType cc_support_panel_get_type(void);
++extern GType cc_analytics_panel_get_type (void);
+ #ifdef BUILD_THUNDERBOLT
+ extern GType cc_bolt_panel_get_type (void);
+ #endif /* BUILD_THUNDERBOLT */
+@@ -135,6 +136,7 @@
+   PANEL_TYPE("sharing",          cc_sharing_panel_get_type,              NULL),
+   PANEL_TYPE("sound",            cc_sound_panel_get_type,                NULL),
+   PANEL_TYPE("support",          cc_support_panel_get_type,              NULL),
++  PANEL_TYPE("analytics",        cc_analytics_panel_get_type,            NULL),
+   PANEL_TYPE("ubuntu",           cc_ubuntu_panel_get_type,               cc_ubuntu_panel_static_init_func),
+ #ifdef BUILD_THUNDERBOLT
+   PANEL_TYPE("thunderbolt",      cc_bolt_panel_get_type,                 NULL),
