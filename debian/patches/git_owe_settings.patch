@@ -1,0 +1,56 @@
+From 43bb1d9200554527cefaa2ce969bebc80d781c73 Mon Sep 17 00:00:00 2001
+From: Ana Cabral <acabral@redhat.com>
+Date: Mon, 21 Feb 2022 21:49:29 +0100
+Subject: [PATCH] network: Fix OWE settings
+
+Enhanced Open (OWE) is not being saved properly from connection-editor.
+When we create a Wi-Fi connection using Enhanced Open (OWE) Security
+from nm-connection-editor and save it, it was not being saved and the
+security was being set as "None", with Wireless Security Setting
+being discarded. This is fixed by this commit. The fix is also being
+done in libnma (implementing OWE in libnma,
+https://gitlab.gnome.org/GNOME/libnma/-/issues/9), but this commit
+fixes meanwhile it gets ready.
+
+It was solved by adding treatment for the case in which owe was set.
+OWE is not treated anymore in the same case as None.
+
+https://gitlab.gnome.org/GNOME/gnome-control-center/-/issues/1521
+---
+ .../connection-editor/ce-page-security.c      | 23 +++++++++++++++----
+ 1 file changed, 19 insertions(+), 4 deletions(-)
+
+Index: gnome-control-center/panels/network/connection-editor/ce-page-security.c
+===================================================================
+--- gnome-control-center.orig/panels/network/connection-editor/ce-page-security.c
++++ gnome-control-center/panels/network/connection-editor/ce-page-security.c
+@@ -465,10 +465,25 @@ ce_page_security_validate (CEPage
+                         }
+                 }
+         } else {
+-                /* No security, unencrypted */
+-                nm_connection_remove_setting (connection, NM_TYPE_SETTING_WIRELESS_SECURITY);
+-                nm_connection_remove_setting (connection, NM_TYPE_SETTING_802_1X);
+-                valid = TRUE;
++
++    		if (gtk_combo_box_get_active ((CE_PAGE_SECURITY (self))->security_combo) == 0) {
++    			/* No security, unencrypted */
++    			nm_connection_remove_setting (connection, NM_TYPE_SETTING_WIRELESS_SECURITY);
++    			nm_connection_remove_setting (connection, NM_TYPE_SETTING_802_1X);
++    			valid = TRUE;
++    		} else {
++    			/* owe case:
++    			 * fill the connection manually until libnma implements OWE wireless security
++    			 */
++    			NMSetting *sws;
++
++    			sws = nm_setting_wireless_security_new ();
++    			g_object_set (sws, NM_SETTING_WIRELESS_SECURITY_KEY_MGMT, "owe", NULL);
++    			nm_connection_add_setting (connection, sws);
++    			nm_connection_remove_setting (connection, NM_TYPE_SETTING_802_1X);
++    			valid = TRUE;
++    		}
++
+         }
+ 
+         return valid;
