@@ -31,7 +31,7 @@ Forwarded: not-needed
  panels/ubuntu/cc-ubuntu-dock-dialog.c          |  106 ++
  panels/ubuntu/cc-ubuntu-dock-dialog.h          |   31 +
  panels/ubuntu/cc-ubuntu-dock-dialog.ui         |  120 +++
- panels/ubuntu/cc-ubuntu-panel.c                | 1335 ++++++++++++++++++++++++
+ panels/ubuntu/cc-ubuntu-panel.c                | 1345 ++++++++++++++++++++++++
  panels/ubuntu/cc-ubuntu-panel.h                |   35 +
  panels/ubuntu/cc-ubuntu-panel.ui               |  580 ++++++++++
  panels/ubuntu/gnome-ubuntu-panel.desktop.in.in |   16 +
@@ -40,7 +40,7 @@ Forwarded: not-needed
  po/POTFILES.in                                 |    5 +
  shell/cc-panel-list.c                          |    1 +
  shell/cc-panel-loader.c                        |    3 +
- 24 files changed, 2481 insertions(+)
+ 24 files changed, 2491 insertions(+)
  create mode 100644 panels/ubuntu/appearance.css
  create mode 100644 panels/ubuntu/assets/colors/aqua.svg
  create mode 100644 panels/ubuntu/assets/colors/blue.svg
@@ -591,10 +591,10 @@ index 0000000..512f606
 +</interface>
 diff --git a/panels/ubuntu/cc-ubuntu-panel.c b/panels/ubuntu/cc-ubuntu-panel.c
 new file mode 100644
-index 0000000..b42ab12
+index 0000000..b262da5
 --- /dev/null
 +++ b/panels/ubuntu/cc-ubuntu-panel.c
-@@ -0,0 +1,1335 @@
+@@ -0,0 +1,1345 @@
 +/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 +/*
 + * Copyright (C) 2017-2020 Canonical Ltd
@@ -1289,6 +1289,16 @@ index 0000000..b42ab12
 +    resource_path = g_strdup_printf ("/org/gtk/libgtk/theme/%s/gtk-%s.css", name, variant);
 +  else
 +    resource_path = g_strdup_printf ("/org/gtk/libgtk/theme/%s/gtk.css", name);
++
++  if (g_resources_get_info (resource_path, 0, NULL, NULL, NULL))
++    return TRUE;
++
++  g_clear_pointer (&resource_path, g_free);
++
++  if (variant)
++    resource_path = g_strdup_printf ("/com/ubuntu/themes/%s/3.0/gtk-%s.css", name, variant);
++  else
++    resource_path = g_strdup_printf ("/com/ubuntu/themes/%s/3.0/gtk.css", name);
 +
 +  if (g_resources_get_info (resource_path, 0, NULL, NULL, NULL))
 +    return TRUE;
