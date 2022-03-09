@@ -31,16 +31,16 @@ Forwarded: not-needed
  panels/ubuntu/cc-ubuntu-dock-dialog.c          |  106 ++
  panels/ubuntu/cc-ubuntu-dock-dialog.h          |   31 +
  panels/ubuntu/cc-ubuntu-dock-dialog.ui         |  120 +++
- panels/ubuntu/cc-ubuntu-panel.c                | 1345 ++++++++++++++++++++++++
+ panels/ubuntu/cc-ubuntu-panel.c                | 1359 ++++++++++++++++++++++++
  panels/ubuntu/cc-ubuntu-panel.h                |   35 +
- panels/ubuntu/cc-ubuntu-panel.ui               |  580 ++++++++++
+ panels/ubuntu/cc-ubuntu-panel.ui               |  582 ++++++++++
  panels/ubuntu/gnome-ubuntu-panel.desktop.in.in |   16 +
  panels/ubuntu/meson.build                      |   56 +
  panels/ubuntu/ubuntu.gresource.xml             |   18 +
  po/POTFILES.in                                 |    5 +
  shell/cc-panel-list.c                          |    1 +
  shell/cc-panel-loader.c                        |    3 +
- 24 files changed, 2491 insertions(+)
+ 24 files changed, 2507 insertions(+)
  create mode 100644 panels/ubuntu/appearance.css
  create mode 100644 panels/ubuntu/assets/colors/aqua.svg
  create mode 100644 panels/ubuntu/assets/colors/blue.svg
@@ -591,10 +591,10 @@ index 0000000..512f606
 +</interface>
 diff --git a/panels/ubuntu/cc-ubuntu-panel.c b/panels/ubuntu/cc-ubuntu-panel.c
 new file mode 100644
-index 0000000..b262da5
+index 0000000..056e19c
 --- /dev/null
 +++ b/panels/ubuntu/cc-ubuntu-panel.c
-@@ -0,0 +1,1345 @@
+@@ -0,0 +1,1359 @@
 +/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 +/*
 + * Copyright (C) 2017-2020 Canonical Ltd
@@ -1805,11 +1805,14 @@ index 0000000..b262da5
 +
 +  self->interface_settings = g_settings_new (INTERFACE_SCHEMA);
 +  g_signal_connect_object (self->interface_settings, "changed::" GTK_THEME_KEY,
-+                           G_CALLBACK (on_interface_settings_changed), self, G_CONNECT_SWAPPED);
++                           G_CALLBACK (on_interface_settings_changed), self,
++                           G_CONNECT_SWAPPED);
 +  g_signal_connect_object (self->interface_settings, "changed::" CURSOR_THEME_KEY,
-+                           G_CALLBACK (on_interface_settings_changed), self, G_CONNECT_SWAPPED);
++                           G_CALLBACK (on_interface_settings_changed), self,
++                           G_CONNECT_SWAPPED);
 +  g_signal_connect_object (self->interface_settings, "changed::" ICON_THEME_KEY,
-+                           G_CALLBACK (on_interface_settings_changed), self, G_CONNECT_SWAPPED);
++                           G_CALLBACK (on_interface_settings_changed), self,
++                           G_CONNECT_SWAPPED);
 +
 +  schema = g_settings_schema_source_lookup (schema_source, GEDIT_PREFRENCES_SCHEMA, TRUE);
 +  if (schema)
@@ -1825,72 +1828,86 @@ index 0000000..b262da5
 +
 +  /* Only load if we ding installed */
 +  schema = g_settings_schema_source_lookup (schema_source, DING_SCHEMA, TRUE);
-+  if (!schema)
-+   {
-+     g_warning ("No Ding is installed here. Please fix your installation.");
-+     gtk_widget_hide (GTK_WIDGET (self->ding_preferences_group));
-+     return;
-+   }
++  if (schema)
++    {
++      self->ding_settings = g_settings_new_full (schema, NULL, NULL);
 +
-+  self->ding_settings = g_settings_new_full (schema, NULL, NULL);
-+  
-+  g_settings_bind (self->ding_settings, "icon-size",
-+                                self->ding_icons_size_combo, "active-id",
-+                                G_SETTINGS_BIND_DEFAULT);
-+  g_settings_bind (self->ding_settings, "start-corner",
-+                                self->ding_icons_new_alignment_combo, "active-id",
-+                                G_SETTINGS_BIND_DEFAULT);
-+  g_settings_bind (self->ding_settings, "show-home",
-+                   self->ding_showhome_switch, "active",
-+                   G_SETTINGS_BIND_DEFAULT);
-+  
++      g_settings_bind (self->ding_settings, "icon-size",
++                       self->ding_icons_size_combo, "active-id",
++                       G_SETTINGS_BIND_DEFAULT);
++      g_settings_bind (self->ding_settings, "start-corner",
++                       self->ding_icons_new_alignment_combo, "active-id",
++                       G_SETTINGS_BIND_DEFAULT);
++      g_settings_bind (self->ding_settings, "show-home",
++                       self->ding_showhome_switch, "active",
++                       G_SETTINGS_BIND_DEFAULT);
++    }
++  else
++    {
++      g_warning ("No Ding is installed here. Please fix your installation.");
++      gtk_widget_hide (GTK_WIDGET (self->ding_preferences_group));
++    }
++
 +  /* Only load if we have ubuntu dock or dash to dock installed */
 +  schema = g_settings_schema_source_lookup (schema_source, UBUNTU_DOCK_SCHEMA, TRUE);
-+  if (!schema)
++  if (schema)
++    {
++      self->dock_settings = g_settings_new_full (schema, NULL, NULL);
++      self->dock_monitors_liststore = g_list_store_new (HDY_TYPE_VALUE_OBJECT);
++
++      self->updating = TRUE;
++      hdy_combo_row_bind_name_model (self->dock_monitor_row,
++                                     G_LIST_MODEL (self->dock_monitors_liststore),
++                                     (HdyComboRowGetNameFunc) get_dock_monitor_value_object_name,
++                                     self, NULL);
++      self->updating = FALSE;
++
++      populate_dock_position_row (self->dock_position_row);
++
++      g_signal_connect_object (self->dock_settings,
++                               "changed::" ICONSIZE_KEY,
++                               G_CALLBACK (icon_size_widget_refresh),
++                               self, G_CONNECT_SWAPPED);
++      g_signal_connect_object (self->dock_settings,
++                               "changed::" UBUNTU_DOCK_ALL_MONITORS_KEY,
++                               G_CALLBACK (update_dock_monitor_combo_row_selection),
++                               self, G_CONNECT_SWAPPED);
++      g_signal_connect_object (self->dock_settings,
++                               "changed::" UBUNTU_DOCK_PREFERRED_MONITOR_KEY,
++                               G_CALLBACK (update_dock_monitor_combo_row_selection),
++                               self, G_CONNECT_SWAPPED);
++      g_signal_connect_object (self->dock_settings,
++                               "changed::" UBUNTU_DOCK_PREFERRED_CONNECTOR_KEY,
++                               G_CALLBACK (update_dock_monitor_combo_row_selection),
++                               self, G_CONNECT_SWAPPED);
++      g_settings_bind_with_mapping (self->dock_settings, "dock-position",
++                                    self->dock_position_row, "selected-index",
++                                    G_SETTINGS_BIND_DEFAULT,
++                                    dock_position_get_mapping,
++                                    dock_position_set_mapping,
++                                    self, NULL);
++      g_settings_bind (self->dock_settings, "dock-fixed",
++                       self->dock_autohide_switch, "active",
++                       G_SETTINGS_BIND_INVERT_BOOLEAN);
++      g_settings_bind (self->dock_settings, "extend-height",
++                       self->dock_extendheight_switch, "active",
++                       G_SETTINGS_BIND_DEFAULT);
++
++      /* Icon size change - we halve the sizes so we can only get even values */
++      gtk_adjustment_set_value (self->icon_size_adjustment, DEFAULT_ICONSIZE / 2);
++      gtk_adjustment_set_lower (self->icon_size_adjustment, MIN_ICONSIZE / 2);
++      gtk_adjustment_set_upper (self->icon_size_adjustment, MAX_ICONSIZE / 2);
++      gtk_scale_add_mark (self->icon_size_scale, DEFAULT_ICONSIZE / 2, GTK_POS_BOTTOM, NULL);
++
++      icon_size_widget_refresh (self);
++
++      g_bus_get (G_BUS_TYPE_SESSION, NULL, session_bus_ready, self);
++    }
++  else
 +    {
 +      g_warning ("No Ubuntu Dock is installed here. Panel disabled. Please fix your installation.");
 +      gtk_widget_hide (GTK_WIDGET (self->dock_preferences_group));
-+      return;
 +    }
-+
-+  self->dock_settings = g_settings_new_full (schema, NULL, NULL);
-+  self->dock_monitors_liststore = g_list_store_new (HDY_TYPE_VALUE_OBJECT);
-+
-+  self->updating = TRUE;
-+  hdy_combo_row_bind_name_model (self->dock_monitor_row,
-+                                 G_LIST_MODEL (self->dock_monitors_liststore),
-+                                 (HdyComboRowGetNameFunc) get_dock_monitor_value_object_name,
-+                                 self, NULL);
-+  self->updating = FALSE;
-+
-+  populate_dock_position_row (self->dock_position_row);
-+
-+  g_signal_connect_object (self->dock_settings, "changed::" ICONSIZE_KEY,
-+                           G_CALLBACK (icon_size_widget_refresh), self, G_CONNECT_SWAPPED);
-+  g_signal_connect_object (self->dock_settings, "changed::" UBUNTU_DOCK_ALL_MONITORS_KEY,
-+                           G_CALLBACK (update_dock_monitor_combo_row_selection), self, G_CONNECT_SWAPPED);
-+  g_signal_connect_object (self->dock_settings, "changed::" UBUNTU_DOCK_PREFERRED_MONITOR_KEY,
-+                           G_CALLBACK (update_dock_monitor_combo_row_selection), self, G_CONNECT_SWAPPED);
-+  g_signal_connect_object (self->dock_settings, "changed::" UBUNTU_DOCK_PREFERRED_CONNECTOR_KEY,
-+                           G_CALLBACK (update_dock_monitor_combo_row_selection), self, G_CONNECT_SWAPPED);
-+  g_settings_bind_with_mapping (self->dock_settings, "dock-position",
-+                                self->dock_position_row, "selected-index",
-+                                G_SETTINGS_BIND_DEFAULT,
-+                                dock_position_get_mapping,
-+                                dock_position_set_mapping,
-+                                self, NULL);
-+  g_settings_bind (self->dock_settings, "dock-fixed",
-+                   self->dock_autohide_switch, "active",
-+                   G_SETTINGS_BIND_INVERT_BOOLEAN);
-+  g_settings_bind (self->dock_settings, "extend-height",
-+                   self->dock_extendheight_switch, "active",
-+                   G_SETTINGS_BIND_DEFAULT);
-+
-+  /* Icon size change - we halve the sizes so we can only get even values */
-+  gtk_adjustment_set_value (self->icon_size_adjustment, DEFAULT_ICONSIZE / 2);
-+  gtk_adjustment_set_lower (self->icon_size_adjustment, MIN_ICONSIZE / 2);
-+  gtk_adjustment_set_upper (self->icon_size_adjustment, MAX_ICONSIZE / 2);
-+  gtk_scale_add_mark (self->icon_size_scale, DEFAULT_ICONSIZE / 2, GTK_POS_BOTTOM, NULL);
 +
 +  g_object_set_data (G_OBJECT (self->accent_aqua), "accent", "aqua");
 +  g_object_set_data (G_OBJECT (self->accent_blue), "accent", "blue");
@@ -1902,7 +1919,6 @@ index 0000000..b262da5
 +  g_object_set_data (G_OBJECT (self->accent_yellow), "accent", "yellow");
 +  check_theme_accents_availability (self);
 +
-+  icon_size_widget_refresh (self);
 +  on_interface_settings_changed (self);
 +  load_custom_css (self);
 +
@@ -1918,8 +1934,6 @@ index 0000000..b262da5
 +                                       self);
 +
 +  g_signal_connect (self, "map", G_CALLBACK (mapped_cb), NULL);
-+
-+  g_bus_get (G_BUS_TYPE_SESSION, NULL, session_bus_ready, self);
 +}
 +
 +void
@@ -1983,10 +1997,10 @@ index 0000000..b13f611
 +#endif /* _CC_EDIT_DIALOG_H_ */
 diff --git a/panels/ubuntu/cc-ubuntu-panel.ui b/panels/ubuntu/cc-ubuntu-panel.ui
 new file mode 100644
-index 0000000..b096073
+index 0000000..8be9e48
 --- /dev/null
 +++ b/panels/ubuntu/cc-ubuntu-panel.ui
-@@ -0,0 +1,580 @@
+@@ -0,0 +1,582 @@
 +<?xml version="1.0" encoding="UTF-8"?>
 +<interface>
 +  <requires lib="gtk+" version="3.20"/>
@@ -2022,6 +2036,7 @@ index 0000000..b096073
 +                            <property name="min-children-per-line">2</property>
 +                            <property name="column-spacing">24</property>
 +                            <property name="margin">12</property>
++                            <property name="activate-on-single-click">False</property>
 +                            <signal name="selected-children-changed" handler="on_theme_box_selected_children_changed" object="CcUbuntuPanel" swapped="yes"/>
 +                            <child>
 +                              <object class="GtkFlowBoxChild" id="theme_light">
@@ -2130,6 +2145,7 @@ index 0000000..b096073
 +                    <property name="column-spacing">12</property>
 +                    <property name="row-spacing">12</property>
 +                    <property name="margin">6</property>
++                    <property name="activate-on-single-click">False</property>
 +                    <signal name="selected-children-changed" handler="on_theme_box_selected_children_changed" object="CcUbuntuPanel" swapped="yes"/>
 +                    <style>
 +                     <class name="colors" />
