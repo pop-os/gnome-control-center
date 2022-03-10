@@ -30,8 +30,8 @@ Forwarded: not-needed
  panels/ubuntu/assets/theme-light.svg           |   56 +
  panels/ubuntu/cc-ubuntu-dock-dialog.c          |  106 ++
  panels/ubuntu/cc-ubuntu-dock-dialog.h          |   31 +
- panels/ubuntu/cc-ubuntu-dock-dialog.ui         |  120 +++
- panels/ubuntu/cc-ubuntu-panel.c                | 1359 ++++++++++++++++++++++++
+ panels/ubuntu/cc-ubuntu-dock-dialog.ui         |  120 ++
+ panels/ubuntu/cc-ubuntu-panel.c                | 1385 ++++++++++++++++++++++++
  panels/ubuntu/cc-ubuntu-panel.h                |   35 +
  panels/ubuntu/cc-ubuntu-panel.ui               |  582 ++++++++++
  panels/ubuntu/gnome-ubuntu-panel.desktop.in.in |   16 +
@@ -40,7 +40,7 @@ Forwarded: not-needed
  po/POTFILES.in                                 |    5 +
  shell/cc-panel-list.c                          |    1 +
  shell/cc-panel-loader.c                        |    3 +
- 24 files changed, 2507 insertions(+)
+ 24 files changed, 2533 insertions(+)
  create mode 100644 panels/ubuntu/appearance.css
  create mode 100644 panels/ubuntu/assets/colors/aqua.svg
  create mode 100644 panels/ubuntu/assets/colors/blue.svg
@@ -591,10 +591,10 @@ index 0000000..512f606
 +</interface>
 diff --git a/panels/ubuntu/cc-ubuntu-panel.c b/panels/ubuntu/cc-ubuntu-panel.c
 new file mode 100644
-index 0000000..056e19c
+index 0000000..b981147
 --- /dev/null
 +++ b/panels/ubuntu/cc-ubuntu-panel.c
-@@ -0,0 +1,1359 @@
+@@ -0,0 +1,1385 @@
 +/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 +/*
 + * Copyright (C) 2017-2020 Canonical Ltd
@@ -1063,6 +1063,26 @@ index 0000000..056e19c
 +}
 +
 +static void
++transition_screen (CcUbuntuPanel *self)
++{
++  g_autoptr (GError) error = NULL;
++
++  if (!self->shell_proxy)
++    return;
++
++  g_dbus_proxy_call_sync (self->shell_proxy,
++                          "ScreenTransition",
++                          NULL,
++                          G_DBUS_CALL_FLAGS_NONE,
++                          -1,
++                          NULL,
++                          &error);
++
++  if (error)
++    g_warning ("Couldn't transition screen: %s", error->message);
++}
++
++static void
 +on_theme_box_selected_children_changed (CcUbuntuPanel *self)
 +{
 +  GtkFlowBoxChild *selected_item = NULL;
@@ -1071,6 +1091,7 @@ index 0000000..056e19c
 +  g_autoptr(GString) gtk_theme = NULL;
 +  g_autoptr(GString) icon_theme = NULL;
 +  g_autoptr(GString) gedit_theme = NULL;
++  g_autofree char *current_gtk_theme = NULL;
 +  GList *l;
 +
 +  colors = gtk_container_get_children (GTK_CONTAINER (self->color_box));
@@ -1107,7 +1128,12 @@ index 0000000..056e19c
 +      g_string_append (gedit_theme, "-dark");
 +    }
 +
-+  g_settings_set_string (self->interface_settings, GTK_THEME_KEY, gtk_theme->str);
++  current_gtk_theme = g_settings_get_string (self->interface_settings, GTK_THEME_KEY);
++  if (g_strcmp0 (current_gtk_theme, gtk_theme->str) != 0)
++    {
++      transition_screen (self);
++      g_settings_set_string (self->interface_settings, GTK_THEME_KEY, gtk_theme->str);
++    }
 +
 +  if (self->gedit_settings)
 +    g_settings_set_string (self->gedit_settings, GEDIT_THEME_KEY, gedit_theme->str);
