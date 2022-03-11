@@ -31,7 +31,7 @@ Forwarded: not-needed
  panels/ubuntu/cc-ubuntu-dock-dialog.c          |  106 ++
  panels/ubuntu/cc-ubuntu-dock-dialog.h          |   31 +
  panels/ubuntu/cc-ubuntu-dock-dialog.ui         |  120 ++
- panels/ubuntu/cc-ubuntu-panel.c                | 1385 ++++++++++++++++++++++++
+ panels/ubuntu/cc-ubuntu-panel.c                | 1388 ++++++++++++++++++++++++
  panels/ubuntu/cc-ubuntu-panel.h                |   35 +
  panels/ubuntu/cc-ubuntu-panel.ui               |  582 ++++++++++
  panels/ubuntu/gnome-ubuntu-panel.desktop.in.in |   16 +
@@ -40,7 +40,7 @@ Forwarded: not-needed
  po/POTFILES.in                                 |    5 +
  shell/cc-panel-list.c                          |    1 +
  shell/cc-panel-loader.c                        |    3 +
- 24 files changed, 2533 insertions(+)
+ 24 files changed, 2536 insertions(+)
  create mode 100644 panels/ubuntu/appearance.css
  create mode 100644 panels/ubuntu/assets/colors/aqua.svg
  create mode 100644 panels/ubuntu/assets/colors/blue.svg
@@ -591,10 +591,10 @@ index 0000000..512f606
 +</interface>
 diff --git a/panels/ubuntu/cc-ubuntu-panel.c b/panels/ubuntu/cc-ubuntu-panel.c
 new file mode 100644
-index 0000000..b981147
+index 0000000..47214ac
 --- /dev/null
 +++ b/panels/ubuntu/cc-ubuntu-panel.c
-@@ -0,0 +1,1385 @@
+@@ -0,0 +1,1388 @@
 +/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 +/*
 + * Copyright (C) 2017-2020 Canonical Ltd
@@ -706,6 +706,9 @@ index 0000000..b981147
 +
 +static void monitor_labeler_hide (CcUbuntuPanel *self);
 +static void update_dock_monitor_combo_row_selection (CcUbuntuPanel *self);
++static GQuark accent_quark (void);
++
++G_DEFINE_QUARK (accent-quark, accent);
 +
 +static void
 +cc_ubuntu_panel_dispose (GObject *object)
@@ -1107,7 +1110,7 @@ index 0000000..b981147
 +  for (l = colors; l; l = l->next)
 +    {
 +      GtkFlowBoxChild *accent_color = GTK_FLOW_BOX_CHILD (l->data);
-+      const char *color = g_object_get_data (G_OBJECT (accent_color), "accent");
++      const char *color = g_object_get_qdata (G_OBJECT (accent_color), accent_quark ());
 +
 +      if (!gtk_widget_is_visible (GTK_WIDGET (accent_color)))
 +        continue;
@@ -1186,7 +1189,7 @@ index 0000000..b981147
 +  for (l = colors; l; l = l->next)
 +    {
 +      GtkFlowBoxChild *item = GTK_FLOW_BOX_CHILD (l->data);
-+      const char *color = g_object_get_data (G_OBJECT (item), "accent");
++      const char *color = g_object_get_qdata (G_OBJECT (item), accent_quark ());
 +
 +      if (!gtk_widget_is_visible (GTK_WIDGET (item)))
 +        continue;
@@ -1353,7 +1356,7 @@ index 0000000..b981147
 +  for (l = colors; l; l = l->next)
 +    {
 +      GtkFlowBoxChild *item = GTK_FLOW_BOX_CHILD (l->data);
-+      const char *accent = g_object_get_data (G_OBJECT (item), "accent");
++      const char *accent = g_object_get_qdata (G_OBJECT (item), accent_quark ());
 +      g_autofree char *theme_name = NULL;
 +
 +      if (g_strcmp0 (accent, DEFAULT_ACCENT_COLOR) == 0)
@@ -1935,14 +1938,14 @@ index 0000000..b981147
 +      gtk_widget_hide (GTK_WIDGET (self->dock_preferences_group));
 +    }
 +
-+  g_object_set_data (G_OBJECT (self->accent_aqua), "accent", "aqua");
-+  g_object_set_data (G_OBJECT (self->accent_blue), "accent", "blue");
-+  g_object_set_data (G_OBJECT (self->accent_green), "accent", "green");
-+  g_object_set_data (G_OBJECT (self->accent_orange), "accent", "orange");
-+  g_object_set_data (G_OBJECT (self->accent_pink), "accent", "pink");
-+  g_object_set_data (G_OBJECT (self->accent_purple), "accent", "purple");
-+  g_object_set_data (G_OBJECT (self->accent_red), "accent", "red");
-+  g_object_set_data (G_OBJECT (self->accent_yellow), "accent", "yellow");
++  g_object_set_qdata (G_OBJECT (self->accent_aqua), accent_quark (), "aqua");
++  g_object_set_qdata (G_OBJECT (self->accent_blue), accent_quark (), "blue");
++  g_object_set_qdata (G_OBJECT (self->accent_green), accent_quark (), "green");
++  g_object_set_qdata (G_OBJECT (self->accent_orange), accent_quark (), "orange");
++  g_object_set_qdata (G_OBJECT (self->accent_pink), accent_quark (), "pink");
++  g_object_set_qdata (G_OBJECT (self->accent_purple), accent_quark (), "purple");
++  g_object_set_qdata (G_OBJECT (self->accent_red), accent_quark (), "red");
++  g_object_set_qdata (G_OBJECT (self->accent_yellow), accent_quark (), "yellow");
 +  check_theme_accents_availability (self);
 +
 +  on_interface_settings_changed (self);
