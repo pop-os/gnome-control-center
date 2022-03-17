@@ -31,7 +31,7 @@ Forwarded: not-needed
  panels/ubuntu/cc-ubuntu-dock-dialog.c          |  106 ++
  panels/ubuntu/cc-ubuntu-dock-dialog.h          |   31 +
  panels/ubuntu/cc-ubuntu-dock-dialog.ui         |  120 ++
- panels/ubuntu/cc-ubuntu-panel.c                | 1389 ++++++++++++++++++++++++
+ panels/ubuntu/cc-ubuntu-panel.c                | 1407 ++++++++++++++++++++++++
  panels/ubuntu/cc-ubuntu-panel.h                |   35 +
  panels/ubuntu/cc-ubuntu-panel.ui               |  582 ++++++++++
  panels/ubuntu/gnome-ubuntu-panel.desktop.in.in |   16 +
@@ -40,7 +40,7 @@ Forwarded: not-needed
  po/POTFILES.in                                 |    5 +
  shell/cc-panel-list.c                          |    1 +
  shell/cc-panel-loader.c                        |    3 +
- 24 files changed, 2429 insertions(+)
+ 24 files changed, 2447 insertions(+)
  create mode 100644 panels/ubuntu/appearance.css
  create mode 100644 panels/ubuntu/assets/colors/bark.svg
  create mode 100644 panels/ubuntu/assets/colors/blue.svg
@@ -485,10 +485,10 @@ index 0000000..512f606
 +</interface>
 diff --git a/panels/ubuntu/cc-ubuntu-panel.c b/panels/ubuntu/cc-ubuntu-panel.c
 new file mode 100644
-index 0000000..79ff796
+index 0000000..745ad27
 --- /dev/null
 +++ b/panels/ubuntu/cc-ubuntu-panel.c
-@@ -0,0 +1,1389 @@
+@@ -0,0 +1,1407 @@
 +/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 +/*
 + * Copyright (C) 2017-2022 Canonical Ltd
@@ -550,6 +550,7 @@ index 0000000..79ff796
 +#define GTK_THEME_KEY "gtk-theme"
 +#define CURSOR_THEME_KEY "cursor-theme"
 +#define ICON_THEME_KEY "icon-theme"
++#define COLOR_SCHEME_KEY "color-scheme"
 +
 +#define GEDIT_PREFRENCES_SCHEMA "org.gnome.gedit.preferences.editor"
 +#define GEDIT_THEME_KEY "scheme"
@@ -989,6 +990,8 @@ index 0000000..79ff796
 +  g_autoptr(GString) icon_theme = NULL;
 +  g_autoptr(GString) gedit_theme = NULL;
 +  g_autofree char *current_gtk_theme = NULL;
++  g_autofree char *current_color_scheme = NULL;
++  const char *color_scheme = "prefer-light";
 +  GList *l;
 +
 +  colors = gtk_container_get_children (GTK_CONTAINER (self->color_box));
@@ -1022,15 +1025,20 @@ index 0000000..79ff796
 +
 +  if (selected_variant_item == self->theme_dark)
 +    {
++      color_scheme = "prefer-dark";
 +      g_string_append (gtk_theme, "-dark");
 +      g_string_append (gedit_theme, "-dark");
 +    }
 +
 +  current_gtk_theme = g_settings_get_string (self->interface_settings, GTK_THEME_KEY);
-+  if (g_strcmp0 (current_gtk_theme, gtk_theme->str) != 0)
++  current_color_scheme = g_settings_get_string (self->interface_settings, COLOR_SCHEME_KEY);
++
++  if (g_strcmp0 (current_gtk_theme, gtk_theme->str) != 0 ||
++      g_strcmp0 (current_color_scheme, color_scheme) != 0)
 +    {
 +      transition_screen (self);
 +      g_settings_set_string (self->interface_settings, GTK_THEME_KEY, gtk_theme->str);
++      g_settings_set_string (self->interface_settings, COLOR_SCHEME_KEY, color_scheme);
 +    }
 +
 +  if (self->gedit_settings)
@@ -1045,6 +1053,7 @@ index 0000000..79ff796
 +  g_autofree gchar *gtk_theme = NULL;
 +  g_autofree gchar *cursor_theme = NULL;
 +  g_autofree gchar *icon_theme = NULL;
++  g_autofree gchar *color_scheme = NULL;
 +  g_autoptr(GList) colors = NULL;
 +  g_auto(GStrv) parts = NULL;
 +  const char *accent_color = DEFAULT_ACCENT_COLOR;
@@ -1054,6 +1063,7 @@ index 0000000..79ff796
 +  gtk_theme = g_settings_get_string (self->interface_settings, GTK_THEME_KEY);
 +  cursor_theme = g_settings_get_string (self->interface_settings, CURSOR_THEME_KEY);
 +  icon_theme = g_settings_get_string (self->interface_settings, ICON_THEME_KEY);
++  color_scheme = g_settings_get_string (self->interface_settings, COLOR_SCHEME_KEY);
 +
 +  if (!g_str_has_prefix (gtk_theme, "Yaru"))
 +    {
@@ -1078,6 +1088,11 @@ index 0000000..79ff796
 +          accent_color = parts[1];
 +        break;
 +    }
++
++  if (!is_dark && g_strcmp0 (color_scheme, "prefer-dark") == 0)
++    is_dark = TRUE;
++  else if (is_dark && g_strcmp0 (color_scheme, "prefer-light") == 0)
++    is_dark = FALSE;
 +
 +  colors = gtk_container_get_children (GTK_CONTAINER (self->color_box));
 +
@@ -1735,6 +1750,9 @@ index 0000000..79ff796
 +                           G_CALLBACK (on_interface_settings_changed), self,
 +                           G_CONNECT_SWAPPED);
 +  g_signal_connect_object (self->interface_settings, "changed::" ICON_THEME_KEY,
++                           G_CALLBACK (on_interface_settings_changed), self,
++                           G_CONNECT_SWAPPED);
++  g_signal_connect_object (self->interface_settings, "changed::" COLOR_SCHEME_KEY,
 +                           G_CALLBACK (on_interface_settings_changed), self,
 +                           G_CONNECT_SWAPPED);
 +
