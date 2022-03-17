@@ -31,7 +31,7 @@ Forwarded: not-needed
  panels/ubuntu/cc-ubuntu-dock-dialog.c          |  106 ++
  panels/ubuntu/cc-ubuntu-dock-dialog.h          |   31 +
  panels/ubuntu/cc-ubuntu-dock-dialog.ui         |  120 ++
- panels/ubuntu/cc-ubuntu-panel.c                | 1388 ++++++++++++++++++++++++
+ panels/ubuntu/cc-ubuntu-panel.c                | 1389 ++++++++++++++++++++++++
  panels/ubuntu/cc-ubuntu-panel.h                |   35 +
  panels/ubuntu/cc-ubuntu-panel.ui               |  582 ++++++++++
  panels/ubuntu/gnome-ubuntu-panel.desktop.in.in |   16 +
@@ -40,7 +40,7 @@ Forwarded: not-needed
  po/POTFILES.in                                 |    5 +
  shell/cc-panel-list.c                          |    1 +
  shell/cc-panel-loader.c                        |    3 +
- 24 files changed, 2428 insertions(+)
+ 24 files changed, 2429 insertions(+)
  create mode 100644 panels/ubuntu/appearance.css
  create mode 100644 panels/ubuntu/assets/colors/aqua.svg
  create mode 100644 panels/ubuntu/assets/colors/blue.svg
@@ -485,13 +485,13 @@ index 0000000..512f606
 +</interface>
 diff --git a/panels/ubuntu/cc-ubuntu-panel.c b/panels/ubuntu/cc-ubuntu-panel.c
 new file mode 100644
-index 0000000..47214ac
+index 0000000..9742480
 --- /dev/null
 +++ b/panels/ubuntu/cc-ubuntu-panel.c
-@@ -0,0 +1,1388 @@
+@@ -0,0 +1,1389 @@
 +/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 +/*
-+ * Copyright (C) 2017-2020 Canonical Ltd
++ * Copyright (C) 2017-2022 Canonical Ltd
 + *
 + * This library is free software; you can redistribute it and/or
 + * modify it under the terms of the GNU Lesser General Public
@@ -982,9 +982,9 @@ index 0000000..47214ac
 +static void
 +on_theme_box_selected_children_changed (CcUbuntuPanel *self)
 +{
-+  GtkFlowBoxChild *selected_item = NULL;
++  GtkFlowBoxChild *selected_variant_item = NULL;
++  g_autoptr(GList) selected_variant = NULL;
 +  g_autoptr(GList) colors = NULL;
-+  g_autoptr(GList) selected = NULL;
 +  g_autoptr(GString) gtk_theme = NULL;
 +  g_autoptr(GString) icon_theme = NULL;
 +  g_autoptr(GString) gedit_theme = NULL;
@@ -992,10 +992,10 @@ index 0000000..47214ac
 +  GList *l;
 +
 +  colors = gtk_container_get_children (GTK_CONTAINER (self->color_box));
-+  selected = gtk_flow_box_get_selected_children (self->theme_box);
++  selected_variant = gtk_flow_box_get_selected_children (self->theme_box);
 +
-+  if (selected)
-+    selected_item = GTK_FLOW_BOX_CHILD (g_list_nth_data (selected, 0));
++  if (selected_variant)
++    selected_variant_item = GTK_FLOW_BOX_CHILD (g_list_nth_data (selected_variant, 0));
 +
 +  gtk_theme = g_string_new ("Yaru");
 +  icon_theme = g_string_new ("Yaru");
@@ -1015,11 +1015,12 @@ index 0000000..47214ac
 +            break;
 +
 +          g_string_append_printf (gtk_theme, "-%s", color);
++          g_string_append_printf (icon_theme, "-%s", color);
 +          break;
 +        }
 +    }
 +
-+  if (selected_item == self->theme_dark)
++  if (selected_variant_item == self->theme_dark)
 +    {
 +      g_string_append (gtk_theme, "-dark");
 +      g_string_append (gedit_theme, "-dark");
