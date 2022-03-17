@@ -18,14 +18,14 @@ Forwarded: not-needed
 ---
  panels/meson.build                             |    1 +
  panels/ubuntu/appearance.css                   |   24 +
- panels/ubuntu/assets/colors/aqua.svg           |    5 +
+ panels/ubuntu/assets/colors/bark.svg           |    5 +
  panels/ubuntu/assets/colors/blue.svg           |    5 +
- panels/ubuntu/assets/colors/green.svg          |    5 +
+ panels/ubuntu/assets/colors/magenta.svg        |    5 +
+ panels/ubuntu/assets/colors/olive.svg          |    5 +
  panels/ubuntu/assets/colors/orange.svg         |    5 +
- panels/ubuntu/assets/colors/pink.svg           |    5 +
  panels/ubuntu/assets/colors/purple.svg         |    5 +
  panels/ubuntu/assets/colors/red.svg            |    5 +
- panels/ubuntu/assets/colors/yellow.svg         |    5 +
+ panels/ubuntu/assets/colors/viridian.svg       |    5 +
  panels/ubuntu/assets/theme-dark.svg            |    1 +
  panels/ubuntu/assets/theme-light.svg           |    1 +
  panels/ubuntu/cc-ubuntu-dock-dialog.c          |  106 ++
@@ -42,14 +42,14 @@ Forwarded: not-needed
  shell/cc-panel-loader.c                        |    3 +
  24 files changed, 2429 insertions(+)
  create mode 100644 panels/ubuntu/appearance.css
- create mode 100644 panels/ubuntu/assets/colors/aqua.svg
+ create mode 100644 panels/ubuntu/assets/colors/bark.svg
  create mode 100644 panels/ubuntu/assets/colors/blue.svg
- create mode 100644 panels/ubuntu/assets/colors/green.svg
+ create mode 100644 panels/ubuntu/assets/colors/magenta.svg
+ create mode 100644 panels/ubuntu/assets/colors/olive.svg
  create mode 100644 panels/ubuntu/assets/colors/orange.svg
- create mode 100644 panels/ubuntu/assets/colors/pink.svg
  create mode 100644 panels/ubuntu/assets/colors/purple.svg
  create mode 100644 panels/ubuntu/assets/colors/red.svg
- create mode 100644 panels/ubuntu/assets/colors/yellow.svg
+ create mode 100644 panels/ubuntu/assets/colors/viridian.svg
  create mode 100644 panels/ubuntu/assets/theme-dark.svg
  create mode 100644 panels/ubuntu/assets/theme-light.svg
  create mode 100644 panels/ubuntu/cc-ubuntu-dock-dialog.c
@@ -104,37 +104,48 @@ index 0000000..ce63aa2
 +image.colors-thumbnail {
 +  border-radius: 9999px;
 +}
-diff --git a/panels/ubuntu/assets/colors/aqua.svg b/panels/ubuntu/assets/colors/aqua.svg
+diff --git a/panels/ubuntu/assets/colors/bark.svg b/panels/ubuntu/assets/colors/bark.svg
 new file mode 100644
-index 0000000..cd02cc4
+index 0000000..8a1b42e
 --- /dev/null
-+++ b/panels/ubuntu/assets/colors/aqua.svg
++++ b/panels/ubuntu/assets/colors/bark.svg
 @@ -0,0 +1,5 @@
 +<svg version="1.1" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
 + <g transform="translate(-401 -339)">
-+  <circle cx="417" cy="355" r="13.35" fill="#41c6c8" stroke-width="2.9706"/>
++  <circle cx="417" cy="355" r="13.35" fill="#787859" stroke-width="2.9706"/>
 + </g>
 +</svg>
 diff --git a/panels/ubuntu/assets/colors/blue.svg b/panels/ubuntu/assets/colors/blue.svg
 new file mode 100644
-index 0000000..8f31c43
+index 0000000..47312b9
 --- /dev/null
 +++ b/panels/ubuntu/assets/colors/blue.svg
 @@ -0,0 +1,5 @@
 +<svg version="1.1" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
 + <g transform="translate(-401 -339)">
-+  <circle cx="417" cy="355" r="13.35" fill="#208fe9" stroke-width="2.9706"/>
++  <circle cx="417" cy="355" r="13.35" fill="#0073E5" stroke-width="2.9706"/>
 + </g>
 +</svg>
-diff --git a/panels/ubuntu/assets/colors/green.svg b/panels/ubuntu/assets/colors/green.svg
+diff --git a/panels/ubuntu/assets/colors/magenta.svg b/panels/ubuntu/assets/colors/magenta.svg
 new file mode 100644
-index 0000000..8961fe3
+index 0000000..65c43b8
 --- /dev/null
-+++ b/panels/ubuntu/assets/colors/green.svg
++++ b/panels/ubuntu/assets/colors/magenta.svg
 @@ -0,0 +1,5 @@
 +<svg version="1.1" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
 + <g transform="translate(-401 -339)">
-+  <circle cx="417" cy="355" r="13.35" fill="#3eb34f" stroke-width="2.9706"/>
++  <circle cx="417" cy="355" r="13.35" fill="#BC33DB" stroke-width="2.9706"/>
++ </g>
++</svg>
+diff --git a/panels/ubuntu/assets/colors/olive.svg b/panels/ubuntu/assets/colors/olive.svg
+new file mode 100644
+index 0000000..67f0f71
+--- /dev/null
++++ b/panels/ubuntu/assets/colors/olive.svg
+@@ -0,0 +1,5 @@
++<svg version="1.1" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
++ <g transform="translate(-401 -339)">
++  <circle cx="417" cy="355" r="13.35" fill="#4B8501" stroke-width="2.9706"/>
 + </g>
 +</svg>
 diff --git a/panels/ubuntu/assets/colors/orange.svg b/panels/ubuntu/assets/colors/orange.svg
@@ -148,65 +159,54 @@ index 0000000..e486e84
 +  <circle cx="417" cy="355" r="13.35" fill="#f37e40" stroke-width="2.9706"/>
 + </g>
 +</svg>
-diff --git a/panels/ubuntu/assets/colors/pink.svg b/panels/ubuntu/assets/colors/pink.svg
-new file mode 100644
-index 0000000..2066c43
---- /dev/null
-+++ b/panels/ubuntu/assets/colors/pink.svg
-@@ -0,0 +1,5 @@
-+<svg version="1.1" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
-+ <g transform="translate(-401 -339)">
-+  <circle cx="417" cy="355" r="13.35" fill="#e920a3" stroke-width="2.9706"/>
-+ </g>
-+</svg>
 diff --git a/panels/ubuntu/assets/colors/purple.svg b/panels/ubuntu/assets/colors/purple.svg
 new file mode 100644
-index 0000000..430e060
+index 0000000..aaa4f43
 --- /dev/null
 +++ b/panels/ubuntu/assets/colors/purple.svg
 @@ -0,0 +1,5 @@
 +<svg version="1.1" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
 + <g transform="translate(-401 -339)">
-+  <circle cx="417" cy="355" r="13.35" fill="#6a39cb" stroke-width="2.9706"/>
++  <circle cx="417" cy="355" r="13.35" fill="#8856EB" stroke-width="2.9706"/>
 + </g>
 +</svg>
 diff --git a/panels/ubuntu/assets/colors/red.svg b/panels/ubuntu/assets/colors/red.svg
 new file mode 100644
-index 0000000..616ae47
+index 0000000..cd3eb0c
 --- /dev/null
 +++ b/panels/ubuntu/assets/colors/red.svg
 @@ -0,0 +1,5 @@
 +<svg version="1.1" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
 + <g transform="translate(-401 -339)">
-+  <circle cx="417" cy="355" r="13.35" fill="#e92020" stroke-width="2.9706"/>
++  <circle cx="417" cy="355" r="13.35" fill="#E61D34" stroke-width="2.9706"/>
 + </g>
 +</svg>
-diff --git a/panels/ubuntu/assets/colors/yellow.svg b/panels/ubuntu/assets/colors/yellow.svg
+diff --git a/panels/ubuntu/assets/colors/viridian.svg b/panels/ubuntu/assets/colors/viridian.svg
 new file mode 100644
-index 0000000..01bb083
+index 0000000..2a61c2d
 --- /dev/null
-+++ b/panels/ubuntu/assets/colors/yellow.svg
++++ b/panels/ubuntu/assets/colors/viridian.svg
 @@ -0,0 +1,5 @@
 +<svg version="1.1" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
 + <g transform="translate(-401 -339)">
-+  <circle cx="417" cy="355" r="13.35" fill="#e9ba20" stroke-width="2.9706"/>
++  <circle cx="417" cy="355" r="13.35" fill="#03875B" stroke-width="2.9706"/>
 + </g>
 +</svg>
 diff --git a/panels/ubuntu/assets/theme-dark.svg b/panels/ubuntu/assets/theme-dark.svg
 new file mode 100644
-index 0000000..3ee24e9
+index 0000000..90a7f86
 --- /dev/null
 +++ b/panels/ubuntu/assets/theme-dark.svg
 @@ -0,0 +1 @@
-+<svg version="1.1" viewBox="0 0 250 150" id="svg69" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg"><defs id="defs41"><linearGradient id="j" x1="497.14" x2="497.14" y1="613.5" y2="713.96" gradientTransform="matrix(6.09 0 0 -6.09 -2632.7 4349.6)" gradientUnits="userSpaceOnUse"><stop stop-color="#350753" offset="0" id="stop4"/><stop stop-color="#720b53" offset="1" id="stop6"/></linearGradient><linearGradient id="h" x1="216.64" x2="289.81" y1="166.29" y2="166.29" gradientUnits="userSpaceOnUse"><stop stop-color="#772953" offset="0" id="stop9"/><stop stop-color="#510045" offset="1" id="stop11"/></linearGradient><linearGradient id="g" x1="226.9" x2="298.7" y1="147.75" y2="189.2" gradientUnits="userSpaceOnUse"><stop stop-color="#982963" offset=".25" id="stop14"/><stop stop-color="#e98120" offset=".91" id="stop16"/></linearGradient><linearGradient id="a" x1="392.56" x2="319.4" y1="164.23" y2="164.23" gradientUnits="userSpaceOnUse"><stop stop-color="#e95420" offset=".03" id="stop19"/><stop stop-color="#772953" offset=".51" id="stop21"/></linearGradient><linearGradient id="f" x1="495.31" x2="422.15" y1="164.23" y2="164.23" xlink:href="#a"/><linearGradient id="e" x1="598.06" x2="524.9" y1="164.23" y2="164.23" xlink:href="#a"/><linearGradient id="d" x1="289.81" x2="216.64" y1="267.57" y2="267.57" xlink:href="#a"/><linearGradient id="c" x1="392.56" x2="319.4" y1="267.57" y2="267.57" xlink:href="#a"/><linearGradient id="b" x1="495.31" x2="422.15" y1="267.57" y2="267.57" xlink:href="#a"/><linearGradient id="i" x1="598.06" x2="524.9" y1="267.57" y2="267.57" xlink:href="#a"/><linearGradient id="k" x1="80" x2="80" y2="130" gradientTransform="scale(1.4706 1.1538)" gradientUnits="userSpaceOnUse"><stop stop-color="#fff" offset="0" id="stop36"/><stop stop-color="#fff" stop-opacity=".25" offset="1" id="stop38"/></linearGradient><filter id="m" x="-.042" y="-.055" width="1.085" height="1.111" color-interpolation-filters="sRGB"><feGaussianBlur stdDeviation="1.5" id="feGaussianBlur30"/></filter><filter id="l" x="-.042" y="-.055" width="1.085" height="1.111" color-interpolation-filters="sRGB"><feGaussianBlur stdDeviation="1.5" id="feGaussianBlur33"/></filter><style id="style2">.cls-1{fill:url(#j)}.cls-2{fill:#222}.cls-20,.cls-3{fill:#272727}.cls-4{fill:#343434}.cls-5{fill:#e95420}.cls-6{fill:#2c2c2c}.cls-7{fill:#373737}.cls-8{fill:#151515}.cls-21,.cls-9{fill:#3d3d3d}.cls-10{fill:url(#h)}.cls-11{fill:url(#g)}.cls-12{fill:url(#a)}.cls-13{fill:#737373}.cls-14{fill:url(#f)}.cls-15{fill:url(#e)}.cls-16{fill:url(#d)}.cls-17{fill:url(#c)}.cls-18{fill:url(#b)}.cls-19{fill:url(#i)}.cls-20,.cls-21{stroke:#4b4b4b;stroke-width:2px;stroke-miterlimit:10}.cls-21{stroke:#e95420;stroke-width:.8px}</style></defs><g transform="translate(22.26 7.485) scale(1.1742)" id="g67"><g transform="translate(75 -45)" id="g55"><rect x="-15" y="55" width="85" height="65" ry="5" filter="url(#l)" opacity=".55" id="rect45"/><g id="g53"><rect x="-15" y="55" width="85" height="65" ry="5" fill="#404040" id="rect47"/><path d="M-10 55c-2.77 0-5 2.23-5 5v10h85V60c0-2.77-2.23-5-5-5z" fill="#404040" id="path49"/><rect x="-15" y="69" width="85" height="1" ry="0" fill="#5d5d5d" id="rect51"/></g></g><g transform="translate(45 -15)" id="g65"><rect x="-15" y="55" width="85" height="65" ry="5" filter="url(#m)" opacity=".55" id="rect57"/><rect x="-15" y="55" width="85" height="65" ry="5" fill="#242424" id="rect59"/><path d="M-10 55c-2.77 0-5 2.23-5 5v10h85V60c0-2.77-2.23-5-5-5z" fill="#303030" fill-opacity=".937" id="path61"/><rect x="-15" y="69" width="85" height="1" ry="0" fill="#4d4d4d" id="rect63"/></g></g></svg>
++<svg version="1.0" width="250" height="150" xmlns="http://www.w3.org/2000/svg"><defs><filter id="a" x="-.042" y="-.055" width="1.085" height="1.111" color-interpolation-filters="sRGB"><feGaussianBlur stdDeviation="1.5"/></filter><filter id="b" x="-.042" y="-.055" width="1.085" height="1.111" color-interpolation-filters="sRGB"><feGaussianBlur stdDeviation="1.5"/></filter></defs><g transform="translate(111.066 -45.354) scale(1.1742)"><rect x="-15" y="55" width="85" height="65" ry="5" filter="url(#a)" opacity=".55"/><rect x="-15" y="55" width="85" height="65" ry="5" fill="#404040"/><path d="M-10 55c-2.77 0-5 2.23-5 5v10h85V60c0-2.77-2.23-5-5-5z" fill="#404040"/><rect x="-15" y="69" width="85" height="1" ry="0" fill="#5d5d5d"/></g><g transform="translate(75.84 -10.128) scale(1.1742)"><rect x="-15" y="55" width="85" height="65" ry="5" filter="url(#b)" opacity=".55"/><rect x="-15" y="55" width="85" height="65" ry="5" fill="#242424"/><path d="M-10 55c-2.77 0-5 2.23-5 5v10h85V60c0-2.77-2.23-5-5-5z" fill="#303030" fill-opacity=".937"/><rect x="-15" y="69" width="85" height="1" ry="0" fill="#4d4d4d"/></g></svg>
 \ No newline at end of file
 diff --git a/panels/ubuntu/assets/theme-light.svg b/panels/ubuntu/assets/theme-light.svg
 new file mode 100644
-index 0000000..81b18be
+index 0000000..0a8f29f
 --- /dev/null
 +++ b/panels/ubuntu/assets/theme-light.svg
 @@ -0,0 +1 @@
-+<svg version="1.1" viewBox="0 0 250 150" id="svg71" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg"><defs id="defs41"><linearGradient id="j" x1="497.14" x2="497.14" y1="613.5" y2="713.96" gradientTransform="matrix(6.09 0 0 -6.09 -2632.7 4349.6)" gradientUnits="userSpaceOnUse"><stop stop-color="#350753" offset="0" id="stop4"/><stop stop-color="#720b53" offset="1" id="stop6"/></linearGradient><linearGradient id="h" x1="216.64" x2="289.81" y1="166.29" y2="166.29" gradientUnits="userSpaceOnUse"><stop stop-color="#772953" offset="0" id="stop9"/><stop stop-color="#510045" offset="1" id="stop11"/></linearGradient><linearGradient id="g" x1="226.9" x2="298.7" y1="147.75" y2="189.2" gradientUnits="userSpaceOnUse"><stop stop-color="#982963" offset=".25" id="stop14"/><stop stop-color="#e98120" offset=".91" id="stop16"/></linearGradient><linearGradient id="a" x1="392.56" x2="319.4" y1="164.23" y2="164.23" gradientUnits="userSpaceOnUse"><stop stop-color="#e95420" offset=".03" id="stop19"/><stop stop-color="#772953" offset=".51" id="stop21"/></linearGradient><linearGradient id="f" x1="495.31" x2="422.15" y1="164.23" y2="164.23" xlink:href="#a"/><linearGradient id="e" x1="598.06" x2="524.9" y1="164.23" y2="164.23" xlink:href="#a"/><linearGradient id="d" x1="289.81" x2="216.64" y1="267.57" y2="267.57" xlink:href="#a"/><linearGradient id="c" x1="392.56" x2="319.4" y1="267.57" y2="267.57" xlink:href="#a"/><linearGradient id="b" x1="495.31" x2="422.15" y1="267.57" y2="267.57" xlink:href="#a"/><linearGradient id="i" x1="598.06" x2="524.9" y1="267.57" y2="267.57" xlink:href="#a"/><linearGradient id="k" x1="80" x2="80" y2="130" gradientTransform="scale(1.4706 1.1538)" gradientUnits="userSpaceOnUse"><stop stop-color="#fff" offset="0" id="stop36"/><stop stop-color="#fff" stop-opacity=".25" offset="1" id="stop38"/></linearGradient><filter id="m" x="-.042" y="-.055" width="1.085" height="1.111" color-interpolation-filters="sRGB"><feGaussianBlur stdDeviation="1.5" id="feGaussianBlur30"/></filter><filter id="l" x="-.042" y="-.055" width="1.085" height="1.111" color-interpolation-filters="sRGB"><feGaussianBlur stdDeviation="1.5" id="feGaussianBlur33"/></filter><style id="style2">.cls-1{fill:url(#j)}.cls-2{fill:#222}.cls-20,.cls-3{fill:#272727}.cls-4{fill:#343434}.cls-5{fill:#e95420}.cls-6{fill:#2c2c2c}.cls-7{fill:#373737}.cls-8{fill:#151515}.cls-21,.cls-9{fill:#3d3d3d}.cls-10{fill:url(#h)}.cls-11{fill:url(#g)}.cls-12{fill:url(#a)}.cls-13{fill:#737373}.cls-14{fill:url(#f)}.cls-15{fill:url(#e)}.cls-16{fill:url(#d)}.cls-17{fill:url(#c)}.cls-18{fill:url(#b)}.cls-19{fill:url(#i)}.cls-20,.cls-21{stroke:#4b4b4b;stroke-width:2px;stroke-miterlimit:10}.cls-21{stroke:#e95420;stroke-width:.8px}</style></defs><g transform="translate(22.26 7.485) scale(1.1742)" id="g69"><g transform="translate(75 -45)" id="g55"><rect x="-15" y="55" width="85" height="65" ry="5" filter="url(#l)" opacity=".55" id="rect45"/><g id="g53"><rect x="-15" y="55" width="85" height="65" ry="5" fill="#4d4d4d" id="rect47"/><path d="M-10 55c-2.77 0-5 2.23-5 5v10h85V60c0-2.77-2.23-5-5-5z" fill="#4d4d4d" id="path49"/><rect x="-15" y="69" width="85" height="1" ry="0" fill="#666" id="rect51"/></g></g><g transform="translate(45 -15)" id="g67"><rect x="-15" y="55" width="85" height="65" ry="5" filter="url(#m)" opacity=".55" id="rect57"/><g id="g65"><rect x="-15" y="55" width="85" height="65" ry="5" fill="#fafafa" id="rect59"/><path d="M-10 55c-2.77 0-5 2.23-5 5v10h85V60c0-2.77-2.23-5-5-5z" fill="#dedede" id="path61"/><rect x="-15" y="69" width="85" height="1" ry="0" fill="#b3b3b3" id="rect63"/></g></g></g></svg>
++<svg version="1.0" width="250" height="150" xmlns="http://www.w3.org/2000/svg"><defs><filter id="a" x="-.042" y="-.055" width="1.085" height="1.111" color-interpolation-filters="sRGB"><feGaussianBlur stdDeviation="1.5"/></filter><filter id="c" x="-.042" y="-.055" width="1.085" height="1.111" color-interpolation-filters="sRGB"><feGaussianBlur stdDeviation="1.5"/></filter><filter id="b" x="-.042" y="-.055" width="1.085" height="1.111" color-interpolation-filters="sRGB"><feGaussianBlur stdDeviation="1.5"/></filter><filter id="d" x="-.042" y="-.055" width="1.085" height="1.111" color-interpolation-filters="sRGB"><feGaussianBlur stdDeviation="1.5"/></filter></defs><g transform="translate(111.066 -45.354) scale(1.1742)"><rect x="-15" y="55" width="85" height="65" ry="5" filter="url(#a)" opacity=".55" style="filter:url(#b)"/><rect x="-15" y="55" width="85" height="65" ry="5" fill="#4d4d4d"/><path d="M-10 55c-2.77 0-5 2.23-5 5v10h85V60c0-2.77-2.23-5-5-5z" fill="#4d4d4d"/><rect x="-15" y="69" width="85" height="1" ry="0" fill="#666"/></g><g transform="translate(75.84 -10.128) scale(1.1742)"><rect x="-15" y="55" width="85" height="65" ry="5" filter="url(#c)" opacity=".55" style="filter:url(#d)"/><rect x="-15" y="55" width="85" height="65" ry="5" fill="#fafafa"/><path d="M-10 55c-2.77 0-5 2.23-5 5v10h85V60c0-2.77-2.23-5-5-5z" fill="#dedede"/><rect x="-15" y="69" width="85" height="1" ry="0" fill="#b3b3b3"/></g></svg>
 \ No newline at end of file
 diff --git a/panels/ubuntu/cc-ubuntu-dock-dialog.c b/panels/ubuntu/cc-ubuntu-dock-dialog.c
 new file mode 100644
@@ -485,7 +485,7 @@ index 0000000..512f606
 +</interface>
 diff --git a/panels/ubuntu/cc-ubuntu-panel.c b/panels/ubuntu/cc-ubuntu-panel.c
 new file mode 100644
-index 0000000..bf3f89b
+index 0000000..79ff796
 --- /dev/null
 +++ b/panels/ubuntu/cc-ubuntu-panel.c
 @@ -0,0 +1,1389 @@
@@ -576,14 +576,14 @@ index 0000000..bf3f89b
 +  GtkFlowBoxChild        *theme_light;
 +  HdyActionRow           *color_row;
 +  GtkFlowBox             *color_box;
-+  GtkFlowBoxChild        *accent_aqua;
++  GtkFlowBoxChild        *accent_bark;
 +  GtkFlowBoxChild        *accent_blue;
-+  GtkFlowBoxChild        *accent_green;
++  GtkFlowBoxChild        *accent_olive;
 +  GtkFlowBoxChild        *accent_orange;
-+  GtkFlowBoxChild        *accent_pink;
++  GtkFlowBoxChild        *accent_magenta;
 +  GtkFlowBoxChild        *accent_purple;
 +  GtkFlowBoxChild        *accent_red;
-+  GtkFlowBoxChild        *accent_yellow;
++  GtkFlowBoxChild        *accent_viridian;
 +
 +  GSettings              *ding_settings;
 +  GSettings              *dock_settings;
@@ -1504,14 +1504,14 @@ index 0000000..bf3f89b
 +  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, theme_light);
 +  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, color_row);
 +  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, color_box);
-+  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, accent_aqua);
++  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, accent_bark);
 +  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, accent_blue);
-+  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, accent_green);
++  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, accent_olive);
 +  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, accent_orange);
-+  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, accent_pink);
++  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, accent_magenta);
 +  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, accent_purple);
 +  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, accent_red);
-+  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, accent_yellow);
++  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, accent_viridian);
 +
 +  gtk_widget_class_bind_template_callback (widget_class, on_dock_monitor_row_changed);
 +  gtk_widget_class_bind_template_callback (widget_class, on_dock_behavior_row_activated);
@@ -1833,14 +1833,14 @@ index 0000000..bf3f89b
 +      gtk_widget_hide (GTK_WIDGET (self->dock_preferences_group));
 +    }
 +
-+  g_object_set_qdata (G_OBJECT (self->accent_aqua), accent_quark (), "aqua");
++  g_object_set_qdata (G_OBJECT (self->accent_bark), accent_quark (), "bark");
 +  g_object_set_qdata (G_OBJECT (self->accent_blue), accent_quark (), "blue");
-+  g_object_set_qdata (G_OBJECT (self->accent_green), accent_quark (), "green");
++  g_object_set_qdata (G_OBJECT (self->accent_olive), accent_quark (), "olive");
 +  g_object_set_qdata (G_OBJECT (self->accent_orange), accent_quark (), "orange");
-+  g_object_set_qdata (G_OBJECT (self->accent_pink), accent_quark (), "pink");
++  g_object_set_qdata (G_OBJECT (self->accent_magenta), accent_quark (), "magenta");
 +  g_object_set_qdata (G_OBJECT (self->accent_purple), accent_quark (), "purple");
 +  g_object_set_qdata (G_OBJECT (self->accent_red), accent_quark (), "red");
-+  g_object_set_qdata (G_OBJECT (self->accent_yellow), accent_quark (), "yellow");
++  g_object_set_qdata (G_OBJECT (self->accent_viridian), accent_quark (), "viridian");
 +  check_theme_accents_availability (self);
 +
 +  on_interface_settings_changed (self);
@@ -1921,7 +1921,7 @@ index 0000000..b13f611
 +#endif /* _CC_EDIT_DIALOG_H_ */
 diff --git a/panels/ubuntu/cc-ubuntu-panel.ui b/panels/ubuntu/cc-ubuntu-panel.ui
 new file mode 100644
-index 0000000..5bcc28c
+index 0000000..c1d94b0
 --- /dev/null
 +++ b/panels/ubuntu/cc-ubuntu-panel.ui
 @@ -0,0 +1,582 @@
@@ -2076,7 +2076,7 @@ index 0000000..5bcc28c
 +                    </style>
 +                    <child>
 +                      <object class="GtkFlowBoxChild" id="accent_orange">
-+                        <property name="tooltip_text" translatable="yes">Default</property>
++                        <property name="tooltip_text" translatable="yes">Orange</property>
 +                        <property name="visible">1</property>
 +                        <property name="valign">center</property>
 +                        <style>
@@ -2104,8 +2104,8 @@ index 0000000..5bcc28c
 +                      </object>
 +                    </child>
 +                    <child>
-+                      <object class="GtkFlowBoxChild" id="accent_aqua">
-+                        <property name="tooltip_text" translatable="yes">Aqua</property>
++                      <object class="GtkFlowBoxChild" id="accent_bark">
++                        <property name="tooltip_text" translatable="yes">Bark</property>
 +                        <property name="visible">1</property>
 +                        <property name="valign">center</property>
 +                        <style>
@@ -2122,7 +2122,65 @@ index 0000000..5bcc28c
 +                            <child>
 +                              <object class="GtkImage">
 +                                <property name="visible">1</property>
-+                                <property name="resource">/org/gnome/control-center/ubuntu/assets/colors/aqua.svg</property>
++                                <property name="resource">/org/gnome/control-center/ubuntu/assets/colors/bark.svg</property>
++                                <style>
++                                  <class name="colors-thumbnail" />
++                                </style>
++                              </object>
++                            </child>
++                          </object>
++                        </child>
++                      </object>
++                    </child>
++                    <child>
++                      <object class="GtkFlowBoxChild" id="accent_olive">
++                        <property name="tooltip_text" translatable="yes">Olive</property>
++                        <property name="visible">1</property>
++                        <property name="valign">center</property>
++                        <style>
++                          <class name="colors" />
++                        </style>
++                        <child>
++                          <object class="GtkBox">
++                            <property name="visible">1</property>
++                            <property name="orientation">vertical</property>
++                            <style>
++                              <class name="colors" />
++                              <class name="view" />
++                            </style>
++                            <child>
++                              <object class="GtkImage">
++                                <property name="visible">1</property>
++                                <property name="resource">/org/gnome/control-center/ubuntu/assets/colors/olive.svg</property>
++                                <style>
++                                  <class name="colors-thumbnail" />
++                                </style>
++                              </object>
++                            </child>
++                          </object>
++                        </child>
++                      </object>
++                    </child>
++                    <child>
++                      <object class="GtkFlowBoxChild" id="accent_viridian">
++                        <property name="tooltip_text" translatable="yes">Viridian</property>
++                        <property name="visible">1</property>
++                        <property name="valign">center</property>
++                        <style>
++                          <class name="colors" />
++                        </style>
++                        <child>
++                          <object class="GtkBox">
++                            <property name="visible">1</property>
++                            <property name="orientation">vertical</property>
++                            <style>
++                              <class name="colors" />
++                              <class name="view" />
++                            </style>
++                            <child>
++                              <object class="GtkImage">
++                                <property name="visible">1</property>
++                                <property name="resource">/org/gnome/control-center/ubuntu/assets/colors/viridian.svg</property>
 +                                <style>
 +                                  <class name="colors-thumbnail" />
 +                                </style>
@@ -2162,64 +2220,6 @@ index 0000000..5bcc28c
 +                      </object>
 +                    </child>
 +                    <child>
-+                      <object class="GtkFlowBoxChild" id="accent_green">
-+                        <property name="tooltip_text" translatable="yes">Green</property>
-+                        <property name="visible">1</property>
-+                        <property name="valign">center</property>
-+                        <style>
-+                          <class name="colors" />
-+                        </style>
-+                        <child>
-+                          <object class="GtkBox">
-+                            <property name="visible">1</property>
-+                            <property name="orientation">vertical</property>
-+                            <style>
-+                              <class name="colors" />
-+                              <class name="view" />
-+                            </style>
-+                            <child>
-+                              <object class="GtkImage">
-+                                <property name="visible">1</property>
-+                                <property name="resource">/org/gnome/control-center/ubuntu/assets/colors/green.svg</property>
-+                                <style>
-+                                  <class name="colors-thumbnail" />
-+                                </style>
-+                              </object>
-+                            </child>
-+                          </object>
-+                        </child>
-+                      </object>
-+                    </child>
-+                    <child>
-+                      <object class="GtkFlowBoxChild" id="accent_pink">
-+                        <property name="tooltip_text" translatable="yes">Pink</property>
-+                        <property name="visible">1</property>
-+                        <property name="valign">center</property>
-+                        <style>
-+                          <class name="colors" />
-+                        </style>
-+                        <child>
-+                          <object class="GtkBox">
-+                            <property name="visible">1</property>
-+                            <property name="orientation">vertical</property>
-+                            <style>
-+                              <class name="colors" />
-+                              <class name="view" />
-+                            </style>
-+                            <child>
-+                              <object class="GtkImage">
-+                                <property name="visible">1</property>
-+                                <property name="resource">/org/gnome/control-center/ubuntu/assets/colors/pink.svg</property>
-+                                <style>
-+                                  <class name="colors-thumbnail" />
-+                                </style>
-+                              </object>
-+                            </child>
-+                          </object>
-+                        </child>
-+                      </object>
-+                    </child>
-+                    <child>
 +                      <object class="GtkFlowBoxChild" id="accent_purple">
 +                        <property name="tooltip_text" translatable="yes">Purple</property>
 +                        <property name="visible">1</property>
@@ -2249,6 +2249,35 @@ index 0000000..5bcc28c
 +                      </object>
 +                    </child>
 +                    <child>
++                      <object class="GtkFlowBoxChild" id="accent_magenta">
++                        <property name="tooltip_text" translatable="yes">Magenta</property>
++                        <property name="visible">1</property>
++                        <property name="valign">center</property>
++                        <style>
++                          <class name="colors" />
++                        </style>
++                        <child>
++                          <object class="GtkBox">
++                            <property name="visible">1</property>
++                            <property name="orientation">vertical</property>
++                            <style>
++                              <class name="colors" />
++                              <class name="view" />
++                            </style>
++                            <child>
++                              <object class="GtkImage">
++                                <property name="visible">1</property>
++                                <property name="resource">/org/gnome/control-center/ubuntu/assets/colors/magenta.svg</property>
++                                <style>
++                                  <class name="colors-thumbnail" />
++                                </style>
++                              </object>
++                            </child>
++                          </object>
++                        </child>
++                      </object>
++                    </child>
++                    <child>
 +                      <object class="GtkFlowBoxChild" id="accent_red">
 +                        <property name="tooltip_text" translatable="yes">Red</property>
 +                        <property name="visible">1</property>
@@ -2268,35 +2297,6 @@ index 0000000..5bcc28c
 +                              <object class="GtkImage">
 +                                <property name="visible">1</property>
 +                                <property name="resource">/org/gnome/control-center/ubuntu/assets/colors/red.svg</property>
-+                                <style>
-+                                  <class name="colors-thumbnail" />
-+                                </style>
-+                              </object>
-+                            </child>
-+                          </object>
-+                        </child>
-+                      </object>
-+                    </child>
-+                    <child>
-+                      <object class="GtkFlowBoxChild" id="accent_yellow">
-+                        <property name="tooltip_text" translatable="yes">Yellow</property>
-+                        <property name="visible">1</property>
-+                        <property name="valign">center</property>
-+                        <style>
-+                          <class name="colors" />
-+                        </style>
-+                        <child>
-+                          <object class="GtkBox">
-+                            <property name="visible">1</property>
-+                            <property name="orientation">vertical</property>
-+                            <style>
-+                              <class name="colors" />
-+                              <class name="view" />
-+                            </style>
-+                            <child>
-+                              <object class="GtkImage">
-+                                <property name="visible">1</property>
-+                                <property name="resource">/org/gnome/control-center/ubuntu/assets/colors/yellow.svg</property>
 +                                <style>
 +                                  <class name="colors-thumbnail" />
 +                                </style>
@@ -2531,7 +2531,7 @@ index 0000000..5063546
 +Keywords=Dock;Launcher;Theme;Ubuntu;Dark;icons;
 diff --git a/panels/ubuntu/meson.build b/panels/ubuntu/meson.build
 new file mode 100644
-index 0000000..db16a68
+index 0000000..cdfbd03
 --- /dev/null
 +++ b/panels/ubuntu/meson.build
 @@ -0,0 +1,56 @@
@@ -2563,13 +2563,13 @@ index 0000000..db16a68
 +  'assets/theme-dark.svg',
 +  'assets/theme-light.svg',
 +  'assets/colors/orange.svg',
-+  'assets/colors/aqua.svg',
++  'assets/colors/bark.svg',
 +  'assets/colors/blue.svg',
-+  'assets/colors/green.svg',
++  'assets/colors/magenta.svg',
++  'assets/colors/olive.svg',
 +  'assets/colors/purple.svg',
-+  'assets/colors/pink.svg',
 +  'assets/colors/red.svg',
-+  'assets/colors/yellow.svg',
++  'assets/colors/viridian.svg',
 +  'cc-ubuntu-panel.ui',
 +  'cc-ubuntu-dock-dialog.ui',
 +)
@@ -2593,7 +2593,7 @@ index 0000000..db16a68
 +)
 diff --git a/panels/ubuntu/ubuntu.gresource.xml b/panels/ubuntu/ubuntu.gresource.xml
 new file mode 100644
-index 0000000..2d7a4ac
+index 0000000..3adbb63
 --- /dev/null
 +++ b/panels/ubuntu/ubuntu.gresource.xml
 @@ -0,0 +1,18 @@
@@ -2606,13 +2606,13 @@ index 0000000..2d7a4ac
 +    <file>assets/theme-dark.svg</file>
 +    <file>assets/theme-light.svg</file>
 +    <file>assets/colors/orange.svg</file>
-+    <file>assets/colors/aqua.svg</file>
++    <file>assets/colors/bark.svg</file>
 +    <file>assets/colors/blue.svg</file>
-+    <file>assets/colors/green.svg</file>
++    <file>assets/colors/magenta.svg</file>
++    <file>assets/colors/olive.svg</file>
 +    <file>assets/colors/purple.svg</file>
-+    <file>assets/colors/pink.svg</file>
 +    <file>assets/colors/red.svg</file>
-+    <file>assets/colors/yellow.svg</file>
++    <file>assets/colors/viridian.svg</file>
 +  </gresource>
 +</gresources>
 diff --git a/po/POTFILES.in b/po/POTFILES.in
