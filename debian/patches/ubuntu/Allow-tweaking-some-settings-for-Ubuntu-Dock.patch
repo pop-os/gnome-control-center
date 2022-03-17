@@ -23,32 +23,36 @@ Forwarded: not-needed
  panels/ubuntu/assets/colors/magenta.svg        |    5 +
  panels/ubuntu/assets/colors/olive.svg          |    5 +
  panels/ubuntu/assets/colors/orange.svg         |    5 +
+ panels/ubuntu/assets/colors/prussiangreen.svg  |    5 +
  panels/ubuntu/assets/colors/purple.svg         |    5 +
  panels/ubuntu/assets/colors/red.svg            |    5 +
+ panels/ubuntu/assets/colors/sage.svg           |    5 +
  panels/ubuntu/assets/colors/viridian.svg       |    5 +
  panels/ubuntu/assets/theme-dark.svg            |    1 +
  panels/ubuntu/assets/theme-light.svg           |    1 +
  panels/ubuntu/cc-ubuntu-dock-dialog.c          |  106 ++
  panels/ubuntu/cc-ubuntu-dock-dialog.h          |   31 +
  panels/ubuntu/cc-ubuntu-dock-dialog.ui         |  120 ++
- panels/ubuntu/cc-ubuntu-panel.c                | 1407 ++++++++++++++++++++++++
+ panels/ubuntu/cc-ubuntu-panel.c                | 1413 ++++++++++++++++++++++++
  panels/ubuntu/cc-ubuntu-panel.h                |   35 +
- panels/ubuntu/cc-ubuntu-panel.ui               |  582 ++++++++++
+ panels/ubuntu/cc-ubuntu-panel.ui               |  640 +++++++++++
  panels/ubuntu/gnome-ubuntu-panel.desktop.in.in |   16 +
  panels/ubuntu/meson.build                      |   56 +
- panels/ubuntu/ubuntu.gresource.xml             |   18 +
+ panels/ubuntu/ubuntu.gresource.xml             |   20 +
  po/POTFILES.in                                 |    5 +
  shell/cc-panel-list.c                          |    1 +
  shell/cc-panel-loader.c                        |    3 +
- 24 files changed, 2447 insertions(+)
+ 26 files changed, 2523 insertions(+)
  create mode 100644 panels/ubuntu/appearance.css
  create mode 100644 panels/ubuntu/assets/colors/bark.svg
  create mode 100644 panels/ubuntu/assets/colors/blue.svg
  create mode 100644 panels/ubuntu/assets/colors/magenta.svg
  create mode 100644 panels/ubuntu/assets/colors/olive.svg
  create mode 100644 panels/ubuntu/assets/colors/orange.svg
+ create mode 100644 panels/ubuntu/assets/colors/prussiangreen.svg
  create mode 100644 panels/ubuntu/assets/colors/purple.svg
  create mode 100644 panels/ubuntu/assets/colors/red.svg
+ create mode 100644 panels/ubuntu/assets/colors/sage.svg
  create mode 100644 panels/ubuntu/assets/colors/viridian.svg
  create mode 100644 panels/ubuntu/assets/theme-dark.svg
  create mode 100644 panels/ubuntu/assets/theme-light.svg
@@ -159,6 +163,17 @@ index 0000000..e486e84
 +  <circle cx="417" cy="355" r="13.35" fill="#f37e40" stroke-width="2.9706"/>
 + </g>
 +</svg>
+diff --git a/panels/ubuntu/assets/colors/prussiangreen.svg b/panels/ubuntu/assets/colors/prussiangreen.svg
+new file mode 100644
+index 0000000..6ae821b
+--- /dev/null
++++ b/panels/ubuntu/assets/colors/prussiangreen.svg
+@@ -0,0 +1,5 @@
++<svg version="1.1" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
++ <g transform="translate(-401 -339)">
++  <circle cx="417" cy="355" r="13.35" fill="#308280" stroke-width="2.9706"/>
++ </g>
++</svg>
 diff --git a/panels/ubuntu/assets/colors/purple.svg b/panels/ubuntu/assets/colors/purple.svg
 new file mode 100644
 index 0000000..aaa4f43
@@ -179,6 +194,17 @@ index 0000000..cd3eb0c
 +<svg version="1.1" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
 + <g transform="translate(-401 -339)">
 +  <circle cx="417" cy="355" r="13.35" fill="#E61D34" stroke-width="2.9706"/>
++ </g>
++</svg>
+diff --git a/panels/ubuntu/assets/colors/sage.svg b/panels/ubuntu/assets/colors/sage.svg
+new file mode 100644
+index 0000000..4a661ae
+--- /dev/null
++++ b/panels/ubuntu/assets/colors/sage.svg
+@@ -0,0 +1,5 @@
++<svg version="1.1" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
++ <g transform="translate(-401 -339)">
++  <circle cx="417" cy="355" r="13.35" fill="#657B69" stroke-width="2.9706"/>
 + </g>
 +</svg>
 diff --git a/panels/ubuntu/assets/colors/viridian.svg b/panels/ubuntu/assets/colors/viridian.svg
@@ -485,10 +511,10 @@ index 0000000..512f606
 +</interface>
 diff --git a/panels/ubuntu/cc-ubuntu-panel.c b/panels/ubuntu/cc-ubuntu-panel.c
 new file mode 100644
-index 0000000..745ad27
+index 0000000..76954e2
 --- /dev/null
 +++ b/panels/ubuntu/cc-ubuntu-panel.c
-@@ -0,0 +1,1407 @@
+@@ -0,0 +1,1413 @@
 +/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 +/*
 + * Copyright (C) 2017-2022 Canonical Ltd
@@ -583,6 +609,8 @@ index 0000000..745ad27
 +  GtkFlowBoxChild        *accent_orange;
 +  GtkFlowBoxChild        *accent_magenta;
 +  GtkFlowBoxChild        *accent_purple;
++  GtkFlowBoxChild        *accent_prussiangreen;
++  GtkFlowBoxChild        *accent_sage;
 +  GtkFlowBoxChild        *accent_red;
 +  GtkFlowBoxChild        *accent_viridian;
 +
@@ -1525,7 +1553,9 @@ index 0000000..745ad27
 +  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, accent_orange);
 +  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, accent_magenta);
 +  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, accent_purple);
++  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, accent_prussiangreen);
 +  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, accent_red);
++  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, accent_sage);
 +  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, accent_viridian);
 +
 +  gtk_widget_class_bind_template_callback (widget_class, on_dock_monitor_row_changed);
@@ -1853,11 +1883,13 @@ index 0000000..745ad27
 +
 +  g_object_set_qdata (G_OBJECT (self->accent_bark), accent_quark (), "bark");
 +  g_object_set_qdata (G_OBJECT (self->accent_blue), accent_quark (), "blue");
++  g_object_set_qdata (G_OBJECT (self->accent_magenta), accent_quark (), "magenta");
 +  g_object_set_qdata (G_OBJECT (self->accent_olive), accent_quark (), "olive");
 +  g_object_set_qdata (G_OBJECT (self->accent_orange), accent_quark (), "orange");
-+  g_object_set_qdata (G_OBJECT (self->accent_magenta), accent_quark (), "magenta");
 +  g_object_set_qdata (G_OBJECT (self->accent_purple), accent_quark (), "purple");
++  g_object_set_qdata (G_OBJECT (self->accent_prussiangreen), accent_quark (), "prussiangreen");
 +  g_object_set_qdata (G_OBJECT (self->accent_red), accent_quark (), "red");
++  g_object_set_qdata (G_OBJECT (self->accent_sage), accent_quark (), "sage");
 +  g_object_set_qdata (G_OBJECT (self->accent_viridian), accent_quark (), "viridian");
 +  check_theme_accents_availability (self);
 +
@@ -1939,10 +1971,10 @@ index 0000000..b13f611
 +#endif /* _CC_EDIT_DIALOG_H_ */
 diff --git a/panels/ubuntu/cc-ubuntu-panel.ui b/panels/ubuntu/cc-ubuntu-panel.ui
 new file mode 100644
-index 0000000..c1d94b0
+index 0000000..3065200
 --- /dev/null
 +++ b/panels/ubuntu/cc-ubuntu-panel.ui
-@@ -0,0 +1,582 @@
+@@ -0,0 +1,640 @@
 +<?xml version="1.0" encoding="UTF-8"?>
 +<interface>
 +  <requires lib="gtk+" version="3.20"/>
@@ -2051,7 +2083,7 @@ index 0000000..c1d94b0
 +                                <property name="margin_start">128</property>
 +                                <property name="margin_end">128</property>
 +                                <property name="margin_bottom">10</property>
-+                                <property name="label" translatable="yes" context="Yaru theme in use">Light</property>
++                                <property name="label" translatable="yes" context="Yaru theme (color scheme) variant">Light</property>
 +                              </object>
 +                            </child>
 +                            <child>
@@ -2062,7 +2094,7 @@ index 0000000..c1d94b0
 +                                <property name="margin_start">128</property>
 +                                <property name="margin_end">128</property>
 +                                <property name="margin_bottom">10</property>
-+                                <property name="label" translatable="yes" context="Yaru theme in use">Dark</property>
++                                <property name="label" translatable="yes" context="Yaru theme (color scheme) variant">Dark</property>
 +                              </object>
 +                            </child>
 +                          </object>
@@ -2082,8 +2114,8 @@ index 0000000..c1d94b0
 +                <child>
 +                  <object class="GtkFLowBox" id="color_box">
 +                    <property name="visible">1</property>
-+                    <property name="max-children-per-line">8</property>
-+                    <property name="min-children-per-line">8</property>
++                    <property name="max-children-per-line">10</property>
++                    <property name="min-children-per-line">10</property>
 +                    <property name="column-spacing">12</property>
 +                    <property name="row-spacing">12</property>
 +                    <property name="margin">6</property>
@@ -2094,7 +2126,7 @@ index 0000000..c1d94b0
 +                    </style>
 +                    <child>
 +                      <object class="GtkFlowBoxChild" id="accent_orange">
-+                        <property name="tooltip_text" translatable="yes">Orange</property>
++                        <property name="tooltip_text" translatable="yes" context="Yaru theme accent color">Orange</property>
 +                        <property name="visible">1</property>
 +                        <property name="valign">center</property>
 +                        <style>
@@ -2123,7 +2155,7 @@ index 0000000..c1d94b0
 +                    </child>
 +                    <child>
 +                      <object class="GtkFlowBoxChild" id="accent_bark">
-+                        <property name="tooltip_text" translatable="yes">Bark</property>
++                        <property name="tooltip_text" translatable="yes" context="Yaru theme accent color">Bark</property>
 +                        <property name="visible">1</property>
 +                        <property name="valign">center</property>
 +                        <style>
@@ -2151,8 +2183,37 @@ index 0000000..c1d94b0
 +                      </object>
 +                    </child>
 +                    <child>
++                      <object class="GtkFlowBoxChild" id="accent_sage">
++                        <property name="tooltip_text" translatable="yes" context="Yaru theme accent color">Sage</property>
++                        <property name="visible">1</property>
++                        <property name="valign">center</property>
++                        <style>
++                          <class name="colors" />
++                        </style>
++                        <child>
++                          <object class="GtkBox">
++                            <property name="visible">1</property>
++                            <property name="orientation">vertical</property>
++                            <style>
++                              <class name="colors" />
++                              <class name="view" />
++                            </style>
++                            <child>
++                              <object class="GtkImage">
++                                <property name="visible">1</property>
++                                <property name="resource">/org/gnome/control-center/ubuntu/assets/colors/sage.svg</property>
++                                <style>
++                                  <class name="colors-thumbnail" />
++                                </style>
++                              </object>
++                            </child>
++                          </object>
++                        </child>
++                      </object>
++                    </child>
++                    <child>
 +                      <object class="GtkFlowBoxChild" id="accent_olive">
-+                        <property name="tooltip_text" translatable="yes">Olive</property>
++                        <property name="tooltip_text" translatable="yes" context="Yaru theme accent color">Olive</property>
 +                        <property name="visible">1</property>
 +                        <property name="valign">center</property>
 +                        <style>
@@ -2181,7 +2242,7 @@ index 0000000..c1d94b0
 +                    </child>
 +                    <child>
 +                      <object class="GtkFlowBoxChild" id="accent_viridian">
-+                        <property name="tooltip_text" translatable="yes">Viridian</property>
++                        <property name="tooltip_text" translatable="yes" context="Yaru theme accent color">Viridian</property>
 +                        <property name="visible">1</property>
 +                        <property name="valign">center</property>
 +                        <style>
@@ -2209,8 +2270,37 @@ index 0000000..c1d94b0
 +                      </object>
 +                    </child>
 +                    <child>
++                      <object class="GtkFlowBoxChild" id="accent_prussiangreen">
++                        <property name="tooltip_text" translatable="yes" context="Yaru theme accent color">Prussian Green</property>
++                        <property name="visible">1</property>
++                        <property name="valign">center</property>
++                        <style>
++                          <class name="colors" />
++                        </style>
++                        <child>
++                          <object class="GtkBox">
++                            <property name="visible">1</property>
++                            <property name="orientation">vertical</property>
++                            <style>
++                              <class name="colors" />
++                              <class name="view" />
++                            </style>
++                            <child>
++                              <object class="GtkImage">
++                                <property name="visible">1</property>
++                                <property name="resource">/org/gnome/control-center/ubuntu/assets/colors/prussiangreen.svg</property>
++                                <style>
++                                  <class name="colors-thumbnail" />
++                                </style>
++                              </object>
++                            </child>
++                          </object>
++                        </child>
++                      </object>
++                    </child>
++                    <child>
 +                      <object class="GtkFlowBoxChild" id="accent_blue">
-+                        <property name="tooltip_text" translatable="yes">Blue</property>
++                        <property name="tooltip_text" translatable="yes" context="Yaru theme accent color">Blue</property>
 +                        <property name="visible">1</property>
 +                        <property name="valign">center</property>
 +                        <style>
@@ -2239,7 +2329,7 @@ index 0000000..c1d94b0
 +                    </child>
 +                    <child>
 +                      <object class="GtkFlowBoxChild" id="accent_purple">
-+                        <property name="tooltip_text" translatable="yes">Purple</property>
++                        <property name="tooltip_text" translatable="yes" context="Yaru theme accent color">Purple</property>
 +                        <property name="visible">1</property>
 +                        <property name="valign">center</property>
 +                        <style>
@@ -2268,7 +2358,7 @@ index 0000000..c1d94b0
 +                    </child>
 +                    <child>
 +                      <object class="GtkFlowBoxChild" id="accent_magenta">
-+                        <property name="tooltip_text" translatable="yes">Magenta</property>
++                        <property name="tooltip_text" translatable="yes" context="Yaru theme accent color">Magenta</property>
 +                        <property name="visible">1</property>
 +                        <property name="valign">center</property>
 +                        <style>
@@ -2297,7 +2387,7 @@ index 0000000..c1d94b0
 +                    </child>
 +                    <child>
 +                      <object class="GtkFlowBoxChild" id="accent_red">
-+                        <property name="tooltip_text" translatable="yes">Red</property>
++                        <property name="tooltip_text" translatable="yes" context="Yaru theme accent color">Red</property>
 +                        <property name="visible">1</property>
 +                        <property name="valign">center</property>
 +                        <style>
@@ -2611,10 +2701,10 @@ index 0000000..cdfbd03
 +)
 diff --git a/panels/ubuntu/ubuntu.gresource.xml b/panels/ubuntu/ubuntu.gresource.xml
 new file mode 100644
-index 0000000..3adbb63
+index 0000000..6e20032
 --- /dev/null
 +++ b/panels/ubuntu/ubuntu.gresource.xml
-@@ -0,0 +1,18 @@
+@@ -0,0 +1,20 @@
 +<?xml version="1.0" encoding="UTF-8"?>
 +<gresources>
 +  <gresource prefix="/org/gnome/control-center/ubuntu">
@@ -2623,13 +2713,15 @@ index 0000000..3adbb63
 +    <file>appearance.css</file>
 +    <file>assets/theme-dark.svg</file>
 +    <file>assets/theme-light.svg</file>
-+    <file>assets/colors/orange.svg</file>
 +    <file>assets/colors/bark.svg</file>
 +    <file>assets/colors/blue.svg</file>
 +    <file>assets/colors/magenta.svg</file>
 +    <file>assets/colors/olive.svg</file>
++    <file>assets/colors/orange.svg</file>
++    <file>assets/colors/prussiangreen.svg</file>
 +    <file>assets/colors/purple.svg</file>
 +    <file>assets/colors/red.svg</file>
++    <file>assets/colors/sage.svg</file>
 +    <file>assets/colors/viridian.svg</file>
 +  </gresource>
 +</gresources>
