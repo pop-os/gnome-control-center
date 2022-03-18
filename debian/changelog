@@ -1,9 +1,60 @@
 gnome-control-center (1:41.4-1ubuntu5) UNRELEASED; urgency=medium
 
+  [ Sebastien Bacher ]
   * debian/ubuntu-logo-icon.png:
     - update with the new Ubuntu logo
 
- -- Sebastien Bacher <seb128@ubuntu.com>  Thu, 17 Mar 2022 17:10:11 +0100
+  [ Muqtxdir ]
+  * Add settings to control the main desktop icons options (LP: #1964732)
+  * modernize the over-amplification row
+  * debian/patches: add RTL condition from upstream to cc-multitasking-panel.
+    Use GtkIMage from resource
+  * updated color selectors to match Yaru palette
+    - Added bark, olive, viridian to replace aqua, green and yellow.
+    - Updated colors from yaru PR #3486
+    - remove unnecessary metadata from theme-dark and theme-light now that
+      gradient is not used in SVG.
+    - changed color-names in cc-ubuntu.panel.c and cc-ubuntu-panel.ui
+    - arranged the colors in colors_row based on hue
+  * Remove gradient from SVG, let CSS handle the background-gradient.
+
+  [ Marco Trevisan (Treviño) ]
+  * ubuntu-panel: Update the icon theme on color variant change
+  * ubuntu-panel: Fix issue causing g-c-c to reset the theme when using dark
+    variants
+  * ubuntu-panel: Set new color-scheme preference on dark/light changes.
+    This allows to keep in sync the options to that Hdy and Adw apps can
+    obey to that.
+  * ubuntu-panel: Add more Yaru color variants
+  * ubuntu-panel: Update the keywords for the ubuntu appearance panel
+  * ubuntu-panel: Use more consistent pop-over to show the desktop Icons
+    settings (LP: #1964732)
+  * debian/patches: Cherry-pick various upstream fixes part of 42 branch.
+    Even though we stick on 41 there are some upstream changes that couldn't
+    land on upstream's gnome-41 branch because they may change behavior in a
+    way that is not wanted in a stable update, but this is not the case for
+    us yet, so let's pick them. They include:
+    - Support for new high-contrast and color scheme settings keys
+    - Support for applying gracefully the theme changes
+    - Various memory fixes
+  * debian/patches: Fix a leak when creating a new user.
+    ANDREAAAAAAAAAAAaaaaaaaaaaaaaaaaaaaaaaaaaaaaa! :-*
+  * ubuntu-panel: Ensure accent colors are visible and widget not selectable
+  * ubuntu-panel: Add support for configuring Desktop extension
+  * ubuntu-panel: Check for theme availability in Yaru gresource path
+  * ubuntu-panel: Ensure relevant settings work on missing optional schemas
+  * ubuntu-panel: Support Shell screen transition on theme change
+  * ubuntu-panel: Use faster and saver qdata for the accent values
+  * ubuntu-panel: Improve wording on Desktop Icons settings
+  * ubuntu-panel: Update the keywords for the ubuntu appearance panel
+  * ubuntu-panel: Use more consistent pop-over for the desktop Icons settings
+    (LP: #1964732)
+
+  [ Jeremy Bicha ]
+  * debian/patches: Remove Screenshot key settings.
+    They are under gnome-shell umbrella now
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Fri, 18 Mar 2022 02:23:12 +0100
 
 gnome-control-center (1:41.4-1ubuntu3.1) jammy; urgency=medium
 
