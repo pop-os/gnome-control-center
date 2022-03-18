@@ -33,16 +33,16 @@ Forwarded: not-needed
  panels/ubuntu/cc-ubuntu-dock-dialog.c          |  106 ++
  panels/ubuntu/cc-ubuntu-dock-dialog.h          |   31 +
  panels/ubuntu/cc-ubuntu-dock-dialog.ui         |  120 ++
- panels/ubuntu/cc-ubuntu-panel.c                | 1413 ++++++++++++++++++++++++
+ panels/ubuntu/cc-ubuntu-panel.c                | 1719 ++++++++++++++++++++++++
  panels/ubuntu/cc-ubuntu-panel.h                |   35 +
- panels/ubuntu/cc-ubuntu-panel.ui               |  640 +++++++++++
+ panels/ubuntu/cc-ubuntu-panel.ui               |  618 +++++++++
  panels/ubuntu/gnome-ubuntu-panel.desktop.in.in |   16 +
  panels/ubuntu/meson.build                      |   56 +
  panels/ubuntu/ubuntu.gresource.xml             |   20 +
  po/POTFILES.in                                 |    5 +
  shell/cc-panel-list.c                          |    1 +
  shell/cc-panel-loader.c                        |    3 +
- 26 files changed, 2523 insertions(+)
+ 26 files changed, 2807 insertions(+)
  create mode 100644 panels/ubuntu/appearance.css
  create mode 100644 panels/ubuntu/assets/colors/bark.svg
  create mode 100644 panels/ubuntu/assets/colors/blue.svg
@@ -511,10 +511,10 @@ index 0000000..512f606
 +</interface>
 diff --git a/panels/ubuntu/cc-ubuntu-panel.c b/panels/ubuntu/cc-ubuntu-panel.c
 new file mode 100644
-index 0000000..76954e2
+index 0000000..b114af3
 --- /dev/null
 +++ b/panels/ubuntu/cc-ubuntu-panel.c
-@@ -0,0 +1,1413 @@
+@@ -0,0 +1,1719 @@
 +/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 +/*
 + * Copyright (C) 2017-2022 Canonical Ltd
@@ -587,8 +587,8 @@ index 0000000..76954e2
 +  CcPanel                 parent_instance;
 +
 +  HdyPreferencesGroup    *ding_preferences_group;
-+  GtkComboBoxText        *ding_icons_size_combo;
-+  GtkComboBoxText        *ding_icons_new_alignment_combo;
++  HdyComboRow            *ding_icon_size_row;
++  HdyComboRow            *ding_icons_new_alignment_row;
 +  GtkSwitch              *ding_showhome_switch;
 +  HdyPreferencesGroup    *dock_preferences_group;
 +  GtkSwitch              *dock_autohide_switch;
@@ -1532,8 +1532,8 @@ index 0000000..76954e2
 +  gtk_widget_class_set_template_from_resource (widget_class, "/org/gnome/control-center/ubuntu/cc-ubuntu-panel.ui");
 +
 +  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, ding_preferences_group);
-+  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, ding_icons_size_combo);
-+  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, ding_icons_new_alignment_combo);
++  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, ding_icon_size_row);
++  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, ding_icons_new_alignment_row);
 +  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, ding_showhome_switch);
 +  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, dock_preferences_group);
 +  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, dock_autohide_switch);
@@ -1762,6 +1762,302 @@ index 0000000..76954e2
 +                                 NULL, NULL);
 +}
 +
++typedef enum
++{
++  UBUNTU_DING_ICONS_SIZE_SMALL,
++  UBUNTU_DING_ICONS_SIZE_STANDARD,
++  UBUNTU_DING_ICONS_SIZE_LARGE,
++  UBUNTU_DING_ICONS_SIZE_TINY,
++} UbuntuDingIconsSize;
++
++static const char *
++get_ding_size_string (UbuntuDingIconsSize size)
++{
++  switch (size)
++    {
++      case UBUNTU_DING_ICONS_SIZE_TINY:
++        return "tiny";
++      case UBUNTU_DING_ICONS_SIZE_SMALL:
++        return "small";
++      case UBUNTU_DING_ICONS_SIZE_STANDARD:
++        return "standard";
++      case UBUNTU_DING_ICONS_SIZE_LARGE:
++        return "large";
++      default:
++        g_return_val_if_reached ("standard");
++    }
++}
++
++static UbuntuDingIconsSize
++get_ding_size_from_string (const char *size)
++{
++  if (g_str_equal (size, "tiny"))
++    return UBUNTU_DING_ICONS_SIZE_TINY;
++
++  if (g_str_equal (size, "small"))
++    return UBUNTU_DING_ICONS_SIZE_SMALL;
++
++  if (g_str_equal (size, "standard"))
++    return UBUNTU_DING_ICONS_SIZE_STANDARD;
++
++  if (g_str_equal (size, "large"))
++    return UBUNTU_DING_ICONS_SIZE_LARGE;
++
++  g_return_val_if_reached (UBUNTU_DING_ICONS_SIZE_STANDARD);
++}
++
++static int
++get_ding_size_row_index (CcUbuntuPanel       *self,
++                         UbuntuDingIconsSize  size)
++{
++  GListModel *model = hdy_combo_row_get_model (self->ding_icon_size_row);
++  guint n_items;
++  guint i;
++
++  n_items = g_list_model_get_n_items (model);
++
++  for (i = 0; i < n_items; i++)
++    {
++      HdyValueObject *value_object = g_list_model_get_item (model, i);
++      UbuntuDingIconsSize item_size;
++
++      item_size = GPOINTER_TO_INT (g_object_get_data (G_OBJECT (value_object), "size"));
++
++      if (item_size == size)
++        return i;
++    }
++
++  g_return_val_if_reached (0);
++}
++
++static gboolean
++ding_size_get_mapping (GValue   *value,
++                       GVariant *variant,
++                       gpointer  user_data)
++{
++  CcUbuntuPanel *self = user_data;
++  UbuntuDingIconsSize size = 0;
++
++  size = get_ding_size_from_string (g_variant_get_string (variant, NULL));
++
++  if (G_VALUE_TYPE (value) == G_TYPE_INT)
++    {
++      g_value_set_int (value, get_ding_size_row_index (self, size));
++      return TRUE;
++    }
++  else if (G_VALUE_TYPE (value) == G_TYPE_STRING)
++    {
++      g_value_set_string (value, get_ding_size_string (size));
++      return TRUE;
++    }
++
++  return FALSE;
++}
++
++static GVariant *
++ding_size_set_mapping (const GValue           *value,
++                           const GVariantType *type,
++                           gpointer            user_data)
++{
++  UbuntuDingIconsSize size = g_value_get_int (value);
++
++  return g_variant_new_string (get_ding_size_string (size));
++}
++
++static void
++populate_ding_size_row (HdyComboRow *combo_row)
++{
++  g_autoptr (GListStore) list_store = NULL;
++  struct {
++    char *name;
++    UbuntuDingIconsSize size;
++  } sizes[] = {
++    {
++      NC_("Size of the desktop icons", "Small"),
++          UBUNTU_DING_ICONS_SIZE_SMALL,
++    },
++    {
++      NC_("Size of the desktop icons", "Normal"),
++          UBUNTU_DING_ICONS_SIZE_STANDARD,
++    },
++    {
++      NC_("Size of the desktop icons", "Large"),
++          UBUNTU_DING_ICONS_SIZE_LARGE,
++    },
++    {
++      NC_("Size of the desktop icons", "Tiny"),
++          UBUNTU_DING_ICONS_SIZE_TINY,
++    },
++  };
++  guint i;
++
++  list_store = g_list_store_new (HDY_TYPE_VALUE_OBJECT);
++  for (i = 0; i < G_N_ELEMENTS (sizes); i++)
++    {
++      g_autoptr (HdyValueObject) value_object = NULL;
++
++      value_object = hdy_value_object_new_string (_(sizes[i].name));
++      g_object_set_data (G_OBJECT (value_object),
++                         "size",
++                         GUINT_TO_POINTER (sizes[i].size));
++      g_list_store_append (list_store, value_object);
++    }
++
++  hdy_combo_row_bind_name_model (combo_row,
++                                 G_LIST_MODEL (list_store),
++                                 (HdyComboRowGetNameFunc) hdy_value_object_dup_string,
++                                 NULL, NULL);
++}
++
++typedef enum
++{
++  UBUNTU_DING_START_CORNER_TOP_LEFT,
++  UBUNTU_DING_START_CORNER_TOP_RIGHT,
++  UBUNTU_DING_START_CORNER_BOTTOM_LEFT,
++  UBUNTU_DING_START_CORNER_BOTTOM_RIGHT,
++} UbuntuDingStartCorner;
++
++static const char *
++get_ding_start_corner_string (UbuntuDingStartCorner corner)
++{
++  switch (corner)
++    {
++      case UBUNTU_DING_START_CORNER_TOP_LEFT:
++        return "top-left";
++      case UBUNTU_DING_START_CORNER_TOP_RIGHT:
++        return "top-right";
++      case UBUNTU_DING_START_CORNER_BOTTOM_LEFT:
++        return "bottom-left";
++      case UBUNTU_DING_START_CORNER_BOTTOM_RIGHT:
++        return "bottom-right";
++      default:
++        g_return_val_if_reached ("standard");
++    }
++}
++
++static UbuntuDingStartCorner
++get_ding_start_corner_from_string (const char *corner)
++{
++  if (g_str_equal (corner, "top-left"))
++    return UBUNTU_DING_START_CORNER_TOP_LEFT;
++
++  if (g_str_equal (corner, "top-right"))
++    return UBUNTU_DING_START_CORNER_TOP_RIGHT;
++
++  if (g_str_equal (corner, "bottom-left"))
++    return UBUNTU_DING_START_CORNER_BOTTOM_LEFT;
++
++  if (g_str_equal (corner, "bottom-right"))
++    return UBUNTU_DING_START_CORNER_BOTTOM_RIGHT;
++
++  g_warning("Value is %s", corner);
++
++  g_return_val_if_reached (UBUNTU_DING_START_CORNER_BOTTOM_RIGHT);
++}
++
++static int
++ding_start_corner_get_row_index (CcUbuntuPanel         *self,
++                                 UbuntuDingStartCorner  corner)
++{
++  GListModel *model = hdy_combo_row_get_model (self->ding_icons_new_alignment_row);
++  guint n_items;
++  guint i;
++
++  n_items = g_list_model_get_n_items (model);
++
++  for (i = 0; i < n_items; i++)
++    {
++      HdyValueObject *value_object = g_list_model_get_item (model, i);
++      UbuntuDingStartCorner item_corner;
++
++      item_corner = GPOINTER_TO_INT (g_object_get_data (G_OBJECT (value_object), "corner"));
++
++      if (item_corner == corner)
++        return i;
++    }
++
++  g_return_val_if_reached (0);
++}
++
++static gboolean
++ding_start_corner_get_mapping (GValue   *value,
++                               GVariant *variant,
++                               gpointer  user_data)
++{
++  CcUbuntuPanel *self = user_data;
++  UbuntuDingStartCorner corner = 0;
++
++  corner = get_ding_start_corner_from_string (g_variant_get_string (variant, NULL));
++
++  if (G_VALUE_TYPE (value) == G_TYPE_INT)
++    {
++      g_value_set_int (value, ding_start_corner_get_row_index (self, corner));
++      return TRUE;
++    }
++  else if (G_VALUE_TYPE (value) == G_TYPE_STRING)
++    {
++      g_value_set_string (value, get_ding_start_corner_string (corner));
++      return TRUE;
++    }
++
++  return FALSE;
++}
++
++static GVariant *
++ding_start_corner_set_mapping (const GValue       *value,
++                               const GVariantType *type,
++                               gpointer            user_data)
++{
++  UbuntuDingStartCorner corner = g_value_get_int (value);
++
++  return g_variant_new_string (get_ding_start_corner_string (corner));
++}
++
++static void
++populate_ding_start_corner_row (HdyComboRow *combo_row)
++{
++  g_autoptr (GListStore) list_store = NULL;
++  struct {
++    char *name;
++    UbuntuDingStartCorner corner;
++  } corners[] = {
++    {
++      NC_("Alignment of new desktop icons", "Top Left"),
++          UBUNTU_DING_START_CORNER_TOP_LEFT,
++    },
++    {
++      NC_("Alignment of new desktop icons", "Top Right"),
++          UBUNTU_DING_START_CORNER_TOP_RIGHT,
++    },
++    {
++      NC_("Alignment of new desktop icons", "Bottom Left"),
++          UBUNTU_DING_START_CORNER_BOTTOM_LEFT,
++    },
++    {
++      NC_("Alignment of new desktop icons", "Bottom Right"),
++          UBUNTU_DING_START_CORNER_BOTTOM_RIGHT,
++    },
++  };
++  guint i;
++
++  list_store = g_list_store_new (HDY_TYPE_VALUE_OBJECT);
++  for (i = 0; i < G_N_ELEMENTS (corners); i++)
++    {
++      g_autoptr (HdyValueObject) value_object = NULL;
++
++      value_object = hdy_value_object_new_string (_(corners[i].name));
++      g_object_set_data (G_OBJECT (value_object),
++                         "corner",
++                         GUINT_TO_POINTER (corners[i].corner));
++      g_list_store_append (list_store, value_object);
++    }
++
++  hdy_combo_row_bind_name_model (combo_row,
++                                 G_LIST_MODEL (list_store),
++                                 (HdyComboRowGetNameFunc) hdy_value_object_dup_string,
++                                 NULL, NULL);
++}
++
 +static void
 +cc_ubuntu_panel_init (CcUbuntuPanel *self)
 +{
@@ -1804,12 +2100,22 @@ index 0000000..76954e2
 +    {
 +      self->ding_settings = g_settings_new_full (schema, NULL, NULL);
 +
-+      g_settings_bind (self->ding_settings, "icon-size",
-+                       self->ding_icons_size_combo, "active-id",
-+                       G_SETTINGS_BIND_DEFAULT);
-+      g_settings_bind (self->ding_settings, "start-corner",
-+                       self->ding_icons_new_alignment_combo, "active-id",
-+                       G_SETTINGS_BIND_DEFAULT);
++      populate_ding_size_row (self->ding_icon_size_row);
++      g_settings_bind_with_mapping (self->ding_settings, "icon-size",
++                                    self->ding_icon_size_row, "selected-index",
++                                    G_SETTINGS_BIND_DEFAULT,
++                                    ding_size_get_mapping,
++                                    ding_size_set_mapping,
++                                    self, NULL);
++
++      populate_ding_start_corner_row (self->ding_icons_new_alignment_row);
++      g_settings_bind_with_mapping (self->ding_settings, "start-corner",
++                                    self->ding_icons_new_alignment_row, "selected-index",
++                                    G_SETTINGS_BIND_DEFAULT,
++                                    ding_start_corner_get_mapping,
++                                    ding_start_corner_set_mapping,
++                                    self, NULL);
++
 +      g_settings_bind (self->ding_settings, "show-home",
 +                       self->ding_showhome_switch, "active",
 +                       G_SETTINGS_BIND_DEFAULT);
@@ -1971,10 +2277,10 @@ index 0000000..b13f611
 +#endif /* _CC_EDIT_DIALOG_H_ */
 diff --git a/panels/ubuntu/cc-ubuntu-panel.ui b/panels/ubuntu/cc-ubuntu-panel.ui
 new file mode 100644
-index 0000000..3065200
+index 0000000..796483d
 --- /dev/null
 +++ b/panels/ubuntu/cc-ubuntu-panel.ui
-@@ -0,0 +1,640 @@
+@@ -0,0 +1,618 @@
 +<?xml version="1.0" encoding="UTF-8"?>
 +<interface>
 +  <requires lib="gtk+" version="3.20"/>
@@ -2428,45 +2734,23 @@ index 0000000..3065200
 +            <property name="visible">True</property>
 +            <property name="title" translatable="yes" comments="Desktop icons settings.">Desktop Icons</property>
 +            <child>
-+              <object class="HdyActionRow">
-+                <property name="visible">true</property>
-+                <property name="title" translatable="yes">Size</property>
-+                <property name="activatable-widget">ding_icons_size_combo</property>
-+                <property name="use-underline">true</property>
-+                <child>
-+                  <object class="GtkComboBoxText" id="ding_icons_size_combo">
-+                    <property name="visible">1</property>
-+                    <property name="valign">center</property>
-+                    <property name="entry_text_column">0</property>
-+                    <items>
-+                      <item id="tiny" translatable="yes">Tiny</item>
-+                      <item id="small" translatable="yes">Small</item>
-+                      <item id="standard" translatable="yes">Normal</item>
-+                      <item id="large" translatable="yes">Large</item>
-+                    </items>
-+                  </object>
-+                </child>
++              <object class="HdyComboRow" id="ding_icon_size_row">
++                <property name="visible">True</property>
++                <property name="use_underline">True</property>
++                <property name="can_focus">True</property>
++                <property name="can_focus">True</property>
++                <property name="width_request">100</property>
++                <property name="title" translatable="yes" context="Desktop Icons Size">Size</property>
 +              </object>
 +            </child>
 +            <child>
-+              <object class="HdyActionRow">
-+                <property name="visible">true</property>
-+                <property name="title" translatable="yes">Position of new icons</property>
-+                <property name="activatable-widget">ding_icons_new_alignment_combo</property>
-+                <property name="use-underline">true</property>
-+                <child>
-+                  <object class="GtkComboBoxText" id="ding_icons_new_alignment_combo">
-+                    <property name="visible">1</property>
-+                    <property name="valign">center</property>
-+                    <property name="entry_text_column">0</property>
-+                    <items>
-+                      <item id="top-left" translatable="yes">Top Left</item>
-+                      <item id="top-right" translatable="yes">Top Right</item>
-+                      <item id="bottom-left" translatable="yes">Bottom Left</item>
-+                      <item id="bottom-right" translatable="yes">Bottom Right</item>
-+                    </items>
-+                  </object>
-+                </child>
++              <object class="HdyComboRow" id="ding_icons_new_alignment_row">
++                <property name="visible">True</property>
++                <property name="use_underline">True</property>
++                <property name="can_focus">True</property>
++                <property name="can_focus">True</property>
++                <property name="width_request">100</property>
++                <property name="title" translatable="yes" context="Desktop Icons Size">Position of New Icons</property>
 +              </object>
 +            </child>
 +            <child>
