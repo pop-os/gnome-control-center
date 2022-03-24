@@ -1,0 +1,67 @@
+From: Bastien Nocera <hadess@hadess.net>
+Date: Tue, 16 Nov 2021 17:18:15 +0100
+Subject: wacom: Split off notebook switching for detected stylus
+
+This will reduce code duplication for mocking styli.
+
+Origin: https://gitlab.gnome.org/GNOME/gnome-control-center/-/commit/a93a023
+---
+ panels/wacom/cc-wacom-panel.c | 38 ++++++++++++++++++++++----------------
+ 1 file changed, 22 insertions(+), 16 deletions(-)
+
+diff --git a/panels/wacom/cc-wacom-panel.c b/panels/wacom/cc-wacom-panel.c
+index 17404c1..643955c 100644
+--- a/panels/wacom/cc-wacom-panel.c
++++ b/panels/wacom/cc-wacom-panel.c
+@@ -330,6 +330,26 @@ update_test_button (CcWacomPanel *self)
+ 	}
+ }
+ 
++static void
++update_stylus_notebook (CcWacomPanel *panel,
++			CcWacomTool  *stylus)
++{
++	if (panel->stylus_notebook ==
++	    gtk_stack_get_visible_child (GTK_STACK (panel->stack))) {
++		GtkWidget *widget;
++		gint page;
++
++		widget = g_hash_table_lookup (panel->stylus_pages, stylus);
++		page = gtk_notebook_page_num (GTK_NOTEBOOK (panel->stylus_notebook), widget);
++		gtk_notebook_set_current_page (GTK_NOTEBOOK (panel->stylus_notebook), page);
++	} else {
++		gtk_container_child_set (GTK_CONTAINER (panel->stack),
++					 panel->stylus_notebook,
++					 "needs-attention", TRUE,
++					 NULL);
++	}
++}
++
+ static void
+ update_current_tool (CcWacomPanel  *panel,
+ 		     GdkDevice     *device,
+@@ -392,22 +412,8 @@ update_current_tool (CcWacomPanel  *panel,
+ 
+ 	added = add_stylus (panel, stylus);
+ 
+-	if (added) {
+-		if (panel->stylus_notebook ==
+-		    gtk_stack_get_visible_child (GTK_STACK (panel->stack))) {
+-			GtkWidget *widget;
+-			gint page;
+-
+-			widget = g_hash_table_lookup (panel->stylus_pages, stylus);
+-			page = gtk_notebook_page_num (GTK_NOTEBOOK (panel->stylus_notebook), widget);
+-			gtk_notebook_set_current_page (GTK_NOTEBOOK (panel->stylus_notebook), page);
+-		} else {
+-			gtk_container_child_set (GTK_CONTAINER (panel->stack),
+-						 panel->stylus_notebook,
+-						 "needs-attention", TRUE,
+-						 NULL);
+-		}
+-	}
++	if (added)
++		update_stylus_notebook (panel, stylus);
+ 
+ 	cc_tablet_tool_map_add_relation (panel->tablet_tool_map,
+ 					 wacom_device, stylus);

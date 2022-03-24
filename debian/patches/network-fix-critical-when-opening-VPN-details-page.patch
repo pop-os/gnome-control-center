@@ -1,0 +1,32 @@
+From: Michael Catanzaro <mcatanzaro@redhat.com>
+Date: Fri, 5 Nov 2021 16:25:58 -0500
+Subject: network: fix critical when opening VPN details page
+
+I was seeing this critical when opening the VPN details page:
+
+(gnome-control-center:78888): nm-CRITICAL **: 16:26:21.689: ((src/libnm-client-impl/nm-device.c:1299)): assertion '<dropped>' failed
+
+It probably broke in 551d72280bbc9479a81697e2d888a77a64538b27. The code
+above and below expects self->device may be NULL, so let's add a
+NULL check here.
+
+Origin: https://gitlab.gnome.org/GNOME/gnome-control-center/-/commit/c180aa66
+---
+ panels/network/connection-editor/ce-page-details.c | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/panels/network/connection-editor/ce-page-details.c b/panels/network/connection-editor/ce-page-details.c
+index 3908515..7826179 100644
+--- a/panels/network/connection-editor/ce-page-details.c
++++ b/panels/network/connection-editor/ce-page-details.c
+@@ -297,7 +297,9 @@ connect_details_page (CEPageDetails *self)
+         gtk_widget_set_visible (GTK_WIDGET (self->speed_heading_label), speed_label != NULL);
+         gtk_widget_set_visible (GTK_WIDGET (self->speed_label), speed_label != NULL);
+ 
+-        hw_address = nm_device_get_hw_address (self->device);
++        if (self->device)
++            hw_address = nm_device_get_hw_address (self->device);
++
+         gtk_label_set_label (self->mac_label, hw_address);
+         gtk_widget_set_visible (GTK_WIDGET (self->mac_heading_label), hw_address != NULL);
+         gtk_widget_set_visible (GTK_WIDGET (self->mac_label), hw_address != NULL);

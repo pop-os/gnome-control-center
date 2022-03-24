@@ -16,11 +16,11 @@ https://bugzilla.gnome.org/show_bug.cgi?id=737362
  panels/connectivity/cc-connectivity-panel.ui       |  65 ++++++++++
  panels/connectivity/connectivity.gresource.xml     |   6 +
  .../gnome-connectivity-panel.desktop.in.in         |  19 +++
- panels/connectivity/meson.build                    |  45 +++++++
+ panels/connectivity/meson.build                    |  44 +++++++
  panels/meson.build                                 |   1 +
  po/POTFILES.in                                     |   2 +
  shell/cc-panel-loader.c                            |   2 +
- 9 files changed, 299 insertions(+)
+ 9 files changed, 298 insertions(+)
  create mode 100644 panels/connectivity/cc-connectivity-panel.c
  create mode 100644 panels/connectivity/cc-connectivity-panel.h
  create mode 100644 panels/connectivity/cc-connectivity-panel.ui
@@ -309,10 +309,10 @@ index 0000000..4e97c28
 +Keywords=network;privacy;
 diff --git a/panels/connectivity/meson.build b/panels/connectivity/meson.build
 new file mode 100644
-index 0000000..e9c30d8
+index 0000000..4d0194b
 --- /dev/null
 +++ b/panels/connectivity/meson.build
-@@ -0,0 +1,45 @@
+@@ -0,0 +1,44 @@
 +panels_list += cappletname
 +desktop = 'gnome-@0@-panel.desktop'.format(cappletname)
 +
@@ -323,7 +323,6 @@ index 0000000..e9c30d8
 +)
 +
 +i18n.merge_file(
-+  desktop,
 +  type: 'desktop',
 +  input: desktop_in,
 +  output: desktop,
@@ -359,7 +358,7 @@ index 0000000..e9c30d8
 +  c_args: cflags
 +)
 diff --git a/panels/meson.build b/panels/meson.build
-index 81ae0b1..7330e64 100644
+index c21910a..cfe81ab 100644
 --- a/panels/meson.build
 +++ b/panels/meson.build
 @@ -5,6 +5,7 @@ panels = [
@@ -371,7 +370,7 @@ index 81ae0b1..7330e64 100644
    'default-apps',
    'diagnostics',
 diff --git a/po/POTFILES.in b/po/POTFILES.in
-index 5c60ac7..262952e 100644
+index e62bfd9..e25e710 100644
 --- a/po/POTFILES.in
 +++ b/po/POTFILES.in
 @@ -32,6 +32,8 @@ panels/common/cc-time-editor.ui
@@ -384,7 +383,7 @@ index 5c60ac7..262952e 100644
  panels/datetime/cc-datetime-panel.ui
  panels/datetime/gnome-datetime-panel.desktop.in.in
 diff --git a/shell/cc-panel-loader.c b/shell/cc-panel-loader.c
-index bcf8767..e870308 100644
+index b571ceb..db90b27 100644
 --- a/shell/cc-panel-loader.c
 +++ b/shell/cc-panel-loader.c
 @@ -37,6 +37,7 @@ extern GType cc_background_panel_get_type (void);
@@ -395,7 +394,7 @@ index bcf8767..e870308 100644
  extern GType cc_date_time_panel_get_type (void);
  extern GType cc_default_apps_panel_get_type (void);
  extern GType cc_display_panel_get_type (void);
-@@ -99,6 +100,7 @@ static CcPanelLoaderVtable default_panels[] =
+@@ -106,6 +107,7 @@ static CcPanelLoaderVtable default_panels[] =
  #endif
    PANEL_TYPE("camera",           cc_camera_panel_get_type,               NULL),
    PANEL_TYPE("color",            cc_color_panel_get_type,                NULL),

@@ -15,7 +15,7 @@ Bug: https://bugzilla.gnome.org/show_bug.cgi?id=692532
  2 files changed, 71 insertions(+)
 
 diff --git a/panels/printers/cc-printers-panel.c b/panels/printers/cc-printers-panel.c
-index 4c7d3f7..3b01d66 100644
+index 880d5a4..e8a3b72 100644
 --- a/panels/printers/cc-printers-panel.c
 +++ b/panels/printers/cc-printers-panel.c
 @@ -25,6 +25,7 @@
@@ -26,8 +26,8 @@ index 4c7d3f7..3b01d66 100644
  #include <glib/gi18n-lib.h>
  #include <glib/gstdio.h>
  #include <polkit/polkit.h>
-@@ -961,6 +962,25 @@ printer_add_cb (CcPrintersPanel *self)
-                            G_CONNECT_SWAPPED);
+@@ -977,6 +978,25 @@ printer_add_cb (CcPrintersPanel *self)
+   gtk_widget_show (GTK_WIDGET (self->pp_new_printer_dialog));
  }
  
 +static void
@@ -52,7 +52,7 @@ index 4c7d3f7..3b01d66 100644
  static void
  update_sensitivity (gpointer user_data)
  {
-@@ -1213,6 +1233,14 @@ cc_printers_panel_init (CcPrintersPanel *self)
+@@ -1229,6 +1249,14 @@ cc_printers_panel_init (CcPrintersPanel *self)
    self->notification = (GtkRevealer*)
      gtk_builder_get_object (self->builder, "notification");
  
@@ -68,7 +68,7 @@ index 4c7d3f7..3b01d66 100644
      gtk_builder_get_object (self->builder, "notification-undo-button");
    g_signal_connect_object (widget, "clicked", G_CALLBACK (on_printer_deletion_undone), self, G_CONNECT_SWAPPED);
 diff --git a/panels/printers/printers.ui b/panels/printers/printers.ui
-index 843e7ed..5988ba8 100644
+index 5fbaafb..7eae37b 100644
 --- a/panels/printers/printers.ui
 +++ b/panels/printers/printers.ui
 @@ -135,6 +135,7 @@

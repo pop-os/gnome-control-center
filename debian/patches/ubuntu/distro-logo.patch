@@ -1,0 +1,97 @@
+From 763cde56be06ce352f41adcdc1c6756f17043f5d Mon Sep 17 00:00:00 2001
+From: Michael Catanzaro <mcatanzaro@gnome.org>
+Date: Tue, 9 Mar 2021 14:51:54 -0600
+Subject: [PATCH 1/2] info-overview: add build option to control distributor
+ logo
+
+Currently, we display a 256x256 version of the OS icon from
+/etc/os-release. This is too big for my taste, and it's also not
+sufficient for distros that want to display a logo that is not an icon.
+For instance, because we no longer display the operating system name
+immediately beneath the logo, it may be desirable to use a logo variant
+that includes text. This patch adds a meson build option that
+distributions can use to override the logo.
+
+Because the logo might include text, distributions may want to vary the
+logo used in dark mode. A subsequent commit will add a second option for
+this.
+---
+ meson.build                                   | 6 ++++++
+ meson_options.txt                             | 1 +
+ panels/info-overview/cc-info-overview-panel.c | 4 ++++
+ 3 files changed, 11 insertions(+)
+
+Index: gnome-control-center/meson.build
+===================================================================
+--- gnome-control-center.orig/meson.build
++++ gnome-control-center/meson.build
+@@ -50,6 +50,17 @@ foreach define: set_defines
+   config_h.set_quoted(define[0], define[1])
+ endforeach
+ 
++distributor_logo = get_option('distributor_logo')
++if (distributor_logo != '')
++  config_h.set_quoted('DISTRIBUTOR_LOGO', distributor_logo,
++                      description: 'Define to absolute path of distributor logo')
++  dark_mode_distributor_logo = get_option('dark_mode_distributor_logo')
++  if (dark_mode_distributor_logo != '')
++    config_h.set_quoted('DARK_MODE_DISTRIBUTOR_LOGO', dark_mode_distributor_logo,
++                        description: 'Define to absolute path of distributor logo for use in dark mode')
++  endif
++endif
++
+ # meson does not support octal values, so it must be handled as a
+ # string. See: https://github.com/mesonbuild/meson/issues/2047
+ config_h.set('USER_DIR_MODE', '0700',
+Index: gnome-control-center/meson_options.txt
+===================================================================
+--- gnome-control-center.orig/meson_options.txt
++++ gnome-control-center/meson_options.txt
+@@ -8,3 +8,5 @@ option('tracing', type: 'boolean', value
+ option('wayland', type: 'boolean', value: true, description: 'build with Wayland support')
+ option('profile', type: 'combo', choices: ['default','development'], value: 'default')
+ option('malcontent', type: 'boolean', value: false, description: 'build with malcontent support')
++option('distributor_logo', type: 'string', description: 'absolute path to distributor logo for the About panel')
++option('dark_mode_distributor_logo', type: 'string', description: 'absolute path to distributor logo dark mode variant')
+Index: gnome-control-center/panels/info-overview/cc-info-overview-panel.c
+===================================================================
+--- gnome-control-center.orig/panels/info-overview/cc-info-overview-panel.c
++++ gnome-control-center/panels/info-overview/cc-info-overview-panel.c
+@@ -917,6 +917,7 @@ cc_info_panel_row_activated_cb (CcInfoOv
+     open_software_update (self);
+ }
+ 
++#if !defined(DISTRIBUTOR_LOGO) || defined(DARK_MODE_DISTRIBUTOR_LOGO)
+ static gboolean
+ use_dark_theme (CcInfoOverviewPanel *panel)
+ {
+@@ -934,10 +935,21 @@ use_dark_theme (CcInfoOverviewPanel *pan
+   g_object_get (settings, "gtk-theme-name", &theme_name, NULL);
+   return (theme_name != NULL && g_str_has_suffix (theme_name, "dark")) ? TRUE : FALSE;
+ }
++#endif
+ 
+ static void
+ setup_os_logo (CcInfoOverviewPanel *panel)
+ {
++#ifdef DISTRIBUTOR_LOGO
++#ifdef DARK_MODE_DISTRIBUTOR_LOGO
++  if (use_dark_theme (panel))
++    {
++      gtk_image_set_from_file (panel->os_logo, DARK_MODE_DISTRIBUTOR_LOGO);
++      return;
++    }
++#endif
++  gtk_image_set_from_file (panel->os_logo, DISTRIBUTOR_LOGO);
++#else
+   g_autofree char *logo_name = g_get_os_info ("LOGO");
+   g_autoptr(GPtrArray) array = NULL;
+   g_autoptr(GIcon) icon = NULL;
+@@ -957,6 +969,7 @@ setup_os_logo (CcInfoOverviewPanel *pane
+ 
+   icon = g_themed_icon_new_from_names ((char **) array->pdata, array->len);
+   gtk_image_set_from_gicon (panel->os_logo, icon, GTK_ICON_SIZE_INVALID);
++#endif
+ }
+ 
+ static void

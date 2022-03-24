@@ -14,6 +14,10 @@
 
 G_BEGIN_DECLS
 
+gint hdy_css_adjust_for_size (GtkWidget      *widget,
+                              GtkOrientation  orientation,
+                              gint            for_size);
+
 void hdy_css_measure (GtkWidget      *widget,
                       GtkOrientation  orientation,
                       gint           *minimum,
@@ -30,5 +34,29 @@ void hdy_css_size_allocate_children (GtkWidget     *widget,
 
 void hdy_css_draw (GtkWidget *widget,
                    cairo_t   *cr);
+
+void hdy_css_get_preferred_width (GtkWidget *widget,
+                                  gint      *minimum,
+                                  gint      *natural);
+
+void hdy_css_get_preferred_width_for_height (GtkWidget *widget,
+                                             gint       height,
+                                             gint      *minimum,
+                                             gint      *natural);
+
+void hdy_css_get_preferred_height (GtkWidget *widget,
+                                   gint      *minimum,
+                                   gint      *natural);
+
+void hdy_css_get_preferred_height_for_width (GtkWidget *widget,
+                                             gint       width,
+                                             gint      *minimum,
+                                             gint      *natural);
+
+void hdy_css_size_allocate_bin (GtkWidget     *widget,
+                                GtkAllocation *allocation);
+
+gboolean hdy_css_draw_bin (GtkWidget *widget,
+                           cairo_t   *cr);
 
 G_END_DECLS

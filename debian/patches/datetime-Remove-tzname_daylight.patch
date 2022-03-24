@@ -1,0 +1,76 @@
+From: Colin Watson <cjwatson@debian.org>
+Date: Mon, 27 Sep 2021 22:21:40 +0100
+Subject: datetime: Remove tzname_daylight
+
+The code that set it could only ever have worked by luck in some
+timezones on some systems, and there's no API to obtain the information
+we were trying to store in it.  Nothing uses it, so there's no point
+trying to fix it.
+
+tzname_normal is also unused, but slightly useful for debugging, so
+rename it to tzname but otherwise keep it in place.
+
+Origin: https://gitlab.gnome.org/GNOME/gnome-control-center/-/commit/1b874509
+---
+ panels/datetime/tz.c | 16 +++-------------
+ panels/datetime/tz.h |  6 ++----
+ 2 files changed, 5 insertions(+), 17 deletions(-)
+
+diff --git a/panels/datetime/tz.c b/panels/datetime/tz.c
+index 6e96dd4..5ef6676 100644
+--- a/panels/datetime/tz.c
++++ b/panels/datetime/tz.c
+@@ -215,19 +215,10 @@ tz_info_from_location (TzLocation *loc)
+ 	curzone = localtime (&curtime);
+ 
+ #ifndef __sun
+-	/* Currently this solution doesnt seem to work - I get that */
+-	/* America/Phoenix uses daylight savings, which is wrong    */
+-	tzinfo->tzname_normal = g_strdup (curzone->tm_zone);
+-	if (curzone->tm_isdst) 
+-		tzinfo->tzname_daylight =
+-			g_strdup (&curzone->tm_zone[curzone->tm_isdst]);
+-	else
+-		tzinfo->tzname_daylight = NULL;
+-
++	tzinfo->tzname = g_strdup (curzone->tm_zone);
+ 	tzinfo->utc_offset = curzone->tm_gmtoff;
+ #else
+-	tzinfo->tzname_normal = NULL;
+-	tzinfo->tzname_daylight = NULL;
++	tzinfo->tzname = NULL;
+ 	tzinfo->utc_offset = 0;
+ #endif
+ 
+@@ -247,8 +238,7 @@ tz_info_free (TzInfo *tzinfo)
+ {
+ 	g_return_if_fail (tzinfo != NULL);
+ 	
+-	if (tzinfo->tzname_normal) g_free (tzinfo->tzname_normal);
+-	if (tzinfo->tzname_daylight) g_free (tzinfo->tzname_daylight);
++	if (tzinfo->tzname) g_free (tzinfo->tzname);
+ 	g_free (tzinfo);
+ }
+ 
+diff --git a/panels/datetime/tz.h b/panels/datetime/tz.h
+index a2376f8..b6b7ab9 100644
+--- a/panels/datetime/tz.h
++++ b/panels/datetime/tz.h
+@@ -56,15 +56,13 @@ struct _TzLocation
+ };
+ 
+ /* see the glibc info page information on time zone information */
+-/*  tzname_normal    is the default name for the timezone */
+-/*  tzname_daylight  is the name of the zone when in daylight savings */
++/*  tzname           is the default name for the timezone */
+ /*  utc_offset       is offset in seconds from utc */
+ /*  daylight         if non-zero then location obeys daylight savings */
+ 
+ struct _TzInfo
+ {
+-	gchar *tzname_normal;
+-	gchar *tzname_daylight;
++	gchar *tzname;
+ 	glong utc_offset;
+ 	gint daylight;
+ };

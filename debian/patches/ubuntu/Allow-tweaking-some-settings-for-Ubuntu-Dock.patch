@@ -1,59 +1,523 @@
-From 64b836a1c832af2b242677d7869173d35550f465 Mon Sep 17 00:00:00 2001
 From: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
 Date: Wed, 15 Jan 2020 16:56:17 +1300
-Subject: [PATCH] Allow tweaking some settings for Ubuntu Dock
+Subject: ubuntu-panel: Allow tweaking some Ubuntu specific settings
 
 Expose some of the settings that most users will find useful for our
 Ubuntu Dock installation. Those are located in its own panel for now:
 * change intellihide true/hide mode
 * change dock icon size
 * modify placement of the launcher (all monitor, primary or any monitors)
+
+These changes are maintained in a single branch at:
+ https://gitlab.gnome.org/Community/Ubuntu/gnome-control-center/-/commits/ubuntu-panel
+
+Please provide merge requests there.
+
 Origin: ubuntu
 Forwarded: not-needed
 ---
- panels/meson.build                            |   1 +
- panels/ubuntu/cc-ubuntu-panel.c               | 723 ++++++++++++++++++
- panels/ubuntu/cc-ubuntu-panel.h               |  35 +
- panels/ubuntu/cc-ubuntu-panel.ui              | 368 +++++++++
- .../ubuntu/gnome-ubuntu-panel.desktop.in.in   |  16 +
- panels/ubuntu/meson.build                     |  42 +
- panels/ubuntu/theme-dark.svg                  | 381 +++++++++
- panels/ubuntu/theme-light.svg                 | 380 +++++++++
- panels/ubuntu/ubuntu.gresource.xml            |   8 +
- po/POTFILES.in                                |   3 +
- shell/cc-panel-list.c                         |   1 +
- shell/cc-panel-loader.c                       |   3 +
- 12 files changed, 1961 insertions(+)
+ panels/meson.build                             |    1 +
+ panels/ubuntu/appearance.css                   |   24 +
+ panels/ubuntu/assets/colors/bark.svg           |    5 +
+ panels/ubuntu/assets/colors/blue.svg           |    5 +
+ panels/ubuntu/assets/colors/magenta.svg        |    5 +
+ panels/ubuntu/assets/colors/olive.svg          |    5 +
+ panels/ubuntu/assets/colors/orange.svg         |    5 +
+ panels/ubuntu/assets/colors/prussiangreen.svg  |    5 +
+ panels/ubuntu/assets/colors/purple.svg         |    5 +
+ panels/ubuntu/assets/colors/red.svg            |    5 +
+ panels/ubuntu/assets/colors/sage.svg           |    5 +
+ panels/ubuntu/assets/colors/viridian.svg       |    5 +
+ panels/ubuntu/assets/theme-dark.svg            |    1 +
+ panels/ubuntu/assets/theme-light.svg           |    1 +
+ panels/ubuntu/cc-ubuntu-dock-dialog.c          |  106 ++
+ panels/ubuntu/cc-ubuntu-dock-dialog.h          |   31 +
+ panels/ubuntu/cc-ubuntu-dock-dialog.ui         |  120 ++
+ panels/ubuntu/cc-ubuntu-panel.c                | 1719 ++++++++++++++++++++++++
+ panels/ubuntu/cc-ubuntu-panel.h                |   35 +
+ panels/ubuntu/cc-ubuntu-panel.ui               |  618 +++++++++
+ panels/ubuntu/gnome-ubuntu-panel.desktop.in.in |   16 +
+ panels/ubuntu/meson.build                      |   56 +
+ panels/ubuntu/ubuntu.gresource.xml             |   20 +
+ po/POTFILES.in                                 |    5 +
+ shell/cc-panel-list.c                          |    1 +
+ shell/cc-panel-loader.c                        |    3 +
+ 26 files changed, 2807 insertions(+)
+ create mode 100644 panels/ubuntu/appearance.css
+ create mode 100644 panels/ubuntu/assets/colors/bark.svg
+ create mode 100644 panels/ubuntu/assets/colors/blue.svg
+ create mode 100644 panels/ubuntu/assets/colors/magenta.svg
+ create mode 100644 panels/ubuntu/assets/colors/olive.svg
+ create mode 100644 panels/ubuntu/assets/colors/orange.svg
+ create mode 100644 panels/ubuntu/assets/colors/prussiangreen.svg
+ create mode 100644 panels/ubuntu/assets/colors/purple.svg
+ create mode 100644 panels/ubuntu/assets/colors/red.svg
+ create mode 100644 panels/ubuntu/assets/colors/sage.svg
+ create mode 100644 panels/ubuntu/assets/colors/viridian.svg
+ create mode 100644 panels/ubuntu/assets/theme-dark.svg
+ create mode 100644 panels/ubuntu/assets/theme-light.svg
+ create mode 100644 panels/ubuntu/cc-ubuntu-dock-dialog.c
+ create mode 100644 panels/ubuntu/cc-ubuntu-dock-dialog.h
+ create mode 100644 panels/ubuntu/cc-ubuntu-dock-dialog.ui
  create mode 100644 panels/ubuntu/cc-ubuntu-panel.c
  create mode 100644 panels/ubuntu/cc-ubuntu-panel.h
  create mode 100644 panels/ubuntu/cc-ubuntu-panel.ui
  create mode 100644 panels/ubuntu/gnome-ubuntu-panel.desktop.in.in
  create mode 100644 panels/ubuntu/meson.build
- create mode 100644 panels/ubuntu/theme-dark.svg
- create mode 100644 panels/ubuntu/theme-light.svg
  create mode 100644 panels/ubuntu/ubuntu.gresource.xml
 
 diff --git a/panels/meson.build b/panels/meson.build
-index 2f4fdc5e3..81ae0b1a7 100644
+index f603db9..c21910a 100644
 --- a/panels/meson.build
 +++ b/panels/meson.build
-@@ -24,6 +24,7 @@ panels = [
+@@ -25,6 +25,7 @@ panels = [
    'search',
    'sharing',
    'sound',
 +  'ubuntu',
    'universal-access',
    'usage',
-   'user-accounts'
-diff --git a/panels/ubuntu/cc-ubuntu-panel.c b/panels/ubuntu/cc-ubuntu-panel.c
+   'user-accounts',
+diff --git a/panels/ubuntu/appearance.css b/panels/ubuntu/appearance.css
 new file mode 100644
-index 000000000..13d732e6f
+index 0000000..ce63aa2
 --- /dev/null
-+++ b/panels/ubuntu/cc-ubuntu-panel.c
-@@ -0,0 +1,723 @@
++++ b/panels/ubuntu/appearance.css
+@@ -0,0 +1,24 @@
++flowboxchild.appearance-preview {
++  border-radius: 9px;
++}
++
++box.appearance-preview {
++  border-radius: 6px;
++}
++
++image.appearance-thumbnail {
++  border-radius: 6px;
++  background: linear-gradient(180deg, mix(@theme_selected_fg_color, @theme_selected_bg_color, 0.5) 30%, shade(@theme_selected_bg_color, 1.1) 100%);
++}
++
++flowboxchild.colors {
++  border-radius: 9999px;
++}
++
++box.colors {
++  border-radius: 9999px;
++}
++
++image.colors-thumbnail {
++  border-radius: 9999px;
++}
+diff --git a/panels/ubuntu/assets/colors/bark.svg b/panels/ubuntu/assets/colors/bark.svg
+new file mode 100644
+index 0000000..8a1b42e
+--- /dev/null
++++ b/panels/ubuntu/assets/colors/bark.svg
+@@ -0,0 +1,5 @@
++<svg version="1.1" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
++ <g transform="translate(-401 -339)">
++  <circle cx="417" cy="355" r="13.35" fill="#787859" stroke-width="2.9706"/>
++ </g>
++</svg>
+diff --git a/panels/ubuntu/assets/colors/blue.svg b/panels/ubuntu/assets/colors/blue.svg
+new file mode 100644
+index 0000000..47312b9
+--- /dev/null
++++ b/panels/ubuntu/assets/colors/blue.svg
+@@ -0,0 +1,5 @@
++<svg version="1.1" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
++ <g transform="translate(-401 -339)">
++  <circle cx="417" cy="355" r="13.35" fill="#0073E5" stroke-width="2.9706"/>
++ </g>
++</svg>
+diff --git a/panels/ubuntu/assets/colors/magenta.svg b/panels/ubuntu/assets/colors/magenta.svg
+new file mode 100644
+index 0000000..65c43b8
+--- /dev/null
++++ b/panels/ubuntu/assets/colors/magenta.svg
+@@ -0,0 +1,5 @@
++<svg version="1.1" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
++ <g transform="translate(-401 -339)">
++  <circle cx="417" cy="355" r="13.35" fill="#BC33DB" stroke-width="2.9706"/>
++ </g>
++</svg>
+diff --git a/panels/ubuntu/assets/colors/olive.svg b/panels/ubuntu/assets/colors/olive.svg
+new file mode 100644
+index 0000000..67f0f71
+--- /dev/null
++++ b/panels/ubuntu/assets/colors/olive.svg
+@@ -0,0 +1,5 @@
++<svg version="1.1" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
++ <g transform="translate(-401 -339)">
++  <circle cx="417" cy="355" r="13.35" fill="#4B8501" stroke-width="2.9706"/>
++ </g>
++</svg>
+diff --git a/panels/ubuntu/assets/colors/orange.svg b/panels/ubuntu/assets/colors/orange.svg
+new file mode 100644
+index 0000000..e486e84
+--- /dev/null
++++ b/panels/ubuntu/assets/colors/orange.svg
+@@ -0,0 +1,5 @@
++<svg version="1.1" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
++ <g transform="translate(-401 -339)">
++  <circle cx="417" cy="355" r="13.35" fill="#f37e40" stroke-width="2.9706"/>
++ </g>
++</svg>
+diff --git a/panels/ubuntu/assets/colors/prussiangreen.svg b/panels/ubuntu/assets/colors/prussiangreen.svg
+new file mode 100644
+index 0000000..6ae821b
+--- /dev/null
++++ b/panels/ubuntu/assets/colors/prussiangreen.svg
+@@ -0,0 +1,5 @@
++<svg version="1.1" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
++ <g transform="translate(-401 -339)">
++  <circle cx="417" cy="355" r="13.35" fill="#308280" stroke-width="2.9706"/>
++ </g>
++</svg>
+diff --git a/panels/ubuntu/assets/colors/purple.svg b/panels/ubuntu/assets/colors/purple.svg
+new file mode 100644
+index 0000000..aaa4f43
+--- /dev/null
++++ b/panels/ubuntu/assets/colors/purple.svg
+@@ -0,0 +1,5 @@
++<svg version="1.1" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
++ <g transform="translate(-401 -339)">
++  <circle cx="417" cy="355" r="13.35" fill="#8856EB" stroke-width="2.9706"/>
++ </g>
++</svg>
+diff --git a/panels/ubuntu/assets/colors/red.svg b/panels/ubuntu/assets/colors/red.svg
+new file mode 100644
+index 0000000..cd3eb0c
+--- /dev/null
++++ b/panels/ubuntu/assets/colors/red.svg
+@@ -0,0 +1,5 @@
++<svg version="1.1" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
++ <g transform="translate(-401 -339)">
++  <circle cx="417" cy="355" r="13.35" fill="#E61D34" stroke-width="2.9706"/>
++ </g>
++</svg>
+diff --git a/panels/ubuntu/assets/colors/sage.svg b/panels/ubuntu/assets/colors/sage.svg
+new file mode 100644
+index 0000000..4a661ae
+--- /dev/null
++++ b/panels/ubuntu/assets/colors/sage.svg
+@@ -0,0 +1,5 @@
++<svg version="1.1" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
++ <g transform="translate(-401 -339)">
++  <circle cx="417" cy="355" r="13.35" fill="#657B69" stroke-width="2.9706"/>
++ </g>
++</svg>
+diff --git a/panels/ubuntu/assets/colors/viridian.svg b/panels/ubuntu/assets/colors/viridian.svg
+new file mode 100644
+index 0000000..2a61c2d
+--- /dev/null
++++ b/panels/ubuntu/assets/colors/viridian.svg
+@@ -0,0 +1,5 @@
++<svg version="1.1" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
++ <g transform="translate(-401 -339)">
++  <circle cx="417" cy="355" r="13.35" fill="#03875B" stroke-width="2.9706"/>
++ </g>
++</svg>
+diff --git a/panels/ubuntu/assets/theme-dark.svg b/panels/ubuntu/assets/theme-dark.svg
+new file mode 100644
+index 0000000..90a7f86
+--- /dev/null
++++ b/panels/ubuntu/assets/theme-dark.svg
+@@ -0,0 +1 @@
++<svg version="1.0" width="250" height="150" xmlns="http://www.w3.org/2000/svg"><defs><filter id="a" x="-.042" y="-.055" width="1.085" height="1.111" color-interpolation-filters="sRGB"><feGaussianBlur stdDeviation="1.5"/></filter><filter id="b" x="-.042" y="-.055" width="1.085" height="1.111" color-interpolation-filters="sRGB"><feGaussianBlur stdDeviation="1.5"/></filter></defs><g transform="translate(111.066 -45.354) scale(1.1742)"><rect x="-15" y="55" width="85" height="65" ry="5" filter="url(#a)" opacity=".55"/><rect x="-15" y="55" width="85" height="65" ry="5" fill="#404040"/><path d="M-10 55c-2.77 0-5 2.23-5 5v10h85V60c0-2.77-2.23-5-5-5z" fill="#404040"/><rect x="-15" y="69" width="85" height="1" ry="0" fill="#5d5d5d"/></g><g transform="translate(75.84 -10.128) scale(1.1742)"><rect x="-15" y="55" width="85" height="65" ry="5" filter="url(#b)" opacity=".55"/><rect x="-15" y="55" width="85" height="65" ry="5" fill="#242424"/><path d="M-10 55c-2.77 0-5 2.23-5 5v10h85V60c0-2.77-2.23-5-5-5z" fill="#303030" fill-opacity=".937"/><rect x="-15" y="69" width="85" height="1" ry="0" fill="#4d4d4d"/></g></svg>
+\ No newline at end of file
+diff --git a/panels/ubuntu/assets/theme-light.svg b/panels/ubuntu/assets/theme-light.svg
+new file mode 100644
+index 0000000..0a8f29f
+--- /dev/null
++++ b/panels/ubuntu/assets/theme-light.svg
+@@ -0,0 +1 @@
++<svg version="1.0" width="250" height="150" xmlns="http://www.w3.org/2000/svg"><defs><filter id="a" x="-.042" y="-.055" width="1.085" height="1.111" color-interpolation-filters="sRGB"><feGaussianBlur stdDeviation="1.5"/></filter><filter id="c" x="-.042" y="-.055" width="1.085" height="1.111" color-interpolation-filters="sRGB"><feGaussianBlur stdDeviation="1.5"/></filter><filter id="b" x="-.042" y="-.055" width="1.085" height="1.111" color-interpolation-filters="sRGB"><feGaussianBlur stdDeviation="1.5"/></filter><filter id="d" x="-.042" y="-.055" width="1.085" height="1.111" color-interpolation-filters="sRGB"><feGaussianBlur stdDeviation="1.5"/></filter></defs><g transform="translate(111.066 -45.354) scale(1.1742)"><rect x="-15" y="55" width="85" height="65" ry="5" filter="url(#a)" opacity=".55" style="filter:url(#b)"/><rect x="-15" y="55" width="85" height="65" ry="5" fill="#4d4d4d"/><path d="M-10 55c-2.77 0-5 2.23-5 5v10h85V60c0-2.77-2.23-5-5-5z" fill="#4d4d4d"/><rect x="-15" y="69" width="85" height="1" ry="0" fill="#666"/></g><g transform="translate(75.84 -10.128) scale(1.1742)"><rect x="-15" y="55" width="85" height="65" ry="5" filter="url(#c)" opacity=".55" style="filter:url(#d)"/><rect x="-15" y="55" width="85" height="65" ry="5" fill="#fafafa"/><path d="M-10 55c-2.77 0-5 2.23-5 5v10h85V60c0-2.77-2.23-5-5-5z" fill="#dedede"/><rect x="-15" y="69" width="85" height="1" ry="0" fill="#b3b3b3"/></g></svg>
+\ No newline at end of file
+diff --git a/panels/ubuntu/cc-ubuntu-dock-dialog.c b/panels/ubuntu/cc-ubuntu-dock-dialog.c
+new file mode 100644
+index 0000000..6f8abb7
+--- /dev/null
++++ b/panels/ubuntu/cc-ubuntu-dock-dialog.c
+@@ -0,0 +1,106 @@
 +/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 +/*
-+ * Copyright (C) 2017-2020 Canonical Ltd
++ * Copyright (C) 2022 Marco Trevisan <marco.trevisan@canonical.com>
++ *
++ * This library is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU Lesser General Public
++ * License as published by the Free Software Foundation; either
++ * version 2 of the License, or (at your option) any later version.
++ *
++ * This library is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++ * Lesser General Public License for more details.
++ *
++ * You should have received a copy of the GNU Lesser General
++ * Public License along with this library; if not, see <http://www.gnu.org/licenses/>.
++ *
++ */
++
++#include "config.h"
++
++#include <string.h>
++#include <glib/gi18n-lib.h>
++#include <glib.h>
++
++#include "cc-ubuntu-dock-dialog.h"
++
++struct _CcUbuntuDockDialog {
++  GtkDialog       parent;
++
++  GSettings      *settings;
++
++  GtkSwitch      *volumes_switch;
++  GtkCheckButton *unmounted_check;
++  GtkListBoxRow  *unmounted_row;
++  GtkCheckButton *network_volumes_check;
++  GtkListBoxRow  *network_volumes_row;
++  GtkSwitch      *trash_switch;
++};
++
++G_DEFINE_TYPE (CcUbuntuDockDialog, cc_ubuntu_dock_dialog, GTK_TYPE_DIALOG)
++
++static void
++cc_ubuntu_dock_dialog_dispose (GObject *object)
++{
++  CcUbuntuDockDialog *dialog = CC_UBUNTU_DOCK_DIALOG (object);
++
++  g_clear_object (&dialog->settings);
++
++  G_OBJECT_CLASS (cc_ubuntu_dock_dialog_parent_class)->dispose (object);
++}
++
++static void
++cc_ubuntu_dock_dialog_class_init (CcUbuntuDockDialogClass *klass)
++{
++  GtkWidgetClass *widget_class = GTK_WIDGET_CLASS (klass);
++  GObjectClass *object_class = G_OBJECT_CLASS (klass);
++
++  object_class->dispose = cc_ubuntu_dock_dialog_dispose;
++
++  gtk_widget_class_set_template_from_resource (widget_class, "/org/gnome/control-center/ubuntu/cc-ubuntu-dock-dialog.ui");
++
++  gtk_widget_class_bind_template_child (widget_class, CcUbuntuDockDialog, volumes_switch);
++  gtk_widget_class_bind_template_child (widget_class, CcUbuntuDockDialog, unmounted_row);
++  gtk_widget_class_bind_template_child (widget_class, CcUbuntuDockDialog, unmounted_check);
++  gtk_widget_class_bind_template_child (widget_class, CcUbuntuDockDialog, network_volumes_row);
++  gtk_widget_class_bind_template_child (widget_class, CcUbuntuDockDialog, network_volumes_check);
++  gtk_widget_class_bind_template_child (widget_class, CcUbuntuDockDialog, trash_switch);
++}
++
++void
++cc_ubuntu_dock_dialog_init (CcUbuntuDockDialog *dialog)
++{
++  gtk_widget_init_template (GTK_WIDGET (dialog));
++}
++
++CcUbuntuDockDialog *
++cc_ubuntu_dock_dialog_new (GSettings *settings)
++{
++  CcUbuntuDockDialog *dialog;
++
++  dialog = g_object_new (CC_TYPE_UBUNTU_DOCK_DIALOG,
++                         "use-header-bar", TRUE,
++                         NULL);
++
++  gtk_window_set_title (GTK_WINDOW (dialog), _("Dock"));
++  dialog->settings = g_object_ref (settings);
++
++  g_settings_bind (dialog->settings, "show-mounts",
++                   dialog->volumes_switch, "active",
++                   G_SETTINGS_BIND_DEFAULT);
++
++  g_settings_bind (dialog->settings, "show-mounts-only-mounted",
++                   dialog->unmounted_check, "active",
++                   G_SETTINGS_BIND_INVERT_BOOLEAN);
++
++  g_settings_bind (dialog->settings, "show-mounts-network",
++                   dialog->network_volumes_check, "active",
++                   G_SETTINGS_BIND_DEFAULT);
++
++  g_settings_bind (dialog->settings, "show-trash",
++                   dialog->trash_switch, "active",
++                   G_SETTINGS_BIND_DEFAULT);
++
++  return dialog;
++}
+diff --git a/panels/ubuntu/cc-ubuntu-dock-dialog.h b/panels/ubuntu/cc-ubuntu-dock-dialog.h
+new file mode 100644
+index 0000000..cd84651
+--- /dev/null
++++ b/panels/ubuntu/cc-ubuntu-dock-dialog.h
+@@ -0,0 +1,31 @@
++/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
++/*
++ * Copyright (C) 2022 Marco Trevisan <marco.trevisan@canonical.com>
++ *
++ * This library is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU Lesser General Public
++ * License as published by the Free Software Foundation; either
++ * version 2 of the License, or (at your option) any later version.
++ *
++ * This library is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++ * Lesser General Public License for more details.
++ *
++ * You should have received a copy of the GNU Lesser General
++ * Public License along with this library; if not, see <http://www.gnu.org/licenses/>.
++ *
++ */
++
++#pragma once
++
++#include <gtk/gtk.h>
++
++G_BEGIN_DECLS
++
++#define CC_TYPE_UBUNTU_DOCK_DIALOG (cc_ubuntu_dock_dialog_get_type ())
++G_DECLARE_FINAL_TYPE (CcUbuntuDockDialog, cc_ubuntu_dock_dialog, CC, UBUNTU_DOCK_DIALOG, GtkDialog)
++
++CcUbuntuDockDialog *cc_ubuntu_dock_dialog_new (GSettings *settings);
++
++G_END_DECLS
+diff --git a/panels/ubuntu/cc-ubuntu-dock-dialog.ui b/panels/ubuntu/cc-ubuntu-dock-dialog.ui
+new file mode 100644
+index 0000000..512f606
+--- /dev/null
++++ b/panels/ubuntu/cc-ubuntu-dock-dialog.ui
+@@ -0,0 +1,120 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<interface>
++  <template class="CcUbuntuDockDialog" parent="GtkDialog">
++    <property name="width_request">386</property>
++    <property name="can_focus">False</property>
++    <property name="modal">True</property>
++    <property name="type_hint">dialog</property>
++    <signal name="response" handler="gtk_widget_destroy" swapped="no"/>
++    <child internal-child="vbox">
++      <object class="GtkBox">
++        <property name="can_focus">False</property>
++        <property name="orientation">vertical</property>
++        <property name="spacing">2</property>
++        <property name="border_width">0</property>
++        <child>
++          <object class="HdyPreferencesGroup">
++            <property name="visible">1</property>
++            <property name="margin">12</property>
++            <child>
++              <object class="HdyActionRow">
++                <property name="visible">True</property>
++                <property name="use_underline">True</property>
++                <property name="can_focus">True</property>
++                <property name="title" translatable="yes">Show _Volumes and _Devices</property>
++                <property name="activatable">True</property>
++                <property name="activatable_widget">volumes_switch</property>
++                <child>
++                  <object class="GtkSwitch" id="volumes_switch">
++                    <property name="visible">True</property>
++                    <property name="can_focus">True</property>
++                    <property name="valign">center</property>
++                  </object>
++                  <packing>
++                    <property name="expand">False</property>
++                    <property name="fill">True</property>
++                    <property name="position">1</property>
++                  </packing>
++                </child>
++              </object>
++            </child>
++            <child>
++              <object class="HdyActionRow" id="unmounted_row">
++                <property name="visible">True</property>
++                <property name="use_underline">True</property>
++                <property name="can_focus">True</property>
++                <property name="title" translatable="yes" context="ubuntu-dock">Include _Unmounted Volumes</property>
++                <property name="activatable">True</property>
++                <property name="activatable_widget">unmounted_check</property>
++                <property name="sensitive" bind-source="volumes_switch" bind-property="active" bind-flags="default|sync-create" />
++                <child type="prefix">
++                  <object class="GtkCheckButton" id="unmounted_check">
++                    <property name="visible">True</property>
++                    <property name="can_focus">True</property>
++                    <property name="valign">center</property>
++                  </object>
++                  <packing>
++                    <property name="expand">False</property>
++                    <property name="fill">True</property>
++                    <property name="position">1</property>
++                  </packing>
++                </child>
++              </object>
++            </child>
++            <child>
++              <object class="HdyActionRow" id="network_volumes_row">
++                <property name="visible">True</property>
++                <property name="use_underline">True</property>
++                <property name="can_focus">True</property>
++                <property name="title" translatable="yes" context="ubuntu-dock">Include _Network Volumes</property>
++                <property name="activatable">True</property>
++                <property name="activatable_widget">network_volumes_check</property>
++                <property name="sensitive" bind-source="volumes_switch" bind-property="active" bind-flags="default|sync-create" />
++                <child type="prefix">
++                  <object class="GtkCheckButton" id="network_volumes_check">
++                    <property name="visible">True</property>
++                    <property name="can_focus">True</property>
++                    <property name="valign">center</property>
++                  </object>
++                  <packing>
++                    <property name="expand">False</property>
++                    <property name="fill">True</property>
++                    <property name="position">1</property>
++                  </packing>
++                </child>
++              </object>
++            </child>
++          </object>
++        </child>
++        <child>
++          <object class="HdyPreferencesGroup">
++            <property name="visible">1</property>
++            <property name="margin">12</property>
++            <child>
++              <object class="HdyActionRow">
++                <property name="visible">True</property>
++                <property name="use_underline">True</property>
++                <property name="can_focus">True</property>
++                <property name="title" translatable="yes">Show _Trash</property>
++                <property name="activatable">True</property>
++                <property name="activatable_widget">trash_switch</property>
++                <child>
++                  <object class="GtkSwitch" id="trash_switch">
++                    <property name="visible">True</property>
++                    <property name="can_focus">True</property>
++                    <property name="valign">center</property>
++                  </object>
++                  <packing>
++                    <property name="expand">False</property>
++                    <property name="fill">True</property>
++                    <property name="position">1</property>
++                  </packing>
++                </child>
++              </object>
++            </child>
++          </object>
++        </child>
++      </object>
++    </child>
++  </template>
++</interface>
+diff --git a/panels/ubuntu/cc-ubuntu-panel.c b/panels/ubuntu/cc-ubuntu-panel.c
+new file mode 100644
+index 0000000..b114af3
+--- /dev/null
++++ b/panels/ubuntu/cc-ubuntu-panel.c
+@@ -0,0 +1,1719 @@
++/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
++/*
++ * Copyright (C) 2017-2022 Canonical Ltd
 + *
 + * This library is free software; you can redistribute it and/or
 + * modify it under the terms of the GNU Lesser General Public
@@ -77,15 +541,19 @@ index 000000000..13d732e6f
 +#include <glib.h>
 +#include <gio/gio.h>
 +#include <gio/gdesktopappinfo.h>
++#include <libhandy-1/handy.h>
 +
 +#include "list-box-helper.h"
 +#include "cc-ubuntu-panel.h"
++#include "cc-ubuntu-dock-dialog.h"
 +#include "cc-ubuntu-resources.h"
 +#include "shell/cc-application.h"
 +#include "shell/cc-object-storage.h"
 +
 +#include "panels/display/cc-display-config-manager-dbus.h"
 +#include "panels/display/cc-display-config.h"
++
++#define DING_SCHEMA "org.gnome.shell.extensions.ding"
 +
 +#define MIN_ICONSIZE 16.0
 +#define MAX_ICONSIZE 64.0
@@ -94,42 +562,76 @@ index 000000000..13d732e6f
 +
 +#define UBUNTU_DOCK_SCHEMA "org.gnome.shell.extensions.dash-to-dock"
 +#define UBUNTU_DOCK_ALL_MONITORS_KEY "multi-monitor"
-+#define UBUNTU_DOCK_ON_MONITOR_KEY "preferred-monitor"
++#define UBUNTU_DOCK_PREFERRED_MONITOR_KEY "preferred-monitor"
++#define UBUNTU_DOCK_PREFERRED_CONNECTOR_KEY "preferred-monitor-by-connector"
++
++/*
++ * This allows to migrate settings from 'preferred-monitor' to
++ * 'preferred-monitor-by-connector', and can be removed after 22.04
++ * simplifying all the logic, by relying on connector names only.
++ */
++#define UBUNTU_DOCK_MONITOR_INDEX_USE_CONNECTOR -2
 +
 +#define INTERFACE_SCHEMA "org.gnome.desktop.interface"
 +#define GTK_THEME_KEY "gtk-theme"
 +#define CURSOR_THEME_KEY "cursor-theme"
 +#define ICON_THEME_KEY "icon-theme"
++#define COLOR_SCHEME_KEY "color-scheme"
 +
 +#define GEDIT_PREFRENCES_SCHEMA "org.gnome.gedit.preferences.editor"
 +#define GEDIT_THEME_KEY "scheme"
 +
++#define DEFAULT_ACCENT_COLOR "orange"
++
 +struct _CcUbuntuPanel {
 +  CcPanel                 parent_instance;
 +
++  HdyPreferencesGroup    *ding_preferences_group;
++  HdyComboRow            *ding_icon_size_row;
++  HdyComboRow            *ding_icons_new_alignment_row;
++  GtkSwitch              *ding_showhome_switch;
++  HdyPreferencesGroup    *dock_preferences_group;
 +  GtkSwitch              *dock_autohide_switch;
-+  GtkListBox             *dock_listbox;
-+  GtkListBoxRow          *dock_monitor_row;
-+  GtkComboBox            *dock_placement_combo;
-+  GtkListStore           *dock_placement_liststore;
-+  GtkComboBoxText        *dock_position_combo;
++  GtkSwitch              *dock_extendheight_switch;
++  HdyComboRow            *dock_monitor_row;
++  GListStore             *dock_monitors_liststore;
++  HdyComboRow            *dock_position_row;
 +  GtkAdjustment          *icon_size_adjustment;
 +  GtkScale               *icon_size_scale;
 +  GtkFlowBox             *theme_box;
 +  GtkFlowBoxChild        *theme_dark;
 +  GtkFlowBoxChild        *theme_light;
++  HdyActionRow           *color_row;
++  GtkFlowBox             *color_box;
++  GtkFlowBoxChild        *accent_bark;
++  GtkFlowBoxChild        *accent_blue;
++  GtkFlowBoxChild        *accent_olive;
++  GtkFlowBoxChild        *accent_orange;
++  GtkFlowBoxChild        *accent_magenta;
++  GtkFlowBoxChild        *accent_purple;
++  GtkFlowBoxChild        *accent_prussiangreen;
++  GtkFlowBoxChild        *accent_sage;
++  GtkFlowBoxChild        *accent_red;
++  GtkFlowBoxChild        *accent_viridian;
 +
++  GSettings              *ding_settings;
 +  GSettings              *dock_settings;
 +  GSettings              *interface_settings;
 +  GSettings              *gedit_settings;
 +  CcDisplayConfigManager *display_config_manager;
++  CcDisplayConfig        *display_current_config;
 +  GDBusProxy             *shell_proxy;
++
++  gboolean                updating;
 +};
 +
 +CC_PANEL_REGISTER (CcUbuntuPanel, cc_ubuntu_panel);
 +
 +static void monitor_labeler_hide (CcUbuntuPanel *self);
-+static void update_dock_placement_combo_selection (CcUbuntuPanel *self);
++static void update_dock_monitor_combo_row_selection (CcUbuntuPanel *self);
++static GQuark accent_quark (void);
++
++G_DEFINE_QUARK (accent-quark, accent);
 +
 +static void
 +cc_ubuntu_panel_dispose (GObject *object)
@@ -138,9 +640,21 @@ index 000000000..13d732e6f
 +
 +  monitor_labeler_hide (self);
 +
++  /* Upstream code is wrong at handling configuration finalization if happens
++   * earlier than one of its child nodes, so we need to remove the entries
++   * not to make this happen implicitly too late, causing a crash.
++   * This can be removed when the follow MR is merged:
++   * https://gitlab.gnome.org/GNOME/gnome-control-center/-/merge_requests/1175
++   */
++  if (self->dock_monitors_liststore)
++    g_list_store_remove_all (self->dock_monitors_liststore);
++
++  g_clear_object (&self->ding_settings);
 +  g_clear_object (&self->dock_settings);
++  g_clear_object (&self->dock_monitors_liststore);
 +  g_clear_object (&self->interface_settings);
 +  g_clear_object (&self->gedit_settings);
++  g_clear_object (&self->display_current_config);
 +  g_clear_object (&self->display_config_manager);
 +  g_clear_object (&self->shell_proxy);
 +
@@ -162,25 +676,19 @@ index 000000000..13d732e6f
 +static void
 +monitor_labeler_show (CcUbuntuPanel *self)
 +{
-+  g_autoptr(CcDisplayConfig) current_config = NULL;
 +  GList *outputs, *l;
 +  GVariantBuilder builder;
 +  gint number = 0;
 +  guint n_monitors = 0;
 +
-+  if (!self->shell_proxy || !self->display_config_manager)
++  if (!self->shell_proxy || !self->display_current_config)
 +    return;
 +
-+  current_config = cc_display_config_manager_get_current (self->display_config_manager);
-+
-+  if (!current_config)
-+    return;
-+
-+  outputs = cc_display_config_get_ui_sorted_monitors (current_config);
++  outputs = cc_display_config_get_ui_sorted_monitors (self->display_current_config);
 +  if (!outputs)
 +    return;
 +
-+  if (cc_display_config_is_cloning (current_config))
++  if (cc_display_config_is_cloning (self->display_current_config))
 +    return monitor_labeler_hide (self);
 +
 +  g_variant_builder_init (&builder, G_VARIANT_TYPE_TUPLE);
@@ -262,26 +770,15 @@ index 000000000..13d732e6f
 +
 +static GList *
 +get_valid_monitors (CcUbuntuPanel   *self,
-+                    CcDisplayConfig *config,
 +                    gint            *n_monitors,
 +                    gint            *primary_index)
 +{
-+  g_autoptr(CcDisplayConfig) current = NULL;
 +  CcDisplayMonitor *primary_monitor;
 +  GList *config_monitors = NULL;
 +  GList *valid_monitors, *l;
 +  gint n_valid_monitors;
 +
-+  if (config)
-+    {
-+      config_monitors = cc_display_config_get_monitors (config);
-+    }
-+  else if (self->display_config_manager)
-+    {
-+      current = cc_display_config_manager_get_current (self->display_config_manager);
-+      config_monitors = cc_display_config_get_monitors (current);
-+    }
-+
++  config_monitors = cc_display_config_get_monitors (self->display_current_config);
 +  primary_monitor = NULL;
 +  valid_monitors = NULL;
 +  n_valid_monitors = 0;
@@ -313,34 +810,140 @@ index 000000000..13d732e6f
 +}
 +
 +static int
-+cc_monitor_id_to_dock (gint index,
-+                       gint primary_monitor,
-+                       gint n_monitors)
++ui_sort_monitor (gconstpointer a, gconstpointer b)
++{
++  CcDisplayMonitor *monitor_a = (CcDisplayMonitor *) a;
++  CcDisplayMonitor *monitor_b = (CcDisplayMonitor *) b;
++
++  return cc_display_monitor_get_ui_number (monitor_a) -
++         cc_display_monitor_get_ui_number (monitor_b);
++}
++
++static GList *
++get_valid_monitors_sorted (CcUbuntuPanel   *self,
++                           gint            *n_monitors,
++                           gint            *primary_index)
++{
++  GList *monitors = get_valid_monitors (self, n_monitors, primary_index);
++
++  return g_list_sort (monitors, ui_sort_monitor);
++}
++
++static int
++dock_monitor_to_id (gint index,
++                    gint primary_monitor,
++                    gint n_monitors)
 +{
 +  if (index < 0)
 +    return -1;
 +
 +  /* The The dock uses the Gdk index for monitors, where the primary monitor
 +   * always has index 0, so let's follow what dash-to-dock does in docking.js
-+   * (as part of _createDocks), but using inverted math */
-+  index -= primary_monitor;
++   * (as part of _createDocks) */
++  return (primary_monitor + index) % n_monitors;
++}
 +
-+  if (index < 0)
-+    index += n_monitors;
++typedef enum
++{
++  GSD_UBUNTU_DOCK_MONITOR_ALL,
++  GSD_UBUNTU_DOCK_MONITOR_PRIMARY,
++} GsdUbuntuDockMonitor;
 +
-+  return index;
++static char *
++get_dock_monitor_value_object_name (HdyValueObject *object,
++                                    CcUbuntuPanel  *self)
++{
++  const GValue *value = hdy_value_object_get_value (object);
++
++  if (G_VALUE_TYPE (value) == G_TYPE_STRING)
++    return g_value_dup_string (value);
++
++  if (G_VALUE_TYPE (value) == CC_TYPE_DISPLAY_MONITOR)
++    {
++      CcDisplayMonitor *monitor = g_value_get_object (value);
++      int monitor_number = cc_display_monitor_get_ui_number (monitor);
++      const char *monitor_name = cc_display_monitor_get_display_name (monitor);
++
++      if (gtk_widget_get_state_flags (GTK_WIDGET (self)) & GTK_STATE_FLAG_DIR_LTR)
++        return g_strdup_printf ("%d. %s", monitor_number, monitor_name);
++      else
++        return g_strdup_printf ("%s .%d", monitor_name, monitor_number);
++    }
++
++  g_return_val_if_reached (NULL);
++}
++
++static void
++populate_dock_monitor_combo_row (CcUbuntuPanel *self)
++{
++  g_autoptr(CcDisplayMonitor) primary_monitor = NULL;
++  g_autoptr(GList) valid_monitors = NULL;
++  g_autoptr(HdyValueObject) primary_value_object = NULL;
++  g_autoptr(HdyValueObject) all_displays_value_object = NULL;
++  GList *l;
++  gint index;
++
++  if (self->display_config_manager == NULL)
++    return;
++
++  g_list_store_remove_all (self->dock_monitors_liststore);
++
++  valid_monitors = get_valid_monitors_sorted (self, NULL, NULL);
++  gtk_widget_set_visible (GTK_WIDGET (self->dock_monitor_row), valid_monitors != NULL);
++
++  if (!valid_monitors)
++    return;
++
++  all_displays_value_object = hdy_value_object_new_string (_("All displays"));
++  g_list_store_insert (self->dock_monitors_liststore,
++                       GSD_UBUNTU_DOCK_MONITOR_ALL,
++                       all_displays_value_object);
++
++  for (l = valid_monitors, index = 0; l != NULL; l = l->next, index++)
++    {
++      g_auto(GValue) value = G_VALUE_INIT;
++      g_autoptr(HdyValueObject) monitor_value_object = NULL;
++      CcDisplayMonitor *monitor = l->data;
++
++      if (cc_display_monitor_is_primary (monitor))
++        g_set_object (&primary_monitor, monitor);
++
++      g_value_init (&value, CC_TYPE_DISPLAY_MONITOR);
++      g_value_set_object (&value, monitor);
++      monitor_value_object = hdy_value_object_new (&value);
++
++      g_list_store_append (self->dock_monitors_liststore, monitor_value_object);
++    }
++
++  if (primary_monitor)
++    {
++      int ui_number = cc_display_monitor_get_ui_number (primary_monitor);
++
++      if (gtk_widget_get_state_flags (GTK_WIDGET (self)) & GTK_STATE_FLAG_DIR_LTR)
++        {
++          primary_value_object = hdy_value_object_new_take_string(
++            g_strdup_printf ("%s (%d)", _("Primary Display"), ui_number));
++        }
++      else
++        {
++          primary_value_object = hdy_value_object_new_take_string(
++            g_strdup_printf ("(%d) %s", ui_number, _("Primary Display")));
++        }
++    }
++  else
++    {
++      primary_value_object = hdy_value_object_new_string (_("Primary Display"));
++    }
++
++  g_list_store_insert (self->dock_monitors_liststore,
++                       GSD_UBUNTU_DOCK_MONITOR_PRIMARY,
++                       primary_value_object);
 +}
 +
 +static void
 +on_screen_changed (CcUbuntuPanel *self)
 +{
 +  g_autoptr(CcDisplayConfig) current = NULL;
-+  g_autoptr(GList) valid_outputs = NULL;
-+  GtkTreeIter ubuntu_dock_placement_iter;
-+  GList *outputs, *l;
-+  gint n_monitors;
-+  gint primary_monitor;
-+  gboolean is_rtl;
 +
 +  if (self->display_config_manager == NULL)
 +    return;
@@ -349,65 +952,16 @@ index 000000000..13d732e6f
 +  if (current == NULL)
 +    return;
 +
-+  gtk_list_store_clear (self->dock_placement_liststore);
++  self->updating = TRUE;
 +
-+  outputs = cc_display_config_get_ui_sorted_monitors (current);
-+  valid_outputs = get_valid_monitors (self, current, &n_monitors, &primary_monitor);
-+  is_rtl = gtk_widget_get_state_flags (GTK_WIDGET (self->dock_placement_combo)) & GTK_STATE_FLAG_DIR_RTL;
++  g_set_object (&self->display_current_config, current);
 +
-+  for (l = outputs; l != NULL && valid_outputs != NULL; l = l->next)
-+    {
-+      g_autofree char *monitor_label = NULL;
-+      CcDisplayMonitor *output = l->data;
-+      int monitor_id;
-+
-+      if (!cc_display_monitor_is_active (output))
-+        continue;
-+
-+      const gchar *monitor_name = cc_display_monitor_get_display_name (output);
-+      if (cc_display_monitor_is_primary (output))
-+        {
-+          if (!is_rtl)
-+            monitor_label = g_strdup_printf ("%s (%s)", monitor_name, _("Primary Display"));
-+          else
-+            monitor_label = g_strdup_printf ("(%s) %s", _("Primary Display"), monitor_name);
-+        }
-+      else
-+        {
-+          monitor_label = g_strdup (monitor_name);
-+        }
-+
-+      if (n_monitors > 1)
-+        {
-+          int monitor_number = cc_display_monitor_get_ui_number (output);
-+          g_autofree char *old_label = g_steal_pointer (&monitor_label);
-+
-+          if (!is_rtl)
-+            monitor_label = g_strdup_printf ("%d. %s", monitor_number,  old_label);
-+          else
-+            monitor_label = g_strdup_printf ("%s .%d", old_label, monitor_number);
-+        }
-+
-+      monitor_id = cc_monitor_id_to_dock (g_list_index (valid_outputs, output),
-+                                          primary_monitor, n_monitors);
-+
-+      gtk_list_store_append (self->dock_placement_liststore, &ubuntu_dock_placement_iter);
-+      gtk_list_store_set (self->dock_placement_liststore, &ubuntu_dock_placement_iter,
-+                          0, monitor_label,
-+                          1, monitor_id,
-+                          -1);
-+    }
-+
-+  gtk_widget_set_visible (GTK_WIDGET (self->dock_monitor_row), valid_outputs != NULL);
-+
-+  gtk_list_store_prepend (self->dock_placement_liststore, &ubuntu_dock_placement_iter);
-+  gtk_list_store_set (self->dock_placement_liststore, &ubuntu_dock_placement_iter,
-+                      0, _("All displays"),
-+                      1, -1,
-+                      -1);
-+
-+  update_dock_placement_combo_selection (self);
++  populate_dock_monitor_combo_row (self);
 +  ensure_monitor_labels (self);
++
++  self->updating = FALSE;
++
++  update_dock_monitor_combo_row_selection (self);
 +}
 +
 +static void
@@ -435,32 +989,90 @@ index 000000000..13d732e6f
 +}
 +
 +static void
++transition_screen (CcUbuntuPanel *self)
++{
++  g_autoptr (GError) error = NULL;
++
++  if (!self->shell_proxy)
++    return;
++
++  g_dbus_proxy_call_sync (self->shell_proxy,
++                          "ScreenTransition",
++                          NULL,
++                          G_DBUS_CALL_FLAGS_NONE,
++                          -1,
++                          NULL,
++                          &error);
++
++  if (error)
++    g_warning ("Couldn't transition screen: %s", error->message);
++}
++
++static void
 +on_theme_box_selected_children_changed (CcUbuntuPanel *self)
 +{
-+  const gchar *gtk_theme = NULL;
-+  const gchar *gedit_theme = NULL;
-+  g_autoptr(GList) selected = NULL;
++  GtkFlowBoxChild *selected_variant_item = NULL;
++  g_autoptr(GList) selected_variant = NULL;
++  g_autoptr(GList) colors = NULL;
++  g_autoptr(GString) gtk_theme = NULL;
++  g_autoptr(GString) icon_theme = NULL;
++  g_autoptr(GString) gedit_theme = NULL;
++  g_autofree char *current_gtk_theme = NULL;
++  g_autofree char *current_color_scheme = NULL;
++  const char *color_scheme = "prefer-light";
++  GList *l;
 +
-+  selected = gtk_flow_box_get_selected_children (self->theme_box);
-+  if (selected != NULL)
++  colors = gtk_container_get_children (GTK_CONTAINER (self->color_box));
++  selected_variant = gtk_flow_box_get_selected_children (self->theme_box);
++
++  if (selected_variant)
++    selected_variant_item = GTK_FLOW_BOX_CHILD (g_list_nth_data (selected_variant, 0));
++
++  gtk_theme = g_string_new ("Yaru");
++  icon_theme = g_string_new ("Yaru");
++  gedit_theme = g_string_new ("Yaru");
++
++  for (l = colors; l; l = l->next)
 +    {
-+      GtkFlowBoxChild *selected_item = GTK_FLOW_BOX_CHILD (g_list_nth_data (selected, 0));
-+      if (selected_item == self->theme_light)
-+      {
-+        gtk_theme = "Yaru";
-+        gedit_theme = "Yaru";
-+      }
-+      else if (selected_item == self->theme_dark)
-+      {
-+        gtk_theme = "Yaru-dark";
-+        gedit_theme = "Yaru-dark";
-+      }
++      GtkFlowBoxChild *accent_color = GTK_FLOW_BOX_CHILD (l->data);
++      const char *color = g_object_get_qdata (G_OBJECT (accent_color), accent_quark ());
++
++      if (!gtk_widget_is_visible (GTK_WIDGET (accent_color)))
++        continue;
++
++      if (color && gtk_flow_box_child_is_selected (accent_color))
++        {
++          if (g_str_equal (color, DEFAULT_ACCENT_COLOR))
++            break;
++
++          g_string_append_printf (gtk_theme, "-%s", color);
++          g_string_append_printf (icon_theme, "-%s", color);
++          break;
++        }
 +    }
 +
-+  if (gtk_theme != NULL)
-+    g_settings_set_string (self->interface_settings, GTK_THEME_KEY, gtk_theme);
-+  if (gedit_theme != NULL)
-+    g_settings_set_string (self->gedit_settings, GEDIT_THEME_KEY, gedit_theme);
++  if (selected_variant_item == self->theme_dark)
++    {
++      color_scheme = "prefer-dark";
++      g_string_append (gtk_theme, "-dark");
++      g_string_append (gedit_theme, "-dark");
++    }
++
++  current_gtk_theme = g_settings_get_string (self->interface_settings, GTK_THEME_KEY);
++  current_color_scheme = g_settings_get_string (self->interface_settings, COLOR_SCHEME_KEY);
++
++  if (g_strcmp0 (current_gtk_theme, gtk_theme->str) != 0 ||
++      g_strcmp0 (current_color_scheme, color_scheme) != 0)
++    {
++      transition_screen (self);
++      g_settings_set_string (self->interface_settings, GTK_THEME_KEY, gtk_theme->str);
++      g_settings_set_string (self->interface_settings, COLOR_SCHEME_KEY, color_scheme);
++    }
++
++  if (self->gedit_settings)
++    g_settings_set_string (self->gedit_settings, GEDIT_THEME_KEY, gedit_theme->str);
++
++  g_settings_set_string (self->interface_settings, ICON_THEME_KEY, icon_theme->str);
 +}
 +
 +static void
@@ -469,24 +1081,248 @@ index 000000000..13d732e6f
 +  g_autofree gchar *gtk_theme = NULL;
 +  g_autofree gchar *cursor_theme = NULL;
 +  g_autofree gchar *icon_theme = NULL;
-+  GtkFlowBoxChild *theme_item = NULL;
++  g_autofree gchar *color_scheme = NULL;
++  g_autoptr(GList) colors = NULL;
++  g_auto(GStrv) parts = NULL;
++  const char *accent_color = DEFAULT_ACCENT_COLOR;
++  gboolean is_dark = FALSE;
++  GList *l;
 +
 +  gtk_theme = g_settings_get_string (self->interface_settings, GTK_THEME_KEY);
 +  cursor_theme = g_settings_get_string (self->interface_settings, CURSOR_THEME_KEY);
 +  icon_theme = g_settings_get_string (self->interface_settings, ICON_THEME_KEY);
++  color_scheme = g_settings_get_string (self->interface_settings, COLOR_SCHEME_KEY);
 +
-+  if (g_str_equal (cursor_theme, "Yaru") && g_str_equal (icon_theme, "Yaru"))
++  if (!g_str_has_prefix (gtk_theme, "Yaru"))
 +    {
-+      if (g_strcmp0 (gtk_theme, "Yaru") == 0)
-+        theme_item = self->theme_light;
-+      else if (g_strcmp0 (gtk_theme, "Yaru-dark") == 0)
-+        theme_item = self->theme_dark;
++      g_warning ("No yaru theme selected!");
++
++      gtk_flow_box_unselect_all (self->theme_box);
++      gtk_flow_box_unselect_all (self->color_box);
++      return;
 +    }
 +
-+  if (theme_item != NULL)
-+    gtk_flow_box_select_child (self->theme_box, theme_item);
++  is_dark = g_str_has_suffix (gtk_theme, "-dark");
++  parts = g_strsplit (gtk_theme, "-", 3);
++
++  switch (g_strv_length (parts))
++    {
++      case 3:
++        g_return_if_fail (is_dark);
++        accent_color = parts[1];
++        break;
++      case 2:
++        if (!is_dark)
++          accent_color = parts[1];
++        break;
++    }
++
++  if (!is_dark && g_strcmp0 (color_scheme, "prefer-dark") == 0)
++    is_dark = TRUE;
++  else if (is_dark && g_strcmp0 (color_scheme, "prefer-light") == 0)
++    is_dark = FALSE;
++
++  colors = gtk_container_get_children (GTK_CONTAINER (self->color_box));
++
++  for (l = colors; l; l = l->next)
++    {
++      GtkFlowBoxChild *item = GTK_FLOW_BOX_CHILD (l->data);
++      const char *color = g_object_get_qdata (G_OBJECT (item), accent_quark ());
++
++      if (!gtk_widget_is_visible (GTK_WIDGET (item)))
++        continue;
++
++      if (g_strcmp0 (color, accent_color) == 0)
++        {
++          gtk_flow_box_select_child (self->color_box, item);
++          break;
++        }
++    }
++
++  if (is_dark)
++    gtk_flow_box_select_child (self->theme_box, self->theme_dark);
 +  else
-+    gtk_flow_box_unselect_all (self->theme_box);
++    gtk_flow_box_select_child (self->theme_box, self->theme_light);
++}
++
++static gchar *
++get_theme_dir (void)
++{
++  const gchar *var;
++
++  var = g_getenv ("GTK_DATA_PREFIX");
++  if (var == NULL)
++    var = "/usr";
++
++  return g_build_filename (var, "share", "themes", NULL);
++}
++
++
++#if (GTK_MINOR_VERSION % 2)
++#define MINOR (GTK_MINOR_VERSION + 1)
++#else
++#define MINOR GTK_MINOR_VERSION
++#endif
++
++
++static gchar *
++find_theme_dir (const gchar *dir,
++                const gchar *subdir,
++                const gchar *name,
++                const gchar *variant)
++{
++  g_autofree gchar *file = NULL;
++  g_autofree gchar *base = NULL;
++  gchar *path;
++  gint i;
++
++  if (variant)
++    file = g_strconcat ("gtk-", variant, ".css", NULL);
++  else
++    file = g_strdup ("gtk.css");
++
++  if (subdir)
++    base = g_build_filename (dir, subdir, name, NULL);
++  else
++    base = g_build_filename (dir, name, NULL);
++
++  for (i = MINOR; i >= 0; i = i - 2) {
++    g_autofree gchar *subsubdir = NULL;
++
++    if (i < 14)
++      i = 0;
++
++    subsubdir = g_strdup_printf ("gtk-3.%d", i);
++    path = g_build_filename (base, subsubdir, file, NULL);
++
++    if (g_file_test (path, G_FILE_TEST_EXISTS))
++      break;
++
++    g_free (path);
++    path = NULL;
++  }
++
++  return path;
++}
++
++#undef MINOR
++
++static gchar *
++find_theme (const gchar *name,
++            const gchar *variant)
++{
++  g_autofree gchar *dir = NULL;
++  const gchar *const *dirs;
++  gchar *path;
++  gint i;
++
++  /* First look in the user's data directory */
++  path = find_theme_dir (g_get_user_data_dir (), "themes", name, variant);
++  if (path)
++    return path;
++
++  /* Next look in the user's home directory */
++  path = find_theme_dir (g_get_home_dir (), ".themes", name, variant);
++  if (path)
++    return path;
++
++  /* Look in system data directories */
++  dirs = g_get_system_data_dirs ();
++  for (i = 0; dirs[i]; i++) {
++    path = find_theme_dir (dirs[i], "themes", name, variant);
++    if (path)
++      return path;
++  }
++
++  /* Finally, try in the default theme directory */
++  dir = get_theme_dir ();
++  path = find_theme_dir (dir, NULL, name, variant);
++
++  return path;
++}
++
++/* Courtesy of libhandy... */
++static gboolean
++check_theme_exists (const gchar *name,
++                    const gchar *variant)
++{
++  g_autofree gchar *resource_path = NULL;
++  g_autofree gchar *path = NULL;
++
++  /* try loading the resource for the theme. This is mostly meant for built-in
++   * themes.
++   */
++  if (variant)
++    resource_path = g_strdup_printf ("/org/gtk/libgtk/theme/%s/gtk-%s.css", name, variant);
++  else
++    resource_path = g_strdup_printf ("/org/gtk/libgtk/theme/%s/gtk.css", name);
++
++  if (g_resources_get_info (resource_path, 0, NULL, NULL, NULL))
++    return TRUE;
++
++  g_clear_pointer (&resource_path, g_free);
++
++  if (variant)
++    resource_path = g_strdup_printf ("/com/ubuntu/themes/%s/3.0/gtk-%s.css", name, variant);
++  else
++    resource_path = g_strdup_printf ("/com/ubuntu/themes/%s/3.0/gtk.css", name);
++
++  if (g_resources_get_info (resource_path, 0, NULL, NULL, NULL))
++    return TRUE;
++
++  /* Next try looking for files in the various theme directories. */
++  path = find_theme (name, variant);
++
++  return path != NULL;
++}
++
++static void
++check_theme_accents_availability (CcUbuntuPanel *self)
++{
++  g_autoptr (GList) colors = NULL;
++  gint available_accents = 0;
++  GList *l;
++
++  if (!check_theme_exists ("Yaru", NULL))
++    g_critical ("No Yaru theme found");
++
++  if (!check_theme_exists ("Yaru", "dark"))
++    g_critical ("No Yaru-dark theme found");
++
++  colors = gtk_container_get_children (GTK_CONTAINER (self->color_box));
++
++  for (l = colors; l; l = l->next)
++    {
++      GtkFlowBoxChild *item = GTK_FLOW_BOX_CHILD (l->data);
++      const char *accent = g_object_get_qdata (G_OBJECT (item), accent_quark ());
++      g_autofree char *theme_name = NULL;
++
++      if (g_strcmp0 (accent, DEFAULT_ACCENT_COLOR) == 0)
++        continue;
++
++      theme_name = g_strdup_printf("Yaru-%s", accent);
++
++      if (check_theme_exists (theme_name, NULL) && check_theme_exists (theme_name, "dark"))
++        available_accents++;
++      else
++        gtk_widget_hide (GTK_WIDGET (item));
++    }
++
++  if (!available_accents)
++    gtk_widget_hide (GTK_WIDGET (self->color_row));
++}
++
++static void
++load_custom_css (CcUbuntuPanel *self)
++{
++  g_autoptr(GtkCssProvider) provider = NULL;
++
++  /* use custom CSS */
++  provider = gtk_css_provider_new ();
++  gtk_css_provider_load_from_resource (provider, "/org/gnome/control-center/ubuntu/appearance.css");
++  gtk_style_context_add_provider_for_screen (gdk_screen_get_default (),
++                                             GTK_STYLE_PROVIDER (provider),
++                                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
 +}
 +
 +static void
@@ -511,50 +1347,81 @@ index 000000000..13d732e6f
 +}
 +
 +static void
-+on_dock_placement_combo_changed (CcUbuntuPanel *self)
++on_dock_monitor_row_changed (CcUbuntuPanel *self)
 +{
-+  gint active;
-+  gint monitor_id;
 +  gboolean ubuntu_dock_on_all_monitors;
-+  gint ubuntu_dock_current_index;
++  g_autofree char *ubuntu_dock_current_connector = NULL;
++  int selected;
 +
-+  active = gtk_combo_box_get_active (self->dock_placement_combo);
-+  if (active < 0)
++  if (self->updating)
 +    return;
 +
-+  ubuntu_dock_on_all_monitors = g_settings_get_boolean (self->dock_settings, UBUNTU_DOCK_ALL_MONITORS_KEY);
-+  ubuntu_dock_current_index = g_settings_get_int (self->dock_settings, UBUNTU_DOCK_ON_MONITOR_KEY);
-+  if (active == 0)
++  selected = hdy_combo_row_get_selected_index (self->dock_monitor_row);
++  if (selected < 0)
++    return;
++
++  ubuntu_dock_on_all_monitors =
++    g_settings_get_boolean (self->dock_settings, UBUNTU_DOCK_ALL_MONITORS_KEY);
++  ubuntu_dock_current_connector =
++    g_settings_get_string (self->dock_settings, UBUNTU_DOCK_PREFERRED_CONNECTOR_KEY);
++  if (selected == GSD_UBUNTU_DOCK_MONITOR_ALL)
 +    {
 +      if (!ubuntu_dock_on_all_monitors)
 +        {
-+          g_settings_set_boolean (self->dock_settings, UBUNTU_DOCK_ALL_MONITORS_KEY, TRUE);
++          g_settings_set_boolean (self->dock_settings,
++                                  UBUNTU_DOCK_ALL_MONITORS_KEY,
++                                  TRUE);
 +          g_settings_apply (self->dock_settings);
 +        }
 +    }
 +  else
 +    {
-+      GtkTreeIter placement_iter;
 +      g_autoptr(GSettings) delayed_settings = g_settings_new (UBUNTU_DOCK_SCHEMA);
 +      g_settings_delay (delayed_settings);
++      g_autofree char *connector_name = NULL;
 +
 +      if (ubuntu_dock_on_all_monitors)
 +        g_settings_set_boolean (delayed_settings, UBUNTU_DOCK_ALL_MONITORS_KEY, FALSE);
 +
-+      gtk_tree_model_iter_nth_child (GTK_TREE_MODEL (self->dock_placement_liststore),
-+                                     &placement_iter, NULL, active);
-+      gtk_tree_model_get (GTK_TREE_MODEL (self->dock_placement_liststore),
-+                          &placement_iter,
-+                          1, &monitor_id, -1);
++      if (selected == GSD_UBUNTU_DOCK_MONITOR_PRIMARY)
++        {
++          connector_name = g_strdup ("primary");
++        }
++      else
++        {
++          g_autoptr(HdyValueObject) value_object = NULL;
++          CcDisplayMonitor *monitor;
 +
-+      if (ubuntu_dock_current_index != monitor_id)
-+        g_settings_set_int (delayed_settings, UBUNTU_DOCK_ON_MONITOR_KEY, monitor_id);
++          value_object = g_list_model_get_item (G_LIST_MODEL (self->dock_monitors_liststore),
++                                                selected);
++
++          monitor = g_value_get_object (hdy_value_object_get_value (value_object));
++          connector_name = g_strdup (cc_display_monitor_get_connector_name (monitor));
++        }
++
++      if (g_strcmp0 (ubuntu_dock_current_connector, connector_name) != 0)
++        {
++          g_settings_set_int (delayed_settings, UBUNTU_DOCK_PREFERRED_MONITOR_KEY,
++                                                UBUNTU_DOCK_MONITOR_INDEX_USE_CONNECTOR);
++          g_settings_set_string (delayed_settings, UBUNTU_DOCK_PREFERRED_CONNECTOR_KEY,
++                                 connector_name);
++        }
 +
 +      g_settings_apply (delayed_settings);
 +    }
 +}
 +
-+static int
++static void
++on_dock_behavior_row_activated (CcUbuntuPanel *self)
++{
++  CcUbuntuDockDialog *dialog;
++
++  dialog = cc_ubuntu_dock_dialog_new (self->dock_settings);
++  gtk_window_set_transient_for (GTK_WINDOW (dialog), GTK_WINDOW (gtk_widget_get_toplevel (GTK_WIDGET (self))));
++  gtk_widget_show (GTK_WIDGET (dialog));
++}
++
++static CcDisplayMonitor *
 +get_dock_monitor (CcUbuntuPanel *self)
 +{
 +  g_autoptr(GList) monitors = NULL;
@@ -562,42 +1429,96 @@ index 000000000..13d732e6f
 +  int n_monitors;
 +  int primary_monitor;
 +
-+  monitors = get_valid_monitors (self, NULL, &n_monitors, &primary_monitor);
-+  index = g_settings_get_int (self->dock_settings, UBUNTU_DOCK_ON_MONITOR_KEY);
++  monitors = get_valid_monitors_sorted (self, &n_monitors, &primary_monitor);
++  index = g_settings_get_int (self->dock_settings, UBUNTU_DOCK_PREFERRED_MONITOR_KEY);
++
++  if (index == UBUNTU_DOCK_MONITOR_INDEX_USE_CONNECTOR)
++    {
++      g_autofree char *connector = NULL;
++      GList *l;
++      int i;
++
++      connector = g_settings_get_string (self->dock_settings,
++                                         UBUNTU_DOCK_PREFERRED_CONNECTOR_KEY);
++
++      for (l = monitors, i = 0; l; l = l->next, i++)
++        {
++          CcDisplayMonitor *monitor = l->data;
++          const char *monitor_connector = cc_display_monitor_get_connector_name (monitor);
++          if (g_strcmp0 (monitor_connector, connector) == 0)
++            return g_object_ref (monitor);
++        }
++    }
 +
 +  if (index < 0 || index >= n_monitors)
-+    return primary_monitor;
++    return NULL;
 +
-+  return index;
++  index = dock_monitor_to_id (index, primary_monitor, n_monitors);
++
++  return g_object_ref (g_list_nth_data (monitors, index));
++}
++
++static gboolean
++dock_placement_row_compare (gconstpointer a, gconstpointer b)
++{
++  const GValue *row_value_a;
++  const GValue *row_value_b;
++
++  row_value_a = hdy_value_object_get_value (HDY_VALUE_OBJECT ((gpointer) a));
++  row_value_b = hdy_value_object_get_value (HDY_VALUE_OBJECT ((gpointer) b));
++
++  if (row_value_a == NULL || row_value_b == NULL)
++    return row_value_a == row_value_b;
++
++  if (G_VALUE_TYPE (row_value_a) != G_VALUE_TYPE (row_value_b))
++    return FALSE;
++
++  if (G_VALUE_TYPE (row_value_a) == CC_TYPE_DISPLAY_MONITOR)
++    {
++      return cc_display_monitor_get_ui_number (g_value_get_object (row_value_a)) ==
++             cc_display_monitor_get_ui_number (g_value_get_object (row_value_b));
++    }
++
++  if (G_VALUE_TYPE (row_value_a) == G_TYPE_STRING)
++    {
++      return g_strcmp0 (g_value_get_string (row_value_a),
++                        g_value_get_string (row_value_b)) == 0;
++    }
++
++  g_return_val_if_reached (FALSE);
 +}
 +
 +static void
-+update_dock_placement_combo_selection (CcUbuntuPanel *self)
++update_dock_monitor_combo_row_selection (CcUbuntuPanel *self)
 +{
-+  int selection = 0;
++  guint selection = GSD_UBUNTU_DOCK_MONITOR_PRIMARY;
 +
-+  if (g_settings_get_boolean (self->dock_settings, UBUNTU_DOCK_ALL_MONITORS_KEY) == FALSE)
++  if (g_settings_get_boolean (self->dock_settings, UBUNTU_DOCK_ALL_MONITORS_KEY))
 +    {
-+      GtkTreeIter placement_iter;
-+      int dock_monitor;
-+      int monitor_id;
++      selection = GSD_UBUNTU_DOCK_MONITOR_ALL;
++    }
++  else
++    {
++      g_autoptr (CcDisplayMonitor) monitor = get_dock_monitor (self);
 +
-+      dock_monitor = get_dock_monitor (self);
-+      if (gtk_tree_model_get_iter_first (GTK_TREE_MODEL (self->dock_placement_liststore), &placement_iter))
++      if (monitor)
 +        {
-+          do
-+            {
-+              gtk_tree_model_get (GTK_TREE_MODEL (self->dock_placement_liststore), &placement_iter,
-+                                  1, &monitor_id, -1);
-+              if (monitor_id == dock_monitor)
-+                break;
++          g_autoptr(HdyValueObject) monitor_value_object = NULL;
++          g_auto(GValue) value = G_VALUE_INIT;
 +
-+              selection++;
-+            } while (gtk_tree_model_iter_next (GTK_TREE_MODEL (self->dock_placement_liststore),
-+                                               &placement_iter));
++          g_value_init (&value, CC_TYPE_DISPLAY_MONITOR);
++          g_value_set_object (&value, monitor);
++          monitor_value_object = hdy_value_object_new (&value);
++
++          if (!g_list_store_find_with_equal_func (self->dock_monitors_liststore,
++                                                  monitor_value_object,
++                                                  dock_placement_row_compare,
++                                                  &selection))
++            selection = GSD_UBUNTU_DOCK_MONITOR_PRIMARY;
 +        }
 +    }
-+  gtk_combo_box_set_active (GTK_COMBO_BOX (self->dock_placement_combo), selection);
++
++  hdy_combo_row_set_selected_index (self->dock_monitor_row, selection);
 +}
 +
 +static void
@@ -610,19 +1531,35 @@ index 000000000..13d732e6f
 +
 +  gtk_widget_class_set_template_from_resource (widget_class, "/org/gnome/control-center/ubuntu/cc-ubuntu-panel.ui");
 +
++  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, ding_preferences_group);
++  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, ding_icon_size_row);
++  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, ding_icons_new_alignment_row);
++  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, ding_showhome_switch);
++  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, dock_preferences_group);
 +  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, dock_autohide_switch);
-+  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, dock_listbox);
++  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, dock_extendheight_switch);
 +  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, dock_monitor_row);
-+  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, dock_placement_combo);
-+  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, dock_placement_liststore);
-+  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, dock_position_combo);
++  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, dock_position_row);
 +  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, icon_size_adjustment);
 +  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, icon_size_scale);
 +  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, theme_box);
 +  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, theme_dark);
 +  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, theme_light);
++  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, color_row);
++  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, color_box);
++  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, accent_bark);
++  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, accent_blue);
++  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, accent_olive);
++  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, accent_orange);
++  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, accent_magenta);
++  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, accent_purple);
++  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, accent_prussiangreen);
++  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, accent_red);
++  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, accent_sage);
++  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, accent_viridian);
 +
-+  gtk_widget_class_bind_template_callback (widget_class, on_dock_placement_combo_changed);
++  gtk_widget_class_bind_template_callback (widget_class, on_dock_monitor_row_changed);
++  gtk_widget_class_bind_template_callback (widget_class, on_dock_behavior_row_activated);
 +  gtk_widget_class_bind_template_callback (widget_class, on_icon_size_adjustment_value_changed);
 +  gtk_widget_class_bind_template_callback (widget_class, on_icon_size_format_value);
 +  gtk_widget_class_bind_template_callback (widget_class, on_theme_box_selected_children_changed);
@@ -643,19 +1580,106 @@ index 000000000..13d732e6f
 +                           G_CONNECT_SWAPPED);
 +}
 +
-+static const char *
-+get_dock_position_for_direction (CcUbuntuPanel *self,
-+                                 const char    *position)
++typedef enum
++{
++  GSD_UBUNTU_DOCK_POSITION_TOP,
++  GSD_UBUNTU_DOCK_POSITION_RIGHT,
++  GSD_UBUNTU_DOCK_POSITION_BOTTOM,
++  GSD_UBUNTU_DOCK_POSITION_LEFT,
++
++  GSD_UBUNTU_DOCK_POSITION_FIRST = GSD_UBUNTU_DOCK_POSITION_RIGHT,
++} GsdUbuntuDockPosition;
++
++static GsdUbuntuDockPosition
++get_dock_position_for_direction (CcUbuntuPanel         *self,
++                                 GsdUbuntuDockPosition  position)
 +{
 +  if (gtk_widget_get_state_flags (GTK_WIDGET (self)) & GTK_STATE_FLAG_DIR_RTL)
 +    {
-+      if (g_str_equal (position, "LEFT"))
-+        position = "RIGHT";
-+      else if (g_str_equal (position, "RIGHT"))
-+        position = "LEFT";
++      switch (position)
++        {
++          case GSD_UBUNTU_DOCK_POSITION_RIGHT:
++            position = GSD_UBUNTU_DOCK_POSITION_LEFT;
++            break;
++          case GSD_UBUNTU_DOCK_POSITION_LEFT:
++            position = GSD_UBUNTU_DOCK_POSITION_LEFT;
++            break;
++          default:
++            break;
++        }
 +    }
 +
 +  return position;
++}
++
++static const char *
++get_dock_position_string (GsdUbuntuDockPosition  position)
++{
++  switch (position)
++    {
++      case GSD_UBUNTU_DOCK_POSITION_TOP:
++        return "TOP";
++      case GSD_UBUNTU_DOCK_POSITION_RIGHT:
++        return "RIGHT";
++      case GSD_UBUNTU_DOCK_POSITION_BOTTOM:
++        return "BOTTOM";
++      case GSD_UBUNTU_DOCK_POSITION_LEFT:
++        return "LEFT";
++      default:
++        g_return_val_if_reached ("LEFT");
++    }
++}
++
++static GsdUbuntuDockPosition
++get_dock_position_from_string (const char *position)
++{
++  if (g_str_equal (position, "TOP"))
++    return GSD_UBUNTU_DOCK_POSITION_TOP;
++
++  if (g_str_equal (position, "RIGHT"))
++    return GSD_UBUNTU_DOCK_POSITION_RIGHT;
++
++  if (g_str_equal (position, "BOTTOM"))
++    return GSD_UBUNTU_DOCK_POSITION_BOTTOM;
++
++  if (g_str_equal (position, "LEFT"))
++    return GSD_UBUNTU_DOCK_POSITION_LEFT;
++
++  g_return_val_if_reached (GSD_UBUNTU_DOCK_POSITION_LEFT);
++}
++
++static GsdUbuntuDockPosition
++get_dock_position_row_position (CcUbuntuPanel *self,
++                                int            index)
++{
++  GListModel *model = hdy_combo_row_get_model (self->dock_position_row);
++  HdyValueObject *value_object = g_list_model_get_item (model, index);
++
++  return GPOINTER_TO_INT (g_object_get_data (G_OBJECT (value_object), "position"));
++}
++
++static int
++get_dock_position_row_index (CcUbuntuPanel         *self,
++                             GsdUbuntuDockPosition  position)
++{
++  GListModel *model = hdy_combo_row_get_model (self->dock_position_row);
++  guint n_items;
++  guint i;
++
++  n_items = g_list_model_get_n_items (model);
++
++  for (i = 0; i < n_items; i++)
++    {
++      HdyValueObject *value_object = g_list_model_get_item (model, i);
++      GsdUbuntuDockPosition item_position;
++
++      item_position = GPOINTER_TO_INT (g_object_get_data (G_OBJECT (value_object), "position"));
++
++      if (item_position == position)
++        return i;
++    }
++
++  g_return_val_if_reached (0);
 +}
 +
 +static gboolean
@@ -664,12 +1688,23 @@ index 000000000..13d732e6f
 +                           gpointer  user_data)
 +{
 +  CcUbuntuPanel *self = user_data;
-+  const char *position;
++  GsdUbuntuDockPosition position;
 +
-+  position = g_variant_get_string (variant, NULL);
-+  g_value_set_string (value, get_dock_position_for_direction (self, position));
++  position = get_dock_position_from_string (g_variant_get_string (variant, NULL));
++  position = get_dock_position_for_direction (self, position);
 +
-+  return TRUE;
++  if (G_VALUE_TYPE (value) == G_TYPE_INT)
++    {
++      g_value_set_int (value, get_dock_position_row_index (self, position));
++      return TRUE;
++    }
++  else if (G_VALUE_TYPE (value) == G_TYPE_STRING)
++    {
++      g_value_set_string (value, get_dock_position_string (position));
++      return TRUE;
++    }
++
++  return FALSE;
 +}
 +
 +static GVariant *
@@ -678,67 +1713,494 @@ index 000000000..13d732e6f
 +                           gpointer            user_data)
 +{
 +  CcUbuntuPanel *self = user_data;
-+  const char *position;
++  GsdUbuntuDockPosition position;
 +
-+  position = g_value_get_string (value);
++  position = get_dock_position_row_position (self, g_value_get_int (value));
++  position = get_dock_position_for_direction (self, position);
 +
-+  return g_variant_new_string (get_dock_position_for_direction (self, position));
++  return g_variant_new_string (get_dock_position_string (position));
++}
++
++static void
++populate_dock_position_row (HdyComboRow *combo_row)
++{
++  g_autoptr (GListStore) list_store = NULL;
++  struct {
++    char *name;
++    GsdUbuntuDockPosition position;
++  } positions[] = {
++    {
++      NC_("Position on screen for the Ubuntu dock", "Left"),
++          GSD_UBUNTU_DOCK_POSITION_LEFT,
++    },
++    {
++      NC_("Position on screen for the Ubuntu dock", "Bottom"),
++          GSD_UBUNTU_DOCK_POSITION_BOTTOM,
++    },
++    {
++      NC_("Position on screen for the Ubuntu dock", "Right"),
++          GSD_UBUNTU_DOCK_POSITION_RIGHT,
++    },
++  };
++  guint i;
++
++  list_store = g_list_store_new (HDY_TYPE_VALUE_OBJECT);
++  for (i = 0; i < G_N_ELEMENTS (positions); i++)
++    {
++      g_autoptr (HdyValueObject) value_object = NULL;
++
++      value_object = hdy_value_object_new_string (_(positions[i].name));
++      g_object_set_data (G_OBJECT (value_object),
++                         "position",
++                         GUINT_TO_POINTER (positions[i].position));
++      g_list_store_append (list_store, value_object);
++    }
++
++  hdy_combo_row_bind_name_model (combo_row,
++                                 G_LIST_MODEL (list_store),
++                                 (HdyComboRowGetNameFunc) hdy_value_object_dup_string,
++                                 NULL, NULL);
++}
++
++typedef enum
++{
++  UBUNTU_DING_ICONS_SIZE_SMALL,
++  UBUNTU_DING_ICONS_SIZE_STANDARD,
++  UBUNTU_DING_ICONS_SIZE_LARGE,
++  UBUNTU_DING_ICONS_SIZE_TINY,
++} UbuntuDingIconsSize;
++
++static const char *
++get_ding_size_string (UbuntuDingIconsSize size)
++{
++  switch (size)
++    {
++      case UBUNTU_DING_ICONS_SIZE_TINY:
++        return "tiny";
++      case UBUNTU_DING_ICONS_SIZE_SMALL:
++        return "small";
++      case UBUNTU_DING_ICONS_SIZE_STANDARD:
++        return "standard";
++      case UBUNTU_DING_ICONS_SIZE_LARGE:
++        return "large";
++      default:
++        g_return_val_if_reached ("standard");
++    }
++}
++
++static UbuntuDingIconsSize
++get_ding_size_from_string (const char *size)
++{
++  if (g_str_equal (size, "tiny"))
++    return UBUNTU_DING_ICONS_SIZE_TINY;
++
++  if (g_str_equal (size, "small"))
++    return UBUNTU_DING_ICONS_SIZE_SMALL;
++
++  if (g_str_equal (size, "standard"))
++    return UBUNTU_DING_ICONS_SIZE_STANDARD;
++
++  if (g_str_equal (size, "large"))
++    return UBUNTU_DING_ICONS_SIZE_LARGE;
++
++  g_return_val_if_reached (UBUNTU_DING_ICONS_SIZE_STANDARD);
++}
++
++static int
++get_ding_size_row_index (CcUbuntuPanel       *self,
++                         UbuntuDingIconsSize  size)
++{
++  GListModel *model = hdy_combo_row_get_model (self->ding_icon_size_row);
++  guint n_items;
++  guint i;
++
++  n_items = g_list_model_get_n_items (model);
++
++  for (i = 0; i < n_items; i++)
++    {
++      HdyValueObject *value_object = g_list_model_get_item (model, i);
++      UbuntuDingIconsSize item_size;
++
++      item_size = GPOINTER_TO_INT (g_object_get_data (G_OBJECT (value_object), "size"));
++
++      if (item_size == size)
++        return i;
++    }
++
++  g_return_val_if_reached (0);
++}
++
++static gboolean
++ding_size_get_mapping (GValue   *value,
++                       GVariant *variant,
++                       gpointer  user_data)
++{
++  CcUbuntuPanel *self = user_data;
++  UbuntuDingIconsSize size = 0;
++
++  size = get_ding_size_from_string (g_variant_get_string (variant, NULL));
++
++  if (G_VALUE_TYPE (value) == G_TYPE_INT)
++    {
++      g_value_set_int (value, get_ding_size_row_index (self, size));
++      return TRUE;
++    }
++  else if (G_VALUE_TYPE (value) == G_TYPE_STRING)
++    {
++      g_value_set_string (value, get_ding_size_string (size));
++      return TRUE;
++    }
++
++  return FALSE;
++}
++
++static GVariant *
++ding_size_set_mapping (const GValue           *value,
++                           const GVariantType *type,
++                           gpointer            user_data)
++{
++  UbuntuDingIconsSize size = g_value_get_int (value);
++
++  return g_variant_new_string (get_ding_size_string (size));
++}
++
++static void
++populate_ding_size_row (HdyComboRow *combo_row)
++{
++  g_autoptr (GListStore) list_store = NULL;
++  struct {
++    char *name;
++    UbuntuDingIconsSize size;
++  } sizes[] = {
++    {
++      NC_("Size of the desktop icons", "Small"),
++          UBUNTU_DING_ICONS_SIZE_SMALL,
++    },
++    {
++      NC_("Size of the desktop icons", "Normal"),
++          UBUNTU_DING_ICONS_SIZE_STANDARD,
++    },
++    {
++      NC_("Size of the desktop icons", "Large"),
++          UBUNTU_DING_ICONS_SIZE_LARGE,
++    },
++    {
++      NC_("Size of the desktop icons", "Tiny"),
++          UBUNTU_DING_ICONS_SIZE_TINY,
++    },
++  };
++  guint i;
++
++  list_store = g_list_store_new (HDY_TYPE_VALUE_OBJECT);
++  for (i = 0; i < G_N_ELEMENTS (sizes); i++)
++    {
++      g_autoptr (HdyValueObject) value_object = NULL;
++
++      value_object = hdy_value_object_new_string (_(sizes[i].name));
++      g_object_set_data (G_OBJECT (value_object),
++                         "size",
++                         GUINT_TO_POINTER (sizes[i].size));
++      g_list_store_append (list_store, value_object);
++    }
++
++  hdy_combo_row_bind_name_model (combo_row,
++                                 G_LIST_MODEL (list_store),
++                                 (HdyComboRowGetNameFunc) hdy_value_object_dup_string,
++                                 NULL, NULL);
++}
++
++typedef enum
++{
++  UBUNTU_DING_START_CORNER_TOP_LEFT,
++  UBUNTU_DING_START_CORNER_TOP_RIGHT,
++  UBUNTU_DING_START_CORNER_BOTTOM_LEFT,
++  UBUNTU_DING_START_CORNER_BOTTOM_RIGHT,
++} UbuntuDingStartCorner;
++
++static const char *
++get_ding_start_corner_string (UbuntuDingStartCorner corner)
++{
++  switch (corner)
++    {
++      case UBUNTU_DING_START_CORNER_TOP_LEFT:
++        return "top-left";
++      case UBUNTU_DING_START_CORNER_TOP_RIGHT:
++        return "top-right";
++      case UBUNTU_DING_START_CORNER_BOTTOM_LEFT:
++        return "bottom-left";
++      case UBUNTU_DING_START_CORNER_BOTTOM_RIGHT:
++        return "bottom-right";
++      default:
++        g_return_val_if_reached ("standard");
++    }
++}
++
++static UbuntuDingStartCorner
++get_ding_start_corner_from_string (const char *corner)
++{
++  if (g_str_equal (corner, "top-left"))
++    return UBUNTU_DING_START_CORNER_TOP_LEFT;
++
++  if (g_str_equal (corner, "top-right"))
++    return UBUNTU_DING_START_CORNER_TOP_RIGHT;
++
++  if (g_str_equal (corner, "bottom-left"))
++    return UBUNTU_DING_START_CORNER_BOTTOM_LEFT;
++
++  if (g_str_equal (corner, "bottom-right"))
++    return UBUNTU_DING_START_CORNER_BOTTOM_RIGHT;
++
++  g_warning("Value is %s", corner);
++
++  g_return_val_if_reached (UBUNTU_DING_START_CORNER_BOTTOM_RIGHT);
++}
++
++static int
++ding_start_corner_get_row_index (CcUbuntuPanel         *self,
++                                 UbuntuDingStartCorner  corner)
++{
++  GListModel *model = hdy_combo_row_get_model (self->ding_icons_new_alignment_row);
++  guint n_items;
++  guint i;
++
++  n_items = g_list_model_get_n_items (model);
++
++  for (i = 0; i < n_items; i++)
++    {
++      HdyValueObject *value_object = g_list_model_get_item (model, i);
++      UbuntuDingStartCorner item_corner;
++
++      item_corner = GPOINTER_TO_INT (g_object_get_data (G_OBJECT (value_object), "corner"));
++
++      if (item_corner == corner)
++        return i;
++    }
++
++  g_return_val_if_reached (0);
++}
++
++static gboolean
++ding_start_corner_get_mapping (GValue   *value,
++                               GVariant *variant,
++                               gpointer  user_data)
++{
++  CcUbuntuPanel *self = user_data;
++  UbuntuDingStartCorner corner = 0;
++
++  corner = get_ding_start_corner_from_string (g_variant_get_string (variant, NULL));
++
++  if (G_VALUE_TYPE (value) == G_TYPE_INT)
++    {
++      g_value_set_int (value, ding_start_corner_get_row_index (self, corner));
++      return TRUE;
++    }
++  else if (G_VALUE_TYPE (value) == G_TYPE_STRING)
++    {
++      g_value_set_string (value, get_ding_start_corner_string (corner));
++      return TRUE;
++    }
++
++  return FALSE;
++}
++
++static GVariant *
++ding_start_corner_set_mapping (const GValue       *value,
++                               const GVariantType *type,
++                               gpointer            user_data)
++{
++  UbuntuDingStartCorner corner = g_value_get_int (value);
++
++  return g_variant_new_string (get_ding_start_corner_string (corner));
++}
++
++static void
++populate_ding_start_corner_row (HdyComboRow *combo_row)
++{
++  g_autoptr (GListStore) list_store = NULL;
++  struct {
++    char *name;
++    UbuntuDingStartCorner corner;
++  } corners[] = {
++    {
++      NC_("Alignment of new desktop icons", "Top Left"),
++          UBUNTU_DING_START_CORNER_TOP_LEFT,
++    },
++    {
++      NC_("Alignment of new desktop icons", "Top Right"),
++          UBUNTU_DING_START_CORNER_TOP_RIGHT,
++    },
++    {
++      NC_("Alignment of new desktop icons", "Bottom Left"),
++          UBUNTU_DING_START_CORNER_BOTTOM_LEFT,
++    },
++    {
++      NC_("Alignment of new desktop icons", "Bottom Right"),
++          UBUNTU_DING_START_CORNER_BOTTOM_RIGHT,
++    },
++  };
++  guint i;
++
++  list_store = g_list_store_new (HDY_TYPE_VALUE_OBJECT);
++  for (i = 0; i < G_N_ELEMENTS (corners); i++)
++    {
++      g_autoptr (HdyValueObject) value_object = NULL;
++
++      value_object = hdy_value_object_new_string (_(corners[i].name));
++      g_object_set_data (G_OBJECT (value_object),
++                         "corner",
++                         GUINT_TO_POINTER (corners[i].corner));
++      g_list_store_append (list_store, value_object);
++    }
++
++  hdy_combo_row_bind_name_model (combo_row,
++                                 G_LIST_MODEL (list_store),
++                                 (HdyComboRowGetNameFunc) hdy_value_object_dup_string,
++                                 NULL, NULL);
 +}
 +
 +static void
 +cc_ubuntu_panel_init (CcUbuntuPanel *self)
 +{
++  GSettingsSchemaSource *schema_source = g_settings_schema_source_get_default ();
 +  g_autoptr(GSettingsSchema) schema = NULL;
 +
 +  g_resources_register (cc_ubuntu_get_resource ());
 +
 +  gtk_widget_init_template (GTK_WIDGET (self));
 +
-+  gtk_list_box_set_header_func (self->dock_listbox, cc_list_box_update_header_func, NULL, NULL);
-+
 +  self->interface_settings = g_settings_new (INTERFACE_SCHEMA);
 +  g_signal_connect_object (self->interface_settings, "changed::" GTK_THEME_KEY,
-+                           G_CALLBACK (on_interface_settings_changed), self, G_CONNECT_SWAPPED);
++                           G_CALLBACK (on_interface_settings_changed), self,
++                           G_CONNECT_SWAPPED);
 +  g_signal_connect_object (self->interface_settings, "changed::" CURSOR_THEME_KEY,
-+                           G_CALLBACK (on_interface_settings_changed), self, G_CONNECT_SWAPPED);
++                           G_CALLBACK (on_interface_settings_changed), self,
++                           G_CONNECT_SWAPPED);
 +  g_signal_connect_object (self->interface_settings, "changed::" ICON_THEME_KEY,
-+                           G_CALLBACK (on_interface_settings_changed), self, G_CONNECT_SWAPPED);
-+  self->gedit_settings = g_settings_new (GEDIT_PREFRENCES_SCHEMA);
-+  g_signal_connect_object (self->gedit_settings, "changed::" GEDIT_THEME_KEY,
-+                           G_CALLBACK (on_interface_settings_changed), self, G_CONNECT_SWAPPED);
++                           G_CALLBACK (on_interface_settings_changed), self,
++                           G_CONNECT_SWAPPED);
++  g_signal_connect_object (self->interface_settings, "changed::" COLOR_SCHEME_KEY,
++                           G_CALLBACK (on_interface_settings_changed), self,
++                           G_CONNECT_SWAPPED);
++
++  schema = g_settings_schema_source_lookup (schema_source, GEDIT_PREFRENCES_SCHEMA, TRUE);
++  if (schema)
++    {
++      self->gedit_settings = g_settings_new (GEDIT_PREFRENCES_SCHEMA);
++      g_signal_connect_object (self->gedit_settings, "changed::" GEDIT_THEME_KEY,
++                               G_CALLBACK (on_interface_settings_changed), self, G_CONNECT_SWAPPED);
++    }
++  else
++    {
++      g_warning ("No gedit is installed here. Colors won't be updated. Please fix your installation.");
++    }
++
++  /* Only load if we ding installed */
++  schema = g_settings_schema_source_lookup (schema_source, DING_SCHEMA, TRUE);
++  if (schema)
++    {
++      self->ding_settings = g_settings_new_full (schema, NULL, NULL);
++
++      populate_ding_size_row (self->ding_icon_size_row);
++      g_settings_bind_with_mapping (self->ding_settings, "icon-size",
++                                    self->ding_icon_size_row, "selected-index",
++                                    G_SETTINGS_BIND_DEFAULT,
++                                    ding_size_get_mapping,
++                                    ding_size_set_mapping,
++                                    self, NULL);
++
++      populate_ding_start_corner_row (self->ding_icons_new_alignment_row);
++      g_settings_bind_with_mapping (self->ding_settings, "start-corner",
++                                    self->ding_icons_new_alignment_row, "selected-index",
++                                    G_SETTINGS_BIND_DEFAULT,
++                                    ding_start_corner_get_mapping,
++                                    ding_start_corner_set_mapping,
++                                    self, NULL);
++
++      g_settings_bind (self->ding_settings, "show-home",
++                       self->ding_showhome_switch, "active",
++                       G_SETTINGS_BIND_DEFAULT);
++    }
++  else
++    {
++      g_warning ("No Ding is installed here. Please fix your installation.");
++      gtk_widget_hide (GTK_WIDGET (self->ding_preferences_group));
++    }
 +
 +  /* Only load if we have ubuntu dock or dash to dock installed */
-+  schema = g_settings_schema_source_lookup (g_settings_schema_source_get_default (), UBUNTU_DOCK_SCHEMA, TRUE);
-+  if (!schema)
++  schema = g_settings_schema_source_lookup (schema_source, UBUNTU_DOCK_SCHEMA, TRUE);
++  if (schema)
++    {
++      self->dock_settings = g_settings_new_full (schema, NULL, NULL);
++      self->dock_monitors_liststore = g_list_store_new (HDY_TYPE_VALUE_OBJECT);
++
++      self->updating = TRUE;
++      hdy_combo_row_bind_name_model (self->dock_monitor_row,
++                                     G_LIST_MODEL (self->dock_monitors_liststore),
++                                     (HdyComboRowGetNameFunc) get_dock_monitor_value_object_name,
++                                     self, NULL);
++      self->updating = FALSE;
++
++      populate_dock_position_row (self->dock_position_row);
++
++      g_signal_connect_object (self->dock_settings,
++                               "changed::" ICONSIZE_KEY,
++                               G_CALLBACK (icon_size_widget_refresh),
++                               self, G_CONNECT_SWAPPED);
++      g_signal_connect_object (self->dock_settings,
++                               "changed::" UBUNTU_DOCK_ALL_MONITORS_KEY,
++                               G_CALLBACK (update_dock_monitor_combo_row_selection),
++                               self, G_CONNECT_SWAPPED);
++      g_signal_connect_object (self->dock_settings,
++                               "changed::" UBUNTU_DOCK_PREFERRED_MONITOR_KEY,
++                               G_CALLBACK (update_dock_monitor_combo_row_selection),
++                               self, G_CONNECT_SWAPPED);
++      g_signal_connect_object (self->dock_settings,
++                               "changed::" UBUNTU_DOCK_PREFERRED_CONNECTOR_KEY,
++                               G_CALLBACK (update_dock_monitor_combo_row_selection),
++                               self, G_CONNECT_SWAPPED);
++      g_settings_bind_with_mapping (self->dock_settings, "dock-position",
++                                    self->dock_position_row, "selected-index",
++                                    G_SETTINGS_BIND_DEFAULT,
++                                    dock_position_get_mapping,
++                                    dock_position_set_mapping,
++                                    self, NULL);
++      g_settings_bind (self->dock_settings, "dock-fixed",
++                       self->dock_autohide_switch, "active",
++                       G_SETTINGS_BIND_INVERT_BOOLEAN);
++      g_settings_bind (self->dock_settings, "extend-height",
++                       self->dock_extendheight_switch, "active",
++                       G_SETTINGS_BIND_DEFAULT);
++
++      /* Icon size change - we halve the sizes so we can only get even values */
++      gtk_adjustment_set_value (self->icon_size_adjustment, DEFAULT_ICONSIZE / 2);
++      gtk_adjustment_set_lower (self->icon_size_adjustment, MIN_ICONSIZE / 2);
++      gtk_adjustment_set_upper (self->icon_size_adjustment, MAX_ICONSIZE / 2);
++      gtk_scale_add_mark (self->icon_size_scale, DEFAULT_ICONSIZE / 2, GTK_POS_BOTTOM, NULL);
++
++      icon_size_widget_refresh (self);
++
++      g_bus_get (G_BUS_TYPE_SESSION, NULL, session_bus_ready, self);
++    }
++  else
 +    {
 +      g_warning ("No Ubuntu Dock is installed here. Panel disabled. Please fix your installation.");
-+      return;
++      gtk_widget_hide (GTK_WIDGET (self->dock_preferences_group));
 +    }
-+  self->dock_settings = g_settings_new_full (schema, NULL, NULL);
-+  g_signal_connect_object (self->dock_settings, "changed::" ICONSIZE_KEY,
-+                           G_CALLBACK (icon_size_widget_refresh), self, G_CONNECT_SWAPPED);
-+  g_signal_connect_object (self->dock_settings, "changed::" UBUNTU_DOCK_ALL_MONITORS_KEY,
-+                           G_CALLBACK (update_dock_placement_combo_selection), self, G_CONNECT_SWAPPED);
-+  g_signal_connect_object (self->dock_settings, "changed::" UBUNTU_DOCK_ON_MONITOR_KEY,
-+                           G_CALLBACK (update_dock_placement_combo_selection), self, G_CONNECT_SWAPPED);
-+  g_settings_bind_with_mapping (self->dock_settings, "dock-position",
-+                                self->dock_position_combo, "active-id",
-+                                G_SETTINGS_BIND_DEFAULT,
-+                                dock_position_get_mapping,
-+                                dock_position_set_mapping,
-+                                self, NULL);
-+  g_settings_bind (self->dock_settings, "dock-fixed",
-+                   self->dock_autohide_switch, "active",
-+                   G_SETTINGS_BIND_INVERT_BOOLEAN);
 +
-+  /* Icon size change - we halve the sizes so we can only get even values */
-+  gtk_adjustment_set_value (self->icon_size_adjustment, DEFAULT_ICONSIZE / 2);
-+  gtk_adjustment_set_lower (self->icon_size_adjustment, MIN_ICONSIZE / 2);
-+  gtk_adjustment_set_upper (self->icon_size_adjustment, MAX_ICONSIZE / 2);
-+  gtk_scale_add_mark (self->icon_size_scale, DEFAULT_ICONSIZE / 2, GTK_POS_BOTTOM, NULL);
++  g_object_set_qdata (G_OBJECT (self->accent_bark), accent_quark (), "bark");
++  g_object_set_qdata (G_OBJECT (self->accent_blue), accent_quark (), "blue");
++  g_object_set_qdata (G_OBJECT (self->accent_magenta), accent_quark (), "magenta");
++  g_object_set_qdata (G_OBJECT (self->accent_olive), accent_quark (), "olive");
++  g_object_set_qdata (G_OBJECT (self->accent_orange), accent_quark (), "orange");
++  g_object_set_qdata (G_OBJECT (self->accent_purple), accent_quark (), "purple");
++  g_object_set_qdata (G_OBJECT (self->accent_prussiangreen), accent_quark (), "prussiangreen");
++  g_object_set_qdata (G_OBJECT (self->accent_red), accent_quark (), "red");
++  g_object_set_qdata (G_OBJECT (self->accent_sage), accent_quark (), "sage");
++  g_object_set_qdata (G_OBJECT (self->accent_viridian), accent_quark (), "viridian");
++  check_theme_accents_availability (self);
 +
-+  icon_size_widget_refresh (self);
 +  on_interface_settings_changed (self);
++  load_custom_css (self);
 +
 +  cc_object_storage_create_dbus_proxy (G_BUS_TYPE_SESSION,
 +                                       G_DBUS_PROXY_FLAGS_DO_NOT_LOAD_PROPERTIES |
@@ -752,8 +2214,6 @@ index 000000000..13d732e6f
 +                                       self);
 +
 +  g_signal_connect (self, "map", G_CALLBACK (mapped_cb), NULL);
-+
-+  g_bus_get (G_BUS_TYPE_SESSION, NULL, session_bus_ready, self);
 +}
 +
 +void
@@ -776,7 +2236,7 @@ index 000000000..13d732e6f
 +}
 diff --git a/panels/ubuntu/cc-ubuntu-panel.h b/panels/ubuntu/cc-ubuntu-panel.h
 new file mode 100644
-index 000000000..b13f6114c
+index 0000000..b13f611
 --- /dev/null
 +++ b/panels/ubuntu/cc-ubuntu-panel.h
 @@ -0,0 +1,35 @@
@@ -817,345 +2277,130 @@ index 000000000..b13f6114c
 +#endif /* _CC_EDIT_DIALOG_H_ */
 diff --git a/panels/ubuntu/cc-ubuntu-panel.ui b/panels/ubuntu/cc-ubuntu-panel.ui
 new file mode 100644
-index 000000000..d45237c9a
+index 0000000..796483d
 --- /dev/null
 +++ b/panels/ubuntu/cc-ubuntu-panel.ui
-@@ -0,0 +1,368 @@
+@@ -0,0 +1,618 @@
 +<?xml version="1.0" encoding="UTF-8"?>
-+<!-- Generated with glade 3.20.0 -->
 +<interface>
 +  <requires lib="gtk+" version="3.20"/>
++  <requires lib="libhandy" version="0.0"/>
 +  <template class="CcUbuntuPanel" parent="CcPanel">
 +    <property name="visible">True</property>
 +    <child>
-+      <object class="GtkScrolledWindow">
-+        <property name="visible">True</property>
-+        <property name="can_focus">True</property>
-+        <property name="hscrollbar_policy">never</property>
-+        <property name="shadow_type">in</property>
++      <object class="HdyPreferencesPage">
++        <property name="visible">1</property>
++            <!-- Style -->
 +        <child>
-+          <object class="GtkViewport">
-+            <property name="visible">True</property>
-+            <property name="can_focus">False</property>
++          <object class="HdyPreferencesGroup">
++            <property name="visible">1</property>
++            <property name="title" translatable="yes">Style</property>
 +            <child>
-+              <object class="GtkBox">
-+                <property name="visible">True</property>
-+                <property name="can_focus">False</property>
-+
-+                <!-- Stub boxes to make the content cover 1/3 of the screen -->
++              <object class="HdyPreferencesRow">
++                <property name="visible">1</property>
++                <property name="activatable">False</property>
++                <property name="selectable">False</property>
 +                <child>
-+                  <object class="GtkBox">
-+                    <property name="visible">True</property>
-+                    <property name="can_focus">False</property>
-+                    <property name="hexpand">True</property>
-+                  </object>
-+                </child>
-+
-+                <child>
-+                  <object class="GtkBox">
-+                    <property name="visible">True</property>
-+                    <property name="can_focus">False</property>
-+                    <property name="hexpand">True</property>
-+                  </object>
-+                  <packing>
-+                    <property name="pack_type">end</property>
-+                  </packing>
-+                </child>
-+
-+                <!-- Content -->
-+                <child>
-+                  <object class="GtkBox">
-+                    <property name="visible">True</property>
-+                    <property name="can_focus">False</property>
-+                    <property name="margin">32</property>
-+                    <property name="orientation">vertical</property>
-+                    <property name="hexpand">True</property>
++                  <object class="HdyClamp">
++                    <property name="visible">1</property>
++                    <property name="maximum_size">400</property>
++                    <property name="tightening_threshold">300</property>
 +                    <child>
-+                      <object class="GtkLabel">
-+                        <property name="visible">True</property>
-+                        <property name="can_focus">False</property>
-+                        <property name="xalign">0</property>
-+                        <property name="margin_bottom">12</property>
-+                        <property name="label" translatable="yes" comments="Theme settings.">Window colors</property>
-+                        <attributes>
-+                          <attribute name="weight" value="bold"/>
-+                        </attributes>
-+                      </object>
-+                    </child>
-+                    <child>
-+                      <object class="GtkFrame">
-+                        <property name="visible">True</property>
-+                        <property name="can_focus">False</property>
-+                        <property name="margin_bottom">32</property>
-+                        <property name="hexpand">True</property>
-+                        <property name="label_xalign">0</property>
-+                        <property name="shadow_type">in</property>
++                      <object class="GtkBox">
++                        <property name="visible">1</property>
++                        <property name="orientation">vertical</property>
 +                        <child>
-+                          <object class="GtkFlowBox" id="theme_box">
-+                            <property name="visible">True</property>
-+                            <property name="homogeneous">True</property>
++                          <object class="GtkFLowBox" id="theme_box">
++                            <property name="visible">1</property>
 +                            <property name="max-children-per-line">2</property>
++                            <property name="min-children-per-line">2</property>
++                            <property name="column-spacing">24</property>
++                            <property name="margin">12</property>
++                            <property name="activate-on-single-click">False</property>
 +                            <signal name="selected-children-changed" handler="on_theme_box_selected_children_changed" object="CcUbuntuPanel" swapped="yes"/>
 +                            <child>
 +                              <object class="GtkFlowBoxChild" id="theme_light">
-+                                <property name="visible">True</property>
++                                <property name="visible">1</property>
 +                                <child>
 +                                  <object class="GtkBox">
-+                                    <property name="visible">True</property>
++                                    <property name="visible">1</property>
 +                                    <property name="orientation">vertical</property>
-+                                    <property name="spacing">6</property>
-+                                    <property name="margin">10</property>
++                                    <property name="margin">1</property>
 +                                    <child>
 +                                      <object class="GtkImage">
-+                                        <property name="visible">True</property>
-+                                        <property name="resource">/org/gnome/control-center/ubuntu/theme-light.svg</property>
++                                        <property name="margin">4</property>
++                                        <property name="visible">1</property>
++                                        <property name="resource">/org/gnome/control-center/ubuntu/assets/theme-light.svg</property>
++                                        <style>
++                                          <class name="appearance-thumbnail" />
++                                        </style>
 +                                      </object>
 +                                    </child>
-+                                    <child>
-+                                      <object class="GtkLabel">
-+                                        <property name="visible">True</property>
-+                                        <property name="label" translatable="yes" context="Yaru theme in use">Light</property>
-+                                      </object>
-+                                    </child>
++                                    <style>
++                                      <class name="view"/>
++                                      <class name="appearance-preview" />
++                                    </style>
 +                                  </object>
 +                                </child>
++                                <style>
++                                  <class name="appearance-preview" />
++                                </style>
 +                              </object>
 +                            </child>
 +                            <child>
 +                              <object class="GtkFlowBoxChild" id="theme_dark">
-+                                <property name="visible">True</property>
++                                <property name="visible">1</property>
 +                                <child>
 +                                  <object class="GtkBox">
-+                                    <property name="visible">True</property>
++                                    <property name="visible">1</property>
 +                                    <property name="orientation">vertical</property>
-+                                    <property name="spacing">6</property>
-+                                    <property name="margin">10</property>
++                                    <property name="margin">1</property>
 +                                    <child>
 +                                      <object class="GtkImage">
-+                                        <property name="visible">True</property>
-+                                        <property name="resource">/org/gnome/control-center/ubuntu/theme-dark.svg</property>
++                                        <property name="margin">4</property>
++                                        <property name="visible">1</property>
++                                        <property name="resource">/org/gnome/control-center/ubuntu/assets/theme-dark.svg</property>
++                                        <style>
++                                          <class name="appearance-thumbnail" />
++                                        </style>
 +                                      </object>
 +                                    </child>
-+                                    <child>
-+                                      <object class="GtkLabel">
-+                                        <property name="visible">True</property>
-+                                        <property name="label" translatable="yes" context="Yaru theme in use">Dark</property>
-+                                      </object>
-+                                    </child>
++                                    <style>
++                                      <class name="view"/>
++                                      <class name="appearance-preview" />
++                                    </style>
 +                                  </object>
 +                                </child>
++                                <style>
++                                  <class name="appearance-preview" />
++                                </style>
 +                              </object>
 +                            </child>
 +                          </object>
 +                        </child>
-+                      </object>
-+                    </child>
-+                    <child>
-+                      <object class="GtkLabel">
-+                        <property name="visible">True</property>
-+                        <property name="can_focus">False</property>
-+                        <property name="xalign">0</property>
-+                        <property name="margin_bottom">12</property>
-+                        <property name="label" translatable="yes" comments="Dock settings.">Dock</property>
-+                        <attributes>
-+                          <attribute name="weight" value="bold"/>
-+                        </attributes>
-+                      </object>
-+                    </child>
-+                    <child>
-+                      <object class="GtkFrame">
-+                        <property name="visible">True</property>
-+                        <property name="can_focus">False</property>
-+                        <property name="margin_bottom">32</property>
-+                        <property name="hexpand">True</property>
-+                        <property name="label_xalign">0</property>
-+                        <property name="shadow_type">in</property>
 +                        <child>
-+                          <object class="GtkListBox" id="dock_listbox">
-+                            <property name="visible">True</property>
-+                            <property name="can_focus">False</property>
-+                            <property name="hexpand">True</property>
-+                            <property name="selection_mode">none</property>
-+                            <property name="activate_on_single_click">False</property>
++                          <object class="GtkGrid">
++                            <property name="visible">1</property>
 +                            <child>
-+                              <object class="GtkListBoxRow">
-+                                <property name="visible">True</property>
-+                                <child>
-+                                  <object class="GtkGrid">
-+                                    <property name="visible">True</property>
-+                                    <property name="margin_start">20</property>
-+                                    <property name="margin_end">20</property>
-+                                    <property name="margin_top">10</property>
-+                                    <property name="margin_bottom">10</property>
-+                                    <property name="row_spacing">2</property>
-+                                    <property name="column_spacing">16</property>
-+                                    <property name="valign">center</property>
-+                                    <child>
-+                                      <object class="GtkLabel">
-+                                        <property name="visible">True</property>
-+                                        <property name="label" translatable="yes">Auto-hide the Dock</property>
-+                                        <property name="hexpand">True</property>
-+                                        <property name="halign">start</property>
-+                                        <property name="mnemonic_widget">dock_autohide_switch</property>
-+                                      </object>
-+                                      <packing>
-+                                        <property name="left_attach">0</property>
-+                                        <property name="top_attach">0</property>
-+                                        <property name="width">1</property>
-+                                        <property name="height">1</property>
-+                                      </packing>
-+                                    </child>
-+                                    <child>
-+                                      <object class="GtkLabel">
-+                                        <property name="visible">True</property>
-+                                        <property name="label" translatable="yes">The dock hides when any windows overlap with it.</property>
-+                                        <property name="halign">start</property>
-+                                        <attributes>
-+                                          <attribute name="scale" value="0.9"/>
-+                                        </attributes>
-+                                        <style>
-+                                          <class name="dim-label"/>
-+                                        </style>
-+                                      </object>
-+                                      <packing>
-+                                        <property name="left_attach">0</property>
-+                                        <property name="top_attach">1</property>
-+                                        <property name="width">1</property>
-+                                        <property name="height">1</property>
-+                                      </packing>
-+                                    </child>
-+                                    <child>
-+                                      <object class="GtkSwitch" id="dock_autohide_switch">
-+                                        <property name="visible">True</property>
-+                                        <property name="halign">end</property>
-+                                        <property name="valign">center</property>
-+                                      </object>
-+                                      <packing>
-+                                        <property name="left_attach">1</property>
-+                                        <property name="top_attach">0</property>
-+                                        <property name="width">1</property>
-+                                        <property name="height">2</property>
-+                                      </packing>
-+                                    </child>
-+                                  </object>
-+                                </child>
++                              <object class="GtkLabel">
++                                <property name="visible">1</property>
++                                <property name="halign">center</property>
++                                <property name="valign">center</property>
++                                <property name="margin_start">128</property>
++                                <property name="margin_end">128</property>
++                                <property name="margin_bottom">10</property>
++                                <property name="label" translatable="yes" context="Yaru theme (color scheme) variant">Light</property>
 +                              </object>
 +                            </child>
 +                            <child>
-+                              <object class="GtkListBoxRow">
-+                                <property name="visible">True</property>
-+                                <child>
-+                                  <object class="GtkBox">
-+                                    <property name="visible">True</property>
-+                                    <property name="orientation">horizontal</property>
-+                                    <property name="spacing">50</property>
-+                                    <child>
-+                                      <object class="GtkLabel">
-+                                        <property name="visible">True</property>
-+                                        <property name="label" translatable="yes">Icon size</property>
-+                                        <property name="hexpand">True</property>
-+                                        <property name="halign">start</property>
-+                                        <property name="margin_start">20</property>
-+                                        <property name="margin_end">20</property>
-+                                        <property name="margin_top">16</property>
-+                                        <property name="margin_bottom">16</property>
-+                                        <property name="mnemonic_widget">icon_size_scale</property>
-+                                      </object>
-+                                    </child>
-+                                    <child>
-+                                      <object class="GtkScale" id="icon_size_scale">
-+                                        <property name="visible">True</property>
-+                                        <property name="adjustment">icon_size_adjustment</property>
-+                                        <property name="orientation">horizontal</property>
-+                                        <property name="value_pos">left</property>
-+                                        <property name="width_request">264</property>
-+                                        <property name="valign">center</property>
-+                                        <property name="margin_start">20</property>
-+                                        <property name="margin_end">20</property>
-+                                        <signal name="format-value" handler="on_icon_size_format_value" object="CcUbuntuPanel" swapped="yes"/>
-+                                      </object>
-+                                    </child>
-+                                  </object>
-+                                </child>
-+                              </object>
-+                            </child>
-+                            <child>
-+                              <object class="GtkListBoxRow" id="dock_monitor_row">
-+                                <property name="visible">True</property>
-+                                <child>
-+                                  <object class="GtkBox">
-+                                    <property name="visible">True</property>
-+                                    <property name="orientation">horizontal</property>
-+                                    <property name="spacing">50</property>
-+                                    <child>
-+                                      <object class="GtkLabel">
-+                                        <property name="visible">True</property>
-+                                        <property name="label" translatable="yes">Show on</property>
-+                                        <property name="hexpand">True</property>
-+                                        <property name="halign">start</property>
-+                                        <property name="margin_start">20</property>
-+                                        <property name="margin_end">20</property>
-+                                        <property name="margin_top">16</property>
-+                                        <property name="margin_bottom">16</property>
-+                                        <property name="mnemonic_widget">dock_placement_combo</property>
-+                                      </object>
-+                                    </child>
-+                                    <child>
-+                                      <object class="GtkComboBox" id="dock_placement_combo">
-+                                        <property name="visible">True</property>
-+                                        <property name="model">dock_placement_liststore</property>
-+                                        <property name="margin_start">20</property>
-+                                        <property name="margin_end">20</property>
-+                                        <property name="valign">center</property>
-+                                        <signal name="changed" handler="on_dock_placement_combo_changed" object="CcUbuntuPanel" swapped="yes"/>
-+                                        <child>
-+                                          <object class="GtkCellRendererText"/>
-+                                          <attributes>
-+                                            <attribute name="text">0</attribute>
-+                                          </attributes>
-+                                        </child>
-+                                      </object>
-+                                    </child>
-+                                  </object>
-+                                </child>
-+                              </object>
-+                            </child>
-+                            <child>
-+                              <object class="GtkListBoxRow">
-+                                <property name="visible">True</property>
-+                                <child>
-+                                  <object class="GtkBox">
-+                                    <property name="visible">True</property>
-+                                    <property name="orientation">horizontal</property>
-+                                    <property name="spacing">50</property>
-+                                    <child>
-+                                      <object class="GtkLabel">
-+                                        <property name="visible">True</property>
-+                                        <property name="label" translatable="yes">Position on screen</property>
-+                                        <property name="hexpand">True</property>
-+                                        <property name="halign">start</property>
-+                                        <property name="margin_start">20</property>
-+                                        <property name="margin_end">20</property>
-+                                        <property name="margin_top">16</property>
-+                                        <property name="margin_bottom">16</property>
-+                                        <property name="mnemonic_widget">dock_position_combo</property>
-+                                      </object>
-+                                    </child>
-+                                    <child>
-+                                      <object class="GtkComboBoxText" id="dock_position_combo">
-+                                        <property name="visible">True</property>
-+                                        <property name="margin_start">20</property>
-+                                        <property name="margin_end">20</property>
-+                                        <property name="valign">center</property>
-+                                        <items>
-+                                          <item id="LEFT" translatable="yes" context="Position on screen for the Ubuntu dock">Left</item>
-+                                          <item id="BOTTOM" translatable="yes" context="Position on screen for the Ubuntu dock">Bottom</item>
-+                                          <item id="RIGHT" translatable="yes" context="Position on screen for the Ubuntu dock">Right</item>
-+                                        </items>
-+                                      </object>
-+                                    </child>
-+                                  </object>
-+                                </child>
++                              <object class="GtkLabel">
++                                <property name="visible">1</property>
++                                <property name="halign">center</property>
++                                <property name="valign">center</property>
++                                <property name="margin_start">128</property>
++                                <property name="margin_end">128</property>
++                                <property name="margin_bottom">10</property>
++                                <property name="label" translatable="yes" context="Yaru theme (color scheme) variant">Dark</property>
 +                              </object>
 +                            </child>
 +                          </object>
@@ -1163,11 +2408,483 @@ index 000000000..d45237c9a
 +                      </object>
 +                    </child>
 +                  </object>
++                </child>
++              </object>
++            </child>
++            <child>
++              <object class="HdyActionRow" id="color_row">
++                <property name="title">Color</property>
++                <property name="visible">1</property>
++                <property name="activatable">False</property>
++                <property name="selectable">False</property>
++                <child>
++                  <object class="GtkFLowBox" id="color_box">
++                    <property name="visible">1</property>
++                    <property name="max-children-per-line">10</property>
++                    <property name="min-children-per-line">10</property>
++                    <property name="column-spacing">12</property>
++                    <property name="row-spacing">12</property>
++                    <property name="margin">6</property>
++                    <property name="activate-on-single-click">False</property>
++                    <signal name="selected-children-changed" handler="on_theme_box_selected_children_changed" object="CcUbuntuPanel" swapped="yes"/>
++                    <style>
++                     <class name="colors" />
++                    </style>
++                    <child>
++                      <object class="GtkFlowBoxChild" id="accent_orange">
++                        <property name="tooltip_text" translatable="yes" context="Yaru theme accent color">Orange</property>
++                        <property name="visible">1</property>
++                        <property name="valign">center</property>
++                        <style>
++                          <class name="colors" />
++                        </style>
++                        <child>
++                          <object class="GtkBox">
++                            <property name="visible">1</property>
++                            <property name="orientation">vertical</property>
++                            <style>
++                              <class name="colors" />
++                              <class name="view" />
++                            </style>
++                            <child>
++                              <object class="GtkImage">
++                                <property name="visible">1</property>
++                                <property name="resource">/org/gnome/control-center/ubuntu/assets/colors/orange.svg</property>
++                                <style>
++                                  <class name="colors-thumbnail" />
++                                </style>
++                              </object>
++                            </child>
++                          </object>
++                        </child>
++                      </object>
++                    </child>
++                    <child>
++                      <object class="GtkFlowBoxChild" id="accent_bark">
++                        <property name="tooltip_text" translatable="yes" context="Yaru theme accent color">Bark</property>
++                        <property name="visible">1</property>
++                        <property name="valign">center</property>
++                        <style>
++                          <class name="colors" />
++                        </style>
++                        <child>
++                          <object class="GtkBox">
++                            <property name="visible">1</property>
++                            <property name="orientation">vertical</property>
++                            <style>
++                              <class name="colors" />
++                              <class name="view" />
++                            </style>
++                            <child>
++                              <object class="GtkImage">
++                                <property name="visible">1</property>
++                                <property name="resource">/org/gnome/control-center/ubuntu/assets/colors/bark.svg</property>
++                                <style>
++                                  <class name="colors-thumbnail" />
++                                </style>
++                              </object>
++                            </child>
++                          </object>
++                        </child>
++                      </object>
++                    </child>
++                    <child>
++                      <object class="GtkFlowBoxChild" id="accent_sage">
++                        <property name="tooltip_text" translatable="yes" context="Yaru theme accent color">Sage</property>
++                        <property name="visible">1</property>
++                        <property name="valign">center</property>
++                        <style>
++                          <class name="colors" />
++                        </style>
++                        <child>
++                          <object class="GtkBox">
++                            <property name="visible">1</property>
++                            <property name="orientation">vertical</property>
++                            <style>
++                              <class name="colors" />
++                              <class name="view" />
++                            </style>
++                            <child>
++                              <object class="GtkImage">
++                                <property name="visible">1</property>
++                                <property name="resource">/org/gnome/control-center/ubuntu/assets/colors/sage.svg</property>
++                                <style>
++                                  <class name="colors-thumbnail" />
++                                </style>
++                              </object>
++                            </child>
++                          </object>
++                        </child>
++                      </object>
++                    </child>
++                    <child>
++                      <object class="GtkFlowBoxChild" id="accent_olive">
++                        <property name="tooltip_text" translatable="yes" context="Yaru theme accent color">Olive</property>
++                        <property name="visible">1</property>
++                        <property name="valign">center</property>
++                        <style>
++                          <class name="colors" />
++                        </style>
++                        <child>
++                          <object class="GtkBox">
++                            <property name="visible">1</property>
++                            <property name="orientation">vertical</property>
++                            <style>
++                              <class name="colors" />
++                              <class name="view" />
++                            </style>
++                            <child>
++                              <object class="GtkImage">
++                                <property name="visible">1</property>
++                                <property name="resource">/org/gnome/control-center/ubuntu/assets/colors/olive.svg</property>
++                                <style>
++                                  <class name="colors-thumbnail" />
++                                </style>
++                              </object>
++                            </child>
++                          </object>
++                        </child>
++                      </object>
++                    </child>
++                    <child>
++                      <object class="GtkFlowBoxChild" id="accent_viridian">
++                        <property name="tooltip_text" translatable="yes" context="Yaru theme accent color">Viridian</property>
++                        <property name="visible">1</property>
++                        <property name="valign">center</property>
++                        <style>
++                          <class name="colors" />
++                        </style>
++                        <child>
++                          <object class="GtkBox">
++                            <property name="visible">1</property>
++                            <property name="orientation">vertical</property>
++                            <style>
++                              <class name="colors" />
++                              <class name="view" />
++                            </style>
++                            <child>
++                              <object class="GtkImage">
++                                <property name="visible">1</property>
++                                <property name="resource">/org/gnome/control-center/ubuntu/assets/colors/viridian.svg</property>
++                                <style>
++                                  <class name="colors-thumbnail" />
++                                </style>
++                              </object>
++                            </child>
++                          </object>
++                        </child>
++                      </object>
++                    </child>
++                    <child>
++                      <object class="GtkFlowBoxChild" id="accent_prussiangreen">
++                        <property name="tooltip_text" translatable="yes" context="Yaru theme accent color">Prussian Green</property>
++                        <property name="visible">1</property>
++                        <property name="valign">center</property>
++                        <style>
++                          <class name="colors" />
++                        </style>
++                        <child>
++                          <object class="GtkBox">
++                            <property name="visible">1</property>
++                            <property name="orientation">vertical</property>
++                            <style>
++                              <class name="colors" />
++                              <class name="view" />
++                            </style>
++                            <child>
++                              <object class="GtkImage">
++                                <property name="visible">1</property>
++                                <property name="resource">/org/gnome/control-center/ubuntu/assets/colors/prussiangreen.svg</property>
++                                <style>
++                                  <class name="colors-thumbnail" />
++                                </style>
++                              </object>
++                            </child>
++                          </object>
++                        </child>
++                      </object>
++                    </child>
++                    <child>
++                      <object class="GtkFlowBoxChild" id="accent_blue">
++                        <property name="tooltip_text" translatable="yes" context="Yaru theme accent color">Blue</property>
++                        <property name="visible">1</property>
++                        <property name="valign">center</property>
++                        <style>
++                          <class name="colors" />
++                        </style>
++                        <child>
++                          <object class="GtkBox">
++                            <property name="visible">1</property>
++                            <property name="orientation">vertical</property>
++                            <style>
++                              <class name="colors" />
++                              <class name="view" />
++                            </style>
++                            <child>
++                              <object class="GtkImage">
++                                <property name="visible">1</property>
++                                <property name="resource">/org/gnome/control-center/ubuntu/assets/colors/blue.svg</property>
++                                <style>
++                                  <class name="colors-thumbnail" />
++                                </style>
++                              </object>
++                            </child>
++                          </object>
++                        </child>
++                      </object>
++                    </child>
++                    <child>
++                      <object class="GtkFlowBoxChild" id="accent_purple">
++                        <property name="tooltip_text" translatable="yes" context="Yaru theme accent color">Purple</property>
++                        <property name="visible">1</property>
++                        <property name="valign">center</property>
++                        <style>
++                          <class name="colors" />
++                        </style>
++                        <child>
++                          <object class="GtkBox">
++                            <property name="visible">1</property>
++                            <property name="orientation">vertical</property>
++                            <style>
++                              <class name="colors" />
++                              <class name="view" />
++                            </style>
++                            <child>
++                              <object class="GtkImage">
++                                <property name="visible">1</property>
++                                <property name="resource">/org/gnome/control-center/ubuntu/assets/colors/purple.svg</property>
++                                <style>
++                                  <class name="colors-thumbnail" />
++                                </style>
++                              </object>
++                            </child>
++                          </object>
++                        </child>
++                      </object>
++                    </child>
++                    <child>
++                      <object class="GtkFlowBoxChild" id="accent_magenta">
++                        <property name="tooltip_text" translatable="yes" context="Yaru theme accent color">Magenta</property>
++                        <property name="visible">1</property>
++                        <property name="valign">center</property>
++                        <style>
++                          <class name="colors" />
++                        </style>
++                        <child>
++                          <object class="GtkBox">
++                            <property name="visible">1</property>
++                            <property name="orientation">vertical</property>
++                            <style>
++                              <class name="colors" />
++                              <class name="view" />
++                            </style>
++                            <child>
++                              <object class="GtkImage">
++                                <property name="visible">1</property>
++                                <property name="resource">/org/gnome/control-center/ubuntu/assets/colors/magenta.svg</property>
++                                <style>
++                                  <class name="colors-thumbnail" />
++                                </style>
++                              </object>
++                            </child>
++                          </object>
++                        </child>
++                      </object>
++                    </child>
++                    <child>
++                      <object class="GtkFlowBoxChild" id="accent_red">
++                        <property name="tooltip_text" translatable="yes" context="Yaru theme accent color">Red</property>
++                        <property name="visible">1</property>
++                        <property name="valign">center</property>
++                        <style>
++                          <class name="colors" />
++                        </style>
++                        <child>
++                          <object class="GtkBox">
++                            <property name="visible">1</property>
++                            <property name="orientation">vertical</property>
++                            <style>
++                              <class name="colors" />
++                              <class name="view" />
++                            </style>
++                            <child>
++                              <object class="GtkImage">
++                                <property name="visible">1</property>
++                                <property name="resource">/org/gnome/control-center/ubuntu/assets/colors/red.svg</property>
++                                <style>
++                                  <class name="colors-thumbnail" />
++                                </style>
++                              </object>
++                            </child>
++                          </object>
++                        </child>
++                      </object>
++                    </child>
++                  </object>
++                </child>
++              </object>
++            </child>
++          </object>
++        </child>
++
++        <!-- Desktop icons settings -->
++        <child>
++          <object class="HdyPreferencesGroup" id="ding_preferences_group">
++            <property name="margin_top">16</property>
++            <property name="visible">True</property>
++            <property name="title" translatable="yes" comments="Desktop icons settings.">Desktop Icons</property>
++            <child>
++              <object class="HdyComboRow" id="ding_icon_size_row">
++                <property name="visible">True</property>
++                <property name="use_underline">True</property>
++                <property name="can_focus">True</property>
++                <property name="can_focus">True</property>
++                <property name="width_request">100</property>
++                <property name="title" translatable="yes" context="Desktop Icons Size">Size</property>
++              </object>
++            </child>
++            <child>
++              <object class="HdyComboRow" id="ding_icons_new_alignment_row">
++                <property name="visible">True</property>
++                <property name="use_underline">True</property>
++                <property name="can_focus">True</property>
++                <property name="can_focus">True</property>
++                <property name="width_request">100</property>
++                <property name="title" translatable="yes" context="Desktop Icons Size">Position of New Icons</property>
++              </object>
++            </child>
++            <child>
++              <object class="HdyActionRow">
++                <property name="visible">True</property>
++                <property name="use_underline">True</property>
++                <property name="can_focus">True</property>
++                <property name="title" translatable="yes">Show Personal folder</property>
++                <property name="activatable">True</property>
++                <property name="activatable_widget">ding_showhome_switch</property>
++                <child>
++                  <object class="GtkSwitch" id="ding_showhome_switch">
++                    <property name="visible">True</property>
++                    <property name="can_focus">True</property>
++                    <property name="valign">center</property>
++                  </object>
++                </child>
++              </object>
++            </child>
++          </object>
++        </child>
++
++        <!-- Dock settings -->
++        <child>
++          <object class="HdyPreferencesGroup" id="dock_preferences_group">
++            <property name="margin_top">16</property>
++            <property name="margin_bottom">16</property>
++            <property name="visible">True</property>
++            <property name="title" translatable="yes" comments="Dock settings.">Dock</property>
++            <child>
++              <object class="HdyActionRow">
++                <property name="visible">True</property>
++                <property name="use_underline">True</property>
++                <property name="can_focus">True</property>
++                <property name="title" translatable="yes">Auto-hide the Dock</property>
++                <property name="subtitle" translatable="yes">The dock hides when any windows overlap with it.</property>
++                <property name="activatable">True</property>
++                <property name="activatable_widget">dock_autohide_switch</property>
++                <child>
++                  <object class="GtkSwitch" id="dock_autohide_switch">
++                    <property name="visible">True</property>
++                    <property name="can_focus">True</property>
++                    <property name="valign">center</property>
++                  </object>
 +                  <packing>
 +                    <property name="expand">False</property>
 +                    <property name="fill">True</property>
-+                    <property name="position">2</property>
++                    <property name="position">1</property>
 +                  </packing>
++                </child>
++              </object>
++            </child>
++            <child>
++              <object class="HdyActionRow">
++                <property name="visible">True</property>
++                <property name="use_underline">True</property>
++                <property name="can_focus">True</property>
++                <property name="title" translatable="yes">Panel mode</property>
++                <property name="subtitle" translatable="yes">The dock extends to the screen edge.</property>
++                <property name="activatable">True</property>
++                <property name="activatable_widget">dock_extendheight_switch</property>
++                <child>
++                  <object class="GtkSwitch" id="dock_extendheight_switch">
++                    <property name="visible">True</property>
++                    <property name="can_focus">True</property>
++                    <property name="valign">center</property>
++                  </object>
++                  <packing>
++                    <property name="expand">False</property>
++                    <property name="fill">True</property>
++                    <property name="position">1</property>
++                  </packing>
++                </child>
++              </object>
++            </child>
++            <child>
++              <object class="HdyActionRow">
++                <property name="visible">True</property>
++                <property name="use_underline">True</property>
++                <property name="can_focus">True</property>
++                <property name="title" translatable="yes">Icon size</property>
++                <property name="activatable">True</property>
++                <child>
++                  <object class="GtkScale" id="icon_size_scale">
++                    <property name="visible">True</property>
++                    <property name="adjustment">icon_size_adjustment</property>
++                    <property name="orientation">horizontal</property>
++                    <property name="value_pos">left</property>
++                    <property name="width_request">264</property>
++                    <signal name="format-value" handler="on_icon_size_format_value" object="CcUbuntuPanel" swapped="yes"/>
++                  </object>
++                  <packing>
++                    <property name="expand">False</property>
++                    <property name="fill">True</property>
++                    <property name="position">1</property>
++                  </packing>
++                </child>
++              </object>
++            </child>
++            <child>
++              <object class="HdyComboRow" id="dock_monitor_row">
++                <property name="visible">True</property>
++                <property name="use_underline">True</property>
++                <property name="can_focus">True</property>
++                <property name="width_request">100</property>
++                <property name="title" translatable="yes">Show on</property>
++                <signal name="notify::selected-index" handler="on_dock_monitor_row_changed" swapped="yes"/>
++              </object>
++            </child>
++            <child>
++              <object class="HdyComboRow" id="dock_position_row">
++                <property name="visible">True</property>
++                <property name="use_underline">True</property>
++                <property name="can_focus">True</property>
++                <property name="can_focus">True</property>
++                <property name="width_request">100</property>
++                <property name="title" translatable="yes">Position on screen</property>
++              </object>
++            </child>
++            <child>
++              <object class="HdyActionRow" id="dock_behavior_row">
++                <property name="visible">True</property>
++                <property name="can_focus">True</property>
++                <property name="title" translatable="yes">Configure dock behavior</property>
++                <property name="activatable">True</property>
++                <signal name="activated" handler="on_dock_behavior_row_activated" object="CcUbuntuPanel" swapped="yes"/>
++                <child>
++                  <object class="GtkImage">
++                    <property name="visible">True</property>
++                    <property name="icon_name">go-next-symbolic</property>
++                    <style>
++                      <class name="dim-label"/>
++                    </style>
++                  </object>
 +                </child>
 +              </object>
 +            </child>
@@ -1181,17 +2898,10 @@ index 000000000..d45237c9a
 +    <property name="page_increment">4</property>
 +    <signal name="value-changed" handler="on_icon_size_adjustment_value_changed" object="CcUbuntuPanel" swapped="yes"/>
 +  </object>
-+  <object class="GtkListStore" id="dock_placement_liststore">
-+    <columns>
-+      <!-- column-name label -->
-+      <column type="gchararray"/>
-+      <column type="gint"/>
-+    </columns>
-+  </object>
 +</interface>
 diff --git a/panels/ubuntu/gnome-ubuntu-panel.desktop.in.in b/panels/ubuntu/gnome-ubuntu-panel.desktop.in.in
 new file mode 100644
-index 000000000..78571f158
+index 0000000..8235e5c
 --- /dev/null
 +++ b/panels/ubuntu/gnome-ubuntu-panel.desktop.in.in
 @@ -0,0 +1,16 @@
@@ -1210,13 +2920,13 @@ index 000000000..78571f158
 +X-GNOME-Bugzilla-Product=gnome-control-center
 +X-GNOME-Bugzilla-Version=@VERSION@
 +# Translators: those are keywords for the ubuntu control-center panel
-+Keywords=Dock;Launcher;Theme;
++Keywords=Dock;Launcher;Theme;Ubuntu;Dark;icons;Yaru;Accent;
 diff --git a/panels/ubuntu/meson.build b/panels/ubuntu/meson.build
 new file mode 100644
-index 000000000..234bb10d6
+index 0000000..cdfbd03
 --- /dev/null
 +++ b/panels/ubuntu/meson.build
-@@ -0,0 +1,42 @@
+@@ -0,0 +1,56 @@
 +panels_list += cappletname
 +desktop = 'gnome-@0@-panel.desktop'.format(cappletname)
 +
@@ -1227,7 +2937,6 @@ index 000000000..234bb10d6
 +)
 +
 +i18n.merge_file(
-+  desktop,
 +  type: 'desktop',
 +  input: desktop_in,
 +  output: desktop,
@@ -1236,11 +2945,26 @@ index 000000000..234bb10d6
 +  install_dir: control_center_desktopdir
 +)
 +
-+sources = files('cc-ubuntu-panel.c')
++sources = files(
++  'cc-ubuntu-panel.c',
++  'cc-ubuntu-dock-dialog.c',
++)
 +
-+resource_data = files('cc-ubuntu-panel.ui',
-+                      'theme-dark.svg',
-+                      'theme-light.svg')
++resource_data = files(
++  'appearance.css',
++  'assets/theme-dark.svg',
++  'assets/theme-light.svg',
++  'assets/colors/orange.svg',
++  'assets/colors/bark.svg',
++  'assets/colors/blue.svg',
++  'assets/colors/magenta.svg',
++  'assets/colors/olive.svg',
++  'assets/colors/purple.svg',
++  'assets/colors/red.svg',
++  'assets/colors/viridian.svg',
++  'cc-ubuntu-panel.ui',
++  'cc-ubuntu-dock-dialog.ui',
++)
 +
 +sources += gnome.compile_resources(
 +  'cc-' + cappletname + '-resources',
@@ -1259,824 +2983,65 @@ index 000000000..234bb10d6
 +  dependencies: common_deps,
 +  c_args: cflags
 +)
-diff --git a/panels/ubuntu/theme-dark.svg b/panels/ubuntu/theme-dark.svg
-new file mode 100644
-index 000000000..65b478c40
---- /dev/null
-+++ b/panels/ubuntu/theme-dark.svg
-@@ -0,0 +1,381 @@
-+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-+<svg
-+   viewBox="0 0 270 200"
-+   version="1.1"
-+   id="svg75"
-+   sodipodi:docname="theme-dark.svg"
-+   width="270"
-+   height="200"
-+   inkscape:version="1.1 (c68e22c387, 2021-05-23)"
-+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
-+   xmlns:xlink="http://www.w3.org/1999/xlink"
-+   xmlns="http://www.w3.org/2000/svg"
-+   xmlns:svg="http://www.w3.org/2000/svg">
-+  <sodipodi:namedview
-+     id="namedview77"
-+     pagecolor="#ffffff"
-+     bordercolor="#666666"
-+     borderopacity="1.0"
-+     inkscape:pageshadow="2"
-+     inkscape:pageopacity="0.0"
-+     inkscape:pagecheckerboard="0"
-+     showgrid="false"
-+     width="270px"
-+     inkscape:zoom="1.229349"
-+     inkscape:cx="160.65413"
-+     inkscape:cy="107.78062"
-+     inkscape:window-width="1366"
-+     inkscape:window-height="704"
-+     inkscape:window-x="0"
-+     inkscape:window-y="27"
-+     inkscape:window-maximized="1"
-+     inkscape:current-layer="svg75" />
-+  <defs
-+     id="defs30">
-+    <style
-+       id="style2">.cls-1{fill:url(#linear-gradient);}.cls-2{fill:#222;}.cls-20,.cls-3{fill:#272727;}.cls-4{fill:#343434;}.cls-5{fill:#e95420;}.cls-6{fill:#2c2c2c;}.cls-7{fill:#373737;}.cls-8{fill:#151515;}.cls-21,.cls-9{fill:#3d3d3d;}.cls-10{fill:url(#linear-gradient-2);}.cls-11{fill:url(#linear-gradient-3);}.cls-12{fill:url(#linear-gradient-4);}.cls-13{fill:#737373;}.cls-14{fill:url(#linear-gradient-5);}.cls-15{fill:url(#linear-gradient-6);}.cls-16{fill:url(#linear-gradient-7);}.cls-17{fill:url(#linear-gradient-8);}.cls-18{fill:url(#linear-gradient-9);}.cls-19{fill:url(#linear-gradient-10);}.cls-20{stroke:#4b4b4b;stroke-width:2px;}.cls-20,.cls-21{stroke-miterlimit:10;}.cls-21{stroke:#e95420;stroke-width:0.8px;}</style>
-+    <linearGradient
-+       id="linear-gradient"
-+       x1="497.14001"
-+       y1="613.5"
-+       x2="497.14001"
-+       y2="713.96002"
-+       gradientTransform="matrix(6.09,0,0,-6.09,-2632.72,4349.65)"
-+       gradientUnits="userSpaceOnUse">
-+      <stop
-+         offset="0"
-+         stop-color="#350753"
-+         id="stop4" />
-+      <stop
-+         offset="1"
-+         stop-color="#720b53"
-+         id="stop6" />
-+    </linearGradient>
-+    <linearGradient
-+       id="linear-gradient-2"
-+       x1="216.64"
-+       y1="166.28999"
-+       x2="289.81"
-+       y2="166.28999"
-+       gradientUnits="userSpaceOnUse">
-+      <stop
-+         offset="0"
-+         stop-color="#772953"
-+         id="stop9" />
-+      <stop
-+         offset="1"
-+         stop-color="#510045"
-+         id="stop11" />
-+    </linearGradient>
-+    <linearGradient
-+       id="linear-gradient-3"
-+       x1="226.89999"
-+       y1="147.75"
-+       x2="298.70001"
-+       y2="189.2"
-+       gradientUnits="userSpaceOnUse">
-+      <stop
-+         offset="0.25"
-+         stop-color="#982963"
-+         id="stop14" />
-+      <stop
-+         offset="0.91"
-+         stop-color="#e98120"
-+         id="stop16" />
-+    </linearGradient>
-+    <linearGradient
-+       id="linear-gradient-4"
-+       x1="392.56"
-+       y1="164.23"
-+       x2="319.39999"
-+       y2="164.23"
-+       gradientUnits="userSpaceOnUse">
-+      <stop
-+         offset="0.03"
-+         stop-color="#e95420"
-+         id="stop19" />
-+      <stop
-+         offset="0.51"
-+         stop-color="#772953"
-+         id="stop21" />
-+    </linearGradient>
-+    <linearGradient
-+       id="linear-gradient-5"
-+       x1="495.31"
-+       y1="164.23"
-+       x2="422.14999"
-+       y2="164.23"
-+       xlink:href="#linear-gradient-4" />
-+    <linearGradient
-+       id="linear-gradient-6"
-+       x1="598.06"
-+       y1="164.23"
-+       x2="524.90002"
-+       y2="164.23"
-+       xlink:href="#linear-gradient-4" />
-+    <linearGradient
-+       id="linear-gradient-7"
-+       x1="289.81"
-+       y1="267.57001"
-+       x2="216.64"
-+       y2="267.57001"
-+       xlink:href="#linear-gradient-4" />
-+    <linearGradient
-+       id="linear-gradient-8"
-+       x1="392.56"
-+       y1="267.57001"
-+       x2="319.39999"
-+       y2="267.57001"
-+       xlink:href="#linear-gradient-4" />
-+    <linearGradient
-+       id="linear-gradient-9"
-+       x1="495.31"
-+       y1="267.57001"
-+       x2="422.14999"
-+       y2="267.57001"
-+       xlink:href="#linear-gradient-4" />
-+    <linearGradient
-+       id="linear-gradient-10"
-+       x1="598.06"
-+       y1="267.57001"
-+       x2="524.90002"
-+       y2="267.57001"
-+       xlink:href="#linear-gradient-4" />
-+    <linearGradient
-+       inkscape:collect="always"
-+       xlink:href="#linear-gradient-4"
-+       id="linearGradient79"
-+       gradientUnits="userSpaceOnUse"
-+       x1="392.56"
-+       y1="164.23"
-+       x2="319.39999"
-+       y2="164.23" />
-+  </defs>
-+  <g
-+     id="Bgrd"
-+     transform="scale(0.34090909,0.32679739)">
-+    <g
-+       id="Wallpaper">
-+      <rect
-+         id="rect3045"
-+         class="cls-1"
-+         width="792"
-+         height="612"
-+         style="fill:url(#linear-gradient)"
-+         x="0"
-+         y="0" />
-+    </g>
-+  </g>
-+  <g
-+     id="Artwork"
-+     transform="matrix(0.31297816,0,0,0.31297816,11.043435,4.1316606)">
-+    <path
-+       id="rect3061"
-+       class="cls-2"
-+       d="m 24.48,18.75 h 743.15 a 10,10 0 0 1 10,10 V 96.5 H 14.48 V 28.75 a 10,10 0 0 1 10,-10 z" />
-+    <rect
-+       id="rect3063"
-+       class="cls-3"
-+       x="14.48"
-+       y="96.5"
-+       width="161.73"
-+       height="497.37" />
-+    <rect
-+       id="rect3065"
-+       class="cls-4"
-+       x="14.48"
-+       y="216.35001"
-+       width="161.73"
-+       height="51.209999" />
-+    <rect
-+       id="rect3065-2"
-+       data-name="rect3065"
-+       class="cls-5"
-+       x="14.48"
-+       y="216.35001"
-+       width="6.5900002"
-+       height="51.209999" />
-+    <rect
-+       id="rect3069"
-+       class="cls-6"
-+       x="185.75999"
-+       y="96.5"
-+       width="590.78998"
-+       height="497.37" />
-+    <path
-+       id="rect3071"
-+       class="cls-6"
-+       d="m 225.35,38 h 196.81 a 1.69,1.69 0 0 1 1.78,1.59 v 33.26 a 1.69,1.69 0 0 1 -1.78,1.59 H 225.35 a 1.68,1.68 0 0 1 -1.77,-1.59 V 39.61 A 1.68,1.68 0 0 1 225.35,38 Z" />
-+    <path
-+       id="rect3071-2"
-+       data-name="rect3071"
-+       class="cls-7"
-+       d="m 430.81,38 h 37.84 a 1.68,1.68 0 0 1 1.77,1.59 v 33.26 a 1.68,1.68 0 0 1 -1.77,1.59 H 430.81 A 1.68,1.68 0 0 1 429,72.85 V 39.61 A 1.68,1.68 0 0 1 430.81,38 Z" />
-+    <path
-+       id="rect3071-3"
-+       data-name="rect3071"
-+       class="cls-7"
-+       d="m 525.05,38 h 39.35 a 1.73,1.73 0 0 1 1.84,1.59 v 33.26 a 1.73,1.73 0 0 1 -1.84,1.59 h -39.35 a 1.73,1.73 0 0 1 -1.84,-1.59 V 39.61 A 1.73,1.73 0 0 1 525.05,38 Z" />
-+    <path
-+       id="rect3071-4"
-+       data-name="rect3071"
-+       class="cls-7"
-+       d="m 571.54,38 h 39.35 a 1.73,1.73 0 0 1 1.85,1.59 v 33.26 a 1.73,1.73 0 0 1 -1.85,1.59 H 571.54 A 1.73,1.73 0 0 1 569.7,72.85 V 39.61 A 1.73,1.73 0 0 1 571.54,38 Z" />
-+    <path
-+       id="rect3071-5"
-+       data-name="rect3071"
-+       class="cls-8"
-+       d="m 637.24,38 h 39.35 a 1.73,1.73 0 0 1 1.84,1.59 v 33.26 a 1.73,1.73 0 0 1 -1.84,1.59 H 637.24 A 1.73,1.73 0 0 1 635.4,72.85 V 39.61 A 1.73,1.73 0 0 1 637.24,38 Z" />
-+    <path
-+       id="rect3288"
-+       class="cls-7"
-+       d="m 36,38 h 37.69 a 1.83,1.83 0 0 1 2,1.59 v 33.26 a 1.83,1.83 0 0 1 -2,1.59 H 36 A 1.83,1.83 0 0 1 34,72.85 V 39.61 A 1.83,1.83 0 0 1 36,38 Z" />
-+    <path
-+       id="rect3288-2"
-+       data-name="rect3288"
-+       class="cls-7"
-+       d="m 83.44,38 h 37.67 a 1.83,1.83 0 0 1 2,1.59 v 33.26 a 1.83,1.83 0 0 1 -2,1.59 H 83.44 a 1.83,1.83 0 0 1 -2,-1.59 V 39.61 a 1.83,1.83 0 0 1 2,-1.61 z" />
-+    <path
-+       id="rect3290"
-+       class="cls-9"
-+       d="m 138.71,38 h 79.72 a 1.68,1.68 0 0 1 1.77,1.59 v 33.26 a 1.68,1.68 0 0 1 -1.77,1.59 h -79.72 a 1.69,1.69 0 0 1 -1.78,-1.59 V 39.61 A 1.69,1.69 0 0 1 138.71,38 Z" />
-+    <rect
-+       id="rect39"
-+       class="cls-2"
-+       x="14.48"
-+       y="583.71997"
-+       width="762.60999"
-+       height="10.14" />
-+    <rect
-+       id="rect39-2"
-+       data-name="rect39"
-+       class="cls-2"
-+       x="176.21001"
-+       y="96.5"
-+       width="9.5600004"
-+       height="492.16" />
-+    <rect
-+       id="rect39-3"
-+       data-name="rect39"
-+       class="cls-2"
-+       x="767.94"
-+       y="96.5"
-+       width="9.5600004"
-+       height="497.37" />
-+    <circle
-+       class="cls-5"
-+       cx="743.63"
-+       cy="54.419998"
-+       r="12.5"
-+       id="circle51" />
-+    <path
-+       id="rect3071-6"
-+       data-name="rect3071"
-+       class="cls-10"
-+       d="m 219.78,134.73 h 66.9 a 3,3 0 0 1 3.13,2.75 v 57.62 a 3,3 0 0 1 -3.13,2.76 h -66.9 a 3,3 0 0 1 -3.14,-2.76 v -57.62 a 3,3 0 0 1 3.14,-2.75 z"
-+       style="fill:url(#linear-gradient-2)" />
-+    <path
-+       id="rect3071-7"
-+       data-name="rect3071"
-+       class="cls-11"
-+       d="m 230.88,134.73 h 56.29 a 2.69,2.69 0 0 1 2.64,2.75 v 57.62 a 2.7,2.7 0 0 1 -2.64,2.76 h -56.29 a 2.7,2.7 0 0 1 -2.64,-2.76 v -57.62 a 2.69,2.69 0 0 1 2.64,-2.75 z"
-+       style="fill:url(#linear-gradient-3)" />
-+    <path
-+       id="rect3071-8"
-+       data-name="rect3071"
-+       class="cls-12"
-+       d="m 322.53,130.6 h 22.92 l 7.15,4.13 h 36.83 a 3,3 0 0 1 3.13,2.75 v 57.62 a 3,3 0 0 1 -3.13,2.76 h -66.9 a 3,3 0 0 1 -3.13,-2.76 v -61.75 a 3,3 0 0 1 3.13,-2.75 z"
-+       style="fill:url(#linearGradient79)" />
-+    <path
-+       id="rect3071-9"
-+       data-name="rect3071"
-+       class="cls-13"
-+       d="m 322.53,146.06 h 30.07 l 8.69,-6.08 h 28.14 c 1.73,0 3.13,1 3.13,2.26 v 53.36 c 0,1.25 -1.4,2.26 -3.13,2.26 h -66.9 c -1.73,0 -3.13,-1 -3.13,-2.26 v -47.29 c 0,-1.24 1.4,-2.25 3.13,-2.25 z" />
-+    <path
-+       id="rect3071-10"
-+       data-name="rect3071"
-+       class="cls-14"
-+       d="m 425.28,130.6 h 22.92 l 7.15,4.13 h 36.83 a 3,3 0 0 1 3.13,2.75 v 57.62 a 3,3 0 0 1 -3.13,2.76 h -66.9 a 3,3 0 0 1 -3.13,-2.76 v -61.75 a 3,3 0 0 1 3.13,-2.75 z"
-+       style="fill:url(#linear-gradient-5)" />
-+    <path
-+       id="rect3071-11"
-+       data-name="rect3071"
-+       class="cls-13"
-+       d="m 425.28,146.06 h 30.07 L 464,140 h 28.14 c 1.73,0 3.13,1 3.13,2.26 v 53.34 c 0,1.25 -1.4,2.26 -3.13,2.26 h -66.9 c -1.73,0 -3.13,-1 -3.13,-2.26 v -47.29 c 0.04,-1.24 1.44,-2.25 3.17,-2.25 z" />
-+    <path
-+       id="rect3071-12"
-+       data-name="rect3071"
-+       class="cls-15"
-+       d="m 528,130.6 h 23 l 7.15,4.13 h 36.83 a 3,3 0 0 1 3.13,2.75 v 57.62 a 3,3 0 0 1 -3.13,2.76 H 528 a 3,3 0 0 1 -3.13,-2.76 V 133.35 A 3,3 0 0 1 528,130.6 Z"
-+       style="fill:url(#linear-gradient-6)" />
-+    <path
-+       id="rect3071-13"
-+       data-name="rect3071"
-+       class="cls-13"
-+       d="m 528,146.06 h 30.1 l 8.69,-6.08 h 28.14 c 1.73,0 3.13,1 3.13,2.26 v 53.36 c 0,1.25 -1.4,2.26 -3.13,2.26 H 528 c -1.73,0 -3.13,-1 -3.13,-2.26 v -47.29 c 0.03,-1.24 1.43,-2.25 3.13,-2.25 z" />
-+    <path
-+       id="rect3071-14"
-+       data-name="rect3071"
-+       class="cls-16"
-+       d="m 219.78,233.94 h 22.92 l 7.15,4.13 h 36.83 a 3,3 0 0 1 3.13,2.76 v 57.62 a 3,3 0 0 1 -3.13,2.75 h -66.9 a 3,3 0 0 1 -3.14,-2.75 v -61.76 a 3,3 0 0 1 3.14,-2.75 z"
-+       style="fill:url(#linear-gradient-7)" />
-+    <path
-+       id="rect3071-15"
-+       data-name="rect3071"
-+       class="cls-13"
-+       d="m 219.78,249.4 h 30.07 l 8.69,-6.08 h 28.14 c 1.73,0 3.13,1 3.13,2.26 v 53.36 c 0,1.25 -1.4,2.26 -3.13,2.26 h -66.9 c -1.73,0 -3.14,-1 -3.14,-2.26 v -47.28 c 0,-1.25 1.41,-2.26 3.14,-2.26 z" />
-+    <path
-+       id="rect3071-16"
-+       data-name="rect3071"
-+       class="cls-17"
-+       d="m 322.53,233.94 h 22.92 l 7.15,4.13 h 36.83 a 3,3 0 0 1 3.13,2.76 v 57.62 a 3,3 0 0 1 -3.13,2.75 h -66.9 a 3,3 0 0 1 -3.13,-2.75 v -61.76 a 3,3 0 0 1 3.13,-2.75 z"
-+       style="fill:url(#linear-gradient-8)" />
-+    <path
-+       id="rect3071-17"
-+       data-name="rect3071"
-+       class="cls-13"
-+       d="m 322.53,249.4 h 30.07 l 8.69,-6.08 h 28.14 c 1.73,0 3.13,1 3.13,2.26 v 53.36 c 0,1.25 -1.4,2.26 -3.13,2.26 h -66.9 c -1.73,0 -3.13,-1 -3.13,-2.26 v -47.28 c 0,-1.25 1.4,-2.26 3.13,-2.26 z" />
-+    <path
-+       id="rect3071-18"
-+       data-name="rect3071"
-+       class="cls-18"
-+       d="m 425.28,233.94 h 22.92 l 7.15,4.13 h 36.83 a 3,3 0 0 1 3.13,2.76 v 57.62 a 3,3 0 0 1 -3.13,2.75 h -66.9 a 3,3 0 0 1 -3.13,-2.75 v -61.76 a 3,3 0 0 1 3.13,-2.75 z"
-+       style="fill:url(#linear-gradient-9)" />
-+    <path
-+       id="rect3071-19"
-+       data-name="rect3071"
-+       class="cls-13"
-+       d="m 425.28,249.4 h 30.07 l 8.69,-6.08 h 28.14 c 1.73,0 3.13,1 3.13,2.26 v 53.36 c 0,1.25 -1.4,2.26 -3.13,2.26 h -66.9 c -1.73,0 -3.13,-1 -3.13,-2.26 v -47.28 c 0,-1.25 1.4,-2.26 3.13,-2.26 z" />
-+    <path
-+       id="rect3071-20"
-+       data-name="rect3071"
-+       class="cls-19"
-+       d="m 528,233.94 h 23 l 7.15,4.13 h 36.83 a 3,3 0 0 1 3.13,2.76 v 57.62 a 3,3 0 0 1 -3.13,2.75 H 528 a 3,3 0 0 1 -3.13,-2.75 v -61.76 a 3,3 0 0 1 3.13,-2.75 z"
-+       style="fill:url(#linear-gradient-10)" />
-+    <path
-+       id="rect3071-21"
-+       data-name="rect3071"
-+       class="cls-13"
-+       d="m 528,249.4 h 30.1 l 8.69,-6.08 h 28.14 c 1.73,0 3.13,1 3.13,2.26 v 53.36 c 0,1.25 -1.4,2.26 -3.13,2.26 H 528 c -1.73,0 -3.13,-1 -3.13,-2.26 v -47.28 c 0.03,-1.25 1.43,-2.26 3.13,-2.26 z" />
-+    <path
-+       class="cls-20"
-+       d="m 748.35,115.48 h -74 L 656.91,98 639.49,115.49 h -74 a 4,4 0 0 0 -4,4 V 413.7 a 4,4 0 0 0 4,4 h 182.86 a 4,4 0 0 0 4,-4 V 119.49 a 4,4 0 0 0 -4,-4.01 z"
-+       id="path69" />
-+    <path
-+       id="rect3071-22"
-+       data-name="rect3071"
-+       class="cls-21"
-+       d="m 576.11,136.29 h 48.27 c 1.24,0 2.26,0.72 2.26,1.6 v 33.57 c 0,0.88 -1,1.6 -2.26,1.6 h -48.27 c -1.24,0 -2.26,-0.72 -2.26,-1.6 v -33.57 c 0,-0.89 1.02,-1.6 2.26,-1.6 z" />
-+    <path
-+       id="rect3071-23"
-+       data-name="rect3071"
-+       class="cls-9"
-+       d="m 633.14,136.29 h 48.26 c 1.25,0 2.26,0.72 2.26,1.6 v 33.57 c 0,0.88 -1,1.6 -2.26,1.6 h -48.26 c -1.25,0 -2.26,-0.72 -2.26,-1.6 v -33.57 c 0,-0.89 1.01,-1.6 2.26,-1.6 z" />
-+    <path
-+       id="rect3071-24"
-+       data-name="rect3071"
-+       class="cls-9"
-+       d="m 690.17,136.29 h 48.26 c 1.25,0 2.26,0.72 2.26,1.6 v 33.57 c 0,0.88 -1,1.6 -2.26,1.6 h -48.26 c -1.25,0 -2.26,-0.72 -2.26,-1.6 v -33.57 c 0,-0.89 1.01,-1.6 2.26,-1.6 z" />
-+  </g>
-+</svg>
-diff --git a/panels/ubuntu/theme-light.svg b/panels/ubuntu/theme-light.svg
-new file mode 100644
-index 000000000..70f1125e7
---- /dev/null
-+++ b/panels/ubuntu/theme-light.svg
-@@ -0,0 +1,380 @@
-+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-+<svg
-+   viewBox="0 0 270 200"
-+   version="1.1"
-+   id="svg75"
-+   sodipodi:docname="theme-light.svg"
-+   width="270"
-+   height="200"
-+   inkscape:version="1.1 (c68e22c387, 2021-05-23)"
-+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
-+   xmlns:xlink="http://www.w3.org/1999/xlink"
-+   xmlns="http://www.w3.org/2000/svg"
-+   xmlns:svg="http://www.w3.org/2000/svg">
-+  <sodipodi:namedview
-+     id="namedview77"
-+     pagecolor="#ffffff"
-+     bordercolor="#666666"
-+     borderopacity="1.0"
-+     inkscape:pageshadow="2"
-+     inkscape:pageopacity="0.0"
-+     inkscape:pagecheckerboard="0"
-+     showgrid="false"
-+     inkscape:zoom="1.7385621"
-+     inkscape:cx="60.394737"
-+     inkscape:cy="94.618421"
-+     inkscape:window-width="1366"
-+     inkscape:window-height="704"
-+     inkscape:window-x="0"
-+     inkscape:window-y="27"
-+     inkscape:window-maximized="1"
-+     inkscape:current-layer="svg75" />
-+  <defs
-+     id="defs30">
-+    <style
-+       id="style2">.cls-1{fill:url(#linear-gradient);}.cls-2{fill:#dcdcdc;}.cls-3{fill:#fafafa;}.cls-4{fill:#ddd;}.cls-5{fill:#e95420;}.cls-21,.cls-6{fill:#fff;}.cls-7{fill:#f5f5f5;}.cls-8{fill:#cacaca;}.cls-9{fill:#fcfcfc;}.cls-10{fill:url(#linear-gradient-2);}.cls-11{fill:url(#linear-gradient-3);}.cls-12{fill:url(#linear-gradient-4);}.cls-13{fill:#737373;}.cls-14{fill:url(#linear-gradient-5);}.cls-15{fill:url(#linear-gradient-6);}.cls-16{fill:url(#linear-gradient-7);}.cls-17{fill:url(#linear-gradient-8);}.cls-18{fill:url(#linear-gradient-9);}.cls-19{fill:url(#linear-gradient-10);}.cls-20{fill:#ebebeb;stroke:#cacaca;}.cls-20,.cls-21{stroke-miterlimit:10;}.cls-21{stroke:#e95420;}</style>
-+    <linearGradient
-+       id="linear-gradient"
-+       x1="-941.78003"
-+       y1="613.5"
-+       x2="-941.78003"
-+       y2="713.96002"
-+       gradientTransform="matrix(6.09,0,0,-6.09,6133.58,4349.65)"
-+       gradientUnits="userSpaceOnUse">
-+      <stop
-+         offset="0"
-+         stop-color="#350753"
-+         id="stop4" />
-+      <stop
-+         offset="1"
-+         stop-color="#720b53"
-+         id="stop6" />
-+    </linearGradient>
-+    <linearGradient
-+       id="linear-gradient-2"
-+       x1="216.64"
-+       y1="166.28999"
-+       x2="289.81"
-+       y2="166.28999"
-+       gradientUnits="userSpaceOnUse">
-+      <stop
-+         offset="0"
-+         stop-color="#772953"
-+         id="stop9" />
-+      <stop
-+         offset="1"
-+         stop-color="#510045"
-+         id="stop11" />
-+    </linearGradient>
-+    <linearGradient
-+       id="linear-gradient-3"
-+       x1="226.89999"
-+       y1="147.75"
-+       x2="298.70001"
-+       y2="189.2"
-+       gradientUnits="userSpaceOnUse">
-+      <stop
-+         offset="0.25"
-+         stop-color="#982963"
-+         id="stop14" />
-+      <stop
-+         offset="0.91"
-+         stop-color="#e98120"
-+         id="stop16" />
-+    </linearGradient>
-+    <linearGradient
-+       id="linear-gradient-4"
-+       x1="392.56"
-+       y1="164.23"
-+       x2="319.39999"
-+       y2="164.23"
-+       gradientUnits="userSpaceOnUse">
-+      <stop
-+         offset="0.03"
-+         stop-color="#e95420"
-+         id="stop19" />
-+      <stop
-+         offset="0.51"
-+         stop-color="#772953"
-+         id="stop21" />
-+    </linearGradient>
-+    <linearGradient
-+       id="linear-gradient-5"
-+       x1="495.31"
-+       y1="164.23"
-+       x2="422.14999"
-+       y2="164.23"
-+       xlink:href="#linear-gradient-4" />
-+    <linearGradient
-+       id="linear-gradient-6"
-+       x1="598.06"
-+       y1="164.23"
-+       x2="524.90002"
-+       y2="164.23"
-+       xlink:href="#linear-gradient-4" />
-+    <linearGradient
-+       id="linear-gradient-7"
-+       x1="289.81"
-+       y1="267.57001"
-+       x2="216.64"
-+       y2="267.57001"
-+       xlink:href="#linear-gradient-4" />
-+    <linearGradient
-+       id="linear-gradient-8"
-+       x1="392.56"
-+       y1="267.57001"
-+       x2="319.39999"
-+       y2="267.57001"
-+       xlink:href="#linear-gradient-4" />
-+    <linearGradient
-+       id="linear-gradient-9"
-+       x1="495.31"
-+       y1="267.57001"
-+       x2="422.14999"
-+       y2="267.57001"
-+       xlink:href="#linear-gradient-4" />
-+    <linearGradient
-+       id="linear-gradient-10"
-+       x1="598.06"
-+       y1="267.57001"
-+       x2="524.90002"
-+       y2="267.57001"
-+       xlink:href="#linear-gradient-4" />
-+    <linearGradient
-+       inkscape:collect="always"
-+       xlink:href="#linear-gradient-4"
-+       id="linearGradient477"
-+       gradientUnits="userSpaceOnUse"
-+       x1="392.56"
-+       y1="164.23"
-+       x2="319.39999"
-+       y2="164.23" />
-+  </defs>
-+  <g
-+     id="Bgrd"
-+     transform="scale(0.34090909,0.32679739)">
-+    <g
-+       id="Wallpaper">
-+      <rect
-+         id="rect3045"
-+         class="cls-1"
-+         width="792"
-+         height="612"
-+         style="fill:url(#linear-gradient)"
-+         x="0"
-+         y="0" />
-+    </g>
-+  </g>
-+  <g
-+     id="Artwork"
-+     transform="matrix(0.31297816,0,0,0.31297816,11.043435,4.1316606)">
-+    <path
-+       id="rect3061"
-+       class="cls-2"
-+       d="m 24.48,18.75 h 743.15 a 10,10 0 0 1 10,10 V 96.5 H 14.48 V 28.75 a 10,10 0 0 1 10,-10 z" />
-+    <rect
-+       id="rect3063"
-+       class="cls-3"
-+       x="14.48"
-+       y="96.5"
-+       width="161.73"
-+       height="497.37" />
-+    <rect
-+       id="rect3065"
-+       class="cls-4"
-+       x="14.48"
-+       y="216.35001"
-+       width="161.73"
-+       height="51.209999" />
-+    <rect
-+       id="rect3065-2"
-+       data-name="rect3065"
-+       class="cls-5"
-+       x="14.48"
-+       y="216.35001"
-+       width="6.5900002"
-+       height="51.209999" />
-+    <rect
-+       id="rect3069"
-+       class="cls-6"
-+       x="185.75999"
-+       y="96.5"
-+       width="590.78998"
-+       height="497.37" />
-+    <path
-+       id="rect3071"
-+       class="cls-7"
-+       d="m 225.35,38 h 196.81 a 1.69,1.69 0 0 1 1.78,1.59 v 33.26 a 1.69,1.69 0 0 1 -1.78,1.59 H 225.35 a 1.68,1.68 0 0 1 -1.77,-1.59 V 39.61 A 1.68,1.68 0 0 1 225.35,38 Z" />
-+    <path
-+       id="rect3071-2"
-+       data-name="rect3071"
-+       class="cls-6"
-+       d="m 430.81,38 h 37.84 a 1.68,1.68 0 0 1 1.77,1.59 v 33.26 a 1.68,1.68 0 0 1 -1.77,1.59 H 430.81 A 1.68,1.68 0 0 1 429,72.85 V 39.61 A 1.68,1.68 0 0 1 430.81,38 Z" />
-+    <path
-+       id="rect3071-3"
-+       data-name="rect3071"
-+       class="cls-6"
-+       d="m 525.05,38 h 39.35 a 1.73,1.73 0 0 1 1.84,1.59 v 33.26 a 1.73,1.73 0 0 1 -1.84,1.59 h -39.35 a 1.73,1.73 0 0 1 -1.84,-1.59 V 39.61 A 1.73,1.73 0 0 1 525.05,38 Z" />
-+    <path
-+       id="rect3071-4"
-+       data-name="rect3071"
-+       class="cls-6"
-+       d="m 571.54,38 h 39.35 a 1.73,1.73 0 0 1 1.85,1.59 v 33.26 a 1.73,1.73 0 0 1 -1.85,1.59 H 571.54 A 1.73,1.73 0 0 1 569.7,72.85 V 39.61 A 1.73,1.73 0 0 1 571.54,38 Z" />
-+    <path
-+       id="rect3071-5"
-+       data-name="rect3071"
-+       class="cls-8"
-+       d="m 637.24,38 h 39.35 a 1.73,1.73 0 0 1 1.84,1.59 v 33.26 a 1.73,1.73 0 0 1 -1.84,1.59 H 637.24 A 1.73,1.73 0 0 1 635.4,72.85 V 39.61 A 1.73,1.73 0 0 1 637.24,38 Z" />
-+    <path
-+       id="rect3288"
-+       class="cls-9"
-+       d="m 36,38 h 37.69 a 1.83,1.83 0 0 1 2,1.59 v 33.26 a 1.83,1.83 0 0 1 -2,1.59 H 36 A 1.83,1.83 0 0 1 34,72.85 V 39.61 A 1.83,1.83 0 0 1 36,38 Z" />
-+    <path
-+       id="rect3288-2"
-+       data-name="rect3288"
-+       class="cls-9"
-+       d="m 83.44,38 h 37.67 a 1.83,1.83 0 0 1 2,1.59 v 33.26 a 1.83,1.83 0 0 1 -2,1.59 H 83.44 a 1.83,1.83 0 0 1 -2,-1.59 V 39.61 a 1.83,1.83 0 0 1 2,-1.61 z" />
-+    <path
-+       id="rect3290"
-+       class="cls-6"
-+       d="m 138.71,38 h 79.72 a 1.68,1.68 0 0 1 1.77,1.59 v 33.26 a 1.68,1.68 0 0 1 -1.77,1.59 h -79.72 a 1.69,1.69 0 0 1 -1.78,-1.59 V 39.61 A 1.69,1.69 0 0 1 138.71,38 Z" />
-+    <rect
-+       id="rect39"
-+       class="cls-8"
-+       x="14.48"
-+       y="583.71997"
-+       width="762.60999"
-+       height="10.14" />
-+    <rect
-+       id="rect39-2"
-+       data-name="rect39"
-+       class="cls-8"
-+       x="176.21001"
-+       y="96.5"
-+       width="9.5600004"
-+       height="487.78" />
-+    <rect
-+       id="rect39-3"
-+       data-name="rect39"
-+       class="cls-8"
-+       x="767.94"
-+       y="96.5"
-+       width="9.5600004"
-+       height="497.37" />
-+    <circle
-+       class="cls-5"
-+       cx="743.63"
-+       cy="54.419998"
-+       r="12.5"
-+       id="circle51" />
-+    <path
-+       id="rect3071-6"
-+       data-name="rect3071"
-+       class="cls-10"
-+       d="m 219.78,134.73 h 66.9 a 3,3 0 0 1 3.13,2.75 v 57.62 a 3,3 0 0 1 -3.13,2.76 h -66.9 a 3,3 0 0 1 -3.14,-2.76 v -57.62 a 3,3 0 0 1 3.14,-2.75 z"
-+       style="fill:url(#linear-gradient-2)" />
-+    <path
-+       id="rect3071-7"
-+       data-name="rect3071"
-+       class="cls-11"
-+       d="m 230.88,134.73 h 56.29 a 2.69,2.69 0 0 1 2.64,2.75 v 57.62 a 2.7,2.7 0 0 1 -2.64,2.76 h -56.29 a 2.7,2.7 0 0 1 -2.64,-2.76 v -57.62 a 2.69,2.69 0 0 1 2.64,-2.75 z"
-+       style="fill:url(#linear-gradient-3)" />
-+    <path
-+       id="rect3071-8"
-+       data-name="rect3071"
-+       class="cls-12"
-+       d="m 322.53,130.6 h 22.92 l 7.15,4.13 h 36.83 a 3,3 0 0 1 3.13,2.75 v 57.62 a 3,3 0 0 1 -3.13,2.76 h -66.9 a 3,3 0 0 1 -3.13,-2.76 v -61.75 a 3,3 0 0 1 3.13,-2.75 z"
-+       style="fill:url(#linearGradient477)" />
-+    <path
-+       id="rect3071-9"
-+       data-name="rect3071"
-+       class="cls-13"
-+       d="m 322.53,146.06 h 30.07 l 8.69,-6.08 h 28.14 c 1.73,0 3.13,1 3.13,2.26 v 53.36 c 0,1.25 -1.4,2.26 -3.13,2.26 h -66.9 c -1.73,0 -3.13,-1 -3.13,-2.26 v -47.29 c 0,-1.24 1.4,-2.25 3.13,-2.25 z" />
-+    <path
-+       id="rect3071-10"
-+       data-name="rect3071"
-+       class="cls-14"
-+       d="m 425.28,130.6 h 22.92 l 7.15,4.13 h 36.83 a 3,3 0 0 1 3.13,2.75 v 57.62 a 3,3 0 0 1 -3.13,2.76 h -66.9 a 3,3 0 0 1 -3.13,-2.76 v -61.75 a 3,3 0 0 1 3.13,-2.75 z"
-+       style="fill:url(#linear-gradient-5)" />
-+    <path
-+       id="rect3071-11"
-+       data-name="rect3071"
-+       class="cls-13"
-+       d="m 425.28,146.06 h 30.07 L 464,140 h 28.14 c 1.73,0 3.13,1 3.13,2.26 v 53.34 c 0,1.25 -1.4,2.26 -3.13,2.26 h -66.9 c -1.73,0 -3.13,-1 -3.13,-2.26 v -47.29 c 0.04,-1.24 1.44,-2.25 3.17,-2.25 z" />
-+    <path
-+       id="rect3071-12"
-+       data-name="rect3071"
-+       class="cls-15"
-+       d="m 528,130.6 h 23 l 7.15,4.13 h 36.83 a 3,3 0 0 1 3.13,2.75 v 57.62 a 3,3 0 0 1 -3.13,2.76 H 528 a 3,3 0 0 1 -3.13,-2.76 V 133.35 A 3,3 0 0 1 528,130.6 Z"
-+       style="fill:url(#linear-gradient-6)" />
-+    <path
-+       id="rect3071-13"
-+       data-name="rect3071"
-+       class="cls-13"
-+       d="m 528,146.06 h 30.1 l 8.69,-6.08 h 28.14 c 1.73,0 3.13,1 3.13,2.26 v 53.36 c 0,1.25 -1.4,2.26 -3.13,2.26 H 528 c -1.73,0 -3.13,-1 -3.13,-2.26 v -47.29 c 0.03,-1.24 1.43,-2.25 3.13,-2.25 z" />
-+    <path
-+       id="rect3071-14"
-+       data-name="rect3071"
-+       class="cls-16"
-+       d="m 219.78,233.94 h 22.92 l 7.15,4.13 h 36.83 a 3,3 0 0 1 3.13,2.76 v 57.62 a 3,3 0 0 1 -3.13,2.75 h -66.9 a 3,3 0 0 1 -3.14,-2.75 v -61.76 a 3,3 0 0 1 3.14,-2.75 z"
-+       style="fill:url(#linear-gradient-7)" />
-+    <path
-+       id="rect3071-15"
-+       data-name="rect3071"
-+       class="cls-13"
-+       d="m 219.78,249.4 h 30.07 l 8.69,-6.08 h 28.14 c 1.73,0 3.13,1 3.13,2.26 v 53.36 c 0,1.25 -1.4,2.26 -3.13,2.26 h -66.9 c -1.73,0 -3.14,-1 -3.14,-2.26 v -47.28 c 0,-1.25 1.41,-2.26 3.14,-2.26 z" />
-+    <path
-+       id="rect3071-16"
-+       data-name="rect3071"
-+       class="cls-17"
-+       d="m 322.53,233.94 h 22.92 l 7.15,4.13 h 36.83 a 3,3 0 0 1 3.13,2.76 v 57.62 a 3,3 0 0 1 -3.13,2.75 h -66.9 a 3,3 0 0 1 -3.13,-2.75 v -61.76 a 3,3 0 0 1 3.13,-2.75 z"
-+       style="fill:url(#linear-gradient-8)" />
-+    <path
-+       id="rect3071-17"
-+       data-name="rect3071"
-+       class="cls-13"
-+       d="m 322.53,249.4 h 30.07 l 8.69,-6.08 h 28.14 c 1.73,0 3.13,1 3.13,2.26 v 53.36 c 0,1.25 -1.4,2.26 -3.13,2.26 h -66.9 c -1.73,0 -3.13,-1 -3.13,-2.26 v -47.28 c 0,-1.25 1.4,-2.26 3.13,-2.26 z" />
-+    <path
-+       id="rect3071-18"
-+       data-name="rect3071"
-+       class="cls-18"
-+       d="m 425.28,233.94 h 22.92 l 7.15,4.13 h 36.83 a 3,3 0 0 1 3.13,2.76 v 57.62 a 3,3 0 0 1 -3.13,2.75 h -66.9 a 3,3 0 0 1 -3.13,-2.75 v -61.76 a 3,3 0 0 1 3.13,-2.75 z"
-+       style="fill:url(#linear-gradient-9)" />
-+    <path
-+       id="rect3071-19"
-+       data-name="rect3071"
-+       class="cls-13"
-+       d="m 425.28,249.4 h 30.07 l 8.69,-6.08 h 28.14 c 1.73,0 3.13,1 3.13,2.26 v 53.36 c 0,1.25 -1.4,2.26 -3.13,2.26 h -66.9 c -1.73,0 -3.13,-1 -3.13,-2.26 v -47.28 c 0,-1.25 1.4,-2.26 3.13,-2.26 z" />
-+    <path
-+       id="rect3071-20"
-+       data-name="rect3071"
-+       class="cls-19"
-+       d="m 528,233.94 h 23 l 7.15,4.13 h 36.83 a 3,3 0 0 1 3.13,2.76 v 57.62 a 3,3 0 0 1 -3.13,2.75 H 528 a 3,3 0 0 1 -3.13,-2.75 v -61.76 a 3,3 0 0 1 3.13,-2.75 z"
-+       style="fill:url(#linear-gradient-10)" />
-+    <path
-+       id="rect3071-21"
-+       data-name="rect3071"
-+       class="cls-13"
-+       d="m 528,249.4 h 30.1 l 8.69,-6.08 h 28.14 c 1.73,0 3.13,1 3.13,2.26 v 53.36 c 0,1.25 -1.4,2.26 -3.13,2.26 H 528 c -1.73,0 -3.13,-1 -3.13,-2.26 v -47.28 c 0.03,-1.25 1.43,-2.26 3.13,-2.26 z" />
-+    <path
-+       class="cls-20"
-+       d="m 748.35,115.48 h -74 L 656.91,98 639.49,115.49 h -74 a 4,4 0 0 0 -4,4 V 413.7 a 4,4 0 0 0 4,4 h 182.86 a 4,4 0 0 0 4,-4 V 119.49 a 4,4 0 0 0 -4,-4.01 z"
-+       id="path69" />
-+    <path
-+       id="rect3071-22"
-+       data-name="rect3071"
-+       class="cls-21"
-+       d="m 576.11,136.29 h 48.27 c 1.24,0 2.26,0.72 2.26,1.6 v 33.57 c 0,0.88 -1,1.6 -2.26,1.6 h -48.27 c -1.24,0 -2.26,-0.72 -2.26,-1.6 v -33.57 c 0,-0.89 1.02,-1.6 2.26,-1.6 z" />
-+    <path
-+       id="rect3071-23"
-+       data-name="rect3071"
-+       class="cls-6"
-+       d="m 633.14,136.29 h 48.26 c 1.25,0 2.26,0.72 2.26,1.6 v 33.57 c 0,0.88 -1,1.6 -2.26,1.6 h -48.26 c -1.25,0 -2.26,-0.72 -2.26,-1.6 v -33.57 c 0,-0.89 1.01,-1.6 2.26,-1.6 z" />
-+    <path
-+       id="rect3071-24"
-+       data-name="rect3071"
-+       class="cls-6"
-+       d="m 690.17,136.29 h 48.26 c 1.25,0 2.26,0.72 2.26,1.6 v 33.57 c 0,0.88 -1,1.6 -2.26,1.6 h -48.26 c -1.25,0 -2.26,-0.72 -2.26,-1.6 v -33.57 c 0,-0.89 1.01,-1.6 2.26,-1.6 z" />
-+  </g>
-+</svg>
 diff --git a/panels/ubuntu/ubuntu.gresource.xml b/panels/ubuntu/ubuntu.gresource.xml
 new file mode 100644
-index 000000000..77d4e6145
+index 0000000..6e20032
 --- /dev/null
 +++ b/panels/ubuntu/ubuntu.gresource.xml
-@@ -0,0 +1,8 @@
+@@ -0,0 +1,20 @@
 +<?xml version="1.0" encoding="UTF-8"?>
 +<gresources>
 +  <gresource prefix="/org/gnome/control-center/ubuntu">
 +    <file preprocess="xml-stripblanks">cc-ubuntu-panel.ui</file>
-+    <file>theme-dark.svg</file>
-+    <file>theme-light.svg</file>
++    <file preprocess="xml-stripblanks">cc-ubuntu-dock-dialog.ui</file>
++    <file>appearance.css</file>
++    <file>assets/theme-dark.svg</file>
++    <file>assets/theme-light.svg</file>
++    <file>assets/colors/bark.svg</file>
++    <file>assets/colors/blue.svg</file>
++    <file>assets/colors/magenta.svg</file>
++    <file>assets/colors/olive.svg</file>
++    <file>assets/colors/orange.svg</file>
++    <file>assets/colors/prussiangreen.svg</file>
++    <file>assets/colors/purple.svg</file>
++    <file>assets/colors/red.svg</file>
++    <file>assets/colors/sage.svg</file>
++    <file>assets/colors/viridian.svg</file>
 +  </gresource>
 +</gresources>
 diff --git a/po/POTFILES.in b/po/POTFILES.in
-index 5f7e8d49a..5c60ac711 100644
+index 98b8848..e62bfd9 100644
 --- a/po/POTFILES.in
 +++ b/po/POTFILES.in
-@@ -218,6 +218,9 @@ panels/thunderbolt/cc-bolt-device-entry.c
+@@ -219,6 +219,11 @@ panels/thunderbolt/cc-bolt-device-entry.c
  panels/thunderbolt/cc-bolt-panel.c
  panels/thunderbolt/cc-bolt-panel.ui
  panels/thunderbolt/gnome-thunderbolt-panel.desktop.in.in
 +panels/ubuntu/cc-ubuntu-panel.c
 +panels/ubuntu/cc-ubuntu-panel.ui
++panels/ubuntu/cc-ubuntu-dock-dialog.c
++panels/ubuntu/cc-ubuntu-dock-dialog.ui
 +panels/ubuntu/gnome-ubuntu-panel.desktop.in.in
  panels/universal-access/cc-cursor-blinking-dialog.ui
  panels/universal-access/cc-cursor-size-dialog.ui
  panels/universal-access/cc-pointing-dialog.ui
 diff --git a/shell/cc-panel-list.c b/shell/cc-panel-list.c
-index e23da0b87..3a4dfc032 100644
+index c5532ba..a9e8639 100644
 --- a/shell/cc-panel-list.c
 +++ b/shell/cc-panel-list.c
-@@ -384,6 +384,7 @@ static const gchar * const panel_order[] = {
+@@ -385,6 +385,7 @@ static const gchar * const panel_order[] = {
    "mobile-broadband",
    "bluetooth",
    "background",
 +  "ubuntu",
    "notifications",
    "search",
-   "applications",
+   "multitasking",
 diff --git a/shell/cc-panel-loader.c b/shell/cc-panel-loader.c
-index f20384394..bcf87674e 100644
+index 67f3f1b..b571ceb 100644
 --- a/shell/cc-panel-loader.c
 +++ b/shell/cc-panel-loader.c
-@@ -60,6 +60,7 @@ extern GType cc_sound_panel_get_type (void);
+@@ -61,6 +61,7 @@ extern GType cc_sound_panel_get_type (void);
  extern GType cc_bolt_panel_get_type (void);
  #endif /* BUILD_THUNDERBOLT */
  extern GType cc_ua_panel_get_type (void);
@@ -2084,15 +3049,15 @@ index f20384394..bcf87674e 100644
  extern GType cc_user_panel_get_type (void);
  #ifdef BUILD_WACOM
  extern GType cc_wacom_panel_get_type (void);
-@@ -79,6 +80,7 @@ extern void cc_wifi_panel_static_init_func (void);
- #ifdef BUILD_WACOM
- extern void cc_wacom_panel_static_init_func (void);
- #endif /* BUILD_WACOM */
+@@ -86,6 +87,7 @@ extern void cc_wacom_panel_static_init_func (void);
+ #ifdef BUILD_WWAN
+ extern void cc_wwan_panel_static_init_func (void);
+ #endif /* BUILD_WWAN */
 +extern void cc_ubuntu_panel_static_init_func (void);
  
  #define PANEL_TYPE(name, get_type, init_func) { name, get_type, init_func }
  
-@@ -120,6 +122,7 @@ static CcPanelLoaderVtable default_panels[] =
+@@ -128,6 +130,7 @@ static CcPanelLoaderVtable default_panels[] =
    PANEL_TYPE("search",           cc_search_panel_get_type,               NULL),
    PANEL_TYPE("sharing",          cc_sharing_panel_get_type,              NULL),
    PANEL_TYPE("sound",            cc_sound_panel_get_type,                NULL),
@@ -2100,6 +3065,3 @@ index f20384394..bcf87674e 100644
  #ifdef BUILD_THUNDERBOLT
    PANEL_TYPE("thunderbolt",      cc_bolt_panel_get_type,                 NULL),
  #endif
--- 
-2.30.2
-

@@ -2,21 +2,19 @@
 
 export DEB_BUILD_MAINT_OPTIONS = hardening=+all
 export DEB_CPPFLAGS_MAINT_APPEND = -DSSHD_SERVICE=\"ssh.service\"
-export DEB_LDFLAGS_MAINT_APPEND = -Wl,-O1 -Wl,-z,defs -Wl,--as-needed
+export DEB_LDFLAGS_MAINT_APPEND = -Wl,-O1 -Wl,-z,defs
 
 %:
 	dh $@
 
-# -Dgnome_session_libexecdir can be removed after Bullseye release
 override_dh_auto_configure:
 	dh_auto_configure -- \
 		-Dprivileged_group=sudo \
 		-Ddocumentation=true \
 		-Dsnap=true \
-		-Dwhoopsie=true
-
-override_dh_missing:
-	dh_missing --fail-missing
+		-Dwhoopsie=true \
+		-Ddistributor_logo=/usr/share/pixmaps/ubuntu-logo-icon.png \
+		-Ddark_mode_distributor_logo=/usr/share/pixmaps/ubuntu-logo-dark.png \
 
 override_dh_translations:
 	dh_translations --domain=gnome-control-center-2.0

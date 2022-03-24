@@ -33,11 +33,11 @@ struct _CcWifiConnectionRow
   NMConnection    *connection;
 
   GtkLabel        *active_label;
-  GtkStack        *button_stack;
   GtkCheckButton  *checkbutton;
   GtkSpinner      *connecting_spinner;
   GtkImage        *encrypted_icon;
   GtkLabel        *name_label;
+  GtkButton       *options_button;
   GtkImage        *strength_icon;
 };
 
@@ -240,22 +240,18 @@ update_ui (CcWifiConnectionRow *self)
       strength = nm_access_point_get_strength (best_ap);
     }
 
+  gtk_widget_set_visible (GTK_WIDGET (self->connecting_spinner), connecting);
   if (connecting)
     {
-      gtk_stack_set_visible_child_name (self->button_stack, "connecting");
       gtk_spinner_start (self->connecting_spinner);
     }
   else
     {
       gtk_spinner_stop (self->connecting_spinner);
-
-      if (self->connection)
-        gtk_stack_set_visible_child_name (self->button_stack, "configure");
-      else
-        gtk_stack_set_visible_child_name (self->button_stack, "empty");
     }
 
   gtk_widget_set_visible (GTK_WIDGET (self->active_label), active);
+  gtk_widget_set_visible (GTK_WIDGET (self->options_button), active || connecting);
 
   if (security != NM_AP_SEC_UNKNOWN && security != NM_AP_SEC_NONE && security != NM_AP_SEC_OWE)
     {
@@ -459,10 +455,10 @@ cc_wifi_connection_row_class_init (CcWifiConnectionRowClass *klass)
   gtk_widget_class_set_template_from_resource (widget_class, "/org/gnome/control-center/network/cc-wifi-connection-row.ui");
 
   gtk_widget_class_bind_template_child (widget_class, CcWifiConnectionRow, active_label);
-  gtk_widget_class_bind_template_child (widget_class, CcWifiConnectionRow, button_stack);
   gtk_widget_class_bind_template_child (widget_class, CcWifiConnectionRow, checkbutton);
   gtk_widget_class_bind_template_child (widget_class, CcWifiConnectionRow, connecting_spinner);
   gtk_widget_class_bind_template_child (widget_class, CcWifiConnectionRow, encrypted_icon);
+  gtk_widget_class_bind_template_child (widget_class, CcWifiConnectionRow, options_button);
   gtk_widget_class_bind_template_child (widget_class, CcWifiConnectionRow, name_label);
   gtk_widget_class_bind_template_child (widget_class, CcWifiConnectionRow, strength_icon);
 

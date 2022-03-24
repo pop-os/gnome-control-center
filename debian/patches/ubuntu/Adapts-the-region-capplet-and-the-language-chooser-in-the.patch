@@ -283,10 +283,10 @@ index 8f6fd53..c59fbd7 100644
                        <object class="GtkBox">
                          <property name="visible">True</property>
 diff --git a/panels/region/cc-region-panel.c b/panels/region/cc-region-panel.c
-index 01f5600..8107126 100644
+index 4c2100f..165423e 100644
 --- a/panels/region/cc-region-panel.c
 +++ b/panels/region/cc-region-panel.c
-@@ -305,6 +305,7 @@ static void
+@@ -293,6 +293,7 @@ static void
  update_language (CcRegionPanel *self,
                   const gchar   *language)
  {
@@ -294,7 +294,7 @@ index 01f5600..8107126 100644
          if (self->login) {
                  set_system_language (self, language);
          } else {
-@@ -327,9 +328,6 @@ language_response (CcRegionPanel     *self,
+@@ -315,9 +316,6 @@ language_response (CcRegionPanel     *self,
          if (response_id == GTK_RESPONSE_OK) {
                  language = cc_language_chooser_get_language (chooser);
                  update_language (self, language);
@@ -304,7 +304,7 @@ index 01f5600..8107126 100644
          }
  
          gtk_widget_destroy (GTK_WIDGET (chooser));
-@@ -348,6 +346,39 @@ set_system_region (CcRegionPanel *self,
+@@ -336,6 +334,39 @@ set_system_region (CcRegionPanel *self,
          set_localed_locale (self);
  }
  
@@ -344,7 +344,7 @@ index 01f5600..8107126 100644
  static void
  update_region (CcRegionPanel *self,
                 const gchar   *region)
-@@ -357,6 +388,7 @@ update_region (CcRegionPanel *self,
+@@ -345,6 +376,7 @@ update_region (CcRegionPanel *self,
          } else {
                  if (g_strcmp0 (region, self->region) == 0)
                          return;
@@ -352,7 +352,7 @@ index 01f5600..8107126 100644
                  if (region == NULL || region[0] == '\0')
                          g_settings_reset (self->locale_settings, KEY_REGION);
                  else
-@@ -510,7 +542,7 @@ static void
+@@ -498,7 +530,7 @@ static void
  update_region_from_setting (CcRegionPanel *self)
  {
          g_free (self->region);
@@ -361,7 +361,7 @@ index 01f5600..8107126 100644
          update_region_label (self);
  }
  
-@@ -536,15 +568,19 @@ static void
+@@ -524,15 +556,19 @@ static void
  update_language_from_user (CcRegionPanel *self)
  {
          const gchar *language = NULL;
@@ -385,7 +385,7 @@ index 01f5600..8107126 100644
          update_language_label (self);
  }
  
-@@ -597,6 +633,16 @@ show_language_support (CcRegionPanel *self)
+@@ -585,6 +621,16 @@ show_language_support (CcRegionPanel *self)
                  g_warning ("Failed to launch language-selector: %s", error->message);
  }
  
@@ -402,7 +402,7 @@ index 01f5600..8107126 100644
  static void
  on_localed_properties_changed (CcRegionPanel  *self,
                                 GVariant       *changed_properties,
-@@ -609,28 +655,38 @@ on_localed_properties_changed (CcRegionPanel  *self,
+@@ -597,28 +643,38 @@ on_localed_properties_changed (CcRegionPanel  *self,
                  g_autofree const gchar **strv = NULL;
                  gsize len;
                  gint i;
@@ -450,7 +450,7 @@ index 01f5600..8107126 100644
                  g_free (self->system_region);
                  self->system_region = g_strdup (time);
  
-@@ -643,27 +699,26 @@ set_localed_locale (CcRegionPanel *self)
+@@ -631,27 +687,26 @@ set_localed_locale (CcRegionPanel *self)
  {
          g_autoptr(GVariantBuilder) b = NULL;
          g_autofree gchar *lang_value = NULL;
@@ -495,10 +495,10 @@ index 01f5600..8107126 100644
          g_dbus_proxy_call (self->localed,
                             "SetLocale",
 diff --git a/panels/user-accounts/cc-user-panel.c b/panels/user-accounts/cc-user-panel.c
-index cf3b0e2..86e656e 100644
+index aa273fc..44212cb 100644
 --- a/panels/user-accounts/cc-user-panel.c
 +++ b/panels/user-accounts/cc-user-panel.c
-@@ -884,6 +884,7 @@ show_user (ActUser *user, CcUserPanel *self)
+@@ -889,6 +889,7 @@ show_user (ActUser *user, CcUserPanel *self)
          gtk_widget_set_sensitive (GTK_WIDGET (self->autologin_switch), get_autologin_possible (user));
  
          lang = g_strdup (act_user_get_language (user));
@@ -506,7 +506,7 @@ index cf3b0e2..86e656e 100644
  
          if (lang && *lang != '\0') {
                  name = gnome_get_language_from_locale (lang, NULL);
-@@ -1085,7 +1086,8 @@ language_response (CcUserPanel *self,
+@@ -1086,7 +1087,8 @@ language_response (CcUserPanel *self,
                     GtkDialog   *dialog)
  {
          ActUser *user;
@@ -516,7 +516,7 @@ index cf3b0e2..86e656e 100644
  
          if (response_id != GTK_RESPONSE_OK) {
                  gtk_widget_hide (GTK_WIDGET (dialog));
-@@ -1093,12 +1095,13 @@ language_response (CcUserPanel *self,
+@@ -1094,12 +1096,13 @@ language_response (CcUserPanel *self,
          }
  
          user = get_selected_user (self);
@@ -532,7 +532,7 @@ index cf3b0e2..86e656e 100644
                          act_user_set_language (user, lang);
                  }
  
-@@ -1113,10 +1116,13 @@ static void
+@@ -1114,10 +1117,13 @@ static void
  change_language (CcUserPanel *self)
  {
          const gchar *current_language;

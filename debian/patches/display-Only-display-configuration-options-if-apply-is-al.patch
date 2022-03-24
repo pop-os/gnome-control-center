@@ -1,0 +1,216 @@
+From: =?utf-8?q?Jonas_=C3=85dahl?= <jadahl@gmail.com>
+Date: Thu, 20 Jan 2022 10:58:23 +0100
+Subject: display: Only display configuration options if apply is allowed
+
+org.gnome.Mutter.DisplayConfig contains a new property that tells
+whether apply will be allowed to be called or not. Whether it is true or
+not depends on policy stored in any of its monitors.xml configuration
+files.
+
+In order to make it clearer that configuration is not possible, except
+for night light, make sure to hide the unconfigurable parts, leaving
+only night light.
+
+Origin: https://gitlab.gnome.org/GNOME/gnome-control-center/-/commit/21862c3
+---
+ panels/display/cc-display-config-manager-dbus.c | 36 +++++++++++++++++++++++++
+ panels/display/cc-display-config-manager.c      |  6 +++++
+ panels/display/cc-display-config-manager.h      |  3 +++
+ panels/display/cc-display-panel.c               | 14 ++++++++++
+ panels/display/cc-display-panel.ui              | 15 ++++++++++-
+ 5 files changed, 73 insertions(+), 1 deletion(-)
+
+diff --git a/panels/display/cc-display-config-manager-dbus.c b/panels/display/cc-display-config-manager-dbus.c
+index 653bea0..3921401 100644
+--- a/panels/display/cc-display-config-manager-dbus.c
++++ b/panels/display/cc-display-config-manager-dbus.c
+@@ -31,6 +31,8 @@ struct _CcDisplayConfigManagerDBus
+   guint monitors_changed_id;
+ 
+   GVariant *current_state;
++
++  gboolean apply_allowed;
+ };
+ 
+ G_DEFINE_TYPE (CcDisplayConfigManagerDBus,
+@@ -118,6 +120,8 @@ bus_gotten (GObject      *object,
+   CcDisplayConfigManagerDBus *self;
+   GDBusConnection *connection;
+   g_autoptr(GError) error = NULL;
++  g_autoptr(GDBusProxy) proxy = NULL;
++  g_autoptr(GVariant) variant = NULL;
+ 
+   connection = g_bus_get_finish (result, &error);
+   if (!connection)
+@@ -143,12 +147,35 @@ bus_gotten (GObject      *object,
+                                         monitors_changed,
+                                         self,
+                                         NULL);
++
++  proxy = g_dbus_proxy_new_sync (self->connection,
++                                 G_DBUS_PROXY_FLAGS_NONE,
++                                 NULL,
++                                 "org.gnome.Mutter.DisplayConfig",
++                                 "/org/gnome/Mutter/DisplayConfig",
++                                 "org.gnome.Mutter.DisplayConfig",
++                                 NULL,
++                                 &error);
++  if (!proxy)
++    {
++      g_warning ("Failed to create D-Bus proxy to \"org.gnome.Mutter.DisplayConfig\": %s",
++                 error->message);
++      return;
++    }
++
++  variant = g_dbus_proxy_get_cached_property (proxy, "ApplyMonitorsConfigAllowed");
++  if (variant)
++    self->apply_allowed = g_variant_get_boolean (variant);
++  else
++    g_warning ("Missing property 'ApplyMonitorsConfigAllowed' on DisplayConfig API");
++
+   get_current_state (self);
+ }
+ 
+ static void
+ cc_display_config_manager_dbus_init (CcDisplayConfigManagerDBus *self)
+ {
++  self->apply_allowed = TRUE;
+   self->cancellable = g_cancellable_new ();
+   g_bus_get (G_BUS_TYPE_SESSION, self->cancellable, bus_gotten, self);
+ }
+@@ -170,6 +197,14 @@ cc_display_config_manager_dbus_finalize (GObject *object)
+   G_OBJECT_CLASS (cc_display_config_manager_dbus_parent_class)->finalize (object);
+ }
+ 
++static gboolean
++cc_display_config_manager_dbus_get_apply_allowed (CcDisplayConfigManager *pself)
++{
++  CcDisplayConfigManagerDBus *self = CC_DISPLAY_CONFIG_MANAGER_DBUS (pself);
++
++  return self->apply_allowed;
++}
++
+ static void
+ cc_display_config_manager_dbus_class_init (CcDisplayConfigManagerDBusClass *klass)
+ {
+@@ -179,6 +214,7 @@ cc_display_config_manager_dbus_class_init (CcDisplayConfigManagerDBusClass *klas
+   gobject_class->finalize = cc_display_config_manager_dbus_finalize;
+ 
+   parent_class->get_current = cc_display_config_manager_dbus_get_current;
++  parent_class->get_apply_allowed = cc_display_config_manager_dbus_get_apply_allowed;
+ }
+ 
+ CcDisplayConfigManager *
+diff --git a/panels/display/cc-display-config-manager.c b/panels/display/cc-display-config-manager.c
+index 0da298a..3d683c5 100644
+--- a/panels/display/cc-display-config-manager.c
++++ b/panels/display/cc-display-config-manager.c
+@@ -59,3 +59,9 @@ cc_display_config_manager_get_current (CcDisplayConfigManager *self)
+ {
+   return CC_DISPLAY_CONFIG_MANAGER_GET_CLASS (self)->get_current (self);
+ }
++
++gboolean
++cc_display_config_manager_get_apply_allowed (CcDisplayConfigManager *self)
++{
++  return CC_DISPLAY_CONFIG_MANAGER_GET_CLASS (self)->get_apply_allowed (self);
++}
+diff --git a/panels/display/cc-display-config-manager.h b/panels/display/cc-display-config-manager.h
+index 1e1b363..64f0775 100644
+--- a/panels/display/cc-display-config-manager.h
++++ b/panels/display/cc-display-config-manager.h
+@@ -34,10 +34,13 @@ struct _CcDisplayConfigManagerClass
+   GObjectClass parent_class;
+ 
+   CcDisplayConfig * (*get_current) (CcDisplayConfigManager *self);
++  gboolean (* get_apply_allowed) (CcDisplayConfigManager *self);
+ };
+ 
+ CcDisplayConfig * cc_display_config_manager_get_current (CcDisplayConfigManager *self);
+ 
++gboolean cc_display_config_manager_get_apply_allowed (CcDisplayConfigManager *self);
++
+ void _cc_display_config_manager_emit_changed (CcDisplayConfigManager *self);
+ 
+ G_END_DECLS
+diff --git a/panels/display/cc-display-panel.c b/panels/display/cc-display-panel.c
+index f9d4ae0..5220804 100644
+--- a/panels/display/cc-display-panel.c
++++ b/panels/display/cc-display-panel.c
+@@ -90,6 +90,8 @@ struct _CcDisplayPanel
+ 
+   GListStore     *primary_display_list;
+   GtkListStore   *output_selection_list;
++  GtkWidget      *output_frame;
++  GtkWidget      *display_settings_disabled_group;
+ 
+   GtkWidget      *arrangement_frame;
+   GtkAlignment   *arrangement_bin;
+@@ -693,8 +695,10 @@ cc_display_panel_class_init (CcDisplayPanelClass *klass)
+   gtk_widget_class_bind_template_child (widget_class, CcDisplayPanel, config_type_single);
+   gtk_widget_class_bind_template_child (widget_class, CcDisplayPanel, current_output_label);
+   gtk_widget_class_bind_template_child (widget_class, CcDisplayPanel, display_settings_frame);
++  gtk_widget_class_bind_template_child (widget_class, CcDisplayPanel, display_settings_disabled_group);
+   gtk_widget_class_bind_template_child (widget_class, CcDisplayPanel, multi_selection_box);
+   gtk_widget_class_bind_template_child (widget_class, CcDisplayPanel, night_light_page);
++  gtk_widget_class_bind_template_child (widget_class, CcDisplayPanel, output_frame);
+   gtk_widget_class_bind_template_child (widget_class, CcDisplayPanel, output_enabled_switch);
+   gtk_widget_class_bind_template_child (widget_class, CcDisplayPanel, output_selection_combo);
+   gtk_widget_class_bind_template_child (widget_class, CcDisplayPanel, output_selection_stack);
+@@ -782,6 +786,14 @@ rebuild_ui (CcDisplayPanel *panel)
+   GList *outputs, *l;
+   CcDisplayConfigType type;
+ 
++  if (!cc_display_config_manager_get_apply_allowed (panel->manager))
++    {
++      gtk_widget_set_visible (panel->display_settings_disabled_group, TRUE);
++      gtk_widget_set_visible (panel->config_type_switcher_frame, FALSE);
++      gtk_widget_set_visible (panel->arrangement_frame, FALSE);
++      return;
++    }
++
+   panel->rebuilding_counter++;
+ 
+   g_list_store_remove_all (panel->primary_display_list);
+@@ -793,6 +805,8 @@ rebuild_ui (CcDisplayPanel *panel)
+       return;
+     }
+ 
++  gtk_widget_set_visible (panel->display_settings_disabled_group, FALSE);
++
+   n_active_outputs = 0;
+   n_usable_outputs = 0;
+   outputs = cc_display_config_get_ui_sorted_monitors (panel->current_config);
+diff --git a/panels/display/cc-display-panel.ui b/panels/display/cc-display-panel.ui
+index 855b348..b51612e 100644
+--- a/panels/display/cc-display-panel.ui
++++ b/panels/display/cc-display-panel.ui
+@@ -72,6 +72,19 @@
+                         <property name="hexpand">True</property>
+                         <property name="orientation">vertical</property>
+                         <property name="spacing">32</property>
++                        <child>
++                          <object class="HdyPreferencesGroup" id="display_settings_disabled_group">
++                            <property name="visible">False</property>
++                            <child>
++                              <object class="HdyStatusPage">
++                                <property name="visible">True</property>
++                                <property name="vexpand">True</property>
++                                <property name="icon-name">computer-symbolic</property>
++                                <property name="title" translatable="yes">Display Settings Disabled</property>
++                              </object>
++                            </child>
++                          </object>
++                        </child>
+                         <child>
+                           <object class="GtkFrame" id="config_type_switcher_frame">
+                             <property name="visible">True</property>
+@@ -258,7 +271,7 @@
+                           </packing>
+                         </child>
+                         <child>
+-                          <object class="GtkFrame">
++                          <object class="GtkFrame" id="output_frame">
+                             <property name="visible">True</property>
+                             <property name="can_focus">False</property>
+                             <property name="label_xalign">0</property>

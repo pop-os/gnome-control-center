@@ -18,12 +18,12 @@ Origin: ubuntu
 Bug-Ubuntu: https://launchpad.net/bugs/1706524
 Bug: https://bugzilla.gnome.org/show_bug.cgi?id=710424
 ---
- panels/sound/cc-sound-panel.c  | 20 +++++++++
- panels/sound/cc-sound-panel.ui | 92 ++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 112 insertions(+)
+ panels/sound/cc-sound-panel.c  | 20 ++++++++++++++++++++
+ panels/sound/cc-sound-panel.ui | 42 ++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 62 insertions(+)
 
 diff --git a/panels/sound/cc-sound-panel.c b/panels/sound/cc-sound-panel.c
-index 200df43..1dda19b 100644
+index 5e6e03d..b1b5ec9 100644
 --- a/panels/sound/cc-sound-panel.c
 +++ b/panels/sound/cc-sound-panel.c
 @@ -65,6 +65,9 @@ struct _CcSoundPanel
@@ -32,7 +32,7 @@ index 200df43..1dda19b 100644
    CcVolumeSlider    *output_volume_slider;
 +  CcVolumeSlider    *output_volume_slider_ubuntu;
 +  GtkWidget         *allow_amplify_switch;
-+  GtkWidget         *ubuntu_output_frame;
++  GtkListBox        *ubuntu_output_listbox;
    CcStreamListBox   *stream_list_box;
    GtkListBoxRow     *subwoofer_row;
    CcSubwooferSlider *subwoofer_slider;
@@ -45,35 +45,35 @@ index 200df43..1dda19b 100644
  }
  
  static void
-@@ -104,6 +109,7 @@ output_device_changed_cb (CcSoundPanel *self)
-     stream = gvc_mixer_control_get_stream_from_device (self->mixer_control, device);
+@@ -98,6 +103,7 @@ set_output_stream (CcSoundPanel   *self,
+   gboolean can_fade = FALSE, has_lfe = FALSE;
  
    cc_volume_slider_set_stream (self->output_volume_slider, stream, CC_STREAM_TYPE_OUTPUT);
 +  cc_volume_slider_set_stream (self->output_volume_slider_ubuntu, stream, CC_STREAM_TYPE_OUTPUT);
    cc_level_bar_set_stream (self->output_level_bar, stream, CC_STREAM_TYPE_OUTPUT);
  
    if (stream != NULL)
-@@ -232,6 +238,9 @@ cc_sound_panel_class_init (CcSoundPanelClass *klass)
+@@ -259,6 +265,9 @@ cc_sound_panel_class_init (CcSoundPanelClass *klass)
    gtk_widget_class_bind_template_child (widget_class, CcSoundPanel, output_profile_combo_box);
    gtk_widget_class_bind_template_child (widget_class, CcSoundPanel, output_profile_row);
    gtk_widget_class_bind_template_child (widget_class, CcSoundPanel, output_volume_slider);
 +  gtk_widget_class_bind_template_child (widget_class, CcSoundPanel, output_volume_slider_ubuntu);
 +  gtk_widget_class_bind_template_child (widget_class, CcSoundPanel, allow_amplify_switch);
-+  gtk_widget_class_bind_template_child (widget_class, CcSoundPanel, ubuntu_output_frame);
++  gtk_widget_class_bind_template_child (widget_class, CcSoundPanel, ubuntu_output_listbox);
    gtk_widget_class_bind_template_child (widget_class, CcSoundPanel, stream_list_box);
    gtk_widget_class_bind_template_child (widget_class, CcSoundPanel, subwoofer_row);
    gtk_widget_class_bind_template_child (widget_class, CcSoundPanel, subwoofer_slider);
-@@ -276,12 +285,23 @@ cc_sound_panel_init (CcSoundPanel *self)
+@@ -293,12 +302,23 @@ cc_sound_panel_init (CcSoundPanel *self)
                             G_CONNECT_SWAPPED);
    allow_amplified_changed_cb (self);
  
 +  if (strstr (g_getenv("XDG_CURRENT_DESKTOP"), "ubuntu") != NULL) {
-+    gtk_widget_set_visible(self->ubuntu_output_frame, TRUE);
++    gtk_widget_set_visible(self->ubuntu_output_listbox, TRUE);
 +    gtk_widget_set_visible(GTK_WIDGET (self->output_volume_slider), FALSE);
 +    g_settings_bind (self->sound_settings, "allow-volume-above-100-percent",
 +                     self->allow_amplify_switch, "active", G_SETTINGS_BIND_DEFAULT);
 +  } else {
-+    gtk_widget_set_visible(self->ubuntu_output_frame, FALSE);
++    gtk_widget_set_visible(self->ubuntu_output_listbox, FALSE);
 +    gtk_widget_set_visible(GTK_WIDGET (self->output_volume_slider), TRUE);
 +  }
 +
@@ -88,105 +88,55 @@ index 200df43..1dda19b 100644
    cc_device_combo_box_set_mixer_control (self->input_device_combo_box, self->mixer_control, FALSE);
    cc_device_combo_box_set_mixer_control (self->output_device_combo_box, self->mixer_control, TRUE);
 diff --git a/panels/sound/cc-sound-panel.ui b/panels/sound/cc-sound-panel.ui
-index 140feaa..4ab51df 100644
+index b5706e2..3eb3003 100644
 --- a/panels/sound/cc-sound-panel.ui
 +++ b/panels/sound/cc-sound-panel.ui
-@@ -35,6 +35,98 @@
+@@ -35,6 +35,48 @@
                      <property name="visible">True</property>
                    </object>
                  </child>
++                <!-- Over-Amplification -->
 +                <child>
-+                  <object class="GtkFrame" id="ubuntu_output_frame">
++                  <object class="GtkListBox" id="ubuntu_output_listbox">
 +                    <property name="visible">False</property>
-+                <child>
-+                  <object class="GtkListBox" id="ubuntu_output_box">
-+                    <property name="visible">True</property>
 +                    <property name="selection_mode">none</property>
 +                    <child>
-+                      <object class="GtkListBoxRow">
-+                        <property name="width_request">100</property>
-+                        <property name="height_request">80</property>
-+                        <property name="visible">True</property>
-+                        <property name="can_focus">True</property>
++                      <object class="HdyPreferencesRow">
++                        <property name="visible">true</property>
++                        <property name="activatable">0</property>
 +                        <child>
 +                          <object class="CcVolumeSlider" id="output_volume_slider_ubuntu">
 +                            <property name="visible">True</property>
++                            <property name="margin_top">12</property>
++                            <property name="margin_bottom">12</property>
++                            <property name="margin_end">12</property>
 +                          </object>
 +                        </child>
 +                      </object>
 +                    </child>
 +                    <child>
-+                      <object class="GtkListBoxRow">
-+                        <property name="width_request">100</property>
-+                        <property name="height_request">80</property>
-+                        <property name="visible">True</property>
-+                        <property name="can_focus">True</property>
++                      <object class="HdyActionRow">
++                        <property name="visible">true</property>
++                        <property name="title" translatable="yes">Over-Amplification</property>
++                        <property name="subtitle" translatable="yes">Allows raising the volume above 100%. This can result in a loss of audio quality; it is better to increase application volume settings, if possible.</property>
++                        <property name="subtitle-lines">6</property>
++                        <property name="activatable-widget">allow_amplify_switch</property>
++                        <property name="use-underline">true</property>
 +                        <child>
-+                          <object class="GtkGrid">
-+                            <property name="visible">True</property>
-+                            <property name="can_focus">False</property>
-+                            <property name="margin_left">20</property>
-+                            <property name="margin_right">20</property>
-+                            <property name="margin_top">10</property>
-+                            <property name="margin_bottom">10</property>
-+                            <property name="row_spacing">2</property>
-+                            <property name="column_spacing">16</property>
-+                            <child>
-+                              <object class="GtkLabel" id="allow_amplify_label">
-+                                <property name="visible">True</property>
-+                                <property name="can_focus">False</property>
-+                                <property name="halign">start</property>
-+                                <property name="valign">center</property>
-+                                <property name="label" translatable="yes">Over-Amplification</property>
-+                                <property name="mnemonic-widget">allow_amplify_switch</property>
-+                                <attributes>
-+                                  <attribute name="weight" value="bold"/>
-+                                </attributes>
-+                              </object>
-+                              <packing>
-+                                <property name="left_attach">0</property>
-+                                <property name="top_attach">0</property>
-+                              </packing>
-+                            </child>
-+                            <child>
-+                              <object class="GtkSwitch" id="allow_amplify_switch">
-+                                <property name="visible">True</property>
-+                                <property name="can_focus">True</property>
-+                                <property name="halign">end</property>
-+                                <property name="valign">center</property>
-+                              </object>
-+                              <packing>
-+                                <property name="left_attach">1</property>
-+                                <property name="top_attach">0</property>
-+                                <property name="height">2</property>
-+                              </packing>
-+                            </child>
-+                            <child>
-+                              <object class="GtkLabel" id="allow_amplify_desc">
-+                                <property name="visible">True</property>
-+                                <property name="can_focus">False</property>
-+                                <property name="label" translatable="yes">Allows raising the volume above 100%. This can result in a loss of audio quality; it is better to increase application volume settings, if possible.</property>
-+                                <property name="wrap">True</property>
-+                                <attributes>
-+                                  <attribute name="scale" value="0.9"/>
-+                                </attributes>
-+                                <style>
-+                                  <class name="dim-label"/>
-+                                </style>
-+                              </object>
-+                              <packing>
-+                                <property name="left_attach">0</property>
-+                                <property name="top_attach">1</property>
-+                              </packing>
-+                            </child>
++                          <object class="GtkSwitch" id="allow_amplify_switch">
++                            <property name="visible">true</property>
++                            <property name="halign">end</property>
++                            <property name="valign">center</property>
 +                          </object>
 +                        </child>
 +                      </object>
 +                    </child>
++                    <style>
++                      <class name="content"/>
++                    </style>
 +                  </object>
 +                </child>
-+                </object>
-+                </child>
++
                  <child>
                    <object class="GtkLabel">
                      <property name="visible">True</property>

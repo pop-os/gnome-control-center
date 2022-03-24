@@ -64,6 +64,7 @@ enum {
   PROP_SPACING,
   PROP_ANIMATION_DURATION,
   PROP_ALLOW_MOUSE_DRAG,
+  PROP_ALLOW_LONG_SWIPES,
   PROP_REVEAL_DURATION,
 
   /* GtkOrientable */
@@ -473,6 +474,10 @@ hdy_carousel_get_property (GObject    *object,
     g_value_set_boolean (value, hdy_carousel_get_allow_mouse_drag (self));
     break;
 
+  case PROP_ALLOW_LONG_SWIPES:
+    g_value_set_boolean (value, hdy_carousel_get_allow_long_swipes (self));
+    break;
+
   case PROP_REVEAL_DURATION:
     g_value_set_uint (value, hdy_carousel_get_reveal_duration (self));
     break;
@@ -517,6 +522,10 @@ hdy_carousel_set_property (GObject      *object,
 
   case PROP_ALLOW_MOUSE_DRAG:
     hdy_carousel_set_allow_mouse_drag (self, g_value_get_boolean (value));
+    break;
+
+  case PROP_ALLOW_LONG_SWIPES:
+    hdy_carousel_set_allow_long_swipes (self, g_value_get_boolean (value));
     break;
 
   case PROP_ORIENTATION:
@@ -654,6 +663,21 @@ hdy_carousel_class_init (HdyCarouselClass *klass)
                           _("Allow mouse drag"),
                           _("Whether to allow dragging with mouse pointer"),
                           TRUE,
+                          G_PARAM_READWRITE | G_PARAM_EXPLICIT_NOTIFY);
+
+  /**
+   * HdyCarousel:allow-long-swipes:
+   *
+   * Whether to allow swiping for more than one page at a time. If the value is
+   * %FALSE, each swipe can only move to the adjacent pages.
+   *
+   * Since: 1.2
+   */
+  props[PROP_ALLOW_LONG_SWIPES] =
+    g_param_spec_boolean ("allow-long-swipes",
+                          _("Allow long swipes"),
+                          _("Whether to allow swiping for more than one page at a time"),
+                          FALSE,
                           G_PARAM_READWRITE | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
@@ -1058,6 +1082,51 @@ hdy_carousel_set_allow_mouse_drag (HdyCarousel *self,
   hdy_swipe_tracker_set_allow_mouse_drag (self->tracker, allow_mouse_drag);
 
   g_object_notify_by_pspec (G_OBJECT (self), props[PROP_ALLOW_MOUSE_DRAG]);
+}
+
+/**
+ * hdy_carousel_get_allow_long_swipes:
+ * @self: a #HdyCarousel
+ *
+ * Whether to allow swiping for more than one page at a time. If the value is
+ * %FALSE, each swipe can only move to the adjacent pages.
+ *
+ * Returns: %TRUE if long swipes are allowed, %FALSE otherwise
+ *
+ * Since: 1.2
+ */
+gboolean
+hdy_carousel_get_allow_long_swipes (HdyCarousel *self)
+{
+  g_return_val_if_fail (HDY_IS_CAROUSEL (self), FALSE);
+
+  return hdy_swipe_tracker_get_allow_long_swipes (self->tracker);
+}
+
+/**
+ * hdy_carousel_set_allow_long_swipes:
+ * @self: a #HdyCarousel
+ * @allow_long_swipes: whether to allow long swipes
+ *
+ * Sets whether to allow swiping for more than one page at a time. If the value
+ * is %FALSE, each swipe can only move to the adjacent pages.
+ *
+ * Since: 1.2
+ */
+void
+hdy_carousel_set_allow_long_swipes (HdyCarousel *self,
+                                    gboolean     allow_long_swipes)
+{
+  g_return_if_fail (HDY_IS_CAROUSEL (self));
+
+  allow_long_swipes = !!allow_long_swipes;
+
+  if (hdy_swipe_tracker_get_allow_long_swipes (self->tracker) == allow_long_swipes)
+    return;
+
+  hdy_swipe_tracker_set_allow_long_swipes (self->tracker, allow_long_swipes);
+
+  g_object_notify_by_pspec (G_OBJECT (self), props[PROP_ALLOW_LONG_SWIPES]);
 }
 
 /**

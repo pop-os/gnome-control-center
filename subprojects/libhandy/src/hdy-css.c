@@ -8,6 +8,40 @@
 
 #include "hdy-css-private.h"
 
+gint
+hdy_css_adjust_for_size (GtkWidget      *widget,
+                         GtkOrientation  orientation,
+                         gint            for_size)
+{
+  GtkStyleContext *style_context = gtk_widget_get_style_context (widget);
+  GtkStateFlags state_flags = gtk_widget_get_state_flags (widget);
+  GtkBorder border, margin, padding;
+  gint css_width, css_height;
+
+  if (for_size < 0)
+    return -1;
+
+  /* Manually apply minimum sizes, the border, the padding and the margin as we
+   * can't use the private GtkGagdet.
+   */
+  gtk_style_context_get (style_context, state_flags,
+                         "min-width", &css_width,
+                         "min-height", &css_height,
+                         NULL);
+  gtk_style_context_get_border (style_context, state_flags, &border);
+  gtk_style_context_get_margin (style_context, state_flags, &margin);
+  gtk_style_context_get_padding (style_context, state_flags, &padding);
+
+  if (orientation == GTK_ORIENTATION_HORIZONTAL)
+    return MAX (for_size, css_width) -
+           border.left - margin.left - padding.left +
+           border.right - margin.right - padding.right;
+  else
+    return MAX (for_size, css_height) -
+           border.top - margin.top - padding.top +
+           border.bottom - margin.bottom - padding.bottom;
+}
+
 void
 hdy_css_measure (GtkWidget      *widget,
                  GtkOrientation  orientation,
@@ -145,4 +179,91 @@ hdy_css_draw (GtkWidget *widget,
                       width - border.left - border.right,
                       height - border.top - border.bottom);
   }
+}
+
+void
+hdy_css_get_preferred_width (GtkWidget *widget,
+                             gint      *minimum,
+                             gint      *natural)
+{
+  GObjectClass *pclass = g_type_class_peek (GTK_TYPE_BIN);
+
+  g_assert (GTK_IS_BIN (widget));
+
+  GTK_WIDGET_CLASS (pclass)->get_preferred_width (widget, minimum, natural);
+
+  hdy_css_measure (widget, GTK_ORIENTATION_HORIZONTAL, minimum, natural);
+}
+
+void
+hdy_css_get_preferred_width_for_height (GtkWidget *widget,
+                                        gint       height,
+                                        gint      *minimum,
+                                        gint      *natural)
+{
+  GObjectClass *pclass = g_type_class_peek (GTK_TYPE_BIN);
+
+  g_assert (GTK_IS_BIN (widget));
+
+  GTK_WIDGET_CLASS (pclass)->get_preferred_width_for_height (widget, height, minimum, natural);
+
+  hdy_css_measure (widget, GTK_ORIENTATION_HORIZONTAL, minimum, natural);
+}
+
+void
+hdy_css_get_preferred_height (GtkWidget *widget,
+                              gint      *minimum,
+                              gint      *natural)
+{
+  GObjectClass *pclass = g_type_class_peek (GTK_TYPE_BIN);
+
+  g_assert (GTK_IS_BIN (widget));
+
+  GTK_WIDGET_CLASS (pclass)->get_preferred_height (widget, minimum, natural);
+
+  hdy_css_measure (widget, GTK_ORIENTATION_VERTICAL, minimum, natural);
+}
+
+void
+hdy_css_get_preferred_height_for_width (GtkWidget *widget,
+                                        gint       width,
+                                        gint      *minimum,
+                                        gint      *natural)
+{
+  GObjectClass *pclass = g_type_class_peek (GTK_TYPE_BIN);
+
+  g_assert (GTK_IS_BIN (widget));
+
+  GTK_WIDGET_CLASS (pclass)->get_preferred_height_for_width (widget, width, minimum, natural);
+
+  hdy_css_measure (widget, GTK_ORIENTATION_VERTICAL, minimum, natural);
+}
+
+void
+hdy_css_size_allocate_bin (GtkWidget     *widget,
+                           GtkAllocation *allocation)
+{
+  GtkAllocation child_alloc;
+
+  g_assert (GTK_IS_BIN (widget));
+
+  hdy_css_size_allocate_self (widget, allocation);
+  gtk_widget_set_allocation (widget, allocation);
+
+  child_alloc = *allocation;
+  hdy_css_size_allocate_children (widget, &child_alloc);
+  gtk_widget_size_allocate (gtk_bin_get_child (GTK_BIN (widget)), &child_alloc);
+}
+
+gboolean
+hdy_css_draw_bin (GtkWidget *widget,
+                  cairo_t   *cr)
+{
+  GObjectClass *pclass = g_type_class_peek (GTK_TYPE_BIN);
+
+  g_assert (GTK_IS_BIN (widget));
+
+  hdy_css_draw (widget, cr);
+
+  return GTK_WIDGET_CLASS (pclass)->draw (widget, cr);
 }

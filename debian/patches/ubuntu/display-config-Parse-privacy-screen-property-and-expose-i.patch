@@ -1,0 +1,127 @@
+From: =?utf-8?b?Ik1hcmNvIFRyZXZpc2FuIChUcmV2acOxbyki?= <mail@3v1n0.net>
+Date: Mon, 22 Mar 2021 06:58:51 +0100
+Subject: display-config: Parse privacy screen property and expose it per
+ monitor
+
+Each monitor can have a privacy screen property, so read it and expose
+so that it can be at upper levels.
+
+This is a backport of the gtk4 version proposed upstream, and can be
+safely removed post GNOME-41.
+
+Origin: https://gitlab.gnome.org/GNOME/gnome-control-center/-/merge_requests/1032/diffs?diff_id=241907
+---
+ panels/display/cc-display-config-dbus.c | 24 ++++++++++++++++++++++++
+ panels/display/cc-display-config.c      |  6 ++++++
+ panels/display/cc-display-config.h      | 11 +++++++++++
+ 3 files changed, 41 insertions(+)
+
+diff --git a/panels/display/cc-display-config-dbus.c b/panels/display/cc-display-config-dbus.c
+index 5cee57c..a3690f1 100644
+--- a/panels/display/cc-display-config-dbus.c
++++ b/panels/display/cc-display-config-dbus.c
+@@ -303,6 +303,7 @@ struct _CcDisplayMonitorDBus
+   int height_mm;
+   gboolean builtin;
+   CcDisplayMonitorUnderscanning underscanning;
++  CcDisplayMonitorPrivacy privacy_screen;
+   int max_width;
+   int max_height;
+ 
+@@ -588,6 +589,14 @@ cc_display_monitor_dbus_get_underscanning (CcDisplayMonitor *pself)
+   return self->underscanning == UNDERSCANNING_ENABLED;
+ }
+ 
++static CcDisplayMonitorPrivacy
++cc_display_monitor_dbus_get_privacy (CcDisplayMonitor *pself)
++{
++  CcDisplayMonitorDBus *self = CC_DISPLAY_MONITOR_DBUS (pself);
++
++  return self->privacy_screen;
++}
++
+ static void
+ cc_display_monitor_dbus_set_underscanning (CcDisplayMonitor *pself,
+                                            gboolean underscanning)
+@@ -768,6 +777,7 @@ cc_display_monitor_dbus_class_init (CcDisplayMonitorDBusClass *klass)
+   parent_class->supports_underscanning = cc_display_monitor_dbus_supports_underscanning;
+   parent_class->get_underscanning = cc_display_monitor_dbus_get_underscanning;
+   parent_class->set_underscanning = cc_display_monitor_dbus_set_underscanning;
++  parent_class->get_privacy = cc_display_monitor_dbus_get_privacy;
+   parent_class->set_mode = cc_display_monitor_dbus_set_mode;
+   parent_class->set_position = cc_display_monitor_dbus_set_position;
+   parent_class->get_scale = cc_display_monitor_dbus_get_scale;
+@@ -856,6 +866,20 @@ cc_display_monitor_dbus_new (GVariant *variant,
+         {
+           g_variant_get (v, "s", &self->display_name);
+         }
++      else if (g_str_equal (s, "privacy-screen-state"))
++        {
++          gboolean enabled;
++          gboolean locked;
++          g_variant_get (v, "(bb)", &enabled, &locked);
++
++          if (enabled)
++            self->privacy_screen = CC_DISPLAY_MONITOR_PRIVACY_ENABLED;
++          else
++            self->privacy_screen = CC_DISPLAY_MONITOR_PRIVACY_DISABLED;
++
++          if (locked)
++            self->privacy_screen |= CC_DISPLAY_MONITOR_PRIVACY_LOCKED;
++        }
+     }
+ 
+   return self;
+diff --git a/panels/display/cc-display-config.c b/panels/display/cc-display-config.c
+index 86a80b3..82c14e2 100644
+--- a/panels/display/cc-display-config.c
++++ b/panels/display/cc-display-config.c
+@@ -327,6 +327,12 @@ cc_display_monitor_set_underscanning (CcDisplayMonitor *self,
+   return CC_DISPLAY_MONITOR_GET_CLASS (self)->set_underscanning (self, underscanning);
+ }
+ 
++CcDisplayMonitorPrivacy
++cc_display_monitor_get_privacy (CcDisplayMonitor *self)
++{
++  return CC_DISPLAY_MONITOR_GET_CLASS (self)->get_privacy (self);
++}
++
+ void
+ cc_display_monitor_set_mode (CcDisplayMonitor *self, CcDisplayMode *m)
+ {
+diff --git a/panels/display/cc-display-config.h b/panels/display/cc-display-config.h
+index 96f2293..dc3a924 100644
+--- a/panels/display/cc-display-config.h
++++ b/panels/display/cc-display-config.h
+@@ -68,6 +68,14 @@ typedef enum _CcDisplayRotation
+   CC_DISPLAY_ROTATION_270_FLIPPED,
+ } CcDisplayRotation;
+ 
++typedef enum _CcDisplayMonitorPrivacy
++{
++  CC_DISPLAY_MONITOR_PRIVACY_UNSUPPORTED = 0,
++  CC_DISPLAY_MONITOR_PRIVACY_DISABLED = 1 << 0,
++  CC_DISPLAY_MONITOR_PRIVACY_ENABLED = 1 << 1,
++  CC_DISPLAY_MONITOR_PRIVACY_LOCKED = 1 << 2,
++} CcDisplayMonitorPrivacy;
++
+ 
+ #define CC_TYPE_DISPLAY_MODE (cc_display_mode_get_type ())
+ G_DECLARE_DERIVABLE_TYPE (CcDisplayMode, cc_display_mode,
+@@ -121,6 +129,7 @@ struct _CcDisplayMonitorClass
+   gboolean          (*get_underscanning)      (CcDisplayMonitor  *self);
+   void              (*set_underscanning)      (CcDisplayMonitor  *self,
+                                                gboolean           u);
++  CcDisplayMonitorPrivacy (*get_privacy)      (CcDisplayMonitor  *self);
+   CcDisplayMode*    (*get_mode)               (CcDisplayMonitor  *self);
+   CcDisplayMode*    (*get_preferred_mode)     (CcDisplayMonitor  *self);
+   GList*            (*get_modes)              (CcDisplayMonitor  *self);
+@@ -229,6 +238,8 @@ gboolean          cc_display_monitor_get_underscanning      (CcDisplayMonitor  *
+ void              cc_display_monitor_set_underscanning      (CcDisplayMonitor  *monitor,
+                                                              gboolean           underscanning);
+ 
++CcDisplayMonitorPrivacy cc_display_monitor_get_privacy      (CcDisplayMonitor *self);
++
+ CcDisplayMode*    cc_display_monitor_get_mode               (CcDisplayMonitor  *monitor);
+ void              cc_display_monitor_get_geometry           (CcDisplayMonitor  *monitor,
+                                                              int               *x,

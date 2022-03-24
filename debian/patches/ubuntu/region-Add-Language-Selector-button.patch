@@ -9,18 +9,18 @@ Workaround for https://launchpad.net/bugs/1631750
  2 files changed, 49 insertions(+)
 
 diff --git a/panels/region/cc-region-panel.c b/panels/region/cc-region-panel.c
-index 3c8f03d..01f5600 100644
+index 375c340..4c2100f 100644
 --- a/panels/region/cc-region-panel.c
 +++ b/panels/region/cc-region-panel.c
-@@ -59,6 +59,7 @@ struct _CcRegionPanel {
+@@ -58,6 +58,7 @@ struct _CcRegionPanel {
          GtkListBox      *language_list;
          GtkListBoxRow   *language_row;
          GtkFrame        *language_section_frame;
 +        GtkButton       *language_support_button;
+         GtkToggleButton *login_language_button;
          GtkButton       *restart_button;
          GtkRevealer     *restart_revealer;
- 
-@@ -576,6 +577,26 @@ setup_language_section (CcRegionPanel *self)
+@@ -564,6 +565,26 @@ setup_language_section (CcRegionPanel *self)
          update_region_from_setting (self);
  }
  
@@ -47,13 +47,15 @@ index 3c8f03d..01f5600 100644
  static void
  on_localed_properties_changed (CcRegionPanel  *self,
                                 GVariant       *changed_properties,
-@@ -796,10 +817,12 @@ cc_region_panel_class_init (CcRegionPanelClass * klass)
+@@ -775,12 +796,14 @@ cc_region_panel_class_init (CcRegionPanelClass * klass)
          gtk_widget_class_bind_template_child (widget_class, CcRegionPanel, language_list);
          gtk_widget_class_bind_template_child (widget_class, CcRegionPanel, language_row);
          gtk_widget_class_bind_template_child (widget_class, CcRegionPanel, language_section_frame);
 +        gtk_widget_class_bind_template_child (widget_class, CcRegionPanel, language_support_button);
+         gtk_widget_class_bind_template_child (widget_class, CcRegionPanel, login_language_button);
          gtk_widget_class_bind_template_child (widget_class, CcRegionPanel, restart_button);
          gtk_widget_class_bind_template_child (widget_class, CcRegionPanel, restart_revealer);
+         gtk_widget_class_bind_template_child (widget_class, CcRegionPanel, session_or_login_box);
  
          gtk_widget_class_bind_template_callback (widget_class, restart_now);
 +        gtk_widget_class_bind_template_callback (widget_class, show_language_support);
@@ -61,10 +63,10 @@ index 3c8f03d..01f5600 100644
  
  static void
 diff --git a/panels/region/cc-region-panel.ui b/panels/region/cc-region-panel.ui
-index 9fb6ebd..de1e60c 100644
+index fc698f0..fedac75 100644
 --- a/panels/region/cc-region-panel.ui
 +++ b/panels/region/cc-region-panel.ui
-@@ -235,6 +235,32 @@
+@@ -279,6 +279,32 @@
                     </style>
                    </object>
                  </child>

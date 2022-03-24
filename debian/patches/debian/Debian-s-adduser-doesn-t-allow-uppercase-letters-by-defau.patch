@@ -2,22 +2,36 @@ From: Andrea Azzarone <andrea.azzarone@canonical.com>
 Date: Tue, 31 Jul 2018 04:44:11 +0100
 Subject: Debian's adduser doesn't allow uppercase letters by default.
 
-Forwarded: no
-Bug: https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=910141
+Forwarded: not-needed, Debian-specific
+Bug-Debian: https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=910141
 ---
- panels/user-accounts/cc-add-user-dialog.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ panels/user-accounts/cc-add-user-dialog.c | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
 
 diff --git a/panels/user-accounts/cc-add-user-dialog.c b/panels/user-accounts/cc-add-user-dialog.c
-index 3d1daa4..eaa6930 100644
+index 3d1daa4..c9d52bf 100644
 --- a/panels/user-accounts/cc-add-user-dialog.c
 +++ b/panels/user-accounts/cc-add-user-dialog.c
-@@ -232,7 +232,7 @@ local_create_user (CcAddUserDialog *self)
+@@ -217,6 +217,7 @@ create_user_done (ActUserManager  *manager,
+ static void
+ local_create_user (CcAddUserDialog *self)
+ {
++        g_autofree char *debian_username = NULL;
+         ActUserManager *manager;
+         const gchar *username;
+         const gchar *name;
+@@ -228,11 +229,12 @@ local_create_user (CcAddUserDialog *self)
+         username = gtk_combo_box_text_get_active_text (self->local_username_combo);
+         account_type = (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (self->local_account_type_standard)) ? ACT_USER_ACCOUNT_TYPE_STANDARD : ACT_USER_ACCOUNT_TYPE_ADMINISTRATOR);
+ 
+-        g_debug ("Creating local user: %s", username);
++        debian_username = g_ascii_strdown (username, -1);
++        g_debug ("Creating local user: %s", debian_username);
  
          manager = act_user_manager_get_default ();
          act_user_manager_create_user_async (manager,
 -                                            username,
-+                                            g_ascii_strdown (username, -1),
++                                            debian_username,
                                              name,
                                              account_type,
                                              self->cancellable,

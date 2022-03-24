@@ -1,0 +1,25 @@
+From: Carlos Garnacho <carlosg@gnome.org>
+Date: Sat, 12 Feb 2022 14:54:37 +0100
+Subject: wacom: Explicitly discard input from touchscreens
+
+Closes: https://gitlab.gnome.org/GNOME/gnome-control-center/-/issues/1612
+
+Origin: https://gitlab.gnome.org/GNOME/gnome-control-center/-/commit/7371dbb
+---
+ panels/wacom/calibrator/calibrator-gui.c | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/panels/wacom/calibrator/calibrator-gui.c b/panels/wacom/calibrator/calibrator-gui.c
+index 012291f..395a6f6 100644
+--- a/panels/wacom/calibrator/calibrator-gui.c
++++ b/panels/wacom/calibrator/calibrator-gui.c
+@@ -185,6 +185,9 @@ on_gesture_press (GtkGestureMultiPress *gesture,
+   source = gdk_event_get_source_device ((GdkEvent *) event);
+   gdk_event_free (event);
+ 
++  if (gdk_device_get_source (source) == GDK_SOURCE_TOUCHSCREEN)
++    return;
++
+   /* Check matching device if a device was provided */
+   if (area->device && area->device != source)
+     {

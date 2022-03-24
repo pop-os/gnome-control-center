@@ -1,0 +1,47 @@
+From: Sebastian Keller <skeller@gnome.org>
+Date: Wed, 22 Dec 2021 23:24:57 +0100
+Subject: search-provider: Don't escape result description as markup
+
+Only the shell can know how the description string will be used and if
+or when it should be escaped. Previously the shell did not escape the
+description before displaying it with markup to highlight search hits,
+but now it does. For gnome-control-center this however means without
+this change the string will be escaped twice causing markup to show up
+in the description text.
+
+Related: https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/2033
+
+Origin: https://gitlab.gnome.org/GNOME/gnome-control-center/-/commit/dfc5044
+---
+ search-provider/cc-search-provider.c | 4 +---
+ 1 file changed, 1 insertion(+), 3 deletions(-)
+
+diff --git a/search-provider/cc-search-provider.c b/search-provider/cc-search-provider.c
+index 49df7f4..8a8981a 100644
+--- a/search-provider/cc-search-provider.c
++++ b/search-provider/cc-search-provider.c
+@@ -210,7 +210,6 @@ handle_get_result_metas (CcShellSearchProvider2  *skeleton,
+ 
+   for (i = 0; results[i]; i++)
+     {
+-      g_autofree gchar *escaped_description = NULL;
+       g_autofree gchar *description = NULL;
+       g_autofree gchar *name = NULL;
+       g_autoptr(GAppInfo) app = NULL;
+@@ -227,7 +226,6 @@ handle_get_result_metas (CcShellSearchProvider2  *skeleton,
+                           COL_DESCRIPTION, &description,
+                           -1);
+       id = g_app_info_get_id (app);
+-      escaped_description = g_markup_escape_text (description, -1);
+ 
+       g_variant_builder_open (&builder, G_VARIANT_TYPE ("a{sv}"));
+       g_variant_builder_add (&builder, "{sv}",
+@@ -237,7 +235,7 @@ handle_get_result_metas (CcShellSearchProvider2  *skeleton,
+       g_variant_builder_add (&builder, "{sv}",
+                              "icon", g_icon_serialize (icon));
+       g_variant_builder_add (&builder, "{sv}",
+-                             "description", g_variant_new_string (escaped_description));
++                             "description", g_variant_new_string (description));
+       g_variant_builder_close (&builder);
+     }
+ 

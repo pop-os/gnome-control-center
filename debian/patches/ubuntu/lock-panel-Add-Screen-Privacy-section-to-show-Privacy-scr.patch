@@ -1,0 +1,222 @@
+From: =?utf-8?b?Ik1hcmNvIFRyZXZpc2FuIChUcmV2acOxbyki?= <mail@3v1n0.net>
+Date: Mon, 22 Mar 2021 07:00:59 +0100
+Subject: lock-panel: Add Screen Privacy section to show Privacy screen toggle
+
+The privacy screen toggle is visible only when there's a monitor that
+supports it and it's modifiable only when there's not hardware lock.
+
+This is a backport of the gtk4 version proposed upstream, and can be
+safely removed post GNOME-41.
+
+Origin: https://gitlab.gnome.org/GNOME/gnome-control-center/-/merge_requests/1032/diffs?diff_id=241907
+---
+ panels/lock/cc-lock-panel.c                | 53 +++++++++++++++++++++++
+ panels/lock/cc-lock-panel.ui               | 67 ++++++++++++++++++++++++++++++
+ panels/lock/gnome-lock-panel.desktop.in.in |  8 ++--
+ 3 files changed, 124 insertions(+), 4 deletions(-)
+
+diff --git a/panels/lock/cc-lock-panel.c b/panels/lock/cc-lock-panel.c
+index 7700a01..4b37557 100644
+--- a/panels/lock/cc-lock-panel.c
++++ b/panels/lock/cc-lock-panel.c
+@@ -24,6 +24,8 @@
+ #include "cc-lock-resources.h"
+ #include "cc-util.h"
+ 
++#include "panels/display/cc-display-config-manager-dbus.h"
++
+ #include <gio/gdesktopappinfo.h>
+ #include <glib/gi18n.h>
+ 
+@@ -31,6 +33,8 @@ struct _CcLockPanel
+ {
+   CcPanel        parent_instance;
+ 
++  CcDisplayConfigManager *display_config_manager;
++
+   GSettings     *lock_settings;
+   GSettings     *notification_settings;
+   GSettings     *privacy_settings;
+@@ -44,6 +48,8 @@ struct _CcLockPanel
+   GtkListBox    *lock_list_box;
+   GtkSwitch     *show_notifications_switch;
+   GtkSwitch     *usb_protection_switch;
++  GtkBox        *screen_privacy_box;
++  GtkSwitch     *privacy_screen_switch;
+   GDBusProxy    *usb_proxy;
+   GtkListBoxRow *usb_protection_row;
+   GtkSwitch     *lock_on_suspend_switch;
+@@ -273,10 +279,45 @@ cc_lock_panel_class_init (CcLockPanelClass *klass)
+   gtk_widget_class_bind_template_child (widget_class, CcLockPanel, usb_protection_row);
+   gtk_widget_class_bind_template_child (widget_class, CcLockPanel, lock_on_suspend_switch);
+ 
++  gtk_widget_class_bind_template_child (widget_class, CcLockPanel, screen_privacy_box);
++  gtk_widget_class_bind_template_child (widget_class, CcLockPanel, privacy_screen_switch);
++
+   gtk_widget_class_bind_template_callback (widget_class, on_blank_screen_delay_changed_cb);
+   gtk_widget_class_bind_template_callback (widget_class, on_lock_combo_changed_cb);
+ }
+ 
++static void
++update_display_config (CcLockPanel *self)
++{
++  CcDisplayConfig *config;
++  gboolean any_privacy_screen = FALSE;
++  gboolean any_configurable_privacy_screen = FALSE;
++  GList *monitors;
++  GList *l;
++
++  config = cc_display_config_manager_get_current (self->display_config_manager);
++  monitors = config ? cc_display_config_get_monitors (config) : NULL;
++
++  for (l = monitors; l; l = l->next)
++    {
++      CcDisplayMonitor *monitor = CC_DISPLAY_MONITOR (l->data);
++      CcDisplayMonitorPrivacy privacy = cc_display_monitor_get_privacy (monitor);
++
++      if (privacy != CC_DISPLAY_MONITOR_PRIVACY_UNSUPPORTED)
++        {
++          any_privacy_screen = TRUE;
++
++          if (!(privacy & CC_DISPLAY_MONITOR_PRIVACY_LOCKED))
++            any_configurable_privacy_screen = TRUE;
++        }
++    }
++
++  g_clear_object (&config);
++
++  gtk_widget_set_visible (GTK_WIDGET (self->screen_privacy_box), any_privacy_screen);
++  gtk_widget_set_sensitive (GTK_WIDGET (self->privacy_screen_switch), any_configurable_privacy_screen);
++}
++
+ static void
+ cc_lock_panel_init (CcLockPanel *self)
+ {
+@@ -332,6 +373,18 @@ cc_lock_panel_init (CcLockPanel *self)
+                    "active",
+                    G_SETTINGS_BIND_DEFAULT);
+ 
++  self->display_config_manager = cc_display_config_manager_dbus_new ();
++  g_signal_connect_object (self->display_config_manager, "changed",
++                           G_CALLBACK (update_display_config), self,
++                           G_CONNECT_SWAPPED);
++
++  update_display_config (self);
++  g_settings_bind (self->privacy_settings,
++                   "privacy-screen",
++                   self->privacy_screen_switch,
++                   "active",
++                   G_SETTINGS_BIND_DEFAULT);
++
+   g_dbus_proxy_new_for_bus (G_BUS_TYPE_SESSION,
+                             G_DBUS_PROXY_FLAGS_NONE,
+                             NULL,
+diff --git a/panels/lock/cc-lock-panel.ui b/panels/lock/cc-lock-panel.ui
+index 3b36af7..83673bd 100644
+--- a/panels/lock/cc-lock-panel.ui
++++ b/panels/lock/cc-lock-panel.ui
+@@ -20,6 +20,20 @@
+                 <property name="visible">1</property>
+                 <property name="orientation">vertical</property>
+                 <property name="hexpand">1</property>
++                <property name="spacing">12</property>
++
++                <!-- Screen Lock -->
++                <child>
++                  <object class="GtkLabel">
++                    <property name="visible">true</property>
++                    <property name="label" translatable="yes">Screen Lock</property>
++                    <property name="xalign">0</property>
++                    <attributes>
++                      <attribute name="weight" value="bold" />
++                    </attributes>
++                  </object>
++                </child>
++
+                 <child>
+                   <object class="GtkLabel" id="lock_description_label">
+                     <property name="visible">1</property>
+@@ -154,6 +168,59 @@
+                     </style>
+                   </object>
+                 </child>
++
++                <child>
++                  <object class="GtkBox" id="screen_privacy_box">
++                    <property name="visible">1</property>
++                    <property name="orientation">vertical</property>
++                    <property name="margin-top">18</property>
++                    <property name="hexpand">1</property>
++                    <property name="spacing">12</property>
++                    <child>
++                      <object class="GtkLabel" id="screen_privacy_label_id">
++                        <property name="visible">1</property>
++                        <property name="label" translatable="yes">Screen Privacy</property>
++                        <property name="wrap">1</property>
++                        <property name="max-width-chars">50</property>
++                        <property name="xalign">0</property>
++                        <attributes>
++                          <attribute name="weight" value="bold"/>
++                        </attributes>
++                      </object>
++                    </child>
++
++                    <child>
++                      <object class="GtkListBox" id="screen_privacy_list_box">
++                        <property name="visible">1</property>
++                        <property name="can-focus">1</property>
++                        <property name="selection-mode">none</property>
++
++                        <!-- Restrict viewing angle row -->
++                        <child>
++                          <object class="HdyActionRow">
++                            <property name="visible">true</property>
++                            <property name="title" translatable="yes">Restrict Viewing Angle</property>
++                            <property name="activatable-widget">privacy_screen_switch</property>
++                            <property name="sensitive" bind-source="privacy_screen_switch" bind-property="sensitive"/>
++                            <property name="use-underline">true</property>
++                            <child>
++                              <object class="GtkSwitch" id="privacy_screen_switch">
++                                <property name="visible">1</property>
++                                <property name="halign">end</property>
++                                <property name="valign">center</property>
++                              </object>
++                            </child>
++                          </object>
++                        </child>
++
++                        <style>
++                          <class name="view"/>
++                          <class name="frame"/>
++                        </style>
++                      </object>
++                    </child>
++                  </object>
++                </child>
+               </object>
+             </child>
+ 
+diff --git a/panels/lock/gnome-lock-panel.desktop.in.in b/panels/lock/gnome-lock-panel.desktop.in.in
+index 5b4f8b4..120f5ec 100644
+--- a/panels/lock/gnome-lock-panel.desktop.in.in
++++ b/panels/lock/gnome-lock-panel.desktop.in.in
+@@ -1,10 +1,10 @@
+ [Desktop Entry]
+-Name=Screen Lock
+-Comment=Lock your screen
++Name=Screen
++Comment=Screen Privacy Preferences
+ Exec=gnome-control-center lock
+ # FIXME
+ # Translators: Do NOT translate or transliterate this text (this is an icon file name)!
+-Icon=system-lock-screen-symbolic
++Icon=video-display-symbolic
+ Terminal=false
+ Type=Application
+ NoDisplay=true
+@@ -16,4 +16,4 @@ X-GNOME-Bugzilla-Product=gnome-control-center
+ X-GNOME-Bugzilla-Component=privacy
+ X-GNOME-Bugzilla-Version=@VERSION@
+ # Translators: Search terms to find the Privacy panel. Do NOT translate or localize the semicolons! The list MUST also end with a semicolon!
+-Keywords=screen;lock;diagnostics;crash;private;recent;temporary;tmp;index;name;network;identity;privacy;
++Keywords=screen;lock;diagnostics;crash;private;recent;temporary;tmp;index;name;network;identity;privacy;restrict;

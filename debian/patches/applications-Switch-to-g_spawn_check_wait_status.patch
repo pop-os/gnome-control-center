@@ -1,0 +1,24 @@
+From: Georges Basile Stavracas Neto <georges.stavracas@gmail.com>
+Date: Thu, 20 Jan 2022 18:55:44 -0300
+Subject: applications: Switch to g_spawn_check_wait_status()
+
+It's the undeprecated version of g_spawn_check_exit_status().
+
+Origin: https://gitlab.gnome.org/GNOME/gnome-control-center/-/commit/77b182
+---
+ panels/applications/utils.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/panels/applications/utils.c b/panels/applications/utils.c
+index 96704a4..590bc3c 100644
+--- a/panels/applications/utils.c
++++ b/panels/applications/utils.c
+@@ -168,7 +168,7 @@ get_output_of (const gchar **argv)
+                      &status, NULL))
+     return NULL;
+ 
+-  if (!g_spawn_check_exit_status (status, NULL))
++  if (!g_spawn_check_wait_status (status, NULL))
+     return NULL;
+ 
+   return g_steal_pointer (&output);

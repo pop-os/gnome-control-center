@@ -126,10 +126,10 @@ index adbbcbc..9b3cdc8 100644
    snap_data.snapped = SNAP_DIR_NONE;
    snap_data.mon_x = x;
 diff --git a/panels/display/cc-display-config-dbus.c b/panels/display/cc-display-config-dbus.c
-index cdc8f8a..221c29b 100644
+index bc20b69..6f1472b 100644
 --- a/panels/display/cc-display-config-dbus.c
 +++ b/panels/display/cc-display-config-dbus.c
-@@ -861,7 +861,8 @@ cc_display_monitor_dbus_new (GVariant *variant,
+@@ -865,7 +865,8 @@ cc_display_monitor_dbus_new (GVariant *variant,
  typedef enum _CcDisplayLayoutMode
  {
    CC_DISPLAY_LAYOUT_MODE_LOGICAL = 1,
@@ -139,7 +139,7 @@ index cdc8f8a..221c29b 100644
  } CcDisplayLayoutMode;
  
  typedef enum _CcDisplayConfigMethod
-@@ -1202,7 +1203,15 @@ cc_display_config_dbus_is_layout_logical (CcDisplayConfig *pself)
+@@ -1206,7 +1207,15 @@ cc_display_config_dbus_is_layout_logical (CcDisplayConfig *pself)
  {
    CcDisplayConfigDBus *self = CC_DISPLAY_CONFIG_DBUS (pself);
  
@@ -156,7 +156,7 @@ index cdc8f8a..221c29b 100644
  }
  
  static gboolean
-@@ -1509,7 +1518,7 @@ cc_display_config_dbus_constructed (GObject *object)
+@@ -1597,7 +1606,7 @@ cc_display_config_dbus_constructed (GObject *object)
            guint32 u = 0;
            g_variant_get (v, "u", &u);
            if (u >= CC_DISPLAY_LAYOUT_MODE_LOGICAL &&
@@ -165,7 +165,7 @@ index cdc8f8a..221c29b 100644
              self->layout_mode = u;
          }
      }
-@@ -1617,6 +1626,7 @@ cc_display_config_dbus_class_init (CcDisplayConfigDBusClass *klass)
+@@ -1706,6 +1715,7 @@ cc_display_config_dbus_class_init (CcDisplayConfigDBusClass *klass)
    parent_class->set_minimum_size = cc_display_config_dbus_set_minimum_size;
    parent_class->get_panel_orientation_managed =
      cc_display_config_dbus_get_panel_orientation_managed;
@@ -173,7 +173,7 @@ index cdc8f8a..221c29b 100644
  
    pspec = g_param_spec_variant ("state",
                                  "GVariant",
-@@ -1677,6 +1687,26 @@ logical_monitor_is_rotated (CcDisplayLogicalMonitor *lm)
+@@ -1766,6 +1776,26 @@ logical_monitor_is_rotated (CcDisplayLogicalMonitor *lm)
      }
  }
  
@@ -200,7 +200,7 @@ index cdc8f8a..221c29b 100644
  static int
  logical_monitor_width (CcDisplayLogicalMonitor *lm)
  {
-@@ -1695,6 +1725,11 @@ logical_monitor_width (CcDisplayLogicalMonitor *lm)
+@@ -1784,6 +1814,11 @@ logical_monitor_width (CcDisplayLogicalMonitor *lm)
  
    if (monitor->config->layout_mode == CC_DISPLAY_LAYOUT_MODE_LOGICAL)
      return round (width / lm->scale);
@@ -213,7 +213,7 @@ index cdc8f8a..221c29b 100644
      return width;
  }
 diff --git a/panels/display/cc-display-config.c b/panels/display/cc-display-config.c
-index 08b4c48..6ec274f 100644
+index a78b33f..680b817 100644
 --- a/panels/display/cc-display-config.c
 +++ b/panels/display/cc-display-config.c
 @@ -638,3 +638,29 @@ cc_display_config_get_panel_orientation_managed (CcDisplayConfig *self)
@@ -247,7 +247,7 @@ index 08b4c48..6ec274f 100644
 +  return max_scale;
 +}
 diff --git a/panels/display/cc-display-config.h b/panels/display/cc-display-config.h
-index fa5b3a5..48e2bc5 100644
+index d83fa8e..a5da791 100644
 --- a/panels/display/cc-display-config.h
 +++ b/panels/display/cc-display-config.h
 @@ -161,6 +161,7 @@ struct _CcDisplayConfigClass
