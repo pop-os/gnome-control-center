@@ -743,16 +743,16 @@
  
    row_data = g_object_get_data (G_OBJECT (row), "data");
  
-@@ -383,7 +397,7 @@
-   "network",
+@@ -384,7 +398,7 @@
+   "wwan",
    "mobile-broadband",
    "bluetooth",
 -  "background",
 +  "desktop",
+   "ubuntu",
    "notifications",
    "search",
-   "applications",
-@@ -391,6 +405,13 @@
+@@ -394,6 +408,13 @@
    "online-accounts",
    "sharing",
  
@@ -766,7 +766,7 @@
    /* Privacy page */
    "location",
    "camera",
-@@ -509,7 +530,7 @@
+@@ -512,7 +533,7 @@
    if (!before)
      return;
  
@@ -775,7 +775,7 @@
      return;
  
    /*
-@@ -550,6 +571,11 @@
+@@ -553,6 +574,11 @@
        switch_to_view (self, CC_PANEL_LIST_PRIVACY);
        goto out;
      }
@@ -787,7 +787,7 @@
  
    /*
     * When a panel is selected, the previous one should be
-@@ -562,6 +588,9 @@
+@@ -565,6 +591,9 @@
  
        if (listbox != self->privacy_listbox)
          gtk_list_box_unselect_all (GTK_LIST_BOX (self->privacy_listbox));
@@ -797,7 +797,7 @@
      }
  
    /*
-@@ -609,6 +638,8 @@
+@@ -612,6 +641,8 @@
  
    if (data->category == CC_CATEGORY_PRIVACY)
      real_listbox = self->privacy_listbox;
@@ -806,7 +806,7 @@
    else
      real_listbox = self->main_listbox;
  
-@@ -779,6 +810,8 @@
+@@ -782,6 +813,8 @@
  
    gtk_widget_class_bind_template_child (widget_class, CcPanelList, privacy_listbox);
    gtk_widget_class_bind_template_child (widget_class, CcPanelList, privacy_row);
@@ -815,7 +815,7 @@
    gtk_widget_class_bind_template_child (widget_class, CcPanelList, main_listbox);
    gtk_widget_class_bind_template_child (widget_class, CcPanelList, search_listbox);
  
-@@ -805,6 +838,11 @@
+@@ -808,6 +841,11 @@
                                self,
                                NULL);
  
@@ -827,7 +827,7 @@
    gtk_list_box_set_header_func (GTK_LIST_BOX (self->main_listbox),
                                  header_func,
                                  self,
-@@ -961,6 +999,8 @@
+@@ -964,6 +1002,8 @@
    /* Only show the Devices/Details rows when there's at least one panel */
    if (category == CC_CATEGORY_PRIVACY)
      gtk_widget_show (GTK_WIDGET (self->privacy_row));
@@ -935,7 +935,7 @@
          <property name="visible">True</property>
 --- a/shell/cc-panel-loader.c
 +++ b/shell/cc-panel-loader.c
-@@ -73,6 +73,10 @@
+@@ -78,6 +78,10 @@
  extern GType cc_microphone_panel_get_type (void);
  extern GType cc_usage_panel_get_type (void);
  extern GType cc_lock_panel_get_type (void);
@@ -946,9 +946,9 @@
  
  /* Static init functions */
  #ifdef BUILD_NETWORK
-@@ -133,6 +137,10 @@
- #ifdef BUILD_WACOM
-   PANEL_TYPE("wacom",            cc_wacom_panel_get_type,                cc_wacom_panel_static_init_func),
+@@ -147,6 +151,10 @@
+ #ifdef BUILD_WWAN
+   PANEL_TYPE("wwan",             cc_wwan_panel_get_type,                 cc_wwan_panel_static_init_func),
  #endif
 +  PANEL_TYPE("desktop-main",     cc_desktop_main_panel_get_type,         NULL),
 +  PANEL_TYPE("desktop-appearance", cc_desktop_appearance_panel_get_type, NULL),
@@ -957,7 +957,7 @@
  };
  
  /* Override for the panel vtable. When NULL, the default_panels will
-@@ -168,6 +176,8 @@
+@@ -182,6 +190,8 @@
      retval = CC_CATEGORY_DETAILS;
    else if (g_strv_contains (const_strv (split), "X-GNOME-PrivacySettings"))
      retval = CC_CATEGORY_PRIVACY;

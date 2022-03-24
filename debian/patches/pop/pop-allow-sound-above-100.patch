@@ -1,13 +1,11 @@
-Index: gnome-control-center/panels/sound/cc-sound-panel.c
-===================================================================
---- gnome-control-center.orig/panels/sound/cc-sound-panel.c
-+++ gnome-control-center/panels/sound/cc-sound-panel.c
-@@ -259,7 +259,7 @@ cc_sound_panel_init (CcSoundPanel *self)
+--- a/panels/sound/cc-sound-panel.c
++++ b/panels/sound/cc-sound-panel.c
+@@ -302,7 +302,7 @@
                             G_CONNECT_SWAPPED);
    allow_amplified_changed_cb (self);
-
+ 
 -  if (strstr (g_getenv("XDG_CURRENT_DESKTOP"), "ubuntu") != NULL) {
 +  if ((strstr (g_getenv("XDG_CURRENT_DESKTOP"), "ubuntu") != NULL) || (strstr (g_getenv("XDG_CURRENT_DESKTOP"), "pop") != NULL)) {
-     gtk_widget_set_visible(self->ubuntu_output_frame, TRUE);
+     gtk_widget_set_visible(self->ubuntu_output_listbox, TRUE);
      gtk_widget_set_visible(GTK_WIDGET (self->output_volume_slider), FALSE);
      g_settings_bind (self->sound_settings, "allow-volume-above-100-percent",

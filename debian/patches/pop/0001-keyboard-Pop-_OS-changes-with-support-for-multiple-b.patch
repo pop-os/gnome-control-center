@@ -28,8 +28,6 @@ non-default, matching upstream and avoiding too complicated a diff.
  panels/keyboard/cc-keyboard-shortcut-row.ui   |  67 ++++--
  5 files changed, 280 insertions(+), 170 deletions(-)
 
-diff --git a/panels/keyboard/cc-keyboard-shortcut-dialog.ui b/panels/keyboard/cc-keyboard-shortcut-dialog.ui
-index 269e97ece..08556bf97 100644
 --- a/panels/keyboard/cc-keyboard-shortcut-dialog.ui
 +++ b/panels/keyboard/cc-keyboard-shortcut-dialog.ui
 @@ -2,6 +2,8 @@
@@ -59,11 +57,9 @@ index 269e97ece..08556bf97 100644
                  <child>
                    <object class="GtkBox">
                      <property name="visible">True</property>
-diff --git a/panels/keyboard/cc-keyboard-shortcut-editor.c b/panels/keyboard/cc-keyboard-shortcut-editor.c
-index 6b42763e3..eb777fb16 100644
 --- a/panels/keyboard/cc-keyboard-shortcut-editor.c
 +++ b/panels/keyboard/cc-keyboard-shortcut-editor.c
-@@ -29,32 +29,30 @@ struct _CcKeyboardShortcutEditor
+@@ -29,32 +29,30 @@
    GtkDialog           parent;
  
    GtkButton          *add_button;
@@ -99,7 +95,7 @@ index 6b42763e3..eb777fb16 100644
  
    CcKeyboardItem     *collision_item;
  
-@@ -69,6 +67,7 @@ struct _CcKeyboardShortcutEditor
+@@ -69,6 +67,7 @@
  
  static void          command_entry_changed_cb                    (CcKeyboardShortcutEditor *self);
  static void          name_entry_changed_cb                       (CcKeyboardShortcutEditor *self);
@@ -107,7 +103,7 @@ index 6b42763e3..eb777fb16 100644
  static void          set_button_clicked_cb                       (CcKeyboardShortcutEditor *self);
  
  G_DEFINE_TYPE (CcKeyboardShortcutEditor, cc_keyboard_shortcut_editor, GTK_TYPE_DIALOG)
-@@ -134,8 +133,6 @@ set_shortcut_editor_page (CcKeyboardShortcutEditor *self,
+@@ -134,8 +133,6 @@
      default:
        g_assert_not_reached ();
      }
@@ -116,7 +112,7 @@ index 6b42763e3..eb777fb16 100644
  }
  
  static void
-@@ -144,14 +141,7 @@ apply_custom_item_fields (CcKeyboardShortcutEditor *self,
+@@ -144,14 +141,7 @@
  {
    /* Only setup the binding when it was actually edited */
    if (self->edited)
@@ -132,7 +128,7 @@ index 6b42763e3..eb777fb16 100644
  
    /* Set the keyboard shortcut name and command for custom entries */
    if (cc_keyboard_item_get_item_type (item) == CC_KEYBOARD_ITEM_TYPE_GSETTINGS_PATH)
-@@ -227,6 +217,8 @@ grab_seat (CcKeyboardShortcutEditor *self)
+@@ -227,6 +217,8 @@
    self->grab_pointer = gdk_seat_get_keyboard (seat);
    if (!self->grab_pointer)
      self->grab_pointer = gdk_seat_get_pointer (seat);
@@ -141,7 +137,7 @@ index 6b42763e3..eb777fb16 100644
  }
  
  static void
-@@ -250,7 +242,7 @@ update_shortcut (CcKeyboardShortcutEditor *self)
+@@ -250,7 +242,7 @@
  
    /* Eventually disable the conflict shortcut */
    if (self->collision_item)
@@ -150,7 +146,7 @@ index 6b42763e3..eb777fb16 100644
  
    /* Cleanup whatever was set before */
    clear_custom_entries (self);
-@@ -274,11 +266,8 @@ set_header_mode (CcKeyboardShortcutEditor *self,
+@@ -274,11 +266,8 @@
    gtk_header_bar_set_show_close_button (self->headerbar, mode == HEADER_MODE_CUSTOM_EDIT);
  
    gtk_widget_set_visible (GTK_WIDGET (self->add_button), mode == HEADER_MODE_ADD);
@@ -162,7 +158,7 @@ index 6b42763e3..eb777fb16 100644
  
    /* By setting the default response, the action button gets the 'suggested-action' applied */
    switch (mode)
-@@ -434,7 +423,7 @@ add_button_clicked_cb (CcKeyboardShortcutEditor *self)
+@@ -434,7 +423,7 @@
  
    /* Eventually disable the conflict shortcut */
    if (self->collision_item)
@@ -171,7 +167,7 @@ index 6b42763e3..eb777fb16 100644
  
    /* Cleanup everything once we're done */
    clear_custom_entries (self);
-@@ -455,7 +444,7 @@ static void
+@@ -455,7 +444,7 @@
  change_custom_shortcut_button_clicked_cb (CcKeyboardShortcutEditor *self)
  {
    grab_seat (self);
@@ -180,11 +176,10 @@ index 6b42763e3..eb777fb16 100644
    set_header_mode (self, HEADER_MODE_NONE);
  }
  
-@@ -471,14 +460,6 @@ name_entry_changed_cb (CcKeyboardShortcutEditor *self)
-   setup_custom_shortcut (self);
+@@ -472,14 +461,6 @@
  }
  
--static void
+ static void
 -remove_button_clicked_cb (CcKeyboardShortcutEditor *self)
 -{
 -  gtk_widget_hide (GTK_WIDGET (self));
@@ -192,10 +187,11 @@ index 6b42763e3..eb777fb16 100644
 -  cc_keyboard_manager_remove_custom_shortcut (self->manager, self->item);
 -}
 -
- static void
+-static void
  replace_button_clicked_cb (CcKeyboardShortcutEditor *self)
  {
-@@ -495,23 +476,16 @@ reset_custom_clicked_cb (CcKeyboardShortcutEditor *self)
+   if (self->mode == CC_SHORTCUT_EDITOR_CREATE)
+@@ -495,23 +476,16 @@
      cc_keyboard_manager_reset_shortcut (self->manager, self->item);
  
    gtk_stack_set_visible_child (self->custom_shortcut_stack, GTK_WIDGET (self->change_custom_shortcut_button));
@@ -223,7 +219,7 @@ index 6b42763e3..eb777fb16 100644
  }
  
  static void
-@@ -525,54 +499,56 @@ static void
+@@ -525,54 +499,56 @@
  setup_keyboard_item (CcKeyboardShortcutEditor *self,
                       CcKeyboardItem           *item)
  {
@@ -302,7 +298,7 @@ index 6b42763e3..eb777fb16 100644
    /* Setup the custom entries */
    if (is_custom)
      {
-@@ -681,6 +657,9 @@ cc_keyboard_shortcut_editor_key_press_event (GtkWidget   *widget,
+@@ -681,6 +657,9 @@
     * perform to decide if we're editing a shortcut. */
    editing = get_shortcut_editor_page (self) == PAGE_EDIT;
  
@@ -312,7 +308,7 @@ index 6b42763e3..eb777fb16 100644
    if (!editing)
      return GTK_WIDGET_CLASS (cc_keyboard_shortcut_editor_parent_class)->key_press_event (widget, event);
  
-@@ -855,33 +834,31 @@ cc_keyboard_shortcut_editor_class_init (CcKeyboardShortcutEditorClass *klass)
+@@ -855,33 +834,31 @@
    gtk_widget_class_set_template_from_resource (widget_class, "/org/gnome/control-center/keyboard/cc-keyboard-shortcut-editor.ui");
  
    gtk_widget_class_bind_template_child (widget_class, CcKeyboardShortcutEditor, add_button);
@@ -349,7 +345,7 @@ index 6b42763e3..eb777fb16 100644
    gtk_widget_class_bind_template_callback (widget_class, replace_button_clicked_cb);
    gtk_widget_class_bind_template_callback (widget_class, reset_custom_clicked_cb);
    gtk_widget_class_bind_template_callback (widget_class, reset_item_clicked_cb);
-@@ -946,11 +923,11 @@ cc_keyboard_shortcut_editor_set_item (CcKeyboardShortcutEditor *self,
+@@ -946,11 +923,11 @@
  {
    g_return_if_fail (CC_IS_KEYBOARD_SHORTCUT_EDITOR (self));
  
@@ -363,15 +359,12 @@ index 6b42763e3..eb777fb16 100644
    g_object_notify_by_pspec (G_OBJECT (self), properties[PROP_KEYBOARD_ITEM]);
  }
  
-diff --git a/panels/keyboard/cc-keyboard-shortcut-editor.ui b/panels/keyboard/cc-keyboard-shortcut-editor.ui
-index e9047090f..714b2f7c4 100644
 --- a/panels/keyboard/cc-keyboard-shortcut-editor.ui
 +++ b/panels/keyboard/cc-keyboard-shortcut-editor.ui
-@@ -17,19 +17,6 @@
-         <property name="orientation">vertical</property>
+@@ -18,19 +18,6 @@
          <property name="spacing">18</property>
          <property name="border_width">12</property>
--        <child>
+         <child>
 -          <object class="GtkLabel" id="top_info_label">
 -            <property name="visible">True</property>
 -            <property name="can_focus">False</property>
@@ -384,9 +377,10 @@ index e9047090f..714b2f7c4 100644
 -            <property name="position">0</property>
 -          </packing>
 -        </child>
-         <child>
+-        <child>
            <object class="GtkStack" id="stack">
              <property name="visible">True</property>
+             <property name="can_focus">False</property>
 @@ -41,26 +28,19 @@
                  <property name="visible">True</property>
                  <property name="can_focus">False</property>
@@ -449,11 +443,10 @@ index e9047090f..714b2f7c4 100644
                    </object>
                    <packing>
                      <property name="left_attach">1</property>
-@@ -279,18 +274,6 @@
-             <signal name="clicked" handler="cancel_button_clicked_cb" object="CcKeyboardShortcutEditor" swapped="no" />
+@@ -280,18 +275,6 @@
            </object>
          </child>
--        <child>
+         <child>
 -          <object class="GtkButton" id="remove_button">
 -            <property name="visible">True</property>
 -            <property name="can_focus">False</property>
@@ -465,14 +458,13 @@ index e9047090f..714b2f7c4 100644
 -            </style>
 -          </object>
 -        </child>
-         <child>
+-        <child>
            <object class="GtkButton" id="add_button">
              <property name="label" translatable="yes">Add</property>
-diff --git a/panels/keyboard/cc-keyboard-shortcut-row.c b/panels/keyboard/cc-keyboard-shortcut-row.c
-index 0bf336947..dfb98a2e6 100644
+             <property name="visible">True</property>
 --- a/panels/keyboard/cc-keyboard-shortcut-row.c
 +++ b/panels/keyboard/cc-keyboard-shortcut-row.c
-@@ -27,21 +27,22 @@ struct _CcKeyboardShortcutRow
+@@ -27,21 +27,22 @@
    HdyActionRow              parent_instance;
  
    GtkLabel                 *accelerator_label;
@@ -502,7 +494,7 @@ index 0bf336947..dfb98a2e6 100644
  
  static void
  cc_keyboard_shortcut_row_class_init (CcKeyboardShortcutRowClass *klass)
-@@ -51,9 +52,13 @@ cc_keyboard_shortcut_row_class_init (CcKeyboardShortcutRowClass *klass)
+@@ -51,9 +52,13 @@
    gtk_widget_class_set_template_from_resource (widget_class, "/org/gnome/control-center/keyboard/cc-keyboard-shortcut-row.ui");
  
    gtk_widget_class_bind_template_child (widget_class, CcKeyboardShortcutRow, accelerator_label);
@@ -518,7 +510,7 @@ index 0bf336947..dfb98a2e6 100644
    gtk_widget_class_bind_template_callback (widget_class, reset_shortcut_cb);
  }
  
-@@ -64,42 +69,154 @@ cc_keyboard_shortcut_row_init (CcKeyboardShortcutRow *self)
+@@ -64,42 +69,154 @@
  }
  
  static void
@@ -552,31 +544,29 @@ index 0bf336947..dfb98a2e6 100644
 +remove_shortcut_cb (GtkWidget        *button,
 +                    CcKeyCombo       *combo)
  {
--  CcKeyboardItem *item;
+-  g_autoptr(CcKeyboardItem) item = NULL;
 -  CcKeyCombo combo;
 -  gchar *accelerator;
 +  CcKeyboardShortcutRow *self;
 +  GtkPopover *popover;
 +  GtkWidget *relative_to;
- 
--  item = CC_KEYBOARD_ITEM (g_binding_get_source (binding));
--  combo = cc_keyboard_item_get_primary_combo (item);
++
 +  popover = GTK_POPOVER (gtk_widget_get_ancestor (button, GTK_TYPE_POPOVER));
 +  relative_to = gtk_popover_get_relative_to (popover);
 +  self = CC_KEYBOARD_SHORTCUT_ROW (gtk_widget_get_ancestor (relative_to, CC_TYPE_KEYBOARD_SHORTCUT_ROW));
+ 
+-  item = CC_KEYBOARD_ITEM (g_binding_dup_source (binding));
+-  combo = cc_keyboard_item_get_primary_combo (item);
++  gtk_popover_popdown (popover);
  
 -  /* Embolden the label when the shortcut is modified */
 -  if (!cc_keyboard_item_is_value_default (item))
 -    {
 -      g_autofree gchar *tmp = NULL;
-+  gtk_popover_popdown (popover);
- 
--      tmp = convert_keysym_state_to_string (&combo);
 +  cc_keyboard_item_remove_key_combo (self->item, combo);
 +}
  
--      accelerator = g_strdup_printf ("<b>%s</b>", tmp);
--    }
+-      tmp = convert_keysym_state_to_string (&combo);
 +static void
 +reset_shortcut_cb (GtkWidget      *button,
 +                   gpointer        data)
@@ -584,7 +574,9 @@ index 0bf336947..dfb98a2e6 100644
 +  CcKeyboardShortcutRow *self;
 +  GtkPopover *popover;
 +  GtkWidget *relative_to;
-+
+ 
+-      accelerator = g_strdup_printf ("<b>%s</b>", tmp);
+-    }
 +  popover = GTK_POPOVER (gtk_widget_get_ancestor(button, GTK_TYPE_POPOVER));
 +  relative_to = gtk_popover_get_relative_to (popover);
 +  self = CC_KEYBOARD_SHORTCUT_ROW (gtk_widget_get_ancestor (relative_to, CC_TYPE_KEYBOARD_SHORTCUT_ROW));
@@ -698,7 +690,7 @@ index 0bf336947..dfb98a2e6 100644
  }
  
  CcKeyboardShortcutRow *
-@@ -114,26 +231,20 @@ cc_keyboard_shortcut_row_new (CcKeyboardItem *item,
+@@ -114,26 +231,20 @@
    self->item = item;
    self->manager = manager;
    self->shortcut_editor = shortcut_editor;
@@ -732,8 +724,6 @@ index 0bf336947..dfb98a2e6 100644
  
    return self;
  }
-diff --git a/panels/keyboard/cc-keyboard-shortcut-row.ui b/panels/keyboard/cc-keyboard-shortcut-row.ui
-index f2b1d0398..dd7213f29 100644
 --- a/panels/keyboard/cc-keyboard-shortcut-row.ui
 +++ b/panels/keyboard/cc-keyboard-shortcut-row.ui
 @@ -9,6 +9,7 @@
@@ -827,6 +817,3 @@ index f2b1d0398..dd7213f29 100644
 -  </template>
 +  </object>
  </interface>
--- 
-2.30.2
-

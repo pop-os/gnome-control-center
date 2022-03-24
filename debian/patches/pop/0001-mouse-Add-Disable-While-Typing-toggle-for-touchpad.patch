@@ -17,11 +17,9 @@ games). In lieu of that, it seems good to expose the setting here.
  panels/mouse/cc-mouse-panel.ui | 52 ++++++++++++++++++++++++++++++++++
  2 files changed, 58 insertions(+)
 
-diff --git a/panels/mouse/cc-mouse-panel.c b/panels/mouse/cc-mouse-panel.c
-index a7f018bc4..880504f03 100644
 --- a/panels/mouse/cc-mouse-panel.c
 +++ b/panels/mouse/cc-mouse-panel.c
-@@ -36,6 +36,7 @@ struct _CcMousePanel
+@@ -36,6 +36,7 @@
  {
    CcPanel            parent_instance;
  
@@ -29,7 +27,7 @@ index a7f018bc4..880504f03 100644
    GtkListBoxRow     *edge_scrolling_row;
    GtkSwitch         *edge_scrolling_switch;
    GtkListBox        *general_listbox;
-@@ -301,6 +302,10 @@ setup_dialog (CcMousePanel *self)
+@@ -329,6 +330,10 @@
                     self->edge_scrolling_switch, "state",
                     G_SETTINGS_BIND_GET);
  
@@ -40,7 +38,7 @@ index a7f018bc4..880504f03 100644
    setup_touchpad_options (self);
  }
  
-@@ -420,6 +425,7 @@ cc_mouse_panel_class_init (CcMousePanelClass *klass)
+@@ -449,6 +454,7 @@
  
    gtk_widget_class_set_template_from_resource (widget_class, "/org/gnome/control-center/mouse/cc-mouse-panel.ui");
  
@@ -48,69 +46,34 @@ index a7f018bc4..880504f03 100644
    gtk_widget_class_bind_template_child (widget_class, CcMousePanel, edge_scrolling_row);
    gtk_widget_class_bind_template_child (widget_class, CcMousePanel, edge_scrolling_switch);
    gtk_widget_class_bind_template_child (widget_class, CcMousePanel, general_listbox);
-diff --git a/panels/mouse/cc-mouse-panel.ui b/panels/mouse/cc-mouse-panel.ui
-index bcfde6de6..747b0f354 100644
 --- a/panels/mouse/cc-mouse-panel.ui
 +++ b/panels/mouse/cc-mouse-panel.ui
-@@ -692,6 +692,58 @@
-                                     </child>
-                                   </object>
-                                 </child>
-+                                <child>
-+                                  <object class="GtkListBoxRow">
-+                                    <property name="visible">True</property>
-+                                    <property name="can_focus">True</property>
-+                                    <property name="activatable">false</property>
-+                                    <child>
-+                                      <object class="GtkGrid">
-+                                        <property name="visible">True</property>
-+                                        <property name="can_focus">False</property>
-+                                        <property name="row_spacing">0</property>
-+                                        <property name="column_spacing">32</property>
-+                                        <property name="margin_start">20</property>
-+                                        <property name="margin_end">20</property>
-+                                        <property name="margin_top">12</property>
-+                                        <property name="margin_bottom">12</property>
-+                                        <property name="valign">center</property>
-+                                        <child>
-+                                          <object class="GtkLabel">
-+                                            <property name="visible">True</property>
-+                                            <property name="can_focus">False</property>
-+                                            <property name="hexpand">True</property>
-+                                            <property name="xalign">0</property>
-+                                            <property name="valign">end</property>
-+                                            <property name="label" translatable="yes">Disable while typing</property>
-+                                            <property name="use_underline">True</property>
-+                                            <property name="mnemonic_widget">disable_while_typing_switch</property>
-+                                          </object>
-+                                          <packing>
-+                                            <property name="left_attach">0</property>
-+                                            <property name="top_attach">0</property>
-+                                            <property name="width">1</property>
-+                                            <property name="height">1</property>
-+                                          </packing>
-+                                        </child>
-+                                        <child>
-+                                          <object class="GtkSwitch" id="disable_while_typing_switch">
-+                                            <property name="visible">True</property>
-+                                            <property name="can_focus">True</property>
-+                                            <property name="halign">end</property>
-+                                            <property name="valign">center</property>
-+                                          </object>
-+                                          <packing>
-+                                            <property name="left_attach">1</property>
-+                                            <property name="top_attach">0</property>
-+                                            <property name="width">1</property>
-+                                            <property name="height">2</property>
-+                                          </packing>
-+                                        </child>
-+                                      </object>
-+                                    </child>
-+                                  </object>
-+                                </child>
-                               </object>
+@@ -366,6 +366,28 @@
                              </child>
                            </object>
--- 
-2.27.0
-
+                         </child>
++                        <child>
++                          <object class="HdyActionRow">
++                            <property name="visible">True</property>
++                            <property name="can_focus">True</property>
++                            <property name="activatable">false</property>
++                            <property name="title" translatable="yes">Disable while typing</property>
++                            <child>
++                              <object class="GtkSwitch" id="disable_while_typing_switch">
++                                <property name="visible">True</property>
++                                <property name="can_focus">True</property>
++                                <property name="halign">end</property>
++                                <property name="valign">center</property>
++                              </object>
++                              <packing>
++                                <property name="left_attach">1</property>
++                                <property name="top_attach">0</property>
++                                <property name="width">1</property>
++                                <property name="height">2</property>
++                              </packing>
++                            </child>
++                          </object>
++                        </child>
+                       </object>
+                     </child>
+                   </object>

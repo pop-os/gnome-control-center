@@ -1,8 +1,6 @@
-Index: gnome-control-center/shell/cc-panel-list.c
-===================================================================
---- gnome-control-center.orig/shell/cc-panel-list.c
-+++ gnome-control-center/shell/cc-panel-list.c
-@@ -420,6 +420,7 @@ static const gchar * const panel_order[]
+--- a/shell/cc-panel-list.c
++++ b/shell/cc-panel-list.c
+@@ -423,6 +423,7 @@
    "datetime",
    "info-overview",
    "upgrade",
@@ -10,11 +8,9 @@ Index: gnome-control-center/shell/cc-panel-list.c
  };
  
  static guint
-Index: gnome-control-center/shell/cc-panel-loader.c
-===================================================================
---- gnome-control-center.orig/shell/cc-panel-loader.c
-+++ gnome-control-center/shell/cc-panel-loader.c
-@@ -58,6 +58,7 @@ extern GType cc_removable_media_panel_ge
+--- a/shell/cc-panel-loader.c
++++ b/shell/cc-panel-loader.c
+@@ -59,6 +59,7 @@
  extern GType cc_search_panel_get_type (void);
  extern GType cc_sharing_panel_get_type (void);
  extern GType cc_sound_panel_get_type (void);
@@ -22,30 +18,26 @@ Index: gnome-control-center/shell/cc-panel-loader.c
  #ifdef BUILD_THUNDERBOLT
  extern GType cc_bolt_panel_get_type (void);
  #endif /* BUILD_THUNDERBOLT */
-@@ -121,6 +122,7 @@ static CcPanelLoaderVtable default_panel
+@@ -131,6 +132,7 @@
    PANEL_TYPE("removable-media",  cc_removable_media_panel_get_type,      NULL),
    PANEL_TYPE("sharing",          cc_sharing_panel_get_type,              NULL),
    PANEL_TYPE("sound",            cc_sound_panel_get_type,                NULL),
 +  PANEL_TYPE("support",          cc_support_panel_get_type,              NULL),
+   PANEL_TYPE("ubuntu",           cc_ubuntu_panel_get_type,               cc_ubuntu_panel_static_init_func),
  #ifdef BUILD_THUNDERBOLT
    PANEL_TYPE("thunderbolt",      cc_bolt_panel_get_type,                 NULL),
- #endif
-Index: gnome-control-center/panels/meson.build
-===================================================================
---- gnome-control-center.orig/panels/meson.build
-+++ gnome-control-center/panels/meson.build
-@@ -24,6 +24,7 @@ panels = [
+--- a/panels/meson.build
++++ b/panels/meson.build
+@@ -25,6 +25,7 @@
    'removable-media',
    'sharing',
    'sound',
 +  'support',
+   'ubuntu',
    'universal-access',
    'usage',
-   'upgrade',
-Index: gnome-control-center/panels/support/cc-support-panel.c
-===================================================================
 --- /dev/null
-+++ gnome-control-center/panels/support/cc-support-panel.c
++++ b/panels/support/cc-support-panel.c
 @@ -0,0 +1,43 @@
 +
 +#include <config.h>
@@ -90,10 +82,8 @@ Index: gnome-control-center/panels/support/cc-support-panel.c
 +    // Attach after idling so we'll have access to the window as a toplevel.
 +    g_idle_add ((GSourceFunc) attach_panel, GTK_CONTAINER (self));
 +}
-Index: gnome-control-center/panels/support/cc-support-panel.h
-===================================================================
 --- /dev/null
-+++ gnome-control-center/panels/support/cc-support-panel.h
++++ b/panels/support/cc-support-panel.h
 @@ -0,0 +1,32 @@
 +/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*-
 + *
@@ -127,11 +117,9 @@ Index: gnome-control-center/panels/support/cc-support-panel.h
 +                     CcPanel)
 +
 +G_END_DECLS
-Index: gnome-control-center/panels/support/meson.build
-===================================================================
 --- /dev/null
-+++ gnome-control-center/panels/support/meson.build
-@@ -0,0 +1,39 @@
++++ b/panels/support/meson.build
+@@ -0,0 +1,38 @@
 +panels_list += cappletname
 +desktop = 'gnome-@0@-panel.desktop'.format(cappletname)
 +
@@ -142,7 +130,6 @@ Index: gnome-control-center/panels/support/meson.build
 +)
 +
 +i18n.merge_file(
-+       desktop,
 +          type : 'desktop',
 +         input : desktop_in,
 +        output : desktop,
@@ -171,10 +158,8 @@ Index: gnome-control-center/panels/support/meson.build
 +  dependencies: deps,
 +  c_args: cflags
 +)
-Index: gnome-control-center/panels/support/gnome-support-panel.desktop.in.in
-===================================================================
 --- /dev/null
-+++ gnome-control-center/panels/support/gnome-support-panel.desktop.in.in
++++ b/panels/support/gnome-support-panel.desktop.in.in
 @@ -0,0 +1,14 @@
 +[Desktop Entry]
 +Name=Support

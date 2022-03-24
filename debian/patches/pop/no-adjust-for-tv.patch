@@ -1,7 +1,7 @@
 --- a/panels/display/cc-display-settings.c
 +++ b/panels/display/cc-display-settings.c
-@@ -51,8 +51,6 @@
-   GtkWidget        *scale_row;
+@@ -54,8 +54,6 @@
+   GtkWidget        *scale_combo_row;
    GtkWidget        *scale_fractional_row;
    GtkWidget        *scale_fractional_switch;
 -  GtkWidget        *underscanning_row;
@@ -9,23 +9,23 @@
  };
  
  typedef struct _CcDisplaySettings CcDisplaySettings;
-@@ -311,7 +309,6 @@
-       gtk_widget_set_visible (self->resolution_row, FALSE);
-       gtk_widget_set_visible (self->scale_row, FALSE);
+@@ -249,7 +247,6 @@
+       gtk_widget_set_visible (self->scale_combo_row, FALSE);
+       gtk_widget_set_visible (self->scale_buttons_row, FALSE);
        gtk_widget_set_visible (self->scale_fractional_row, FALSE);
 -      gtk_widget_set_visible (self->underscanning_row, FALSE);
  
        return G_SOURCE_REMOVE;
      }
-@@ -319,7 +316,6 @@
-   g_object_freeze_notify ((GObject*) self->orientation_row);
+@@ -258,7 +255,6 @@
    g_object_freeze_notify ((GObject*) self->refresh_rate_row);
    g_object_freeze_notify ((GObject*) self->resolution_row);
+   g_object_freeze_notify ((GObject*) self->scale_combo_row);
 -  g_object_freeze_notify ((GObject*) self->underscanning_switch);
  
    cc_display_monitor_get_geometry (self->selected_output, NULL, NULL, &width, &height);
  
-@@ -504,17 +500,10 @@
+@@ -449,18 +445,11 @@
    gtk_switch_set_active (GTK_SWITCH (self->scale_fractional_switch),
                           cc_display_config_get_fractional_scaling (self->config));
  
@@ -39,11 +39,12 @@
    g_object_thaw_notify ((GObject*) self->orientation_row);
    g_object_thaw_notify ((GObject*) self->refresh_rate_row);
    g_object_thaw_notify ((GObject*) self->resolution_row);
+   g_object_thaw_notify ((GObject*) self->scale_combo_row);
 -  g_object_thaw_notify ((GObject*) self->underscanning_switch);
    self->updating = FALSE;
  
    return G_SOURCE_REMOVE;
-@@ -616,20 +605,6 @@
+@@ -583,20 +572,6 @@
  }
  
  static void
@@ -64,8 +65,8 @@
  cc_display_settings_get_property (GObject    *object,
                                    guint       prop_id,
                                    GValue     *value,
-@@ -748,13 +723,10 @@
-   gtk_widget_class_bind_template_child (widget_class, CcDisplaySettings, scale_row);
+@@ -717,14 +692,11 @@
+   gtk_widget_class_bind_template_child (widget_class, CcDisplaySettings, scale_combo_row);
    gtk_widget_class_bind_template_child (widget_class, CcDisplaySettings, scale_fractional_row);
    gtk_widget_class_bind_template_child (widget_class, CcDisplaySettings, scale_fractional_switch);
 -  gtk_widget_class_bind_template_child (widget_class, CcDisplaySettings, underscanning_row);
@@ -74,6 +75,7 @@
    gtk_widget_class_bind_template_callback (widget_class, on_orientation_selection_changed_cb);
    gtk_widget_class_bind_template_callback (widget_class, on_refresh_rate_selection_changed_cb);
    gtk_widget_class_bind_template_callback (widget_class, on_resolution_selection_changed_cb);
+   gtk_widget_class_bind_template_callback (widget_class, on_scale_selection_changed_cb);
 -  gtk_widget_class_bind_template_callback (widget_class, on_underscanning_switch_active_changed_cb);
  }
  
@@ -101,6 +103,6 @@
 -      </object>
 -    </child>
 -    <child>
-       <object class="HdyActionRow" id="scale_row">
+       <object class="HdyActionRow" id="scale_buttons_row">
          <property name="width_request">100</property>
          <property name="visible">True</property>

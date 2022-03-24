@@ -1,8 +1,6 @@
-Index: gnome-control-center/shell/cc-application.c
-===================================================================
---- gnome-control-center.orig/shell/cc-application.c
-+++ gnome-control-center/shell/cc-application.c
-@@ -200,6 +200,10 @@ cc_application_quit (GSimpleAction *simp
+--- a/shell/cc-application.c
++++ b/shell/cc-application.c
+@@ -200,6 +200,10 @@
  {
    CcApplication *self = CC_APPLICATION (user_data);
  
@@ -13,11 +11,9 @@ Index: gnome-control-center/shell/cc-application.c
    gtk_widget_destroy (GTK_WIDGET (self->window));
  }
  
-Index: gnome-control-center/shell/cc-window.c
-===================================================================
---- gnome-control-center.orig/shell/cc-window.c
-+++ gnome-control-center/shell/cc-window.c
-@@ -671,6 +671,10 @@ window_key_press_event_cb (CcWindow    *
+--- a/shell/cc-window.c
++++ b/shell/cc-window.c
+@@ -650,6 +650,10 @@
            case GDK_KEY_q:
            case GDK_KEY_W:
            case GDK_KEY_w:
@@ -28,7 +24,7 @@ Index: gnome-control-center/shell/cc-window.c
              gtk_widget_destroy (GTK_WIDGET (self));
              retval = GDK_EVENT_STOP;
              break;
-@@ -729,6 +733,14 @@ cc_shell_iface_init (CcShellInterface *i
+@@ -734,6 +738,14 @@
    iface->get_toplevel = cc_window_get_toplevel;
  }
  
@@ -43,7 +39,7 @@ Index: gnome-control-center/shell/cc-window.c
  /* GtkWidget overrides */
  static void
  cc_window_map (GtkWidget *widget)
-@@ -737,6 +749,8 @@ cc_window_map (GtkWidget *widget)
+@@ -742,6 +754,8 @@
  
    GTK_WIDGET_CLASS (cc_window_parent_class)->map (widget);
  
@@ -52,10 +48,8 @@ Index: gnome-control-center/shell/cc-window.c
    /* Show a warning for Flatpak builds */
    if (in_flatpak_sandbox () && g_settings_get_boolean (self->settings, "show-development-warning"))
      gtk_window_present (GTK_WINDOW (self->development_warning_dialog));
-Index: gnome-control-center/shell/cc-window.h
-===================================================================
---- gnome-control-center.orig/shell/cc-window.h
-+++ gnome-control-center/shell/cc-window.h
+--- a/shell/cc-window.h
++++ b/shell/cc-window.h
 @@ -24,6 +24,8 @@
  #include "cc-shell.h"
  #include "cc-shell-model.h"
@@ -65,10 +59,8 @@ Index: gnome-control-center/shell/cc-window.h
  G_BEGIN_DECLS
  
  #define CC_TYPE_WINDOW (cc_window_get_type ())
-Index: gnome-control-center/panels/upgrade/cc-upgrade-panel.c
-===================================================================
 --- /dev/null
-+++ gnome-control-center/panels/upgrade/cc-upgrade-panel.c
++++ b/panels/upgrade/cc-upgrade-panel.c
 @@ -0,0 +1,135 @@
 +
 +#include <config.h>
@@ -205,10 +197,8 @@ Index: gnome-control-center/panels/upgrade/cc-upgrade-panel.c
 +
 +    gtk_container_add (GTK_CONTAINER (prefs), prefs->overlay);
 +}
-Index: gnome-control-center/panels/upgrade/cc-upgrade-panel.h
-===================================================================
 --- /dev/null
-+++ gnome-control-center/panels/upgrade/cc-upgrade-panel.h
++++ b/panels/upgrade/cc-upgrade-panel.h
 @@ -0,0 +1,32 @@
 +/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*-
 + *
@@ -242,10 +232,8 @@ Index: gnome-control-center/panels/upgrade/cc-upgrade-panel.h
 +                     CcPanel)
 +
 +G_END_DECLS
-Index: gnome-control-center/panels/upgrade/gnome-upgrade-panel.desktop.in.in
-===================================================================
 --- /dev/null
-+++ gnome-control-center/panels/upgrade/gnome-upgrade-panel.desktop.in.in
++++ b/panels/upgrade/gnome-upgrade-panel.desktop.in.in
 @@ -0,0 +1,14 @@
 +[Desktop Entry]
 +Name=OS Upgrade & Recovery
@@ -261,11 +249,9 @@ Index: gnome-control-center/panels/upgrade/gnome-upgrade-panel.desktop.in.in
 +Keywords=OS;Upgrade;
 +# Notifications are emitted by gnome-settings-daemon
 +X-GNOME-UsesNotifications=true
-Index: gnome-control-center/panels/upgrade/meson.build
-===================================================================
 --- /dev/null
-+++ gnome-control-center/panels/upgrade/meson.build
-@@ -0,0 +1,39 @@
++++ b/panels/upgrade/meson.build
+@@ -0,0 +1,38 @@
 +panels_list += cappletname
 +desktop = 'gnome-@0@-panel.desktop'.format(cappletname)
 +
@@ -276,7 +262,6 @@ Index: gnome-control-center/panels/upgrade/meson.build
 +)
 +
 +i18n.merge_file(
-+       desktop,
 +          type : 'desktop',
 +         input : desktop_in,
 +        output : desktop,
@@ -305,23 +290,19 @@ Index: gnome-control-center/panels/upgrade/meson.build
 +  dependencies: deps,
 +  c_args: cflags
 +)
-Index: gnome-control-center/panels/meson.build
-===================================================================
---- gnome-control-center.orig/panels/meson.build
-+++ gnome-control-center/panels/meson.build
-@@ -27,6 +27,7 @@ panels = [
-   'sound',
+--- a/panels/meson.build
++++ b/panels/meson.build
+@@ -29,6 +29,7 @@
+   'ubuntu',
    'universal-access',
    'usage',
 +  'upgrade',
-   'user-accounts'
+   'user-accounts',
+   'wwan',
  ]
- 
-Index: gnome-control-center/shell/cc-panel-list.c
-===================================================================
---- gnome-control-center.orig/shell/cc-panel-list.c
-+++ gnome-control-center/shell/cc-panel-list.c
-@@ -425,6 +425,7 @@ static const gchar * const panel_order[]
+--- a/shell/cc-panel-list.c
++++ b/shell/cc-panel-list.c
+@@ -422,6 +422,7 @@
    "reset-settings",
    "datetime",
    "info-overview",
@@ -329,24 +310,22 @@ Index: gnome-control-center/shell/cc-panel-list.c
  };
  
  static guint
-@@ -1109,4 +1110,3 @@ cc_panel_list_set_selection_mode (CcPane
+@@ -1105,4 +1106,3 @@
        gtk_list_box_select_row (GTK_LIST_BOX (listbox), GTK_LIST_BOX_ROW (data->row));
      }
  }
 -
-Index: gnome-control-center/shell/cc-panel-loader.c
-===================================================================
---- gnome-control-center.orig/shell/cc-panel-loader.c
-+++ gnome-control-center/shell/cc-panel-loader.c
-@@ -61,6 +61,7 @@ extern GType cc_sound_panel_get_type (vo
- extern GType cc_bolt_panel_get_type (void);
+--- a/shell/cc-panel-loader.c
++++ b/shell/cc-panel-loader.c
+@@ -63,6 +63,7 @@
  #endif /* BUILD_THUNDERBOLT */
  extern GType cc_ua_panel_get_type (void);
+ extern GType cc_ubuntu_panel_get_type(void);
 +extern GType cc_upgrade_panel_get_type(void);
  extern GType cc_user_panel_get_type (void);
  #ifdef BUILD_WACOM
  extern GType cc_wacom_panel_get_type (void);
-@@ -127,6 +128,7 @@ static CcPanelLoaderVtable default_panel
+@@ -138,6 +139,7 @@
  #endif
    PANEL_TYPE("universal-access", cc_ua_panel_get_type,                   NULL),
    PANEL_TYPE("usage",            cc_usage_panel_get_type,                NULL),
