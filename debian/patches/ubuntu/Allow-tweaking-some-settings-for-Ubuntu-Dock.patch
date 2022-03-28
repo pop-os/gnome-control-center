@@ -28,12 +28,12 @@ Forwarded: not-needed
  panels/ubuntu/cc-ubuntu-panel.h                |   35 +
  panels/ubuntu/cc-ubuntu-panel.ui               |  618 +++++++++
  panels/ubuntu/gnome-ubuntu-panel.desktop.in.in |   16 +
- panels/ubuntu/meson.build                      |   92 ++
- panels/ubuntu/ubuntu.gresource.xml             |   11 +
+ panels/ubuntu/meson.build                      |  104 ++
+ panels/ubuntu/ubuntu.gresource.xml             |    6 +
  po/POTFILES.in                                 |    5 +
  shell/cc-panel-list.c                          |    1 +
  shell/cc-panel-loader.c                        |    3 +
- 17 files changed, 2789 insertions(+)
+ 17 files changed, 2796 insertions(+)
  create mode 100644 panels/ubuntu/appearance.css
  create mode 100644 panels/ubuntu/assets/colors/color.svg.in
  create mode 100644 panels/ubuntu/assets/theme-dark.svg
@@ -2806,10 +2806,12 @@ index 0000000..8235e5c
 +Keywords=Dock;Launcher;Theme;Ubuntu;Dark;icons;Yaru;Accent;
 diff --git a/panels/ubuntu/meson.build b/panels/ubuntu/meson.build
 new file mode 100644
-index 0000000..5745931
+index 0000000..dec7469
 --- /dev/null
 +++ b/panels/ubuntu/meson.build
-@@ -0,0 +1,92 @@
+@@ -0,0 +1,104 @@
++fs = import('fs')
++
 +panels_list += cappletname
 +desktop = 'gnome-@0@-panel.desktop'.format(cappletname)
 +
@@ -2856,6 +2858,15 @@ index 0000000..5745931
 +  'cc-ubuntu-dock-dialog.ui',
 +)
 +
++foreach file: resource_data
++  file_path = '@0@'.format(file)
++  gresource_xml_contents += '<file alias="@0@" preprocess="@1@">@2@</file>'.format(
++    (meson.project_source_root() / file_path).replace(meson.current_source_dir() + '/', ''),
++    fs.name(file).endswith('.ui') or fs.name(file).endswith('.svg') ? 'xml-stripblanks' : '',
++    meson.project_source_root() / file_path,
++  )
++endforeach
++
 +foreach color, code: colors
 +  asset_name = color + '.svg'
 +  asset_path = 'assets' / 'colors'
@@ -2872,8 +2883,9 @@ index 0000000..5745931
 +    capture: true,
 +  )
 +
-+  gresource_xml_contents += '<file alias="@0@">@1@</file>'.format(
-+    asset_path / asset_name, color_asset.full_path())
++  gresource_xml_contents += (
++    '<file alias="@0@" preprocess="xml-stripblanks">@1@</file>'.format(
++    asset_path / asset_name, color_asset.full_path()))
 +  resource_generated_data += color_asset
 +endforeach
 +
@@ -2904,18 +2916,13 @@ index 0000000..5745931
 +)
 diff --git a/panels/ubuntu/ubuntu.gresource.xml b/panels/ubuntu/ubuntu.gresource.xml
 new file mode 100644
-index 0000000..c8eaee6
+index 0000000..a636e9c
 --- /dev/null
 +++ b/panels/ubuntu/ubuntu.gresource.xml
-@@ -0,0 +1,11 @@
+@@ -0,0 +1,6 @@
 +<?xml version="1.0" encoding="UTF-8"?>
 +<gresources>
 +  <gresource prefix="/org/gnome/control-center/ubuntu">
-+    <file preprocess="xml-stripblanks">cc-ubuntu-panel.ui</file>
-+    <file preprocess="xml-stripblanks">cc-ubuntu-dock-dialog.ui</file>
-+    <file>appearance.css</file>
-+    <file>assets/theme-dark.svg</file>
-+    <file>assets/theme-light.svg</file>
 +    @GENERATED_FILES@
 +  </gresource>
 +</gresources>
