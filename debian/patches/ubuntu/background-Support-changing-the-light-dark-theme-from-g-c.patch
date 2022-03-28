@@ -5,14 +5,14 @@ Subject: background: Support changing the light / dark theme from g-c-c
 Without this we'd not be able to change the background when the dark
 theme has been chosen.
 ---
- panels/background/cc-background-chooser.c  | 18 ++++++++++++++++
+ panels/background/cc-background-chooser.c  | 24 ++++++++++++++++++++++
  panels/background/cc-background-chooser.h  |  2 ++
  panels/background/cc-background-chooser.ui | 13 ++++++++++++
  panels/background/cc-background-panel.c    | 33 ++++++++++++++++++++++++++++--
- 4 files changed, 64 insertions(+), 2 deletions(-)
+ 4 files changed, 70 insertions(+), 2 deletions(-)
 
 diff --git a/panels/background/cc-background-chooser.c b/panels/background/cc-background-chooser.c
-index 04fd85c..97aea0b 100644
+index 04fd85c..0005b81 100644
 --- a/panels/background/cc-background-chooser.c
 +++ b/panels/background/cc-background-chooser.c
 @@ -36,6 +36,7 @@ struct _CcBackgroundChooser
@@ -54,6 +54,23 @@ index 04fd85c..97aea0b 100644
  
    gtk_widget_class_bind_template_callback (widget_class, on_item_activated_cb);
  }
+@@ -322,10 +340,16 @@ cc_background_chooser_class_init (CcBackgroundChooserClass *klass)
+ static void
+ cc_background_chooser_init (CcBackgroundChooser *self)
+ {
++  g_auto(GStrv) current_desktop = NULL;
+   gtk_widget_init_template (GTK_WIDGET (self));
+ 
+   self->recent_source = bg_recent_source_new (GTK_WIDGET (self));
+   self->wallpapers_source = bg_wallpapers_source_new (GTK_WIDGET (self));
++
++  current_desktop = g_strsplit (g_getenv ("XDG_CURRENT_DESKTOP"), ":", -1);
++  if (g_strv_contains ( (const gchar **) current_desktop, "ubuntu"))
++    gtk_widget_set_visible (GTK_WIDGET (self->bg_notice), TRUE);
++
+   setup_flowbox (self);
+ }
+ 
 diff --git a/panels/background/cc-background-chooser.h b/panels/background/cc-background-chooser.h
 index 1751098..043df64 100644
 --- a/panels/background/cc-background-chooser.h
@@ -67,7 +84,7 @@ index 1751098..043df64 100644
  
  G_END_DECLS
 diff --git a/panels/background/cc-background-chooser.ui b/panels/background/cc-background-chooser.ui
-index aa7da28..422418e 100644
+index aa7da28..cf9a7ab 100644
 --- a/panels/background/cc-background-chooser.ui
 +++ b/panels/background/cc-background-chooser.ui
 @@ -5,6 +5,19 @@
@@ -76,7 +93,7 @@ index aa7da28..422418e 100644
  
 +    <child>
 +      <object class="GtkLabel" id="bg_notice">
-+        <property name="visible">True</property>
++        <property name="visible">False</property>
 +        <property name="can_focus">False</property>
 +        <property name="visible">1</property>
 +        <property name="xalign">0.5</property>
