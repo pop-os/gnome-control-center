@@ -1,0 +1,391 @@
+From 38a162fa3061cbce65116b51e5016938b4b7d370 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Jonas=20=C3=85dahl?= <jadahl@gmail.com>
+Date: Wed, 23 Feb 2022 11:29:26 +0100
+Subject: [PATCH 05/13] sharing/remote-login: Move systemd unit management into
+ helper
+
+This will make it possible to reuse elsewhere, including for user
+services.
+---
+ panels/sharing/cc-remote-login-helper.c | 144 +++++-------------------
+ panels/sharing/cc-systemd-service.c     | 139 +++++++++++++++++++++++
+ panels/sharing/cc-systemd-service.h     |  30 +++++
+ panels/sharing/meson.build              |   7 +-
+ 4 files changed, 201 insertions(+), 119 deletions(-)
+ create mode 100644 panels/sharing/cc-systemd-service.c
+ create mode 100644 panels/sharing/cc-systemd-service.h
+
+diff --git a/panels/sharing/cc-remote-login-helper.c b/panels/sharing/cc-remote-login-helper.c
+index a9a07d0f8..26e527fa4 100644
+--- a/panels/sharing/cc-remote-login-helper.c
++++ b/panels/sharing/cc-remote-login-helper.c
+@@ -19,126 +19,12 @@
+  *
+  */
+ 
+-#include <gio/gio.h>
++#include "cc-systemd-service.h"
+ 
+ #ifndef SSHD_SERVICE
+ #define SSHD_SERVICE "sshd.service"
+ #endif
+ 
+-static const gchar *service_list[] = { SSHD_SERVICE, NULL };
+-
+-static gint
+-enable_ssh_service ()
+-{
+-  g_autoptr(GDBusConnection) connection = NULL;
+-  g_autoptr(GError) error = NULL;
+-  g_autoptr(GVariant) start_result = NULL;
+-  g_autoptr(GVariant) enable_result = NULL;
+-
+-  connection = g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, &error);
+-  if (!connection)
+-    {
+-      g_critical ("Error connecting to D-Bus system bus: %s", error->message);
+-      return 1;
+-    }
+-
+-  start_result = g_dbus_connection_call_sync (connection,
+-                                              "org.freedesktop.systemd1",
+-                                              "/org/freedesktop/systemd1",
+-                                              "org.freedesktop.systemd1.Manager",
+-                                              "StartUnit",
+-                                              g_variant_new ("(ss)",
+-                                                             SSHD_SERVICE,
+-                                                             "replace"),
+-                                              (GVariantType *) "(o)",
+-                                              G_DBUS_CALL_FLAGS_NONE,
+-                                              -1,
+-                                              NULL,
+-                                              &error);
+-
+-  if (!start_result)
+-    {
+-      g_critical ("Error starting " SSHD_SERVICE ": %s", error->message);
+-      return 1;
+-    }
+-
+-  enable_result = g_dbus_connection_call_sync (connection,
+-                                               "org.freedesktop.systemd1",
+-                                               "/org/freedesktop/systemd1",
+-                                               "org.freedesktop.systemd1.Manager",
+-                                               "EnableUnitFiles",
+-                                               g_variant_new ("(^asbb)",
+-                                                              service_list,
+-                                                              FALSE, FALSE),
+-                                               (GVariantType *) "(ba(sss))",
+-                                               G_DBUS_CALL_FLAGS_NONE,
+-                                               -1,
+-                                               NULL,
+-                                               &error);
+-
+-  if (!enable_result)
+-    {
+-      g_critical ("Error enabling " SSHD_SERVICE ": %s", error->message);
+-      return 1;
+-    }
+-
+-  return 0;
+-}
+-
+-static gint
+-disable_ssh_service ()
+-{
+-  g_autoptr(GDBusConnection) connection = NULL;
+-  g_autoptr(GError) error = NULL;
+-  g_autoptr(GVariant) stop_result = NULL;
+-  g_autoptr(GVariant) disable_result = NULL;
+-
+-  connection = g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, &error);
+-  if (!connection)
+-    {
+-      g_critical ("Error connecting to D-Bus system bus: %s", error->message);
+-      return 1;
+-    }
+-
+-  stop_result = g_dbus_connection_call_sync (connection,
+-                                             "org.freedesktop.systemd1",
+-                                             "/org/freedesktop/systemd1",
+-                                             "org.freedesktop.systemd1.Manager",
+-                                             "StopUnit",
+-                                             g_variant_new ("(ss)", SSHD_SERVICE, "replace"),
+-                                             (GVariantType *) "(o)",
+-                                             G_DBUS_CALL_FLAGS_NONE,
+-                                             -1,
+-                                             NULL,
+-                                             &error);
+-  if (!stop_result)
+-    {
+-      g_critical ("Error stopping " SSHD_SERVICE ": %s", error->message);
+-      return 1;
+-    }
+-
+-  disable_result = g_dbus_connection_call_sync (connection,
+-                                                "org.freedesktop.systemd1",
+-                                                "/org/freedesktop/systemd1",
+-                                                "org.freedesktop.systemd1.Manager",
+-                                                "DisableUnitFiles",
+-                                                g_variant_new ("(^asb)", service_list, FALSE,
+-                                                               FALSE),
+-                                                (GVariantType *) "(a(sss))",
+-                                                G_DBUS_CALL_FLAGS_NONE,
+-                                                -1,
+-                                                NULL,
+-                                                &error);
+-
+-  if (!stop_result)
+-    {
+-      g_critical ("Error disabling " SSHD_SERVICE ": %s", error->message);
+-      return 1;
+-    }
+-
+-  return 0;
+-}
+-
+ int
+ main (int    argc,
+       char **argv)
+@@ -150,9 +36,33 @@ main (int    argc,
+     return 1;
+ 
+   if (g_str_equal (argv[1], "enable"))
+-    return enable_ssh_service ();
++    {
++      g_autoptr(GError) error = NULL;
++
++      if (!cc_enable_service (SSHD_SERVICE, G_BUS_TYPE_SYSTEM, &error))
++        {
++          g_critical ("Failed to enable %s: %s", SSHD_SERVICE, error->message);
++          return EXIT_FAILURE;
++        }
++      else
++        {
++          return EXIT_SUCCESS;
++        }
++    }
+   else if (g_str_equal (argv[1], "disable"))
+-    return disable_ssh_service ();
++    {
++      g_autoptr(GError) error = NULL;
++
++      if (!cc_disable_service (SSHD_SERVICE, G_BUS_TYPE_SYSTEM, &error))
++        {
++          g_critical ("Failed to enable %s: %s", SSHD_SERVICE, error->message);
++          return EXIT_FAILURE;
++        }
++      else
++        {
++          return EXIT_SUCCESS;
++        }
++    }
+ 
+   return 1;
+ }
+diff --git a/panels/sharing/cc-systemd-service.c b/panels/sharing/cc-systemd-service.c
+new file mode 100644
+index 000000000..c9fa72a4a
+--- /dev/null
++++ b/panels/sharing/cc-systemd-service.c
+@@ -0,0 +1,139 @@
++/*
++ * Copyright (C) 2013 Intel, Inc
++ * Copyright (C) 2022 Red Hat, Inc
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
++ *
++ * Author: Thomas Wood <thomas.wood@intel.com>
++ *
++ */
++
++#include "cc-systemd-service.h"
++
++gboolean
++cc_enable_service (const char  *service,
++                   GBusType     bus_type,
++                   GError     **error)
++{
++  g_autoptr(GDBusConnection) connection = NULL;
++  g_autoptr(GVariant) start_result = NULL;
++  g_autoptr(GVariant) enable_result = NULL;
++  const char *service_list[] = { service, NULL };
++
++  connection = g_bus_get_sync (bus_type, NULL, error);
++  if (!connection)
++    {
++      g_prefix_error_literal (error, "Failed connecting to D-Bus system bus: ");
++      return FALSE;
++    }
++
++  start_result = g_dbus_connection_call_sync (connection,
++                                              "org.freedesktop.systemd1",
++                                              "/org/freedesktop/systemd1",
++                                              "org.freedesktop.systemd1.Manager",
++                                              "StartUnit",
++                                              g_variant_new ("(ss)",
++                                                             service,
++                                                             "replace"),
++                                              (GVariantType *) "(o)",
++                                              G_DBUS_CALL_FLAGS_NONE,
++                                              -1,
++                                              NULL,
++                                              error);
++
++  if (!start_result)
++    {
++      g_prefix_error_literal (error, "Failed to start service: ");
++      return FALSE;
++    }
++
++  enable_result = g_dbus_connection_call_sync (connection,
++                                               "org.freedesktop.systemd1",
++                                               "/org/freedesktop/systemd1",
++                                               "org.freedesktop.systemd1.Manager",
++                                               "EnableUnitFiles",
++                                               g_variant_new ("(^asbb)",
++                                                              service_list,
++                                                              FALSE, FALSE),
++                                               (GVariantType *) "(ba(sss))",
++                                               G_DBUS_CALL_FLAGS_NONE,
++                                               -1,
++                                               NULL,
++                                               error);
++
++  if (!enable_result)
++    {
++      g_prefix_error_literal (error, "Failed to enable service: ");
++      return FALSE;
++    }
++
++  return TRUE;
++}
++
++gboolean
++cc_disable_service (const char  *service,
++                    GBusType     bus_type,
++                    GError     **error)
++{
++  g_autoptr(GDBusConnection) connection = NULL;
++  g_autoptr(GVariant) stop_result = NULL;
++  g_autoptr(GVariant) disable_result = NULL;
++  const char *service_list[] = { service, NULL };
++
++  connection = g_bus_get_sync (bus_type, NULL, error);
++  if (!connection)
++    {
++      g_prefix_error_literal (error, "Failed connecting to D-Bus system bus: ");
++      return FALSE;
++    }
++
++  stop_result = g_dbus_connection_call_sync (connection,
++                                             "org.freedesktop.systemd1",
++                                             "/org/freedesktop/systemd1",
++                                             "org.freedesktop.systemd1.Manager",
++                                             "StopUnit",
++                                             g_variant_new ("(ss)", service, "replace"),
++                                             (GVariantType *) "(o)",
++                                             G_DBUS_CALL_FLAGS_NONE,
++                                             -1,
++                                             NULL,
++                                             error);
++  if (!stop_result)
++    {
++      g_prefix_error_literal (error, "Failed to stop service: ");
++      return FALSE;
++    }
++
++  disable_result = g_dbus_connection_call_sync (connection,
++                                                "org.freedesktop.systemd1",
++                                                "/org/freedesktop/systemd1",
++                                                "org.freedesktop.systemd1.Manager",
++                                                "DisableUnitFiles",
++                                                g_variant_new ("(^asb)", service_list, FALSE,
++                                                               FALSE),
++                                                (GVariantType *) "(a(sss))",
++                                                G_DBUS_CALL_FLAGS_NONE,
++                                                -1,
++                                                NULL,
++                                                error);
++
++  if (!stop_result)
++    {
++      g_prefix_error_literal (error, "Failed to disable service: ");
++      return FALSE;
++    }
++
++  return TRUE;
++}
+diff --git a/panels/sharing/cc-systemd-service.h b/panels/sharing/cc-systemd-service.h
+new file mode 100644
+index 000000000..df449f84e
+--- /dev/null
++++ b/panels/sharing/cc-systemd-service.h
+@@ -0,0 +1,30 @@
++/*
++ * Copyright (C) 2022 Red Hat, Inc
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
++ *
++ */
++
++#pragma once
++
++#include <gio/gio.h>
++
++gboolean cc_enable_service (const char  *service,
++                            GBusType     bus_type,
++                            GError     **error);
++
++gboolean cc_disable_service (const char  *service,
++                             GBusType     bus_type,
++                             GError     **error);
+diff --git a/panels/sharing/meson.build b/panels/sharing/meson.build
+index 62e9b6cd8..0f31aed5f 100644
+--- a/panels/sharing/meson.build
++++ b/panels/sharing/meson.build
+@@ -94,12 +94,15 @@ name = 'cc-remote-login-helper'
+ 
+ deps = [
+   gio_dep,
+-  glib_dep
++  glib_dep,
+ ]
+ 
+ executable(
+   name,
+-  name + '.c',
++  sources: [
++    name + '.c',
++    'cc-systemd-service.c',
++  ],
+   include_directories: top_inc,
+   dependencies: deps,
+   c_args: cflags,
+-- 
+2.34.1
+

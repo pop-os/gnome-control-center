@@ -1,0 +1,42 @@
+From 0cdee3b2130b923988790836dd7067dfe470cefe Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Jonas=20=C3=85dahl?= <jadahl@gmail.com>
+Date: Thu, 3 Mar 2022 16:55:15 +0100
+Subject: [PATCH 11/13] sharing/remote-desktop: Only try to enable the RDP
+ backend
+
+Turning off the service doesn't mean we need to disable the RDP backend,
+the setting can stay enabled in case one wants to manage it directly via
+systemd.
+---
+ panels/sharing/cc-sharing-panel.c | 8 +++-----
+ 1 file changed, 3 insertions(+), 5 deletions(-)
+
+diff --git a/panels/sharing/cc-sharing-panel.c b/panels/sharing/cc-sharing-panel.c
+index 01ca2c8e8..65a7f616b 100644
+--- a/panels/sharing/cc-sharing-panel.c
++++ b/panels/sharing/cc-sharing-panel.c
+@@ -1204,6 +1204,9 @@ enable_gnome_remote_desktop (CcSharingPanel *self)
+   g_autoptr(GSettings) rdp_settings = NULL;
+ 
+   rdp_settings = g_settings_new (GNOME_REMOTE_DESKTOP_RDP_SCHEMA_ID);
++
++  g_settings_set_boolean (rdp_settings, "enable", TRUE);
++
+   cert_path = g_settings_get_string (rdp_settings, "tls-cert");
+   key_path = g_settings_get_string (rdp_settings, "tls-key");
+   if (strlen (cert_path) > 0 &&
+@@ -1437,11 +1440,6 @@ cc_sharing_panel_setup_remote_desktop_dialog (CcSharingPanel *self)
+ 
+   rdp_settings = g_settings_new (GNOME_REMOTE_DESKTOP_RDP_SCHEMA_ID);
+ 
+-  g_settings_bind (rdp_settings,
+-                   "enable",
+-                   self->remote_desktop_switch,
+-                   "active",
+-                   G_SETTINGS_BIND_DEFAULT);
+   g_settings_bind (rdp_settings,
+                    "view-only",
+                    self->remote_control_switch,
+-- 
+2.34.1
+
