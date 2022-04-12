@@ -11,11 +11,11 @@
 +#include "shell/cc-application.h"
 +#include "cc-analytics-panel.h"
 +
-+struct _CcSupportPanel {
++struct _CcAnalyticsPanel {
 +    CcPanel    parent_instance;
 +};
 +
-+CC_PANEL_REGISTER (CcSupportPanel, cc_analytics_panel)
++CC_PANEL_REGISTER (CcAnalyticsPanel, cc_analytics_panel)
 +
 +static void cc_analytics_panel_dispose (GObject *object) {
 +    G_OBJECT_CLASS (cc_analytics_panel_parent_class)->dispose (object);
@@ -25,7 +25,7 @@
 +    G_OBJECT_CLASS (cc_analytics_panel_parent_class)->finalize (object);
 +}
 +
-+static void cc_analytics_panel_class_init (CcSupportPanelClass *klass) {
++static void cc_analytics_panel_class_init (CcAnalyticsPanelClass *klass) {
 +    GObjectClass *object_class = G_OBJECT_CLASS (klass);
 +
 +    object_class->dispose = cc_analytics_panel_dispose;
@@ -41,7 +41,7 @@
 +    return FALSE;
 +}
 +
-+static void cc_analytics_panel_init (CcSupportPanel *self) {
++static void cc_analytics_panel_init (CcAnalyticsPanel *self) {
 +    pop_analytics_panel_init ();
 +
 +    // Attach after idling so we'll have access to the window as a toplevel.
@@ -74,7 +74,7 @@
 +G_BEGIN_DECLS
 +
 +#define CC_TYPE_ANALYTICS_PANEL (cc_analytics_panel_get_type())
-+G_DECLARE_FINAL_TYPE(CcSupportPanel, cc_analytics_panel, CC, ANALYTICS_PANEL, CcPanel)
++G_DECLARE_FINAL_TYPE(CcAnalyticsPanel, cc_analytics_panel, CC, ANALYTICS_PANEL, CcPanel)
 +
 +void cc_analytics_panel_static_init_func (void);
 +
