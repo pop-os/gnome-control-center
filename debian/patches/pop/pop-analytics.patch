@@ -1,6 +1,6 @@
 --- /dev/null
 +++ b/panels/analytics/cc-analytics-panel.c
-@@ -0,0 +1,45 @@
+@@ -0,0 +1,58 @@
 +// Copyright 2022 System76 <info@system76.com>
 +// SPDX-License-Identifier: GPL-2.0
 +
@@ -8,6 +8,7 @@
 +#include <gtk/gtk.h>
 +#include <stdint.h>
 +#include <pop_analytics_panel.h>
++#include "shell/cc-application.h"
 +#include "cc-analytics-panel.h"
 +
 +struct _CcSupportPanel {
@@ -46,9 +47,21 @@
 +    // Attach after idling so we'll have access to the window as a toplevel.
 +    g_idle_add ((GSourceFunc) attach_panel, GTK_CONTAINER (self));
 +}
++
++void cc_analytics_panel_static_init_func (void) {
++  CcApplication *application;
++
++  if (!pop_analytics_panel_should_show ())
++    {
++      application = CC_APPLICATION (g_application_get_default ());
++      cc_shell_model_set_panel_visibility (cc_application_get_model (application),
++                                           "analytics",
++                                           CC_PANEL_HIDDEN);
++    }
++}
 --- /dev/null
 +++ b/panels/analytics/cc-analytics-panel.h
-@@ -0,0 +1,15 @@
+@@ -0,0 +1,17 @@
 +// Copyright 2022 System76 <info@system76.com>
 +// SPDX-License-Identifier: GPL-2.0
 +
@@ -62,6 +75,8 @@
 +
 +#define CC_TYPE_ANALYTICS_PANEL (cc_analytics_panel_get_type())
 +G_DECLARE_FINAL_TYPE(CcSupportPanel, cc_analytics_panel, CC, ANALYTICS_PANEL, CcPanel)
++
++void cc_analytics_panel_static_init_func (void);
 +
 +G_END_DECLS
 --- /dev/null
@@ -151,11 +166,19 @@
  #ifdef BUILD_THUNDERBOLT
  extern GType cc_bolt_panel_get_type (void);
  #endif /* BUILD_THUNDERBOLT */
-@@ -135,6 +136,7 @@
+@@ -93,6 +94,7 @@
+ extern void cc_wwan_panel_static_init_func (void);
+ #endif /* BUILD_WWAN */
+ extern void cc_ubuntu_panel_static_init_func (void);
++extern void cc_analytics_panel_static_init_func (void);
+ 
+ #define PANEL_TYPE(name, get_type, init_func) { name, get_type, init_func }
+ 
+@@ -135,6 +137,7 @@
    PANEL_TYPE("sharing",          cc_sharing_panel_get_type,              NULL),
    PANEL_TYPE("sound",            cc_sound_panel_get_type,                NULL),
    PANEL_TYPE("support",          cc_support_panel_get_type,              NULL),
-+  PANEL_TYPE("analytics",        cc_analytics_panel_get_type,            NULL),
++  PANEL_TYPE("analytics",        cc_analytics_panel_get_type,            cc_analytics_panel_static_init_func),
    PANEL_TYPE("ubuntu",           cc_ubuntu_panel_get_type,               cc_ubuntu_panel_static_init_func),
  #ifdef BUILD_THUNDERBOLT
    PANEL_TYPE("thunderbolt",      cc_bolt_panel_get_type,                 NULL),
