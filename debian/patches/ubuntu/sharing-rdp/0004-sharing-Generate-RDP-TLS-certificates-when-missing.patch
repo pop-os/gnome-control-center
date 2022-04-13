@@ -1,5 +1,4 @@
-From 8ece83df63b2f2b6287064250efcb763c23f721f Mon Sep 17 00:00:00 2001
-From: =?UTF-8?q?Jonas=20=C3=85dahl?= <jadahl@gmail.com>
+From: =?utf-8?q?Jonas_=C3=85dahl?= <jadahl@gmail.com>
 Date: Tue, 22 Feb 2022 10:30:07 +0100
 Subject: [PATCH 04/13] sharing: Generate RDP TLS certificates when missing
 
@@ -7,8 +6,8 @@ This also hooks up the certificate verification dialog to the configured
 TLS certificate.
 ---
  meson.build                          |   1 +
- panels/sharing/cc-sharing-panel.c    | 213 ++++++++++++++++++++++++++-
- panels/sharing/cc-sharing-panel.ui   |  28 ++++
+ panels/sharing/cc-sharing-panel.c    | 213 ++++++++++++++++++++++++++++++++++-
+ panels/sharing/cc-sharing-panel.ui   |  28 +++++
  panels/sharing/meson.build           |   1 +
  panels/sharing/sharing.css           |   4 +
  panels/sharing/sharing.gresource.xml |   1 +
@@ -17,10 +16,10 @@ TLS certificate.
  create mode 100644 panels/sharing/sharing.css
 
 diff --git a/meson.build b/meson.build
-index 085bdbc2b..c90bb39dc 100644
+index 19fdaae..66fe41b 100644
 --- a/meson.build
 +++ b/meson.build
-@@ -135,6 +135,7 @@ gudev_dep = dependency('gudev-1.0', version: '>= 232')
+@@ -146,6 +146,7 @@ gudev_dep = dependency('gudev-1.0', version: '>= 232')
  x11_dep = dependency('x11')
  xi_dep = dependency('xi', version: '>= 1.2')
  epoxy_dep = dependency('epoxy')
@@ -29,7 +28,7 @@ index 085bdbc2b..c90bb39dc 100644
  m_dep = cc.find_library('m')
  
 diff --git a/panels/sharing/cc-sharing-panel.c b/panels/sharing/cc-sharing-panel.c
-index 62e11b5e8..34605da1b 100644
+index 62e11b5..34605da 100644
 --- a/panels/sharing/cc-sharing-panel.c
 +++ b/panels/sharing/cc-sharing-panel.c
 @@ -30,12 +30,17 @@
@@ -317,7 +316,7 @@ index 62e11b5e8..34605da1b 100644
  
  CcSharingPanel *
 diff --git a/panels/sharing/cc-sharing-panel.ui b/panels/sharing/cc-sharing-panel.ui
-index 0342370dd..8ebff21b4 100644
+index 0342370..8ebff21 100644
 --- a/panels/sharing/cc-sharing-panel.ui
 +++ b/panels/sharing/cc-sharing-panel.ui
 @@ -558,6 +558,34 @@
@@ -356,7 +355,7 @@ index 0342370dd..8ebff21b4 100644
          </child>
        </object>
 diff --git a/panels/sharing/meson.build b/panels/sharing/meson.build
-index 51888613b..62e9b6cd8 100644
+index 5188861..62e9b6c 100644
 --- a/panels/sharing/meson.build
 +++ b/panels/sharing/meson.build
 @@ -85,6 +85,7 @@ panels_libs += static_library(
@@ -369,7 +368,7 @@ index 51888613b..62e9b6cd8 100644
  )
 diff --git a/panels/sharing/sharing.css b/panels/sharing/sharing.css
 new file mode 100644
-index 000000000..cf18ab392
+index 0000000..cf18ab3
 --- /dev/null
 +++ b/panels/sharing/sharing.css
 @@ -0,0 +1,4 @@
@@ -378,7 +377,7 @@ index 000000000..cf18ab392
 +  margin: 10px;
 +}
 diff --git a/panels/sharing/sharing.gresource.xml b/panels/sharing/sharing.gresource.xml
-index 75c7f7458..275f8846e 100644
+index 75c7f74..275f884 100644
 --- a/panels/sharing/sharing.gresource.xml
 +++ b/panels/sharing/sharing.gresource.xml
 @@ -3,5 +3,6 @@
@@ -389,7 +388,7 @@ index 75c7f7458..275f8846e 100644
    </gresource>
  </gresources>
 diff --git a/panels/wwan/meson.build b/panels/wwan/meson.build
-index 2ab238af4..cb30e8a77 100644
+index 2ab238a..cb30e8a 100644
 --- a/panels/wwan/meson.build
 +++ b/panels/wwan/meson.build
 @@ -1,6 +1,5 @@
@@ -400,6 +399,3 @@ index 2ab238af4..cb30e8a77 100644
  panels_list += cappletname
  desktop = 'gnome-@0@-panel.desktop'.format(cappletname)
  
--- 
-2.34.1
-

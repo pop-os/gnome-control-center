@@ -1,22 +1,21 @@
-From 38a162fa3061cbce65116b51e5016938b4b7d370 Mon Sep 17 00:00:00 2001
-From: =?UTF-8?q?Jonas=20=C3=85dahl?= <jadahl@gmail.com>
+From: =?utf-8?q?Jonas_=C3=85dahl?= <jadahl@gmail.com>
 Date: Wed, 23 Feb 2022 11:29:26 +0100
-Subject: [PATCH 05/13] sharing/remote-login: Move systemd unit management into
- helper
+Subject: [PATCH 05/13] sharing/remote-login: Move systemd unit management
+ into helper
 
 This will make it possible to reuse elsewhere, including for user
 services.
 ---
- panels/sharing/cc-remote-login-helper.c | 144 +++++-------------------
- panels/sharing/cc-systemd-service.c     | 139 +++++++++++++++++++++++
- panels/sharing/cc-systemd-service.h     |  30 +++++
+ panels/sharing/cc-remote-login-helper.c | 144 ++++++--------------------------
+ panels/sharing/cc-systemd-service.c     | 139 ++++++++++++++++++++++++++++++
+ panels/sharing/cc-systemd-service.h     |  30 +++++++
  panels/sharing/meson.build              |   7 +-
  4 files changed, 201 insertions(+), 119 deletions(-)
  create mode 100644 panels/sharing/cc-systemd-service.c
  create mode 100644 panels/sharing/cc-systemd-service.h
 
 diff --git a/panels/sharing/cc-remote-login-helper.c b/panels/sharing/cc-remote-login-helper.c
-index a9a07d0f8..26e527fa4 100644
+index a9a07d0..26e527f 100644
 --- a/panels/sharing/cc-remote-login-helper.c
 +++ b/panels/sharing/cc-remote-login-helper.c
 @@ -19,126 +19,12 @@
@@ -185,7 +184,7 @@ index a9a07d0f8..26e527fa4 100644
  }
 diff --git a/panels/sharing/cc-systemd-service.c b/panels/sharing/cc-systemd-service.c
 new file mode 100644
-index 000000000..c9fa72a4a
+index 0000000..c9fa72a
 --- /dev/null
 +++ b/panels/sharing/cc-systemd-service.c
 @@ -0,0 +1,139 @@
@@ -330,7 +329,7 @@ index 000000000..c9fa72a4a
 +}
 diff --git a/panels/sharing/cc-systemd-service.h b/panels/sharing/cc-systemd-service.h
 new file mode 100644
-index 000000000..df449f84e
+index 0000000..df449f8
 --- /dev/null
 +++ b/panels/sharing/cc-systemd-service.h
 @@ -0,0 +1,30 @@
@@ -365,7 +364,7 @@ index 000000000..df449f84e
 +                             GBusType     bus_type,
 +                             GError     **error);
 diff --git a/panels/sharing/meson.build b/panels/sharing/meson.build
-index 62e9b6cd8..0f31aed5f 100644
+index 62e9b6c..0f31aed 100644
 --- a/panels/sharing/meson.build
 +++ b/panels/sharing/meson.build
 @@ -94,12 +94,15 @@ name = 'cc-remote-login-helper'
@@ -386,6 +385,3 @@ index 62e9b6cd8..0f31aed5f 100644
    include_directories: top_inc,
    dependencies: deps,
    c_args: cflags,
--- 
-2.34.1
-

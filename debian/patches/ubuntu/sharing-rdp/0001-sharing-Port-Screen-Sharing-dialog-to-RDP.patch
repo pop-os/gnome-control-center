@@ -1,4 +1,3 @@
-From 14a067906e035aab003d13079344f35c73e0eccd Mon Sep 17 00:00:00 2001
 From: Felipe Borges <felipeborges@gnome.org>
 Date: Thu, 10 Feb 2022 13:03:21 +0100
 Subject: [PATCH 01/13] sharing: Port Screen Sharing dialog to RDP
@@ -8,14 +7,14 @@ https://gitlab.gnome.org/Teams/Design/settings-mockups/-/raw/master/remote-deskt
 
 Fixes #1413
 ---
- panels/sharing/cc-gnome-remote-desktop.c | 180 ++++-----
+ panels/sharing/cc-gnome-remote-desktop.c | 180 +++++--------
  panels/sharing/cc-gnome-remote-desktop.h |  28 +-
- panels/sharing/cc-sharing-panel.c        | 450 +++++++++++++++--------
- panels/sharing/cc-sharing-panel.ui       | 347 ++++++++---------
+ panels/sharing/cc-sharing-panel.c        | 450 +++++++++++++++++++++----------
+ panels/sharing/cc-sharing-panel.ui       | 347 +++++++++++-------------
  4 files changed, 537 insertions(+), 468 deletions(-)
 
 diff --git a/panels/sharing/cc-gnome-remote-desktop.c b/panels/sharing/cc-gnome-remote-desktop.c
-index c59f3b0eb..ef7bc5303 100644
+index c59f3b0..ef7bc53 100644
 --- a/panels/sharing/cc-gnome-remote-desktop.c
 +++ b/panels/sharing/cc-gnome-remote-desktop.c
 @@ -22,141 +22,103 @@
@@ -232,7 +231,7 @@ index c59f3b0eb..ef7bc5303 100644
 +  return password;
  }
 diff --git a/panels/sharing/cc-gnome-remote-desktop.h b/panels/sharing/cc-gnome-remote-desktop.h
-index a3a99aed4..592da3497 100644
+index a3a99ae..592da34 100644
 --- a/panels/sharing/cc-gnome-remote-desktop.h
 +++ b/panels/sharing/cc-gnome-remote-desktop.h
 @@ -23,28 +23,14 @@
@@ -272,7 +271,7 @@ index a3a99aed4..592da3497 100644
  
  G_END_DECLS
 diff --git a/panels/sharing/cc-sharing-panel.c b/panels/sharing/cc-sharing-panel.c
-index 0cdafe654..62e11b5e8 100644
+index 0cdafe6..62e11b5 100644
 --- a/panels/sharing/cc-sharing-panel.c
 +++ b/panels/sharing/cc-sharing-panel.c
 @@ -44,19 +44,16 @@ static GtkWidget *cc_sharing_panel_new_media_sharing_row (const char     *uri_or
@@ -908,7 +907,7 @@ index 0cdafe654..62e11b5e8 100644
  
    gtk_list_box_set_activate_on_single_click (GTK_LIST_BOX (self->main_list_box),
 diff --git a/panels/sharing/cc-sharing-panel.ui b/panels/sharing/cc-sharing-panel.ui
-index 40a112ab3..0342370dd 100644
+index 40a112a..0342370 100644
 --- a/panels/sharing/cc-sharing-panel.ui
 +++ b/panels/sharing/cc-sharing-panel.ui
 @@ -80,11 +80,11 @@
@@ -1321,6 +1320,3 @@ index 40a112ab3..0342370dd 100644
    <object class="GtkDialog" id="media_sharing_dialog">
      <property name="can_focus">False</property>
      <property name="border_width">5</property>
--- 
-2.34.1
-
