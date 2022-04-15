@@ -1,0 +1,201 @@
+From: =?utf-8?q?Jonas_=C3=85dahl?= <jadahl@gmail.com>
+Date: Wed, 23 Feb 2022 18:52:33 +0100
+Subject: [PATCH 08/13] sharing/remote-desktop: Add copy buttons
+
+---
+ panels/sharing/cc-sharing-panel.c  | 39 +++++++++++++++++++
+ panels/sharing/cc-sharing-panel.ui | 80 ++++++++++++++++++++++++++++++++++++--
+ 2 files changed, 115 insertions(+), 4 deletions(-)
+
+diff --git a/panels/sharing/cc-sharing-panel.c b/panels/sharing/cc-sharing-panel.c
+index 650149d..3846a6d 100644
+--- a/panels/sharing/cc-sharing-panel.c
++++ b/panels/sharing/cc-sharing-panel.c
+@@ -83,10 +83,14 @@ struct _CcSharingPanel
+ 
+   GtkWidget *remote_control_switch;
+   GtkWidget *remote_desktop_password_entry;
++  GtkWidget *remote_desktop_password_copy;
+   GtkWidget *remote_desktop_username_entry;
++  GtkWidget *remote_desktop_username_copy;
+   GtkWidget *remote_desktop_dialog;
+   GtkWidget *remote_desktop_device_name_label;
++  GtkWidget *remote_desktop_device_name_copy;
+   GtkWidget *remote_desktop_address_label;
++  GtkWidget *remote_desktop_address_copy;
+   GtkWidget *remote_desktop_row;
+   GtkWidget *remote_desktop_switch;
+   GtkWidget *remote_desktop_verify_encryption;
+@@ -286,9 +290,13 @@ cc_sharing_panel_class_init (CcSharingPanelClass *klass)
+   gtk_widget_class_bind_template_child (widget_class, CcSharingPanel, remote_desktop_switch);
+   gtk_widget_class_bind_template_child (widget_class, CcSharingPanel, remote_control_switch);
+   gtk_widget_class_bind_template_child (widget_class, CcSharingPanel, remote_desktop_username_entry);
++  gtk_widget_class_bind_template_child (widget_class, CcSharingPanel, remote_desktop_username_copy);
+   gtk_widget_class_bind_template_child (widget_class, CcSharingPanel, remote_desktop_password_entry);
++  gtk_widget_class_bind_template_child (widget_class, CcSharingPanel, remote_desktop_password_copy);
+   gtk_widget_class_bind_template_child (widget_class, CcSharingPanel, remote_desktop_device_name_label);
++  gtk_widget_class_bind_template_child (widget_class, CcSharingPanel, remote_desktop_device_name_copy);
+   gtk_widget_class_bind_template_child (widget_class, CcSharingPanel, remote_desktop_address_label);
++  gtk_widget_class_bind_template_child (widget_class, CcSharingPanel, remote_desktop_address_copy);
+   gtk_widget_class_bind_template_child (widget_class, CcSharingPanel, remote_desktop_verify_encryption);
+   gtk_widget_class_bind_template_child (widget_class, CcSharingPanel, remote_desktop_fingerprint_dialog);
+   gtk_widget_class_bind_template_child (widget_class, CcSharingPanel, remote_desktop_row);
+@@ -1338,6 +1346,24 @@ get_hostname (void)
+   return g_variant_dup_string (inner, NULL);
+ }
+ 
++static void
++on_copy_clicked_label (GtkButton *button,
++                       GtkLabel  *label)
++{
++  gtk_clipboard_set_text (gtk_widget_get_clipboard (GTK_WIDGET (button), GDK_SELECTION_CLIPBOARD),
++                          gtk_label_get_text (label), -1);
++}
++
++static void
++on_copy_clicked_entry (GtkButton *button,
++                       GtkEntry  *entry)
++{
++  GtkEntryBuffer *buffer = gtk_entry_get_buffer (entry);
++
++  gtk_clipboard_set_text (gtk_widget_get_clipboard (GTK_WIDGET (button), GDK_SELECTION_CLIPBOARD),
++                          gtk_entry_buffer_get_text (buffer), -1);
++}
++
+ static void
+ on_password_visible_clicked (CcSharingPanel *self)
+ {
+@@ -1393,6 +1419,19 @@ cc_sharing_panel_setup_remote_desktop_dialog (CcSharingPanel *self)
+                             G_CALLBACK (remote_desktop_credentials_changed),
+                             self);
+ 
++  g_signal_connect (self->remote_desktop_device_name_copy,
++                    "clicked", G_CALLBACK (on_copy_clicked_label),
++                    self->remote_desktop_device_name_label);
++  g_signal_connect (self->remote_desktop_address_copy,
++                    "clicked", G_CALLBACK (on_copy_clicked_label),
++                    self->remote_desktop_address_label);
++  g_signal_connect (self->remote_desktop_username_copy,
++                    "clicked", G_CALLBACK (on_copy_clicked_entry),
++                    self->remote_desktop_username_entry);
++  g_signal_connect (self->remote_desktop_password_copy,
++                    "clicked", G_CALLBACK (on_copy_clicked_entry),
++                    self->remote_desktop_password_entry);
++
+   gtk_entry_set_icon_from_icon_name (GTK_ENTRY (self->remote_desktop_password_entry), GTK_ENTRY_ICON_SECONDARY, "eye-not-looking-symbolic");
+   g_signal_connect_swapped (self->remote_desktop_password_entry,
+                             "icon-release", G_CALLBACK (on_password_visible_clicked),
+diff --git a/panels/sharing/cc-sharing-panel.ui b/panels/sharing/cc-sharing-panel.ui
+index 8ebff21..767ec3d 100644
+--- a/panels/sharing/cc-sharing-panel.ui
++++ b/panels/sharing/cc-sharing-panel.ui
+@@ -427,9 +427,30 @@
+                     <property name="visible">True</property>
+                     <property name="title" translatable="yes">Device Name</property>
+                     <child>
+-                      <object class="GtkLabel" id="remote_desktop_device_name_label">
++                      <object class="GtkBox">
+                         <property name="visible">True</property>
+-                        <property name="selectable">True</property>
++                        <property name="spacing">10</property>
++                        <child>
++                          <object class="GtkLabel" id="remote_desktop_device_name_label">
++                            <property name="visible">True</property>
++                            <property name="selectable">True</property>
++                          </object>
++                        </child>
++                        <child>
++                          <object class="GtkButton" id="remote_desktop_device_name_copy">
++                            <property name="visible">True</property>
++                            <property name="valign">center</property>
++                            <style>
++                              <class name="flat"/>
++                            </style>
++                            <child>
++                              <object class="GtkImage">
++                                <property name="visible">True</property>
++                                <property name="icon-name">edit-copy-symbolic</property>
++                              </object>
++                            </child>
++                          </object>
++                        </child>
+                       </object>
+                     </child>
+                   </object>
+@@ -439,9 +460,30 @@
+                     <property name="visible">True</property>
+                     <property name="title" translatable="yes">Remote Desktop Address</property>
+                     <child>
+-                      <object class="GtkLabel" id="remote_desktop_address_label">
++                      <object class="GtkBox">
+                         <property name="visible">True</property>
+-                        <property name="selectable">True</property>
++                        <property name="spacing">10</property>
++                        <child>
++                          <object class="GtkLabel" id="remote_desktop_address_label">
++                            <property name="visible">True</property>
++                            <property name="selectable">True</property>
++                          </object>
++                        </child>
++                        <child>
++                          <object class="GtkButton" id="remote_desktop_address_copy">
++                            <property name="visible">True</property>
++                            <property name="valign">center</property>
++                            <style>
++                              <class name="flat"/>
++                            </style>
++                            <child>
++                              <object class="GtkImage">
++                                <property name="visible">True</property>
++                                <property name="icon-name">edit-copy-symbolic</property>
++                              </object>
++                            </child>
++                          </object>
++                        </child>
+                       </object>
+                     </child>
+                   </object>
+@@ -466,6 +508,21 @@
+                         <property name="valign">center</property>
+                       </object>
+                     </child>
++                    <child>
++                      <object class="GtkButton" id="remote_desktop_username_copy">
++                        <property name="visible">True</property>
++                        <property name="valign">center</property>
++                        <style>
++                          <class name="flat"/>
++                        </style>
++                        <child>
++                          <object class="GtkImage">
++                            <property name="visible">True</property>
++                            <property name="icon-name">edit-copy-symbolic</property>
++                          </object>
++                        </child>
++                      </object>
++                    </child>
+                   </object>
+                 </child>
+ 
+@@ -484,6 +541,21 @@
+                         <property name="input_purpose">password</property>
+                       </object>
+                     </child>
++                    <child>
++                      <object class="GtkButton" id="remote_desktop_password_copy">
++                        <property name="visible">True</property>
++                        <property name="valign">center</property>
++                        <style>
++                          <class name="flat"/>
++                        </style>
++                        <child>
++                          <object class="GtkImage">
++                            <property name="visible">True</property>
++                            <property name="icon-name">edit-copy-symbolic</property>
++                          </object>
++                        </child>
++                      </object>
++                    </child>
+                   </object>
+                 </child>
+ 

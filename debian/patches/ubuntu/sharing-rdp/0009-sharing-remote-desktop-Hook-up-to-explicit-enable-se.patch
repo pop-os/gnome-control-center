@@ -1,0 +1,27 @@
+From: =?utf-8?q?Jonas_=C3=85dahl?= <jadahl@gmail.com>
+Date: Fri, 25 Feb 2022 19:01:53 +0100
+Subject: [PATCH 09/13] sharing/remote-desktop: Hook up to explicit enable
+ setting
+
+Enabling the service isn't enough, one also needs to enable the relevant
+backend.
+---
+ panels/sharing/cc-sharing-panel.c | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/panels/sharing/cc-sharing-panel.c b/panels/sharing/cc-sharing-panel.c
+index 3846a6d..3dd8431 100644
+--- a/panels/sharing/cc-sharing-panel.c
++++ b/panels/sharing/cc-sharing-panel.c
+@@ -1389,6 +1389,11 @@ cc_sharing_panel_setup_remote_desktop_dialog (CcSharingPanel *self)
+ 
+   rdp_settings = g_settings_new (GNOME_REMOTE_DESKTOP_RDP_SCHEMA_ID);
+ 
++  g_settings_bind (rdp_settings,
++                   "enable",
++                   self->remote_desktop_switch,
++                   "active",
++                   G_SETTINGS_BIND_DEFAULT);
+   g_settings_bind (rdp_settings,
+                    "view-only",
+                    self->remote_control_switch,

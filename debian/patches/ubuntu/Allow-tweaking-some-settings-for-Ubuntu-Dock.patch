@@ -18,16 +18,7 @@ Forwarded: not-needed
 ---
  panels/meson.build                             |    1 +
  panels/ubuntu/appearance.css                   |   24 +
- panels/ubuntu/assets/colors/bark.svg           |    5 +
- panels/ubuntu/assets/colors/blue.svg           |    5 +
- panels/ubuntu/assets/colors/magenta.svg        |    5 +
- panels/ubuntu/assets/colors/olive.svg          |    5 +
- panels/ubuntu/assets/colors/orange.svg         |    5 +
- panels/ubuntu/assets/colors/prussiangreen.svg  |    5 +
- panels/ubuntu/assets/colors/purple.svg         |    5 +
- panels/ubuntu/assets/colors/red.svg            |    5 +
- panels/ubuntu/assets/colors/sage.svg           |    5 +
- panels/ubuntu/assets/colors/viridian.svg       |    5 +
+ panels/ubuntu/assets/colors/color.svg.in       |    5 +
  panels/ubuntu/assets/theme-dark.svg            |    1 +
  panels/ubuntu/assets/theme-light.svg           |    1 +
  panels/ubuntu/cc-ubuntu-dock-dialog.c          |  106 ++
@@ -37,23 +28,14 @@ Forwarded: not-needed
  panels/ubuntu/cc-ubuntu-panel.h                |   35 +
  panels/ubuntu/cc-ubuntu-panel.ui               |  618 +++++++++
  panels/ubuntu/gnome-ubuntu-panel.desktop.in.in |   16 +
- panels/ubuntu/meson.build                      |   56 +
- panels/ubuntu/ubuntu.gresource.xml             |   20 +
+ panels/ubuntu/meson.build                      |  104 ++
+ panels/ubuntu/ubuntu.gresource.xml             |    6 +
  po/POTFILES.in                                 |    5 +
  shell/cc-panel-list.c                          |    1 +
  shell/cc-panel-loader.c                        |    3 +
- 26 files changed, 2807 insertions(+)
+ 17 files changed, 2796 insertions(+)
  create mode 100644 panels/ubuntu/appearance.css
- create mode 100644 panels/ubuntu/assets/colors/bark.svg
- create mode 100644 panels/ubuntu/assets/colors/blue.svg
- create mode 100644 panels/ubuntu/assets/colors/magenta.svg
- create mode 100644 panels/ubuntu/assets/colors/olive.svg
- create mode 100644 panels/ubuntu/assets/colors/orange.svg
- create mode 100644 panels/ubuntu/assets/colors/prussiangreen.svg
- create mode 100644 panels/ubuntu/assets/colors/purple.svg
- create mode 100644 panels/ubuntu/assets/colors/red.svg
- create mode 100644 panels/ubuntu/assets/colors/sage.svg
- create mode 100644 panels/ubuntu/assets/colors/viridian.svg
+ create mode 100644 panels/ubuntu/assets/colors/color.svg.in
  create mode 100644 panels/ubuntu/assets/theme-dark.svg
  create mode 100644 panels/ubuntu/assets/theme-light.svg
  create mode 100644 panels/ubuntu/cc-ubuntu-dock-dialog.c
@@ -108,114 +90,15 @@ index 0000000..ce63aa2
 +image.colors-thumbnail {
 +  border-radius: 9999px;
 +}
-diff --git a/panels/ubuntu/assets/colors/bark.svg b/panels/ubuntu/assets/colors/bark.svg
+diff --git a/panels/ubuntu/assets/colors/color.svg.in b/panels/ubuntu/assets/colors/color.svg.in
 new file mode 100644
-index 0000000..8a1b42e
+index 0000000..4c0e136
 --- /dev/null
-+++ b/panels/ubuntu/assets/colors/bark.svg
++++ b/panels/ubuntu/assets/colors/color.svg.in
 @@ -0,0 +1,5 @@
 +<svg version="1.1" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
 + <g transform="translate(-401 -339)">
-+  <circle cx="417" cy="355" r="13.35" fill="#787859" stroke-width="2.9706"/>
-+ </g>
-+</svg>
-diff --git a/panels/ubuntu/assets/colors/blue.svg b/panels/ubuntu/assets/colors/blue.svg
-new file mode 100644
-index 0000000..47312b9
---- /dev/null
-+++ b/panels/ubuntu/assets/colors/blue.svg
-@@ -0,0 +1,5 @@
-+<svg version="1.1" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
-+ <g transform="translate(-401 -339)">
-+  <circle cx="417" cy="355" r="13.35" fill="#0073E5" stroke-width="2.9706"/>
-+ </g>
-+</svg>
-diff --git a/panels/ubuntu/assets/colors/magenta.svg b/panels/ubuntu/assets/colors/magenta.svg
-new file mode 100644
-index 0000000..65c43b8
---- /dev/null
-+++ b/panels/ubuntu/assets/colors/magenta.svg
-@@ -0,0 +1,5 @@
-+<svg version="1.1" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
-+ <g transform="translate(-401 -339)">
-+  <circle cx="417" cy="355" r="13.35" fill="#BC33DB" stroke-width="2.9706"/>
-+ </g>
-+</svg>
-diff --git a/panels/ubuntu/assets/colors/olive.svg b/panels/ubuntu/assets/colors/olive.svg
-new file mode 100644
-index 0000000..67f0f71
---- /dev/null
-+++ b/panels/ubuntu/assets/colors/olive.svg
-@@ -0,0 +1,5 @@
-+<svg version="1.1" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
-+ <g transform="translate(-401 -339)">
-+  <circle cx="417" cy="355" r="13.35" fill="#4B8501" stroke-width="2.9706"/>
-+ </g>
-+</svg>
-diff --git a/panels/ubuntu/assets/colors/orange.svg b/panels/ubuntu/assets/colors/orange.svg
-new file mode 100644
-index 0000000..e486e84
---- /dev/null
-+++ b/panels/ubuntu/assets/colors/orange.svg
-@@ -0,0 +1,5 @@
-+<svg version="1.1" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
-+ <g transform="translate(-401 -339)">
-+  <circle cx="417" cy="355" r="13.35" fill="#f37e40" stroke-width="2.9706"/>
-+ </g>
-+</svg>
-diff --git a/panels/ubuntu/assets/colors/prussiangreen.svg b/panels/ubuntu/assets/colors/prussiangreen.svg
-new file mode 100644
-index 0000000..6ae821b
---- /dev/null
-+++ b/panels/ubuntu/assets/colors/prussiangreen.svg
-@@ -0,0 +1,5 @@
-+<svg version="1.1" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
-+ <g transform="translate(-401 -339)">
-+  <circle cx="417" cy="355" r="13.35" fill="#308280" stroke-width="2.9706"/>
-+ </g>
-+</svg>
-diff --git a/panels/ubuntu/assets/colors/purple.svg b/panels/ubuntu/assets/colors/purple.svg
-new file mode 100644
-index 0000000..aaa4f43
---- /dev/null
-+++ b/panels/ubuntu/assets/colors/purple.svg
-@@ -0,0 +1,5 @@
-+<svg version="1.1" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
-+ <g transform="translate(-401 -339)">
-+  <circle cx="417" cy="355" r="13.35" fill="#8856EB" stroke-width="2.9706"/>
-+ </g>
-+</svg>
-diff --git a/panels/ubuntu/assets/colors/red.svg b/panels/ubuntu/assets/colors/red.svg
-new file mode 100644
-index 0000000..cd3eb0c
---- /dev/null
-+++ b/panels/ubuntu/assets/colors/red.svg
-@@ -0,0 +1,5 @@
-+<svg version="1.1" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
-+ <g transform="translate(-401 -339)">
-+  <circle cx="417" cy="355" r="13.35" fill="#E61D34" stroke-width="2.9706"/>
-+ </g>
-+</svg>
-diff --git a/panels/ubuntu/assets/colors/sage.svg b/panels/ubuntu/assets/colors/sage.svg
-new file mode 100644
-index 0000000..4a661ae
---- /dev/null
-+++ b/panels/ubuntu/assets/colors/sage.svg
-@@ -0,0 +1,5 @@
-+<svg version="1.1" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
-+ <g transform="translate(-401 -339)">
-+  <circle cx="417" cy="355" r="13.35" fill="#657B69" stroke-width="2.9706"/>
-+ </g>
-+</svg>
-diff --git a/panels/ubuntu/assets/colors/viridian.svg b/panels/ubuntu/assets/colors/viridian.svg
-new file mode 100644
-index 0000000..2a61c2d
---- /dev/null
-+++ b/panels/ubuntu/assets/colors/viridian.svg
-@@ -0,0 +1,5 @@
-+<svg version="1.1" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
-+ <g transform="translate(-401 -339)">
-+  <circle cx="417" cy="355" r="13.35" fill="#03875B" stroke-width="2.9706"/>
++  <circle cx="417" cy="355" r="13.35" fill="#00ff00" stroke-width="2.9706"/>
 + </g>
 +</svg>
 diff --git a/panels/ubuntu/assets/theme-dark.svg b/panels/ubuntu/assets/theme-dark.svg
@@ -511,7 +394,7 @@ index 0000000..512f606
 +</interface>
 diff --git a/panels/ubuntu/cc-ubuntu-panel.c b/panels/ubuntu/cc-ubuntu-panel.c
 new file mode 100644
-index 0000000..b114af3
+index 0000000..09cff41
 --- /dev/null
 +++ b/panels/ubuntu/cc-ubuntu-panel.c
 @@ -0,0 +1,1719 @@
@@ -581,7 +464,7 @@ index 0000000..b114af3
 +#define GEDIT_PREFRENCES_SCHEMA "org.gnome.gedit.preferences.editor"
 +#define GEDIT_THEME_KEY "scheme"
 +
-+#define DEFAULT_ACCENT_COLOR "orange"
++#define DEFAULT_ACCENT_COLOR "default"
 +
 +struct _CcUbuntuPanel {
 +  CcPanel                 parent_instance;
@@ -606,7 +489,7 @@ index 0000000..b114af3
 +  GtkFlowBoxChild        *accent_bark;
 +  GtkFlowBoxChild        *accent_blue;
 +  GtkFlowBoxChild        *accent_olive;
-+  GtkFlowBoxChild        *accent_orange;
++  GtkFlowBoxChild        *accent_default;
 +  GtkFlowBoxChild        *accent_magenta;
 +  GtkFlowBoxChild        *accent_purple;
 +  GtkFlowBoxChild        *accent_prussiangreen;
@@ -1550,7 +1433,7 @@ index 0000000..b114af3
 +  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, accent_bark);
 +  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, accent_blue);
 +  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, accent_olive);
-+  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, accent_orange);
++  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, accent_default);
 +  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, accent_magenta);
 +  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, accent_purple);
 +  gtk_widget_class_bind_template_child (widget_class, CcUbuntuPanel, accent_prussiangreen);
@@ -1749,7 +1632,7 @@ index 0000000..b114af3
 +    {
 +      g_autoptr (HdyValueObject) value_object = NULL;
 +
-+      value_object = hdy_value_object_new_string (_(positions[i].name));
++      value_object = hdy_value_object_new_string (g_dpgettext2(NULL, "Position on screen for the Ubuntu dock", positions[i].name));
 +      g_object_set_data (G_OBJECT (value_object),
 +                         "position",
 +                         GUINT_TO_POINTER (positions[i].position));
@@ -1896,7 +1779,7 @@ index 0000000..b114af3
 +    {
 +      g_autoptr (HdyValueObject) value_object = NULL;
 +
-+      value_object = hdy_value_object_new_string (_(sizes[i].name));
++      value_object = hdy_value_object_new_string (g_dpgettext2(NULL, "Size of the desktop icons", sizes[i].name));
 +      g_object_set_data (G_OBJECT (value_object),
 +                         "size",
 +                         GUINT_TO_POINTER (sizes[i].size));
@@ -2045,7 +1928,7 @@ index 0000000..b114af3
 +    {
 +      g_autoptr (HdyValueObject) value_object = NULL;
 +
-+      value_object = hdy_value_object_new_string (_(corners[i].name));
++      value_object = hdy_value_object_new_string (g_dpgettext2(NULL, "Alignment of new desktop icons", corners[i].name));
 +      g_object_set_data (G_OBJECT (value_object),
 +                         "corner",
 +                         GUINT_TO_POINTER (corners[i].corner));
@@ -2191,7 +2074,7 @@ index 0000000..b114af3
 +  g_object_set_qdata (G_OBJECT (self->accent_blue), accent_quark (), "blue");
 +  g_object_set_qdata (G_OBJECT (self->accent_magenta), accent_quark (), "magenta");
 +  g_object_set_qdata (G_OBJECT (self->accent_olive), accent_quark (), "olive");
-+  g_object_set_qdata (G_OBJECT (self->accent_orange), accent_quark (), "orange");
++  g_object_set_qdata (G_OBJECT (self->accent_default), accent_quark (), "default");
 +  g_object_set_qdata (G_OBJECT (self->accent_purple), accent_quark (), "purple");
 +  g_object_set_qdata (G_OBJECT (self->accent_prussiangreen), accent_quark (), "prussiangreen");
 +  g_object_set_qdata (G_OBJECT (self->accent_red), accent_quark (), "red");
@@ -2277,7 +2160,7 @@ index 0000000..b13f611
 +#endif /* _CC_EDIT_DIALOG_H_ */
 diff --git a/panels/ubuntu/cc-ubuntu-panel.ui b/panels/ubuntu/cc-ubuntu-panel.ui
 new file mode 100644
-index 0000000..796483d
+index 0000000..ff8daba
 --- /dev/null
 +++ b/panels/ubuntu/cc-ubuntu-panel.ui
 @@ -0,0 +1,618 @@
@@ -2431,7 +2314,7 @@ index 0000000..796483d
 +                     <class name="colors" />
 +                    </style>
 +                    <child>
-+                      <object class="GtkFlowBoxChild" id="accent_orange">
++                      <object class="GtkFlowBoxChild" id="accent_default">
 +                        <property name="tooltip_text" translatable="yes" context="Yaru theme accent color">Orange</property>
 +                        <property name="visible">1</property>
 +                        <property name="valign">center</property>
@@ -2449,7 +2332,7 @@ index 0000000..796483d
 +                            <child>
 +                              <object class="GtkImage">
 +                                <property name="visible">1</property>
-+                                <property name="resource">/org/gnome/control-center/ubuntu/assets/colors/orange.svg</property>
++                                <property name="resource">/org/gnome/control-center/ubuntu/assets/colors/default.svg</property>
 +                                <style>
 +                                  <class name="colors-thumbnail" />
 +                                </style>
@@ -2923,10 +2806,12 @@ index 0000000..8235e5c
 +Keywords=Dock;Launcher;Theme;Ubuntu;Dark;icons;Yaru;Accent;
 diff --git a/panels/ubuntu/meson.build b/panels/ubuntu/meson.build
 new file mode 100644
-index 0000000..cdfbd03
+index 0000000..dec7469
 --- /dev/null
 +++ b/panels/ubuntu/meson.build
-@@ -0,0 +1,56 @@
+@@ -0,0 +1,104 @@
++fs = import('fs')
++
 +panels_list += cappletname
 +desktop = 'gnome-@0@-panel.desktop'.format(cappletname)
 +
@@ -2950,27 +2835,73 @@ index 0000000..cdfbd03
 +  'cc-ubuntu-dock-dialog.c',
 +)
 +
++colors = {
++  'default': '#E95420',
++  'bark': '#787859',
++  'sage': '#657B69',
++  'olive': '#4B8501',
++  'viridian': '#03875B',
++  'prussiangreen': '#308280',
++  'blue': '#0073E5',
++  'purple': '#7764D8',
++  'magenta': '#B34CB3',
++  'red': '#DA3450',
++}
++
++gresource_xml_contents = []
++resource_generated_data = []
 +resource_data = files(
 +  'appearance.css',
 +  'assets/theme-dark.svg',
 +  'assets/theme-light.svg',
-+  'assets/colors/orange.svg',
-+  'assets/colors/bark.svg',
-+  'assets/colors/blue.svg',
-+  'assets/colors/magenta.svg',
-+  'assets/colors/olive.svg',
-+  'assets/colors/purple.svg',
-+  'assets/colors/red.svg',
-+  'assets/colors/viridian.svg',
 +  'cc-ubuntu-panel.ui',
 +  'cc-ubuntu-dock-dialog.ui',
 +)
 +
++foreach file: resource_data
++  file_path = '@0@'.format(file)
++  gresource_xml_contents += '<file alias="@0@" preprocess="@1@">@2@</file>'.format(
++    (meson.project_source_root() / file_path).replace(meson.current_source_dir() + '/', ''),
++    fs.name(file).endswith('.ui') or fs.name(file).endswith('.svg') ? 'xml-stripblanks' : '',
++    meson.project_source_root() / file_path,
++  )
++endforeach
++
++foreach color, code: colors
++  asset_name = color + '.svg'
++  asset_path = 'assets' / 'colors'
++  color_asset = custom_target(
++    asset_name,
++    input: asset_path / 'color.svg.in',
++    depfile: '@INPUT@',
++    output: asset_name,
++    command: [
++      'sed',
++      's/#00ff00/@0@/g'.format(code),
++      '@INPUT@',
++    ],
++    capture: true,
++  )
++
++  gresource_xml_contents += (
++    '<file alias="@0@" preprocess="xml-stripblanks">@1@</file>'.format(
++    asset_path / asset_name, color_asset.full_path()))
++  resource_generated_data += color_asset
++endforeach
++
++gresource_xml = configure_file(
++  configuration: {
++    'GENERATED_FILES': '\n'.join(gresource_xml_contents)
++  },
++  input: cappletname + '.gresource.xml',
++  output: cappletname + '.generated.gresource.xml',
++)
++
 +sources += gnome.compile_resources(
 +  'cc-' + cappletname + '-resources',
-+  cappletname + '.gresource.xml',
++  gresource_xml,
 +  c_name: 'cc_' + cappletname,
-+  dependencies: resource_data,
++  dependencies: resource_data + resource_generated_data,
 +  export: true
 +)
 +
@@ -2985,28 +2916,14 @@ index 0000000..cdfbd03
 +)
 diff --git a/panels/ubuntu/ubuntu.gresource.xml b/panels/ubuntu/ubuntu.gresource.xml
 new file mode 100644
-index 0000000..6e20032
+index 0000000..a636e9c
 --- /dev/null
 +++ b/panels/ubuntu/ubuntu.gresource.xml
-@@ -0,0 +1,20 @@
+@@ -0,0 +1,6 @@
 +<?xml version="1.0" encoding="UTF-8"?>
 +<gresources>
 +  <gresource prefix="/org/gnome/control-center/ubuntu">
-+    <file preprocess="xml-stripblanks">cc-ubuntu-panel.ui</file>
-+    <file preprocess="xml-stripblanks">cc-ubuntu-dock-dialog.ui</file>
-+    <file>appearance.css</file>
-+    <file>assets/theme-dark.svg</file>
-+    <file>assets/theme-light.svg</file>
-+    <file>assets/colors/bark.svg</file>
-+    <file>assets/colors/blue.svg</file>
-+    <file>assets/colors/magenta.svg</file>
-+    <file>assets/colors/olive.svg</file>
-+    <file>assets/colors/orange.svg</file>
-+    <file>assets/colors/prussiangreen.svg</file>
-+    <file>assets/colors/purple.svg</file>
-+    <file>assets/colors/red.svg</file>
-+    <file>assets/colors/sage.svg</file>
-+    <file>assets/colors/viridian.svg</file>
++    @GENERATED_FILES@
 +  </gresource>
 +</gresources>
 diff --git a/po/POTFILES.in b/po/POTFILES.in
