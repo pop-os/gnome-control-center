@@ -1,0 +1,36 @@
+From: Jeremy Bicha <jeremy.bicha@canonical.com>
+Date: Wed, 20 Apr 2022 13:24:42 -0400
+Subject: [PATCH] sharing: Fix Remote Desktop on switch handling
+
+Previously, we were only checking if the gnome-remote-desktop
+user service was running but that service is always running
+as of
+https://gitlab.gnome.org/GNOME/gnome-remote-desktop/-/commit/7f4ef31fd38
+
+We need to check the gsettings key too.
+
+Closes: https://gitlab.gnome.org/GNOME/gnome-control-center/-/issues/1775
+
+https://gitlab.gnome.org/GNOME/gnome-control-center/-/merge_requests/1286
+---
+ panels/sharing/cc-sharing-panel.c | 7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/panels/sharing/cc-sharing-panel.c b/panels/sharing/cc-sharing-panel.c
+index 6c78711..30b821a 100644
+--- a/panels/sharing/cc-sharing-panel.c
++++ b/panels/sharing/cc-sharing-panel.c
+@@ -1133,7 +1133,12 @@ remote_desktop_credentials_changed (CcSharingPanel *self)
+ static gboolean
+ is_remote_desktop_enabled (CcSharingPanel *self)
+ {
+-  return cc_is_service_active (REMOTE_DESKTOP_SERVICE, G_BUS_TYPE_SESSION);
++  g_autoptr(GSettings) rdp_settings = NULL;
++
++  rdp_settings = g_settings_new (GNOME_REMOTE_DESKTOP_RDP_SCHEMA_ID);
++
++  return cc_is_service_active (REMOTE_DESKTOP_SERVICE, G_BUS_TYPE_SESSION) &&
++         g_settings_get_boolean (rdp_settings, "enable");
+ }
+ 
+ static void
