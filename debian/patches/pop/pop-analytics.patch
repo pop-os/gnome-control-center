@@ -1,7 +1,5 @@
-Index: gnome-control-center/panels/analytics/cc-analytics-panel.c
-===================================================================
 --- /dev/null
-+++ gnome-control-center/panels/analytics/cc-analytics-panel.c
++++ b/panels/analytics/cc-analytics-panel.c
 @@ -0,0 +1,58 @@
 +// Copyright 2022 System76 <info@system76.com>
 +// SPDX-License-Identifier: GPL-2.0
@@ -61,10 +59,8 @@ Index: gnome-control-center/panels/analytics/cc-analytics-panel.c
 +                                           CC_PANEL_HIDDEN);
 +    }
 +}
-Index: gnome-control-center/panels/analytics/cc-analytics-panel.h
-===================================================================
 --- /dev/null
-+++ gnome-control-center/panels/analytics/cc-analytics-panel.h
++++ b/panels/analytics/cc-analytics-panel.h
 @@ -0,0 +1,17 @@
 +// Copyright 2022 System76 <info@system76.com>
 +// SPDX-License-Identifier: GPL-2.0
@@ -83,13 +79,11 @@ Index: gnome-control-center/panels/analytics/cc-analytics-panel.h
 +void cc_analytics_panel_static_init_func (void);
 +
 +G_END_DECLS
-Index: gnome-control-center/panels/analytics/gnome-analytics-panel.desktop.in.in
-===================================================================
 --- /dev/null
-+++ gnome-control-center/panels/analytics/gnome-analytics-panel.desktop.in.in
++++ b/panels/analytics/gnome-analytics-panel.desktop.in.in
 @@ -0,0 +1,13 @@
 +[Desktop Entry]
-+Name=Analytics
++Name=HP Analytics
 +Comment=Analytics info
 +Exec=gnome-control-center analytics
 +Icon=pop-analytics
@@ -101,10 +95,8 @@ Index: gnome-control-center/panels/analytics/gnome-analytics-panel.desktop.in.in
 +Keywords=hp;analytics;
 +# Notifications are emitted by gnome-settings-daemon
 +X-GNOME-UsesNotifications=true
-Index: gnome-control-center/panels/analytics/meson.build
-===================================================================
 --- /dev/null
-+++ gnome-control-center/panels/analytics/meson.build
++++ b/panels/analytics/meson.build
 @@ -0,0 +1,38 @@
 +panels_list += cappletname
 +desktop = 'gnome-@0@-panel.desktop'.format(cappletname)
@@ -144,10 +136,8 @@ Index: gnome-control-center/panels/analytics/meson.build
 +  dependencies: deps,
 +  c_args: cflags
 +)
-Index: gnome-control-center/panels/meson.build
-===================================================================
---- gnome-control-center.orig/panels/meson.build
-+++ gnome-control-center/panels/meson.build
+--- a/panels/meson.build
++++ b/panels/meson.build
 @@ -1,6 +1,7 @@
  subdir('common')
  
@@ -156,11 +146,9 @@ Index: gnome-control-center/panels/meson.build
    'applications',
    'background',
    'desktop-appearance',
-Index: gnome-control-center/shell/cc-panel-list.c
-===================================================================
---- gnome-control-center.orig/shell/cc-panel-list.c
-+++ gnome-control-center/shell/cc-panel-list.c
-@@ -421,6 +421,7 @@ static const gchar * const panel_order[]
+--- a/shell/cc-panel-list.c
++++ b/shell/cc-panel-list.c
+@@ -421,6 +421,7 @@
    "thunderbolt",
    "usage",
    "lock",
@@ -168,11 +156,9 @@ Index: gnome-control-center/shell/cc-panel-list.c
  
    /* Devices page */
    "sound",
-Index: gnome-control-center/shell/cc-panel-loader.c
-===================================================================
---- gnome-control-center.orig/shell/cc-panel-loader.c
-+++ gnome-control-center/shell/cc-panel-loader.c
-@@ -59,6 +59,7 @@ extern GType cc_search_panel_get_type (v
+--- a/shell/cc-panel-loader.c
++++ b/shell/cc-panel-loader.c
+@@ -59,6 +59,7 @@
  extern GType cc_sharing_panel_get_type (void);
  extern GType cc_sound_panel_get_type (void);
  extern GType cc_support_panel_get_type(void);
@@ -180,7 +166,7 @@ Index: gnome-control-center/shell/cc-panel-loader.c
  #ifdef BUILD_THUNDERBOLT
  extern GType cc_bolt_panel_get_type (void);
  #endif /* BUILD_THUNDERBOLT */
-@@ -93,6 +94,7 @@ extern void cc_wacom_panel_static_init_f
+@@ -93,6 +94,7 @@
  extern void cc_wwan_panel_static_init_func (void);
  #endif /* BUILD_WWAN */
  extern void cc_ubuntu_panel_static_init_func (void);
@@ -188,7 +174,7 @@ Index: gnome-control-center/shell/cc-panel-loader.c
  
  #define PANEL_TYPE(name, get_type, init_func) { name, get_type, init_func }
  
-@@ -135,6 +137,7 @@ static CcPanelLoaderVtable default_panel
+@@ -135,6 +137,7 @@
    PANEL_TYPE("sharing",          cc_sharing_panel_get_type,              NULL),
    PANEL_TYPE("sound",            cc_sound_panel_get_type,                NULL),
    PANEL_TYPE("support",          cc_support_panel_get_type,              NULL),
