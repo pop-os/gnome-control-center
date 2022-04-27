@@ -1,0 +1,25 @@
+Index: gnome-control-center/panels/upgrade/cc-upgrade-panel.c
+===================================================================
+--- gnome-control-center.orig/panels/upgrade/cc-upgrade-panel.c
++++ gnome-control-center/panels/upgrade/cc-upgrade-panel.c
+@@ -101,7 +101,19 @@ static void pop_os_upgrade_widget (CcUpg
+ 
+     GtkWidget *upgrade_widget = pop_upgrade_widget_container (POP_UPGRADE);
+     gtk_container_set_border_width (GTK_CONTAINER (upgrade_widget), 12);
+-    gtk_container_add (GTK_CONTAINER (self->overlay), upgrade_widget);
++
++    GtkWidget *upgrade_scrolled = gtk_scrolled_window_new (NULL, NULL);
++
++    gtk_scrolled_window_set_policy (
++        GTK_SCROLLED_WINDOW (upgrade_scrolled),
++        GTK_POLICY_NEVER,
++        GTK_POLICY_AUTOMATIC
++    );
++
++    gtk_container_add (GTK_CONTAINER (upgrade_scrolled), upgrade_widget);
++    gtk_widget_show_all (upgrade_scrolled);
++
++    gtk_container_add (GTK_CONTAINER (self->overlay), upgrade_scrolled);
+     pop_upgrade_widget_callback_error (POP_UPGRADE, (PopUpgradeWidgetErrorCallback) pop_upgrade_callback_error, self);
+ }
+ 
