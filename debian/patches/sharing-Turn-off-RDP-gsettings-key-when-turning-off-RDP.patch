@@ -1,0 +1,27 @@
+From: Jeremy Bicha <jeremy.bicha@canonical.com>
+Date: Tue, 10 May 2022 16:06:02 -0400
+Subject: sharing: Turn off RDP gsettings key when turning off RDP
+
+Closes: https://gitlab.gnome.org/GNOME/gnome-control-center/-/issues/1825
+Bug-Ubuntu: https://launchpad.net/bugs/1971415
+(cherry picked from commit f94c96577bf375a8f5d4c978577acf565512ccaf)
+---
+ panels/sharing/cc-sharing-panel.c | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/panels/sharing/cc-sharing-panel.c b/panels/sharing/cc-sharing-panel.c
+index 6b2a099..6037271 100644
+--- a/panels/sharing/cc-sharing-panel.c
++++ b/panels/sharing/cc-sharing-panel.c
+@@ -1045,6 +1045,11 @@ static void
+ disable_gnome_remote_desktop_service (CcSharingPanel *self)
+ {
+   g_autoptr(GError) error = NULL;
++  g_autoptr(GSettings) rdp_settings = NULL;
++
++  rdp_settings = g_settings_new (GNOME_REMOTE_DESKTOP_RDP_SCHEMA_ID);
++
++  g_settings_set_boolean (rdp_settings, "enable", FALSE);
+ 
+   if (!cc_disable_service (REMOTE_DESKTOP_SERVICE,
+                            G_BUS_TYPE_SESSION,
