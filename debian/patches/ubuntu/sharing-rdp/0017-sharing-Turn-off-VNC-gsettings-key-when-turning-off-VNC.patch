@@ -1,0 +1,30 @@
+From: Jeremy Bicha <jeremy.bicha@canonical.com>
+Date: Wed, 18 May 2022 08:47:11 -0400
+Subject: sharing: Turn off VNC gsettings key when turning off VNC
+
+CVE-2022-1736
+https://launchpad.net/bugs/1971415
+
+Forwarded: no, gnome-control-center 42 doesn't handle VNC
+---
+ panels/sharing/cc-sharing-panel.c | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/panels/sharing/cc-sharing-panel.c b/panels/sharing/cc-sharing-panel.c
+index c29b7ba..4428315 100644
+--- a/panels/sharing/cc-sharing-panel.c
++++ b/panels/sharing/cc-sharing-panel.c
+@@ -1160,10 +1160,13 @@ disable_gnome_remote_desktop_service (CcSharingPanel *self)
+ {
+   g_autoptr(GError) error = NULL;
+   g_autoptr(GSettings) rdp_settings = NULL;
++  g_autoptr(GSettings) vnc_settings = NULL;
+ 
+   rdp_settings = g_settings_new (GNOME_REMOTE_DESKTOP_RDP_SCHEMA_ID);
++  vnc_settings = g_settings_new (GNOME_REMOTE_DESKTOP_VNC_SCHEMA_ID);
+ 
+   g_settings_set_boolean (rdp_settings, "enable", FALSE);
++  g_settings_set_boolean (vnc_settings, "enable", FALSE);
+ 
+   if (!cc_disable_service (REMOTE_DESKTOP_SERVICE,
+                            G_BUS_TYPE_SESSION,
