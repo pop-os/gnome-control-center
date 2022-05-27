@@ -611,10 +611,12 @@ get_cpu_info (const glibtop_sysinfo *info)
 
       count = GPOINTER_TO_INT (value);
       cleanedup = info_cleanup ((const char *) key);
+      if (cpu->len != 0)
+        g_string_append_printf (cpu, " ");
       if (count > 1)
-        g_string_append_printf (cpu, "%s \303\227 %d ", cleanedup, count);
+        g_string_append_printf (cpu, "%s \303\227 %d", cleanedup, count);
       else
-        g_string_append_printf (cpu, "%s ", cleanedup);
+        g_string_append_printf (cpu, "%s", cleanedup);
     }
 
   return g_strdup (cpu->str);
@@ -837,6 +839,38 @@ on_device_name_entry_changed (CcInfoOverviewPanel *self)
 }
 
 static void
+update_device_name (CcInfoOverviewPanel *self)
+{
+  const gchar *hostname;
+
+  /* We simply change the CcHostnameEntry text. CcHostnameEntry
+   * listens to changes and updates hostname on change.
+   */
+  hostname = gtk_entry_get_text (self->device_name_entry);
+  gtk_entry_set_text (GTK_ENTRY (self->hostname_entry), hostname);
+}
+
+static void
+on_hostname_editor_dialog_response_cb (GtkDialog           *dialog,
+                                       gint                 response,
+                                       CcInfoOverviewPanel *self)
+{
+  if (response == GTK_RESPONSE_APPLY)
+    {
+      update_device_name (self);
+    }
+
+  gtk_window_close (GTK_WINDOW (dialog));
+}
+
+static void
+on_device_name_entry_activated_cb (CcInfoOverviewPanel *self)
+{
+  update_device_name (self);
+  gtk_window_close (GTK_WINDOW (self->hostname_editor));
+}
+
+static void
 open_hostname_edit_dialog (CcInfoOverviewPanel *self)
 {
   GtkWindow *toplevel;
@@ -951,6 +985,8 @@ cc_info_overview_panel_class_init (CcInfoOverviewPanelClass *klass)
 
   gtk_widget_class_bind_template_callback (widget_class, cc_info_panel_row_activated_cb);
   gtk_widget_class_bind_template_callback (widget_class, on_device_name_entry_changed);
+  gtk_widget_class_bind_template_callback (widget_class, on_device_name_entry_activated_cb);
+  gtk_widget_class_bind_template_callback (widget_class, on_hostname_editor_dialog_response_cb);
 
   g_type_ensure (CC_TYPE_LIST_ROW);
   g_type_ensure (CC_TYPE_HOSTNAME_ENTRY);
