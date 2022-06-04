@@ -11,11 +11,11 @@ limits its length.
 
 Bug-Ubuntu: https://bugs.launchpad.net/ubuntu/+source/gnome-control-center/+bug/1968518
 ---
- panels/sharing/cc-gnome-remote-desktop.c |  59 ++++++++++++++++
+ panels/sharing/cc-gnome-remote-desktop.c |  59 +++++++++++++++
  panels/sharing/cc-gnome-remote-desktop.h |   8 +++
- panels/sharing/cc-sharing-panel.c        | 110 +++++++++++++++++++++++++++++
- panels/sharing/cc-sharing-panel.ui       | 116 ++++++++++++++++++++++++++++++-
- 4 files changed, 291 insertions(+), 2 deletions(-)
+ panels/sharing/cc-sharing-panel.c        | 120 +++++++++++++++++++++++++++++++
+ panels/sharing/cc-sharing-panel.ui       | 116 +++++++++++++++++++++++++++++-
+ 4 files changed, 301 insertions(+), 2 deletions(-)
 
 diff --git a/panels/sharing/cc-gnome-remote-desktop.c b/panels/sharing/cc-gnome-remote-desktop.c
 index ef7bc53..e0d9b77 100644
@@ -116,7 +116,7 @@ index 592da34..5144240 100644
 +
  G_END_DECLS
 diff --git a/panels/sharing/cc-sharing-panel.c b/panels/sharing/cc-sharing-panel.c
-index 28e189b..6c78711 100644
+index 28e189b..0394f58 100644
 --- a/panels/sharing/cc-sharing-panel.c
 +++ b/panels/sharing/cc-sharing-panel.c
 @@ -53,6 +53,7 @@ static GtkWidget *cc_sharing_panel_new_media_sharing_row (const char     *uri_or
@@ -242,7 +242,25 @@ index 28e189b..6c78711 100644
    self->remote_desktop_store_credentials_id = 0;
  
    return G_SOURCE_REMOVE;
-@@ -1400,14 +1465,19 @@ cc_sharing_panel_setup_remote_desktop_dialog (CcSharingPanel *self)
+@@ -1394,20 +1459,37 @@ pw_generate (void)
+   return res;
+ }
+ 
++static void
++on_remote_control_switch_active_changed (CcSharingPanel *self)
++{
++  g_autoptr(GSettings) vnc_settings = NULL;
++  gboolean remote_control;
++
++  vnc_settings = g_settings_new (GNOME_REMOTE_DESKTOP_VNC_SCHEMA_ID);
++  remote_control = gtk_switch_get_active (GTK_SWITCH (self->remote_control_switch));
++
++  g_settings_set_boolean (vnc_settings, "view-only", remote_control != TRUE);
++}
++
+ static void
+ cc_sharing_panel_setup_remote_desktop_dialog (CcSharingPanel *self)
+ {
    const gchar *username = NULL;
    const gchar *password = NULL;
    g_autoptr(GSettings) rdp_settings = NULL;
@@ -262,7 +280,7 @@ index 28e189b..6c78711 100644
  
    g_settings_bind (rdp_settings,
                     "view-only",
-@@ -1418,17 +1488,54 @@ cc_sharing_panel_setup_remote_desktop_dialog (CcSharingPanel *self)
+@@ -1418,17 +1500,52 @@ cc_sharing_panel_setup_remote_desktop_dialog (CcSharingPanel *self)
                            self->remote_control_switch, "sensitive",
                            G_BINDING_SYNC_CREATE);
  
@@ -271,11 +289,9 @@ index 28e189b..6c78711 100644
 +                   self->remote_desktop_vnc_check,
 +                   "active",
 +                   G_SETTINGS_BIND_DEFAULT);
-+  g_settings_bind (vnc_settings,
-+                   "view-only",
-+                   self->remote_control_switch,
-+                   "active",
-+                   G_SETTINGS_BIND_DEFAULT | G_SETTINGS_BIND_INVERT_BOOLEAN);
++  g_signal_connect_object (self->remote_control_switch, "notify::active",
++                           G_CALLBACK (on_remote_control_switch_active_changed),
++                           self, G_CONNECT_SWAPPED);
 +
 +  vnc_auth_method = g_settings_get_string (vnc_settings, "auth-method");
 +
@@ -317,7 +333,7 @@ index 28e189b..6c78711 100644
    g_signal_connect_swapped (self->remote_desktop_username_entry,
                              "notify::text",
                              G_CALLBACK (remote_desktop_credentials_changed),
-@@ -1451,6 +1558,9 @@ cc_sharing_panel_setup_remote_desktop_dialog (CcSharingPanel *self)
+@@ -1451,6 +1568,9 @@ cc_sharing_panel_setup_remote_desktop_dialog (CcSharingPanel *self)
    g_signal_connect (self->remote_desktop_address_copy,
                      "clicked", G_CALLBACK (on_copy_clicked_label),
                      self->remote_desktop_address_label);
