@@ -24,7 +24,7 @@ Forwarded: not-needed
  panels/ubuntu/cc-ubuntu-dock-dialog.c          |  106 ++
  panels/ubuntu/cc-ubuntu-dock-dialog.h          |   31 +
  panels/ubuntu/cc-ubuntu-dock-dialog.ui         |  120 ++
- panels/ubuntu/cc-ubuntu-panel.c                | 1719 ++++++++++++++++++++++++
+ panels/ubuntu/cc-ubuntu-panel.c                | 1747 ++++++++++++++++++++++++
  panels/ubuntu/cc-ubuntu-panel.h                |   35 +
  panels/ubuntu/cc-ubuntu-panel.ui               |  618 +++++++++
  panels/ubuntu/gnome-ubuntu-panel.desktop.in.in |   16 +
@@ -33,7 +33,7 @@ Forwarded: not-needed
  po/POTFILES.in                                 |    5 +
  shell/cc-panel-list.c                          |    1 +
  shell/cc-panel-loader.c                        |    3 +
- 17 files changed, 2796 insertions(+)
+ 17 files changed, 2824 insertions(+)
  create mode 100644 panels/ubuntu/appearance.css
  create mode 100644 panels/ubuntu/assets/colors/color.svg.in
  create mode 100644 panels/ubuntu/assets/theme-dark.svg
@@ -394,10 +394,10 @@ index 0000000..512f606
 +</interface>
 diff --git a/panels/ubuntu/cc-ubuntu-panel.c b/panels/ubuntu/cc-ubuntu-panel.c
 new file mode 100644
-index 0000000..09cff41
+index 0000000..b31f192
 --- /dev/null
 +++ b/panels/ubuntu/cc-ubuntu-panel.c
-@@ -0,0 +1,1719 @@
+@@ -0,0 +1,1747 @@
 +/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 +/*
 + * Copyright (C) 2017-2022 Canonical Ltd
@@ -902,7 +902,9 @@ index 0000000..09cff41
 +  g_autoptr(GString) gedit_theme = NULL;
 +  g_autofree char *current_gtk_theme = NULL;
 +  g_autofree char *current_color_scheme = NULL;
++  g_autofree char *current_icon_theme = NULL;
 +  const char *color_scheme = "prefer-light";
++  gboolean has_selected_accent;
 +  GList *l;
 +
 +  colors = gtk_container_get_children (GTK_CONTAINER (self->color_box));
@@ -914,6 +916,7 @@ index 0000000..09cff41
 +  gtk_theme = g_string_new ("Yaru");
 +  icon_theme = g_string_new ("Yaru");
 +  gedit_theme = g_string_new ("Yaru");
++  has_selected_accent = FALSE;
 +
 +  for (l = colors; l; l = l->next)
 +    {
@@ -925,6 +928,8 @@ index 0000000..09cff41
 +
 +      if (color && gtk_flow_box_child_is_selected (accent_color))
 +        {
++          has_selected_accent = TRUE;
++
 +          if (g_str_equal (color, DEFAULT_ACCENT_COLOR))
 +            break;
 +
@@ -933,6 +938,9 @@ index 0000000..09cff41
 +          break;
 +        }
 +    }
++
++  if (!selected_variant && !has_selected_accent)
++    return;
 +
 +  if (selected_variant_item == self->theme_dark)
 +    {
@@ -952,10 +960,28 @@ index 0000000..09cff41
 +      g_settings_set_string (self->interface_settings, COLOR_SCHEME_KEY, color_scheme);
 +    }
 +
-+  if (self->gedit_settings)
-+    g_settings_set_string (self->gedit_settings, GEDIT_THEME_KEY, gedit_theme->str);
++  current_icon_theme = g_settings_get_string (self->interface_settings, ICON_THEME_KEY);
 +
-+  g_settings_set_string (self->interface_settings, ICON_THEME_KEY, icon_theme->str);
++  if (!current_icon_theme || !self->updating ||
++      g_str_has_prefix (current_icon_theme, "Yaru"))
++    g_settings_set_string (self->interface_settings, ICON_THEME_KEY, icon_theme->str);
++
++  if (self->gedit_settings)
++    {
++      g_autoptr(GVariant) gedit_user_value = NULL;
++      const char *gedit_theme_name = NULL;
++
++      if (gedit_user_value)
++        gedit_theme_name = g_variant_get_string (gedit_user_value, NULL);
++
++      if (!gedit_theme_name || *gedit_theme_name == '\0' ||
++          g_str_has_prefix (gedit_theme_name, "Yaru"))
++        {
++          /* Only change the gedit setting if user is using a Yaru theme, or unset */
++          g_settings_set_string (self->gedit_settings, GEDIT_THEME_KEY,
++                                 gedit_theme->str);
++        }
++    }
 +}
 +
 +static void
@@ -2009,6 +2035,8 @@ index 0000000..09cff41
 +      gtk_widget_hide (GTK_WIDGET (self->ding_preferences_group));
 +    }
 +
++  self->updating = TRUE;
++
 +  /* Only load if we have ubuntu dock or dash to dock installed */
 +  schema = g_settings_schema_source_lookup (schema_source, UBUNTU_DOCK_SCHEMA, TRUE);
 +  if (schema)
@@ -2016,12 +2044,10 @@ index 0000000..09cff41
 +      self->dock_settings = g_settings_new_full (schema, NULL, NULL);
 +      self->dock_monitors_liststore = g_list_store_new (HDY_TYPE_VALUE_OBJECT);
 +
-+      self->updating = TRUE;
 +      hdy_combo_row_bind_name_model (self->dock_monitor_row,
 +                                     G_LIST_MODEL (self->dock_monitors_liststore),
 +                                     (HdyComboRowGetNameFunc) get_dock_monitor_value_object_name,
 +                                     self, NULL);
-+      self->updating = FALSE;
 +
 +      populate_dock_position_row (self->dock_position_row);
 +
@@ -2097,6 +2123,8 @@ index 0000000..09cff41
 +                                       self);
 +
 +  g_signal_connect (self, "map", G_CALLBACK (mapped_cb), NULL);
++
++  self->updating = FALSE;
 +}
 +
 +void
