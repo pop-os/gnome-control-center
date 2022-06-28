@@ -21,7 +21,7 @@ this.
  3 files changed, 26 insertions(+)
 
 diff --git a/meson.build b/meson.build
-index cde84d9..4fffa43 100644
+index 4999365..920c9e0 100644
 --- a/meson.build
 +++ b/meson.build
 @@ -50,6 +50,17 @@ foreach define: set_defines
@@ -53,10 +53,10 @@ index 1b7b548..5305c86 100644
 +option('distributor_logo', type: 'string', description: 'absolute path to distributor logo for the About panel')
 +option('dark_mode_distributor_logo', type: 'string', description: 'absolute path to distributor logo dark mode variant')
 diff --git a/panels/info-overview/cc-info-overview-panel.c b/panels/info-overview/cc-info-overview-panel.c
-index 35969b8..79d6616 100644
+index a0b9496..7819b97 100644
 --- a/panels/info-overview/cc-info-overview-panel.c
 +++ b/panels/info-overview/cc-info-overview-panel.c
-@@ -917,6 +917,7 @@ cc_info_panel_row_activated_cb (CcInfoOverviewPanel *self,
+@@ -951,6 +951,7 @@ cc_info_panel_row_activated_cb (CcInfoOverviewPanel *self,
      open_software_update (self);
  }
  
@@ -64,7 +64,7 @@ index 35969b8..79d6616 100644
  static gboolean
  use_dark_theme (CcInfoOverviewPanel *panel)
  {
-@@ -934,10 +935,21 @@ use_dark_theme (CcInfoOverviewPanel *panel)
+@@ -968,10 +969,21 @@ use_dark_theme (CcInfoOverviewPanel *panel)
    g_object_get (settings, "gtk-theme-name", &theme_name, NULL);
    return (theme_name != NULL && g_str_has_suffix (theme_name, "dark")) ? TRUE : FALSE;
  }
@@ -86,7 +86,7 @@ index 35969b8..79d6616 100644
    g_autofree char *logo_name = g_get_os_info ("LOGO");
    g_autoptr(GPtrArray) array = NULL;
    g_autoptr(GIcon) icon = NULL;
-@@ -957,6 +969,7 @@ setup_os_logo (CcInfoOverviewPanel *panel)
+@@ -991,6 +1003,7 @@ setup_os_logo (CcInfoOverviewPanel *panel)
  
    icon = g_themed_icon_new_from_names ((char **) array->pdata, array->len);
    gtk_image_set_from_gicon (panel->os_logo, icon, GTK_ICON_SIZE_INVALID);
