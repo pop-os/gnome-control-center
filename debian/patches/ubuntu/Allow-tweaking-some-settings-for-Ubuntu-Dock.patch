@@ -24,7 +24,7 @@ Forwarded: not-needed
  panels/ubuntu/cc-ubuntu-dock-dialog.c          |  106 ++
  panels/ubuntu/cc-ubuntu-dock-dialog.h          |   31 +
  panels/ubuntu/cc-ubuntu-dock-dialog.ui         |  120 ++
- panels/ubuntu/cc-ubuntu-panel.c                | 1747 ++++++++++++++++++++++++
+ panels/ubuntu/cc-ubuntu-panel.c                | 1750 ++++++++++++++++++++++++
  panels/ubuntu/cc-ubuntu-panel.h                |   35 +
  panels/ubuntu/cc-ubuntu-panel.ui               |  618 +++++++++
  panels/ubuntu/gnome-ubuntu-panel.desktop.in.in |   16 +
@@ -33,7 +33,7 @@ Forwarded: not-needed
  po/POTFILES.in                                 |    5 +
  shell/cc-panel-list.c                          |    1 +
  shell/cc-panel-loader.c                        |    3 +
- 17 files changed, 2824 insertions(+)
+ 17 files changed, 2827 insertions(+)
  create mode 100644 panels/ubuntu/appearance.css
  create mode 100644 panels/ubuntu/assets/colors/color.svg.in
  create mode 100644 panels/ubuntu/assets/theme-dark.svg
@@ -394,10 +394,10 @@ index 0000000..512f606
 +</interface>
 diff --git a/panels/ubuntu/cc-ubuntu-panel.c b/panels/ubuntu/cc-ubuntu-panel.c
 new file mode 100644
-index 0000000..b31f192
+index 0000000..94db097
 --- /dev/null
 +++ b/panels/ubuntu/cc-ubuntu-panel.c
-@@ -0,0 +1,1747 @@
+@@ -0,0 +1,1750 @@
 +/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 +/*
 + * Copyright (C) 2017-2022 Canonical Ltd
@@ -970,6 +970,9 @@ index 0000000..b31f192
 +    {
 +      g_autoptr(GVariant) gedit_user_value = NULL;
 +      const char *gedit_theme_name = NULL;
++
++      gedit_user_value = g_settings_get_user_value (self->gedit_settings,
++                                                    GEDIT_THEME_KEY);
 +
 +      if (gedit_user_value)
 +        gedit_theme_name = g_variant_get_string (gedit_user_value, NULL);
