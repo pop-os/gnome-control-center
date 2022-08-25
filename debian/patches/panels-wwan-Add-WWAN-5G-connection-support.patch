@@ -1,0 +1,149 @@
+From 83278d27248bc7c9b24b780c8f9b5aba6537f75b Mon Sep 17 00:00:00 2001
+From: Dirk Su <dirk.su@canonical.com>
+Date: Mon, 1 Aug 2022 20:06:51 +0000
+Subject: [PATCH 1/2] panels: wwan: Add WWAN 5G connection support
+
+---
+ panels/wwan/cc-wwan-device.c      | 88 +++++++++++++++++++++++++++++++
+ panels/wwan/cc-wwan-mode-dialog.c |  5 ++
+ 2 files changed, 93 insertions(+)
+
+Index: gnome-control-center/panels/wwan/cc-wwan-device.c
+===================================================================
+--- gnome-control-center.orig/panels/wwan/cc-wwan-device.c
++++ gnome-control-center/panels/wwan/cc-wwan-device.c
+@@ -993,10 +993,29 @@ cc_wwan_device_get_string_from_mode (CcW
+   if (allowed == MM_MODEM_MODE_4G)
+     return g_strdup (_("4G Only"));
+ 
++  if (allowed == MM_MODEM_MODE_5G)
++    return g_strdup (_("5G Only"));
++
+   str = g_string_sized_new (10);
+ 
+   if (allowed & MM_MODEM_MODE_2G &&
+       allowed & MM_MODEM_MODE_3G &&
++      allowed & MM_MODEM_MODE_4G &&
++      allowed & MM_MODEM_MODE_5G)
++    {
++      if (preferred & MM_MODEM_MODE_5G)
++        g_string_append (str, _("2G, 3G, 4G, 5G (Preferred)"));
++      else if (preferred & MM_MODEM_MODE_4G)
++        g_string_append (str, _("2G, 3G, 4G (Preferred), 5G"));
++      else if (preferred & MM_MODEM_MODE_3G)
++        g_string_append (str, _("2G, 3G (Preferred), 4G, 5G"));
++      else if (preferred & MM_MODEM_MODE_2G)
++        g_string_append (str, _("2G (Preferred), 3G, 4G, 5G"));
++      else
++        g_string_append (str, _("2G, 3G, 4G, 5G"));
++    }
++  else if (allowed & MM_MODEM_MODE_2G &&
++      allowed & MM_MODEM_MODE_3G &&
+       allowed & MM_MODEM_MODE_4G)
+     {
+       if (preferred & MM_MODEM_MODE_4G)
+@@ -1009,6 +1028,45 @@ cc_wwan_device_get_string_from_mode (CcW
+         g_string_append (str, _("2G, 3G, 4G"));
+     }
+   else if (allowed & MM_MODEM_MODE_3G &&
++      allowed & MM_MODEM_MODE_4G &&
++      allowed & MM_MODEM_MODE_5G)
++    {
++      if (preferred & MM_MODEM_MODE_5G)
++        g_string_append (str, _("3G, 4G, 5G (Preferred)"));
++      else if (preferred & MM_MODEM_MODE_4G)
++        g_string_append (str, _("3G, 4G (Preferred), 5G"));
++      else if (preferred & MM_MODEM_MODE_2G)
++        g_string_append (str, _("3G (Preferred), 4G, 5G"));
++      else
++        g_string_append (str, _("3G, 4G, 5G"));
++    }
++  else if (allowed & MM_MODEM_MODE_2G &&
++      allowed & MM_MODEM_MODE_4G &&
++      allowed & MM_MODEM_MODE_5G)
++    {
++      if (preferred & MM_MODEM_MODE_5G)
++        g_string_append (str, _("2G, 4G, 5G (Preferred)"));
++      else if (preferred & MM_MODEM_MODE_4G)
++        g_string_append (str, _("2G, 4G (Preferred), 5G"));
++      else if (preferred & MM_MODEM_MODE_2G)
++        g_string_append (str, _("2G (Preferred), 4G, 5G"));
++      else
++        g_string_append (str, _("2G, 4G, 5G"));
++    }
++  else if (allowed & MM_MODEM_MODE_2G &&
++      allowed & MM_MODEM_MODE_3G &&
++      allowed & MM_MODEM_MODE_5G)
++    {
++      if (preferred & MM_MODEM_MODE_5G)
++        g_string_append (str, _("2G, 3G, 5G (Preferred)"));
++      else if (preferred & MM_MODEM_MODE_3G)
++        g_string_append (str, _("2G, 3G (Preferred), 5G"));
++      else if (preferred & MM_MODEM_MODE_2G)
++        g_string_append (str, _("2G (Preferred), 3G, 5G"));
++      else
++        g_string_append (str, _("2G, 3G, 5G"));
++    }
++  else if (allowed & MM_MODEM_MODE_3G &&
+            allowed & MM_MODEM_MODE_4G)
+     {
+       if (preferred & MM_MODEM_MODE_4G)
+@@ -1038,6 +1096,36 @@ cc_wwan_device_get_string_from_mode (CcW
+       else
+         g_string_append (str, _("2G, 3G"));
+     }
++  else if (allowed & MM_MODEM_MODE_2G &&
++           allowed & MM_MODEM_MODE_5G)
++    {
++      if (preferred & MM_MODEM_MODE_5G)
++        g_string_append (str, _("2G, 5G (Preferred)"));
++      else if (preferred & MM_MODEM_MODE_2G)
++        g_string_append (str, _("2G (Preferred), 5G"));
++      else
++        g_string_append (str, _("2G, 5G"));
++    }
++  else if (allowed & MM_MODEM_MODE_3G &&
++           allowed & MM_MODEM_MODE_5G)
++    {
++      if (preferred & MM_MODEM_MODE_5G)
++        g_string_append (str, _("3G, 5G (Preferred)"));
++      else if (preferred & MM_MODEM_MODE_3G)
++        g_string_append (str, _("3G (Preferred), 5G"));
++      else
++        g_string_append (str, _("3G, 5G"));
++    }
++  else if (allowed & MM_MODEM_MODE_4G &&
++           allowed & MM_MODEM_MODE_5G)
++    {
++      if (preferred & MM_MODEM_MODE_5G)
++        g_string_append (str, _("4G, 5G (Preferred)"));
++      else if (preferred & MM_MODEM_MODE_4G)
++        g_string_append (str, _("4G (Preferred), 5G"));
++      else
++        g_string_append (str, _("4G, 5G"));
++    }
+ 
+   if (!str->len)
+     g_string_append (str, C_("Network mode", "Unknown"));
+Index: gnome-control-center/panels/wwan/cc-wwan-mode-dialog.c
+===================================================================
+--- gnome-control-center.orig/panels/wwan/cc-wwan-mode-dialog.c
++++ gnome-control-center/panels/wwan/cc-wwan-mode-dialog.c
+@@ -163,12 +163,17 @@ cc_wwan_mode_dialog_update (CcWwanModeDi
+ {
+   MMModemMode allowed;
+   MMModemMode modes[][2] = {
++    {MM_MODEM_MODE_2G | MM_MODEM_MODE_3G | MM_MODEM_MODE_4G | MM_MODEM_MODE_5G, MM_MODEM_MODE_5G},
++    {MM_MODEM_MODE_2G | MM_MODEM_MODE_3G | MM_MODEM_MODE_4G | MM_MODEM_MODE_5G, 0},
++    {MM_MODEM_MODE_3G | MM_MODEM_MODE_4G | MM_MODEM_MODE_5G, MM_MODEM_MODE_5G},
++    {MM_MODEM_MODE_3G | MM_MODEM_MODE_4G | MM_MODEM_MODE_5G, 0},
+     {MM_MODEM_MODE_2G | MM_MODEM_MODE_3G | MM_MODEM_MODE_4G, MM_MODEM_MODE_4G},
+     {MM_MODEM_MODE_2G | MM_MODEM_MODE_3G | MM_MODEM_MODE_4G, 0},
+     {MM_MODEM_MODE_3G | MM_MODEM_MODE_4G, MM_MODEM_MODE_4G},
+     {MM_MODEM_MODE_3G | MM_MODEM_MODE_4G, 0},
+     {MM_MODEM_MODE_2G | MM_MODEM_MODE_3G, MM_MODEM_MODE_3G},
+     {MM_MODEM_MODE_2G | MM_MODEM_MODE_3G, 0},
++    {MM_MODEM_MODE_5G, 0},
+     {MM_MODEM_MODE_4G, 0},
+     {MM_MODEM_MODE_3G, 0},
+     {MM_MODEM_MODE_2G, 0},
