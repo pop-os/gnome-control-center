@@ -16,6 +16,7 @@ representation of how they function.
 Origin: https://gitlab.gnome.org/GNOME/gnome-control-center/-/merge_requests/910
 Bug-Ubuntu: https://launchpad.net/bugs/1867548
 Bug-GNOME: https://gitlab.gnome.org/GNOME/gnome-control-center/issues/918
+Last-Update: 2022-12-25
 ---
  panels/keyboard/cc-keyboard-panel.c       |  5 +-
  panels/keyboard/cc-xkb-modifier-dialog.c  | 78 +++++++++++++++++--------------
@@ -139,23 +140,23 @@ index b1fae3d..dc5a91e 100644
  
    /* Either replace the existing "<modifier>:" option in the string
     * array, or add the option at the end
-@@ -139,6 +147,8 @@ set_xkb_option (CcXkbModifierDialog *self,
-     {
-       if (g_str_has_prefix (options[i], self->modifier->prefix))
+@@ -141,6 +149,8 @@ set_xkb_option (CcXkbModifierDialog *self,
          {
-+          if (!found && add_nodefault)
-+            g_ptr_array_add (array, self->modifier->nodefault_option);
            if (!found && xkb_option != NULL)
              g_ptr_array_add (array, xkb_option);
++          if (!found && add_nodefault)
++            g_ptr_array_add (array, self->modifier->nodefault_option);
            found = TRUE;
-@@ -149,6 +159,8 @@ set_xkb_option (CcXkbModifierDialog *self,
          }
-     }
+       else
+@@ -151,6 +161,8 @@ set_xkb_option (CcXkbModifierDialog *self,
  
-+  if (!found && add_nodefault)
-+    g_ptr_array_add (array, self->modifier->nodefault_option);
    if (!found && xkb_option != NULL)
      g_ptr_array_add (array, xkb_option);
++  if (!found && add_nodefault)
++    g_ptr_array_add (array, self->modifier->nodefault_option);
+ 
+   g_ptr_array_add (array, NULL);
  
 @@ -168,7 +180,7 @@ on_active_radio_changed_cb (CcXkbModifierDialog *self,
    if (!gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (radio)))
