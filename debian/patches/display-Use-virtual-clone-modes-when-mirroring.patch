@@ -1,0 +1,591 @@
+From: =?utf-8?q?Jonas_=C3=85dahl?= <jadahl@gmail.com>
+Date: Thu, 23 Jun 2022 12:59:50 +0200
+Subject: [PATCH 2/2] display: Use virtual clone modes when mirroring
+
+These are not real modes, but just as place holders when generating
+'mirror' configurations. The clone modes will be just to match the
+flag/dimension, while the actual mode applied will be individual for
+each monitor.
+
+This allows monitors to have their own refresh rates, which is possible
+since a few mutter versions back. This also matches how mutter itself
+generates mirror modes when doing so via the key binding.
+
+Origin: 43.0 9e4f15353c9601dd7a57f49abacb115f3592c2bb
+---
+ panels/display/cc-display-config-dbus.c | 257 +++++++++++++++++++++++++++-----
+ panels/display/cc-display-config.c      |  21 ++-
+ panels/display/cc-display-config.h      |  10 +-
+ panels/display/cc-display-panel.c       |  44 +++---
+ panels/display/cc-display-settings.c    |  10 +-
+ 5 files changed, 276 insertions(+), 66 deletions(-)
+
+diff --git a/panels/display/cc-display-config-dbus.c b/panels/display/cc-display-config-dbus.c
+index d1174f1..04e7793 100644
+--- a/panels/display/cc-display-config-dbus.c
++++ b/panels/display/cc-display-config-dbus.c
+@@ -76,6 +76,14 @@ cc_display_mode_dbus_equal (const CcDisplayModeDBus *m1,
+     (m1->flags & MODE_INTERLACED) == (m2->flags & MODE_INTERLACED);
+ }
+ 
++static gboolean
++cc_display_mode_dbus_is_clone_mode (CcDisplayMode *pself)
++{
++  CcDisplayModeDBus *self = CC_DISPLAY_MODE_DBUS (pself);
++
++  return !self->id;
++}
++
+ static void
+ cc_display_mode_dbus_get_resolution (CcDisplayMode *pself,
+                                      int *w, int *h)
+@@ -173,6 +181,7 @@ cc_display_mode_dbus_class_init (CcDisplayModeDBusClass *klass)
+ 
+   gobject_class->finalize = cc_display_mode_dbus_finalize;
+ 
++  parent_class->is_clone_mode = cc_display_mode_dbus_is_clone_mode;
+   parent_class->get_resolution = cc_display_mode_dbus_get_resolution;
+   parent_class->get_supported_scales = cc_display_mode_dbus_get_supported_scales;
+   parent_class->get_preferred_scale = cc_display_mode_dbus_get_preferred_scale;
+@@ -182,6 +191,25 @@ cc_display_mode_dbus_class_init (CcDisplayModeDBusClass *klass)
+   parent_class->get_freq_f = cc_display_mode_dbus_get_freq_f;
+ }
+ 
++static CcDisplayModeDBus *
++cc_display_mode_dbus_new_virtual (int     width,
++                                  int     height,
++                                  double  preferred_scale,
++                                  GArray *supported_scales)
++{
++  g_autoptr(GVariant) properties_variant = NULL;
++  CcDisplayModeDBus *self;
++
++  self = g_object_new (CC_TYPE_DISPLAY_MODE_DBUS, NULL);
++
++  self->width = width;
++  self->height = height;
++  self->preferred_scale = preferred_scale;
++  self->supported_scales = g_array_ref (supported_scales);
++
++  return self;
++}
++
+ static CcDisplayModeDBus *
+ cc_display_mode_dbus_new (CcDisplayMonitorDBus *monitor,
+                           GVariant             *variant)
+@@ -673,6 +701,44 @@ cc_display_monitor_dbus_set_mode (CcDisplayMonitor *pself,
+   g_signal_emit_by_name (self, "mode");
+ }
+ 
++static void
++cc_display_monitor_dbus_set_compatible_clone_mode (CcDisplayMonitor *pself,
++                                                   CcDisplayMode    *clone_mode)
++{
++  CcDisplayMonitorDBus *self = CC_DISPLAY_MONITOR_DBUS (pself);
++  GList *l;
++  CcDisplayMode *best_mode = NULL;
++  int clone_width, clone_height;
++
++  g_return_if_fail (cc_display_mode_is_clone_mode (clone_mode));
++
++  cc_display_mode_get_resolution (clone_mode, &clone_width, &clone_height);
++
++  for (l = self->modes; l; l = l->next)
++    {
++      CcDisplayMode *mode = l->data;
++      int width, height;
++
++      cc_display_mode_get_resolution (mode, &width, &height);
++      if (width != clone_width || height != clone_height)
++        continue;
++
++      if (!best_mode)
++        {
++          best_mode = mode;
++          continue;
++        }
++
++      if (cc_display_mode_get_freq_f (mode) >
++          cc_display_mode_get_freq_f (best_mode))
++        best_mode = mode;
++    }
++
++  g_return_if_fail (best_mode);
++
++  cc_display_monitor_set_mode (CC_DISPLAY_MONITOR (self), best_mode);
++}
++
+ static void
+ cc_display_monitor_dbus_set_position (CcDisplayMonitor *pself,
+                                       int x, int y)
+@@ -788,6 +854,7 @@ cc_display_monitor_dbus_class_init (CcDisplayMonitorDBusClass *klass)
+   parent_class->set_underscanning = cc_display_monitor_dbus_set_underscanning;
+   parent_class->get_privacy = cc_display_monitor_dbus_get_privacy;
+   parent_class->set_mode = cc_display_monitor_dbus_set_mode;
++  parent_class->set_compatible_clone_mode = cc_display_monitor_dbus_set_compatible_clone_mode;
+   parent_class->set_position = cc_display_monitor_dbus_set_position;
+   parent_class->get_scale = cc_display_monitor_dbus_get_scale;
+   parent_class->set_scale = cc_display_monitor_dbus_set_scale;
+@@ -934,8 +1001,6 @@ struct _CcDisplayConfigDBus
+   CcDisplayMonitorDBus *primary;
+ 
+   GHashTable *logical_monitors;
+-
+-  GList *clone_modes;
+ };
+ 
+ G_DEFINE_TYPE (CcDisplayConfigDBus,
+@@ -1223,12 +1288,161 @@ cc_display_config_dbus_set_cloning (CcDisplayConfig *pself,
+     }
+ }
+ 
++static gboolean
++mode_supports_scale (CcDisplayMode *mode,
++                     double         scale)
++{
++  g_autoptr(GArray) scales = NULL;
++  int i;
++
++  scales = cc_display_mode_get_supported_scales (mode);
++  for (i = 0; i < scales->len; i++)
++    {
++      if (G_APPROX_VALUE (scale, g_array_index (scales, double, i),
++                          DBL_EPSILON))
++        return TRUE;
++    }
++
++  return FALSE;
++}
++
++static void
++remove_unsupported_scales (CcDisplayMode *mode,
++                           GArray        *supported_scales)
++{
++  g_autoptr(GArray) mode_scales = NULL;
++  int i;
++
++  mode_scales = cc_display_mode_get_supported_scales (mode);
++  i = 0;
++  while (i < supported_scales->len)
++    {
++      double scale;
++
++      if (i == supported_scales->len)
++        break;
++
++      scale = g_array_index (supported_scales, double, i);
++
++      if (mode_supports_scale (mode, scale))
++        {
++          i++;
++          continue;
++        }
++
++      g_array_remove_range (supported_scales, i, 1);
++    }
++}
++
++static gboolean
++monitor_has_compatible_clone_mode (CcDisplayMonitorDBus *monitor,
++                                   CcDisplayModeDBus    *mode,
++                                   GArray               *supported_scales)
++{
++  GList *l;
++
++  for (l = monitor->modes; l; l = l->next)
++    {
++      CcDisplayModeDBus *other_mode = l->data;
++
++      if (other_mode->width != mode->width ||
++          other_mode->height != mode->height)
++        continue;
++
++      if ((other_mode->flags & MODE_INTERLACED) !=
++          (mode->flags & MODE_INTERLACED))
++        continue;
++
++      remove_unsupported_scales (CC_DISPLAY_MODE (other_mode), supported_scales);
++
++      return TRUE;
++    }
++
++  return FALSE;
++}
++
++static gboolean
++monitors_has_compatible_clone_mode (CcDisplayConfigDBus *self,
++                                    CcDisplayModeDBus   *mode,
++                                    GArray              *supported_scales)
++{
++  GList *l;
++
++  for (l = self->monitors; l; l = l->next)
++    {
++      CcDisplayMonitorDBus *monitor = l->data;
++
++      if (!monitor_has_compatible_clone_mode (monitor, mode, supported_scales))
++        return FALSE;
++    }
++
++  return TRUE;
++}
++
++static gboolean
++is_mode_better (CcDisplayModeDBus *mode,
++                CcDisplayModeDBus *other_mode)
++{
++  if (mode->width * mode->height > other_mode->width * other_mode->height)
++    return TRUE;
++  else if (mode->width * mode->height < other_mode->width * other_mode->height)
++    return FALSE;
++
++  if (!(mode->flags & MODE_INTERLACED) &&
++      (other_mode->flags & MODE_INTERLACED))
++    return TRUE;
++
++  return FALSE;
++}
++
+ static GList *
+-cc_display_config_dbus_get_cloning_modes (CcDisplayConfig *pself)
++cc_display_config_dbus_generate_cloning_modes (CcDisplayConfig *pself)
+ {
+   CcDisplayConfigDBus *self = CC_DISPLAY_CONFIG_DBUS (pself);
++  CcDisplayMonitorDBus *base_monitor = NULL;
++  GList *l;
++  GList *clone_modes = NULL;
++  CcDisplayModeDBus *best_mode = NULL;
+ 
+-  return self->clone_modes;
++  for (l = self->monitors; l; l = l->next)
++    {
++      CcDisplayMonitor *monitor = l->data;
++
++      if (cc_display_monitor_is_active (monitor))
++        {
++          base_monitor = CC_DISPLAY_MONITOR_DBUS (monitor);
++          break;
++        }
++    }
++
++  if (!base_monitor)
++    return NULL;
++
++  for (l = base_monitor->modes; l; l = l->next)
++    {
++      CcDisplayModeDBus *mode = l->data;
++      CcDisplayModeDBus *virtual_mode;
++      g_autoptr (GArray) supported_scales = NULL;
++
++      supported_scales =
++        cc_display_mode_get_supported_scales (CC_DISPLAY_MODE (mode));
++
++      if (!monitors_has_compatible_clone_mode (self, mode, supported_scales))
++        continue;
++
++      virtual_mode = cc_display_mode_dbus_new_virtual (mode->width,
++                                                       mode->height,
++                                                       mode->preferred_scale,
++                                                       supported_scales);
++      clone_modes = g_list_append (clone_modes, virtual_mode);
++
++      if (!best_mode || is_mode_better (virtual_mode, best_mode))
++        best_mode = virtual_mode;
++    }
++
++  best_mode->flags |= MODE_PREFERRED;
++
++  return clone_modes;
+ }
+ 
+ static gboolean
+@@ -1467,36 +1681,6 @@ cc_display_config_dbus_init (CcDisplayConfigDBus *self)
+     self->renderer = g_strdup ("xrandr");
+ }
+ 
+-static void
+-gather_clone_modes (CcDisplayConfigDBus *self)
+-{
+-  guint n_monitors = g_list_length (self->monitors);
+-  CcDisplayMonitorDBus *monitor;
+-  GList *l;
+-
+-  if (n_monitors < 2)
+-    return;
+-
+-  monitor = self->monitors->data;
+-  for (l = monitor->modes; l != NULL; l = l->next)
+-    {
+-      CcDisplayModeDBus *mode = l->data;
+-      gboolean valid = TRUE;
+-      GList *ll;
+-      for (ll = self->monitors->next; ll != NULL; ll = ll->next)
+-        {
+-          CcDisplayMonitorDBus *other_monitor = ll->data;
+-          if (!cc_display_monitor_dbus_get_closest_mode (other_monitor, mode))
+-            {
+-              valid = FALSE;
+-              break;
+-            }
+-        }
+-      if (valid)
+-        self->clone_modes = g_list_prepend (self->clone_modes, mode);
+-    }
+-}
+-
+ static void
+ remove_logical_monitor (gpointer data,
+                         GObject *object)
+@@ -1605,8 +1789,6 @@ construct_monitors (CcDisplayConfigDBus *self,
+ 
+       register_logical_monitor (self, logical_monitor);
+     }
+-
+-  gather_clone_modes (self);
+ }
+ 
+ static void
+@@ -1775,7 +1957,6 @@ cc_display_config_dbus_finalize (GObject *object)
+   g_list_foreach (self->monitors, (GFunc) g_object_unref, NULL);
+   g_clear_pointer (&self->monitors, g_list_free);
+   g_clear_pointer (&self->logical_monitors, g_hash_table_destroy);
+-  g_clear_pointer (&self->clone_modes, g_list_free);
+   g_clear_pointer (&self->renderer, g_free);
+ 
+   G_OBJECT_CLASS (cc_display_config_dbus_parent_class)->finalize (object);
+@@ -1799,7 +1980,7 @@ cc_display_config_dbus_class_init (CcDisplayConfigDBusClass *klass)
+   parent_class->apply = cc_display_config_dbus_apply;
+   parent_class->is_cloning = cc_display_config_dbus_is_cloning;
+   parent_class->set_cloning = cc_display_config_dbus_set_cloning;
+-  parent_class->get_cloning_modes = cc_display_config_dbus_get_cloning_modes;
++  parent_class->generate_cloning_modes = cc_display_config_dbus_generate_cloning_modes;
+   parent_class->is_layout_logical = cc_display_config_dbus_is_layout_logical;
+   parent_class->set_layout_logical = cc_display_config_dbus_set_layout_logical;
+   parent_class->is_scaled_mode_valid = cc_display_config_dbus_is_scaled_mode_valid;
+diff --git a/panels/display/cc-display-config.c b/panels/display/cc-display-config.c
+index 9e95e2b..5743869 100644
+--- a/panels/display/cc-display-config.c
++++ b/panels/display/cc-display-config.c
+@@ -95,6 +95,12 @@ cc_display_mode_class_init (CcDisplayModeClass *klass)
+ {
+ }
+ 
++gboolean
++cc_display_mode_is_clone_mode (CcDisplayMode *self)
++{
++  return CC_DISPLAY_MODE_GET_CLASS (self)->is_clone_mode (self);
++}
++
+ void
+ cc_display_mode_get_resolution (CcDisplayMode *self, int *w, int *h)
+ {
+@@ -345,6 +351,12 @@ cc_display_monitor_set_mode (CcDisplayMonitor *self, CcDisplayMode *m)
+   return CC_DISPLAY_MONITOR_GET_CLASS (self)->set_mode (self, m);
+ }
+ 
++void
++cc_display_monitor_set_compatible_clone_mode (CcDisplayMonitor *self, CcDisplayMode *m)
++{
++  return CC_DISPLAY_MONITOR_GET_CLASS (self)->set_mode (self, m);
++}
++
+ void
+ cc_display_monitor_set_position (CcDisplayMonitor *self, int x, int y)
+ {
+@@ -631,17 +643,18 @@ cc_display_config_is_applicable (CcDisplayConfig *self)
+ 
+ void
+ cc_display_config_set_mode_on_all_outputs (CcDisplayConfig *config,
+-                                           CcDisplayMode   *mode)
++                                           CcDisplayMode   *clone_mode)
+ {
+   GList *outputs, *l;
+ 
+   g_return_if_fail (CC_IS_DISPLAY_CONFIG (config));
++  g_return_if_fail (cc_display_mode_is_clone_mode (clone_mode));
+ 
+   outputs = cc_display_config_get_monitors (config);
+   for (l = outputs; l; l = l->next)
+     {
+       CcDisplayMonitor *output = l->data;
+-      cc_display_monitor_set_mode (output, mode);
++      cc_display_monitor_set_compatible_clone_mode (output, clone_mode);
+       cc_display_monitor_set_position (output, 0, 0);
+     }
+ }
+@@ -704,10 +717,10 @@ cc_display_config_set_cloning (CcDisplayConfig *self,
+ }
+ 
+ GList *
+-cc_display_config_get_cloning_modes (CcDisplayConfig *self)
++cc_display_config_generate_cloning_modes (CcDisplayConfig *self)
+ {
+   g_return_val_if_fail (CC_IS_DISPLAY_CONFIG (self), NULL);
+-  return CC_DISPLAY_CONFIG_GET_CLASS (self)->get_cloning_modes (self);
++  return CC_DISPLAY_CONFIG_GET_CLASS (self)->generate_cloning_modes (self);
+ }
+ 
+ gboolean
+diff --git a/panels/display/cc-display-config.h b/panels/display/cc-display-config.h
+index 3f2117a..e206a02 100644
+--- a/panels/display/cc-display-config.h
++++ b/panels/display/cc-display-config.h
+@@ -85,6 +85,7 @@ struct _CcDisplayModeClass
+ {
+   GObjectClass parent_class;
+ 
++  gboolean      (*is_clone_mode)        (CcDisplayMode *self);
+   void          (*get_resolution)       (CcDisplayMode *self, int *w, int *h);
+   GArray*       (*get_supported_scales) (CcDisplayMode *self);
+   double        (*get_preferred_scale)  (CcDisplayMode *self);
+@@ -134,6 +135,8 @@ struct _CcDisplayMonitorClass
+   CcDisplayMode*    (*get_mode)               (CcDisplayMonitor  *self);
+   CcDisplayMode*    (*get_preferred_mode)     (CcDisplayMonitor  *self);
+   GList*            (*get_modes)              (CcDisplayMonitor  *self);
++  void              (*set_compatible_clone_mode) (CcDisplayMonitor  *self,
++                                                  CcDisplayMode     *m);
+   void              (*set_mode)               (CcDisplayMonitor  *self,
+                                                CcDisplayMode     *m);
+   void              (*set_position)           (CcDisplayMonitor  *self,
+@@ -162,7 +165,7 @@ struct _CcDisplayConfigClass
+   gboolean (*is_cloning)        (CcDisplayConfig  *self);
+   void     (*set_cloning)       (CcDisplayConfig  *self,
+                                  gboolean          clone);
+-  GList*   (*get_cloning_modes) (CcDisplayConfig  *self);
++  GList*   (*generate_cloning_modes) (CcDisplayConfig  *self);
+   gboolean (*is_layout_logical) (CcDisplayConfig  *self);
+   void     (*set_layout_logical) (CcDisplayConfig  *self,
+                                  gboolean          enabled);
+@@ -190,7 +193,7 @@ gboolean          cc_display_config_apply                   (CcDisplayConfig
+ gboolean          cc_display_config_is_cloning              (CcDisplayConfig    *config);
+ void              cc_display_config_set_cloning             (CcDisplayConfig    *config,
+                                                              gboolean            clone);
+-GList*            cc_display_config_get_cloning_modes       (CcDisplayConfig    *config);
++GList*            cc_display_config_generate_cloning_modes  (CcDisplayConfig    *config);
+ 
+ void              cc_display_config_set_mode_on_all_outputs (CcDisplayConfig *config,
+                                                              CcDisplayMode   *mode);
+@@ -253,6 +256,8 @@ double            cc_display_monitor_get_scale              (CcDisplayMonitor  *
+ void              cc_display_monitor_set_scale              (CcDisplayMonitor  *monitor,
+                                                              double s);
+ 
++void              cc_display_monitor_set_compatible_clone_mode (CcDisplayMonitor  *monitor,
++                                                                CcDisplayMode     *mode);
+ void              cc_display_monitor_set_mode               (CcDisplayMonitor  *monitor,
+                                                              CcDisplayMode     *mode);
+ void              cc_display_monitor_set_position           (CcDisplayMonitor  *monitor,
+@@ -268,6 +273,7 @@ const char*       cc_display_monitor_get_ui_name            (CcDisplayMonitor  *
+ const char*       cc_display_monitor_get_ui_number_name     (CcDisplayMonitor  *monitor);
+ char*             cc_display_monitor_dup_ui_number_name     (CcDisplayMonitor  *monitor);
+ 
++gboolean          cc_display_mode_is_clone_mode             (CcDisplayMode     *mode);
+ void              cc_display_mode_get_resolution            (CcDisplayMode     *mode,
+                                                              int               *width,
+                                                              int               *height);
+diff --git a/panels/display/cc-display-panel.c b/panels/display/cc-display-panel.c
+index 5220804..2612454 100644
+--- a/panels/display/cc-display-panel.c
++++ b/panels/display/cc-display-panel.c
+@@ -169,6 +169,22 @@ cc_panel_get_selected_type (CcDisplayPanel *panel)
+     g_assert_not_reached ();
+ }
+ 
++static CcDisplayMode *
++find_preferred_mode (GList *modes)
++{
++  GList *l;
++
++  for (l = modes; l; l = l->next)
++    {
++      CcDisplayMode *mode = l->data;
++
++      if (cc_display_mode_is_preferred (mode))
++        return mode;
++    }
++
++  return NULL;
++}
++
+ static void
+ config_ensure_of_type (CcDisplayPanel *panel, CcDisplayConfigType type)
+ {
+@@ -266,34 +282,22 @@ config_ensure_of_type (CcDisplayPanel *panel, CcDisplayConfigType type)
+       {
+         g_debug ("Creating new clone config");
+         gdouble scale;
+-        GList *modes = cc_display_config_get_cloning_modes (panel->current_config);
+-        gint bw, bh;
+-        CcDisplayMode *best = NULL;
++        g_autolist(CcDisplayMode) modes = NULL;
++        CcDisplayMode *clone_mode;
+ 
+         /* Turn on cloning and select the best mode we can find by default */
+         cc_display_config_set_cloning (panel->current_config, TRUE);
+ 
+-        while (modes)
+-          {
+-            CcDisplayMode *mode = modes->data;
+-            gint w, h;
+-
+-            cc_display_mode_get_resolution (mode, &w, &h);
+-            if (best == NULL || (bw*bh < w*h))
+-              {
+-                best = mode;
+-                cc_display_mode_get_resolution (best, &bw, &bh);
+-              }
+-
+-            modes = modes->next;
+-          }
++        modes = cc_display_config_generate_cloning_modes (panel->current_config);
++        clone_mode = find_preferred_mode (modes);
++        g_return_if_fail (clone_mode);
+ 
+         /* Take the preferred scale by default, */
+-        scale = cc_display_mode_get_preferred_scale (best);
++        scale = cc_display_mode_get_preferred_scale (clone_mode);
+         /* but prefer the old primary scale if that is valid. */
+         if (current_primary &&
+             cc_display_config_is_scaled_mode_valid (panel->current_config,
+-                                                    best,
++                                                    clone_mode,
+                                                     old_primary_scale))
+           scale = old_primary_scale;
+ 
+@@ -301,7 +305,7 @@ config_ensure_of_type (CcDisplayPanel *panel, CcDisplayConfigType type)
+           {
+             CcDisplayMonitor *output = l->data;
+ 
+-            cc_display_monitor_set_mode (output, best);
++            cc_display_monitor_set_compatible_clone_mode (output, clone_mode);
+             cc_display_monitor_set_scale (output, scale);
+           }
+       }
+diff --git a/panels/display/cc-display-settings.c b/panels/display/cc-display-settings.c
+index 6578835..d226abd 100644
+--- a/panels/display/cc-display-settings.c
++++ b/panels/display/cc-display-settings.c
+@@ -231,6 +231,7 @@ sort_modes_by_freq_desc (CcDisplayMode *a, CcDisplayMode *b)
+ static gboolean
+ cc_display_settings_rebuild_ui (CcDisplaySettings *self)
+ {
++  g_autolist(CcDisplayMode) clone_modes = NULL;
+   GList *modes;
+   GList *item;
+   gint width, height;
+@@ -349,9 +350,14 @@ cc_display_settings_rebuild_ui (CcDisplaySettings *self)
+   /* Resolutions are always shown. */
+   gtk_widget_set_visible (self->resolution_row, TRUE);
+   if (cc_display_config_is_cloning (self->config))
+-    modes = cc_display_config_get_cloning_modes (self->config);
++    {
++      clone_modes = cc_display_config_generate_cloning_modes (self->config);
++      modes = clone_modes;
++    }
+   else
+-    modes = cc_display_monitor_get_modes (self->selected_output);
++    {
++      modes = cc_display_monitor_get_modes (self->selected_output);
++    }
+ 
+   g_list_store_remove_all (self->resolution_list);
+   g_list_store_append (self->resolution_list, current_mode);

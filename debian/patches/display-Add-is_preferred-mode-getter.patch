@@ -1,0 +1,75 @@
+From: =?utf-8?q?Jonas_=C3=85dahl?= <jadahl@gmail.com>
+Date: Thu, 23 Jun 2022 13:01:53 +0200
+Subject: [PATCH 1/2] display: Add 'is_preferred()' mode getter
+
+Origin: 43.0 6087c0397b9133d09830fa4aca20498df154a480
+---
+ panels/display/cc-display-config-dbus.c | 9 +++++++++
+ panels/display/cc-display-config.c      | 6 ++++++
+ panels/display/cc-display-config.h      | 2 ++
+ 3 files changed, 17 insertions(+)
+
+diff --git a/panels/display/cc-display-config-dbus.c b/panels/display/cc-display-config-dbus.c
+index a3690f1..d1174f1 100644
+--- a/panels/display/cc-display-config-dbus.c
++++ b/panels/display/cc-display-config-dbus.c
+@@ -124,6 +124,14 @@ cc_display_mode_dbus_is_interlaced (CcDisplayMode *pself)
+   return !!(self->flags & MODE_INTERLACED);
+ }
+ 
++static gboolean
++cc_display_mode_dbus_is_preferred (CcDisplayMode *pself)
++{
++  CcDisplayModeDBus *self = CC_DISPLAY_MODE_DBUS (pself);
++
++  return !!(self->flags & MODE_PREFERRED);
++}
++
+ static int
+ cc_display_mode_dbus_get_freq (CcDisplayMode *pself)
+ {
+@@ -169,6 +177,7 @@ cc_display_mode_dbus_class_init (CcDisplayModeDBusClass *klass)
+   parent_class->get_supported_scales = cc_display_mode_dbus_get_supported_scales;
+   parent_class->get_preferred_scale = cc_display_mode_dbus_get_preferred_scale;
+   parent_class->is_interlaced = cc_display_mode_dbus_is_interlaced;
++  parent_class->is_preferred = cc_display_mode_dbus_is_preferred;
+   parent_class->get_freq = cc_display_mode_dbus_get_freq;
+   parent_class->get_freq_f = cc_display_mode_dbus_get_freq_f;
+ }
+diff --git a/panels/display/cc-display-config.c b/panels/display/cc-display-config.c
+index 82c14e2..9e95e2b 100644
+--- a/panels/display/cc-display-config.c
++++ b/panels/display/cc-display-config.c
+@@ -119,6 +119,12 @@ cc_display_mode_is_interlaced (CcDisplayMode *self)
+   return CC_DISPLAY_MODE_GET_CLASS (self)->is_interlaced (self);
+ }
+ 
++gboolean
++cc_display_mode_is_preferred (CcDisplayMode *self)
++{
++  return CC_DISPLAY_MODE_GET_CLASS (self)->is_preferred (self);
++}
++
+ int
+ cc_display_mode_get_freq (CcDisplayMode *self)
+ {
+diff --git a/panels/display/cc-display-config.h b/panels/display/cc-display-config.h
+index dc3a924..3f2117a 100644
+--- a/panels/display/cc-display-config.h
++++ b/panels/display/cc-display-config.h
+@@ -89,6 +89,7 @@ struct _CcDisplayModeClass
+   GArray*       (*get_supported_scales) (CcDisplayMode *self);
+   double        (*get_preferred_scale)  (CcDisplayMode *self);
+   gboolean      (*is_interlaced)        (CcDisplayMode *self);
++  gboolean      (*is_preferred)         (CcDisplayMode *self);
+   int           (*get_freq)             (CcDisplayMode *self);
+   double        (*get_freq_f)           (CcDisplayMode *self);
+ };
+@@ -273,6 +274,7 @@ void              cc_display_mode_get_resolution            (CcDisplayMode     *
+ GArray*           cc_display_mode_get_supported_scales      (CcDisplayMode     *self);
+ double            cc_display_mode_get_preferred_scale       (CcDisplayMode     *self);
+ gboolean          cc_display_mode_is_interlaced             (CcDisplayMode     *mode);
++gboolean          cc_display_mode_is_preferred              (CcDisplayMode     *mode);
+ int               cc_display_mode_get_freq                  (CcDisplayMode     *mode);
+ double            cc_display_mode_get_freq_f                (CcDisplayMode     *mode);
+ 

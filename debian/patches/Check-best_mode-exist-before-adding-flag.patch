@@ -1,0 +1,27 @@
+From: Dirk Su <dirk.su@canonical.com>
+Date: Mon, 26 Jun 2023 16:38:48 +0800
+Subject: [PATCH] Check best_mode exist before adding flag
+
+When there is no compatible clone mode, the best_mode will be NULL
+. It will cause gnome-control-center crash when access to the
+variable.
+
+Origin: 45.alpha b7c0c42317db9bea85cbf83667babf2d73a10b4a
+---
+ panels/display/cc-display-config-dbus.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/panels/display/cc-display-config-dbus.c b/panels/display/cc-display-config-dbus.c
+index 04e7793..f33d2a9 100644
+--- a/panels/display/cc-display-config-dbus.c
++++ b/panels/display/cc-display-config-dbus.c
+@@ -1440,7 +1440,8 @@ cc_display_config_dbus_generate_cloning_modes (CcDisplayConfig *pself)
+         best_mode = virtual_mode;
+     }
+ 
+-  best_mode->flags |= MODE_PREFERRED;
++  if (best_mode)
++    best_mode->flags |= MODE_PREFERRED;
+ 
+   return clone_modes;
+ }
