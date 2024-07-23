@@ -3,12 +3,12 @@ Date: Thu, 14 Sep 2017 10:58:16 +0800
 Subject: diagnostics: Add Whoopsie support
 
 ---
- meson.build                                |   9 +++
+ meson.build                                |   9 ++
  meson_options.txt                          |   1 +
- panels/diagnostics/cc-diagnostics-panel.c  | 113 +++++++++++++++++++++++++++++
- panels/diagnostics/cc-diagnostics-panel.ui |  43 ++++++++++-
+ panels/diagnostics/cc-diagnostics-panel.c  | 136 +++++++++++++++++++++++++++++
+ panels/diagnostics/cc-diagnostics-panel.ui |  43 ++++++++-
  panels/diagnostics/meson.build             |   7 +-
- 5 files changed, 171 insertions(+), 2 deletions(-)
+ 5 files changed, 194 insertions(+), 2 deletions(-)
 
 diff --git a/meson.build b/meson.build
 index 920c9e0..bf864cb 100644
@@ -45,7 +45,7 @@ index 5305c86..e08e441 100644
  option('dark_mode_distributor_logo', type: 'string', description: 'absolute path to distributor logo dark mode variant')
 +option('whoopsie', type: 'boolean', value: false, description: 'build with Whoopsie support')
 diff --git a/panels/diagnostics/cc-diagnostics-panel.c b/panels/diagnostics/cc-diagnostics-panel.c
-index 0ea554e..fa2901c 100644
+index 0ea554e..a1f1323 100644
 --- a/panels/diagnostics/cc-diagnostics-panel.c
 +++ b/panels/diagnostics/cc-diagnostics-panel.c
 @@ -18,6 +18,8 @@
@@ -82,7 +82,7 @@ index 0ea554e..fa2901c 100644
  };
  
  CC_PANEL_REGISTER (CcDiagnosticsPanel, cc_diagnostics_panel)
-@@ -70,9 +81,82 @@ abrt_vanished_cb (GDBusConnection *connection,
+@@ -70,9 +81,103 @@ abrt_vanished_cb (GDBusConnection *connection,
                    gpointer         user_data)
  {
    g_debug ("ABRT vanished");
@@ -149,6 +149,12 @@ index 0ea554e..fa2901c 100644
 +static void
 +whoopsie_properties_changed (CcDiagnosticsPanel *self)
 +{
++  g_autofree char *name_owner = g_dbus_proxy_get_name_owner (G_DBUS_PROXY (self->whoopsie));
++
++  /* Bail out if dbus service has gone away */
++  if (G_UNLIKELY (!name_owner))
++    return;
++
 +  const gchar *id = "never";
 +
 +  if (whoopsie_preferences_get_automatically_report_crashes (self->whoopsie))
@@ -160,12 +166,27 @@ index 0ea554e..fa2901c 100644
 +  gtk_combo_box_set_active_id (GTK_COMBO_BOX (self->whoopsie_combo), id);
 +  g_signal_handlers_unblock_by_func (self->whoopsie_combo, on_whoopsie_combo_changed_cb, self);
 +}
++
++static void
++whoopsie_bus_owner_changed (GDBusProxy *proxy)
++{
++  g_autofree char *name_owner = g_dbus_proxy_get_name_owner (proxy);
++
++  if (!name_owner)
++    {
++      /* Trigger the service to start again, as it has just been stopped by a timeout
++       * don't bother on waiting for the call results.
++       */
++      whoopsie_preferences_call_get_identifier (WHOOPSIE_PREFERENCES (proxy), NULL, NULL, NULL);
++    }
++}
++
 +#endif
 +
  void
  cc_diagnostics_panel_static_init_func (void)
  {
-@@ -84,7 +168,9 @@ cc_diagnostics_panel_static_init_func (void)
+@@ -84,7 +189,9 @@ cc_diagnostics_panel_static_init_func (void)
                      NULL,
                      NULL);
  
@@ -175,7 +196,7 @@ index 0ea554e..fa2901c 100644
  }
  
  static void
-@@ -109,7 +195,13 @@ cc_diagnostics_panel_class_init (CcDiagnosticsPanelClass *klass)
+@@ -109,7 +216,13 @@ cc_diagnostics_panel_class_init (CcDiagnosticsPanelClass *klass)
  
    gtk_widget_class_bind_template_child (widget_class, CcDiagnosticsPanel, diagnostics_explanation_label);
    gtk_widget_class_bind_template_child (widget_class, CcDiagnosticsPanel, diagnostics_list_box);
@@ -189,7 +210,7 @@ index 0ea554e..fa2901c 100644
  }
  
  static void
-@@ -119,6 +211,7 @@ cc_diagnostics_panel_init (CcDiagnosticsPanel *self)
+@@ -119,6 +232,7 @@ cc_diagnostics_panel_init (CcDiagnosticsPanel *self)
    g_autofree gchar *url = NULL;
    g_autofree gchar *msg = NULL;
    g_autofree gchar *link = NULL;
@@ -197,7 +218,7 @@ index 0ea554e..fa2901c 100644
  
    g_resources_register (cc_diagnostics_get_resource ());
  
-@@ -134,6 +227,26 @@ cc_diagnostics_panel_init (CcDiagnosticsPanel *self)
+@@ -134,6 +248,28 @@ cc_diagnostics_panel_init (CcDiagnosticsPanel *self)
                     self->abrt_switch, "active",
                     G_SETTINGS_BIND_DEFAULT);
  
@@ -215,6 +236,8 @@ index 0ea554e..fa2901c 100644
 +
 +      g_signal_connect_object (self->whoopsie, "g-properties-changed",
 +                               G_CALLBACK (whoopsie_properties_changed), self, G_CONNECT_SWAPPED);
++      g_signal_connect_object (self->whoopsie, "notify::g-name-owner",
++                               G_CALLBACK (whoopsie_bus_owner_changed), NULL, 0);
 +      whoopsie_properties_changed (self);
 +
 +      gtk_widget_hide (GTK_WIDGET (self->abrt_row));
