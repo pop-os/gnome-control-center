@@ -1,0 +1,511 @@
+Add "Dsiable while typing", split Touchpad into 3 sections, and add touchpad click options.
+--- a/panels/mouse/cc-mouse-caps-helper.c
++++ b/panels/mouse/cc-mouse-caps-helper.c
+@@ -27,13 +27,14 @@
+ static gboolean
+ touchpad_check_capabilities_x11 (gboolean *have_two_finger_scrolling,
+                                  gboolean *have_edge_scrolling,
+-                                 gboolean *have_tap_to_click)
++                                 gboolean *have_tap_to_click,
++                                 gboolean *have_clickpad)
+ {
+         GdkDisplay *gdisplay;
+         Display *display;
+ 	g_autoptr(GList) devicelist = NULL;
+ 	GList *l;
+-	Atom realtype, prop_scroll_methods, prop_tapping_enabled;
++	Atom realtype, prop_click_methods, prop_scroll_methods, prop_tapping_enabled;
+ 	int realformat;
+ 	unsigned long nitems, bytes_after;
+ 	unsigned char *data;
+@@ -42,6 +43,7 @@
+ 		*have_two_finger_scrolling = TRUE;
+ 		*have_edge_scrolling = TRUE;
+ 		*have_tap_to_click = TRUE;
++                *have_clickpad = TRUE;
+ 		return TRUE;
+ 	}
+ 
+@@ -49,12 +51,14 @@
+         display = GDK_DISPLAY_XDISPLAY (gdk_display_get_default ());
+ 	prop_scroll_methods = XInternAtom (display, "libinput Scroll Methods Available", False);
+ 	prop_tapping_enabled = XInternAtom (display, "libinput Tapping Enabled", False);
++	prop_click_methods = XInternAtom (display, "libinput Click Methods Available", False);
+ 	if (!prop_scroll_methods || !prop_tapping_enabled)
+ 		return FALSE;
+ 
+ 	*have_two_finger_scrolling = FALSE;
+ 	*have_edge_scrolling = FALSE;
+ 	*have_tap_to_click = FALSE;
++	*have_clickpad = FALSE;
+ 
+         gdk_x11_display_error_trap_push (gdisplay);
+ 
+@@ -80,6 +84,18 @@
+ 			XFree (data);
+ 		}
+ 
++
++		if ((XIGetProperty (display, gdk_x11_device_get_id (device), prop_click_methods,
++                                    0, 2, False, XA_INTEGER, &realtype, &realformat, &nitems,
++                                    &bytes_after, &data) == Success) && (realtype != None)) {
++
++			if (data[0] && data[1])
++				*have_clickpad = TRUE;
++
++			XFree (data);
++		}
++
++
+ 		if ((XIGetProperty (display, gdk_x11_device_get_id (device), prop_tapping_enabled,
+                                     0, 1, False, XA_INTEGER, &realtype, &realformat, &nitems,
+                                     &bytes_after, &data) == Success) && (realtype != None)) {
+@@ -98,12 +114,14 @@
+ gboolean
+ cc_touchpad_check_capabilities (gboolean *have_two_finger_scrolling,
+                                 gboolean *have_edge_scrolling,
+-                                gboolean *have_tap_to_click)
++                                gboolean *have_tap_to_click,
++                                gboolean *have_clickpad)
+ {
+ 	if (GDK_IS_X11_DISPLAY (gdk_display_get_default ()))
+ 		return touchpad_check_capabilities_x11 (have_two_finger_scrolling,
+                                                         have_edge_scrolling,
+-                                                        have_tap_to_click);
++                                                        have_tap_to_click,
++                                                        have_clickpad);
+ 	/* else we unconditionally show all touchpad knobs */
+         *have_two_finger_scrolling = TRUE;
+         *have_edge_scrolling = TRUE;
+--- a/panels/mouse/cc-mouse-panel.ui
++++ b/panels/mouse/cc-mouse-panel.ui
+@@ -203,6 +203,7 @@
+                     <property name="can_focus">False</property>
+                     <property name="shadow_type">none</property>
+                     <property name="label_yalign">0.45</property>
++                    <property name="margin_bottom">32</property>
+                     <child type="label">
+                       <object class="GtkLabel">
+                         <property name="visible">True</property>
+@@ -241,56 +242,176 @@
+                           </object>
+                         </child>
+                         <child>
+-                          <object class="HdyActionRow" id="touchpad_natural_scrolling_row">
++                          <object class="HdyActionRow" id="touchpad_speed_row">
+                             <property name="visible">True</property>
+                             <property name="can_focus">True</property>
+                             <property name="activatable">false</property>
+-                            <property name="title" translatable="yes" comments="Translators: This switch reverses the scrolling direction for touchpads. The term used comes from OS X so use the same translation if possible. ">Natural Scrolling</property>
+-                            <property name="subtitle" translatable="yes">Scrolling moves the content, not the view.</property>
++                            <property name="title" translatable="yes">Touchpad Speed</property>
+                             <child>
+-                              <object class="GtkSwitch" id="touchpad_natural_scrolling_switch">
++                              <object class="GtkScale" id="touchpad_speed_scale">
+                                 <property name="visible">True</property>
+                                 <property name="can_focus">True</property>
++                                <property name="adjustment">touchpad_speed_adjustment</property>
++                                <property name="draw_value">False</property>
++                                <property name="expand">True</property>
+                                 <property name="halign">end</property>
+-                                <property name="valign">center</property>
++                                <child internal-child="accessible">
++                                  <object class="AtkObject">
++                                    <property name="AtkObject::accessible-description" translatable="yes">Double-click timeout</property>
++                                  </object>
++                                </child>
+                               </object>
+                             </child>
+                           </object>
+                         </child>
+                         <child>
+-                          <object class="HdyActionRow" id="touchpad_speed_row">
++                          <object class="HdyActionRow" id="disable_while_typing_row">
+                             <property name="visible">True</property>
+                             <property name="can_focus">True</property>
+                             <property name="activatable">false</property>
+-                            <property name="title" translatable="yes">Touchpad Speed</property>
++                            <property name="title" translatable="yes">Disable while typing</property>
+                             <child>
+-                              <object class="GtkScale" id="touchpad_speed_scale">
++                              <object class="GtkSwitch" id="disable_while_typing_switch">
+                                 <property name="visible">True</property>
+                                 <property name="can_focus">True</property>
+-                                <property name="adjustment">touchpad_speed_adjustment</property>
+-                                <property name="draw_value">False</property>
+-                                <property name="expand">True</property>
+                                 <property name="halign">end</property>
+-                                <child internal-child="accessible">
+-                                  <object class="AtkObject">
+-                                    <property name="AtkObject::accessible-description" translatable="yes">Double-click timeout</property>
+-                                  </object>
+-                                </child>
++                                <property name="valign">center</property>
+                               </object>
++                              <packing>
++                                <property name="left_attach">1</property>
++                                <property name="top_attach">0</property>
++                                <property name="width">1</property>
++                                <property name="height">2</property>
++                              </packing>
+                             </child>
+                           </object>
+                         </child>
++                      </object>
++                    </child>
++                  </object>
++                </child>
++                <child>
++                  <object class="GtkFrame" id="touchpad_click_frame">
++                    <property name="visible">True</property>
++                    <property name="can_focus">False</property>
++                    <property name="shadow_type">none</property>
++                    <property name="label_yalign">0.45</property>
++                    <property name="margin_bottom">32</property>
++                    <child type="label">
++                      <object class="GtkLabel">
++                        <property name="visible">True</property>
++                        <property name="can_focus">False</property>
++                        <property name="xalign">0</property>
++                        <property name="label" translatable="yes">Touchpad Click Options</property>
++                        <property name="margin_bottom">12</property>
++                        <attributes>
++                          <attribute name="weight" value="bold"/>
++                        </attributes>
++                      </object>
++                    </child>
++                    <child>
++                      <object class="GtkListBox" id="touchpad_click_listbox">
++                        <property name="visible">True</property>
++                        <property name="can_focus">True</property>
++                        <property name="selection_mode">none</property>
++                        <style>
++                          <class name="content"/>
++                        </style>
+                         <child>
+                           <object class="HdyActionRow" id="tap_to_click_row">
+                             <property name="visible">False</property>
+                             <property name="can_focus">True</property>
+                             <property name="activatable">false</property>
+                             <property name="title" translatable="yes">Tap to Click</property>
++                            <property name="subtitle" translatable="yes">Enables single finger tap to left click, two finger tap to right-click, and three finger tap to middle-click.</property>
++                            <property name="subtitle-lines">0</property>
+                             <child>
+                               <object class="GtkSwitch" id="tap_to_click_switch">
+                                 <property name="visible">True</property>
+                                 <property name="can_focus">True</property>
+                                 <property name="halign">end</property>
++                                <property name="valign">center</property>
++                              </object>
++                            </child>
++                          </object>
++                        </child>
++                        <child>
++                          <object class="HdyActionRow" id="two_finger_click_row">
++                            <property name="visible">True</property>
++                            <property name="can_focus">True</property>
++                            <property name="activatable">false</property>
++                            <property name="title-lines">0</property>
++                            <property name="subtitle-lines">0</property>
++                            <child>
++                              <object class="GtkRadioButton" id="two_finger_click_radio">
++                                <property name="visible">True</property>
++                                <property name="can_focus">True</property>
++                                <property name="halign">end</property>
++                                <property name="valign">center</property>
++                              </object>
++                            </child>
++                          </object>
++                        </child>
++                        <child>
++                          <object class="HdyActionRow" id="bottom_right_click_row">
++                            <property name="visible">True</property>
++                            <property name="can_focus">True</property>
++                            <property name="activatable">false</property>
++                            <property name="title-lines">0</property>
++                            <property name="subtitle-lines">0</property>
++                            <child>
++                              <object class="GtkRadioButton" id="bottom_right_click_radio">
++                                <property name="visible">True</property>
++                                <property name="can_focus">True</property>
++                                <property name="halign">end</property>
++                                <property name="valign">center</property>
++                                <property name="group">two_finger_click_radio</property>
++                              </object>
++                            </child>
++                          </object>
++                        </child>
++                      </object>
++                    </child>
++                  </object>
++                </child>
++                <child>
++                  <object class="GtkFrame" id="touchpad_scroll_frame">
++                    <property name="visible">True</property>
++                    <property name="can_focus">False</property>
++                    <property name="shadow_type">none</property>
++                    <property name="label_yalign">0.45</property>
++                    <child type="label">
++                      <object class="GtkLabel">
++                        <property name="visible">True</property>
++                        <property name="can_focus">False</property>
++                        <property name="xalign">0</property>
++                        <property name="label" translatable="yes">Touchpad Scroll &amp; Zoom Options</property>
++                        <property name="margin_bottom">12</property>
++                        <attributes>
++                          <attribute name="weight" value="bold"/>
++                        </attributes>
++                      </object>
++                    </child>
++                    <child>
++                      <object class="GtkListBox" id="touchpad_scroll_listbox">
++                        <property name="visible">True</property>
++                        <property name="can_focus">True</property>
++                        <property name="selection_mode">none</property>
++                        <style>
++                          <class name="content"/>
++                        </style>
++                        <child>
++                          <object class="HdyActionRow" id="touchpad_natural_scrolling_row">
++                            <property name="visible">True</property>
++                            <property name="can_focus">True</property>
++                            <property name="activatable">false</property>
++                            <property name="title" translatable="yes" comments="Translators: This switch reverses the scrolling direction for touchpads. The term used comes from OS X so use the same translation if possible. ">Natural Scrolling</property>
++                            <property name="subtitle" translatable="yes">Scrolling moves the content, not the view.</property>
++                            <child>
++                              <object class="GtkSwitch" id="touchpad_natural_scrolling_switch">
++                                <property name="visible">True</property>
++                                <property name="can_focus">True</property>
++                                <property name="halign">end</property>
+                                 <property name="valign">center</property>
+                               </object>
+                             </child>
+--- a/panels/mouse/cc-mouse-caps-helper.h
++++ b/panels/mouse/cc-mouse-caps-helper.h
+@@ -26,7 +26,8 @@
+ 
+ gboolean cc_touchpad_check_capabilities (gboolean *have_two_finger_scrolling,
+                                          gboolean *have_edge_scrolling,
+-                                         gboolean *have_tap_to_click);
++                                         gboolean *have_tap_to_click,
++                                         gboolean *have_clickpad);
+ 
+ gboolean cc_synaptics_check (void);
+ 
+--- a/panels/mouse/cc-mouse-panel.c
++++ b/panels/mouse/cc-mouse-panel.c
+@@ -22,7 +22,9 @@
+  */
+ 
+ #include <gdesktop-enums.h>
++#include <glib/gi18n.h>
+ #include <gtk/gtk.h>
++#include <handy.h>
+ 
+ #include "cc-mouse-caps-helper.h"
+ #include "cc-mouse-panel.h"
+@@ -36,6 +38,8 @@
+ {
+   CcPanel            parent_instance;
+ 
++  GtkListBoxRow     *disable_while_typing_row;
++  GtkSwitch         *disable_while_typing_switch;
+   GtkListBoxRow     *edge_scrolling_row;
+   GtkSwitch         *edge_scrolling_switch;
+   GtkListBox        *general_listbox;
+@@ -75,6 +79,13 @@
+ 
+   // Mouse acceleration patch
+   GtkSwitch *mouse_acceleration_enable_switch;
++
++  GtkFrame          *touchpad_click_frame;
++  GtkFrame          *touchpad_scroll_frame;
++  GtkRadioButton    *two_finger_click_radio;
++  HdyActionRow      *two_finger_click_row;
++  GtkRadioButton    *bottom_right_click_radio;
++  HdyActionRow      *bottom_right_click_row;
+ };
+ 
+ CC_PANEL_REGISTER (CcMousePanel, cc_mouse_panel)
+@@ -107,19 +118,24 @@
+   gboolean have_two_finger_scrolling;
+   gboolean have_edge_scrolling;
+   gboolean have_tap_to_click;
++  gboolean have_clickpad;
+ 
+   if (!self->have_touchpad) {
+     gtk_widget_hide (GTK_WIDGET (self->touchpad_frame));
++    gtk_widget_hide (GTK_WIDGET (self->touchpad_click_frame));
++    gtk_widget_hide (GTK_WIDGET (self->touchpad_scroll_frame));
+     return;
+   }
+ 
+-  cc_touchpad_check_capabilities (&have_two_finger_scrolling, &have_edge_scrolling, &have_tap_to_click);
++  cc_touchpad_check_capabilities (&have_two_finger_scrolling, &have_edge_scrolling, &have_tap_to_click, &have_clickpad);
+ 
+   gtk_widget_show (GTK_WIDGET (self->touchpad_frame));
+ 
+   gtk_widget_set_visible (GTK_WIDGET (self->two_finger_scrolling_row), have_two_finger_scrolling);
+   gtk_widget_set_visible (GTK_WIDGET (self->edge_scrolling_row), have_edge_scrolling);
+   gtk_widget_set_visible (GTK_WIDGET (self->tap_to_click_row), have_tap_to_click);
++  gtk_widget_set_visible (GTK_WIDGET (self->two_finger_click_row), have_clickpad);
++  gtk_widget_set_visible (GTK_WIDGET (self->bottom_right_click_row), have_clickpad);
+ 
+   edge_scroll_enabled = g_settings_get_boolean (self->touchpad_settings, "edge-scrolling-enabled");
+   two_finger_scroll_enabled = g_settings_get_boolean (self->touchpad_settings, "two-finger-scrolling-enabled");
+@@ -210,6 +226,78 @@
+   return g_variant_new_string (enabled ? "enabled" : "disabled");
+ }
+ 
++static gboolean
++touchpad_click_areas_get_mapping (GValue    *value,
++                                  GVariant  *variant,
++                                  gpointer   user_data)
++{
++  gboolean enabled;
++
++  enabled = g_strcmp0 (g_variant_get_string (variant, NULL), "areas") == 0;
++  g_value_set_boolean (value, enabled);
++
++  return TRUE;
++}
++
++static GVariant *
++touchpad_click_areas_set_mapping (const GValue              *value,
++                                  const GVariantType        *type,
++                                  gpointer                   user_data)
++{
++  gboolean enabled;
++
++  enabled = g_value_get_boolean (value);
++
++  return g_variant_new_string (enabled ? "areas" : "fingers");
++}
++
++static gboolean
++touchpad_click_fingers_get_mapping (GValue    *value,
++                                    GVariant  *variant,
++                                    gpointer   user_data)
++{
++  gboolean enabled;
++
++  enabled = g_strcmp0 (g_variant_get_string (variant, NULL), "areas") != 0;
++  g_value_set_boolean (value, enabled);
++
++  return TRUE;
++}
++
++static GVariant *
++touchpad_click_fingers_set_mapping (const GValue              *value,
++                                    const GVariantType        *type,
++                                    gpointer                   user_data)
++{
++  gboolean enabled;
++
++  enabled = g_value_get_boolean (value);
++
++  return g_variant_new_string (enabled ? "fingers" : "areas");
++}
++
++static void
++tap_to_click_changed (CcMousePanel *self)
++{
++  gchar *two_finger_title, *bottom_right_title, *two_finger_subtitle, *bottom_right_subtitle;
++  gboolean active = gtk_switch_get_active (self->tap_to_click_switch);
++  if (active) {
++    two_finger_title = _("Right-Click with Two Finger Click or Two Finger Tap");
++    bottom_right_title = _("Right-Click with Click in Bottom Right Corner or Two Finger Tap");
++    two_finger_subtitle = _("Middle-click will be set to three finger click or three finger tap.");
++    bottom_right_subtitle = _("Middle-click will be set to click in the bottom center or three finger tap.");
++  } else {
++    two_finger_title = _("Right-Click with Two Finger Click");
++    bottom_right_title = _("Right-Click with Click in Bottom Right Corner");
++    two_finger_subtitle = _("Middle-click will be set to three finger click.");
++    bottom_right_subtitle = _("Middle-click will be set to click in the bottom center.");
++  }
++  hdy_preferences_row_set_title (HDY_PREFERENCES_ROW (self->two_finger_click_row), two_finger_title);
++  hdy_preferences_row_set_title (HDY_PREFERENCES_ROW (self->bottom_right_click_row), bottom_right_title);
++  hdy_action_row_set_subtitle (self->two_finger_click_row, two_finger_subtitle);
++  hdy_action_row_set_subtitle (self->bottom_right_click_row, bottom_right_subtitle);
++}
++
+ static void
+ handle_secondary_button (CcMousePanel   *self,
+                          GtkRadioButton *button,
+@@ -308,6 +396,24 @@
+                                 touchpad_enabled_get_mapping,
+                                 touchpad_enabled_set_mapping,
+                                 NULL, NULL);
++  g_settings_bind_with_mapping (self->touchpad_settings, "send-events",
++                                self->disable_while_typing_row, "sensitive",
++                                G_SETTINGS_BIND_GET,
++                                touchpad_enabled_get_mapping,
++                                touchpad_enabled_set_mapping,
++                                NULL, NULL);
++  g_settings_bind_with_mapping (self->touchpad_settings, "send-events",
++                                self->two_finger_click_row, "sensitive",
++                                G_SETTINGS_BIND_GET,
++                                touchpad_enabled_get_mapping,
++                                touchpad_enabled_set_mapping,
++                                NULL, NULL);
++  g_settings_bind_with_mapping (self->touchpad_settings, "send-events",
++                                self->bottom_right_click_row, "sensitive",
++                                G_SETTINGS_BIND_GET,
++                                touchpad_enabled_get_mapping,
++                                touchpad_enabled_set_mapping,
++                                NULL, NULL);
+ 
+   g_settings_bind (self->touchpad_settings, "natural-scroll",
+                          self->touchpad_natural_scrolling_switch, "active",
+@@ -329,6 +435,28 @@
+                    self->edge_scrolling_switch, "state",
+                    G_SETTINGS_BIND_GET);
+ 
++  g_settings_bind (self->touchpad_settings, "disable-while-typing",
++                   self->disable_while_typing_switch, "active",
++                   G_SETTINGS_BIND_DEFAULT);
++
++  g_settings_bind_with_mapping (self->touchpad_settings, "click-method",
++                                self->two_finger_click_radio, "active",
++                                G_SETTINGS_BIND_DEFAULT,
++                                touchpad_click_fingers_get_mapping,
++                                touchpad_click_fingers_set_mapping,
++                                NULL, NULL);
++
++  g_settings_bind_with_mapping (self->touchpad_settings, "click-method",
++                                self->bottom_right_click_radio, "active",
++                                G_SETTINGS_BIND_DEFAULT,
++                                touchpad_click_areas_get_mapping,
++                                touchpad_click_areas_set_mapping,
++                                NULL, NULL);
++
++  g_signal_connect_object (self->tap_to_click_switch, "notify::active",
++                           G_CALLBACK (tap_to_click_changed), self, G_CONNECT_SWAPPED);
++  tap_to_click_changed (self);
++
+   setup_touchpad_options (self);
+ }
+ 
+@@ -449,6 +577,8 @@
+ 
+   gtk_widget_class_set_template_from_resource (widget_class, "/org/gnome/control-center/mouse/cc-mouse-panel.ui");
+ 
++  gtk_widget_class_bind_template_child (widget_class, CcMousePanel, disable_while_typing_row);
++  gtk_widget_class_bind_template_child (widget_class, CcMousePanel, disable_while_typing_switch);
+   gtk_widget_class_bind_template_child (widget_class, CcMousePanel, edge_scrolling_row);
+   gtk_widget_class_bind_template_child (widget_class, CcMousePanel, edge_scrolling_switch);
+   gtk_widget_class_bind_template_child (widget_class, CcMousePanel, general_listbox);
+@@ -476,6 +606,13 @@
+   gtk_widget_class_bind_template_child (widget_class, CcMousePanel, two_finger_scrolling_row);
+   gtk_widget_class_bind_template_child (widget_class, CcMousePanel, two_finger_scrolling_switch);
+ 
++  gtk_widget_class_bind_template_child (widget_class, CcMousePanel, touchpad_click_frame);
++  gtk_widget_class_bind_template_child (widget_class, CcMousePanel, touchpad_scroll_frame);
++  gtk_widget_class_bind_template_child (widget_class, CcMousePanel, two_finger_click_radio);
++  gtk_widget_class_bind_template_child (widget_class, CcMousePanel, two_finger_click_row);
++  gtk_widget_class_bind_template_child (widget_class, CcMousePanel, bottom_right_click_radio);
++  gtk_widget_class_bind_template_child (widget_class, CcMousePanel, bottom_right_click_row);
++
+   gtk_widget_class_bind_template_callback (widget_class, edge_scrolling_changed_event);
+   gtk_widget_class_bind_template_callback (widget_class, on_content_size_changed);
+   gtk_widget_class_bind_template_callback (widget_class, test_button_toggled_cb);
